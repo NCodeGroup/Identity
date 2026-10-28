@@ -32,20 +32,20 @@ public sealed class AuthorizationRequest(string redirectUri, string state, strin
 {
     private static readonly HashSet<string> ReservedParameterNames = new(StringComparer.Ordinal)
     {
-        "response_type",
-        "client_id",
-        "redirect_uri",
-        "state",
-        "nonce",
-        "scope",
-        "resource",
-        "response_mode",
-        "code_challenge",
-        "code_challenge_method",
-        "request_uri",
-        "client_secret",
-        "client_assertion",
-        "client_assertion_type",
+        OpenIdProtocol.Parameters.ResponseType,
+        OpenIdProtocol.Parameters.ClientId,
+        OpenIdProtocol.Parameters.RedirectUri,
+        OpenIdProtocol.Parameters.State,
+        OpenIdProtocol.Parameters.Nonce,
+        OpenIdProtocol.Parameters.Scope,
+        OpenIdProtocol.Parameters.Resource,
+        OpenIdProtocol.Parameters.ResponseMode,
+        OpenIdProtocol.Parameters.CodeChallenge,
+        OpenIdProtocol.Parameters.CodeChallengeMethod,
+        OpenIdProtocol.Parameters.RequestUri,
+        OpenIdProtocol.Parameters.ClientSecret,
+        OpenIdProtocol.Parameters.ClientAssertion,
+        OpenIdProtocol.Parameters.ClientAssertionType,
     };
 
     private IReadOnlyDictionary<string, string>? _additionalParameters;

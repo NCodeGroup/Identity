@@ -166,7 +166,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             subjectDn,
             trustAnchors,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -195,7 +195,7 @@ public class TokenEndpointMutualTlsTests
                     .ClientCertificateRevocationMode
                     .Online,
             },
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -230,7 +230,7 @@ public class TokenEndpointMutualTlsTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = TestServerSettingsProvider.ApiScope,
                     ["client_id"] = clientId,
                 }
@@ -258,7 +258,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -290,7 +290,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -320,7 +320,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
 
         var client = CreateClient(factory);
@@ -332,7 +332,7 @@ public class TokenEndpointMutualTlsTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -348,7 +348,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             registeredCertificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -366,7 +366,7 @@ public class TokenEndpointMutualTlsTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -408,7 +408,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -668,9 +668,9 @@ public class TokenEndpointMutualTlsTests
             .Select(element => element.GetString())
             .ToList();
 
-        Assert.Contains(OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth, methods);
+        Assert.Contains(OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth, methods);
         Assert.Contains(
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
             methods
         );
     }

@@ -48,7 +48,7 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
         // The CIBA grant must be allowed by the client (ADR-0085).
         if (
             settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
-            && !grantTypesSupported.Contains(OpenIdConstants.GrantTypes.Ciba)
+            && !grantTypesSupported.Contains(OpenIdProtocol.GrantTypes.Ciba)
         )
         {
             throw errorFactory
@@ -75,7 +75,7 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
         // The client's configured delivery mode must be one the server supports.
         var deliveryMode =
             settings.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode)
-            ?? OpenIdConstants.BackchannelTokenDeliveryModes.Poll;
+            ?? OpenIdProtocol.BackchannelTokenDeliveryModes.Poll;
 
         var deliveryModesSupported = settings.GetValue(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported
@@ -91,7 +91,7 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
         // Ping and push delivery require a client_notification_token (CIBA §7.1).
         var isPoll = string.Equals(
             deliveryMode,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
             StringComparison.Ordinal
         );
         if (!isPoll && string.IsNullOrEmpty(request.ClientNotificationToken))

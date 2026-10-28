@@ -41,7 +41,7 @@ public sealed class DefaultOpenIdResultExecutorTests : BaseTests
         var mockFormatter = CreateStrictMock<IOpenIdResponseFormatter>();
         mockFormatter
             .SetupGet(x => x.MediaTypes)
-            .Returns([OpenIdConstants.MediaTypes.Json])
+            .Returns([OpenIdProtocol.MediaTypes.Json])
             .Verifiable();
         mockFormatter.Setup(x => x.CanFormat(response)).Returns(true).Verifiable();
         mockFormatter
@@ -79,7 +79,7 @@ public sealed class DefaultOpenIdResultExecutorTests : BaseTests
     public async Task ExecuteAsync_WhenTheResponseIsAnError_TagsTheRequestWithItsCode()
     {
         var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupGet(x => x.Code).Returns(OpenIdConstants.ErrorCodes.InvalidGrant);
+        mockError.SetupGet(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.InvalidGrant);
         var httpContext = CreateHttpContext(mockError.Object);
 
         await Executor.ExecuteAsync(
@@ -92,7 +92,7 @@ public sealed class DefaultOpenIdResultExecutorTests : BaseTests
             [
                 new KeyValuePair<string, object?>(
                     OpenIdMetricAttributes.Error,
-                    OpenIdConstants.ErrorCodes.InvalidGrant
+                    OpenIdProtocol.ErrorCodes.InvalidGrant
                 ),
             ],
             MetricsTags.Tags

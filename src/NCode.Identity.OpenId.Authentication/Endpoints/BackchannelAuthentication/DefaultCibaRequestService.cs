@@ -136,7 +136,7 @@ internal sealed class DefaultCibaRequestService(
         if (
             string.Equals(
                 job.DeliveryMode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
                 StringComparison.Ordinal
             )
         )
@@ -185,12 +185,12 @@ internal sealed class DefaultCibaRequestService(
         if (
             string.Equals(
                 job.DeliveryMode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
                 StringComparison.Ordinal
             )
         )
         {
-            job = job with { Error = OpenIdConstants.ErrorCodes.AccessDenied };
+            job = job with { Error = OpenIdProtocol.ErrorCodes.AccessDenied };
         }
 
         await JobDispatcher.DispatchAsync(job, cancellationToken: cancellationToken);
@@ -204,12 +204,12 @@ internal sealed class DefaultCibaRequestService(
     {
         var isPing = string.Equals(
             payload.DeliveryMode,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             StringComparison.Ordinal
         );
         var isPush = string.Equals(
             payload.DeliveryMode,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             StringComparison.Ordinal
         );
         if (!isPing && !isPush)

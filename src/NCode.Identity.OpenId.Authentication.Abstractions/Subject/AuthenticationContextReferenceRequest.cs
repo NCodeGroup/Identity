@@ -30,7 +30,7 @@ public readonly record struct AuthenticationContextReferenceRequest
 {
     /// <summary>
     /// Gets the authentication method references (the <c>amr</c> claim values) that were satisfied, such as
-    /// <see cref="OpenIdConstants.AuthenticationMethods.Password"/>.
+    /// <see cref="OpenIdProtocol.AuthenticationMethods.Password"/>.
     /// </summary>
     public required IReadOnlyCollection<string> AuthenticationMethods { get; init; }
 

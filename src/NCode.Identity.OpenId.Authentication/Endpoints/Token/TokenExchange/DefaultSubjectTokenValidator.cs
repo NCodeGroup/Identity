@@ -57,7 +57,7 @@ internal class DefaultSubjectTokenValidator(IIssuedTokenValidator issuedTokenVal
         // No audience constraint here: the requester-entitlement rule (RFC 8693) is enforced by the grant handler
         // after validation, which is a token-exchange-specific policy rather than a check of the token itself.
         JwtValidationResult validateResult;
-        if (IsTokenType(tokenTypeIdentifier, OpenIdConstants.TokenTypeIdentifiers.AccessToken))
+        if (IsTokenType(tokenTypeIdentifier, OpenIdProtocol.TokenTypeIdentifiers.AccessToken))
         {
             validateResult = await ValidateAccessTokenAsync(
                 openIdContext,
@@ -65,7 +65,7 @@ internal class DefaultSubjectTokenValidator(IIssuedTokenValidator issuedTokenVal
                 cancellationToken
             );
         }
-        else if (IsTokenType(tokenTypeIdentifier, OpenIdConstants.TokenTypeIdentifiers.IdToken))
+        else if (IsTokenType(tokenTypeIdentifier, OpenIdProtocol.TokenTypeIdentifiers.IdToken))
         {
             validateResult = await IssuedTokenValidator.ValidateIdTokenAsync(
                 openIdContext,
@@ -73,7 +73,7 @@ internal class DefaultSubjectTokenValidator(IIssuedTokenValidator issuedTokenVal
                 cancellationToken
             );
         }
-        else if (IsTokenType(tokenTypeIdentifier, OpenIdConstants.TokenTypeIdentifiers.Jwt))
+        else if (IsTokenType(tokenTypeIdentifier, OpenIdProtocol.TokenTypeIdentifiers.Jwt))
         {
             // The two policies require different 'typ' values, so at most one of them accepts a token.
             validateResult = await ValidateAccessTokenAsync(

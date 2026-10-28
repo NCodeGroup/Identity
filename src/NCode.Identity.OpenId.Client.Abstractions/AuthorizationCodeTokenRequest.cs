@@ -34,7 +34,7 @@ public sealed class AuthorizationCodeTokenRequest(
 ) : TokenRequest
 {
     /// <inheritdoc />
-    public override string GrantType => "authorization_code";
+    public override string GrantType => OpenIdProtocol.GrantTypes.AuthorizationCode;
 
     /// <summary>
     /// Gets the authorization code.
@@ -55,9 +55,15 @@ public sealed class AuthorizationCodeTokenRequest(
     public override void AddGrantParameters(ICollection<KeyValuePair<string, string>> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        parameters.Add(new KeyValuePair<string, string>("code", Code));
-        parameters.Add(new KeyValuePair<string, string>("redirect_uri", RedirectUri));
-        parameters.Add(new KeyValuePair<string, string>("code_verifier", CodeVerifier));
+        parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.AuthorizationCode, Code)
+        );
+        parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.RedirectUri, RedirectUri)
+        );
+        parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.CodeVerifier, CodeVerifier)
+        );
     }
 
     private static string ValidateNotEmpty(

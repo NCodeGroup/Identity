@@ -25,13 +25,13 @@ namespace NCode.Identity.OpenId.Client;
 /// </summary>
 /// <param name="subjectToken">The token that represents the identity of the party on behalf of whom the request is made.</param>
 /// <param name="subjectTokenType">The type identifier of the subject token.
-/// See <see cref="TokenTypeIdentifiers"/> for the known values.</param>
+/// See <see cref="OpenIdProtocol.TokenTypeIdentifiers"/> for the known values.</param>
 [PublicAPI]
 public sealed class TokenExchangeTokenRequest(string subjectToken, string subjectTokenType)
     : TokenRequest
 {
     /// <inheritdoc />
-    public override string GrantType => "urn:ietf:params:oauth:grant-type:token-exchange";
+    public override string GrantType => OpenIdProtocol.GrantTypes.TokenExchange;
 
     /// <summary>
     /// Gets the subject token.
@@ -67,22 +67,41 @@ public sealed class TokenExchangeTokenRequest(string subjectToken, string subjec
     public override void AddGrantParameters(ICollection<KeyValuePair<string, string>> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        parameters.Add(new KeyValuePair<string, string>("subject_token", SubjectToken));
-        parameters.Add(new KeyValuePair<string, string>("subject_token_type", SubjectTokenType));
+        parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.SubjectToken, SubjectToken)
+        );
+        parameters.Add(
+            new KeyValuePair<string, string>(
+                OpenIdProtocol.Parameters.SubjectTokenType,
+                SubjectTokenType
+            )
+        );
 
         if (ActorToken is not null)
-            parameters.Add(new KeyValuePair<string, string>("actor_token", ActorToken));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.ActorToken, ActorToken)
+            );
 
         if (ActorTokenType is not null)
-            parameters.Add(new KeyValuePair<string, string>("actor_token_type", ActorTokenType));
+            parameters.Add(
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.ActorTokenType,
+                    ActorTokenType
+                )
+            );
 
         if (RequestedTokenType is not null)
             parameters.Add(
-                new KeyValuePair<string, string>("requested_token_type", RequestedTokenType)
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.RequestedTokenType,
+                    RequestedTokenType
+                )
             );
 
         foreach (var audience in Audiences)
-            parameters.Add(new KeyValuePair<string, string>("audience", audience));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Audience, audience)
+            );
     }
 
     private static string ValidateNotEmpty(

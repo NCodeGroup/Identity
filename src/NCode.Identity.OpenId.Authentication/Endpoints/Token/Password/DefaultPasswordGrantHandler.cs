@@ -43,7 +43,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.Password };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.Password };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -61,7 +61,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         if (string.IsNullOrEmpty(username))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.Username)
+                .MissingParameter(OpenIdProtocol.Parameters.Username)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
@@ -142,7 +142,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = createdWhen,
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Password,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.Password,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Resources = tokenRequest.Resources,
@@ -163,7 +163,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
             tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
@@ -177,7 +177,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.OfflineAccess))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 

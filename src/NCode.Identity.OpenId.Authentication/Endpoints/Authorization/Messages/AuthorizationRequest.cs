@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -112,7 +112,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestObject?.ClientId
         ?? OriginalRequestMessage.ClientId
         ?? throw OpenIdEnvironment
-            .ErrorFactory.MissingParameter(OpenIdConstants.Parameters.ClientId)
+            .ErrorFactory.MissingParameter(OpenIdProtocol.Parameters.ClientId)
             .AsException();
 
     /// <inheritdoc />
@@ -128,7 +128,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public string? DPoPJwkThumbprint => Values.DPoPJwkThumbprint;
 
     /// <inheritdoc />
-    public string DisplayType => Values.DisplayType ?? OpenIdConstants.DisplayTypes.Page;
+    public string DisplayType => Values.DisplayType ?? OpenIdProtocol.DisplayTypes.Page;
 
     /// <inheritdoc />
     public string? IdTokenHint => Values.IdTokenHint;
@@ -149,7 +149,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public string RedirectUri =>
         Values.RedirectUri
         ?? throw OpenIdEnvironment
-            .ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+            .ErrorFactory.MissingParameter(OpenIdProtocol.Parameters.RedirectUri)
             .AsException();
 
     /// <inheritdoc />

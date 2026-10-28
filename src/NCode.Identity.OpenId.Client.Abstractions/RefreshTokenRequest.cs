@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Client;
 public sealed class RefreshTokenRequest(string refreshToken) : TokenRequest
 {
     /// <inheritdoc />
-    public override string GrantType => "refresh_token";
+    public override string GrantType => OpenIdProtocol.GrantTypes.RefreshToken;
 
     /// <summary>
     /// Gets the refresh token.
@@ -39,7 +39,9 @@ public sealed class RefreshTokenRequest(string refreshToken) : TokenRequest
     public override void AddGrantParameters(ICollection<KeyValuePair<string, string>> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
-        parameters.Add(new KeyValuePair<string, string>("refresh_token", RefreshToken));
+        parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.RefreshToken, RefreshToken)
+        );
     }
 
     private static string ValidateNotEmpty(

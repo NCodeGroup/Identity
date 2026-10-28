@@ -32,7 +32,6 @@ internal class DefaultDiscoverMetadataHandler(
     LinkGenerator linkGenerator
 ) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority
 {
-    private const string MtlsEndpointAliasesKey = "mtls_endpoint_aliases";
     private const string AuthMethodsSupportedSuffix = "_auth_methods_supported";
     private const string AuthSigningAlgValuesSupportedSuffix = "_auth_signing_alg_values_supported";
 
@@ -157,7 +156,7 @@ internal class DefaultDiscoverMetadataHandler(
         }
 
         if (mtlsAliases is { Count: > 0 })
-            metadata.TryAdd(MtlsEndpointAliasesKey, mtlsAliases);
+            metadata.TryAdd(OpenIdProtocol.MetadataNames.MtlsEndpointAliases, mtlsAliases);
     }
 
     private static string? TryRewriteAuthority(string endpointUrl, string authority)

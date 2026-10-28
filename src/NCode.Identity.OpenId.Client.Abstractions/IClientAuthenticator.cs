@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Client;
 public interface IClientAuthenticator
 {
     /// <summary>
-    /// Gets the name of the authentication method, for example <see cref="ClientAuthenticationMethods.ClientSecretBasic"/>.
+    /// Gets the name of the authentication method, for example <see cref="OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic"/>.
     /// </summary>
     string MethodName { get; }
 

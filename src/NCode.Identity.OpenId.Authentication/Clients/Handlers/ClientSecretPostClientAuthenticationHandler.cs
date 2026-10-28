@@ -39,7 +39,7 @@ internal class ClientSecretPostClientAuthenticationHandler(
 {
     /// <inheritdoc />
     public override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
@@ -55,8 +55,8 @@ internal class ClientSecretPostClientAuthenticationHandler(
         var form = await httpRequest.ReadFormAsync(cancellationToken);
 
         if (
-            !form.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientId)
-            || !form.TryGetValue(OpenIdConstants.Parameters.ClientSecret, out var clientSecret)
+            !form.TryGetValue(OpenIdProtocol.Parameters.ClientId, out var clientId)
+            || !form.TryGetValue(OpenIdProtocol.Parameters.ClientSecret, out var clientSecret)
         )
         {
             return ClientAuthenticationResult.Undefined;

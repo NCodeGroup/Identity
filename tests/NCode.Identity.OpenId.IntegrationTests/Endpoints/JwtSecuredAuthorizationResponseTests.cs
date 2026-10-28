@@ -142,7 +142,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -168,7 +168,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.Jwt
+            OpenIdProtocol.ResponseModes.Jwt
         );
 
         var location = response.Headers.Location;
@@ -188,7 +188,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.FragmentJwt
+            OpenIdProtocol.ResponseModes.FragmentJwt
         );
 
         var location = response.Headers.Location;
@@ -208,7 +208,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.FormPostJwt
+            OpenIdProtocol.ResponseModes.FormPostJwt
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -226,7 +226,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie: null,
-            OpenIdConstants.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt
         );
 
         var location = response.Headers.Location;
@@ -236,7 +236,7 @@ public class JwtSecuredAuthorizationResponseTests
         var (header, payload) = DecodeJwt(parameters["response"]);
         AssertAddressedToTheClient(header, payload);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.LoginRequired,
+            OpenIdProtocol.ErrorCodes.LoginRequired,
             payload.GetProperty("error").GetString()
         );
         Assert.Equal("abc123", payload.GetProperty("state").GetString());
@@ -288,7 +288,7 @@ public class JwtSecuredAuthorizationResponseTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
         Assert.Contains(
@@ -326,7 +326,7 @@ public class JwtSecuredAuthorizationResponseTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
         Assert.Contains(
@@ -351,7 +351,7 @@ public class JwtSecuredAuthorizationResponseTests
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { RedirectUri },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
                 ["authorization_encrypted_response_alg"] = "RSA-OAEP-256",
@@ -402,7 +402,7 @@ public class JwtSecuredAuthorizationResponseTests
         var signed = joseSerializer.Decode(encrypted, clientKey);
         var (_, payload) = DecodeJwt(signed);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.LoginRequired,
+            OpenIdProtocol.ErrorCodes.LoginRequired,
             payload.GetProperty("error").GetString()
         );
         Assert.Equal("abc123", payload.GetProperty("state").GetString());

@@ -72,7 +72,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
         var tokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = OpenIdProtocol.GrantTypes.AuthorizationCode,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             SubjectAuthentication = subjectAuthentication,
@@ -82,7 +82,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
             tokenRequest,
             SigningCredentials: null!,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.AccessToken
+            TokenType: OpenIdProtocol.TokenTypes.AccessToken
         );
 
         return new GetAccessTokenSubjectClaimsCommand(

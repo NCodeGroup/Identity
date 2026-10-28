@@ -38,11 +38,11 @@ internal static class OpenIdSettingRules
 {
     private static readonly string[] GrantTypeNames =
     [
-        OpenIdConstants.GrantTypes.AuthorizationCode,
-        OpenIdConstants.GrantTypes.Implicit,
-        OpenIdConstants.GrantTypes.Password,
-        OpenIdConstants.GrantTypes.ClientCredentials,
-        OpenIdConstants.GrantTypes.RefreshToken,
+        OpenIdProtocol.GrantTypes.AuthorizationCode,
+        OpenIdProtocol.GrantTypes.Implicit,
+        OpenIdProtocol.GrantTypes.Password,
+        OpenIdProtocol.GrantTypes.ClientCredentials,
+        OpenIdProtocol.GrantTypes.RefreshToken,
     ];
 
     /// <summary>
@@ -50,8 +50,8 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> SubjectType() =>
         SettingRules.OneOf(
-            OpenIdConstants.SubjectTypes.Public,
-            OpenIdConstants.SubjectTypes.Pairwise
+            OpenIdProtocol.SubjectTypes.Public,
+            OpenIdProtocol.SubjectTypes.Pairwise
         );
 
     /// <summary>
@@ -59,9 +59,9 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> BackchannelTokenDeliveryMode() =>
         SettingRules.OneOf(
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Push
         );
 
     /// <summary>
@@ -70,8 +70,8 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> ConfirmationMethod() =>
         SettingRules.OneOf(
-            OpenIdConstants.ConfirmationMethods.JwkThumbprint,
-            OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint
+            OpenIdProtocol.ConfirmationMethods.JwkThumbprint,
+            OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint
         );
 
     /// <summary>
@@ -82,13 +82,13 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> ResponseType() =>
         SettingRules.OneOf(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken,
-            OpenIdConstants.ResponseTypes.Token,
-            OpenIdConstants.ResponseTypes.CodeIdToken,
-            OpenIdConstants.ResponseTypes.CodeToken,
-            OpenIdConstants.ResponseTypes.IdTokenToken,
-            OpenIdConstants.ResponseTypes.CodeIdTokenToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken,
+            OpenIdProtocol.ResponseTypes.Token,
+            OpenIdProtocol.ResponseTypes.CodeIdToken,
+            OpenIdProtocol.ResponseTypes.CodeToken,
+            OpenIdProtocol.ResponseTypes.IdTokenToken,
+            OpenIdProtocol.ResponseTypes.CodeIdTokenToken
         );
 
     /// <summary>
@@ -107,11 +107,11 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> PromptValue() =>
         SettingRules.OneOf(
-            OpenIdConstants.PromptTypes.None,
-            OpenIdConstants.PromptTypes.Login,
-            OpenIdConstants.PromptTypes.Consent,
-            OpenIdConstants.PromptTypes.SelectAccount,
-            OpenIdConstants.PromptTypes.CreateAccount
+            OpenIdProtocol.PromptTypes.None,
+            OpenIdProtocol.PromptTypes.Login,
+            OpenIdProtocol.PromptTypes.Consent,
+            OpenIdProtocol.PromptTypes.SelectAccount,
+            OpenIdProtocol.PromptTypes.CreateAccount
         );
 
     /// <summary>
@@ -119,17 +119,17 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> DisplayValue() =>
         SettingRules.OneOf(
-            OpenIdConstants.DisplayTypes.Page,
-            OpenIdConstants.DisplayTypes.Popup,
-            OpenIdConstants.DisplayTypes.Touch,
-            OpenIdConstants.DisplayTypes.Wap
+            OpenIdProtocol.DisplayTypes.Page,
+            OpenIdProtocol.DisplayTypes.Popup,
+            OpenIdProtocol.DisplayTypes.Touch,
+            OpenIdProtocol.DisplayTypes.Wap
         );
 
     /// <summary>
     /// Gets the rule for a claim type the server can emit; only <c>normal</c> claims are implemented.
     /// </summary>
     public static SettingRule<string> ClaimType() =>
-        SettingRules.OneOf(OpenIdConstants.ClaimTypes.Normal);
+        SettingRules.OneOf(OpenIdProtocol.ClaimTypes.Normal);
 
     /// <summary>
     /// Gets the rule for a refresh token expiration policy: <c>absolute</c> or <c>sliding</c>. A refresh token always

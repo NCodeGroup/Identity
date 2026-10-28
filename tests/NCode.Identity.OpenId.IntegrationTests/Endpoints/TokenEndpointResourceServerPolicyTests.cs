@@ -45,7 +45,7 @@ public class TokenEndpointResourceServerPolicyTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
@@ -99,7 +99,7 @@ public class TokenEndpointResourceServerPolicyTests
             {
                 [OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = true,
             },
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -121,7 +121,7 @@ public class TokenEndpointResourceServerPolicyTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = TestServerSettingsProvider.ApiScope,
                     ["client_id"] = clientId,
                 }
@@ -177,7 +177,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -200,7 +200,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -218,7 +218,7 @@ public class TokenEndpointResourceServerPolicyTests
                 [OpenIdSettingNames.AccessTokenSenderConstraintRequired] = true,
                 [OpenIdSettingNames.AccessTokenConfirmationMethodsSupported] = new[]
                 {
-                    OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint,
+                    OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint,
                 },
             }
         );
@@ -236,7 +236,7 @@ public class TokenEndpointResourceServerPolicyTests
             payload
                 .RootElement.GetProperty("cnf")
                 .TryGetProperty(
-                    OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint,
+                    OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint,
                     out _
                 )
         );
@@ -259,7 +259,7 @@ public class TokenEndpointResourceServerPolicyTests
                     OpenIdConstants.SecurityProfiles.Fapi2,
                 },
             },
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -274,7 +274,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
         Assert.StartsWith(
@@ -297,7 +297,7 @@ public class TokenEndpointResourceServerPolicyTests
                 [OpenIdSettingNames.AccessTokenSenderConstraintRequired] = true,
                 [OpenIdSettingNames.AccessTokenConfirmationMethodsSupported] = new[]
                 {
-                    OpenIdConstants.ConfirmationMethods.JwkThumbprint,
+                    OpenIdProtocol.ConfirmationMethods.JwkThumbprint,
                 },
             }
         );
@@ -308,7 +308,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }

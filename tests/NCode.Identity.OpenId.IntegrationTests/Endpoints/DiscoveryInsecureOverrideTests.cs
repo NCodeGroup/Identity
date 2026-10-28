@@ -56,16 +56,16 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         var responseTypes = GetStringArray(root, "response_types_supported");
         Assert.Equal(
             [
-                OpenIdConstants.ResponseTypes.Code,
-                OpenIdConstants.ResponseTypes.CodeIdToken,
-                OpenIdConstants.ResponseTypes.Token,
+                OpenIdProtocol.ResponseTypes.Code,
+                OpenIdProtocol.ResponseTypes.CodeIdToken,
+                OpenIdProtocol.ResponseTypes.Token,
             ],
             responseTypes.Order(StringComparer.Ordinal)
         );
 
         // The 'implicit' grant type is advertised.
         var grantTypes = GetStringArray(root, "grant_types_supported");
-        Assert.Contains(OpenIdConstants.GrantTypes.Implicit, grantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.Implicit, grantTypes);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         Assert.NotNull(location);
         Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
         var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnsupportedResponseType, parameters["error"]);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
         Assert.Empty(location.Query);
         var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
-        Assert.Equal(OpenIdConstants.ErrorCodes.LoginRequired, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.LoginRequired, parameters["error"]);
         Assert.Equal("abc123", parameters["state"]);
     }
 

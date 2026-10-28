@@ -19,7 +19,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains constants for <c>DPoP</c> sender-constrained tokens

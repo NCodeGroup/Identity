@@ -1,4 +1,5 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
+
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -13,6 +14,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
+
 #endregion
 
 namespace NCode.Identity.OpenId;
@@ -20,33 +22,23 @@ namespace NCode.Identity.OpenId;
 public static partial class OpenIdConstants
 {
     /// <summary>
-    /// Contains constants for possible values of the <c>prompt</c> parameter.
+    /// Contains the names of values the OP keeps in a message's property bag; the <c>$</c> prefix keeps them off the wire.
     /// </summary>
-    public static class PromptTypes
+    public static class InternalParameters
     {
         /// <summary>
-        /// Contains the <c>prompt</c> parameter value for <c>none</c>.
+        /// Contains the name of <c>$authorization_source_type</c> parameter.
         /// </summary>
-        public const string None = "none";
+        public const string AuthorizationSourceType = "$authorization_source_type";
 
         /// <summary>
-        /// Contains the <c>prompt</c> parameter value for <c>login</c>.
+        /// Contains the name of <c>$created_when</c> parameter.
         /// </summary>
-        public const string Login = "login";
+        public const string CreatedWhen = "$created_when";
 
         /// <summary>
-        /// Contains the <c>prompt</c> parameter value for <c>consent</c>.
+        /// Contains the name of <c>$request_object_source</c> parameter.
         /// </summary>
-        public const string Consent = "consent";
-
-        /// <summary>
-        /// Contains the <c>prompt</c> parameter value for <c>select_account</c>.
-        /// </summary>
-        public const string SelectAccount = "select_account";
-
-        /// <summary>
-        /// Contains the <c>prompt</c> parameter value for <c>create</c>.
-        /// </summary>
-        public const string CreateAccount = "create";
+        public const string RequestObjectSource = "$request_object_source";
     }
 }

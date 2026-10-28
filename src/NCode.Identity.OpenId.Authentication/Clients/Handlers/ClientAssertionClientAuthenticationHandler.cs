@@ -87,7 +87,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         var form = await httpRequest.ReadFormAsync(cancellationToken);
 
         if (
-            !form.TryGetValue(OpenIdConstants.Parameters.ClientAssertion, out var assertionValues)
+            !form.TryGetValue(OpenIdProtocol.Parameters.ClientAssertion, out var assertionValues)
             || string.IsNullOrEmpty(assertionValues.ToString())
         )
         {
@@ -96,7 +96,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         }
 
         var assertionType = form.TryGetValue(
-            OpenIdConstants.Parameters.ClientAssertionType,
+            OpenIdProtocol.Parameters.ClientAssertionType,
             out var assertionTypeValues
         )
             ? assertionTypeValues.ToString()
@@ -105,7 +105,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         if (
             !string.Equals(
                 assertionType,
-                OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 StringComparison.Ordinal
             )
         )

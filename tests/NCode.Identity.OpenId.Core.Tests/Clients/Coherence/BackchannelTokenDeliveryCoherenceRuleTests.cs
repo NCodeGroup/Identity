@@ -69,8 +69,8 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     #region FindViolations Tests
 
     [Theory]
-    [InlineData(OpenIdConstants.BackchannelTokenDeliveryModes.Ping)]
-    [InlineData(OpenIdConstants.BackchannelTokenDeliveryModes.Push)]
+    [InlineData(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping)]
+    [InlineData(OpenIdProtocol.BackchannelTokenDeliveryModes.Push)]
     public void FindViolations_WhenANotifiedModeHasNoNotificationEndpoint_ReportsTheMissingEndpoint(
         string mode
     )
@@ -95,13 +95,13 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     [Fact]
     public void FindViolations_WhenACibaClientsModeIsNotSupported_ReportsTheMode()
     {
-        SetupMode(OpenIdConstants.BackchannelTokenDeliveryModes.Push);
+        SetupMode(OpenIdProtocol.BackchannelTokenDeliveryModes.Push);
         SetupEndpoint(NotificationEndpoint);
-        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdConstants.GrantTypes.Ciba);
+        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdProtocol.GrantTypes.Ciba);
         SetupValues(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
         );
 
         var violations = new BackchannelTokenDeliveryCoherenceRule().FindViolations(
@@ -112,7 +112,7 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
         Assert.Equal(
             new ClientCoherenceViolation(
                 OpenIdSettingNames.BackchannelTokenDeliveryMode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
                 OpenIdSettingNames.BackchannelTokenDeliveryModesSupported
             ),
             violation
@@ -124,11 +124,11 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     {
         SetupValues(
             OpenIdSettingKeys.GrantTypesSupported,
-            OpenIdConstants.GrantTypes.AuthorizationCode
+            OpenIdProtocol.GrantTypes.AuthorizationCode
         );
         SetupValues(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
         );
 
         var violations = new BackchannelTokenDeliveryCoherenceRule().FindViolations(
@@ -141,12 +141,12 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     [Fact]
     public void FindViolations_WhenThePollModeIsSupported_ReturnsEmpty()
     {
-        SetupMode(OpenIdConstants.BackchannelTokenDeliveryModes.Poll);
-        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdConstants.GrantTypes.Ciba);
+        SetupMode(OpenIdProtocol.BackchannelTokenDeliveryModes.Poll);
+        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdProtocol.GrantTypes.Ciba);
         SetupValues(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
         );
 
         var violations = new BackchannelTokenDeliveryCoherenceRule().FindViolations(

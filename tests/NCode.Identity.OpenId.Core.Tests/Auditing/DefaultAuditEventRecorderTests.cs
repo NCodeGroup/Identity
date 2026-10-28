@@ -354,7 +354,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         await recorder.RecordClientAuthenticationFailedAsync(
             mockContext.Object,
             "client-1",
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             "client_not_found",
             CancellationToken.None
         );
@@ -364,7 +364,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal(
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             captured.AuthenticationMethod
         );
         Assert.Equal("client_not_found", captured.Reason);
@@ -430,7 +430,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockError.Setup(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied).Verifiable();
+        mockError.Setup(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.AccessDenied).Verifiable();
         mockError.Setup(x => x.Description).Returns((string?)null).Verifiable();
         mockError.Setup(x => x.StatusCode).Returns((int?)null).Verifiable();
 
@@ -451,12 +451,12 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         Assert.NotNull(captured);
         Assert.Equal(AuditOutcome.Denied, captured.Outcome);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, captured.ErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, captured.ErrorCode);
         Assert.Null(captured.ErrorDescription);
         Assert.Null(captured.StatusCode);
         Assert.Equal("api/authorize", captured.Source);
         // With no description, the reason falls back to the error code.
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, captured.Reason);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, captured.Reason);
     }
 
     #endregion

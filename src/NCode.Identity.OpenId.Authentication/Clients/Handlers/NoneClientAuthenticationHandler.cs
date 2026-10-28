@@ -40,7 +40,7 @@ internal class NoneClientAuthenticationHandler(
         IClientAuthenticationHandler
 {
     /// <inheritdoc />
-    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.None;
+    public override string AuthenticationMethod => OpenIdProtocol.ClientAuthenticationMethods.None;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
@@ -56,10 +56,10 @@ internal class NoneClientAuthenticationHandler(
         var form = await httpRequest.ReadFormAsync(cancellationToken);
 
         if (
-            !form.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientIdValues)
+            !form.TryGetValue(OpenIdProtocol.Parameters.ClientId, out var clientIdValues)
             || string.IsNullOrEmpty(clientIdValues.ToString())
-            || form.ContainsKey(OpenIdConstants.Parameters.ClientSecret)
-            || form.ContainsKey(OpenIdConstants.Parameters.ClientAssertion)
+            || form.ContainsKey(OpenIdProtocol.Parameters.ClientSecret)
+            || form.ContainsKey(OpenIdProtocol.Parameters.ClientAssertion)
         )
         {
             return ClientAuthenticationResult.Undefined;

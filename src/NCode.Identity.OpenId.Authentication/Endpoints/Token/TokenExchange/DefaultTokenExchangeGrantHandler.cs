@@ -64,7 +64,7 @@ internal class DefaultTokenExchangeGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.TokenExchange };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.TokenExchange };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -91,7 +91,7 @@ internal class DefaultTokenExchangeGrantHandler(
         if (string.IsNullOrEmpty(subjectToken))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.SubjectToken)
+                .MissingParameter(OpenIdProtocol.Parameters.SubjectToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
@@ -99,7 +99,7 @@ internal class DefaultTokenExchangeGrantHandler(
         if (string.IsNullOrEmpty(subjectTokenType))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.SubjectTokenType)
+                .MissingParameter(OpenIdProtocol.Parameters.SubjectTokenType)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
@@ -125,7 +125,7 @@ internal class DefaultTokenExchangeGrantHandler(
         // Validate the requested output type and refresh-token policy before any expensive work (principal resolution,
         // token minting), so a malformed or disallowed request fails fast.
         var requestedTokenType =
-            tokenRequest.RequestedTokenType ?? OpenIdConstants.TokenTypeIdentifiers.AccessToken;
+            tokenRequest.RequestedTokenType ?? OpenIdProtocol.TokenTypeIdentifiers.AccessToken;
         if (!IsSupportedRequestedTokenType(requestedTokenType))
         {
             return errorFactory
@@ -138,7 +138,7 @@ internal class DefaultTokenExchangeGrantHandler(
         if (
             string.Equals(
                 requestedTokenType,
-                OpenIdConstants.TokenTypeIdentifiers.RefreshToken,
+                OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
                 StringComparison.Ordinal
             ) && !openIdClient.Settings.GetValue(OpenIdSettingKeys.TokenExchangeAllowRefreshToken)
         )
@@ -201,7 +201,7 @@ internal class DefaultTokenExchangeGrantHandler(
 
         var subjectAuthentication = SubjectAuthentication.Create(
             openIdContext,
-            OpenIdConstants.GrantTypes.TokenExchange,
+            OpenIdProtocol.GrantTypes.TokenExchange,
             authenticationProperties,
             subjectResult.Principal,
             principalId
@@ -267,7 +267,7 @@ internal class DefaultTokenExchangeGrantHandler(
         {
             return new DelegationResult(
                 errorFactory
-                    .MissingParameter(OpenIdConstants.Parameters.ActorTokenType)
+                    .MissingParameter(OpenIdProtocol.Parameters.ActorTokenType)
                     .WithStatusCode(StatusCodes.Status400BadRequest),
                 null,
                 null
@@ -498,7 +498,7 @@ internal class DefaultTokenExchangeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = createdWhen,
-            GrantType = OpenIdConstants.GrantTypes.TokenExchange,
+            GrantType = OpenIdProtocol.GrantTypes.TokenExchange,
             OriginalScopes = effectiveScopes,
             EffectiveScopes = effectiveScopes,
             Resources = resources,
@@ -515,7 +515,7 @@ internal class DefaultTokenExchangeGrantHandler(
         if (
             string.Equals(
                 grant.RequestedTokenType,
-                OpenIdConstants.TokenTypeIdentifiers.IdToken,
+                OpenIdProtocol.TokenTypeIdentifiers.IdToken,
                 StringComparison.Ordinal
             )
         )
@@ -531,8 +531,8 @@ internal class DefaultTokenExchangeGrantHandler(
             // access token; token_type is not applicable for an id_token.
             tokenResponse.AccessToken = idToken.TokenValue;
             tokenResponse.ExpiresIn = idToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = OpenIdConstants.TokenTypes.NotApplicable;
-            tokenResponse.IssuedTokenType = OpenIdConstants.TokenTypeIdentifiers.IdToken;
+            tokenResponse.TokenType = OpenIdProtocol.TokenTypes.NotApplicable;
+            tokenResponse.IssuedTokenType = OpenIdProtocol.TokenTypeIdentifiers.IdToken;
             return tokenResponse;
         }
 
@@ -546,12 +546,12 @@ internal class DefaultTokenExchangeGrantHandler(
         tokenResponse.AccessToken = accessToken.TokenValue;
         tokenResponse.ExpiresIn = accessToken.TokenLifetime.Duration;
         tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
-        tokenResponse.IssuedTokenType = OpenIdConstants.TokenTypeIdentifiers.AccessToken;
+        tokenResponse.IssuedTokenType = OpenIdProtocol.TokenTypeIdentifiers.AccessToken;
 
         if (
             string.Equals(
                 grant.RequestedTokenType,
-                OpenIdConstants.TokenTypeIdentifiers.RefreshToken,
+                OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
                 StringComparison.Ordinal
             )
         )
@@ -569,7 +569,7 @@ internal class DefaultTokenExchangeGrantHandler(
             );
 
             tokenResponse.RefreshToken = refreshToken.TokenValue;
-            tokenResponse.IssuedTokenType = OpenIdConstants.TokenTypeIdentifiers.RefreshToken;
+            tokenResponse.IssuedTokenType = OpenIdProtocol.TokenTypeIdentifiers.RefreshToken;
         }
 
         return tokenResponse;
@@ -608,17 +608,17 @@ internal class DefaultTokenExchangeGrantHandler(
     private static bool IsSupportedRequestedTokenType(string requestedTokenType) =>
         string.Equals(
             requestedTokenType,
-            OpenIdConstants.TokenTypeIdentifiers.AccessToken,
+            OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
             StringComparison.Ordinal
         )
         || string.Equals(
             requestedTokenType,
-            OpenIdConstants.TokenTypeIdentifiers.RefreshToken,
+            OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
             StringComparison.Ordinal
         )
         || string.Equals(
             requestedTokenType,
-            OpenIdConstants.TokenTypeIdentifiers.IdToken,
+            OpenIdProtocol.TokenTypeIdentifiers.IdToken,
             StringComparison.Ordinal
         );
 
@@ -662,7 +662,7 @@ internal class DefaultTokenExchangeGrantHandler(
         return string.IsNullOrEmpty(scope)
             ? []
             : scope.Split(
-                OpenIdConstants.ParameterSeparatorChar,
+                OpenIdProtocol.ParameterSeparatorChar,
                 StringSplitOptions.RemoveEmptyEntries
             );
     }

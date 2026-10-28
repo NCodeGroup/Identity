@@ -117,7 +117,7 @@ public class AuthorizationContinuationTests
         using var response = await ContinueAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.Fragment
+            OpenIdProtocol.ResponseModes.Fragment
         );
 
         var location = response.Headers.Location;
@@ -137,7 +137,7 @@ public class AuthorizationContinuationTests
         using var response = await ContinueAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt
         );
 
         var location = response.Headers.Location;

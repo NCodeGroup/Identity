@@ -51,7 +51,7 @@ internal class DefaultValidateClientCredentialsGrantHandler
         var scopes = tokenRequest.Scopes ?? [];
 
         // scope: openid
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
             // invalid_scope
             throw errorFactory
                 .InvalidScope()
@@ -63,7 +63,7 @@ internal class DefaultValidateClientCredentialsGrantHandler
 
         // scope: offline_access (i.e. refresh_token)
         // https://www.rfc-editor.org/rfc/rfc6749#section-4.4.3
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.OfflineAccess))
             // invalid_scope
             throw errorFactory
                 .InvalidScope()

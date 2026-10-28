@@ -68,7 +68,7 @@ public class DefaultGetIdTokenMetadataClaimsHandlerTests : BaseTests
         var tokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = OpenIdProtocol.GrantTypes.AuthorizationCode,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             SubjectAuthentication = subjectAuthentication,
@@ -78,7 +78,7 @@ public class DefaultGetIdTokenMetadataClaimsHandlerTests : BaseTests
             tokenRequest,
             SigningCredentials: null!,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.IdToken
+            TokenType: OpenIdProtocol.TokenTypes.IdToken
         );
 
         var mockClient = CreateStrictMock<OpenIdClient>();

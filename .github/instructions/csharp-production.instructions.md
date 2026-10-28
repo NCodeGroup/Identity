@@ -140,7 +140,7 @@ rationale.
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
     - **Names** — `public const string` values in a static class (`OpenIdSettingNames`, `OpenIdSettingScopes`,
-      `OpenIdConstants.GrantTypes`), compared ordinally and documented as the **known** values, never as all of them.
+      `OpenIdProtocol.GrantTypes`), compared ordinally and documented as the **known** values, never as all of them.
     - **Registered data or strategies**, when a member carries behavior or relationships (a rule, a parent, an
       implementation) — a descriptor contributed through `ICollectionDataSource<T>` or a strategy collection from DI
       ([ADR-0001](../../docs/decisions/0001-mediator-vs-dependency-injection-logic-classes.md)), resolved by name through a

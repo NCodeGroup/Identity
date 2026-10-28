@@ -107,7 +107,7 @@ public class TokenEndpointBootstrapAdminTests
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                            ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdConstants
+                            ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdProtocol
                                 .ClientAuthenticationMethods
                                 .PrivateKeyJwt,
                         }
@@ -141,7 +141,7 @@ public class TokenEndpointBootstrapAdminTests
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                             ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] =
-                                OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+                                OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                         }
                     )
             )
@@ -221,7 +221,7 @@ public class TokenEndpointBootstrapAdminTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = ManagementScope,
                 }
             ),

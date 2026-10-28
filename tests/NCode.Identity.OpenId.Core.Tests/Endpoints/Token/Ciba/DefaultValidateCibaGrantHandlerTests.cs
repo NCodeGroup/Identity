@@ -61,7 +61,7 @@ public class DefaultValidateCibaGrantHandlerTests : BaseTests
                 ClientId = "client-1",
                 Scopes = ["openid"],
                 Status = DeviceAuthorizationStatus.Approved,
-                DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
                 SubjectAuthentication = subjectAuthentication,
             }
         );

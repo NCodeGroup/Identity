@@ -128,7 +128,7 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         new()
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.ClientCredentials,
+            GrantType = OpenIdProtocol.GrantTypes.ClientCredentials,
             OriginalScopes = ["read:x"],
             EffectiveScopes = ["read:x"],
             Confirmation = new TokenConfirmation { JwkThumbprint = "jkt-thumbprint" },
@@ -239,7 +239,7 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         new()
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.RefreshToken,
+            GrantType = OpenIdProtocol.GrantTypes.RefreshToken,
             OriginalScopes = ["offline_access"],
             EffectiveScopes = ["offline_access"],
             RefreshTokenLineageId = "lineage-1",

@@ -140,7 +140,7 @@ internal class DefaultAuthorizationEndpointHandler(
         );
 
         // An outer redirect_uri is checked before any request object is verified, so a later error can be delivered there (ADR-0202).
-        var checkedDelivery = requestValues.ContainsKey(OpenIdConstants.Parameters.RedirectUri)
+        var checkedDelivery = requestValues.ContainsKey(OpenIdProtocol.Parameters.RedirectUri)
             ? await DeliveryResolver.ResolveAsync(
                 openIdContext,
                 openIdClient,
@@ -204,13 +204,13 @@ internal class DefaultAuthorizationEndpointHandler(
     {
         if (
             requestValues.TryGetValue(
-                OpenIdConstants.Parameters.RequestUri,
+                OpenIdProtocol.Parameters.RequestUri,
                 out var requestUriValues
             )
             && requestUriValues.Count == 1
             && requestUriValues[0] is { } requestUri
             && requestUri.StartsWith(
-                OpenIdConstants.PushedAuthorizationRequestUriPrefix,
+                OpenIdProtocol.PushedAuthorizationRequestUriPrefix,
                 StringComparison.Ordinal
             )
         )
@@ -248,7 +248,7 @@ internal class DefaultAuthorizationEndpointHandler(
     {
         var errorFactory = openIdContext.ErrorFactory;
 
-        if (requestValues.ContainsKey(OpenIdConstants.Parameters.ClientSecret))
+        if (requestValues.ContainsKey(OpenIdProtocol.Parameters.ClientSecret))
         {
             clientId = null;
             error = errorFactory
@@ -258,7 +258,7 @@ internal class DefaultAuthorizationEndpointHandler(
         }
 
         if (
-            !requestValues.TryGetValue(OpenIdConstants.Parameters.ClientId, out var clientIdValues)
+            !requestValues.TryGetValue(OpenIdProtocol.Parameters.ClientId, out var clientIdValues)
             || clientIdValues.Count != 1
             || clientIdValues[0] is not { Length: > 0 } value
         )

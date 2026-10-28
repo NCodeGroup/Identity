@@ -58,8 +58,8 @@ public class UserInfoEndpointTests
     {
         var registration = new Dictionary<string, object>(metadata)
         {
-            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.Password },
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.Password },
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };
@@ -85,7 +85,7 @@ public class UserInfoEndpointTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
                 ["username"] = UserName,
@@ -337,7 +337,7 @@ public class UserInfoEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.Password },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.Password },
                 ["userinfo_encrypted_response_alg"] = "RSA-OAEP-256",
             }
         );
@@ -345,7 +345,7 @@ public class UserInfoEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             JsonElement.Parse(body).GetProperty("error").GetString()
         );
     }

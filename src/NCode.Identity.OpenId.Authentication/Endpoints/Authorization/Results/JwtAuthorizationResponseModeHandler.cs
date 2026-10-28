@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2026 NCode Group
@@ -76,7 +76,7 @@ internal abstract class JwtAuthorizationResponseModeHandler(
         var claims = new Dictionary<string, object>(StringComparer.Ordinal);
         foreach (var (name, values) in AuthorizationResponseWriter.GetParameters(message))
         {
-            if (name == OpenIdConstants.Parameters.IssuerShort || values.Count == 0)
+            if (name == OpenIdProtocol.Parameters.IssuerShort || values.Count == 0)
                 continue;
 
             claims[name] = values.Count == 1 ? values.ToString() : values.ToArray();
@@ -105,7 +105,7 @@ internal abstract class JwtAuthorizationResponseModeHandler(
             result.Delivery.RedirectUri,
             [
                 KeyValuePair.Create(
-                    OpenIdConstants.Parameters.Response,
+                    OpenIdProtocol.Parameters.Response,
                     new StringValues(responseJwt)
                 ),
             ],

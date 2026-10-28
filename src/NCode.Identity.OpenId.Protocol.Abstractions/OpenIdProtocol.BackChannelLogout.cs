@@ -1,6 +1,6 @@
 #region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
+//
+//    Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -13,26 +13,20 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-
 #endregion
 
-using JetBrains.Annotations;
+namespace NCode.Identity.OpenId;
 
-namespace NCode.Identity.OpenId.Client;
-
-/// <summary>
-/// Contains the <c>token_type_hint</c> values defined by RFC 7009 §2.1.
-/// </summary>
-[PublicAPI]
-public static class TokenTypeHints
+public static partial class OpenIdProtocol
 {
     /// <summary>
-    /// The token is an access token.
+    /// Contains constants used by OpenID Connect Back-Channel Logout.
     /// </summary>
-    public const string AccessToken = "access_token";
-
-    /// <summary>
-    /// The token is a refresh token.
-    /// </summary>
-    public const string RefreshToken = "refresh_token";
+    public static class BackChannelLogout
+    {
+        /// <summary>
+        /// Contains the event identifier that appears as a member of a <c>logout_token</c>'s <c>events</c> claim.
+        /// </summary>
+        public const string EventName = "http://schemas.openid.net/event/backchannel-logout";
+    }
 }

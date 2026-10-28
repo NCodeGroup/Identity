@@ -36,53 +36,8 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.MultiFactor = "http://schemas.openid.net/pape/policies/2007/06/multi-factor" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.MultiFactorPhysical = "http://schemas.openid.net/pape/policies/2007/06/multi-factor-physical" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.NoAssurance = "0" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences.PhishingResistant = "http://schemas.openid.net/pape/policies/2007/06/phishing-resistant" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationBySms = "sms" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ConfirmationByTelephone = "tel" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.FacialRecognition = "face" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.FingerprintBiometric = "fpt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.Geolocation = "geo" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.IrisScanBiometric = "iris" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.KnowledgeBasedAuthentication = "kba" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.MultiFactorAuthentication = "mfa" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.MultipleChannelAuthentication = "mca" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.OneTimePassword = "otp" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.Password = "pwd" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.PersonalIdentificationOrPattern = "pin" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ProofOfPossessionHardwareSecuredKey = "hwk" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.ProofOfPossessionSoftwareSecuredKey = "swk" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.RetinaScanBiometric = "retina" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.RiskBasedAuthentication = "rba" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.SmartCard = "sc" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.UserPresenceTest = "user" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.VoiceBiometric = "vbm" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods.WindowsIntegratedAuthentication = "wia" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems.TenantId = ".tenant" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Aggregated = "aggregated" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Distributed = "distributed" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClaimTypes.Normal = "normal" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAssertionTypes.JwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic = "client_secret_basic" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt = "client_secret_jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost = "client_secret_post" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.None = "none" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth = "self_signed_tls_client_auth" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth = "tls_client_auth" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods.S256 = "S256" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods.JwkThumbprint = "jkt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint = "x5t#S256" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ContentType = "application/x-www-form-urlencoded" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.Authorization = "continue_authorization" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Page = "page" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Popup = "popup" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Touch = "touch" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Wap = "wap" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DPoP.HeaderName = "DPoP" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DPoP.NonceHeaderName = "DPoP-Nonce" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Continue = "continue_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.DeviceAuthorization = "device_authorization_endpoint" -> string!
@@ -123,112 +78,6 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ResourceServers = "Reso
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Servers = "Servers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Sessions = "Sessions" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Tenants = "Tenants" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccessDenied = "access_denied" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AuthorizationPending = "authorization_pending" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ExpiredToken = "expired_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidDPoPProof = "invalid_dpop_proof" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.SlowDown = "slow_down" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.AccountSelectionRequired = "account_selection_required" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ConsentRequired = "consent_required" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InteractionRequired = "interaction_required" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidClient = "invalid_client" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidGrant = "invalid_grant" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequest = "invalid_request" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestJwt = "invalid_request_object" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRequestUri = "invalid_request_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidScope = "invalid_scope" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidTarget = "invalid_target" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidToken = "invalid_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.LoginRequired = "login_required" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RegistrationNotSupported = "registration_not_supported" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidRedirectUri = "invalid_redirect_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.InvalidClientMetadata = "invalid_client_metadata" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestNotSupported = "request_not_supported" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.RequestUriNotSupported = "request_uri_not_supported" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.ServerError = "server_error" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.TemporarilyUnavailable = "temporarily_unavailable" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnauthorizedClient = "unauthorized_client" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnsupportedGrantType = "unsupported_grant_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnsupportedResponseType = "unsupported_response_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UseDPoPNonce = "use_dpop_nonce" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.AuthorizationCode = "authorization_code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.ClientCredentials = "client_credentials" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.DeviceCode = "urn:ietf:params:oauth:grant-type:device_code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Implicit = "implicit" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Password = "password" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.RefreshToken = "refresh_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AccessToken = "access_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AccessTokenHash = "at_hash" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AcrValues = "acr_values" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Assertion = "assertion" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Audience = "audience" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthorizationCode = "code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthorizationSourceType = "$authorization_source_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthTime = "auth_time" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Claims = "claims" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClaimsLocales = "claims_locales" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientAssertion = "client_assertion" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientAssertionType = "client_assertion_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientId = "client_id" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientSecret = "client_secret" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeChallenge = "code_challenge" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeChallengeMethod = "code_challenge_method" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeHash = "c_hash" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.CodeVerifier = "code_verifier" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.CreatedWhen = "$created_when" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.DeviceCode = "device_code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Display = "display" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.DPoPJwkThumbprint = "dpop_jkt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorCode = "error" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorDescription = "error_description" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ErrorUri = "error_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Essential = "essential" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Expiration = "exp" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ExpiresIn = "expires_in" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.GrantType = "grant_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdentityProvider = "identity_provider" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdToken = "id_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IdTokenHint = "id_token_hint" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Interval = "interval" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuedAt = "iat" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuerLong = "issuer" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuerShort = "iss" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.LoginHint = "login_hint" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.LogoutToken = "logout_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.MaxAge = "max_age" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Nonce = "nonce" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Password = "password" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.PostLogoutRedirectUri = "post_logout_redirect_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Prompt = "prompt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RedirectUri = "redirect_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RefreshToken = "refresh_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Registration = "registration" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Request = "request" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestId = "request_id" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestObjectSource = "$request_object_source" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestUri = "request_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Resource = "resource" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ResponseMode = "response_mode" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ResponseType = "response_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Scope = "scope" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.SessionState = "session_state" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.State = "state" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.StateHash = "s_hash" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Subject = "sub" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Token = "token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.TokenType = "token_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.TokenTypeHint = "token_type_hint" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.UiLocales = "ui_locales" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.UserCode = "user_code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.UserInfo = "userinfo" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Username = "username" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Value = "value" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Values = "values" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.VerificationUri = "verification_uri" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.VerificationUriComplete = "verification_uri_complete" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorChar = ' ' -> char
-const NCode.Identity.OpenId.OpenIdConstants.ParameterSeparatorString = " " -> string!
-const NCode.Identity.OpenId.OpenIdConstants.PushedAuthorizationRequestUriPrefix = "urn:ietf:params:oauth:request_uri:" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.AuthorizationCode = "authorization_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.DeviceCode = "device_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.DeviceUserCode = "device_user_code" -> string!
@@ -239,11 +88,6 @@ const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.RegistrationAcce
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.InitialAccessToken = "initial_access_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Session = "session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.PushedAuthorizationRequest = "pushed_authorization_request" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Consent = "consent" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.CreateAccount = "create" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.None = "none" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.SelectAccount = "select_account" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Http = "http" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Https = "https" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Loopback = "loopback" -> string!
@@ -254,30 +98,9 @@ const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.None = "none
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.RevokeAll = "revoke_all" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy.Always = "always" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy.Unbound = "unbound" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.MediaTypes.Html = "text/html" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.MediaTypes.Json = "application/json" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPost = "form_post" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Fragment = "fragment" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Query = "query" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.Code = "code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.CodeIdToken = "code id_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.CodeIdTokenToken = "code id_token token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.CodeToken = "code token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.IdToken = "id_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.IdTokenToken = "id_token token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseTypes.Token = "token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Address = "address" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Email = "email" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.OfflineAccess = "offline_access" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.OpenId = "openid" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Phone = "phone" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ScopeTypes.Profile = "profile" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AccessToken = "access_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AuthorizationCode = "authorization_code" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.LogoutToken = "logout+jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout.EventName = "http://schemas.openid.net/event/backchannel-logout" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout.EventsClaimName = "events" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.DPoP = "DPoP" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientName = "client_name" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientUri = "client_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.Contacts = "contacts" -> string!
@@ -308,20 +131,13 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSanIp = "tl
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSanUri = "tls_client_auth_san_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthSubjectDn = "tls_client_auth_subject_dn" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TosUri = "tos_uri" -> string!
-NCode.Identity.OpenId.OpenIdConstants.BackChannelLogout
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.RefreshToken = "refresh_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Pairwise = "pairwise" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.SubjectTypes.Public = "public" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.Management = "urn:ncode:management" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers.OpenId = "urn:ncode:openid" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.DynamicByHost = "DynamicByHost" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.DynamicByPath = "DynamicByPath" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes.StaticSingle = "StaticSingle" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.AccessToken = "access_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.Bearer = "Bearer" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.IdToken = "id_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenConfirmationMethodsSupported = "access_token_confirmation_methods_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported = "access_token_encryption_alg_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported = "access_token_encryption_enc_values_supported" -> string!
@@ -451,8 +267,6 @@ NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
-NCode.Identity.OpenId.OpenIdConstants.ConfirmationMethods
-NCode.Identity.OpenId.OpenIdConstants.DPoP
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.CanFormat(NCode.Identity.OpenId.Messages.IOpenIdResponse! response) -> bool
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.MediaTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -672,40 +486,23 @@ NCode.Identity.OpenId.Messages.SerializationFormat.Json = 0 -> NCode.Identity.Op
 NCode.Identity.OpenId.Messages.SerializationFormat.OpenId = 1 -> NCode.Identity.OpenId.Messages.SerializationFormat
 NCode.Identity.OpenId.OpenIdConstants
 NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes
-NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferences
-NCode.Identity.OpenId.OpenIdConstants.AuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems
 NCode.Identity.OpenId.OpenIdConstants.ClaimsByScope
-NCode.Identity.OpenId.OpenIdConstants.ClaimTypes
-NCode.Identity.OpenId.OpenIdConstants.ClientAssertionTypes
-NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods
-NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi1Advanced = "fapi1-advanced" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
-NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
 NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
 NCode.Identity.OpenId.OpenIdConstants.EndpointTags
-NCode.Identity.OpenId.OpenIdConstants.ErrorCodes
-NCode.Identity.OpenId.OpenIdConstants.GrantTypes
-NCode.Identity.OpenId.OpenIdConstants.MediaTypes
-NCode.Identity.OpenId.OpenIdConstants.Parameters
 NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes
-NCode.Identity.OpenId.OpenIdConstants.PromptTypes
 NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy
-NCode.Identity.OpenId.OpenIdConstants.ResponseModes
-NCode.Identity.OpenId.OpenIdConstants.ResponseTypes
-NCode.Identity.OpenId.OpenIdConstants.ScopeTypes
 NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes
-NCode.Identity.OpenId.OpenIdConstants.SubjectTypes
 NCode.Identity.OpenId.OpenIdConstants.SystemResourceServerIdentifiers
 NCode.Identity.OpenId.OpenIdConstants.TenantStrategyCodes
-NCode.Identity.OpenId.OpenIdConstants.TokenTypes
 NCode.Identity.OpenId.OpenIdCoreLibrary
 NCode.Identity.OpenId.OpenIdCoreLibrary.OpenIdCoreLibrary() -> void
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision
@@ -1028,20 +825,9 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SubjectClaimTypes = "sub
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityJoinClaim = "federated_identity_join_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityVerifiedClaim = "federated_identity_verified_claim" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.FederatedIdentityRequireVerified = "federated_identity_require_verified" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.Ciba = "urn:openid:params:grant-type:ciba" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.Ciba = "ciba" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.BackchannelAuthentication = "backchannel_authentication_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.BackchannelAuthentication = "/oauth2/bc-authorize" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.LoginHintToken = "login_hint_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.AuthReqId = "auth_req_id" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.BindingMessage = "binding_message" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ClientNotificationToken = "client_notification_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestedExpiry = "requested_expiry" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ErrorCodes.UnknownUserId = "unknown_user_id" -> string!
-NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes
-const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Poll = "poll" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Ping = "ping" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.BackchannelTokenDeliveryModes.Push = "push" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelTokenDeliveryMode = "backchannel_token_delivery_mode" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelTokenDeliveryModesSupported = "backchannel_token_delivery_modes_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported = "backchannel_authentication_request_signing_alg_values_supported" -> string!
@@ -1063,19 +849,6 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityJoinCla
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityVerifiedClaim.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityRequireVerified.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.FederatedIdentityExplicitOnly.get -> NCode.Identity.Settings.SettingKey<bool>
-const NCode.Identity.OpenId.OpenIdConstants.GrantTypes.TokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange" -> string!
-NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.AccessToken = "urn:ietf:params:oauth:token-type:access_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.RefreshToken = "urn:ietf:params:oauth:token-type:refresh_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.IdToken = "urn:ietf:params:oauth:token-type:id_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypeIdentifiers.Jwt = "urn:ietf:params:oauth:token-type:jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.SubjectToken = "subject_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.SubjectTokenType = "subject_token_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ActorToken = "actor_token" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.ActorTokenType = "actor_token_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.RequestedTokenType = "requested_token_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.IssuedTokenType = "issued_token_type" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.TokenTypes.NotApplicable = "N_A" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenExchangeAllowRefreshToken = "token_exchange_allow_refresh_token" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenExchangeAllowRefreshToken.get -> NCode.Identity.Settings.SettingKey<bool>
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.get -> string?
@@ -1150,11 +923,6 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordFailedAttemptsLi
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordFailedAttemptsWindow.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordMaxLength.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordMinLength.get -> NCode.Identity.Settings.SettingKey<int>
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPostJwt = "form_post.jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FragmentJwt = "fragment.jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Jwt = "jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.QueryJwt = "query.jwt" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.Parameters.Response = "response" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptedResponseAlg = "authorization_encrypted_response_alg" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationEncryptedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptedResponseEnc = "authorization_encrypted_response_enc" -> string!
@@ -1175,3 +943,7 @@ NCode.Identity.OpenId.ClientCertificates.DistinguishedName
 NCode.Identity.OpenId.ClientCertificates.DistinguishedName.Matches(NCode.Identity.OpenId.ClientCertificates.DistinguishedName! other) -> bool
 static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.FromX500(System.Security.Cryptography.X509Certificates.X500DistinguishedName! name) -> NCode.Identity.OpenId.ClientCertificates.DistinguishedName!
 static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.TryParse(string! value, out NCode.Identity.OpenId.ClientCertificates.DistinguishedName? distinguishedName) -> bool
+NCode.Identity.OpenId.OpenIdConstants.InternalParameters
+const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.AuthorizationSourceType = "$authorization_source_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.CreatedWhen = "$created_when" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.RequestObjectSource = "$request_object_source" -> string!

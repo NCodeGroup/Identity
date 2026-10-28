@@ -88,7 +88,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod { StartTime = UtcNow, EndTime = UtcNow.AddHours(1) },
         };
@@ -237,7 +237,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsDeviceCode()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.DeviceCode, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.DeviceCode, Handler.GrantTypes);
     }
 
     #endregion
@@ -277,7 +277,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -315,7 +315,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, CapturedErrorCode);
     }
 
     [Fact]
@@ -342,7 +342,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AuthorizationPending, CapturedErrorCode);
         Assert.Equal(UtcNow, update()?.Payload.LastPolledWhen);
     }
 
@@ -370,7 +370,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AuthorizationPending, CapturedErrorCode);
         Assert.Null(update());
     }
 
@@ -398,7 +398,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.SlowDown, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.SlowDown, CapturedErrorCode);
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -517,7 +517,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.DeviceCode)
+            .Returns(OpenIdProtocol.GrantTypes.DeviceCode)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
@@ -544,7 +544,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(["api"], response.Scopes);
     }
 

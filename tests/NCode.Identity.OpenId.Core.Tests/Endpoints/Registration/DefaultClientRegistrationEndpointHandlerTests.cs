@@ -112,7 +112,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -123,13 +123,13 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         };
 
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRedirectUri, capturedCode());
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRedirectUri, capturedCode());
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRedirectUri, capturedCode());
     }
 
     [Fact]
@@ -185,11 +185,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.Null(error);
         Assert.Equal(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             resolved.TokenEndpointAuthMethod
         );
-        Assert.Equal([OpenIdConstants.GrantTypes.AuthorizationCode], resolved.GrantTypes);
-        Assert.Equal([OpenIdConstants.ResponseTypes.Code], resolved.ResponseTypes);
+        Assert.Equal([OpenIdProtocol.GrantTypes.AuthorizationCode], resolved.GrantTypes);
+        Assert.Equal([OpenIdProtocol.ResponseTypes.Code], resolved.ResponseTypes);
     }
 
     [Fact]
@@ -199,8 +199,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var (factory, _) = CreateErrorFactory();
         var request = new RegisterClientRequest
         {
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
         };
 
         var error = handler.ValidateMetadata(factory, request, out var resolved);
@@ -220,16 +220,16 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             RedirectUris = ["https://example.com/callback"],
             GrantTypes =
             [
-                OpenIdConstants.GrantTypes.AuthorizationCode,
-                OpenIdConstants.GrantTypes.Implicit,
+                OpenIdProtocol.GrantTypes.AuthorizationCode,
+                OpenIdProtocol.GrantTypes.Implicit,
             ],
-            ResponseTypes = ["id_token code", OpenIdConstants.ResponseTypes.CodeIdToken],
+            ResponseTypes = ["id_token code", OpenIdProtocol.ResponseTypes.CodeIdToken],
         };
 
         var error = handler.ValidateMetadata(factory, request, out var resolved);
 
         Assert.Null(error);
-        Assert.Equal([OpenIdConstants.ResponseTypes.CodeIdToken], resolved.ResponseTypes);
+        Assert.Equal([OpenIdProtocol.ResponseTypes.CodeIdToken], resolved.ResponseTypes);
     }
 
     [Fact]
@@ -240,14 +240,14 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.CodeIdToken],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.CodeIdToken],
         };
 
         var error = handler.ValidateMetadata(factory, request, out var resolved);
 
         Assert.Null(error);
         Assert.Equal(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit],
             resolved.GrantTypes
         );
     }
@@ -260,14 +260,14 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.CodeIdToken],
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.CodeIdToken],
         };
 
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -279,13 +279,13 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            GrantTypes = [OpenIdConstants.GrantTypes.Implicit],
+            GrantTypes = [OpenIdProtocol.GrantTypes.Implicit],
         };
 
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -319,7 +319,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -330,13 +330,13 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://a.example.com/callback", "https://b.example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
         };
 
         var error = handler.ValidateMetadata(factory, request, out _);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -347,13 +347,13 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/one", "https://example.com/two"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
         };
 
         var error = handler.ValidateMetadata(factory, request, out var resolved);
 
         Assert.Null(error);
-        Assert.Equal(OpenIdConstants.SubjectTypes.Pairwise, resolved.SubjectType);
+        Assert.Equal(OpenIdProtocol.SubjectTypes.Pairwise, resolved.SubjectType);
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://a.example.com/callback", "https://b.example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
             SectorIdentifierUri = "https://sector.example.com/uris.json",
         };
 
@@ -428,7 +428,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateCoherence(factory, tenantSettings, CoherenceSettingsJson);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRedirectUri, capturedCode());
     }
 
     [Fact]
@@ -446,7 +446,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateCoherence(factory, tenantSettings, CoherenceSettingsJson);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     #endregion
@@ -474,7 +474,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         Assert.Null(error);
@@ -490,11 +490,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -507,11 +507,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -524,11 +524,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -541,7 +541,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
         );
 
         Assert.Null(error);
@@ -557,7 +557,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
         );
 
         Assert.Null(error);
@@ -573,11 +573,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -594,11 +594,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -611,11 +611,11 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Theory]
@@ -680,9 +680,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
         };
 
@@ -708,9 +708,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
         };
 
@@ -736,9 +736,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
         };
 
@@ -758,23 +758,23 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
             SectorIdentifierUri = "https://sector.example.com/uris.json",
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
             SectorIdentifierUri = "https://sector.example.com/uris.json",
         };
 
         var settings = handler.BuildSettingsObject(request, resolved);
 
         Assert.Equal(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             settings[OpenIdSettingNames.SubjectType]!.GetValue<string>()
         );
         Assert.Equal(
@@ -790,8 +790,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest { TlsClientCertificateBoundAccessTokens = true };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
         };
@@ -820,8 +820,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest { DPoPBoundAccessTokens = true };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
         };
@@ -854,9 +854,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
         };
         var settings = handler.BuildSettingsObject(request, resolved);
@@ -891,8 +891,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Equal("https://example.com/logo.png", response.LogoUri);
         Assert.Null(response.Scope);
         Assert.Equal(["https://example.com/callback"], response.RedirectUris);
-        Assert.Equal([OpenIdConstants.GrantTypes.AuthorizationCode], response.GrantTypes);
-        Assert.Equal([OpenIdConstants.ResponseTypes.Code], response.ResponseTypes);
+        Assert.Equal([OpenIdProtocol.GrantTypes.AuthorizationCode], response.GrantTypes);
+        Assert.Equal([OpenIdProtocol.ResponseTypes.Code], response.ResponseTypes);
     }
 
     [Fact]
@@ -902,8 +902,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest();
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
         };
@@ -924,8 +924,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest { Jwks = CreateJwks() };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
         };
@@ -1155,7 +1155,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateKeyMetadata(factory, request);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Theory]
@@ -1183,7 +1183,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateKeyMetadata(factory, request);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -1196,7 +1196,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateKeyMetadata(factory, request);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -1212,7 +1212,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateKeyMetadata(factory, request);
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -1243,15 +1243,15 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             TokenEndpointAuthSigningAlg = "ES256",
-            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            BackchannelTokenDeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             BackchannelClientNotificationEndpoint = "https://client.example/cb",
             BackchannelAuthenticationRequestSigningAlg = "PS256",
             BackchannelUserCodeParameter = false,
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
         };
@@ -1274,7 +1274,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         );
         Assert.Equal("ES256", response.TokenEndpointAuthSigningAlg);
         Assert.Equal(
-            OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             response.BackchannelTokenDeliveryMode
         );
         Assert.Equal("https://client.example/cb", response.BackchannelClientNotificationEndpoint);
@@ -1320,8 +1320,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
         };

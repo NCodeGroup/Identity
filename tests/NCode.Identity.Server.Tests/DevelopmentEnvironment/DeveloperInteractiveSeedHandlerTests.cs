@@ -207,7 +207,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         Assert.NotNull(capturedSettings);
         var settingsDocument = capturedSettings.Value;
         Assert.Equal(
-            OpenIdConstants.ClientAuthenticationMethods.None,
+            OpenIdProtocol.ClientAuthenticationMethods.None,
             settingsDocument.GetProperty("token_endpoint_auth_method").GetString()
         );
         Assert.False(

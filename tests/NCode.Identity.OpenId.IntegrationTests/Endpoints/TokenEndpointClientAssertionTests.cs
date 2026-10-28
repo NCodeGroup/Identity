@@ -116,9 +116,9 @@ public class TokenEndpointClientAssertionTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
-                ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = assertion,
             }
         );
@@ -129,7 +129,7 @@ public class TokenEndpointClientAssertionTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -140,7 +140,7 @@ public class TokenEndpointClientAssertionTests
         await factory.SeedClientSecretJwtClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -248,8 +248,8 @@ public class TokenEndpointClientAssertionTests
             .Select(element => element.GetString())
             .ToList();
 
-        Assert.Contains(OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt, methods);
-        Assert.Contains(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, methods);
+        Assert.Contains(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt, methods);
+        Assert.Contains(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt, methods);
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public class TokenEndpointClientAssertionTests
 
         using var document = JsonDocument.Parse(await second.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -288,7 +288,7 @@ public class TokenEndpointClientAssertionTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -308,7 +308,7 @@ public class TokenEndpointClientAssertionTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -350,7 +350,7 @@ public class TokenEndpointClientAssertionTests
         await factory.SeedConfidentialClientWithCertificateAsync(
             privateKeyClientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             privateKeyClientId,

@@ -62,7 +62,7 @@ public class DefaultValidateTokenExchangeGrantHandlerTests : BaseTests
             new TokenExchangeGrant
             {
                 SubjectAuthentication = CreateSubjectAuthentication(),
-                RequestedTokenType = OpenIdConstants.TokenTypeIdentifiers.AccessToken,
+                RequestedTokenType = OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
             }
         );
 

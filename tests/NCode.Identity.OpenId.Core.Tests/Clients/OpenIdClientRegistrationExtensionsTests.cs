@@ -67,12 +67,12 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     public void RegisteredAuthenticationMethod_ReturnsTheEffectiveTokenEndpointAuthMethod()
     {
         var (mockClient, _) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         var method = mockClient.Object.RegisteredAuthenticationMethod;
 
-        Assert.Equal(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, method);
+        Assert.Equal(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt, method);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     public void IsRegisteredAuthenticationMethodPermitted_WhenTheCeilingIsUnset_ReturnsTrue()
     {
         var (mockClient, mockSettings) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
         SetupCeiling(mockSettings, ceiling: null);
 
@@ -133,13 +133,13 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     public void IsRegisteredAuthenticationMethodPermitted_WhenTheCeilingListsTheMethod_ReturnsTrue()
     {
         var (mockClient, mockSettings) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
         SetupCeiling(
             mockSettings,
             [
-                OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-                OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+                OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
             ]
         );
 
@@ -152,9 +152,9 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     public void IsRegisteredAuthenticationMethodPermitted_WhenTheCeilingExcludesTheMethod_ReturnsFalse()
     {
         var (mockClient, mockSettings) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
-        SetupCeiling(mockSettings, [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt]);
+        SetupCeiling(mockSettings, [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt]);
 
         var permitted = mockClient.Object.IsRegisteredAuthenticationMethodPermitted;
 
@@ -166,7 +166,7 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     {
         // An empty ceiling is the intersection of disjoint ceilings: it permits nothing, never everything.
         var (mockClient, mockSettings) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
         SetupCeiling(mockSettings, []);
 
@@ -183,12 +183,12 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     public void MayAuthenticateWith_WhenTheMethodIsRegisteredAndPermitted_ReturnsTrue()
     {
         var (mockClient, mockSettings) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
-        SetupCeiling(mockSettings, [OpenIdConstants.ClientAuthenticationMethods.None]);
+        SetupCeiling(mockSettings, [OpenIdProtocol.ClientAuthenticationMethods.None]);
 
         var mayAuthenticate = mockClient.Object.MayAuthenticateWith(
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         Assert.True(mayAuthenticate);
@@ -199,11 +199,11 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     {
         // A confidential client never authenticates as public, nor with another confidential method.
         var (mockClient, _) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
 
         var mayAuthenticate = mockClient.Object.MayAuthenticateWith(
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         Assert.False(mayAuthenticate);
@@ -213,12 +213,12 @@ public class OpenIdClientRegistrationExtensionsTests : BaseTests
     public void MayAuthenticateWith_WhenTheCeilingExcludesTheRegisteredMethod_ReturnsFalse()
     {
         var (mockClient, mockSettings) = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
-        SetupCeiling(mockSettings, [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt]);
+        SetupCeiling(mockSettings, [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt]);
 
         var mayAuthenticate = mockClient.Object.MayAuthenticateWith(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         Assert.False(mayAuthenticate);

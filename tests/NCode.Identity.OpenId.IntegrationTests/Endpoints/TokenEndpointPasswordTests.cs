@@ -45,7 +45,7 @@ public class TokenEndpointPasswordTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.Password
+            OpenIdProtocol.GrantTypes.Password
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -64,7 +64,7 @@ public class TokenEndpointPasswordTests
             using var content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                     ["client_id"] = ClientId,
                     ["client_secret"] = ClientSecret,
                     ["username"] = UserName,
@@ -84,7 +84,7 @@ public class TokenEndpointPasswordTests
 
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
 
         // The access token's subject is the stable, server-owned principal id resolved for the authenticated account —
         // never the raw local-account id or username (ADR-0035).
@@ -111,7 +111,7 @@ public class TokenEndpointPasswordTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.Password
+            OpenIdProtocol.GrantTypes.Password
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -128,7 +128,7 @@ public class TokenEndpointPasswordTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
                 ["username"] = UserName,
@@ -162,8 +162,8 @@ public class TokenEndpointPasswordTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.Password },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.Password },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["id_token_encrypted_response_alg"] = "RSA-OAEP-256",
@@ -192,12 +192,12 @@ public class TokenEndpointPasswordTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
                 ["username"] = UserName,
                 ["password"] = Password,
-                ["scope"] = OpenIdConstants.ScopeTypes.OpenId,
+                ["scope"] = OpenIdProtocol.ScopeTypes.OpenId,
             }
         );
         using var response = await client.PostAsync("/oauth2/token", content);

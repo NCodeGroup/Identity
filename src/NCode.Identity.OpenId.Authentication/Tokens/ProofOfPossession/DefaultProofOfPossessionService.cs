@@ -100,8 +100,8 @@ internal class DefaultProofOfPossessionService(
 
         // A DPoP-bound token advertises token_type=DPoP; a purely certificate-bound (or unbound) token stays Bearer.
         var tokenType = jwkThumbprint is not null
-            ? OpenIdConstants.TokenTypes.DPoP
-            : OpenIdConstants.TokenTypes.Bearer;
+            ? OpenIdProtocol.TokenTypes.DPoP
+            : OpenIdProtocol.TokenTypes.Bearer;
 
         return new ProofOfPossessionBinding { TokenType = tokenType, Confirmation = confirmation };
     }
@@ -127,7 +127,7 @@ internal class DefaultProofOfPossessionService(
             var authorization = request.Headers.Authorization.ToString();
             if (
                 !authorization.StartsWith(
-                    $"{OpenIdConstants.TokenTypes.DPoP} ",
+                    $"{OpenIdProtocol.TokenTypes.DPoP} ",
                     StringComparison.OrdinalIgnoreCase
                 )
             )
@@ -138,12 +138,12 @@ internal class DefaultProofOfPossessionService(
                 );
             }
 
-            var proofs = request.Headers[OpenIdConstants.DPoP.HeaderName];
+            var proofs = request.Headers[OpenIdProtocol.DPoP.HeaderName];
             var proofJwt = proofs.Count == 1 ? proofs[0] : null;
             if (string.IsNullOrEmpty(proofJwt))
             {
                 return errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                     .WithDescription(
                         "A DPoP proof is required to present a DPoP-bound access token."
                     )
@@ -181,7 +181,7 @@ internal class DefaultProofOfPossessionService(
             )
             {
                 return errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                     .WithDescription(
                         "The DPoP proof key does not match the access token's confirmation."
                     )
@@ -240,13 +240,13 @@ internal class DefaultProofOfPossessionService(
     {
         var errorFactory = openIdContext.ErrorFactory;
         var request = httpContext.Request;
-        var proofs = request.Headers[OpenIdConstants.DPoP.HeaderName];
+        var proofs = request.Headers[OpenIdProtocol.DPoP.HeaderName];
 
         // A request carries at most one DPoP proof (RFC 9449 §4.1).
         if (proofs.Count > 1)
         {
             throw errorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                 .WithDescription("The request contains more than one DPoP proof.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -262,7 +262,7 @@ internal class DefaultProofOfPossessionService(
             if (requireDPoP)
             {
                 throw errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                     .WithDescription("A DPoP proof is required but was not presented.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();

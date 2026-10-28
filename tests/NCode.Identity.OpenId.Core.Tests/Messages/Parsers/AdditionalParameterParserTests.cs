@@ -147,7 +147,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         var parser = new StringListParser();
         var input =
-            $"a{OpenIdConstants.ParameterSeparatorChar}b{OpenIdConstants.ParameterSeparatorChar}c";
+            $"a{OpenIdProtocol.ParameterSeparatorChar}b{OpenIdProtocol.ParameterSeparatorChar}c";
 
         var result = parser.Parse(_environment, _allowMissingDescriptor, input);
 

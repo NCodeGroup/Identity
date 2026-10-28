@@ -157,7 +157,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenCreateAccountPrompt_ReturnsChallengeRequired()
     {
         var (command, _, _, _, _, _, _) = CreateScaffold([
-            OpenIdConstants.PromptTypes.CreateAccount,
+            OpenIdProtocol.PromptTypes.CreateAccount,
         ]);
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
@@ -169,7 +169,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenLoginPrompt_ReturnsChallengeRequired()
     {
-        var (command, _, _, _, _, _, _) = CreateScaffold([OpenIdConstants.PromptTypes.Login]);
+        var (command, _, _, _, _, _, _) = CreateScaffold([OpenIdProtocol.PromptTypes.Login]);
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -181,7 +181,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenLoginPromptOnContinuation_DoesNotReChallenge()
     {
         var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
-            [OpenIdConstants.PromptTypes.Login],
+            [OpenIdProtocol.PromptTypes.Login],
             isContinuation: true
         );
 
@@ -209,7 +209,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenCreateAccountPromptOnContinuation_DoesNotReChallenge()
     {
         var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
-            [OpenIdConstants.PromptTypes.CreateAccount],
+            [OpenIdProtocol.PromptTypes.CreateAccount],
             isContinuation: true
         );
 
@@ -274,7 +274,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenSubjectInvalidWithNonePrompt_ReturnsLoginRequiredError()
     {
         var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([
-            OpenIdConstants.PromptTypes.None,
+            OpenIdProtocol.PromptTypes.None,
         ]);
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
@@ -306,7 +306,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var standingError = CreateLooseMock<IOpenIdError>();
         standingError
             .SetupGet(x => x.Code)
-            .Returns(OpenIdConstants.ErrorCodes.AccessDenied)
+            .Returns(OpenIdProtocol.ErrorCodes.AccessDenied)
             .Verifiable();
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
@@ -317,7 +317,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<OpenIdClient>(),
                     It.IsAny<string>(),
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -335,13 +335,13 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheSubjectsStandingIsRefusedWithNonePrompt_ReturnsTheRefusal()
     {
         var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([
-            OpenIdConstants.PromptTypes.None,
+            OpenIdProtocol.PromptTypes.None,
         ]);
 
         var standingError = CreateLooseMock<IOpenIdError>();
         standingError
             .SetupGet(x => x.Code)
-            .Returns(OpenIdConstants.ErrorCodes.AccessDenied)
+            .Returns(OpenIdProtocol.ErrorCodes.AccessDenied)
             .Verifiable();
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
@@ -352,7 +352,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<OpenIdClient>(),
                     It.IsAny<string>(),
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -440,7 +440,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenConsentRequiredWithNonePrompt_ReturnsConsentRequiredError()
     {
         var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
-            CreateScaffold([OpenIdConstants.PromptTypes.None]);
+            CreateScaffold([OpenIdProtocol.PromptTypes.None]);
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
@@ -481,7 +481,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenPromptConsentOnContinuationAndDecided_DownScopesAndAuthorizes()
     {
         var (command, mockContext, _, _, mockAuthRequest, mockMediator, _) = CreateScaffold(
-            [OpenIdConstants.PromptTypes.Consent],
+            [OpenIdProtocol.PromptTypes.Consent],
             isContinuation: true
         );
 

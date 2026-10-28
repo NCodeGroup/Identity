@@ -89,7 +89,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         var tokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = OpenIdProtocol.GrantTypes.AuthorizationCode,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             SubjectAuthentication = subjectAuthentication,
@@ -100,7 +100,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
             tokenRequest,
             SigningCredentials: null!,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.AccessToken
+            TokenType: OpenIdProtocol.TokenTypes.AccessToken
         );
 
         var payloadClaims = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -144,7 +144,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     {
         var (command, payloadClaims) = CreateCommand(
             subjectAuthentication: null,
-            ["openid", OpenIdConstants.ScopeTypes.OfflineAccess]
+            ["openid", OpenIdProtocol.ScopeTypes.OfflineAccess]
         );
 
         MockCryptoService
@@ -183,7 +183,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         var cnf = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(
             payloadClaims[JoseClaimNames.Payload.Cnf]
         );
-        Assert.Equal("jkt-value", cnf[OpenIdConstants.ConfirmationMethods.JwkThumbprint]);
+        Assert.Equal("jkt-value", cnf[OpenIdProtocol.ConfirmationMethods.JwkThumbprint]);
     }
 
     [Fact]

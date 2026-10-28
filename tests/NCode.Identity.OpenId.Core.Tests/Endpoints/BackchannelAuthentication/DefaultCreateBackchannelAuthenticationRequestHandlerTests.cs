@@ -85,7 +85,7 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
 
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode))
-            .Returns(OpenIdConstants.BackchannelTokenDeliveryModes.Poll);
+            .Returns(OpenIdProtocol.BackchannelTokenDeliveryModes.Poll);
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaRequestLifetime))
             .Returns(TimeSpan.FromMinutes(10));

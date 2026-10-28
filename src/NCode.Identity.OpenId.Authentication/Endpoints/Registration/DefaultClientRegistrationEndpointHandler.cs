@@ -81,14 +81,14 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     private static readonly string[] DefaultGrantTypes =
     [
-        OpenIdConstants.GrantTypes.AuthorizationCode,
+        OpenIdProtocol.GrantTypes.AuthorizationCode,
     ];
-    private static readonly string[] DefaultResponseTypes = [OpenIdConstants.ResponseTypes.Code];
+    private static readonly string[] DefaultResponseTypes = [OpenIdProtocol.ResponseTypes.Code];
 
     private static readonly string[] SupportedSubjectTypes =
     [
-        OpenIdConstants.SubjectTypes.Public,
-        OpenIdConstants.SubjectTypes.Pairwise,
+        OpenIdProtocol.SubjectTypes.Public,
+        OpenIdProtocol.SubjectTypes.Pairwise,
     ];
 
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -195,7 +195,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "Only requests with Content-Type 'application/json' are supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -221,7 +221,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "The request body could not be parsed as JSON client metadata.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -265,7 +265,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var isConfidential =
-            resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
+            resolved.TokenEndpointAuthMethod != OpenIdProtocol.ClientAuthenticationMethods.None;
 
         var resourceServerId = initialAccessToken?.ResourceServerId;
         var bindingError = ValidateResourceServerBinding(
@@ -522,7 +522,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "Only requests with Content-Type 'application/json' are supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -534,7 +534,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "The request body could not be parsed as JSON client metadata.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -597,7 +597,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             request,
             isBound: client.ResourceServerId is not null,
             isConfidential: resolved.TokenEndpointAuthMethod
-                != OpenIdConstants.ClientAuthenticationMethods.None
+                != OpenIdProtocol.ClientAuthenticationMethods.None
         );
         if (bindingError is not null)
         {
@@ -762,7 +762,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         return description is null
             ? null
             : errorFactory
-                .InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata)
+                .InvalidRequest(description, OpenIdProtocol.ErrorCodes.InvalidClientMetadata)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
     }
@@ -809,7 +809,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var tokenEndpointAuthMethod =
             request.TokenEndpointAuthMethod
-            ?? OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+            ?? OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
         // The method vocabulary is open: the settings validation accepts every method a registered method descriptor
         // names, and the tenant's effective token_endpoint_auth_methods_supported narrows it (ValidateCoherence).
@@ -817,7 +817,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "The 'token_endpoint_auth_method' value must be a non-empty string.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -828,7 +828,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "Every 'response_types' value must be a non-empty string.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -862,7 +862,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "At least one 'redirect_uris' value is required for the registered response types.",
-                OpenIdConstants.ErrorCodes.InvalidRedirectUri
+                OpenIdProtocol.ErrorCodes.InvalidRedirectUri
             );
         }
 
@@ -875,7 +875,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             {
                 return errorFactory.InvalidRequest(
                     $"The redirect URI '{redirectUri}' is not a valid absolute URI without a fragment.",
-                    OpenIdConstants.ErrorCodes.InvalidRedirectUri
+                    OpenIdProtocol.ErrorCodes.InvalidRedirectUri
                 );
             }
         }
@@ -885,7 +885,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 $"The 'subject_type' value '{subjectType}' is not supported.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -906,7 +906,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             string.IsNullOrEmpty(sectorIdentifierUri)
             && string.Equals(
                 subjectType,
-                OpenIdConstants.SubjectTypes.Pairwise,
+                OpenIdProtocol.SubjectTypes.Pairwise,
                 StringComparison.Ordinal
             )
             && HasMultipleDistinctHosts(redirectUris)
@@ -914,7 +914,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "A 'sector_identifier_uri' is required for a pairwise client whose 'redirect_uris' span multiple hosts.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -953,8 +953,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     // RFC 7591 §2: omitted response_types default to code. A client whose grant types do not use the authorization
     // endpoint (neither authorization_code nor implicit) registers no response type.
     private static string[] GetDefaultResponseTypes(IReadOnlyList<string> grantTypes) =>
-        grantTypes.Contains(OpenIdConstants.GrantTypes.AuthorizationCode)
-        || grantTypes.Contains(OpenIdConstants.GrantTypes.Implicit)
+        grantTypes.Contains(OpenIdProtocol.GrantTypes.AuthorizationCode)
+        || grantTypes.Contains(OpenIdProtocol.GrantTypes.Implicit)
             ? DefaultResponseTypes
             : [];
 
@@ -981,7 +981,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
             return errorFactory.InvalidRequest(
                 $"The 'response_types' value '{responseType}' requires the '{missingGrantType}' grant type, which is not among the registered 'grant_types'.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -1021,8 +1021,8 @@ internal class DefaultClientRegistrationEndpointHandler(
                 StringComparison.Ordinal
             )
         )
-            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
-            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
+            ? OpenIdProtocol.ErrorCodes.InvalidRedirectUri
+            : OpenIdProtocol.ErrorCodes.InvalidClientMetadata;
 
         return errorFactory.InvalidRequest(description, code);
     }
@@ -1148,28 +1148,28 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         switch (tokenEndpointAuthMethod)
         {
-            case OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            case OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
                 when !hasJwks && !hasJwksUri:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'private_key_jwt' method requires the client's public keys in 'jwks' or 'jwks_uri'."
                 );
 
-            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            case OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
                 when !hasJwks && !hasJwksUri:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'self_signed_tls_client_auth' method requires the client's certificates in 'jwks' or 'jwks_uri'."
                 );
 
-            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            case OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
                 when hasJwks && !hasCertificate:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'self_signed_tls_client_auth' method requires a 'jwks' key with an 'x5c' certificate."
                 );
 
-            case OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth when identityCount != 1:
+            case OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth when identityCount != 1:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'tls_client_auth' method requires exactly one of 'tls_client_auth_subject_dn', "
@@ -1177,7 +1177,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                         + "'tls_client_auth_san_email'."
                 );
 
-            case not OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            case not OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
                 when identityCount != 0:
                 return InvalidClientMetadata(
                     errorFactory,
@@ -1214,7 +1214,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
         string description
-    ) => errorFactory.InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata);
+    ) => errorFactory.InvalidRequest(description, OpenIdProtocol.ErrorCodes.InvalidClientMetadata);
 
     private static bool HasMultipleDistinctHosts(IReadOnlyCollection<string> redirectUris)
     {
@@ -1344,7 +1344,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         return errorFactory
             .InvalidRequest(
                 $"The 'jwks' parameter is invalid. {error}",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             )
             .WithStatusCode(StatusCodes.Status400BadRequest)
             .AsHttpResult();
@@ -1386,8 +1386,8 @@ internal class DefaultClientRegistrationEndpointHandler(
             )
         );
         var errorCode = isRedirectUriError
-            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
-            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
+            ? OpenIdProtocol.ErrorCodes.InvalidRedirectUri
+            : OpenIdProtocol.ErrorCodes.InvalidClientMetadata;
 
         var messages = settingErrors.Select(error => error.Message);
         var description = string.Join(" ", messages);
@@ -1585,7 +1585,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         var scope =
             allowedScopes.Count == 0
                 ? null
-                : string.Join(OpenIdConstants.ParameterSeparatorString, orderedScopes);
+                : string.Join(OpenIdProtocol.ParameterSeparatorString, orderedScopes);
 
         return ToResponse(client) with
         {

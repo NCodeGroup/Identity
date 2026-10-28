@@ -81,7 +81,7 @@ public class JsonParser<T> : ParameterParser<T>
         catch (Exception exception)
         {
             throw openIdEnvironment
-                .ErrorFactory.FailedToDeserializeJson(OpenIdConstants.ErrorCodes.InvalidRequest)
+                .ErrorFactory.FailedToDeserializeJson(OpenIdProtocol.ErrorCodes.InvalidRequest)
                 .WithException(exception)
                 .AsException();
         }

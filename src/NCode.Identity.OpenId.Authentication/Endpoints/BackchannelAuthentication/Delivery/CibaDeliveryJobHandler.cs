@@ -50,29 +50,29 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
     {
         var body = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            [OpenIdConstants.Parameters.AuthReqId] = job.AuthReqId,
+            [OpenIdProtocol.Parameters.AuthReqId] = job.AuthReqId,
         };
 
         if (!string.IsNullOrEmpty(job.Error))
-            body[OpenIdConstants.Parameters.ErrorCode] = job.Error;
+            body[OpenIdProtocol.Parameters.ErrorCode] = job.Error;
 
         if (!string.IsNullOrEmpty(job.AccessToken))
-            body[OpenIdConstants.Parameters.AccessToken] = job.AccessToken;
+            body[OpenIdProtocol.Parameters.AccessToken] = job.AccessToken;
 
         if (!string.IsNullOrEmpty(job.TokenType))
-            body[OpenIdConstants.Parameters.TokenType] = job.TokenType;
+            body[OpenIdProtocol.Parameters.TokenType] = job.TokenType;
 
         if (job.ExpiresInSeconds is { } expiresIn)
-            body[OpenIdConstants.Parameters.ExpiresIn] = expiresIn;
+            body[OpenIdProtocol.Parameters.ExpiresIn] = expiresIn;
 
         if (!string.IsNullOrEmpty(job.RefreshToken))
-            body[OpenIdConstants.Parameters.RefreshToken] = job.RefreshToken;
+            body[OpenIdProtocol.Parameters.RefreshToken] = job.RefreshToken;
 
         if (!string.IsNullOrEmpty(job.IdToken))
-            body[OpenIdConstants.Parameters.IdToken] = job.IdToken;
+            body[OpenIdProtocol.Parameters.IdToken] = job.IdToken;
 
         if (!string.IsNullOrEmpty(job.Scope))
-            body[OpenIdConstants.Parameters.Scope] = job.Scope;
+            body[OpenIdProtocol.Parameters.Scope] = job.Scope;
 
         var json = JsonSerializer.Serialize(body);
         using var content = new StringContent(json, SecureEncoding.UTF8, "application/json");

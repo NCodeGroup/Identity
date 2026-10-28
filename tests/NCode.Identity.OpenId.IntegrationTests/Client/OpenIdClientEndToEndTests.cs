@@ -97,7 +97,7 @@ public class OpenIdClientEndToEndTests
         new(
             HostApplicationFactory.TestServerIssuer,
             clientId,
-            ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         )
         {
             KeyRing = KeyRing,
@@ -117,7 +117,7 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -137,7 +137,7 @@ public class OpenIdClientEndToEndTests
         var registration = new ClientRegistration(
             HostApplicationFactory.TestServerIssuer,
             clientId,
-            ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         )
         {
             KeyRing = KeyRing,
@@ -164,7 +164,7 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -191,7 +191,7 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -215,7 +215,7 @@ public class OpenIdClientEndToEndTests
                 registration,
                 new TokenRevocationRequest(accessToken)
                 {
-                    TokenTypeHint = TokenTypeHints.AccessToken,
+                    TokenTypeHint = OpenIdProtocol.TokenTypeHints.AccessToken,
                 },
                 CancellationToken.None
             );

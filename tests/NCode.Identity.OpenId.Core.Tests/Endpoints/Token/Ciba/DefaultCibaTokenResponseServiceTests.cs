@@ -60,7 +60,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod { StartTime = UtcNow, EndTime = UtcNow.AddHours(1) },
         };
@@ -71,7 +71,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
             ClientId = "client-1",
             Scopes = scopes,
             Status = DeviceAuthorizationStatus.Approved,
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
             SubjectAuthentication = CreateSubjectAuthentication(),
         };
 
@@ -117,7 +117,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         );
 
         Assert.Equal("access-token-value", result.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, result.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, result.TokenType);
         Assert.Equal(["api"], result.Scopes);
         Assert.Null(result.IdToken);
         Assert.Null(result.RefreshToken);
@@ -156,10 +156,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         var result = await Service.CreateTokenResponseAsync(
             context.Object,
             client.Object,
-            CreateGrant(
-                OpenIdConstants.ScopeTypes.OpenId,
-                OpenIdConstants.ScopeTypes.OfflineAccess
-            ),
+            CreateGrant(OpenIdProtocol.ScopeTypes.OpenId, OpenIdProtocol.ScopeTypes.OfflineAccess),
             ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );

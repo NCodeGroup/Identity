@@ -75,7 +75,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod
             {
@@ -143,7 +143,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     public async Task HandleAsync_WhenCodeResponseType_SetsAuthorizationCode()
     {
         var (command, mockContext, mockClient) = CreateScaffold([
-            OpenIdConstants.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.Code,
         ]);
 
         MockAuthorizationCodeService
@@ -172,7 +172,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     public async Task HandleAsync_WhenTokenResponseType_SetsAccessToken()
     {
         var (command, mockContext, mockClient) = CreateScaffold([
-            OpenIdConstants.ResponseTypes.Token,
+            OpenIdProtocol.ResponseTypes.Token,
         ]);
 
         MockTokenService
@@ -181,7 +181,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
                     mockContext.Object,
                     mockClient.Object,
                     It.Is<CreateSecurityTokenRequest>(request =>
-                        request.GrantType == OpenIdConstants.GrantTypes.Implicit
+                        request.GrantType == OpenIdProtocol.GrantTypes.Implicit
                     ),
                     It.IsAny<CancellationToken>()
                 )
@@ -192,7 +192,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Equal("access-token-value", result.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, result.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, result.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), result.ExpiresIn);
         Assert.Null(result.AuthorizationCode);
     }
@@ -201,7 +201,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     public async Task HandleAsync_WhenIdTokenResponseType_SetsIdToken()
     {
         var (command, mockContext, mockClient) = CreateScaffold([
-            OpenIdConstants.ResponseTypes.IdToken,
+            OpenIdProtocol.ResponseTypes.IdToken,
         ]);
 
         MockTokenService
@@ -210,7 +210,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
                     mockContext.Object,
                     mockClient.Object,
                     It.Is<CreateSecurityTokenRequest>(request =>
-                        request.GrantType == OpenIdConstants.GrantTypes.Implicit
+                        request.GrantType == OpenIdProtocol.GrantTypes.Implicit
                     ),
                     It.IsAny<CancellationToken>()
                 )

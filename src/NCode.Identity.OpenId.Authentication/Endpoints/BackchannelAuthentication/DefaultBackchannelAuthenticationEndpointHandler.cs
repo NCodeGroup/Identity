@@ -58,7 +58,10 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
-        && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
+        && header.MediaType.Equals(
+            OpenIdProtocol.MediaTypes.FormUrlEncoded,
+            StringComparison.OrdinalIgnoreCase
+        );
 
     /// <summary>
     /// Backchannel authentication endpoint (OpenID Connect CIBA).
@@ -82,7 +85,7 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
         {
             return errorFactory
                 .InvalidRequest(
-                    $"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported."
+                    $"Only POST requests with Content-Type '{OpenIdProtocol.MediaTypes.FormUrlEncoded}' are supported."
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -153,7 +156,7 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
         if (!disposition.IsAuthenticated)
         {
             return errorFactory
-                .Create(OpenIdConstants.ErrorCodes.UnknownUserId)
+                .Create(OpenIdProtocol.ErrorCodes.UnknownUserId)
                 .WithDescription("The supplied login hint could not be resolved to a known user.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();

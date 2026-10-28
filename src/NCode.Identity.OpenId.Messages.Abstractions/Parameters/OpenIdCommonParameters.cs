@@ -43,7 +43,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>acr_values</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> AcrValues = new(
-        OpenIdConstants.Parameters.AcrValues,
+        OpenIdProtocol.Parameters.AcrValues,
         CommonParameterParsers.StringList
     )
     {
@@ -54,7 +54,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>$authorization_source_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="string"/> result.
     /// </summary>
     public static readonly KnownParameter<string> AuthorizationSourceType = new(
-        OpenIdConstants.Parameters.AuthorizationSourceType,
+        OpenIdConstants.InternalParameters.AuthorizationSourceType,
         CommonParameterParsers.String
     )
     {
@@ -66,7 +66,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>claims_locales</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> ClaimsLocales = new(
-        OpenIdConstants.Parameters.ClaimsLocales,
+        OpenIdProtocol.Parameters.ClaimsLocales,
         CommonParameterParsers.StringList
     )
     {
@@ -77,7 +77,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>client_id</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ClientId = new(
-        OpenIdConstants.Parameters.ClientId,
+        OpenIdProtocol.Parameters.ClientId,
         CommonParameterParsers.String
     )
     {
@@ -88,7 +88,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>client_secret</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ClientSecret = new(
-        OpenIdConstants.Parameters.ClientSecret,
+        OpenIdProtocol.Parameters.ClientSecret,
         CommonParameterParsers.String
     )
     {
@@ -99,7 +99,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>$created_when</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="DateTimeOffset"/> result.
     /// </summary>
     public static readonly KnownParameter<DateTimeOffset> CreatedWhen = new(
-        OpenIdConstants.Parameters.CreatedWhen,
+        OpenIdConstants.InternalParameters.CreatedWhen,
         CommonParameterParsers.DateTimeOffset
     )
     {
@@ -111,7 +111,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>code</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> AuthorizationCode = new(
-        OpenIdConstants.Parameters.AuthorizationCode,
+        OpenIdProtocol.Parameters.AuthorizationCode,
         CommonParameterParsers.String
     )
     {
@@ -122,7 +122,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>code_challenge</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> CodeChallenge = new(
-        OpenIdConstants.Parameters.CodeChallenge,
+        OpenIdProtocol.Parameters.CodeChallenge,
         CommonParameterParsers.String
     )
     {
@@ -133,7 +133,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>code_challenge_method</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> CodeChallengeMethod = new(
-        OpenIdConstants.Parameters.CodeChallengeMethod,
+        OpenIdProtocol.Parameters.CodeChallengeMethod,
         CommonParameterParsers.String
     )
     {
@@ -144,7 +144,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>code_verifier</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> CodeVerifier = new(
-        OpenIdConstants.Parameters.CodeVerifier,
+        OpenIdProtocol.Parameters.CodeVerifier,
         CommonParameterParsers.String
     )
     {
@@ -155,7 +155,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>dpop_jkt</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> DPoPJwkThumbprint = new(
-        OpenIdConstants.Parameters.DPoPJwkThumbprint,
+        OpenIdProtocol.Parameters.DPoPJwkThumbprint,
         CommonParameterParsers.String
     )
     {
@@ -166,7 +166,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>display</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> DisplayType = new(
-        OpenIdConstants.Parameters.Display,
+        OpenIdProtocol.Parameters.Display,
         CommonParameterParsers.String
     )
     {
@@ -177,7 +177,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>grant_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> GrantType = new(
-        OpenIdConstants.Parameters.GrantType,
+        OpenIdProtocol.Parameters.GrantType,
         CommonParameterParsers.String
     )
     {
@@ -188,7 +188,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>id_token</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> IdToken = new(
-        OpenIdConstants.Parameters.IdToken,
+        OpenIdProtocol.Parameters.IdToken,
         CommonParameterParsers.String
     )
     {
@@ -199,7 +199,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>id_token_hint</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> IdTokenHint = new(
-        OpenIdConstants.Parameters.IdTokenHint,
+        OpenIdProtocol.Parameters.IdTokenHint,
         CommonParameterParsers.String
     )
     {
@@ -210,7 +210,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>access_token</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> AccessToken = new(
-        OpenIdConstants.Parameters.AccessToken,
+        OpenIdProtocol.Parameters.AccessToken,
         CommonParameterParsers.String
     )
     {
@@ -221,7 +221,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>token_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> TokenType = new(
-        OpenIdConstants.Parameters.TokenType,
+        OpenIdProtocol.Parameters.TokenType,
         CommonParameterParsers.String
     )
     {
@@ -233,7 +233,7 @@ public static class OpenIdCommonParameters
     /// of seconds (a JSON number in the token response per OAuth 2.0 §5.1).
     /// </summary>
     public static readonly KnownParameter<TimeSpan?> ExpiresIn = new(
-        OpenIdConstants.Parameters.ExpiresIn,
+        OpenIdProtocol.Parameters.ExpiresIn,
         CommonParameterParsers.DurationSeconds
     )
     {
@@ -244,7 +244,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>login_hint</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> LoginHint = new(
-        OpenIdConstants.Parameters.LoginHint,
+        OpenIdProtocol.Parameters.LoginHint,
         CommonParameterParsers.String
     )
     {
@@ -255,7 +255,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>max_age</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="TimeSpan"/> result.
     /// </summary>
     public static readonly KnownParameter<TimeSpan?> MaxAge = new(
-        OpenIdConstants.Parameters.MaxAge,
+        OpenIdProtocol.Parameters.MaxAge,
         CommonParameterParsers.TimeSpan.AsNullableValue()
     )
     {
@@ -266,7 +266,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>nonce</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> Nonce = new(
-        OpenIdConstants.Parameters.Nonce,
+        OpenIdProtocol.Parameters.Nonce,
         CommonParameterParsers.String
     )
     {
@@ -277,7 +277,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>password</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> Password = new(
-        OpenIdConstants.Parameters.Password,
+        OpenIdProtocol.Parameters.Password,
         CommonParameterParsers.String
     )
     {
@@ -288,7 +288,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>prompt</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> PromptType = new(
-        OpenIdConstants.Parameters.Prompt,
+        OpenIdProtocol.Parameters.Prompt,
         CommonParameterParsers.StringList
     )
     {
@@ -299,7 +299,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>redirect_uri</c> message parameter, kept as the <see cref="String"/> the client wrote, because a redirect URI is matched, delivered, and compared as written.
     /// </summary>
     public static readonly KnownParameter<string> RedirectUri = new(
-        OpenIdConstants.Parameters.RedirectUri,
+        OpenIdProtocol.Parameters.RedirectUri,
         CommonParameterParsers.String
     )
     {
@@ -310,7 +310,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>device_code</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> DeviceCode = new(
-        OpenIdConstants.Parameters.DeviceCode,
+        OpenIdProtocol.Parameters.DeviceCode,
         CommonParameterParsers.String
     )
     {
@@ -321,7 +321,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>auth_req_id</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> AuthReqId = new(
-        OpenIdConstants.Parameters.AuthReqId,
+        OpenIdProtocol.Parameters.AuthReqId,
         CommonParameterParsers.String
     )
     {
@@ -332,7 +332,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>login_hint_token</c> message parameter (OpenID Connect CIBA).
     /// </summary>
     public static readonly KnownParameter<string> LoginHintToken = new(
-        OpenIdConstants.Parameters.LoginHintToken,
+        OpenIdProtocol.Parameters.LoginHintToken,
         CommonParameterParsers.String
     )
     {
@@ -343,7 +343,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>binding_message</c> message parameter (OpenID Connect CIBA).
     /// </summary>
     public static readonly KnownParameter<string> BindingMessage = new(
-        OpenIdConstants.Parameters.BindingMessage,
+        OpenIdProtocol.Parameters.BindingMessage,
         CommonParameterParsers.String
     )
     {
@@ -354,7 +354,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>client_notification_token</c> message parameter (OpenID Connect CIBA).
     /// </summary>
     public static readonly KnownParameter<string> ClientNotificationToken = new(
-        OpenIdConstants.Parameters.ClientNotificationToken,
+        OpenIdProtocol.Parameters.ClientNotificationToken,
         CommonParameterParsers.String
     )
     {
@@ -365,7 +365,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>requested_expiry</c> message parameter (OpenID Connect CIBA).
     /// </summary>
     public static readonly KnownParameter<string> RequestedExpiry = new(
-        OpenIdConstants.Parameters.RequestedExpiry,
+        OpenIdProtocol.Parameters.RequestedExpiry,
         CommonParameterParsers.String
     )
     {
@@ -376,7 +376,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>refresh_token</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> RefreshToken = new(
-        OpenIdConstants.Parameters.RefreshToken,
+        OpenIdProtocol.Parameters.RefreshToken,
         CommonParameterParsers.String
     )
     {
@@ -387,7 +387,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>token</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> Token = new(
-        OpenIdConstants.Parameters.Token,
+        OpenIdProtocol.Parameters.Token,
         CommonParameterParsers.String
     )
     {
@@ -398,7 +398,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>token_type_hint</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> TokenTypeHint = new(
-        OpenIdConstants.Parameters.TokenTypeHint,
+        OpenIdProtocol.Parameters.TokenTypeHint,
         CommonParameterParsers.String
     )
     {
@@ -409,7 +409,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>request</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> RequestJwt = new(
-        OpenIdConstants.Parameters.Request,
+        OpenIdProtocol.Parameters.Request,
         CommonParameterParsers.String
     )
     {
@@ -420,7 +420,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>request_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.
     /// </summary>
     public static readonly KnownParameter<Uri> RequestUri = new(
-        OpenIdConstants.Parameters.RequestUri,
+        OpenIdProtocol.Parameters.RequestUri,
         CommonParameterParsers.Uri
     )
     {
@@ -431,7 +431,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>response_mode</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ResponseMode = new(
-        OpenIdConstants.Parameters.ResponseMode,
+        OpenIdProtocol.Parameters.ResponseMode,
         CommonParameterParsers.String
     )
     {
@@ -442,7 +442,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>response_type</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> ResponseTypes = new(
-        OpenIdConstants.Parameters.ResponseType,
+        OpenIdProtocol.Parameters.ResponseType,
         CommonParameterParsers.StringList
     )
     {
@@ -455,7 +455,7 @@ public static class OpenIdCommonParameters
     /// which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> Resources = new(
-        OpenIdConstants.Parameters.Resource,
+        OpenIdProtocol.Parameters.Resource,
         CommonParameterParsers.StringList
     )
     {
@@ -466,7 +466,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>scope</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> Scopes = new(
-        OpenIdConstants.Parameters.Scope,
+        OpenIdProtocol.Parameters.Scope,
         CommonParameterParsers.StringList
     )
     {
@@ -478,7 +478,7 @@ public static class OpenIdCommonParameters
     /// <see cref="StringValues"/> into a <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> Audience = new(
-        OpenIdConstants.Parameters.Audience,
+        OpenIdProtocol.Parameters.Audience,
         CommonParameterParsers.StringList
     )
     {
@@ -490,7 +490,7 @@ public static class OpenIdCommonParameters
     /// parses <see cref="StringValues"/> into a <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> SubjectToken = new(
-        OpenIdConstants.Parameters.SubjectToken,
+        OpenIdProtocol.Parameters.SubjectToken,
         CommonParameterParsers.String
     )
     {
@@ -502,7 +502,7 @@ public static class OpenIdCommonParameters
     /// parses <see cref="StringValues"/> into a <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> SubjectTokenType = new(
-        OpenIdConstants.Parameters.SubjectTokenType,
+        OpenIdProtocol.Parameters.SubjectTokenType,
         CommonParameterParsers.String
     )
     {
@@ -514,7 +514,7 @@ public static class OpenIdCommonParameters
     /// <see cref="StringValues"/> into a <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ActorToken = new(
-        OpenIdConstants.Parameters.ActorToken,
+        OpenIdProtocol.Parameters.ActorToken,
         CommonParameterParsers.String
     )
     {
@@ -526,7 +526,7 @@ public static class OpenIdCommonParameters
     /// parses <see cref="StringValues"/> into a <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ActorTokenType = new(
-        OpenIdConstants.Parameters.ActorTokenType,
+        OpenIdProtocol.Parameters.ActorTokenType,
         CommonParameterParsers.String
     )
     {
@@ -538,7 +538,7 @@ public static class OpenIdCommonParameters
     /// which parses <see cref="StringValues"/> into a <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> RequestedTokenType = new(
-        OpenIdConstants.Parameters.RequestedTokenType,
+        OpenIdProtocol.Parameters.RequestedTokenType,
         CommonParameterParsers.String
     )
     {
@@ -550,7 +550,7 @@ public static class OpenIdCommonParameters
     /// which parses <see cref="StringValues"/> into a <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> IssuedTokenType = new(
-        OpenIdConstants.Parameters.IssuedTokenType,
+        OpenIdProtocol.Parameters.IssuedTokenType,
         CommonParameterParsers.String
     )
     {
@@ -561,7 +561,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>state</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> State = new(
-        OpenIdConstants.Parameters.State,
+        OpenIdProtocol.Parameters.State,
         CommonParameterParsers.String
     )
     {
@@ -573,7 +573,7 @@ public static class OpenIdCommonParameters
     /// Management 1.0) which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> SessionState = new(
-        OpenIdConstants.Parameters.SessionState,
+        OpenIdProtocol.Parameters.SessionState,
         CommonParameterParsers.String
     )
     {
@@ -584,7 +584,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>post_logout_redirect_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> PostLogoutRedirectUri = new(
-        OpenIdConstants.Parameters.PostLogoutRedirectUri,
+        OpenIdProtocol.Parameters.PostLogoutRedirectUri,
         CommonParameterParsers.String
     )
     {
@@ -595,7 +595,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>ui_locales</c> message parameter which parses <see cref="StringValues"/> into an <see cref="List{String}"/> result.
     /// </summary>
     public static readonly KnownParameter<List<string>> UiLocales = new(
-        OpenIdConstants.Parameters.UiLocales,
+        OpenIdProtocol.Parameters.UiLocales,
         CommonParameterParsers.StringList
     )
     {
@@ -606,7 +606,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>username</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> Username = new(
-        OpenIdConstants.Parameters.Username,
+        OpenIdProtocol.Parameters.Username,
         CommonParameterParsers.String
     )
     {
@@ -617,7 +617,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>iss</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> Issuer = new(
-        OpenIdConstants.Parameters.IssuerShort,
+        OpenIdProtocol.Parameters.IssuerShort,
         CommonParameterParsers.String
     )
     {
@@ -628,7 +628,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>error</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ErrorCode = new(
-        OpenIdConstants.Parameters.ErrorCode,
+        OpenIdProtocol.Parameters.ErrorCode,
         CommonParameterParsers.String
     )
     {
@@ -639,7 +639,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>error_description</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> ErrorDescription = new(
-        OpenIdConstants.Parameters.ErrorDescription,
+        OpenIdProtocol.Parameters.ErrorDescription,
         CommonParameterParsers.String
     )
     {
@@ -650,7 +650,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>error_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<Uri> ErrorUri = new(
-        OpenIdConstants.Parameters.ErrorUri,
+        OpenIdProtocol.Parameters.ErrorUri,
         CommonParameterParsers.Uri
     )
     {

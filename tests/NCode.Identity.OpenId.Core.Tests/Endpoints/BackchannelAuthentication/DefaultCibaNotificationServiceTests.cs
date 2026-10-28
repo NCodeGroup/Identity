@@ -34,7 +34,7 @@ public class DefaultCibaNotificationServiceTests : BaseTests
             ClientId = "client-1",
             Scopes = ["openid", "api"],
             Status = DeviceAuthorizationStatus.Pending,
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             ClientNotificationToken = "notify-token",
         };
 

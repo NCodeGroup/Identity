@@ -41,7 +41,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 {
     private const string NormalName = "code";
     private const string NormalValue = "auth-code";
-    private const string InternalName = OpenIdConstants.Parameters.CreatedWhen;
+    private const string InternalName = OpenIdConstants.InternalParameters.CreatedWhen;
     private const string InternalValue = "2025-01-01T00:00:00Z";
 
     private const string RedirectUri = "https://client.example/callback";
@@ -158,7 +158,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     public async Task ExecuteAsync_WhenAnErrorIsRedirected_TagsTheErrorCode()
     {
         var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupGet(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied);
+        mockError.SetupGet(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.AccessDenied);
         mockError
             .SetupGet(x => x.OpenIdEnvironment)
             .Returns(CreateStrictMock<OpenIdEnvironment>().Object);
@@ -183,7 +183,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 
         var tag = Assert.Single(metricsTags.Tags);
         Assert.Equal(OpenIdMetricAttributes.Error, tag.Key);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, tag.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, tag.Value);
         Assert.StartsWith(
             RedirectUri,
             httpContext.Response.Headers.Location.ToString(),

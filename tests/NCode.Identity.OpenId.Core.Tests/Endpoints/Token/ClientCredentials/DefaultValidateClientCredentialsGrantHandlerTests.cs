@@ -77,7 +77,7 @@ public class DefaultValidateClientCredentialsGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenOpenIdScopeRequested_ThrowsOpenIdException()
     {
-        var command = CreateCommand([OpenIdConstants.ScopeTypes.OpenId]);
+        var command = CreateCommand([OpenIdProtocol.ScopeTypes.OpenId]);
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)
@@ -87,7 +87,7 @@ public class DefaultValidateClientCredentialsGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenOfflineAccessScopeRequested_ThrowsOpenIdException()
     {
-        var command = CreateCommand([OpenIdConstants.ScopeTypes.OfflineAccess]);
+        var command = CreateCommand([OpenIdProtocol.ScopeTypes.OfflineAccess]);
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)

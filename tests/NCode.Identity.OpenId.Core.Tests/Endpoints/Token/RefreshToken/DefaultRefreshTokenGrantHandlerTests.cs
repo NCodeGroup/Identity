@@ -83,7 +83,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod
             {
@@ -266,7 +266,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsRefreshToken()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.RefreshToken, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.RefreshToken, Handler.GrantTypes);
     }
 
     #endregion
@@ -424,7 +424,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -437,7 +437,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), response.ExpiresIn);
         Assert.Equal(["api"], response.Scopes);
     }
@@ -560,7 +560,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -609,7 +609,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -656,7 +656,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -702,7 +702,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -749,7 +749,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -808,7 +808,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -818,7 +818,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
 
         var binding = new ProofOfPossessionBinding
         {
-            TokenType = OpenIdConstants.TokenTypes.DPoP,
+            TokenType = OpenIdProtocol.TokenTypes.DPoP,
             Confirmation = new TokenConfirmation { JwkThumbprint = "jkt-1" },
         };
 
@@ -849,7 +849,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -888,7 +888,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         MockTokenService
@@ -972,7 +972,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         MockTokenService
@@ -1013,7 +1013,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -1063,7 +1063,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings
@@ -1160,7 +1160,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
             .Verifiable();
 
         mockSettings

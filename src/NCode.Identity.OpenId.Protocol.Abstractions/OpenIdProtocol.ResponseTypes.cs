@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 //
 //    Copyright @ 2023 NCode Group
 //
@@ -17,7 +17,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains constants for the values of the <c>response_type</c> parameter.

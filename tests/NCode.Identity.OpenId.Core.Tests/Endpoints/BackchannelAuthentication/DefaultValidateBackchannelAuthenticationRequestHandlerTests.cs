@@ -44,7 +44,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         Mock<IBackchannelAuthenticationRequest> request
     ) CreateScaffold(
         IReadOnlyCollection<string>? grantTypesSupported = null,
-        string deliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+        string deliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
         IReadOnlyCollection<string>? deliveryModesSupported = null,
         string? loginHint = "user@localhost",
         string? loginHintToken = null,
@@ -68,7 +68,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
             .Callback<string>(code => CapturedErrorCode = code)
             .Returns(mockError.Object);
 
-        var grantTypes = grantTypesSupported ?? [OpenIdConstants.GrantTypes.Ciba];
+        var grantTypes = grantTypesSupported ?? [OpenIdProtocol.GrantTypes.Ciba];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypes!))
             .Returns(true);
@@ -82,8 +82,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
                 deliveryModesSupported
                     ??
                     [
-                        OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-                        OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+                        OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+                        OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
                     ]
             );
         mockSettings
@@ -124,13 +124,13 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     public async Task HandleAsync_WhenGrantNotAllowed_ThrowsUnauthorizedClient()
     {
         var (context, client, _, request) = CreateScaffold(
-            grantTypesSupported: [OpenIdConstants.GrantTypes.AuthorizationCode]
+            grantTypesSupported: [OpenIdProtocol.GrantTypes.AuthorizationCode]
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
@@ -155,41 +155,41 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
     public async Task HandleAsync_WhenUnsupportedDeliveryMode_ThrowsInvalidRequest()
     {
         var (context, client, _, request) = CreateScaffold(
-            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Push
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
     public async Task HandleAsync_WhenPingWithoutNotificationToken_ThrowsInvalidRequest()
     {
         var (context, client, _, request) = CreateScaffold(
-            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             clientNotificationToken: null
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
     public async Task HandleAsync_WhenPingWithoutNotificationEndpoint_ThrowsInvalidRequest()
     {
         var (context, client, _, request) = CreateScaffold(
-            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             clientNotificationToken: "notify-token",
             clientNotificationEndpoint: null
         );
@@ -197,14 +197,14 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
     public async Task HandleAsync_WhenValidPing_DoesNotThrow()
     {
         var (context, client, _, request) = CreateScaffold(
-            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             clientNotificationToken: "notify-token",
             clientNotificationEndpoint: "https://client.test/ciba"
         );
@@ -216,12 +216,12 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     public async Task HandleAsync_WhenValidPush_DoesNotThrow()
     {
         var (context, client, _, request) = CreateScaffold(
-            deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             deliveryModesSupported:
             [
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             ],
             clientNotificationToken: "notify-token",
             clientNotificationEndpoint: "https://client.test/ciba"

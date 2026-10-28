@@ -103,7 +103,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     public void ProjectSubjectId_WhenPublic_ReturnsPrincipalIdUnchanged()
     {
         var context = CreateContext();
-        var client = CreateClient(OpenIdConstants.SubjectTypes.Public);
+        var client = CreateClient(OpenIdProtocol.SubjectTypes.Public);
 
         var result = Service.ProjectSubjectId(context.Object, client.Object, PrincipalId);
 
@@ -126,7 +126,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     {
         var context = CreateContext();
         var client = CreateClient(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             sectorIdentifierUri: "https://sector.example.com/redirects.json",
             pairwiseSalt: "the-salt"
         );
@@ -147,7 +147,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     {
         var context = CreateContext();
         var client = CreateClient(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             redirectUris: ["https://app.example.com/callback"]
         );
 
@@ -161,7 +161,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     {
         var context = CreateContext();
         var client = CreateClient(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             redirectUris: ["https://a.example.com/cb", "https://b.example.com/cb"]
         );
 
@@ -174,7 +174,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     public void ProjectSubjectId_WhenPairwiseWithoutRedirects_FallsBackToClientId()
     {
         var context = CreateContext();
-        var client = CreateClient(OpenIdConstants.SubjectTypes.Pairwise, redirectUris: []);
+        var client = CreateClient(OpenIdProtocol.SubjectTypes.Pairwise, redirectUris: []);
 
         var result = Service.ProjectSubjectId(context.Object, client.Object, PrincipalId);
 
@@ -188,12 +188,12 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
 
         var first = Service.ProjectSubjectId(
             CreateContext().Object,
-            CreateClient(OpenIdConstants.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
+            CreateClient(OpenIdProtocol.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
             PrincipalId
         );
         var second = Service.ProjectSubjectId(
             CreateContext().Object,
-            CreateClient(OpenIdConstants.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
+            CreateClient(OpenIdProtocol.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
             PrincipalId
         );
 
@@ -204,11 +204,11 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     public void ProjectSubjectId_WhenPairwise_DiffersBySector()
     {
         var clientA = CreateClient(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             redirectUris: ["https://a.example.com/cb"]
         );
         var clientB = CreateClient(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             redirectUris: ["https://b.example.com/cb"]
         );
 
@@ -225,12 +225,12 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
 
         var subTenant1 = Service.ProjectSubjectId(
             CreateContext("tenant-1").Object,
-            CreateClient(OpenIdConstants.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
+            CreateClient(OpenIdProtocol.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
             PrincipalId
         );
         var subTenant2 = Service.ProjectSubjectId(
             CreateContext("tenant-2").Object,
-            CreateClient(OpenIdConstants.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
+            CreateClient(OpenIdProtocol.SubjectTypes.Pairwise, redirectUris: [sector]).Object,
             PrincipalId
         );
 
@@ -245,7 +245,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
         var withSaltA = Service.ProjectSubjectId(
             CreateContext().Object,
             CreateClient(
-                OpenIdConstants.SubjectTypes.Pairwise,
+                OpenIdProtocol.SubjectTypes.Pairwise,
                 redirectUris: [sector],
                 pairwiseSalt: "salt-a"
             ).Object,
@@ -254,7 +254,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
         var withSaltB = Service.ProjectSubjectId(
             CreateContext().Object,
             CreateClient(
-                OpenIdConstants.SubjectTypes.Pairwise,
+                OpenIdProtocol.SubjectTypes.Pairwise,
                 redirectUris: [sector],
                 pairwiseSalt: "salt-b"
             ).Object,

@@ -65,7 +65,7 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the <c>access_token_confirmation_methods_supported</c> setting: the <c>cnf</c> confirmation
-    /// methods (<see cref="OpenIdConstants.ConfirmationMethods"/>, the IANA JWT Confirmation Methods) a resource server
+    /// methods (<see cref="OpenIdProtocol.ConfirmationMethods"/>, the IANA JWT Confirmation Methods) a resource server
     /// verifies. When a sender-constrained access token is required, it must be bound by one of the methods every
     /// resource server it targets verifies. Unset means every method the server binds with.
     /// </summary>
@@ -166,8 +166,9 @@ public static class OpenIdSettingNames
     /// Contains the name of the <c>authorization_response_iss_parameter_supported</c> setting (RFC 9207): whether the
     /// OP advertises that it returns the <c>iss</c> parameter in authorization responses.
     /// </summary>
-    public const string AuthorizationResponseIssParameterSupported =
-        "authorization_response_iss_parameter_supported";
+    public const string AuthorizationResponseIssParameterSupported = OpenIdProtocol
+        .MetadataNames
+        .AuthorizationResponseIssParameterSupported;
 
     /// <summary>
     /// Contains the name of <c>claims_locales_supported</c> setting.
@@ -209,7 +210,9 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>code_challenge_methods_supported</c> setting (the PKCE <c>code_challenge_method</c>
     /// transformations the server supports, RFC 7636 / RFC 8414).
     /// </summary>
-    public const string CodeChallengeMethodsSupported = "code_challenge_methods_supported";
+    public const string CodeChallengeMethodsSupported = OpenIdProtocol
+        .MetadataNames
+        .CodeChallengeMethodsSupported;
 
     /// <summary>
     /// Contains the name of <c>continue_authorization_lifetime</c> setting.
@@ -287,7 +290,7 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>grant_types_supported</c> setting.
     /// </summary>
-    public const string GrantTypesSupported = "grant_types_supported";
+    public const string GrantTypesSupported = OpenIdProtocol.MetadataNames.GrantTypesSupported;
 
     /// <summary>
     /// Contains the name of the per-client <c>id_token_encrypted_response_alg</c> setting (OpenID Connect Dynamic
@@ -335,7 +338,9 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>id_token_signing_alg_values_supported</c> setting.
     /// </summary>
-    public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
+    public const string IdTokenSigningAlgValuesSupported = OpenIdProtocol
+        .MetadataNames
+        .IdTokenSigningAlgValuesSupported;
 
     /// <summary>
     /// Contains the name of the per-client <c>authorization_encrypted_response_alg</c> setting (JARM §3): the key-management algorithm a
@@ -502,13 +507,17 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of the server <c>backchannel_logout_supported</c> discovery setting (Back-Channel Logout 1.0).
     /// </summary>
-    public const string BackChannelLogoutSupported = "backchannel_logout_supported";
+    public const string BackChannelLogoutSupported = OpenIdProtocol
+        .MetadataNames
+        .BackchannelLogoutSupported;
 
     /// <summary>
     /// Contains the name of the server <c>backchannel_logout_session_supported</c> discovery setting (Back-Channel
     /// Logout 1.0): whether the OP includes a <c>sid</c> claim in <c>logout_token</c>s.
     /// </summary>
-    public const string BackChannelLogoutSessionSupported = "backchannel_logout_session_supported";
+    public const string BackChannelLogoutSessionSupported = OpenIdProtocol
+        .MetadataNames
+        .BackchannelLogoutSessionSupported;
 
     /// <summary>
     /// Contains the name of the per-client <c>frontchannel_logout_uri</c> setting (Front-Channel Logout 1.0): the URI
@@ -717,8 +726,9 @@ public static class OpenIdSettingNames
     /// push its authorization request to the pushed authorization request endpoint before invoking the authorization
     /// endpoint.
     /// </summary>
-    public const string RequirePushedAuthorizationRequests =
-        "require_pushed_authorization_requests";
+    public const string RequirePushedAuthorizationRequests = OpenIdProtocol
+        .MetadataNames
+        .RequirePushedAuthorizationRequests;
 
     /// <summary>
     /// Contains the name of <c>pushed_authorization_request_lifetime</c> setting (RFC 9126): the validity window of a
@@ -735,7 +745,9 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>response_types_supported</c> setting.
     /// </summary>
-    public const string ResponseTypesSupported = "response_types_supported";
+    public const string ResponseTypesSupported = OpenIdProtocol
+        .MetadataNames
+        .ResponseTypesSupported;
 
     /// <summary>
     /// Contains the name of <c>send_id_claims_in_access_token</c> setting.
@@ -838,7 +850,9 @@ public static class OpenIdSettingNames
     /// server, tenant, or security profile permits. It is a ceiling over a client's registered
     /// <c>token_endpoint_auth_method</c>: a client whose registered method it excludes cannot authenticate.
     /// </summary>
-    public const string TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported";
+    public const string TokenEndpointAuthMethodsSupported = OpenIdProtocol
+        .MetadataNames
+        .TokenEndpointAuthMethodsSupported;
 
     /// <summary>
     /// Contains the name of the <c>token_endpoint_auth_method</c> setting: the single client-authentication method a
@@ -852,8 +866,9 @@ public static class OpenIdSettingNames
     /// <summary>
     /// Contains the name of <c>token_endpoint_auth_signing_alg_values_supported</c> setting.
     /// </summary>
-    public const string TokenEndpointAuthSigningAlgValuesSupported =
-        "token_endpoint_auth_signing_alg_values_supported";
+    public const string TokenEndpointAuthSigningAlgValuesSupported = OpenIdProtocol
+        .MetadataNames
+        .TokenEndpointAuthSigningAlgValuesSupported;
 
     /// <summary>
     /// Contains the name of <c>ui_locales_supported</c> setting.
@@ -903,7 +918,9 @@ public static class OpenIdSettingNames
     /// the server accepts in a DPoP proof JWT. Advertised in discovery metadata and used to reject proofs signed with
     /// a non-permitted (or symmetric) algorithm.
     /// </summary>
-    public const string DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported";
+    public const string DPoPSigningAlgValuesSupported = OpenIdProtocol
+        .MetadataNames
+        .DPoPSigningAlgValuesSupported;
 
     /// <summary>
     /// Contains the name of <c>dpop_proof_lifetime</c> setting (RFC 9449): the acceptable age window of a DPoP

@@ -43,7 +43,7 @@ internal class StringValuesJsonConverter : JsonConverter<StringValues>
         var parsedValue = reader.GetString();
         return string.IsNullOrEmpty(parsedValue)
             ? StringValues.Empty
-            : parsedValue.Split(OpenIdConstants.ParameterSeparatorChar);
+            : parsedValue.Split(OpenIdProtocol.ParameterSeparatorChar);
     }
 
     /// <inheritdoc />
@@ -63,7 +63,7 @@ internal class StringValuesJsonConverter : JsonConverter<StringValues>
                 break;
             default:
                 writer.WriteStringValue(
-                    string.Join(OpenIdConstants.ParameterSeparatorChar, value.AsEnumerable())
+                    string.Join(OpenIdProtocol.ParameterSeparatorChar, value.AsEnumerable())
                 );
                 break;
         }

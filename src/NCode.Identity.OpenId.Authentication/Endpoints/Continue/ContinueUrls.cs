@@ -40,7 +40,7 @@ internal static class ContinueUrls
             return null;
 
         var query = QueryHelpers.ParseQuery(continueUrl[separatorIndex..]);
-        return query.TryGetValue(OpenIdConstants.Parameters.State, out var values)
+        return query.TryGetValue(OpenIdProtocol.Parameters.State, out var values)
             ? values.ToString()
             : null;
     }

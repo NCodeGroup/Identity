@@ -73,7 +73,7 @@ internal class DefaultCreateAuthorizationTicketHandler(
             );
         }
 
-        if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Code))
+        if (responseTypes.Contains(OpenIdProtocol.ResponseTypes.Code))
         {
             var securityToken = await AuthorizationCodeService.CreateAuthorizationCodeAsync(
                 openIdContext,
@@ -91,7 +91,7 @@ internal class DefaultCreateAuthorizationTicketHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = ticket.CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.Implicit,
+            GrantType = OpenIdProtocol.GrantTypes.Implicit,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             OriginalScopes = authorizationRequest.Scopes,
@@ -104,7 +104,7 @@ internal class DefaultCreateAuthorizationTicketHandler(
             AuthTimeRequired = authorizationRequest.MaxAge.HasValue,
         };
 
-        if (responseTypes.Contains(OpenIdConstants.ResponseTypes.Token))
+        if (responseTypes.Contains(OpenIdProtocol.ResponseTypes.Token))
         {
             // A front-channel (hybrid) access token is bound to the pre-registered DPoP key when the authorization
             // request carried dpop_jkt (RFC 9449 §10); otherwise it is a plain Bearer token. Hybrid response types are
@@ -128,12 +128,12 @@ internal class DefaultCreateAuthorizationTicketHandler(
             ticket.AccessToken = securityToken.TokenValue;
             ticket.ExpiresIn = securityToken.TokenLifetime.Duration;
             ticket.TokenType = isDPoPBound
-                ? OpenIdConstants.TokenTypes.DPoP
-                : OpenIdConstants.TokenTypes.Bearer;
+                ? OpenIdProtocol.TokenTypes.DPoP
+                : OpenIdProtocol.TokenTypes.Bearer;
         }
 
         // ReSharper disable once InvertIf
-        if (responseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken))
+        if (responseTypes.Contains(OpenIdProtocol.ResponseTypes.IdToken))
         {
             var newRequest = securityTokenRequest with { AccessToken = ticket.AccessToken };
 

@@ -119,7 +119,7 @@ public class ClientSecretRotationTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = ManagementScope,
                 }
             ),
@@ -145,7 +145,7 @@ public class ClientSecretRotationTests
                 isDisabled = false,
                 settings = new Dictionary<string, object>
                 {
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },

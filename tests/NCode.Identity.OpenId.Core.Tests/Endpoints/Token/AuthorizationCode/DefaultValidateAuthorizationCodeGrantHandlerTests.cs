@@ -191,12 +191,10 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         var codeChallengeMethod = mockMethod.Object;
         scaffold
             .AuthRequest.SetupGet(x => x.CodeChallengeMethod)
-            .Returns(OpenIdConstants.CodeChallengeMethods.S256)
+            .Returns(OpenIdProtocol.CodeChallengeMethods.S256)
             .Verifiable();
         MockCodeChallengeMethodProvider
-            .Setup(x =>
-                x.TryGet(OpenIdConstants.CodeChallengeMethods.S256, out codeChallengeMethod)
-            )
+            .Setup(x => x.TryGet(OpenIdProtocol.CodeChallengeMethods.S256, out codeChallengeMethod))
             .Returns(true)
             .Verifiable();
     }
@@ -224,7 +222,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(scaffold.Command, CancellationToken.None)
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, scaffold.CapturedErrorCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, scaffold.CapturedErrorCode());
     }
 
     #endregion
@@ -432,7 +430,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenUnboundCodeIsExemptedByTheNonce_CompletesSuccessfully()
     {
-        var scaffold = CreatePkceScaffold([OpenIdConstants.ScopeTypes.OpenId]);
+        var scaffold = CreatePkceScaffold([OpenIdProtocol.ScopeTypes.OpenId]);
         SetupUnboundCode(scaffold);
         SetupNonceExemption(scaffold, isConfidential: true);
 
@@ -443,7 +441,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenUnboundCodeIsRedeemedByAPublicClient_ThrowsInvalidGrant()
     {
         // The exemption covers only a client that authenticates at the token endpoint.
-        var scaffold = CreatePkceScaffold([OpenIdConstants.ScopeTypes.OpenId]);
+        var scaffold = CreatePkceScaffold([OpenIdProtocol.ScopeTypes.OpenId]);
         SetupUnboundCode(scaffold);
         SetupNonceExemption(scaffold, isConfidential: false);
 
@@ -455,7 +453,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     {
         // Without 'openid' no ID Token carries the nonce back, so the nonce cannot protect the code.
         var scaffold = CreatePkceScaffold(
-            [OpenIdConstants.ScopeTypes.OpenId, "api"],
+            [OpenIdProtocol.ScopeTypes.OpenId, "api"],
             requestedScopes: ["api"]
         );
         SetupUnboundCode(scaffold);

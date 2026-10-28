@@ -101,9 +101,9 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
             .ToList();
         var expected = new[]
         {
-            ClientAuthenticationMethods.ClientSecretBasic,
-            ClientAuthenticationMethods.ClientSecretPost,
-            ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         }
             .Order(StringComparer.Ordinal)
             .ToList();

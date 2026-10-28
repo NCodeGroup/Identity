@@ -50,10 +50,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal)
-        {
-            OpenIdConstants.GrantTypes.AuthorizationCode,
-        };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.AuthorizationCode };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -71,7 +68,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         var authorizationCode = tokenRequest.AuthorizationCode;
         if (string.IsNullOrEmpty(authorizationCode))
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
+                .MissingParameter(OpenIdProtocol.Parameters.AuthorizationCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var persistedGrantId = PersistedGrantService.CreateGrantId(
@@ -128,7 +125,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         )
         {
             return errorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                 .WithDescription(
                     "The DPoP proof key does not match the 'dpop_jkt' value from the authorization request."
                 )
@@ -203,7 +200,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.AuthorizationCode,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             OriginalScopes = originalScopes,
@@ -228,7 +225,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (effectiveScopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
@@ -242,7 +239,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (effectiveScopes.Contains(OpenIdProtocol.ScopeTypes.OfflineAccess))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 

@@ -192,7 +192,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/par");
         request.Content = new FormUrlEncodedContent([
             new("client_id", clientId),
-            new("client_assertion_type", OpenIdConstants.ClientAssertionTypes.JwtBearer),
+            new("client_assertion_type", OpenIdProtocol.ClientAssertionTypes.JwtBearer),
             new("client_assertion", clientAssertion),
             new("request", requestObject),
         ]);
@@ -261,7 +261,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             JsonElement.Parse(body).GetProperty("error").GetString()
         );
     }
@@ -289,7 +289,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         var json = JsonElement.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             json.GetProperty("error").GetString()
         );
         Assert.Contains(
@@ -320,7 +320,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
             JsonElement.Parse(body).GetProperty("error").GetString()
         );
     }

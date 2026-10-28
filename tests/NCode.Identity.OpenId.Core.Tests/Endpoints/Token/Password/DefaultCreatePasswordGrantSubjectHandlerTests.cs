@@ -130,7 +130,7 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
         var principal = await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Equal(
-            OpenIdConstants.AuthenticationMethods.Password,
+            OpenIdProtocol.AuthenticationMethods.Password,
             principal.FindFirstValue(JoseClaimNames.Payload.Amr)
         );
     }
@@ -138,13 +138,13 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenResolverReturnsAcr_StampsAcr()
     {
-        ResolvedAcr = OpenIdConstants.AuthenticationContextClassReferences.MultiFactor;
+        ResolvedAcr = OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor;
         var command = CreateCommand(CreateAccount());
 
         var principal = await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Equal(
-            OpenIdConstants.AuthenticationContextClassReferences.MultiFactor,
+            OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor,
             principal.FindFirstValue(JoseClaimNames.Payload.Acr)
         );
     }

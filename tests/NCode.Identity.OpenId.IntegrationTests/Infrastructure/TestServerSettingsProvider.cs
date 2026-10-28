@@ -35,9 +35,9 @@ internal sealed class TestServerSettingsProvider : IDefaultSettingsProvider
         Union(
             settings,
             OpenIdSettingKeys.GrantTypesSupported,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
-        Union(settings, OpenIdSettingKeys.GrantTypesSupported, OpenIdConstants.GrantTypes.Password);
+        Union(settings, OpenIdSettingKeys.GrantTypesSupported, OpenIdProtocol.GrantTypes.Password);
     }
 
     private static void Union(

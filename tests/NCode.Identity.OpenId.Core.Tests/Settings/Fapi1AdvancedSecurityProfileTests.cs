@@ -181,22 +181,22 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
 
         Assert.Equal<string>(
             [
-                OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-                OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-                OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+                OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
             ],
             Assert.IsAssignableFrom<IReadOnlyCollection<string>>(
                 recorder.Values[OpenIdSettingKeys.TokenEndpointAuthMethodsSupported.SettingName]
             )
         );
         Assert.Equal<string>(
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
             Assert.IsAssignableFrom<IReadOnlyCollection<string>>(
                 recorder.Values[OpenIdSettingKeys.ResponseTypesSupported.SettingName]
             )
         );
         Assert.Equal<string>(
-            [OpenIdConstants.CodeChallengeMethods.S256],
+            [OpenIdProtocol.CodeChallengeMethods.S256],
             Assert.IsAssignableFrom<IReadOnlyCollection<string>>(
                 recorder.Values[OpenIdSettingKeys.CodeChallengeMethodsSupported.SettingName]
             )

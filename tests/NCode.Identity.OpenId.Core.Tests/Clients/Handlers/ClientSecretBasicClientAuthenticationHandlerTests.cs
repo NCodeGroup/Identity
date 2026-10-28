@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients.Handlers;
 public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthenticationHandlerTestBase
 {
     protected override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
     #region Scaffolding
 
@@ -96,7 +96,7 @@ public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthentic
         SetupErrorFactory();
         SetupChallengeRealm();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             ceiling: null,
             readsClientId: true
         );

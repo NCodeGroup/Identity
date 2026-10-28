@@ -79,7 +79,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
         if (string.IsNullOrEmpty(redirectUri))
             // invalid_request
             throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+                .MissingParameter(OpenIdProtocol.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 

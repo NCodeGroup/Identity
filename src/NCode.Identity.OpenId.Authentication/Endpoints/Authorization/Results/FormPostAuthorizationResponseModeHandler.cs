@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2026 NCode Group
@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// </summary>
 internal sealed class FormPostAuthorizationResponseModeHandler : IAuthorizationResponseModeHandler
 {
-    public string ResponseMode => OpenIdConstants.ResponseModes.FormPost;
+    public string ResponseMode => OpenIdProtocol.ResponseModes.FormPost;
 
     public string? SecuredResponseMode => null;
 

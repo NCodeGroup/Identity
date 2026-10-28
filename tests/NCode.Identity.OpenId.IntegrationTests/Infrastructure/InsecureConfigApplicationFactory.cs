@@ -50,27 +50,27 @@ public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
                 {
                     // Re-add an implicit and a hybrid response type. The setting lists whole response_type values,
                     // so exactly these are advertised and accepted.
-                    ["OpenId:Server:Settings:response_types_supported:0"] = OpenIdConstants
+                    ["OpenId:Server:Settings:response_types_supported:0"] = OpenIdProtocol
                         .ResponseTypes
                         .Code,
-                    ["OpenId:Server:Settings:response_types_supported:1"] = OpenIdConstants
+                    ["OpenId:Server:Settings:response_types_supported:1"] = OpenIdProtocol
                         .ResponseTypes
                         .Token,
-                    ["OpenId:Server:Settings:response_types_supported:2"] = OpenIdConstants
+                    ["OpenId:Server:Settings:response_types_supported:2"] = OpenIdProtocol
                         .ResponseTypes
                         .CodeIdToken,
 
                     // Re-add the 'implicit' grant type alongside the secure defaults.
-                    ["OpenId:Server:Settings:grant_types_supported:0"] = OpenIdConstants
+                    ["OpenId:Server:Settings:grant_types_supported:0"] = OpenIdProtocol
                         .GrantTypes
                         .AuthorizationCode,
-                    ["OpenId:Server:Settings:grant_types_supported:1"] = OpenIdConstants
+                    ["OpenId:Server:Settings:grant_types_supported:1"] = OpenIdProtocol
                         .GrantTypes
                         .Implicit,
-                    ["OpenId:Server:Settings:grant_types_supported:2"] = OpenIdConstants
+                    ["OpenId:Server:Settings:grant_types_supported:2"] = OpenIdProtocol
                         .GrantTypes
                         .RefreshToken,
-                    ["OpenId:Server:Settings:grant_types_supported:3"] = OpenIdConstants
+                    ["OpenId:Server:Settings:grant_types_supported:3"] = OpenIdProtocol
                         .GrantTypes
                         .DeviceCode,
                 }

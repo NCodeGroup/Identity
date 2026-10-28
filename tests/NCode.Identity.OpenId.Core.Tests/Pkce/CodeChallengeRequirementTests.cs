@@ -30,7 +30,7 @@ public class CodeChallengeRequirementTests : BaseTests
 {
     private const string Nonce = "n-0S6_WzA2Mj";
 
-    private static readonly string[] OpenIdScopes = [OpenIdConstants.ScopeTypes.OpenId];
+    private static readonly string[] OpenIdScopes = [OpenIdProtocol.ScopeTypes.OpenId];
 
     #region Scaffolding
 
@@ -40,7 +40,7 @@ public class CodeChallengeRequirementTests : BaseTests
 
     private Mock<OpenIdClient> CreateClient(
         Policy policy,
-        string registeredAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+        string registeredAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
     )
     {
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -116,7 +116,7 @@ public class CodeChallengeRequirementTests : BaseTests
     {
         var required = IsRequiredForAuthorization(
             Relaxed,
-            OpenIdConstants.ClientAuthenticationMethods.None,
+            OpenIdProtocol.ClientAuthenticationMethods.None,
             OpenIdScopes,
             Nonce
         );
@@ -192,7 +192,7 @@ public class CodeChallengeRequirementTests : BaseTests
     {
         var mockClient = CreateClient(Relaxed, "client_secret_basic");
         mockClient.SetupGet(x => x.IsConfidential).Returns(true);
-        var request = CreateRequest([OpenIdConstants.ScopeTypes.OpenId, "api"], Nonce).Object;
+        var request = CreateRequest([OpenIdProtocol.ScopeTypes.OpenId, "api"], Nonce).Object;
 
         var required = CodeChallengeRequirement.IsRequiredForRedemption(
             mockClient.Object,

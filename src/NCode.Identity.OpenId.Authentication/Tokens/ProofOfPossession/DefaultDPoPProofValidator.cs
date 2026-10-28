@@ -71,7 +71,7 @@ internal class DefaultDPoPProofValidator(
         )
         {
             throw errorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                 .WithDescription(error)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -92,11 +92,11 @@ internal class DefaultDPoPProofValidator(
                     openIdContext,
                     cancellationToken
                 );
-                openIdContext.Http.Response.Headers[OpenIdConstants.DPoP.NonceHeaderName] =
+                openIdContext.Http.Response.Headers[OpenIdProtocol.DPoP.NonceHeaderName] =
                     freshNonce;
 
                 throw errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.UseDPoPNonce)
+                    .Create(OpenIdProtocol.ErrorCodes.UseDPoPNonce)
                     .WithDescription("The DPoP proof requires a server-provided nonce.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();
@@ -115,7 +115,7 @@ internal class DefaultDPoPProofValidator(
         if (!recorded)
         {
             throw errorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                 .WithDescription("The DPoP proof has already been used.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();

@@ -43,7 +43,7 @@ public sealed class CodeChallengeMethodTests : IDisposable
     {
         var mockCryptoService = MockRepository.Create<ICryptoService>();
         var method = new S256CodeChallengeMethod(mockCryptoService.Object);
-        Assert.Equal(OpenIdConstants.CodeChallengeMethods.S256, method.Method);
+        Assert.Equal(OpenIdProtocol.CodeChallengeMethods.S256, method.Method);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class CodeChallengeMethodTests : IDisposable
         var s256 = CreateS256Method();
         var provider = new DefaultCodeChallengeMethodCollectionProvider([s256]);
 
-        Assert.Equal([OpenIdConstants.CodeChallengeMethods.S256], provider.SupportedMethods);
+        Assert.Equal([OpenIdProtocol.CodeChallengeMethods.S256], provider.SupportedMethods);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class CodeChallengeMethodTests : IDisposable
         var s256 = CreateS256Method();
         var provider = new DefaultCodeChallengeMethodCollectionProvider([s256]);
 
-        var found = provider.TryGet(OpenIdConstants.CodeChallengeMethods.S256, out var method);
+        var found = provider.TryGet(OpenIdProtocol.CodeChallengeMethods.S256, out var method);
 
         Assert.True(found);
         Assert.Same(s256, method);

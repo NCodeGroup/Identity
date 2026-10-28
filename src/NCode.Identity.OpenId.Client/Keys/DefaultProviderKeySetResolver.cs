@@ -114,8 +114,12 @@ internal class DefaultProviderKeySetResolver(
             throw Fail(jwksUri, "The jwks_uri is not an https URL (or http on a loopback host).");
 
         using var request = new HttpRequestMessage(HttpMethod.Get, jwksUri);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/jwk-set+json"));
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue(OpenIdProtocol.MediaTypes.JwkSet)
+        );
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue(OpenIdProtocol.MediaTypes.Json)
+        );
 
         ProviderHttpResponse response;
         try

@@ -113,7 +113,11 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
         List<KeyValuePair<string, string>> parameters
     ) =>
         new(
-            new ClientRegistration(Issuer, ClientId, ClientAuthenticationMethods.PrivateKeyJwt)
+            new ClientRegistration(
+                Issuer,
+                ClientId,
+                OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
+            )
             {
                 KeyRing = keyRing,
             },
@@ -171,7 +175,10 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = CreateAuthenticator(keyRing: null);
 
-        Assert.Equal(ClientAuthenticationMethods.PrivateKeyJwt, authenticator.MethodName);
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            authenticator.MethodName
+        );
     }
 
     #endregion

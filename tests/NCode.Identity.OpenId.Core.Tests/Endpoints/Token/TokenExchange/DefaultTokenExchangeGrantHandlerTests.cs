@@ -89,7 +89,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 
     private Mock<ITokenRequest> SetupTokenRequest(
         string? subjectToken = "subject.jwt",
-        string? subjectTokenType = OpenIdConstants.TokenTypeIdentifiers.AccessToken,
+        string? subjectTokenType = OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
         string? actorToken = null,
         string? actorTokenType = null,
         string? requestedTokenType = null
@@ -129,7 +129,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
                     SubjectTokenValidationResult.Success(
                         new ClaimsPrincipal(new ClaimsIdentity()),
                         Payload(payloadJson),
-                        OpenIdConstants.TokenTypeIdentifiers.AccessToken
+                        OpenIdProtocol.TokenTypeIdentifiers.AccessToken
                     )
                 )
             );
@@ -142,7 +142,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsTokenExchange()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.TokenExchange, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.TokenExchange, Handler.GrantTypes);
     }
 
     #endregion
@@ -295,7 +295,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
 
         var mockTokenRequest = SetupTokenRequest(
-            requestedTokenType: OpenIdConstants.TokenTypeIdentifiers.RefreshToken
+            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken
         );
 
         SetupSubjectValidatorSuccess(
@@ -348,7 +348,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(
             actorToken: "actor.jwt",
-            actorTokenType: OpenIdConstants.TokenTypeIdentifiers.AccessToken
+            actorTokenType: OpenIdProtocol.TokenTypeIdentifiers.AccessToken
         );
 
         SetupSubjectValidatorSuccess(
@@ -378,7 +378,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(
             actorToken: "actor.jwt",
-            actorTokenType: OpenIdConstants.TokenTypeIdentifiers.AccessToken
+            actorTokenType: OpenIdProtocol.TokenTypeIdentifiers.AccessToken
         );
 
         // The subject token carries no may_act claim, so the presented actor is not authorized to act for it.

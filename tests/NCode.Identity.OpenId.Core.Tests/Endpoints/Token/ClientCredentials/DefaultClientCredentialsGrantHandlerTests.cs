@@ -56,7 +56,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsClientCredentials()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.ClientCredentials, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.ClientCredentials, Handler.GrantTypes);
     }
 
     #endregion
@@ -110,7 +110,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
         };
         var securityToken = new SecurityToken
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = "access-token-value",
             TokenLifetime = tokenLifetime,
         };
@@ -134,7 +134,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.ClientCredentials)
+            .Returns(OpenIdProtocol.GrantTypes.ClientCredentials)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(createdWhen).Verifiable();
@@ -171,7 +171,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), response.ExpiresIn);
         Assert.Equal(scopes, response.Scopes);
     }

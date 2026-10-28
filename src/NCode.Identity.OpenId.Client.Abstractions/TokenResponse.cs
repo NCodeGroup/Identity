@@ -31,49 +31,49 @@ public sealed class TokenResponse
     /// <summary>
     /// Gets the issued access token.
     /// </summary>
-    [JsonPropertyName("access_token")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.AccessToken)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? AccessToken { get; init; }
 
     /// <summary>
     /// Gets the type of the access token, such as <c>Bearer</c>.
     /// </summary>
-    [JsonPropertyName("token_type")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.TokenType)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TokenType { get; init; }
 
     /// <summary>
     /// Gets the refresh token, if any.
     /// </summary>
-    [JsonPropertyName("refresh_token")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.RefreshToken)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RefreshToken { get; init; }
 
     /// <summary>
     /// Gets the ID token, if any.
     /// </summary>
-    [JsonPropertyName("id_token")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.IdToken)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IdToken { get; init; }
 
     /// <summary>
     /// Gets the space-delimited scope of the issued token, if it differs from the requested scope.
     /// </summary>
-    [JsonPropertyName("scope")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.Scope)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Scope { get; init; }
 
     /// <summary>
     /// Gets the type identifier of the issued token (RFC 8693 §2.2.1).
     /// </summary>
-    [JsonPropertyName("issued_token_type")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.IssuedTokenType)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IssuedTokenType { get; init; }
 
     /// <summary>
     /// Gets the lifetime of the access token in seconds.
     /// </summary>
-    [JsonPropertyName("expires_in")]
+    [JsonPropertyName(OpenIdProtocol.Parameters.ExpiresIn)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? ExpiresIn { get; init; }
 

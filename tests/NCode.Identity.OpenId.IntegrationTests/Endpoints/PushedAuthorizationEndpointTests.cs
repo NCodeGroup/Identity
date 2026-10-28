@@ -117,7 +117,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.ResponseModesSupported] = new[]
                 {
-                    OpenIdConstants.ResponseModes.Query,
+                    OpenIdProtocol.ResponseModes.Query,
                 },
             },
             RedirectUri
@@ -132,7 +132,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             [
                 new KeyValuePair<string, string>(
                     "response_mode",
-                    OpenIdConstants.ResponseModes.Fragment
+                    OpenIdProtocol.ResponseModes.Fragment
                 ),
             ]
         );
@@ -141,7 +141,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -169,7 +169,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             [
                 new KeyValuePair<string, string>(
                     "response_mode",
-                    OpenIdConstants.ResponseModes.QueryJwt
+                    OpenIdProtocol.ResponseModes.QueryJwt
                 ),
             ]
         );
@@ -178,7 +178,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
     }

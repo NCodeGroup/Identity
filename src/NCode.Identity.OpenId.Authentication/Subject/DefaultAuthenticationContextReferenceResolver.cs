@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// <summary>
 /// Provides a default implementation of <see cref="IAuthenticationContextReferenceResolver"/> that derives the
 /// <c>acr</c> value from the satisfied authentication methods: multiple factors resolve to the PAPE multi-factor policy
-/// URN (<see cref="OpenIdConstants.AuthenticationContextClassReferences.MultiFactor"/>), otherwise the configured
+/// URN (<see cref="OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor"/>), otherwise the configured
 /// <c>default_acr</c> baseline is asserted (and the claim is omitted when no baseline is configured). A deployment with
 /// its own authentication-context policy registers a replacement implementation.
 /// </summary>
@@ -32,26 +32,26 @@ internal sealed class DefaultAuthenticationContextReferenceResolver
 {
     private static readonly HashSet<string> KnowledgeFactors = new(StringComparer.Ordinal)
     {
-        OpenIdConstants.AuthenticationMethods.Password,
-        OpenIdConstants.AuthenticationMethods.PersonalIdentificationOrPattern,
-        OpenIdConstants.AuthenticationMethods.KnowledgeBasedAuthentication,
+        OpenIdProtocol.AuthenticationMethods.Password,
+        OpenIdProtocol.AuthenticationMethods.PersonalIdentificationOrPattern,
+        OpenIdProtocol.AuthenticationMethods.KnowledgeBasedAuthentication,
     };
 
     private static readonly HashSet<string> PossessionOrBiometricFactors = new(
         StringComparer.Ordinal
     )
     {
-        OpenIdConstants.AuthenticationMethods.OneTimePassword,
-        OpenIdConstants.AuthenticationMethods.ProofOfPossessionHardwareSecuredKey,
-        OpenIdConstants.AuthenticationMethods.ProofOfPossessionSoftwareSecuredKey,
-        OpenIdConstants.AuthenticationMethods.ConfirmationBySms,
-        OpenIdConstants.AuthenticationMethods.ConfirmationByTelephone,
-        OpenIdConstants.AuthenticationMethods.SmartCard,
-        OpenIdConstants.AuthenticationMethods.FacialRecognition,
-        OpenIdConstants.AuthenticationMethods.FingerprintBiometric,
-        OpenIdConstants.AuthenticationMethods.IrisScanBiometric,
-        OpenIdConstants.AuthenticationMethods.RetinaScanBiometric,
-        OpenIdConstants.AuthenticationMethods.VoiceBiometric,
+        OpenIdProtocol.AuthenticationMethods.OneTimePassword,
+        OpenIdProtocol.AuthenticationMethods.ProofOfPossessionHardwareSecuredKey,
+        OpenIdProtocol.AuthenticationMethods.ProofOfPossessionSoftwareSecuredKey,
+        OpenIdProtocol.AuthenticationMethods.ConfirmationBySms,
+        OpenIdProtocol.AuthenticationMethods.ConfirmationByTelephone,
+        OpenIdProtocol.AuthenticationMethods.SmartCard,
+        OpenIdProtocol.AuthenticationMethods.FacialRecognition,
+        OpenIdProtocol.AuthenticationMethods.FingerprintBiometric,
+        OpenIdProtocol.AuthenticationMethods.IrisScanBiometric,
+        OpenIdProtocol.AuthenticationMethods.RetinaScanBiometric,
+        OpenIdProtocol.AuthenticationMethods.VoiceBiometric,
     };
 
     /// <inheritdoc />
@@ -63,7 +63,7 @@ internal sealed class DefaultAuthenticationContextReferenceResolver
         if (IndicatesMultiFactor(request.AuthenticationMethods))
         {
             return ValueTask.FromResult<string?>(
-                OpenIdConstants.AuthenticationContextClassReferences.MultiFactor
+                OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor
             );
         }
 
@@ -79,7 +79,7 @@ internal sealed class DefaultAuthenticationContextReferenceResolver
     {
         // An explicit 'mfa' marker, or the combination of a knowledge factor with a possession/biometric factor,
         // indicates multi-factor authentication.
-        if (methods.Contains(OpenIdConstants.AuthenticationMethods.MultiFactorAuthentication))
+        if (methods.Contains(OpenIdProtocol.AuthenticationMethods.MultiFactorAuthentication))
         {
             return true;
         }

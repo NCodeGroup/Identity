@@ -97,7 +97,7 @@ public class TokenIntrospectionEndpointTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = ManagementScope,
                 }
             ),
@@ -133,7 +133,7 @@ public class TokenIntrospectionEndpointTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["client_id"] = IssuingClientId,
                     ["client_secret"] = ClientSecret,
                     ["scope"] = scope,
@@ -155,7 +155,7 @@ public class TokenIntrospectionEndpointTests
     {
         var settings = new Dictionary<string, object>
         {
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };
@@ -405,7 +405,7 @@ public class TokenIntrospectionEndpointTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
             }
@@ -437,7 +437,7 @@ public class TokenIntrospectionEndpointTests
                 resourceServerId = OrdersResourceServerId,
                 settings = new Dictionary<string, object>
                 {
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .None,
                 },
@@ -749,7 +749,7 @@ public class TokenIntrospectionEndpointTests
     {
         var metadata = new Dictionary<string, object>
         {
-            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
             ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
             // The binding comes from the initial access token alone; a request member is ignored.
             ["resource_server_id"] = BillingResourceServerId,
@@ -796,7 +796,7 @@ public class TokenIntrospectionEndpointTests
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
@@ -841,7 +841,7 @@ public class TokenIntrospectionEndpointTests
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             new Dictionary<string, object>
             {
                 ["introspection_signed_response_alg"] = "RS256",
@@ -915,14 +915,14 @@ public class TokenIntrospectionEndpointTests
         using var response = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -946,7 +946,7 @@ public class TokenIntrospectionEndpointTests
         using var firstResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
         var firstBody = await firstResponse.Content.ReadAsStringAsync();
         Assert.True(firstResponse.StatusCode == HttpStatusCode.Created, firstBody);
@@ -954,14 +954,14 @@ public class TokenIntrospectionEndpointTests
         using var secondResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         var secondBody = await secondResponse.Content.ReadAsStringAsync();
         Assert.True(secondResponse.StatusCode == HttpStatusCode.Unauthorized, secondBody);
         using var document = JsonDocument.Parse(secondBody);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidToken,
+            OpenIdProtocol.ErrorCodes.InvalidToken,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -985,7 +985,7 @@ public class TokenIntrospectionEndpointTests
         using var refusedResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
         var refusedBody = await refusedResponse.Content.ReadAsStringAsync();
         Assert.True(refusedResponse.StatusCode == HttpStatusCode.BadRequest, refusedBody);
@@ -993,7 +993,7 @@ public class TokenIntrospectionEndpointTests
         using var response = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -1019,7 +1019,7 @@ public class TokenIntrospectionEndpointTests
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
@@ -1042,8 +1042,8 @@ public class TokenIntrospectionEndpointTests
                 new Dictionary<string, object>
                 {
                     ["client_id"] = clientId ?? string.Empty,
-                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .None,
                 }
@@ -1055,7 +1055,7 @@ public class TokenIntrospectionEndpointTests
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             document.RootElement.GetProperty("error").GetString()
         );
     }

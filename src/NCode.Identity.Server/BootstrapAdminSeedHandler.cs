@@ -186,7 +186,7 @@ internal sealed class BootstrapAdminSeedHandler(
         JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
             {
-                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdConstants
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
             }

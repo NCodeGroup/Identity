@@ -42,7 +42,7 @@ internal class DefaultUnsupportedBackchannelAuthenticationHandler
         var errorFactory = command.OpenIdContext.ErrorFactory;
 
         var error = errorFactory
-            .Create(OpenIdConstants.ErrorCodes.UnknownUserId)
+            .Create(OpenIdProtocol.ErrorCodes.UnknownUserId)
             .WithDescription("The supplied login hint could not be resolved to a known user.")
             .WithStatusCode(StatusCodes.Status400BadRequest);
 

@@ -47,7 +47,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         var query =
             $"?client_id={Uri.EscapeDataString(clientId)}"
             + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
-            + $"&response_type={Uri.EscapeDataString(OpenIdConstants.ResponseTypes.Code)}"
+            + $"&response_type={Uri.EscapeDataString(OpenIdProtocol.ResponseTypes.Code)}"
             + "&scope=openid"
             + "&state=abc123"
             + TestPkce.QueryParameters
@@ -66,7 +66,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         {
             new("client_id", clientId),
             new("redirect_uri", redirectUri),
-            new("response_type", OpenIdConstants.ResponseTypes.Code),
+            new("response_type", OpenIdProtocol.ResponseTypes.Code),
             new("scope", "openid"),
             new("state", "abc123"),
         };
@@ -115,7 +115,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { redirectUri },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
             }
@@ -139,7 +139,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -207,7 +207,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -252,7 +252,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -274,7 +274,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -306,7 +306,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
             document.RootElement.GetProperty("error").GetString()
         );
     }

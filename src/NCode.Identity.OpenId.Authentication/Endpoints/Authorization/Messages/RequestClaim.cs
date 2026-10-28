@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -27,17 +27,17 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 public sealed class RequestClaim : IRequestClaim
 {
     /// <inheritdoc />
-    [JsonPropertyName(OpenIdConstants.Parameters.Essential)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.Essential)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Essential { get; set; }
 
     /// <inheritdoc />
-    [JsonPropertyName(OpenIdConstants.Parameters.Value)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.Value)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Value { get; set; }
 
     /// <inheritdoc />
-    [JsonPropertyName(OpenIdConstants.Parameters.Values)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.Values)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IEnumerable<string>? Values { get; set; }
 

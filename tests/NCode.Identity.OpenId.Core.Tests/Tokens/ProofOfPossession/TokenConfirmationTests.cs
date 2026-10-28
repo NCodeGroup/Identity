@@ -69,7 +69,7 @@ public class TokenConfirmationTests
         var claim = confirmation.ToClaimValueOrNull();
 
         Assert.NotNull(claim);
-        Assert.Equal("jkt-value", claim[OpenIdConstants.ConfirmationMethods.JwkThumbprint]);
+        Assert.Equal("jkt-value", claim[OpenIdProtocol.ConfirmationMethods.JwkThumbprint]);
         Assert.Single(claim);
     }
 
@@ -85,10 +85,10 @@ public class TokenConfirmationTests
         var claim = confirmation.ToClaimValueOrNull();
 
         Assert.NotNull(claim);
-        Assert.Equal("jkt-value", claim[OpenIdConstants.ConfirmationMethods.JwkThumbprint]);
+        Assert.Equal("jkt-value", claim[OpenIdProtocol.ConfirmationMethods.JwkThumbprint]);
         Assert.Equal(
             "x5t-value",
-            claim[OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint]
+            claim[OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint]
         );
         Assert.Equal(2, claim.Count);
     }

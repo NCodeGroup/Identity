@@ -159,7 +159,7 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
         if (
             string.Equals(
                 error.Code,
-                OpenIdConstants.ErrorCodes.ServerError,
+                OpenIdProtocol.ErrorCodes.ServerError,
                 StringComparison.Ordinal
             )
         )

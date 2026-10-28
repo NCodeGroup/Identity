@@ -37,10 +37,10 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
         settings.Set(
             OpenIdSettingKeys.GrantTypesSupported,
             [
-                OpenIdConstants.GrantTypes.AuthorizationCode,
-                OpenIdConstants.GrantTypes.RefreshToken,
-                OpenIdConstants.GrantTypes.DeviceCode,
-                OpenIdConstants.GrantTypes.Ciba,
+                OpenIdProtocol.GrantTypes.AuthorizationCode,
+                OpenIdProtocol.GrantTypes.RefreshToken,
+                OpenIdProtocol.GrantTypes.DeviceCode,
+                OpenIdProtocol.GrantTypes.Ciba,
             ]
         );
 
@@ -49,43 +49,40 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
         settings.Set(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
             [
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             ]
         );
 
         settings.Set(
             OpenIdSettingKeys.PromptValuesSupported,
             [
-                OpenIdConstants.PromptTypes.None,
-                OpenIdConstants.PromptTypes.Login,
-                OpenIdConstants.PromptTypes.Consent,
-                OpenIdConstants.PromptTypes.SelectAccount,
-                OpenIdConstants.PromptTypes.CreateAccount,
+                OpenIdProtocol.PromptTypes.None,
+                OpenIdProtocol.PromptTypes.Login,
+                OpenIdProtocol.PromptTypes.Consent,
+                OpenIdProtocol.PromptTypes.SelectAccount,
+                OpenIdProtocol.PromptTypes.CreateAccount,
             ]
         );
 
         settings.Set(
             OpenIdSettingKeys.ResponseModesSupported,
             [
-                OpenIdConstants.ResponseModes.Query,
-                OpenIdConstants.ResponseModes.Fragment,
-                OpenIdConstants.ResponseModes.FormPost,
-                OpenIdConstants.ResponseModes.QueryJwt,
-                OpenIdConstants.ResponseModes.FragmentJwt,
-                OpenIdConstants.ResponseModes.FormPostJwt,
-                OpenIdConstants.ResponseModes.Jwt,
+                OpenIdProtocol.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.Fragment,
+                OpenIdProtocol.ResponseModes.FormPost,
+                OpenIdProtocol.ResponseModes.QueryJwt,
+                OpenIdProtocol.ResponseModes.FragmentJwt,
+                OpenIdProtocol.ResponseModes.FormPostJwt,
+                OpenIdProtocol.ResponseModes.Jwt,
             ]
         );
 
         // Secure-by-default: only the authorization-code flow is advertised. The setting lists whole response_type
         // values, so an operator re-enables a front-channel-token flow that modern guidance (RFC 9700 / OAuth 2.1)
         // removes only by listing it — for example 'code id_token' — and enables exactly that flow (ADR-0141).
-        settings.Set(
-            OpenIdSettingKeys.ResponseTypesSupported,
-            [OpenIdConstants.ResponseTypes.Code]
-        );
+        settings.Set(OpenIdSettingKeys.ResponseTypesSupported, [OpenIdProtocol.ResponseTypes.Code]);
 
         // claims_supported is advisory by default; it only becomes an enforcement allow-list when
         // claims_supported_is_strict is enabled, so the baseline is kept host-extendable (ADR-0010).

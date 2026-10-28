@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2026 NCode Group
@@ -31,9 +31,9 @@ internal sealed class QueryJwtAuthorizationResponseModeHandler(
     IJwtEncoder jwtEncoder
 ) : JwtAuthorizationResponseModeHandler(timeProvider, jwtEncoder)
 {
-    public override string ResponseMode => OpenIdConstants.ResponseModes.QueryJwt;
+    public override string ResponseMode => OpenIdProtocol.ResponseModes.QueryJwt;
 
-    public override string SecuredResponseMode => OpenIdConstants.ResponseModes.Query;
+    public override string SecuredResponseMode => OpenIdProtocol.ResponseModes.Query;
 
     public override bool DeliversInQuery => true;
 

@@ -42,40 +42,40 @@ internal sealed class DefaultClientAuthenticationMethodDataSource(INullChangeTok
         {
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
                 RequiresClientSecret = true,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                 RequiresClientSecret = true,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
                 RequiresClientSecret = true,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
-                Name = OpenIdConstants.ClientAuthenticationMethods.None,
+                Name = OpenIdProtocol.ClientAuthenticationMethods.None,
             };
         }
     }

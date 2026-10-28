@@ -18,7 +18,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains constants for well-known <c>authentication context class reference (acr)</c> values the authorization

@@ -68,12 +68,12 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
             : tokenRequest.EffectiveScopes.Where(scope =>
                 !string.Equals(
                     scope,
-                    OpenIdConstants.ScopeTypes.OfflineAccess,
+                    OpenIdProtocol.ScopeTypes.OfflineAccess,
                     StringComparison.Ordinal
                 )
             );
 
-        var scopeValue = string.Join(OpenIdConstants.ParameterSeparatorChar, scopesToInclude);
+        var scopeValue = string.Join(OpenIdProtocol.ParameterSeparatorChar, scopesToInclude);
         if (!string.IsNullOrEmpty(scopeValue))
         {
             payloadClaims[JoseClaimNames.Payload.Scope] = scopeValue;

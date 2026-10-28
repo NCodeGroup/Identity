@@ -85,7 +85,7 @@ public class ConfidentialClientRequirementTests : BaseTests
     public async Task EvaluateAsync_WhenTheClientIsRegisteredAsConfidential_Completes()
     {
         var requirement = new ConfidentialClientRequirement();
-        var (context, _) = CreateContext(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt);
+        var (context, _) = CreateContext(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
 
         var exception = await Record.ExceptionAsync(async () =>
             await requirement.EvaluateAsync(context, CancellationToken.None)
@@ -99,14 +99,14 @@ public class ConfidentialClientRequirementTests : BaseTests
     {
         var requirement = new ConfidentialClientRequirement();
         var (context, capturedCode) = CreateContext(
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, capturedCode());
     }
 
     #endregion

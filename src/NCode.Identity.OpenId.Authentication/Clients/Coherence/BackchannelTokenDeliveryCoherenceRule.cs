@@ -61,12 +61,12 @@ internal sealed class BackchannelTokenDeliveryCoherenceRule : IClientCoherenceRu
             settings.TryGetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode, out var registered)
             && !string.IsNullOrEmpty(registered)
                 ? registered
-                : OpenIdConstants.BackchannelTokenDeliveryModes.Poll;
+                : OpenIdProtocol.BackchannelTokenDeliveryModes.Poll;
 
         if (
             !string.Equals(
                 mode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
                 StringComparison.Ordinal
             )
             && (
@@ -88,7 +88,7 @@ internal sealed class BackchannelTokenDeliveryCoherenceRule : IClientCoherenceRu
 
         var permitsCiba =
             !settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypes)
-            || grantTypes.Contains(OpenIdConstants.GrantTypes.Ciba, StringComparer.Ordinal);
+            || grantTypes.Contains(OpenIdProtocol.GrantTypes.Ciba, StringComparer.Ordinal);
 
         if (
             permitsCiba

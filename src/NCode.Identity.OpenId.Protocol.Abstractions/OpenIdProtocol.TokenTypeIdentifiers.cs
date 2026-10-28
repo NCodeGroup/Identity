@@ -18,7 +18,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains the OAuth 2.0 Token Exchange (<see href="https://datatracker.ietf.org/doc/html/rfc8693">RFC 8693</see>)

@@ -53,7 +53,10 @@ internal class DefaultRevocationEndpointProvider(
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
-        && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
+        && header.MediaType.Equals(
+            OpenIdProtocol.MediaTypes.FormUrlEncoded,
+            StringComparison.OrdinalIgnoreCase
+        );
 
     /// <summary>
     /// Revoke a token (RFC 7009).
@@ -81,7 +84,7 @@ internal class DefaultRevocationEndpointProvider(
         {
             return errorFactory
                 .InvalidRequest(
-                    $"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported."
+                    $"Only POST requests with Content-Type '{OpenIdProtocol.MediaTypes.FormUrlEncoded}' are supported."
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();

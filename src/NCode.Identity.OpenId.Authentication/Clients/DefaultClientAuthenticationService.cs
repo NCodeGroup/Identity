@@ -184,7 +184,7 @@ internal class DefaultClientAuthenticationService(
 
         var method = result.IsConfidential
             ? result.ConfidentialClient.AuthenticationMethod
-            : OpenIdConstants.ClientAuthenticationMethods.None;
+            : OpenIdProtocol.ClientAuthenticationMethods.None;
 
         if (client.MayAuthenticateWith(method))
             return result;

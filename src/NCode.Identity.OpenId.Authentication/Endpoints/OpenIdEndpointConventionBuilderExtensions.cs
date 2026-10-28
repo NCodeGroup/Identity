@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -132,7 +132,7 @@ public static class OpenIdEndpointConventionBuilderExtensions
             {
                 Content = new Dictionary<string, OpenApiMediaType>
                 {
-                    [OpenIdConstants.ContentType] = new OpenApiMediaType
+                    [OpenIdProtocol.MediaTypes.FormUrlEncoded] = new OpenApiMediaType
                     {
                         Schema = new OpenApiSchema
                         {

@@ -100,7 +100,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
                 ClientId = "client-1",
                 Scopes = ["api"],
                 Status = status,
-                DeliveryMode = deliveryMode ?? OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                DeliveryMode = deliveryMode ?? OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
                 SubjectAuthentication = subjectAuthentication,
                 LastPolledWhen = lastPolledWhen,
             },
@@ -217,7 +217,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsCiba()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.Ciba, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.Ciba, Handler.GrantTypes);
     }
 
     #endregion
@@ -257,7 +257,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -276,7 +276,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, CapturedErrorCode);
     }
 
     [Fact]
@@ -322,7 +322,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AuthorizationPending, CapturedErrorCode);
         Assert.Equal(UtcNow, update()?.Payload.LastPolledWhen);
     }
 
@@ -350,7 +350,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AuthorizationPending, CapturedErrorCode);
         Assert.Null(update());
     }
 
@@ -378,7 +378,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.SlowDown, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.SlowDown, CapturedErrorCode);
     }
 
     [Fact]
@@ -414,7 +414,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -517,7 +517,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Approved,
-                deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push
+                deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Push
             )
         );
         SetupClientId(mockClient);
@@ -531,7 +531,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
 
     #endregion

@@ -49,7 +49,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.GetAsync(AuthorizePath);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -58,11 +58,11 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         var client = CreateClient();
 
         using var response = await client.GetAsync(
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync(AuthorizePath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -91,13 +91,13 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         var client = CreateClient();
 
         using var response = await client.GetAsync(
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}={clientId}"
-                + $"&{OpenIdConstants.Parameters.RedirectUri}=https://client.example/callback"
-                + $"&{OpenIdConstants.Parameters.ResponseType}=code"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}={clientId}"
+                + $"&{OpenIdProtocol.Parameters.RedirectUri}=https://client.example/callback"
+                + $"&{OpenIdProtocol.Parameters.ResponseType}=code"
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -107,12 +107,12 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         var client = CreateClient();
 
         using var response = await client.GetAsync(
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=any-client"
-                + $"&{OpenIdConstants.Parameters.ClientSecret}=any-secret"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=any-client"
+                + $"&{OpenIdProtocol.Parameters.ClientSecret}=any-secret"
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -123,14 +123,14 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                [OpenIdConstants.Parameters.ClientId] = "any-client",
-                [OpenIdConstants.Parameters.ClientSecret] = "any-secret",
+                [OpenIdProtocol.Parameters.ClientId] = "any-client",
+                [OpenIdProtocol.Parameters.ClientSecret] = "any-secret",
             }
         );
         using var response = await client.PostAsync(AuthorizePath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
         request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml,*/*;q=0.8");
 
@@ -160,7 +160,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         Assert.Contains("id=\"authorization-error\"", body, StringComparison.Ordinal);
-        Assert.Contains(OpenIdConstants.ErrorCodes.InvalidClient, body, StringComparison.Ordinal);
+        Assert.Contains(OpenIdProtocol.ErrorCodes.InvalidClient, body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
         request.Headers.Accept.ParseAdd("application/json");
 
@@ -178,7 +178,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
         request.Headers.Accept.ParseAdd("*/*");
 
@@ -196,6 +196,6 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, await GetErrorCodeAsync(response));
     }
 }

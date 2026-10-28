@@ -41,7 +41,7 @@ internal static class RequestObjectParameterPolicy
     [
         // The response type in its canonical form, so the order of its names does not matter.
         new RequestObjectParameterRule(
-            OpenIdConstants.Parameters.ResponseType,
+            OpenIdProtocol.Parameters.ResponseType,
             values =>
                 values.ResponseTypes is { Count: > 0 } names
                     ? ResponseTypeValues.Canonicalize(names)
@@ -50,21 +50,21 @@ internal static class RequestObjectParameterPolicy
         ),
         // An outer scope is ignored, as OpenID Connect Core §6.1 lets the object's value supersede it.
         new RequestObjectParameterRule(
-            OpenIdConstants.Parameters.Scope,
+            OpenIdProtocol.Parameters.Scope,
             values =>
                 values.Scopes is { Count: > 0 } scopes
-                    ? string.Join(OpenIdConstants.ParameterSeparatorChar, scopes)
+                    ? string.Join(OpenIdProtocol.ParameterSeparatorChar, scopes)
                     : null,
             OuterValueMustMatch: false
         ),
         // The redirect URI as written (ADR-0203).
         new RequestObjectParameterRule(
-            OpenIdConstants.Parameters.RedirectUri,
+            OpenIdProtocol.Parameters.RedirectUri,
             values => string.IsNullOrEmpty(values.RedirectUri) ? null : values.RedirectUri,
             OuterValueMustMatch: true
         ),
         new RequestObjectParameterRule(
-            OpenIdConstants.Parameters.ClientId,
+            OpenIdProtocol.Parameters.ClientId,
             values => string.IsNullOrEmpty(values.ClientId) ? null : values.ClientId,
             OuterValueMustMatch: true
         ),

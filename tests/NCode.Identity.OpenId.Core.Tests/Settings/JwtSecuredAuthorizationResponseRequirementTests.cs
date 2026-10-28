@@ -79,15 +79,15 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
     #region EvaluateAsync Tests
 
     [Theory]
-    [InlineData(OpenIdConstants.ResponseModes.Query)]
-    [InlineData(OpenIdConstants.ResponseModes.Fragment)]
-    [InlineData(OpenIdConstants.ResponseModes.FormPost)]
+    [InlineData(OpenIdProtocol.ResponseModes.Query)]
+    [InlineData(OpenIdProtocol.ResponseModes.Fragment)]
+    [InlineData(OpenIdProtocol.ResponseModes.FormPost)]
     public async Task EvaluateAsync_WhenCodeUsesAJwtSecuredResponseMode_Completes(
         string securedResponseMode
     )
     {
         var requirement = new JwtSecuredAuthorizationResponseRequirement();
-        var (context, _) = CreateContext(securedResponseMode, OpenIdConstants.ResponseTypes.Code);
+        var (context, _) = CreateContext(securedResponseMode, OpenIdProtocol.ResponseTypes.Code);
 
         var exception = await Record.ExceptionAsync(async () =>
             await requirement.EvaluateAsync(context, CancellationToken.None)
@@ -102,8 +102,8 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
         var requirement = new JwtSecuredAuthorizationResponseRequirement();
         var (context, _) = CreateContext(
             securedResponseMode: null,
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken
         );
 
         var exception = await Record.ExceptionAsync(async () =>
@@ -119,14 +119,14 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
         var requirement = new JwtSecuredAuthorizationResponseRequirement();
         var (context, capturedCode) = CreateContext(
             securedResponseMode: null,
-            OpenIdConstants.ResponseTypes.Code
+            OpenIdProtocol.ResponseTypes.Code
         );
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, capturedCode());
     }
 
     #endregion

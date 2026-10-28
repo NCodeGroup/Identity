@@ -64,7 +64,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod
             {
@@ -137,7 +137,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.Password)
+            .Returns(OpenIdProtocol.GrantTypes.Password)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
@@ -162,7 +162,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsPassword()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.Password, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.Password, Handler.GrantTypes);
     }
 
     #endregion
@@ -259,7 +259,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), response.ExpiresIn);
         Assert.Equal(scopes, response.Scopes);
         Assert.Null(response.IdToken);
@@ -271,7 +271,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     {
         var (mockContext, mockClient, mockMediator, mockTokenRequest, _) = CreateScaffold();
 
-        List<string> scopes = [OpenIdConstants.ScopeTypes.OpenId];
+        List<string> scopes = [OpenIdProtocol.ScopeTypes.OpenId];
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
         SetupAuthenticate(
@@ -309,7 +309,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     {
         var (mockContext, mockClient, mockMediator, mockTokenRequest, _) = CreateScaffold();
 
-        List<string> scopes = [OpenIdConstants.ScopeTypes.OfflineAccess];
+        List<string> scopes = [OpenIdProtocol.ScopeTypes.OfflineAccess];
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
         SetupAuthenticate(

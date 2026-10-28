@@ -84,7 +84,7 @@ public class NonceOrStateRequirementTests : BaseTests
         var (context, _) = CreateContext(
             nonce: "nonce",
             state: null,
-            OpenIdConstants.ScopeTypes.OpenId
+            OpenIdProtocol.ScopeTypes.OpenId
         );
 
         var exception = await Record.ExceptionAsync(async () =>
@@ -101,14 +101,14 @@ public class NonceOrStateRequirementTests : BaseTests
         var (context, capturedCode) = CreateContext(
             nonce: null,
             state: "state",
-            OpenIdConstants.ScopeTypes.OpenId
+            OpenIdProtocol.ScopeTypes.OpenId
         );
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, capturedCode());
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class NonceOrStateRequirementTests : BaseTests
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, capturedCode());
     }
 
     #endregion

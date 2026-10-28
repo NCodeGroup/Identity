@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -19,7 +19,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> parameters.
@@ -55,11 +55,6 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>code</c> parameter.
         /// </summary>
         public const string AuthorizationCode = "code";
-
-        /// <summary>
-        /// Contains the name of <c>$authorization_source_type</c> parameter.
-        /// </summary>
-        public const string AuthorizationSourceType = "$authorization_source_type";
 
         /// <summary>
         /// Contains the name of <c>auth_time</c> parameter.
@@ -120,11 +115,6 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>dpop_jkt</c> parameter (RFC 9449 §10).
         /// </summary>
         public const string DPoPJwkThumbprint = "dpop_jkt";
-
-        /// <summary>
-        /// Contains the name of <c>$created_when</c> parameter.
-        /// </summary>
-        public const string CreatedWhen = "$created_when";
 
         /// <summary>
         /// Contains the name of <c>device_code</c> parameter.
@@ -310,11 +300,6 @@ public static partial class OpenIdConstants
         /// Contains the name of <c>request_id</c> parameter.
         /// </summary>
         public const string RequestId = "request_id";
-
-        /// <summary>
-        /// Contains the name of <c>$request_object_source</c> parameter.
-        /// </summary>
-        public const string RequestObjectSource = "$request_object_source";
 
         /// <summary>
         /// Contains the name of <c>request_uri</c> parameter.

@@ -35,13 +35,13 @@ internal sealed class NonceOrStateRequirement : IAuthorizationRequestProfileRequ
     {
         var request = context.Request;
         var requestsOpenId = request.Scopes.Contains(
-            OpenIdConstants.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.OpenId,
             StringComparer.Ordinal
         );
 
         var (parameterName, value) = requestsOpenId
-            ? (OpenIdConstants.Parameters.Nonce, request.Nonce)
-            : (OpenIdConstants.Parameters.State, request.State);
+            ? (OpenIdProtocol.Parameters.Nonce, request.Nonce)
+            : (OpenIdProtocol.Parameters.State, request.State);
 
         if (string.IsNullOrEmpty(value))
         {

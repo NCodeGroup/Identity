@@ -31,7 +31,7 @@ internal sealed record CibaDeliveryJob : IDispatchJob
 {
     /// <summary>
     /// Gets the delivery mode this notification serves, one of
-    /// <see cref="OpenIdConstants.BackchannelTokenDeliveryModes"/> (<c>ping</c> or <c>push</c>). It is informational,
+    /// <see cref="OpenIdProtocol.BackchannelTokenDeliveryModes"/> (<c>ping</c> or <c>push</c>). It is informational,
     /// used for diagnostics.
     /// </summary>
     public required string DeliveryMode { get; init; }

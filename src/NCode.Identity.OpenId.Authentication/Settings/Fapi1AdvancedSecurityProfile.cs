@@ -38,16 +38,16 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     // FAPI 1.0 Advanced §5.2.2-14 permits only mutual-TLS or private_key_jwt client authentication.
     private static readonly string[] TokenEndpointAuthMethods =
     [
-        OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
     // FAPI 1.0 Advanced §5.2.2-1/2: 'code id_token', or 'code' with a JWT-secured response mode (the requirement below).
     private static readonly string[] ResponseTypes =
     [
-        OpenIdConstants.ResponseTypes.Code,
-        OpenIdConstants.ResponseTypes.CodeIdToken,
+        OpenIdProtocol.ResponseTypes.Code,
+        OpenIdProtocol.ResponseTypes.CodeIdToken,
     ];
 
     /// <inheritdoc />
@@ -93,7 +93,7 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.ResponseTypesSupported, ResponseTypes);
         ceiling.Set(
             OpenIdSettingKeys.CodeChallengeMethodsSupported,
-            (IReadOnlyCollection<string>)[OpenIdConstants.CodeChallengeMethods.S256]
+            (IReadOnlyCollection<string>)[OpenIdProtocol.CodeChallengeMethods.S256]
         );
 
         // Require PKCE, PAR and a signed request object (Or floors cannot be un-required by a child) (§5.2.2-1/18/19).

@@ -92,7 +92,7 @@ internal sealed class DefaultOpenIdResultExecutor : IResultExecutor<IOpenIdResul
         // The protocol default (application/json) is appended as the final candidate so a wildcard-only or non-matching
         // Accept resolves to the default JSON formatter.
         var requestedMediaTypes = RankExplicitMediaTypes(request)
-            .Append(OpenIdConstants.MediaTypes.Json);
+            .Append(OpenIdProtocol.MediaTypes.Json);
 
         foreach (var requested in requestedMediaTypes)
         {
@@ -114,7 +114,7 @@ internal sealed class DefaultOpenIdResultExecutor : IResultExecutor<IOpenIdResul
         }
 
         throw new InvalidOperationException(
-            $"No '{OpenIdConstants.MediaTypes.Json}' {nameof(IOpenIdResponseFormatter)} is registered to render the OpenID response."
+            $"No '{OpenIdProtocol.MediaTypes.Json}' {nameof(IOpenIdResponseFormatter)} is registered to render the OpenID response."
         );
     }
 

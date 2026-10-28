@@ -19,7 +19,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> values that can be used in the <c>amr</c> claim.

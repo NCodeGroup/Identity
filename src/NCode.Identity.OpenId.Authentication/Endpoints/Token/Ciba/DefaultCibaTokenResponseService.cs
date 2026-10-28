@@ -57,7 +57,7 @@ internal sealed class DefaultCibaTokenResponseService(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = OpenIdConstants.GrantTypes.Ciba,
+            GrantType = OpenIdProtocol.GrantTypes.Ciba,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Resources = payload.Resources,
@@ -78,7 +78,7 @@ internal sealed class DefaultCibaTokenResponseService(
             tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
@@ -92,7 +92,7 @@ internal sealed class DefaultCibaTokenResponseService(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.OfflineAccess))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 

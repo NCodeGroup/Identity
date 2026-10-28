@@ -79,7 +79,7 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
             tokenRequest,
             signingCredentials,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.IdToken
+            TokenType: OpenIdProtocol.TokenTypes.IdToken
         );
 
         var payloadClaims = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -104,7 +104,7 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
         return new CreateSecurityTokenRequest
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = OpenIdProtocol.GrantTypes.AuthorizationCode,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Nonce = nonce,

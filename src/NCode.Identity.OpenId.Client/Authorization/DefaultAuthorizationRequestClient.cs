@@ -69,7 +69,7 @@ internal class DefaultAuthorizationRequestClient(
 
         if (
             metadata.CodeChallengeMethodsSupported is { Count: > 0 } methods
-            && !methods.Contains("S256", StringComparer.Ordinal)
+            && !methods.Contains(OpenIdProtocol.CodeChallengeMethods.S256, StringComparer.Ordinal)
         )
         {
             throw new OpenIdProviderException(
@@ -112,10 +112,16 @@ internal class DefaultAuthorizationRequestClient(
         )
         {
             if (
-                !json.TryGetProperty("request_uri", out var requestUriElement)
+                !json.TryGetProperty(
+                    OpenIdProtocol.Parameters.RequestUri,
+                    out var requestUriElement
+                )
                 || requestUriElement.ValueKind != JsonValueKind.String
                 || requestUriElement.GetString() is not { Length: > 0 } requestUri
-                || !json.TryGetProperty("expires_in", out var expiresInElement)
+                || !json.TryGetProperty(
+                    OpenIdProtocol.Parameters.ExpiresIn,
+                    out var expiresInElement
+                )
                 || expiresInElement.ValueKind != JsonValueKind.Number
                 || !expiresInElement.TryGetInt32(out var expiresIn)
                 || expiresIn <= 0
@@ -129,8 +135,14 @@ internal class DefaultAuthorizationRequestClient(
             var authorizationUri = AddQuery(
                 authorizationEndpoint,
                 [
-                    new KeyValuePair<string, string>("client_id", registration.ClientId),
-                    new KeyValuePair<string, string>("request_uri", requestUri),
+                    new KeyValuePair<string, string>(
+                        OpenIdProtocol.Parameters.ClientId,
+                        registration.ClientId
+                    ),
+                    new KeyValuePair<string, string>(
+                        OpenIdProtocol.Parameters.RequestUri,
+                        requestUri
+                    ),
                 ]
             );
 
@@ -150,32 +162,60 @@ internal class DefaultAuthorizationRequestClient(
         string? clientId
     )
     {
-        var parameters = new List<KeyValuePair<string, string>> { new("response_type", "code") };
+        var parameters = new List<KeyValuePair<string, string>>
+        {
+            new(OpenIdProtocol.Parameters.ResponseType, OpenIdProtocol.ResponseTypes.Code),
+        };
 
         if (clientId is not null)
-            parameters.Add(new KeyValuePair<string, string>("client_id", clientId));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.ClientId, clientId)
+            );
 
-        parameters.Add(new KeyValuePair<string, string>("redirect_uri", request.RedirectUri));
-        parameters.Add(new KeyValuePair<string, string>("state", request.State));
         parameters.Add(
             new KeyValuePair<string, string>(
-                "code_challenge",
+                OpenIdProtocol.Parameters.RedirectUri,
+                request.RedirectUri
+            )
+        );
+        parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.State, request.State)
+        );
+        parameters.Add(
+            new KeyValuePair<string, string>(
+                OpenIdProtocol.Parameters.CodeChallenge,
                 ComputeS256Challenge(request.CodeVerifier)
             )
         );
-        parameters.Add(new KeyValuePair<string, string>("code_challenge_method", "S256"));
+        parameters.Add(
+            new KeyValuePair<string, string>(
+                OpenIdProtocol.Parameters.CodeChallengeMethod,
+                OpenIdProtocol.CodeChallengeMethods.S256
+            )
+        );
 
         if (!string.IsNullOrEmpty(request.Nonce))
-            parameters.Add(new KeyValuePair<string, string>("nonce", request.Nonce));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Nonce, request.Nonce)
+            );
 
         if (!string.IsNullOrEmpty(request.Scope))
-            parameters.Add(new KeyValuePair<string, string>("scope", request.Scope));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Scope, request.Scope)
+            );
 
         if (!string.IsNullOrEmpty(request.ResponseMode))
-            parameters.Add(new KeyValuePair<string, string>("response_mode", request.ResponseMode));
+            parameters.Add(
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.ResponseMode,
+                    request.ResponseMode
+                )
+            );
 
         foreach (var resource in request.Resources)
-            parameters.Add(new KeyValuePair<string, string>("resource", resource));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Resource, resource)
+            );
 
         if (request.AdditionalParameters is { } additionalParameters)
         {

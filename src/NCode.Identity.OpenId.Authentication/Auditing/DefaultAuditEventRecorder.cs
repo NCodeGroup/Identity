@@ -256,7 +256,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     {
         var outcome = string.Equals(
             error.Code,
-            OpenIdConstants.ErrorCodes.AccessDenied,
+            OpenIdProtocol.ErrorCodes.AccessDenied,
             StringComparison.Ordinal
         )
             ? AuditOutcome.Denied

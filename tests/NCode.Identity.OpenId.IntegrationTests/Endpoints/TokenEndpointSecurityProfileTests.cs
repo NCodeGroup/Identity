@@ -45,9 +45,9 @@ public class TokenEndpointSecurityProfileTests
 
     private static string[] StrongAuthMethods { get; } =
     [
-        OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
@@ -57,7 +57,7 @@ public class TokenEndpointSecurityProfileTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
@@ -74,7 +74,7 @@ public class TokenEndpointSecurityProfileTests
             clientId,
             ClientSecret,
             securityProfiles,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -126,7 +126,7 @@ public class TokenEndpointSecurityProfileTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -150,7 +150,7 @@ public class TokenEndpointSecurityProfileTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -261,11 +261,11 @@ public class TokenEndpointSecurityProfileTests
         Assert.NotEmpty(authMethods);
         Assert.All(authMethods, method => Assert.Contains(method, StrongAuthMethods));
         Assert.Equal(
-            [OpenIdConstants.CodeChallengeMethods.S256],
+            [OpenIdProtocol.CodeChallengeMethods.S256],
             ReadStrings(metadata, "code_challenge_methods_supported")
         );
         Assert.Equal(
-            [OpenIdConstants.ResponseTypes.Code],
+            [OpenIdProtocol.ResponseTypes.Code],
             ReadStrings(metadata, "response_types_supported")
         );
         string[] fapi1SigningAlgorithms = ["PS256", "ES256"];

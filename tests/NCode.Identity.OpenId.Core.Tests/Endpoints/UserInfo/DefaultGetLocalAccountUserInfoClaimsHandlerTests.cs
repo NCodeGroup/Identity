@@ -266,9 +266,9 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         var claims = new Dictionary<string, object>();
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Profile,
-            OpenIdConstants.ScopeTypes.Email
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Profile,
+            OpenIdProtocol.ScopeTypes.Email
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -299,8 +299,8 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         var claims = new Dictionary<string, object>();
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Email
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Email
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -319,8 +319,8 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         var claims = new Dictionary<string, object>();
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Profile
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Profile
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -341,8 +341,8 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         };
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Email
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Email
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -369,11 +369,7 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         SetupRequestedUserInfoClaims(AccessTokenId, JoseClaimNames.Payload.Name);
 
         var claims = new Dictionary<string, object>();
-        var command = CreateCommandWithJti(
-            claims,
-            AccessTokenId,
-            OpenIdConstants.ScopeTypes.OpenId
-        );
+        var command = CreateCommandWithJti(claims, AccessTokenId, OpenIdProtocol.ScopeTypes.OpenId);
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -401,8 +397,8 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         var claims = new Dictionary<string, object>();
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Address
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Address
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -437,8 +433,8 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         var claims = new Dictionary<string, object>();
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Phone
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Phone
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -467,8 +463,8 @@ public class DefaultGetLocalAccountUserInfoClaimsHandlerTests : BaseTests
         var claims = new Dictionary<string, object>();
         var command = CreateCommand(
             claims,
-            OpenIdConstants.ScopeTypes.OpenId,
-            OpenIdConstants.ScopeTypes.Profile
+            OpenIdProtocol.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.Profile
         );
 
         await Handler.HandleAsync(command, CancellationToken.None);

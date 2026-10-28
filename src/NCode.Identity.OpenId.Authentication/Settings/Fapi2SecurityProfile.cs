@@ -40,9 +40,9 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     // FAPI 2.0 permits only strong (asymmetric / mutual-TLS) client authentication.
     private static readonly string[] TokenEndpointAuthMethods =
     [
-        OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
     /// <inheritdoc />
@@ -84,11 +84,11 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.TokenEndpointAuthMethodsSupported, TokenEndpointAuthMethods);
         ceiling.Set(
             OpenIdSettingKeys.ResponseTypesSupported,
-            (IReadOnlyCollection<string>)[OpenIdConstants.ResponseTypes.Code]
+            (IReadOnlyCollection<string>)[OpenIdProtocol.ResponseTypes.Code]
         );
         ceiling.Set(
             OpenIdSettingKeys.CodeChallengeMethodsSupported,
-            (IReadOnlyCollection<string>)[OpenIdConstants.CodeChallengeMethods.S256]
+            (IReadOnlyCollection<string>)[OpenIdProtocol.CodeChallengeMethods.S256]
         );
 
         // Require PKCE and PAR (Or floors cannot be un-required by a child).

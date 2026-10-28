@@ -156,7 +156,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         );
 
         Assert.Equal(
-            OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference,
+            OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference,
             result.RequestUri
         );
         Assert.Equal(90, result.ExpiresIn);
@@ -233,7 +233,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
             )
             .Verifiable();
 
-        var requestUri = OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference;
+        var requestUri = OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference;
 
         var result = await Service.ConsumeAsync(
             mockContext.Object,
@@ -266,7 +266,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestUri, capturedCode.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, capturedCode.Value);
     }
 
     [Fact]
@@ -311,13 +311,13 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .ConsumeAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference,
+                    OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference,
                     CancellationToken.None
                 )
                 .AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestUri, capturedCode.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, capturedCode.Value);
     }
 
     [Fact]
@@ -382,13 +382,13 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .ConsumeAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference,
+                    OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference,
                     CancellationToken.None
                 )
                 .AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestUri, capturedCode.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, capturedCode.Value);
     }
 
     private (Mock<OpenIdContext> context, StrongBox<string?> capturedCode) CreateErrorScaffold()

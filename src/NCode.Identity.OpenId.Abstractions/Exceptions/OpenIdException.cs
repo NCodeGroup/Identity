@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -88,35 +88,35 @@ public class OpenIdException : Exception
     private static string GetDefaultMessageFromErrorCode(string errorCode) =>
         errorCode switch
         {
-            OpenIdConstants.ErrorCodes.AccessDenied =>
+            OpenIdProtocol.ErrorCodes.AccessDenied =>
                 "The resource owner or authorization server denied the request.",
-            OpenIdConstants.ErrorCodes.AccountSelectionRequired =>
+            OpenIdProtocol.ErrorCodes.AccountSelectionRequired =>
                 "The End-User is REQUIRED to select a session at the Authorization Server.",
-            OpenIdConstants.ErrorCodes.ConsentRequired =>
+            OpenIdProtocol.ErrorCodes.ConsentRequired =>
                 "The Authorization Server requires End-User consent.",
-            OpenIdConstants.ErrorCodes.InteractionRequired =>
+            OpenIdProtocol.ErrorCodes.InteractionRequired =>
                 "The Authorization Server requires End-User interaction of some form to proceed.",
-            OpenIdConstants.ErrorCodes.InvalidRequest =>
+            OpenIdProtocol.ErrorCodes.InvalidRequest =>
                 "The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed.",
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt =>
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt =>
                 "The request parameter contains an invalid Request Object.",
-            OpenIdConstants.ErrorCodes.InvalidRequestUri =>
+            OpenIdProtocol.ErrorCodes.InvalidRequestUri =>
                 "The request_uri in the Authorization Request contains an error or invalid data.",
-            OpenIdConstants.ErrorCodes.InvalidScope =>
+            OpenIdProtocol.ErrorCodes.InvalidScope =>
                 "The requested scope is invalid, unknown, or malformed.",
-            OpenIdConstants.ErrorCodes.LoginRequired =>
+            OpenIdProtocol.ErrorCodes.LoginRequired =>
                 "The Authorization Server requires End-User authentication.",
-            OpenIdConstants.ErrorCodes.RegistrationNotSupported =>
+            OpenIdProtocol.ErrorCodes.RegistrationNotSupported =>
                 "The OP does not support use of the registration parameter.",
-            OpenIdConstants.ErrorCodes.RequestNotSupported =>
+            OpenIdProtocol.ErrorCodes.RequestNotSupported =>
                 "The OP does not support use of the request parameter.",
-            OpenIdConstants.ErrorCodes.RequestUriNotSupported =>
+            OpenIdProtocol.ErrorCodes.RequestUriNotSupported =>
                 "The OP does not support use of the request_uri parameter.",
-            OpenIdConstants.ErrorCodes.TemporarilyUnavailable =>
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable =>
                 "The authorization server is currently unable to handle the request due to a temporary overloading or maintenance of the server.",
-            OpenIdConstants.ErrorCodes.UnauthorizedClient =>
+            OpenIdProtocol.ErrorCodes.UnauthorizedClient =>
                 "The client is not authorized to request an authorization code using this method.",
-            OpenIdConstants.ErrorCodes.UnsupportedResponseType =>
+            OpenIdProtocol.ErrorCodes.UnsupportedResponseType =>
                 "The authorization server does not support obtaining an authorization code using this method.",
             _ =>
                 "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

@@ -87,7 +87,7 @@ internal class ClientSecretBasicClientAuthenticationHandler(
 
     /// <inheritdoc />
     public override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <inheritdoc />
     protected override ClientAuthenticationResult CreateInvalidClientResult(

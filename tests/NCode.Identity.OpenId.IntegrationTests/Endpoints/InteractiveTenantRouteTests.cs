@@ -421,7 +421,7 @@ public class InteractiveTenantRouteTests
 
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                $"/acme/oauth2/authorize?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+                $"/acme/oauth2/authorize?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
             );
             request.Headers.Accept.ParseAdd("text/html");
             using var response = await client.SendAsync(request);
@@ -435,7 +435,7 @@ public class InteractiveTenantRouteTests
                 StringComparison.Ordinal
             );
             Assert.Contains(
-                $"data-error-code=\"{OpenIdConstants.ErrorCodes.InvalidClient}\"",
+                $"data-error-code=\"{OpenIdProtocol.ErrorCodes.InvalidClient}\"",
                 html,
                 StringComparison.Ordinal
             );

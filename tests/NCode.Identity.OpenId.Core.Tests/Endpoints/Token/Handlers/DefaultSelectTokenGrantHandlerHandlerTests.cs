@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Handlers;
 
 public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
 {
-    private const string GrantType = OpenIdConstants.GrantTypes.ClientCredentials;
+    private const string GrantType = OpenIdProtocol.GrantTypes.ClientCredentials;
 
     private TestHttpMetricsTagsFeature MetricsTags { get; } = new();
 

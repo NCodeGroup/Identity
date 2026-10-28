@@ -226,7 +226,7 @@ internal class DefaultClientJwtCredentialSelector(
         string description
     ) =>
         openIdContext
-            .ErrorFactory.Create(OpenIdConstants.ErrorCodes.ServerError)
+            .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.ServerError)
             .WithDescription(description)
             .WithStatusCode(StatusCodes.Status500InternalServerError)
             .AsException();

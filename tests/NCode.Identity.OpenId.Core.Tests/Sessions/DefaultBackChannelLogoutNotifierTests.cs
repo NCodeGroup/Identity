@@ -231,11 +231,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         // the logout_token carries the projected (pairwise) subject, not the raw principal id
         Assert.Equal("pairwise-sub", parameters.ExtraPayloadClaims[JoseClaimNames.Payload.Sub]);
         Assert.Equal(SessionId, parameters.ExtraPayloadClaims[JoseClaimNames.Payload.Sid]);
-        Assert.True(
-            parameters.ExtraPayloadClaims.ContainsKey(
-                OpenIdConstants.BackChannelLogout.EventsClaimName
-            )
-        );
+        Assert.True(parameters.ExtraPayloadClaims.ContainsKey(JoseClaimNames.Payload.Events));
     }
 
     [Fact]

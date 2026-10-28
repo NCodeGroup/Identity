@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Results;
 internal sealed class DefaultJsonOpenIdResponseFormatter : IOpenIdResponseFormatter
 {
     /// <inheritdoc />
-    public IReadOnlyList<string> MediaTypes { get; } = [OpenIdConstants.MediaTypes.Json];
+    public IReadOnlyList<string> MediaTypes { get; } = [OpenIdProtocol.MediaTypes.Json];
 
     /// <inheritdoc />
     public bool CanFormat(IOpenIdResponse response) => true;

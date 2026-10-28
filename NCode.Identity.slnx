@@ -47,6 +47,7 @@
         <Project Path="src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Persistence.EntityFramework/NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Persistence/NCode.Identity.OpenId.Persistence.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Protocol.Abstractions/NCode.Identity.OpenId.Protocol.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence.Abstractions/NCode.Identity.Secrets.Persistence.Abstractions.csproj" />

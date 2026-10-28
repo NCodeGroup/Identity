@@ -46,7 +46,7 @@ internal sealed class BackChannelLogoutDeliveryJobHandler(IHttpClientFactory htt
     {
         KeyValuePair<string, string?>[] formValues =
         [
-            new(OpenIdConstants.Parameters.LogoutToken, job.LogoutToken),
+            new(OpenIdProtocol.Parameters.LogoutToken, job.LogoutToken),
         ];
         using var content = new FormUrlEncodedContent(formValues);
 

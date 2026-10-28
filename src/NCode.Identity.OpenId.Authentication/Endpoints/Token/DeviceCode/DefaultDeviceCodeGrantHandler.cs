@@ -49,7 +49,7 @@ internal class DefaultDeviceCodeGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.DeviceCode };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.DeviceCode };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -67,7 +67,7 @@ internal class DefaultDeviceCodeGrantHandler(
         var deviceCode = tokenRequest.DeviceCode;
         if (string.IsNullOrEmpty(deviceCode))
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.DeviceCode)
+                .MissingParameter(OpenIdProtocol.Parameters.DeviceCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var deviceCodeGrantId = PersistedGrantService.CreateGrantId(
@@ -104,7 +104,7 @@ internal class DefaultDeviceCodeGrantHandler(
         if (persistedGrant.Status == PersistedGrantStatus.Expired)
             return Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.ExpiredToken,
+                OpenIdProtocol.ErrorCodes.ExpiredToken,
                 "The device code has expired."
             );
 
@@ -120,7 +120,7 @@ internal class DefaultDeviceCodeGrantHandler(
             case DeviceAuthorizationStatus.Denied:
                 return Error(
                     errorFactory,
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     "The end user denied the device authorization request."
                 );
 
@@ -178,12 +178,12 @@ internal class DefaultDeviceCodeGrantHandler(
         return tooFast
             ? Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.SlowDown,
+                OpenIdProtocol.ErrorCodes.SlowDown,
                 "The device is polling faster than the permitted interval."
             )
             : Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.AuthorizationPending,
+                OpenIdProtocol.ErrorCodes.AuthorizationPending,
                 "The end user has not yet completed the device authorization request."
             );
     }
@@ -268,7 +268,7 @@ internal class DefaultDeviceCodeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.DeviceCode,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.DeviceCode,
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
             Resources = tokenRequest.Resources,
@@ -289,7 +289,7 @@ internal class DefaultDeviceCodeGrantHandler(
             tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (effectiveScopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
@@ -303,7 +303,7 @@ internal class DefaultDeviceCodeGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
+        if (effectiveScopes.Contains(OpenIdProtocol.ScopeTypes.OfflineAccess))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 

@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Client;
 public sealed class ClientCredentialsTokenRequest : TokenRequest
 {
     /// <inheritdoc />
-    public override string GrantType => "client_credentials";
+    public override string GrantType => OpenIdProtocol.GrantTypes.ClientCredentials;
 
     /// <inheritdoc />
     public override void AddGrantParameters(ICollection<KeyValuePair<string, string>> parameters)

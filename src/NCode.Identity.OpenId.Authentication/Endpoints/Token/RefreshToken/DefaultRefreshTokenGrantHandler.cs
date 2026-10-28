@@ -51,7 +51,7 @@ internal class DefaultRefreshTokenGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.RefreshToken };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.RefreshToken };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -71,7 +71,7 @@ internal class DefaultRefreshTokenGrantHandler(
         if (string.IsNullOrEmpty(refreshToken))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
+                .MissingParameter(OpenIdProtocol.Parameters.RefreshToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
@@ -148,8 +148,8 @@ internal class DefaultRefreshTokenGrantHandler(
             if (!matches)
             {
                 var errorCode = !string.IsNullOrEmpty(storedConfirmation.JwkThumbprint)
-                    ? OpenIdConstants.ErrorCodes.InvalidDPoPProof
-                    : OpenIdConstants.ErrorCodes.InvalidGrant;
+                    ? OpenIdProtocol.ErrorCodes.InvalidDPoPProof
+                    : OpenIdProtocol.ErrorCodes.InvalidGrant;
                 return errorFactory
                     .Create(errorCode)
                     .WithDescription(
@@ -182,7 +182,7 @@ internal class DefaultRefreshTokenGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = utcNow,
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.RefreshToken,
             OriginalScopes = refreshTokenGrant.OriginalScopes,
             EffectiveScopes = tokenRequest.Scopes ?? refreshTokenGrant.OriginalScopes,
             Resources = tokenRequest.Resources,
@@ -199,7 +199,7 @@ internal class DefaultRefreshTokenGrantHandler(
                 refreshTokenGrant.Confirmation
             );
         var issuesRefreshToken = securityTokenRequest.EffectiveScopes.Contains(
-            OpenIdConstants.ScopeTypes.OfflineAccess
+            OpenIdProtocol.ScopeTypes.OfflineAccess
         );
 
         string? responseRefreshToken = null;
@@ -479,7 +479,7 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenResponse.TokenType = tokenType;
         }
 
-        if (securityTokenRequest.EffectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (securityTokenRequest.EffectiveScopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 

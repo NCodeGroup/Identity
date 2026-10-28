@@ -62,7 +62,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Callback<string>(code => CapturedErrorCode = code)
             .Returns(mockError.Object);
 
-        var grantTypes = grantTypesSupported ?? [OpenIdConstants.GrantTypes.DeviceCode];
+        var grantTypes = grantTypesSupported ?? [OpenIdProtocol.GrantTypes.DeviceCode];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypes!))
             .Returns(grantTypesSupportedPresent);
@@ -104,13 +104,13 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
     public async Task HandleAsync_WhenGrantNotAllowed_ThrowsUnauthorizedClient()
     {
         var (context, client, request) = CreateScaffold(
-            grantTypesSupported: [OpenIdConstants.GrantTypes.AuthorizationCode]
+            grantTypesSupported: [OpenIdProtocol.GrantTypes.AuthorizationCode]
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
 
     [Fact]

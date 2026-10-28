@@ -44,7 +44,7 @@ internal static class RateLimitErrors
         var seconds = Math.Max(1L, (long)Math.Ceiling(retryAfter.TotalSeconds));
 
         return openIdContext
-            .ErrorFactory.Create(OpenIdConstants.ErrorCodes.TemporarilyUnavailable)
+            .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable)
             .WithDescription("The request rate limit has been exceeded.")
             .WithStatusCode(StatusCodes.Status429TooManyRequests)
             .WithResponseHeader(

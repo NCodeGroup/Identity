@@ -96,15 +96,25 @@ internal class ClientRequestSender(
             );
 
         using var request = new HttpRequestMessage(HttpMethod.Post, uri);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue(OpenIdProtocol.MediaTypes.Json)
+        );
 
         await authenticator.AuthenticateAsync(
             new ClientAuthenticationContext(registration, metadata, endpoint, request, parameters),
             cancellationToken
         );
 
-        if (includeClientId && !parameters.Exists(static p => p.Key == "client_id"))
-            parameters.Add(new KeyValuePair<string, string>("client_id", registration.ClientId));
+        if (
+            includeClientId
+            && !parameters.Exists(static p => p.Key == OpenIdProtocol.Parameters.ClientId)
+        )
+            parameters.Add(
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.ClientId,
+                    registration.ClientId
+                )
+            );
 
         request.Content = new FormUrlEncodedContent(parameters);
 

@@ -17,25 +17,23 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
-    /// Contains the media types used when rendering an OpenID response. A response formatter
-    /// (<c>IOpenIdResponseFormatter</c>) declares the media types it emits using these values.
+    /// Contains constants for the known values of the <c>token_type_hint</c> parameter
+    /// (<see href="https://datatracker.ietf.org/doc/html/rfc7009#section-2.1">RFC 7009 §2.1</see>). These are the
+    /// known values, not all of them: the parameter is an open vocabulary.
     /// </summary>
-    public static class MediaTypes
+    public static class TokenTypeHints
     {
         /// <summary>
-        /// The <c>application/json</c> media type — the default OAuth 2.0 / OpenID Connect response representation
-        /// (<see href="https://datatracker.ietf.org/doc/html/rfc6749#section-5.1">RFC 6749 §5.1</see> requires token and
-        /// error responses be <c>application/json</c>).
+        /// Contains the <c>token_type_hint</c> parameter value for an access token.
         /// </summary>
-        public const string Json = "application/json";
+        public const string AccessToken = "access_token";
 
         /// <summary>
-        /// The <c>text/html</c> media type — an interactive (browser) representation, for example the non-redirectable
-        /// authorization error page.
+        /// Contains the <c>token_type_hint</c> parameter value for a refresh token.
         /// </summary>
-        public const string Html = "text/html";
+        public const string RefreshToken = "refresh_token";
     }
 }

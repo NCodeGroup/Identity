@@ -163,12 +163,12 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
         Assert.True(HasError(body, OpenIdSettingNames.GrantTypesSupported), body);
-        Assert.Contains($"'{OpenIdConstants.GrantTypes.Implicit}'", body, StringComparison.Ordinal);
+        Assert.Contains($"'{OpenIdProtocol.GrantTypes.Implicit}'", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.RefreshToken]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.RefreshToken]
         );
 
         Assert.True(statusCode == HttpStatusCode.Created, body);
@@ -231,7 +231,7 @@ public class ClientCoherenceTests
                 settings = new Dictionary<string, object>
                 {
                     ["redirect_uris"] = new[] { RedirectUri },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
@@ -260,7 +260,7 @@ public class ClientCoherenceTests
         var clientSettings = new Dictionary<string, object>(settings)
         {
             ["redirect_uris"] = new[] { RedirectUri },
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };

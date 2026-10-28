@@ -18,7 +18,7 @@
 
 namespace NCode.Identity.OpenId;
 
-public static partial class OpenIdConstants
+public static partial class OpenIdProtocol
 {
     /// <summary>
     /// Contains constant values for the CIBA (OpenID Connect Client-Initiated Backchannel Authentication) token

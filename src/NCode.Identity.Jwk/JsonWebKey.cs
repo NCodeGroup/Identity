@@ -55,9 +55,9 @@ public sealed class JsonWebKey
             ["SHA256"] = "sha-256",
             ["SHA384"] = "sha-384",
             ["SHA512"] = "sha-512",
-            ["SHA3_256"] = "sha3-256",
-            ["SHA3_384"] = "sha3-384",
-            ["SHA3_512"] = "sha3-512",
+            ["SHA3-256"] = "sha3-256",
+            ["SHA3-384"] = "sha3-384",
+            ["SHA3-512"] = "sha3-512",
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     // The member tree, a detached immutable JsonElement (net9+): no backing JsonDocument to dispose, no cloning.

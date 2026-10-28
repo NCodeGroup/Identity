@@ -216,6 +216,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateLogoutToken());
 
         Assert.True(result.IsValid, result.FailureReason);
+        Assert.Null(result.FailureCode);
         Assert.Equal("jti-1", result.TokenId);
         Assert.Equal("user-1", result.Subject);
         Assert.Equal("sid-1", result.SessionId);
@@ -233,6 +234,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidIssuer, result.FailureCode);
     }
 
     [Fact]
@@ -243,6 +245,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateLogoutToken(audience: "other-client"));
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidAudience, result.FailureCode);
     }
 
     [Fact]
@@ -256,6 +259,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.Expired, result.FailureCode);
     }
 
     [Fact]
@@ -269,6 +273,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.NotYetValid, result.FailureCode);
     }
 
     [Fact]
@@ -282,6 +287,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]
@@ -295,6 +301,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidTokenType, result.FailureCode);
         Assert.Equal(
             "The 'typ' header of the logout token is not logout+jwt.",
             result.FailureReason
@@ -319,6 +326,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateLogoutToken());
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
         Assert.StartsWith("No logout-token signing algorithm", result.FailureReason);
     }
 
@@ -334,6 +342,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
     }
 
     [Fact]
@@ -349,6 +358,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, tampered);
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
         Assert.Equal(SignatureFailure, result.FailureReason);
         Assert.DoesNotContain(tampered, result.FailureReason);
         Assert.DoesNotContain(token, result.FailureReason);
@@ -368,6 +378,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, string.Empty);
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidToken, result.FailureCode);
         Assert.Equal("The logout token is empty.", result.FailureReason);
     }
 
@@ -382,6 +393,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal(
             "The logout token has neither a 'sub' nor a 'sid' claim.",
             result.FailureReason
@@ -432,6 +444,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal(
             "The logout token has no 'sid' claim, which the client requires.",
             result.FailureReason
@@ -449,8 +462,27 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal(
             "The 'sid' claim of the logout token is not a non-empty string.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenSubIsNotAString_FailsWithInvalidClaim()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(extraClaims: new Dictionary<string, object> { ["sub"] = 42 })
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
+        Assert.Equal(
+            "The 'sub' claim of the logout token is not a non-empty string.",
             result.FailureReason
         );
     }
@@ -466,6 +498,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateLogoutToken(includeEvents: false));
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal(EventsFailure, result.FailureReason);
     }
 
@@ -488,6 +521,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal(EventsFailure, result.FailureReason);
     }
 
@@ -507,6 +541,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal(EventsFailure, result.FailureReason);
     }
 
@@ -521,6 +556,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal("The logout token contains a 'nonce' claim.", result.FailureReason);
     }
 
@@ -532,6 +568,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateLogoutToken(includeJti: false));
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
         Assert.Equal("The logout token has no 'jti' claim.", result.FailureReason);
     }
 
@@ -554,6 +591,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateLogoutToken());
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.TokenReplayed, result.FailureCode);
         Assert.Equal("The logout token has already been received.", result.FailureReason);
     }
 

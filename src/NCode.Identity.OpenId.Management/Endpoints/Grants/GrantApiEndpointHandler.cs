@@ -330,6 +330,7 @@ internal class GrantApiEndpointHandler(
             httpContext,
             new InitialAccessTokenCreatedAuditEvent
             {
+                EventSource = AuditEventSources.Management,
                 TenantId = tenantId,
                 ResourceId = grantId,
                 ChangeType = ResourceChangeTypes.Created,

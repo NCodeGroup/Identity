@@ -269,6 +269,7 @@ internal class PrincipalApiEndpointHandler(
             httpContext,
             new PrincipalChangedAuditEvent
             {
+                EventSource = AuditEventSources.Management,
                 TenantId = tenantId,
                 SubjectId = principal.PrincipalId,
                 ResourceId = principal.PrincipalId,

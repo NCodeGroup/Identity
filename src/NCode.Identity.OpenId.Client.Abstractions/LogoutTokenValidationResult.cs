@@ -33,7 +33,7 @@ public sealed class LogoutTokenValidationResult
     /// </summary>
     /// <param name="payload">The verified payload of the logout token.</param>
     /// <param name="tokenId">The <c>jti</c> claim of the logout token.</param>
-    /// <param name="expiresAt">The time until which the logout token's <c>jti</c> must be remembered.</param>
+    /// <param name="expiresAt">The expiry (the <c>exp</c> claim) of the logout token.</param>
     /// <param name="subject">The <c>sub</c> claim of the logout token, if any.</param>
     /// <param name="sessionId">The <c>sid</c> claim of the logout token, if any.</param>
     /// <exception cref="ArgumentException">
@@ -80,8 +80,9 @@ public sealed class LogoutTokenValidationResult
     public string? TokenId { get; }
 
     /// <summary>
-    /// Gets the time until which the <c>jti</c> must be remembered when the logout token is valid; otherwise,
-    /// <see langword="default"/>.
+    /// Gets the expiry (the <c>exp</c> claim) of the logout token when it is valid; otherwise,
+    /// <see langword="default"/>. The validator has already recorded the <c>jti</c> until this instant plus five
+    /// minutes of clock skew.
     /// </summary>
     public DateTimeOffset ExpiresAt { get; }
 

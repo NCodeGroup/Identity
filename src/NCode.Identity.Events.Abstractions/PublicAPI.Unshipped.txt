@@ -4,7 +4,18 @@ const NCode.Identity.Events.Audit.AuditActorTypes.Anonymous = "anonymous" -> str
 const NCode.Identity.Events.Audit.AuditActorTypes.Client = "client" -> string!
 const NCode.Identity.Events.Audit.AuditActorTypes.EndUser = "end_user" -> string!
 const NCode.Identity.Events.Audit.AuditActorTypes.System = "system" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Authentication = "authentication" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Authorization = "authorization" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Management = "management" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Protocol = "protocol" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Session = "session" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Token = "token" -> string!
+const NCode.Identity.Events.Audit.AuditEventSources.Management = "management" -> string!
+const NCode.Identity.Events.Audit.AuditEventSources.OpenId = "openid" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.Session = "session" -> string!
+const NCode.Identity.Events.Audit.AuditSeverities.Critical = "critical" -> string!
+const NCode.Identity.Events.Audit.AuditSeverities.Info = "info" -> string!
+const NCode.Identity.Events.Audit.AuditSeverities.Warning = "warning" -> string!
 NCode.Identity.Events.Audit.AuditActor
 NCode.Identity.Events.Audit.AuditActor.AuditActor(string! Type, string? Id = null) -> void
 NCode.Identity.Events.Audit.AuditActor.Id.get -> string?
@@ -20,6 +31,8 @@ NCode.Identity.Events.Audit.AuditError.Message.get -> string?
 NCode.Identity.Events.Audit.AuditError.Message.init -> void
 NCode.Identity.Events.Audit.AuditError.StatusCode.get -> int?
 NCode.Identity.Events.Audit.AuditError.StatusCode.init -> void
+NCode.Identity.Events.Audit.AuditEventCategories
+NCode.Identity.Events.Audit.AuditEventSources
 NCode.Identity.Events.Audit.AuditRequest
 NCode.Identity.Events.Audit.AuditRequest.Endpoint.get -> string?
 NCode.Identity.Events.Audit.AuditRequest.Endpoint.init -> void
@@ -44,6 +57,7 @@ NCode.Identity.Events.Audit.AuditResource.Id.init -> void
 NCode.Identity.Events.Audit.AuditResource.Type.get -> string!
 NCode.Identity.Events.Audit.AuditResource.Type.init -> void
 NCode.Identity.Events.Audit.AuditResourceTypes
+NCode.Identity.Events.Audit.AuditSeverities
 NCode.Identity.Events.EventsLibrary
 NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
 abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!

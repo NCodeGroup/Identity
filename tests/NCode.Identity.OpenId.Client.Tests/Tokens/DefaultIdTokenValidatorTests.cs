@@ -969,5 +969,192 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
     }
 
+    [Fact]
+    public async Task ValidateAsync_WhenEncryptedToAnotherKey_FailsWithDecryptionFailed()
+    {
+        var otherKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(
+                new KeyMetadata { KeyId = "enc-2", Use = SecretKeyUses.Encryption },
+                OtherRsa
+            );
+        var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(otherKey));
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.DecryptionFailed, result.FailureCode);
+        Assert.Equal(
+            "The ID token could not be decrypted with the client's keys.",
+            result.FailureReason
+        );
+        Assert.DoesNotContain(idToken, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenKeyRingHasNoEncryptionKey_FailsWithDecryptionFailed()
+    {
+        var signatureOnlyKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(
+                new KeyMetadata { KeyId = "enc-1", Use = SecretKeyUses.Signature },
+                EncryptionRsa
+            );
+        var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(signatureOnlyKey));
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.DecryptionFailed, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEnclosedSignatureIsInvalid_FailsWithInvalidSignature()
+    {
+        var otherSigningKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(new KeyMetadata { KeyId = "k1" }, OtherRsa);
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var idToken = CreateIdToken(
+            signingKey: otherSigningKey,
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
+        Assert.Equal(SignatureFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenContentEncryptionIsNotRegistered_FailsWithAlgorithmNotPermitted()
+    {
+        var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(EncryptionKey));
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(
+                EncryptionKey,
+                contentEncryption: "A256GCM"
+            )
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplicatedIssuerDiffers_FailsWithInvalidIssuer()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
+            extraEncryptionHeaderClaims: Claims("iss", "https://evil.example.test")
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidIssuer, result.FailureCode);
+        Assert.Equal(
+            "The 'iss' header of the encrypted ID token does not match the issuer.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplicatedIssuerMatches_ReturnsPayload()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
+            extraEncryptionHeaderClaims: Claims("iss", Issuer)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.True(result.IsValid);
+        Assert.Null(result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEncryptionIsRegisteredWithoutKeyRing_ThrowsInvalidOperationException()
+    {
+        var validator = CreateValidator(null);
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await ValidateAsync(
+                validator,
+                idToken,
+                registration: CreateEncryptingRegistration(keyRing: null)
+            )
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNoRegisteredEncryptionAlgorithmIsPermitted_FailsWithAlgorithmNotPermitted()
+    {
+        var validator = CreateValidator(null);
+        var idToken = CreateIdToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            idToken,
+            registration: CreateEncryptingRegistration(keyManagementAlgorithms: ["RSA1_5"])
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
+        Assert.Equal(
+            "No ID-token encryption algorithm that the client registered is permitted.",
+            result.FailureReason
+        );
+    }
+
     #endregion
 }

@@ -1,6 +1,7 @@
 # 273. The protocol client validates ID tokens under an asymmetric algorithm policy
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0278](0278-token-validation-failures-carry-a-machine-readable-code.md): an
+  invalid ID token also carries a `FailureCode`)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 

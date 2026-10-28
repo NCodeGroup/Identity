@@ -31,6 +31,12 @@ public class JwtValidationException : JoseException
     private const string DefaultMessage = "Token validation failed.";
 
     /// <summary>
+    /// Gets the machine-readable code of the reason the token failed validation. The default is
+    /// <see cref="JwtValidationFailureCodes.InvalidToken"/>.
+    /// </summary>
+    public string FailureCode { get; init; } = JwtValidationFailureCodes.InvalidToken;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JwtValidationException"/> class with a default error message.
     /// </summary>
     public JwtValidationException()

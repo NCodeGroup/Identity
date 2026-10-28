@@ -46,7 +46,7 @@ public abstract class JwtValidationHandler<TRequirement> : IJwtValidationHandler
 
     /// <summary>
     /// Evaluates a single <typeparamref name="TRequirement"/> against the decoded token in <paramref name="context"/>,
-    /// calling <see cref="JwtValidationContext.Succeed"/> when satisfied or <see cref="JwtValidationContext.Fail"/> otherwise.
+    /// calling <see cref="JwtValidationContext.Succeed"/> when satisfied or <see cref="JwtValidationContext.Fail(string, string)"/> otherwise.
     /// </summary>
     /// <param name="context">The <see cref="JwtValidationContext"/> that carries the decoded token and voting state.</param>
     /// <param name="requirement">The requirement to evaluate.</param>

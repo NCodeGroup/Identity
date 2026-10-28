@@ -2,6 +2,21 @@
 abstract NCode.Identity.OpenId.Client.TokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 abstract NCode.Identity.OpenId.Client.TokenRequest.GrantType.get -> string!
 const NCode.Identity.OpenId.Client.OpenIdClientDefaults.HttpClientName = "NCode.Identity.OpenId.Client" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.Expired = "expired" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidAudience = "invalid_audience" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidClaim = "invalid_claim" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidIssuer = "invalid_issuer" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidLifetime = "invalid_lifetime" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidSignature = "invalid_signature" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidToken = "invalid_token" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidTokenType = "invalid_token_type" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.MaxAgeExceeded = "max_age_exceeded" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.NonceMismatch = "nonce_mismatch" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.NotYetValid = "not_yet_valid" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.SubjectMismatch = "subject_mismatch" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.TokenHashMismatch = "token_hash_mismatch" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.TokenReplayed = "token_replayed" -> string!
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AuthorizationCodeTokenRequest(string! code, string! redirectUri, string! codeVerifier) -> void
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.Code.get -> string!
@@ -91,8 +106,9 @@ NCode.Identity.OpenId.Client.IdTokenValidationRequest.State.init -> void
 NCode.Identity.OpenId.Client.IdTokenValidationRequest.Subject.get -> string?
 NCode.Identity.OpenId.Client.IdTokenValidationRequest.Subject.init -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult
+NCode.Identity.OpenId.Client.IdTokenValidationResult.FailureCode.get -> string?
 NCode.Identity.OpenId.Client.IdTokenValidationResult.FailureReason.get -> string?
-NCode.Identity.OpenId.Client.IdTokenValidationResult.IdTokenValidationResult(string! failureReason) -> void
+NCode.Identity.OpenId.Client.IdTokenValidationResult.IdTokenValidationResult(string! failureCode, string! failureReason) -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult.IdTokenValidationResult(System.Text.Json.JsonElement payload) -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult.IsValid.get -> bool
 NCode.Identity.OpenId.Client.IdTokenValidationResult.Payload.get -> System.Text.Json.JsonElement
@@ -102,9 +118,10 @@ NCode.Identity.OpenId.Client.LogoutTokenValidationRequest.LogoutToken.init -> vo
 NCode.Identity.OpenId.Client.LogoutTokenValidationRequest.LogoutTokenValidationRequest() -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.ExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Client.LogoutTokenValidationResult.FailureCode.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.FailureReason.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.IsValid.get -> bool
-NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(string! failureReason) -> void
+NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(string! failureCode, string! failureReason) -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(System.Text.Json.JsonElement payload, string! tokenId, System.DateTimeOffset expiresAt, string? subject, string? sessionId) -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.Payload.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.SessionId.get -> string?
@@ -218,6 +235,7 @@ NCode.Identity.OpenId.Client.TokenRevocationRequest.Token.get -> string!
 NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenRevocationRequest(string! token) -> void
 NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenTypeHint.get -> string?
 NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenTypeHint.init -> void
+NCode.Identity.OpenId.Client.TokenValidationFailureCodes
 override NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 override NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.GrantType.get -> string!
 override NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void

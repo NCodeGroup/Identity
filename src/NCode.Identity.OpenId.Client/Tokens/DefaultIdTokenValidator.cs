@@ -56,7 +56,7 @@ internal class DefaultIdTokenValidator(
         ArgumentNullException.ThrowIfNull(request);
 
         if (string.IsNullOrEmpty(request.IdToken))
-            return Fail("The ID token is empty.");
+            return Fail(TokenValidationFailureCodes.InvalidToken, "The ID token is empty.");
 
         var metadata = await MetadataResolver.GetMetadataAsync(
             registration.Authority,
@@ -76,6 +76,7 @@ internal class DefaultIdTokenValidator(
         );
         if (algorithms.Count == 0)
             return Fail(
+                TokenValidationFailureCodes.AlgorithmNotPermitted,
                 "No ID-token signing algorithm is both permitted by the client and advertised by the provider."
             );
 
@@ -106,11 +107,13 @@ internal class DefaultIdTokenValidator(
             var exception = result.Exception;
             ProviderSignaturePolicy.RethrowProviderFailure(exception);
 
-            return Fail(
-                exception is JwtDecodeException or JwtSecretKeyNotFoundException
-                    ? "The ID token signature could not be verified with the provider's signing keys."
-                    : "The ID token is invalid: " + exception.Message
-            );
+            if (exception is JwtDecodeException or JwtSecretKeyNotFoundException)
+                return Fail(
+                    TokenValidationFailureCodes.InvalidSignature,
+                    "The ID token signature could not be verified with the provider's signing keys."
+                );
+
+            return Fail(result.FailureCode, "The ID token is invalid: " + exception.Message);
         }
 
         var header = result.DecodedJwt.Header;
@@ -123,20 +126,29 @@ internal class DefaultIdTokenValidator(
                 || !JoseTokenTypes.AreSame(typ.GetString(), JoseTokenTypes.Jwt)
             )
         )
-            return Fail("The 'typ' header of the ID token is not JWT.");
+            return Fail(
+                TokenValidationFailureCodes.InvalidTokenType,
+                "The 'typ' header of the ID token is not JWT."
+            );
 
         if (
             !payload.TryGetProperty(JoseClaimNames.Payload.Sub, out var sub)
             || sub.ValueKind != JsonValueKind.String
             || string.IsNullOrEmpty(sub.GetString())
         )
-            return Fail("The ID token has no 'sub' claim.");
+            return Fail(
+                TokenValidationFailureCodes.InvalidClaim,
+                "The ID token has no 'sub' claim."
+            );
 
         if (
             request.Subject is { } expectedSubject
             && !string.Equals(sub.GetString(), expectedSubject, StringComparison.Ordinal)
         )
-            return Fail("The 'sub' claim of the ID token does not match the expected subject.");
+            return Fail(
+                TokenValidationFailureCodes.SubjectMismatch,
+                "The 'sub' claim of the ID token does not match the expected subject."
+            );
 
         if (
             payload.TryGetProperty(JoseClaimNames.Payload.Azp, out var azp)
@@ -145,7 +157,10 @@ internal class DefaultIdTokenValidator(
                 || !string.Equals(azp.GetString(), registration.ClientId, StringComparison.Ordinal)
             )
         )
-            return Fail("The 'azp' claim of the ID token does not match the client.");
+            return Fail(
+                TokenValidationFailureCodes.InvalidAudience,
+                "The 'azp' claim of the ID token does not match the client."
+            );
 
         if (
             request.Nonce is { } expectedNonce
@@ -155,7 +170,10 @@ internal class DefaultIdTokenValidator(
                 || !string.Equals(nonce.GetString(), expectedNonce, StringComparison.Ordinal)
             )
         )
-            return Fail("The 'nonce' claim of the ID token does not match the request.");
+            return Fail(
+                TokenValidationFailureCodes.NonceMismatch,
+                "The 'nonce' claim of the ID token does not match the request."
+            );
 
         if (request.MaxAge is { } maxAge)
         {
@@ -164,11 +182,17 @@ internal class DefaultIdTokenValidator(
                 || authTimeElement.ValueKind != JsonValueKind.Number
                 || !authTimeElement.TryGetDouble(out var authTimeSeconds)
             )
-                return Fail("The ID token has no numeric 'auth_time' claim.");
+                return Fail(
+                    TokenValidationFailureCodes.InvalidClaim,
+                    "The ID token has no numeric 'auth_time' claim."
+                );
 
             var authTime = DateTimeOffset.UnixEpoch.AddSeconds(authTimeSeconds);
             if (TimeProvider.GetUtcNow() > authTime + maxAge + ClockSkew)
-                return Fail("The authentication of the ID token is older than the maximum age.");
+                return Fail(
+                    TokenValidationFailureCodes.MaxAgeExceeded,
+                    "The authentication of the ID token is older than the maximum age."
+                );
         }
 
         if (CheckHashes(header, payload, result.DecodedJwt.SigningKey, request) is { } hashFailure)
@@ -200,7 +224,10 @@ internal class DefaultIdTokenValidator(
                 out var signatureAlgorithm
             )
         )
-            return Fail("The ID token signing algorithm is not registered.");
+            return Fail(
+                TokenValidationFailureCodes.AlgorithmNotPermitted,
+                "The ID token signing algorithm is not registered."
+            );
 
         var hashFunction = signatureAlgorithm.GetTokenHashFunction(signingKey, out var hashSize);
         Span<byte> hashBuffer = stackalloc byte[hashSize];
@@ -260,10 +287,14 @@ internal class DefaultIdTokenValidator(
             || claim.GetString() is not { } tokenHash
             || !TokenHash.Verify(hashFunction, value, tokenHash, hashBuffer)
         )
-            return Fail($"The ID token '{claimName}' does not match.");
+            return Fail(
+                TokenValidationFailureCodes.TokenHashMismatch,
+                $"The ID token '{claimName}' does not match."
+            );
 
         return null;
     }
 
-    private static IdTokenValidationResult Fail(string reason) => new(reason);
+    private static IdTokenValidationResult Fail(string failureCode, string reason) =>
+        new(failureCode, reason);
 }

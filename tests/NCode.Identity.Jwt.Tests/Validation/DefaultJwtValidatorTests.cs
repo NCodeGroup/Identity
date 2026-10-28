@@ -257,6 +257,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
         Assert.False(result.IsValid);
         Assert.Contains(expectedMessage, result.Exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidCertificate, result.FailureCode);
     }
 
     [Fact]
@@ -268,6 +269,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
         Assert.False(result.IsValid);
         Assert.Contains("none", result.Exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
     }
 
     [Fact]
@@ -325,6 +327,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
         Assert.False(result.IsValid);
         Assert.Contains("decryption keys", result.Exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidToken, result.FailureCode);
     }
 
     [Fact]
@@ -493,6 +496,42 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
+    public async Task ValidateAsync_WhenSignatureAlgorithmIsNotPermitted_FailsWithAlgorithmNotPermitted()
+    {
+        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+
+        var result = await ValidateAsync(
+            token,
+            x =>
+            {
+                x.UseValidationKeys([SigningKey]);
+                x.ValidSignatureAlgorithms = [AlgorithmCodes.DigitalSignature.RsaSsaPssSha256];
+            }
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNoDecryptionKeyDecrypts_FailsWithDecryptionFailed()
+    {
+        var token = EncodeToken(
+            CreateSigningCredentials(SigningKey),
+            CreateEncryptionCredentials()
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([SigningKey])
+        );
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtDecodeException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.DecryptionFailed, result.FailureCode);
+    }
+
+    [Fact]
     public async Task ValidateAsync_WhenKeyDeclaresAnotherUse_DoesNotVerifyWithIt()
     {
         var encryptionOnlyKey = CreateRsaKey(
@@ -507,6 +546,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, result.FailureCode);
     }
 
     [Fact]

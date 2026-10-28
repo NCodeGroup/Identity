@@ -22,6 +22,20 @@ const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.Json = "JSON" -> string!
 const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.JsonArray = "JSON_ARRAY" -> string!
 const NCode.Identity.Jwt.Claims.JsonClaimValueTypes.JsonNull = "JSON_NULL" -> string!
 const NCode.Identity.Jwt.Validation.JwtDecodeException.DefaultMessage = "Token validation failed. Unable to decode the token with any of the provided keys." -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.AssertionFailed = "assertion_failed" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.DecryptionFailed = "decryption_failed" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.Expired = "expired" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidAudience = "invalid_audience" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidCertificate = "invalid_certificate" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidClaim = "invalid_claim" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidIssuer = "invalid_issuer" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidLifetime = "invalid_lifetime" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidSignature = "invalid_signature" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidToken = "invalid_token" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.InvalidTokenType = "invalid_token_type" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.KeyNotFound = "key_not_found" -> string!
+const NCode.Identity.Jwt.Validation.JwtValidationFailureCodes.NotYetValid = "not_yet_valid" -> string!
 NCode.Identity.Jwt.Claims.JsonClaimValueTypes
 NCode.Identity.Jwt.DecodedJwt
 NCode.Identity.Jwt.DecodedJwt.EncodedToken.get -> string!
@@ -73,6 +87,8 @@ NCode.Identity.Jwt.Validation.ClaimValueRequirement.AllowCollection.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimName.get -> string!
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimName.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimValueRequirement(string! ClaimName, bool UsePayload, bool AllowCollection, System.Collections.Generic.IReadOnlyCollection<string!>! ValidValues) -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.FailureCode.get -> string!
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.FailureCode.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.UsePayload.get -> bool
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.UsePayload.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ValidValues.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
@@ -93,7 +109,8 @@ NCode.Identity.Jwt.Validation.JwtSecretKeyNotFoundException.JwtSecretKeyNotFound
 NCode.Identity.Jwt.Validation.JwtSecretKeyNotFoundException.JwtSecretKeyNotFoundException(string! message, System.Exception! inner) -> void
 NCode.Identity.Jwt.Validation.JwtValidationContext
 NCode.Identity.Jwt.Validation.JwtValidationContext.DecodedJwt.get -> NCode.Identity.Jwt.DecodedJwt!
-NCode.Identity.Jwt.Validation.JwtValidationContext.Fail(string! reason) -> void
+NCode.Identity.Jwt.Validation.JwtValidationContext.Fail(string! failureCode, string! reason) -> void
+NCode.Identity.Jwt.Validation.JwtValidationContext.FailureCode.get -> string?
 NCode.Identity.Jwt.Validation.JwtValidationContext.FailureReasons.get -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.Jwt.Validation.JwtValidationContext.HasFailed.get -> bool
 NCode.Identity.Jwt.Validation.JwtValidationContext.HasSucceeded.get -> bool
@@ -106,9 +123,12 @@ NCode.Identity.Jwt.Validation.JwtValidationContext.ServiceProvider.get -> System
 NCode.Identity.Jwt.Validation.JwtValidationContext.Succeed(NCode.Identity.Jwt.Validation.IJwtValidationRequirement! requirement) -> void
 NCode.Identity.Jwt.Validation.JwtValidationContext.TimeProvider.get -> System.TimeProvider!
 NCode.Identity.Jwt.Validation.JwtValidationException
+NCode.Identity.Jwt.Validation.JwtValidationException.FailureCode.get -> string!
+NCode.Identity.Jwt.Validation.JwtValidationException.FailureCode.init -> void
 NCode.Identity.Jwt.Validation.JwtValidationException.JwtValidationException() -> void
 NCode.Identity.Jwt.Validation.JwtValidationException.JwtValidationException(string! message) -> void
 NCode.Identity.Jwt.Validation.JwtValidationException.JwtValidationException(string! message, System.Exception! inner) -> void
+NCode.Identity.Jwt.Validation.JwtValidationFailureCodes
 NCode.Identity.Jwt.Validation.JwtValidationParameters
 NCode.Identity.Jwt.Validation.JwtValidationParameters.AuthenticationType.get -> string!
 NCode.Identity.Jwt.Validation.JwtValidationParameters.AuthenticationType.set -> void
@@ -143,6 +163,7 @@ NCode.Identity.Jwt.Validation.JwtValidationResult
 NCode.Identity.Jwt.Validation.JwtValidationResult.DecodedJwt.get -> NCode.Identity.Jwt.DecodedJwt?
 NCode.Identity.Jwt.Validation.JwtValidationResult.EncodedToken.get -> string!
 NCode.Identity.Jwt.Validation.JwtValidationResult.Exception.get -> System.Exception?
+NCode.Identity.Jwt.Validation.JwtValidationResult.FailureCode.get -> string?
 NCode.Identity.Jwt.Validation.JwtValidationResult.GetClaimsIdentityAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsIdentity!>
 NCode.Identity.Jwt.Validation.JwtValidationResult.IsValid.get -> bool
 NCode.Identity.Jwt.Validation.JwtValidationResult.Parameters.get -> NCode.Identity.Jwt.Validation.JwtValidationParameters!

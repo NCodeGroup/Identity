@@ -24,7 +24,7 @@ namespace NCode.Identity.Jwt.Validation;
 /// Evaluates one or more <see cref="IJwtValidationRequirement"/> instances against a decoded JSON Web Token (JWT).
 /// Modeled on <c>Microsoft.AspNetCore.Authorization.IAuthorizationHandler</c>: handlers are resolved from dependency
 /// injection and vote on each pending requirement by calling <see cref="JwtValidationContext.Succeed"/> or
-/// <see cref="JwtValidationContext.Fail"/>. External code contributes custom validators by implementing this
+/// <see cref="JwtValidationContext.Fail(string, string)"/>. External code contributes custom validators by implementing this
 /// interface (typically via the <c>JwtValidationHandler&lt;TRequirement&gt;</c> base class) and registering it.
 /// </summary>
 [PublicAPI]

@@ -1,6 +1,7 @@
 # 274. The protocol client validates logout tokens and rejects replays
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0278](0278-token-validation-failures-carry-a-machine-readable-code.md): an
+  invalid logout token also carries a `FailureCode`)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 

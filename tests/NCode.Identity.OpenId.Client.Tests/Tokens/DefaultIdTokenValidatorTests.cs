@@ -165,6 +165,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         string issuer = Issuer,
         string audience = ClientId,
         TimeSpan? expiresIn = null,
+        TimeSpan? issuedOffset = null,
         string tokenType = JoseTokenTypes.Jwt,
         bool includeSub = true,
         IReadOnlyDictionary<string, object>? extraClaims = null,
@@ -172,7 +173,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         IReadOnlyDictionary<string, object>? extraHeaderClaims = null
     )
     {
-        var now = DateTimeOffset.UtcNow;
+        var issuedAt = DateTimeOffset.UtcNow + (issuedOffset ?? TimeSpan.Zero);
         var claims = new Dictionary<string, object>();
         if (includeSub)
             claims["sub"] = "user-1";
@@ -201,9 +202,9 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                     TokenType = tokenType,
                     Issuer = issuer,
                     Audience = new StringValues(audience),
-                    IssuedAt = now,
-                    NotBefore = now,
-                    Expires = now + (expiresIn ?? TimeSpan.FromMinutes(5)),
+                    IssuedAt = issuedAt,
+                    NotBefore = issuedAt,
+                    Expires = issuedAt + (expiresIn ?? TimeSpan.FromMinutes(5)),
                     ExtraPayloadClaims = claims,
                     ExtraSignatureHeaderClaims = extraHeaderClaims,
                 }
@@ -257,6 +258,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken());
 
         Assert.True(result.IsValid);
+        Assert.Null(result.FailureCode);
         Assert.Equal("user-1", result.Payload.GetProperty("sub").GetString());
     }
 
@@ -271,6 +273,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidIssuer, result.FailureCode);
     }
 
     [Fact]
@@ -281,6 +284,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken(audience: "other-client"));
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidAudience, result.FailureCode);
     }
 
     [Fact]
@@ -290,10 +294,25 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         var result = await ValidateAsync(
             validator,
-            CreateIdToken(expiresIn: TimeSpan.FromMinutes(-10))
+            CreateIdToken(issuedOffset: TimeSpan.FromMinutes(-30))
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.Expired, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIssuedInTheFuture_FailsAsNotYetValid()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(issuedOffset: TimeSpan.FromHours(1))
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.NotYetValid, result.FailureCode);
     }
 
     [Fact]
@@ -307,6 +326,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidTokenType, result.FailureCode);
     }
 
     [Fact]
@@ -317,6 +337,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken(includeSub: false));
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
     }
 
     [Fact]
@@ -327,6 +348,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken(), subject: "user-2");
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.SubjectMismatch, result.FailureCode);
     }
 
     [Fact]
@@ -340,6 +362,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidAudience, result.FailureCode);
     }
 
     [Fact]
@@ -350,6 +373,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken(), nonce: "n-1");
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.NonceMismatch, result.FailureCode);
     }
 
     [Fact]
@@ -364,6 +388,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.NonceMismatch, result.FailureCode);
     }
 
     [Fact]
@@ -393,6 +418,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.MaxAgeExceeded, result.FailureCode);
     }
 
     [Fact]
@@ -422,6 +448,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
     }
 
     [Theory]
@@ -470,6 +497,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.TokenHashMismatch, result.FailureCode);
         Assert.Equal("The ID token 'at_hash' does not match.", result.FailureReason);
     }
 
@@ -493,6 +521,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.TokenHashMismatch, result.FailureCode);
         Assert.Equal("The ID token 'c_hash' does not match.", result.FailureReason);
     }
 
@@ -516,6 +545,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.TokenHashMismatch, result.FailureCode);
         Assert.Equal("The ID token 's_hash' does not match.", result.FailureReason);
     }
 
@@ -541,6 +571,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.TokenHashMismatch, result.FailureCode);
         Assert.Equal("The ID token 'at_hash' does not match.", result.FailureReason);
     }
 
@@ -552,6 +583,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken());
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
     }
 
     [Fact]
@@ -562,6 +594,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken());
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
         Assert.StartsWith("No ID-token signing algorithm", result.FailureReason);
     }
 
@@ -577,6 +610,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
     }
 
     [Fact]
@@ -629,6 +663,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken());
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
         Assert.Equal(SignatureFailure, result.FailureReason);
     }
 
@@ -645,6 +680,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, tampered);
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
         Assert.Equal(SignatureFailure, result.FailureReason);
         Assert.DoesNotContain(tampered, result.FailureReason);
         Assert.DoesNotContain(token, result.FailureReason);
@@ -694,6 +730,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, string.Empty);
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidToken, result.FailureCode);
         Assert.Equal("The ID token is empty.", result.FailureReason);
     }
 
@@ -727,6 +764,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(validator, CreateIdToken(extraClaims: Claims("azp", 42)));
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidAudience, result.FailureCode);
         Assert.Equal(
             "The 'azp' claim of the ID token does not match the client.",
             result.FailureReason
@@ -744,6 +782,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidTokenType, result.FailureCode);
         Assert.Equal("The 'typ' header of the ID token is not JWT.", result.FailureReason);
     }
 

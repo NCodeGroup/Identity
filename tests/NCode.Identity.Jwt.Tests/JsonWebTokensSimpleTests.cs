@@ -28,6 +28,26 @@ public class JsonWebTokensSimpleTests
     #region Exception Tests
 
     [Fact]
+    public void JwtValidationException_DefaultConstructor_UsesInvalidTokenCode()
+    {
+        var exception = new JwtValidationException();
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidToken, exception.FailureCode);
+    }
+
+    [Fact]
+    public void JwtValidationException_WhenFailureCodeIsSet_ReportsIt()
+    {
+        var exception = new JwtValidationException("boom")
+        {
+            FailureCode = JwtValidationFailureCodes.InvalidIssuer,
+        };
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidIssuer, exception.FailureCode);
+        Assert.Equal("boom", exception.Message);
+    }
+
+    [Fact]
     public void JwtValidationException_DefaultConstructor_UsesDefaultMessage()
     {
         var exception = new JwtValidationException();
@@ -73,6 +93,24 @@ public class JsonWebTokensSimpleTests
     }
 
     [Fact]
+    public void JwtDecodeException_DefaultConstructor_UsesInvalidSignatureCode()
+    {
+        var exception = new JwtDecodeException();
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidSignature, exception.FailureCode);
+    }
+
+    [Fact]
+    public void JwtDecodeException_WithMessageAndInner_UsesInvalidSignatureCode()
+    {
+        var inner = new InvalidOperationException("inner");
+
+        var exception = new JwtDecodeException("boom", inner);
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidSignature, exception.FailureCode);
+    }
+
+    [Fact]
     public void JwtSecretKeyNotFoundException_DefaultConstructor_HasMessage()
     {
         var exception = new JwtSecretKeyNotFoundException();
@@ -89,6 +127,24 @@ public class JsonWebTokensSimpleTests
 
         Assert.Equal("boom", exception.Message);
         Assert.Same(inner, exception.InnerException);
+    }
+
+    [Fact]
+    public void JwtSecretKeyNotFoundException_DefaultConstructor_UsesKeyNotFoundCode()
+    {
+        var exception = new JwtSecretKeyNotFoundException();
+
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, exception.FailureCode);
+    }
+
+    [Fact]
+    public void JwtSecretKeyNotFoundException_WithMessageAndInner_UsesKeyNotFoundCode()
+    {
+        var inner = new InvalidOperationException("inner");
+
+        var exception = new JwtSecretKeyNotFoundException("boom", inner);
+
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, exception.FailureCode);
     }
 
     #endregion
@@ -144,6 +200,47 @@ public class JsonWebTokensSimpleTests
         var result = parameters.UseValidationKeys([]);
 
         Assert.Same(parameters, result);
+    }
+
+    #endregion
+
+    #region JwtValidationResult Tests
+
+    [Fact]
+    public void JwtValidationResult_WhenFailedWithJwtValidationException_ReportsItsFailureCode()
+    {
+        var parameters = new JwtValidationParameters();
+        var exception = new JwtValidationException("boom")
+        {
+            FailureCode = JwtValidationFailureCodes.Expired,
+        };
+
+        var result = JwtValidationResult.Fail(
+            parameters,
+            parameters.PropertyBag,
+            "token",
+            exception
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.Expired, result.FailureCode);
+    }
+
+    [Fact]
+    public void JwtValidationResult_WhenFailedWithAnotherException_ReportsInvalidToken()
+    {
+        var parameters = new JwtValidationParameters();
+        var exception = new InvalidOperationException("boom");
+
+        var result = JwtValidationResult.Fail(
+            parameters,
+            parameters.PropertyBag,
+            "token",
+            exception
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.InvalidToken, result.FailureCode);
     }
 
     #endregion

@@ -117,12 +117,13 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
     }
 
-    private void SetupAudit(string reason, string userName = UserName) =>
+    private void SetupAudit(string errorCode, string errorMessage, string userName = UserName) =>
         MockAuditEventRecorder
             .Setup(x =>
                 x.RecordSubjectAuthenticationFailedAsync(
                     MockContext.Object,
-                    reason,
+                    errorCode,
+                    errorMessage,
                     userName,
                     It.IsAny<CancellationToken>()
                 )
@@ -163,7 +164,10 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
             .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        SetupAudit(DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason);
+        SetupAudit(
+            DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedErrorCode,
+            DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason
+        );
 
         var disposition = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -186,7 +190,10 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
             .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        SetupAudit(DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason);
+        SetupAudit(
+            DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedErrorCode,
+            DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason
+        );
 
         var disposition = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -210,6 +217,7 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         SetupAudit(
+            DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedErrorCode,
             DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason,
             UserName + " "
         );
@@ -236,7 +244,10 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
             .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        SetupAudit(DefaultAuthenticatePasswordGrantHandler.InvalidCredentialsReason);
+        SetupAudit(
+            DefaultAuthenticatePasswordGrantHandler.InvalidCredentialsErrorCode,
+            DefaultAuthenticatePasswordGrantHandler.InvalidCredentialsReason
+        );
 
         var disposition = await Handler.HandleAsync(command, cancellationSource.Token);
 
@@ -261,7 +272,10 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
             .Setup(x => x.ResetAsync(TenantId, UserName, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        SetupAudit(DefaultAuthenticatePasswordGrantHandler.InvalidCredentialsReason);
+        SetupAudit(
+            DefaultAuthenticatePasswordGrantHandler.InvalidCredentialsErrorCode,
+            DefaultAuthenticatePasswordGrantHandler.InvalidCredentialsReason
+        );
 
         var disposition = await Handler.HandleAsync(command, CancellationToken.None);
 

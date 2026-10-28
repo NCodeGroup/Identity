@@ -62,7 +62,7 @@ public sealed class DefaultEventMetricsHandlerTests : IDisposable
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenAuditEvent_RecordsCounterWithActionAndOutcomeTags()
+    public async Task HandleAsync_WhenAuditEvent_RecordsCounterWithEventNameCategoryAndOutcomeTags()
     {
         await Handler.HandleAsync(
             new TestAuditEvent { Outcome = AuditOutcome.Failure },
@@ -78,7 +78,11 @@ public sealed class DefaultEventMetricsHandlerTests : IDisposable
         );
         Assert.Equal(
             "test.action",
-            measurement.Tags[DefaultEventMetricsHandler.AuditActionAttribute]
+            measurement.Tags[DefaultEventMetricsHandler.AuditEventNameAttribute]
+        );
+        Assert.Equal(
+            "test",
+            measurement.Tags[DefaultEventMetricsHandler.AuditEventCategoryAttribute]
         );
         Assert.Equal(
             AuditOutcome.Failure,

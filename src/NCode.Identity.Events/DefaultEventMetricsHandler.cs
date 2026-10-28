@@ -25,7 +25,7 @@ namespace NCode.Identity.Events;
 /// <summary>
 /// A universal subscriber that emits a metric for every published event, so metrics hang off the same
 /// seam as logging and audit. The counter is tagged with bounded dimensions only: the event type, for audit events the
-/// action and outcome, and whatever bounded attributes the event declares through
+/// event name, event category and outcome, and whatever bounded attributes the event declares through
 /// <see cref="ISupportMetricAttributes"/>. High-cardinality fields such as subject or tenant are never dimensions.
 /// </summary>
 // See ADR-0197.
@@ -38,7 +38,9 @@ internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandl
 
     internal const string EventTypeAttribute = "ncode.identity.event.type";
 
-    internal const string AuditActionAttribute = "ncode.identity.audit.action";
+    internal const string AuditEventNameAttribute = "ncode.identity.audit.event_name";
+
+    internal const string AuditEventCategoryAttribute = "ncode.identity.audit.event_category";
 
     internal const string AuditOutcomeAttribute = "ncode.identity.audit.outcome";
 
@@ -65,7 +67,8 @@ internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandl
 
         if (@event is IAuditEvent auditEvent)
         {
-            tags.Add(AuditActionAttribute, auditEvent.Action);
+            tags.Add(AuditEventNameAttribute, auditEvent.EventName);
+            tags.Add(AuditEventCategoryAttribute, auditEvent.EventCategory);
             tags.Add(AuditOutcomeAttribute, auditEvent.Outcome);
         }
 

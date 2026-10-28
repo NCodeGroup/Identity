@@ -47,6 +47,7 @@ internal static class ManagementAuditRecorderExtensions
             httpContext,
             new LocalAccountChangedAuditEvent
             {
+                EventSource = AuditEventSources.Management,
                 TenantId = tenantId,
                 ResourceId = localAccountId,
                 ChangeType = changeType,

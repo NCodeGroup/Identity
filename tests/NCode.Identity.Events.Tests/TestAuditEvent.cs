@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using NCode.Identity.Events.Audit;
 
 namespace NCode.Identity.Events;
@@ -25,5 +26,14 @@ namespace NCode.Identity.Events;
 /// </summary>
 internal sealed record TestAuditEvent : AuditEvent
 {
-    public override string Action => "test.action";
+    [SetsRequiredMembers]
+    public TestAuditEvent()
+    {
+        EventSource = "test";
+        Outcome = AuditOutcome.Success;
+    }
+
+    public override string EventName => "test.action";
+
+    public override string EventCategory => "test";
 }

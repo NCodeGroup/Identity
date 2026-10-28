@@ -28,10 +28,20 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record SessionCreatedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.SessionCreated;
+    public override string EventName => OpenIdAuditEventNames.SessionCreated;
+
+    /// <inheritdoc />
+    public override string EventCategory => AuditEventCategories.Session;
 
     /// <summary>
     /// Gets the opaque session identifier (<c>sid</c>) that was created.
     /// </summary>
     public required string SessionId { get; init; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Lists the created session as the event's only resource.
+    /// </remarks>
+    public override IReadOnlyList<AuditResource> Resources =>
+        [new AuditResource(AuditResourceTypes.Session, SessionId)];
 }

@@ -28,7 +28,8 @@ namespace NCode.Identity.Events;
 /// </summary>
 /// <remarks>
 /// Unlike metric dimensions, span-event attributes may carry higher-cardinality fields (such as
-/// subject, client, and tenant), so the full audit envelope is attached for correlation.
+/// subject, client, and tenant), so the flattened audit record (<c>audit.*</c> keys, the same ones the
+/// audit log entry carries) is attached for correlation.
 /// </remarks>
 internal class DefaultEventTracingHandler : IEventHandler<IEvent>, ISupportHandlerPriority
 {
@@ -48,14 +49,11 @@ internal class DefaultEventTracingHandler : IEventHandler<IEvent>, ISupportHandl
         var name = eventType;
         if (@event is IAuditEvent auditEvent)
         {
-            name = auditEvent.Action;
-            tags["audit.action"] = auditEvent.Action;
-            tags["audit.outcome"] = auditEvent.Outcome;
-            tags["audit.event_id"] = auditEvent.EventId;
-            tags["audit.correlation_id"] = auditEvent.CorrelationId;
-            tags["audit.tenant_id"] = auditEvent.TenantId;
-            tags["audit.subject_id"] = auditEvent.SubjectId;
-            tags["audit.client_id"] = auditEvent.ClientId;
+            name = auditEvent.EventName;
+            foreach (var (key, value) in AuditRecordAttributes.Create(auditEvent))
+            {
+                tags[key] = value;
+            }
         }
 
         activity.AddEvent(new ActivityEvent(name, tags: tags));

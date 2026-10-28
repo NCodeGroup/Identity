@@ -17,16 +17,14 @@
 #endregion
 
 using JetBrains.Annotations;
-using NCode.Identity.Events.Audit;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
 
 /// <summary>
-/// Defines the well-known <see cref="IAuditEvent.Action"/> values emitted by the authentication
-/// subsystem's audit events, so consumers can subscribe to or filter on them without magic strings.
+/// Defines the catalogued event names (<c>event_name</c>) of the OpenID protocol plane's audit events.
 /// </summary>
 [PublicAPI]
-public static class OpenIdAuditActions
+public static class OpenIdAuditEventNames
 {
     /// <summary>
     /// A security token was issued.

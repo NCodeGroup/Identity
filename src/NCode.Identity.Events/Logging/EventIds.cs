@@ -31,8 +31,8 @@ internal static class EventIds
 
     public const int EventHandlerFailed = Base + 1;
     public const int EventPublished = Base + 2;
-    public const int AuditSucceeded = Base + 3;
-    public const int AuditFailed = Base + 4;
+
+    // 14003 and 14004 are retired; never reuse them.
     public const int AuditRecorded = Base + 5;
     public const int BackgroundEventDropped = Base + 6;
 }

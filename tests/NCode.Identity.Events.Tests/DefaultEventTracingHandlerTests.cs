@@ -43,7 +43,7 @@ public sealed class DefaultEventTracingHandlerTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenCurrentActivity_AddsAuditEventWithEnvelopeTags()
+    public async Task HandleAsync_WhenCurrentActivity_AddsAuditEventWithAuditRecordTags()
     {
         using var source = new ActivitySource(nameof(DefaultEventTracingHandlerTests));
         using var listener = CreateAllDataListener(nameof(DefaultEventTracingHandlerTests));
@@ -53,7 +53,12 @@ public sealed class DefaultEventTracingHandlerTests
         var handler = new DefaultEventTracingHandler();
 
         await handler.HandleAsync(
-            new TestAuditEvent { Outcome = AuditOutcome.Failure, SubjectId = "subject-1" },
+            new TestAuditEvent
+            {
+                EventSource = AuditEventSources.OpenId,
+                Outcome = AuditOutcome.Failure,
+                SubjectId = "subject-1",
+            },
             CancellationToken.None
         );
 
@@ -61,9 +66,11 @@ public sealed class DefaultEventTracingHandlerTests
         Assert.Equal("test.action", activityEvent.Name);
 
         var tags = activityEvent.Tags.ToDictionary(tag => tag.Key, tag => tag.Value);
-        Assert.Equal("test.action", tags["audit.action"]);
+        Assert.Equal("test.action", tags["audit.event_name"]);
         Assert.Equal(AuditOutcome.Failure, tags["audit.outcome"]);
         Assert.Equal("subject-1", tags["audit.subject_id"]);
+        Assert.Equal("anonymous", tags["audit.actor.type"]);
+        Assert.False(tags.ContainsKey("audit.action"));
     }
 
     [Fact]

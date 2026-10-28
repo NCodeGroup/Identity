@@ -101,7 +101,7 @@ public interface IAuditEventRecorder
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> the authorization was denied for.</param>
     /// <param name="subjectId">The identifier of the subject the authorization was denied for, if any.</param>
-    /// <param name="reason">A short, non-sensitive reason the authorization was denied.</param>
+    /// <param name="errorCode">The machine-readable error code the authorization was denied with.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -112,7 +112,7 @@ public interface IAuditEventRecorder
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         string? subjectId,
-        string? reason,
+        string? errorCode,
         CancellationToken cancellationToken
     );
 
@@ -124,7 +124,7 @@ public interface IAuditEventRecorder
     /// <param name="authenticationMethod">
     /// The registered client-authentication method the client attempted, such as <c>private_key_jwt</c>.
     /// </param>
-    /// <param name="reason">A short, non-sensitive reason authentication failed.</param>
+    /// <param name="errorCode">The machine-readable error code authentication failed with.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -135,7 +135,7 @@ public interface IAuditEventRecorder
         OpenIdContext openIdContext,
         string clientId,
         string authenticationMethod,
-        string? reason,
+        string? errorCode,
         CancellationToken cancellationToken
     );
 
@@ -158,10 +158,12 @@ public interface IAuditEventRecorder
 
     /// <summary>
     /// Records that the server failed to authenticate an end-user subject for a protocol flow (for
-    /// example, an invalid or expired session, or an unresolvable subject identifier).
+    /// example, an invalid or expired session, or an unresolvable subject identifier), with a
+    /// machine-readable error code.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="reason">A short, non-sensitive reason the authentication failed.</param>
+    /// <param name="errorCode">The machine-readable error code.</param>
+    /// <param name="errorMessage">A human-readable description; never secret material.</param>
     /// <param name="attemptedSubjectId">The unverified identifier the caller attempted to authenticate as (such as a
     /// username), when known, so a failed attempt is attributable for security monitoring. This is never a credential
     /// or password; it is <c>null</c> when no identifier was presented.</param>
@@ -173,7 +175,8 @@ public interface IAuditEventRecorder
     /// </returns>
     ValueTask RecordSubjectAuthenticationFailedAsync(
         OpenIdContext openIdContext,
-        string? reason,
+        string errorCode,
+        string? errorMessage,
         string? attemptedSubjectId,
         CancellationToken cancellationToken
     );

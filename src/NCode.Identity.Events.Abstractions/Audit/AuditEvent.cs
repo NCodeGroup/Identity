@@ -25,9 +25,12 @@ namespace NCode.Identity.Events.Audit;
 /// once so each derived event only declares what is specific to it.
 /// </summary>
 /// <remarks>
-/// This type is a deliberate extension point; derive a concrete audit event from it and override
-/// <see cref="Action"/> (and <see cref="SchemaVersion"/> when the serialized shape changes). An audit
-/// event carries identifiers and metadata only, never secret material.
+/// This type is a deliberate extension point; derive a concrete audit event from it, override
+/// <see cref="EventName"/> and <see cref="EventCategory"/>, set <see cref="EventSource"/>, override
+/// <see cref="Resources"/> for the entities acted on, and implement <see cref="ISupportAuditDetails"/>
+/// for event-specific fields. The schema version of the serialized record is
+/// <see cref="AuditRecordWriter.SchemaVersion"/>. An audit event carries identifiers and metadata
+/// only, never secret material.
 /// </remarks>
 [PublicAPI]
 public abstract record AuditEvent : IAuditEvent
@@ -36,13 +39,22 @@ public abstract record AuditEvent : IAuditEvent
     public Guid EventId { get; init; }
 
     /// <inheritdoc />
-    public DateTimeOffset Timestamp { get; init; }
+    public DateTimeOffset EventTime { get; init; }
 
     /// <inheritdoc />
-    public virtual int SchemaVersion => 1;
+    public abstract string EventName { get; }
 
     /// <inheritdoc />
-    public string? CorrelationId { get; init; }
+    public abstract string EventCategory { get; }
+
+    /// <inheritdoc />
+    public required string EventSource { get; init; }
+
+    /// <inheritdoc />
+    public virtual string Severity =>
+        string.Equals(Outcome, AuditOutcome.Failure, StringComparison.Ordinal)
+            ? AuditSeverities.Warning
+            : AuditSeverities.Info;
 
     /// <inheritdoc />
     public string? TenantId { get; init; }
@@ -51,20 +63,24 @@ public abstract record AuditEvent : IAuditEvent
     public string? SubjectId { get; init; }
 
     /// <inheritdoc />
-    public string? ActorId { get; init; }
-
-    /// <inheritdoc />
     public string? ClientId { get; init; }
 
     /// <inheritdoc />
-    public abstract string Action { get; }
+    public AuditActor Actor { get; init; } = AuditActor.Anonymous;
 
     /// <inheritdoc />
-    public string? Source { get; init; }
+    public AuditRequest? Request { get; init; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Derived events override this to compute the resources from their typed properties, listing the
+    /// target first and then the resources that own it.
+    /// </remarks>
+    public virtual IReadOnlyList<AuditResource> Resources => [];
+
+    /// <inheritdoc />
+    public AuditError? Error { get; init; }
 
     /// <inheritdoc />
     public required string Outcome { get; init; }
-
-    /// <inheritdoc />
-    public string? Reason { get; init; }
 }

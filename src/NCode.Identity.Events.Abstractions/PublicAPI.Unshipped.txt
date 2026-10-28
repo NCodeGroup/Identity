@@ -1,7 +1,124 @@
 #nullable enable
+const NCode.Identity.Events.Audit.AuditActorTypes.Administrator = "administrator" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.Anonymous = "anonymous" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.Client = "client" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.EndUser = "end_user" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.System = "system" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Authentication = "authentication" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Authorization = "authorization" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Management = "management" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Protocol = "protocol" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Session = "session" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.Token = "token" -> string!
+const NCode.Identity.Events.Audit.AuditEventSources.Management = "management" -> string!
+const NCode.Identity.Events.Audit.AuditEventSources.OpenId = "openid" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Actor = "actor" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ActorFields.Id = "id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ActorFields.Type = "type" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ClientId = "client_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Details = "details" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Error = "error" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields.Code = "code" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields.Message = "message" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields.StatusCode = "status_code" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventCategory = "event_category" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventId = "event_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventName = "event_name" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventSource = "event_source" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventTime = "event_time" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Outcome = "outcome" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Request = "request" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.Endpoint = "endpoint" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.HttpMethod = "http_method" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.Path = "path" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.RequestId = "request_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.SourceIp = "source_ip" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.SpanId = "span_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.TraceId = "trace_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.UserAgent = "user_agent" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields.Id = "id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields.Type = "type" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Resources = "resources" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.SchemaVersion = "schema_version" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Severity = "severity" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.SubjectId = "subject_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.TenantId = "tenant_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordWriter.SchemaVersion = "1.0" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.Session = "session" -> string!
+const NCode.Identity.Events.Audit.AuditSeverities.Critical = "critical" -> string!
+const NCode.Identity.Events.Audit.AuditSeverities.Info = "info" -> string!
+const NCode.Identity.Events.Audit.AuditSeverities.Warning = "warning" -> string!
+NCode.Identity.Events.Audit.AuditActor
+NCode.Identity.Events.Audit.AuditActor.AuditActor(string! Type, string? Id = null) -> void
+NCode.Identity.Events.Audit.AuditActor.Id.get -> string?
+NCode.Identity.Events.Audit.AuditActor.Id.init -> void
+NCode.Identity.Events.Audit.AuditActor.Type.get -> string!
+NCode.Identity.Events.Audit.AuditActor.Type.init -> void
+NCode.Identity.Events.Audit.AuditActorTypes
+NCode.Identity.Events.Audit.AuditError
+NCode.Identity.Events.Audit.AuditError.AuditError(string! Code, string? Message = null, int? StatusCode = null) -> void
+NCode.Identity.Events.Audit.AuditError.Code.get -> string!
+NCode.Identity.Events.Audit.AuditError.Code.init -> void
+NCode.Identity.Events.Audit.AuditError.Message.get -> string?
+NCode.Identity.Events.Audit.AuditError.Message.init -> void
+NCode.Identity.Events.Audit.AuditError.StatusCode.get -> int?
+NCode.Identity.Events.Audit.AuditError.StatusCode.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Actor.get -> NCode.Identity.Events.Audit.AuditActor!
+NCode.Identity.Events.Audit.AuditEvent.Actor.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Error.get -> NCode.Identity.Events.Audit.AuditError?
+NCode.Identity.Events.Audit.AuditEvent.Error.init -> void
+NCode.Identity.Events.Audit.AuditEvent.EventSource.get -> string!
+NCode.Identity.Events.Audit.AuditEvent.EventSource.init -> void
+NCode.Identity.Events.Audit.AuditEvent.EventTime.get -> System.DateTimeOffset
+NCode.Identity.Events.Audit.AuditEvent.EventTime.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Request.get -> NCode.Identity.Events.Audit.AuditRequest?
+NCode.Identity.Events.Audit.AuditEvent.Request.init -> void
+NCode.Identity.Events.Audit.AuditEventCategories
+NCode.Identity.Events.Audit.AuditEventSources
+NCode.Identity.Events.Audit.AuditRecordFields
+NCode.Identity.Events.Audit.AuditRecordFields.ActorFields
+NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields
+NCode.Identity.Events.Audit.AuditRecordFields.RequestFields
+NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields
+NCode.Identity.Events.Audit.AuditRecordWriter
+NCode.Identity.Events.Audit.AuditRequest
+NCode.Identity.Events.Audit.AuditRequest.Endpoint.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.Endpoint.init -> void
+NCode.Identity.Events.Audit.AuditRequest.HttpMethod.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.HttpMethod.init -> void
+NCode.Identity.Events.Audit.AuditRequest.Path.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.Path.init -> void
+NCode.Identity.Events.Audit.AuditRequest.RequestId.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.RequestId.init -> void
+NCode.Identity.Events.Audit.AuditRequest.SourceIp.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.SourceIp.init -> void
+NCode.Identity.Events.Audit.AuditRequest.SpanId.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.SpanId.init -> void
+NCode.Identity.Events.Audit.AuditRequest.TraceId.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.TraceId.init -> void
+NCode.Identity.Events.Audit.AuditRequest.UserAgent.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.UserAgent.init -> void
+NCode.Identity.Events.Audit.AuditResource
+NCode.Identity.Events.Audit.AuditResource.AuditResource(string! Type, string? Id) -> void
+NCode.Identity.Events.Audit.AuditResource.Id.get -> string?
+NCode.Identity.Events.Audit.AuditResource.Id.init -> void
+NCode.Identity.Events.Audit.AuditResource.Type.get -> string!
+NCode.Identity.Events.Audit.AuditResource.Type.init -> void
+NCode.Identity.Events.Audit.AuditResourceTypes
+NCode.Identity.Events.Audit.AuditSeverities
+NCode.Identity.Events.Audit.IAuditEvent.Actor.get -> NCode.Identity.Events.Audit.AuditActor!
+NCode.Identity.Events.Audit.IAuditEvent.Error.get -> NCode.Identity.Events.Audit.AuditError?
+NCode.Identity.Events.Audit.IAuditEvent.EventCategory.get -> string!
+NCode.Identity.Events.Audit.IAuditEvent.EventName.get -> string!
+NCode.Identity.Events.Audit.IAuditEvent.EventSource.get -> string!
+NCode.Identity.Events.Audit.IAuditEvent.EventTime.get -> System.DateTimeOffset
+NCode.Identity.Events.Audit.IAuditEvent.Request.get -> NCode.Identity.Events.Audit.AuditRequest?
+NCode.Identity.Events.Audit.IAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+NCode.Identity.Events.Audit.IAuditEvent.Severity.get -> string!
 NCode.Identity.Events.EventsLibrary
 NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
-abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
+abstract NCode.Identity.Events.Audit.AuditEvent.EventCategory.get -> string!
+abstract NCode.Identity.Events.Audit.AuditEvent.EventName.get -> string!
 abstract NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceType.get -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Denied = "denied" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Failure = "failure" -> string!
@@ -11,45 +128,30 @@ const NCode.Identity.Events.Audit.ResourceChangeTypes.Deleted = "deleted" -> str
 const NCode.Identity.Events.Audit.ResourceChangeTypes.SettingsUpdated = "settings.updated" -> string!
 const NCode.Identity.Events.Audit.ResourceChangeTypes.Updated = "updated" -> string!
 NCode.Identity.Events.Audit.AuditEvent
-NCode.Identity.Events.Audit.AuditEvent.ActorId.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.ActorId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.ClientId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.ClientId.init -> void
-NCode.Identity.Events.Audit.AuditEvent.CorrelationId.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.CorrelationId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.EventId.get -> System.Guid
 NCode.Identity.Events.Audit.AuditEvent.EventId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.Outcome.get -> string!
 NCode.Identity.Events.Audit.AuditEvent.Outcome.init -> void
-NCode.Identity.Events.Audit.AuditEvent.Reason.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.Reason.init -> void
-NCode.Identity.Events.Audit.AuditEvent.Source.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.Source.init -> void
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.TenantId.init -> void
-NCode.Identity.Events.Audit.AuditEvent.Timestamp.get -> System.DateTimeOffset
-NCode.Identity.Events.Audit.AuditEvent.Timestamp.init -> void
 NCode.Identity.Events.Audit.AuditOutcome
 NCode.Identity.Events.Audit.IAuditEvent
-NCode.Identity.Events.Audit.IAuditEvent.Action.get -> string!
-NCode.Identity.Events.Audit.IAuditEvent.ActorId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.ClientId.get -> string?
-NCode.Identity.Events.Audit.IAuditEvent.CorrelationId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.EventId.get -> System.Guid
 NCode.Identity.Events.Audit.IAuditEvent.Outcome.get -> string!
-NCode.Identity.Events.Audit.IAuditEvent.Reason.get -> string?
-NCode.Identity.Events.Audit.IAuditEvent.SchemaVersion.get -> int
-NCode.Identity.Events.Audit.IAuditEvent.Source.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
-NCode.Identity.Events.Audit.IAuditEvent.Timestamp.get -> System.DateTimeOffset
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ChangeType.get -> string!
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceId.get -> string?
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceType.get -> string!
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceValues.get -> System.Text.Json.JsonElement?
+NCode.Identity.Events.Audit.ISupportAuditDetails
+NCode.Identity.Events.Audit.ISupportAuditDetails.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.Events.Audit.ResourceChangeAuditEvent
 NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ChangeType.get -> string!
 NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ChangeType.init -> void
@@ -70,11 +172,23 @@ NCode.Identity.Events.IEventPublisher.PublishAsync<TEvent>(TEvent event, System.
 NCode.Identity.Events.ISupportBackgroundDelivery
 NCode.Identity.Events.ISupportHandlerPriority
 NCode.Identity.Events.ISupportHandlerPriority.HandlerPriority.get -> int
-override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.Action.get -> string!
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.EventName.get -> string!
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+static NCode.Identity.Events.Audit.AuditActor.Administrator(string? administratorId) -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.Anonymous.get -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.Client(string! clientId) -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.EndUser(string? subjectId) -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.System.get -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditRecordWriter.Write(NCode.Identity.Events.Audit.IAuditEvent! auditEvent, System.Text.Json.Utf8JsonWriter! writer) -> void
+static NCode.Identity.Events.Audit.AuditRecordWriter.Write<TWriter>(NCode.Identity.Events.Audit.IAuditEvent! auditEvent, ref TWriter destination) -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.set -> void
-virtual NCode.Identity.Events.Audit.AuditEvent.SchemaVersion.get -> int
+virtual NCode.Identity.Events.Audit.AuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+virtual NCode.Identity.Events.Audit.AuditEvent.Severity.get -> string!
 NCode.Identity.Events.ISupportMetricAttributes
 NCode.Identity.Events.ISupportMetricAttributes.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
+virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ParentResources.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Events.Audit.AuditResource!>!
+virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void

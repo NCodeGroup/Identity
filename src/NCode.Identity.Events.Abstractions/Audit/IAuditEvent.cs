@@ -33,27 +33,41 @@ namespace NCode.Identity.Events.Audit;
 public interface IAuditEvent : IEvent
 {
     /// <summary>
-    /// Gets the unique identifier of this audit event, distinct from the correlation identifier, so
-    /// at-least-once delivery can be de-duplicated.
+    /// Gets the unique identifier of this audit event, so at-least-once delivery can be de-duplicated.
     /// </summary>
     Guid EventId { get; }
 
     /// <summary>
     /// Gets the coordinated universal time (UTC) at which the audited operation occurred.
     /// </summary>
-    DateTimeOffset Timestamp { get; }
+    DateTimeOffset EventTime { get; }
 
     /// <summary>
-    /// Gets the version of the audit event's serialized schema, so external consumers can evolve
-    /// independently of in-process API tracking.
+    /// Gets the stable, dotted name that identifies the audited operation (for example
+    /// <c>token.issued</c>).
     /// </summary>
-    int SchemaVersion { get; }
+    string EventName { get; }
 
     /// <summary>
-    /// Gets the correlation or trace identifier that links this audit event to the originating
-    /// activity, or <see langword="null"/> when none is available.
+    /// Gets the category that groups the audited operation (for example
+    /// <see cref="AuditEventCategories.Token"/>). This is an extensible string vocabulary, not a
+    /// closed set.
     /// </summary>
-    string? CorrelationId { get; }
+    string EventCategory { get; }
+
+    /// <summary>
+    /// Gets the service or component family that produced the audited event (for example
+    /// <see cref="AuditEventSources.OpenId"/>). This is an extensible string vocabulary, not a closed
+    /// set.
+    /// </summary>
+    string EventSource { get; }
+
+    /// <summary>
+    /// Gets the severity of the audited operation, such as <see cref="AuditSeverities.Info"/> or
+    /// <see cref="AuditSeverities.Warning"/>. This is an extensible string vocabulary, not a closed
+    /// set.
+    /// </summary>
+    string Severity { get; }
 
     /// <summary>
     /// Gets the identifier of the tenant the audited operation belongs to, or <see langword="null"/>
@@ -68,39 +82,40 @@ public interface IAuditEvent : IEvent
     string? SubjectId { get; }
 
     /// <summary>
-    /// Gets the identifier of the principal that performed the audited operation (for example an
-    /// administrator for a management action), or <see langword="null"/> when there is no distinct
-    /// actor. In subject-driven flows the actor is the subject and this may be left unset.
-    /// </summary>
-    string? ActorId { get; }
-
-    /// <summary>
     /// Gets the identifier of the client involved in the audited operation, or <see langword="null"/>
     /// when there is no client.
     /// </summary>
     string? ClientId { get; }
 
     /// <summary>
-    /// Gets the stable, dotted action name that identifies the audited operation (for example
-    /// <c>token.issued</c>).
+    /// Gets the caller that performed the audited operation, such as an end user, a client or an
+    /// administrator. This is <see cref="AuditActor.Anonymous"/> when the caller has not been
+    /// identified.
     /// </summary>
-    string Action { get; }
+    AuditActor Actor { get; }
 
     /// <summary>
-    /// Gets an optional name of the endpoint, operation, or component that produced the audited
-    /// event (for example <c>api/token</c>), or <see langword="null"/> when not applicable.
+    /// Gets the context of the request that the audited operation was part of (trace, network and
+    /// endpoint details), captured at publish time, or <see langword="null"/> when the operation was
+    /// not performed in the context of a request.
     /// </summary>
-    string? Source { get; }
+    AuditRequest? Request { get; }
+
+    /// <summary>
+    /// Gets the entities the audited operation acted on. The target comes first, followed by the
+    /// resources that own it. This is empty when the operation acted on no distinct entity.
+    /// </summary>
+    IReadOnlyList<AuditResource> Resources { get; }
+
+    /// <summary>
+    /// Gets the machine-readable error that caused the audited operation to fail, or
+    /// <see langword="null"/> when the operation did not fail.
+    /// </summary>
+    AuditError? Error { get; }
 
     /// <summary>
     /// Gets the outcome code of the audited operation, such as <see cref="AuditOutcome.Success"/> or
     /// <see cref="AuditOutcome.Failure"/>. This is an extensible string vocabulary, not a closed set.
     /// </summary>
     string Outcome { get; }
-
-    /// <summary>
-    /// Gets an optional human-readable reason that explains the outcome, typically populated on
-    /// failure, or <see langword="null"/> when none applies.
-    /// </summary>
-    string? Reason { get; }
 }

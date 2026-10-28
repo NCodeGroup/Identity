@@ -33,9 +33,9 @@ public sealed class AuditEventMetricAttributesTests
         var auditEvent = new TokenIssuedAuditEvent
         {
             EventId = Guid.NewGuid(),
-            Timestamp = DateTimeOffset.UnixEpoch,
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
             TenantId = "tenant-1",
-            Source = "token_endpoint",
             Outcome = AuditOutcome.Success,
             TokenType = "access_token",
         };
@@ -54,9 +54,9 @@ public sealed class AuditEventMetricAttributesTests
         var auditEvent = new ClientAuthenticationFailedAuditEvent
         {
             EventId = Guid.NewGuid(),
-            Timestamp = DateTimeOffset.UnixEpoch,
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
             TenantId = "tenant-1",
-            Source = "token_endpoint",
             Outcome = AuditOutcome.Failure,
             AuthenticationMethod = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         };

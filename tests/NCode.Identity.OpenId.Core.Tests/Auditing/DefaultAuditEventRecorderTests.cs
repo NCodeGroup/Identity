@@ -16,6 +16,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Moq;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
@@ -36,6 +38,19 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
+    private static DefaultHttpContext CreateHttpContext(string endpointName)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetEndpoint(
+            new Endpoint(
+                null,
+                new EndpointMetadataCollection(new EndpointNameMetadata(endpointName)),
+                endpointName
+            )
+        );
+        return httpContext;
+    }
+
     #region RecordTokenIssuedAsync Tests
 
     [Fact]
@@ -48,7 +63,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenIssuedAuditEvent? captured = null;
@@ -80,13 +95,16 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.issued", captured.Action);
+        Assert.Equal("token.issued", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("access_token", captured.TokenType);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.NotEqual(Guid.Empty, captured.EventId);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -103,7 +121,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenRevokedAuditEvent? captured = null;
@@ -127,11 +145,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.revoked", captured.Action);
+        Assert.Equal("token.revoked", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -147,7 +169,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
 
         SubjectAuthenticationAuditEvent? captured = null;
         mockPublisher
@@ -173,11 +195,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("subject.authentication", captured.Action);
+        Assert.Equal("subject.authentication", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.Equal("api/authorize", captured.Source);
+        Assert.Equal(AuditActor.EndUser("subject-1"), captured.Actor);
+        Assert.Equal("api/authorize", captured.Request?.Endpoint);
+        Assert.Null(captured.Error);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -185,7 +211,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
     #region RecordSubjectAuthenticationFailedAsync Tests
 
     [Fact]
-    public async Task RecordSubjectAuthenticationFailedAsync_PublishesFailureAuditEventWithReason()
+    public async Task RecordSubjectAuthenticationFailedAsync_PublishesFailureAuditEventWithError()
     {
         var mockContext = MockRepository.Create<OpenIdContext>();
         var mockTenant = MockRepository.Create<OpenIdTenant>();
@@ -193,7 +219,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
 
         SubjectAuthenticationAuditEvent? captured = null;
         mockPublisher
@@ -214,18 +240,23 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         await recorder.RecordSubjectAuthenticationFailedAsync(
             mockContext.Object,
-            "Failed to authenticate the end-user.",
-            attemptedSubjectId: null,
+            "subject_id_missing",
+            "Unable to determine the end-user's subject id.",
+            attemptedSubjectId: "attempted-user",
             CancellationToken.None
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("subject.authentication", captured.Action);
+        Assert.Equal("subject.authentication", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
-        Assert.Null(captured.SubjectId);
-        Assert.Equal("Failed to authenticate the end-user.", captured.Reason);
-        Assert.Equal("api/authorize", captured.Source);
+        Assert.Equal("attempted-user", captured.SubjectId);
+        Assert.Equal(AuditActor.Anonymous, captured.Actor);
+        Assert.Equal("api/authorize", captured.Request?.Endpoint);
+        Assert.Equal("subject_id_missing", captured.Error?.Code);
+        Assert.Equal("Unable to determine the end-user's subject id.", captured.Error?.Message);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -242,7 +273,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         AuthorizationGrantedAuditEvent? captured = null;
@@ -270,13 +301,18 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("authorization.granted", captured.Action);
+        Assert.Equal("authorization.granted", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal(AuditActor.EndUser("subject-1"), captured.Actor);
+        Assert.Equal("api/authorize", captured.Request?.Endpoint);
+        Assert.Null(captured.Error);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     [Fact]
-    public async Task RecordAuthorizationDeniedAsync_PublishesDeniedAuditEventWithReason()
+    public async Task RecordAuthorizationDeniedAsync_PublishesDeniedAuditEventWithError()
     {
         var mockContext = MockRepository.Create<OpenIdContext>();
         var mockTenant = MockRepository.Create<OpenIdTenant>();
@@ -285,7 +321,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         AuthorizationDeniedAuditEvent? captured = null;
@@ -314,9 +350,13 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("authorization.denied", captured.Action);
+        Assert.Equal("authorization.denied", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Denied, captured.Outcome);
-        Assert.Equal("login_required", captured.Reason);
+        Assert.Equal(AuditActor.EndUser("subject-1"), captured.Actor);
+        Assert.Equal("api/authorize", captured.Request?.Endpoint);
+        Assert.Equal("login_required", captured.Error?.Code);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -324,14 +364,14 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
     #region Client Authentication Tests
 
     [Fact]
-    public async Task RecordClientAuthenticationFailedAsync_PublishesFailedAuditEventWithReason()
+    public async Task RecordClientAuthenticationFailedAsync_PublishesFailedAuditEventWithError()
     {
         var mockContext = MockRepository.Create<OpenIdContext>();
         var mockTenant = MockRepository.Create<OpenIdTenant>();
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
 
         ClientAuthenticationFailedAuditEvent? captured = null;
@@ -360,15 +400,19 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("client.authentication", captured.Action);
+        Assert.Equal("client.authentication", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
         Assert.Equal(
             OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             captured.AuthenticationMethod
         );
-        Assert.Equal("client_not_found", captured.Reason);
+        Assert.Equal("client_not_found", captured.Error?.Code);
         Assert.Null(captured.SubjectId);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -384,7 +428,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockError.Setup(x => x.Code).Returns("invalid_request").Verifiable();
         mockError
@@ -409,14 +453,18 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("openid.error", captured.Action);
+        Assert.Equal("openid.error", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
-        Assert.Equal("invalid_request", captured.ErrorCode);
-        Assert.Equal("The request is missing a parameter.", captured.ErrorDescription);
-        Assert.Equal(400, captured.StatusCode);
-        Assert.Equal("api/token", captured.Source);
-        Assert.Equal("The request is missing a parameter.", captured.Reason);
+        Assert.Equal(AuditActor.Anonymous, captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(
+            new AuditError("invalid_request", "The request is missing a parameter.", 400),
+            captured.Error
+        );
+        Assert.Empty(captured.Resources);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     [Fact]
@@ -428,7 +476,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockError.Setup(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.AccessDenied).Verifiable();
         mockError.Setup(x => x.Description).Returns((string?)null).Verifiable();
@@ -451,12 +499,9 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         Assert.NotNull(captured);
         Assert.Equal(AuditOutcome.Denied, captured.Outcome);
-        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, captured.ErrorCode);
-        Assert.Null(captured.ErrorDescription);
-        Assert.Null(captured.StatusCode);
-        Assert.Equal("api/authorize", captured.Source);
-        // With no description, the reason falls back to the error code.
-        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, captured.Reason);
+        Assert.Equal(AuditActor.Anonymous, captured.Actor);
+        Assert.Equal("api/authorize", captured.Request?.Endpoint);
+        Assert.Equal(new AuditError(OpenIdProtocol.ErrorCodes.AccessDenied), captured.Error);
     }
 
     #endregion
@@ -472,7 +517,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -501,12 +546,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.refresh.replay", captured.Action);
+        Assert.Equal("token.refresh.replay", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Denied, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.Equal("api/token", captured.Source);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -522,7 +570,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -551,12 +599,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.refresh.retry", captured.Action);
+        Assert.Equal("token.refresh.retry", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.Equal("api/token", captured.Source);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -572,7 +623,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("login").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("login")).Verifiable();
 
         SessionCreatedAuditEvent? captured = null;
         mockPublisher
@@ -595,11 +646,17 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("session.created", captured.Action);
+        Assert.Equal("session.created", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal(AuditActor.EndUser("subject-1"), captured.Actor);
+        Assert.Equal("login", captured.Request?.Endpoint);
         Assert.Equal("sid-1", captured.SessionId);
+        var resource = Assert.Single(captured.Resources);
+        Assert.Equal(new AuditResource(AuditResourceTypes.Session, "sid-1"), resource);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     [Theory]
@@ -615,7 +672,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/sessions").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/sessions")).Verifiable();
 
         SessionTerminatedAuditEvent? captured = null;
         mockPublisher
@@ -643,13 +700,17 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("session.terminated", captured.Action);
+        Assert.Equal("session.terminated", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal(AuditActor.System, captured.Actor);
+        Assert.Equal("api/sessions", captured.Request?.Endpoint);
         Assert.Null(captured.SessionId);
+        Assert.Empty(captured.Resources);
         Assert.Equal(reason, captured.TerminationReason);
-        Assert.Equal(reason, captured.Reason);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion

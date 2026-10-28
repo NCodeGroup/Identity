@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -43,6 +44,12 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 // See ADR-0235.
 internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
 {
+    /// <summary>
+    /// The name that <see cref="Name"/> reports. The name is never persisted or configured, because the recovery
+    /// wrapper is not a root key wrapper.
+    /// </summary>
+    public const string WrapperName = "recovery-rsa-oaep-256";
+
     private const string SectionName =
         $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.Recovery)}";
 
@@ -61,7 +68,10 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
 
     private int WrappedLength { get; }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the identifier of the recovery public key, which is the base64url-encoded SHA-256 digest of the
+    /// SubjectPublicKeyInfo of the key, or <see langword="null"/> when no recovery key is configured.
+    /// </summary>
     public string? RecoveryKeyId { get; }
 
     /// <summary>
@@ -99,9 +109,95 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
     internal static RecoveryKeyWrapper FromPem(string pem) => new(ImportPublicKey(pem));
 
     /// <inheritdoc />
-    public int GetWrappedLength() => WrappedLength;
+    public string Name => WrapperName;
 
     /// <inheritdoc />
+    public bool IsConfigured => PublicKey is not null;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// RSA-OAEP takes no associated data here, so the context is not bound; the key-check value of the master key
+    /// binds it to its owner and version.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no recovery key is configured, or when the wrapper writes fewer characters than it reported.
+    /// </exception>
+    public ValueTask<WrappedKey> WrapAsync(
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (PublicKey is null || RecoveryKeyId is not { } keyId)
+        {
+            throw new InvalidOperationException("No recovery key is configured.");
+        }
+
+        var ciphertext = string.Create(
+            WrappedLength,
+            (Wrapper: this, Key: key),
+            static (chars, state) =>
+            {
+                var writer = chars.GetFixedBufferWriter();
+                state.Wrapper.Wrap(state.Key.Span, ref writer);
+
+                if (writer.WrittenCount != chars.Length)
+                {
+                    throw new InvalidOperationException(
+                        "The recovery key wrapper wrote fewer characters than it reported."
+                    );
+                }
+            }
+        );
+
+        return ValueTask.FromResult(
+            new WrappedKey
+            {
+                WrapperName = Name,
+                KeyId = keyId,
+                Ciphertext = ciphertext,
+            }
+        );
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">
+    /// Always thrown, because the recovery private key is kept offline.
+    /// </exception>
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) =>
+        throw new NotSupportedException(
+            "The recovery private key is kept offline, so the recovery key wrapper can only wrap."
+        );
+
+    /// <summary>
+    /// Gets the number of characters that <see cref="Wrap{TWriter}"/> writes.
+    /// </summary>
+    /// <returns>
+    /// The length of the base64url-encoded wrapped key, or zero when no recovery key is configured.
+    /// </returns>
+    public int GetWrappedLength() => WrappedLength;
+
+    /// <summary>
+    /// Wraps a master key under the recovery public key with RSA-OAEP and SHA-256, and writes the base64url text of
+    /// the wrapped key to a writer.
+    /// </summary>
+    /// <typeparam name="TWriter">The type of the writer that receives the wrapped key.</typeparam>
+    /// <param name="masterKey">The master key to wrap.</param>
+    /// <param name="destination">
+    /// The writer that receives exactly <see cref="GetWrappedLength"/> characters.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no recovery key is configured, or when <paramref name="destination"/> does not provide the
+    /// requested space.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the master key cannot be wrapped under the recovery public key.
+    /// </exception>
     public void Wrap<TWriter>(ReadOnlySpan<byte> masterKey, ref TWriter destination)
         where TWriter : IBufferWriter<char>, allows ref struct
     {

@@ -195,6 +195,69 @@ public class RecoveryKeyWrapperTests : IDisposable
 
     #endregion
 
+    #region WrapAsync Tests
+
+    [Fact]
+    public async Task WrapAsync_ThenPrivateKeyDecrypts_ReturnsWrappedKey()
+    {
+        using var privateKey = RSA.Create(3072);
+        using var wrapper = RecoveryKeyWrapper.FromPem(privateKey.ExportSubjectPublicKeyInfoPem());
+        var masterKey = CreateMasterKey();
+
+        var wrapped = await wrapper.WrapAsync(
+            masterKey,
+            ReadOnlyMemory<byte>.Empty,
+            CancellationToken.None
+        );
+
+        Assert.Equal(RecoveryKeyWrapper.WrapperName, wrapped.WrapperName);
+        Assert.Equal(wrapper.RecoveryKeyId, wrapped.KeyId);
+        Assert.Equal(wrapper.GetWrappedLength(), wrapped.Ciphertext.Length);
+        var unwrapped = privateKey.Decrypt(
+            Base64Url.DecodeFromChars(wrapped.Ciphertext),
+            RSAEncryptionPadding.OaepSHA256
+        );
+        Assert.Equal(masterKey, unwrapped);
+    }
+
+    [Fact]
+    public async Task WrapAsync_NothingConfigured_Throws()
+    {
+        using var wrapper = CreateWrapper(new RecoveryKeyOptions());
+
+        Assert.False(wrapper.IsConfigured);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await wrapper.WrapAsync(
+                CreateMasterKey(),
+                ReadOnlyMemory<byte>.Empty,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_Throws()
+    {
+        using var privateKey = RSA.Create(3072);
+        using var wrapper = RecoveryKeyWrapper.FromPem(privateKey.ExportSubjectPublicKeyInfoPem());
+        var wrapped = await wrapper.WrapAsync(
+            CreateMasterKey(),
+            ReadOnlyMemory<byte>.Empty,
+            CancellationToken.None
+        );
+
+        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await wrapper.UnwrapAsync(
+                wrapped,
+                ReadOnlyMemory<byte>.Empty,
+                new ArrayBufferWriter<byte>(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    #endregion
+
     #region RecoveryKeyId Property Tests
 
     [Fact]

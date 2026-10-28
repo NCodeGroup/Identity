@@ -18,7 +18,7 @@ change to the public API is a **major** version bump.
   `iss` header. An undecryptable token fails with the new `TokenValidationFailureCodes.DecryptionFailed`
   (`decryption_failed`), and a client that registers no encryption refuses an encrypted token with
   `algorithm_not_permitted`
-  ([ADR-0279](docs/decisions/0279-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), issue [#347](https://github.com/NCodeGroup/Identity/issues/347)).
+  ([ADR-0280](docs/decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), issue [#347](https://github.com/NCodeGroup/Identity/issues/347)).
 
 - **A token validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
@@ -788,6 +788,16 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Key wrapping is a shared secrets abstraction.** Every key wrapper implements `IKeyWrapper` (`Name`, `WrapAsync`,
+  and `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`,
+  `KeyId`, `Ciphertext`); both, with `KeyWrapperNames`, live in `NCode.Identity.Secrets.Abstractions` under
+  `NCode.Identity.Secrets.KeyWrapping`, and the offline recovery wrapper implements the same contract. Breaking: `IRootKeyProvider`, `RootWrappedKey` and `RootKeyProviderNames` are removed;
+  `LocalRootKeyOptions` is `LocalKeyWrapperOptions`; the packages `NCode.Identity.Secrets.Persistence.AwsKms`,
+  `.AzureKeyVault` and `.GoogleCloudKms` are `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and
+  `.GoogleCloudKms`, with `Add<Vendor>KeyWrapper` and `<Vendor>KeyWrapperOptions` in place of
+  `Add<Vendor>RootKeyProvider` and `<Vendor>RootKeyOptions`. Stored master keys, configuration keys and wrapper names
+  are unchanged
+  ([ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
 - **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.** The new
   `NCode.Identity.OpenId.Protocol.Abstractions` package holds `OpenIdProtocol`, shared by the OP and the protocol
   client. The groups `Parameters`, `ErrorCodes`, `GrantTypes`, `ResponseTypes`, `ResponseModes`, `CodeChallengeMethods`,

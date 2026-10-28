@@ -20,6 +20,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
@@ -71,8 +72,8 @@ public sealed class PersistedMasterKey : ISupportConcurrencyToken
     public DateTimeOffset? RetiredWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the name of the root key provider that wrapped <see cref="RootWrappedKey"/>, such as one of the
-    /// values in <see cref="RootKeyProviderNames"/>.
+    /// Gets or sets the name of the key wrapper that wrapped <see cref="RootWrappedKey"/>, such as one of the
+    /// values in <see cref="KeyWrapperNames"/>.
     /// </summary>
     public required string RootKeyProvider { get; set; }
 

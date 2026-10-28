@@ -71,7 +71,7 @@ internal static class SecretProtectionRegistration
         ThrowOnUnknownChild(section);
 
         var recoverySection = section.GetSection(nameof(SecretProtectionOptions.Recovery));
-        var localSection = configuration.GetSection(LocalRootKeyOptions.DefaultSectionName);
+        var localSection = configuration.GetSection(LocalKeyWrapperOptions.DefaultSectionName);
         var keyRingSection = configuration.GetSection(
             DataProtectionKeyRingOptions.DefaultSectionName
         );
@@ -90,7 +90,7 @@ internal static class SecretProtectionRegistration
             .ValidateOnStart();
 
         serviceCollection
-            .AddOptions<LocalRootKeyOptions>()
+            .AddOptions<LocalKeyWrapperOptions>()
             .Configure(options => localSection.BindStrictly(options))
             .ValidateOnStart();
 

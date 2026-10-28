@@ -22,6 +22,7 @@ using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -219,7 +220,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             Version = version,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             RetiredWhen = null,
-            RootKeyProvider = RootKeyProviderNames.Local,
+            RootKeyProvider = KeyWrapperNames.Local,
             RootKeyId = $"root-key-{version}",
             RootWrappedKey = $"root-wrapped-key-{version}",
             RecoveryKeyId = null,

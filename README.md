@@ -94,7 +94,7 @@ Production projects are under `src/`, tests under `tests/`.
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | JOSE / JWT           | `NCode.Identity.Jose(.Abstractions)`, `.Jose.EdDsa`, `.Jwt(.Abstractions)`, `.Jwk`, `NCode.Json`, `NCode.Time`                     |
-| Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, root key providers `.Secrets.Persistence.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
+| Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, key wrappers `.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
 | OpenID protocol      | `NCode.Identity.OpenId.Abstractions`, `.Core`, `.Messages.Abstractions`                                                            |
 | Endpoints & grants   | `NCode.Identity.OpenId.Authentication(.Abstractions)`, `.Authentication.Interactive(.Abstractions)`                                |
 | Management API       | `NCode.Identity.OpenId.Management(.Abstractions)`                                                                                  |

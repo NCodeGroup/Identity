@@ -183,7 +183,7 @@ internal class DefaultMasterKeyRing(
 
     private void LogRecoveryWarningOnce()
     {
-        if (Recovery.RecoveryKeyId is not null)
+        if (Recovery.IsConfigured)
             return;
 
         if (Interlocked.CompareExchange(ref _recoveryWarningLogged, 1, 0) == 0)

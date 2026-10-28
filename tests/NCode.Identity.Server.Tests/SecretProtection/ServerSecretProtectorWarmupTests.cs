@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Logging;
@@ -143,7 +144,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
         var warmup = CreateWarmup(
             CreateProvider(ServerId, CreateProtector(), CancellationToken.None),
             CreateOpenIdOptions(ServerId),
-            new SecretProtectionOptions { RootKeyProvider = RootKeyProviderNames.Local },
+            new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
             CreateEnvironment(Environments.Production),
             new ServerSecretProtectorHolder(),
             mockLogger.Object
@@ -159,7 +160,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
         var warmup = CreateWarmup(
             CreateProvider(ServerId, CreateProtector(), CancellationToken.None),
             CreateOpenIdOptions(ServerId),
-            new SecretProtectionOptions { RootKeyProvider = RootKeyProviderNames.AwsKms },
+            new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.AwsKms },
             CreateEnvironment(Environments.Production),
             new ServerSecretProtectorHolder(),
             CreateStrictMock<ILogger<ServerSecretProtectorWarmup>>().Object
@@ -175,7 +176,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
         var warmup = CreateWarmup(
             CreateProvider(ServerId, CreateProtector(), CancellationToken.None),
             CreateOpenIdOptions(ServerId),
-            new SecretProtectionOptions { RootKeyProvider = RootKeyProviderNames.Local },
+            new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
             CreateEnvironment(Environments.Development),
             new ServerSecretProtectorHolder(),
             CreateStrictMock<ILogger<ServerSecretProtectorWarmup>>().Object

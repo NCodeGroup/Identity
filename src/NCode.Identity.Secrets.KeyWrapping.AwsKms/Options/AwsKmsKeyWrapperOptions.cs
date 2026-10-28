@@ -1,0 +1,43 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using JetBrains.Annotations;
+
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
+
+/// <summary>
+/// Contains the options for the AWS Key Management Service key wrapper, bound from the
+/// <see cref="DefaultSectionName"/> configuration section.
+/// </summary>
+// See ADR-0235.
+[PublicAPI]
+public sealed class AwsKmsKeyWrapperOptions
+{
+    /// <summary>
+    /// Gets the name of the configuration section the options are bound from.
+    /// </summary>
+    public const string DefaultSectionName = "SecretProtection:RootKeyProviders:AwsKms";
+
+    /// <summary>
+    /// Gets or sets the ARN of the symmetric encryption KMS key that wraps master keys, or of an alias that names one
+    /// (<c>arn:aws:kms:&lt;region&gt;:&lt;account&gt;:key/&lt;id&gt;</c> or
+    /// <c>arn:aws:kms:&lt;region&gt;:&lt;account&gt;:alias/&lt;name&gt;</c>). The region in the ARN selects the KMS
+    /// endpoint.
+    /// </summary>
+    public string? KeyArn { get; set; }
+}

@@ -29,9 +29,9 @@ using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
-using NCode.Identity.Secrets.Persistence.AwsKms;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 using NCode.Identity.Server;
 using NCode.Identity.SharedState.Valkey;
 using NCode.Registration.AspNetCore;
@@ -96,13 +96,13 @@ var identityServer = serviceCollection.AddIdentityServer();
 identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
 
 // AWS KMS can hold the root key ('SecretProtection:RootKeyProvider' = 'aws-kms'); its client is created on first use, so the provider is inert otherwise.
-identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRootKeyProvider(configuration);
+identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsKeyWrapper(configuration);
 
 // Azure Key Vault or Managed HSM can hold the root key ('SecretProtection:RootKeyProvider' = 'azure-key-vault'); its clients are created on first use, so the provider is inert otherwise.
-identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultRootKeyProvider(configuration);
+identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultKeyWrapper(configuration);
 
 // Google Cloud KMS can hold the root key ('SecretProtection:RootKeyProvider' = 'google-cloud-kms'); its client is created on first use, so the provider is inert otherwise.
-identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsRootKeyProvider(configuration);
+identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsKeyWrapper(configuration);
 
 // Bind the frontend runtime bootstrap document (ADR-0064) from the 'Frontend' configuration section so the host can
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic

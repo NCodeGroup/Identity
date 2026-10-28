@@ -116,7 +116,7 @@ internal class DefaultIdTokenValidator(
             ResolveValidationKeysAsync = (token, _, _, ct) =>
             {
                 // The signing keys are resolved only for the enclosed JWS, which exists only after decryption, so a
-                // key failure before this point is a decryption failure (ADR-0279).
+                // key failure before this point is a decryption failure (ADR-0280).
                 signingKeysResolved = true;
                 return ProviderSignaturePolicy.ResolveKeysAsync(
                     KeySetResolver,

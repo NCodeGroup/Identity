@@ -20,6 +20,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.KeyWrapping;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
@@ -126,8 +127,8 @@ internal static class AesGcmKeyWrap
     /// it is zeroed when the key cannot be unwrapped.
     /// </param>
     /// <exception cref="CryptographicException">
-    /// Thrown when the wrapped key is not valid base64url text, is too short, or was altered, or when the root key or
-    /// the context does not match the ones that wrapped the key.
+    /// Thrown when the wrapped key is empty, is not valid base64url text, is too short, or was altered, or when the
+    /// root key or the context does not match the ones that wrapped the key.
     /// </exception>
     public static void Unwrap<TWriter>(
         ReadOnlySpan<byte> rootKey,
@@ -137,13 +138,7 @@ internal static class AesGcmKeyWrap
     )
         where TWriter : IBufferWriter<byte>, allows ref struct
     {
-        // A remainder of one character is not a valid base64url length, and counting its bytes throws.
-        if (ciphertext.Length % 4 == 1)
-        {
-            throw new CryptographicException("The wrapped key is not valid base64url text.");
-        }
-
-        var wrappedSize = Base64Url.GetByteCountForDecode(ciphertext.Length);
+        var wrappedSize = WrappedKeyCiphertext.GetByteCount(ciphertext);
         if (wrappedSize < MinimumWrappedSizeBytes)
         {
             throw new CryptographicException("The wrapped key is too short.");
@@ -156,26 +151,7 @@ internal static class AesGcmKeyWrap
             out Span<byte> wrapped
         );
 
-        int bytesWritten;
-        try
-        {
-            if (!Base64Url.TryDecode(ciphertext, wrapped, out bytesWritten))
-            {
-                throw new CryptographicException("The wrapped key is not valid base64url text.");
-            }
-        }
-        catch (FormatException exception)
-        {
-            throw new CryptographicException(
-                "The wrapped key is not valid base64url text.",
-                exception
-            );
-        }
-
-        if (bytesWritten != wrappedSize)
-        {
-            throw new CryptographicException("The wrapped key is not valid base64url text.");
-        }
+        WrappedKeyCiphertext.Decode(ciphertext, wrapped);
 
         var nonce = wrapped[..SecretProtectionFormat.NonceSizeBytes];
         var encrypted = wrapped.Slice(SecretProtectionFormat.NonceSizeBytes, keyLength);

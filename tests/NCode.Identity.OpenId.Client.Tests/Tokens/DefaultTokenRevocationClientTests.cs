@@ -18,7 +18,6 @@
 
 using System.Net;
 using System.Web;
-using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
@@ -135,7 +134,7 @@ public class DefaultTokenRevocationClientTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Equal("unsupported_token_type", error.Error);
-        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(400, error.StatusCode);
     }
 
     [Fact]

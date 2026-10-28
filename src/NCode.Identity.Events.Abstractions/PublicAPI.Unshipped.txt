@@ -20,6 +20,23 @@ NCode.Identity.Events.Audit.AuditError.Message.get -> string?
 NCode.Identity.Events.Audit.AuditError.Message.init -> void
 NCode.Identity.Events.Audit.AuditError.StatusCode.get -> int?
 NCode.Identity.Events.Audit.AuditError.StatusCode.init -> void
+NCode.Identity.Events.Audit.AuditRequest
+NCode.Identity.Events.Audit.AuditRequest.Endpoint.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.Endpoint.init -> void
+NCode.Identity.Events.Audit.AuditRequest.HttpMethod.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.HttpMethod.init -> void
+NCode.Identity.Events.Audit.AuditRequest.Path.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.Path.init -> void
+NCode.Identity.Events.Audit.AuditRequest.RequestId.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.RequestId.init -> void
+NCode.Identity.Events.Audit.AuditRequest.SourceIp.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.SourceIp.init -> void
+NCode.Identity.Events.Audit.AuditRequest.SpanId.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.SpanId.init -> void
+NCode.Identity.Events.Audit.AuditRequest.TraceId.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.TraceId.init -> void
+NCode.Identity.Events.Audit.AuditRequest.UserAgent.get -> string?
+NCode.Identity.Events.Audit.AuditRequest.UserAgent.init -> void
 NCode.Identity.Events.Audit.AuditResource
 NCode.Identity.Events.Audit.AuditResource.AuditResource(string! Type, string? Id) -> void
 NCode.Identity.Events.Audit.AuditResource.Id.get -> string?

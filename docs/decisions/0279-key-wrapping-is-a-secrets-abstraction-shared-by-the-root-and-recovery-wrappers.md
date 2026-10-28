@@ -64,11 +64,13 @@ vocabulary names it everywhere.**
    with a 96-bit nonce and 128-bit tag; RSA-OAEP-SHA-256), so no code is extracted.
 8. **One decoder for base64url ciphertext.** `WrappedKeyCiphertext` (`GetByteCount`, `Decode`) in
    `NCode.Identity.Secrets.KeyWrapping` decodes a `WrappedKey.Ciphertext` that a wrapper stores as unpadded base64url
-   into a caller-supplied span, so the AES-GCM primitive, the three KMS adapters and third-party wrappers share one
-   strict decoder (`NCode.Base64Url`, which refuses padding and illegal characters) and one set of messages: empty text
-   and text that is not valid base64url throw `CryptographicException`; a destination that is too short throws
-   `ArgumentException`. Checks of a format's own structure, such as AES-GCM's minimum length, stay in the wrapper.
-   Encoding stays in each wrapper. The package references `NCode.Base64Url` for it.
+   into a caller-supplied span or a caller-supplied `IBufferWriter<byte>` (with `GetByteCount` as the sizing method), so
+   the AES-GCM primitive, the three KMS adapters and third-party wrappers share one strict decoder (`NCode.Base64Url`,
+   which refuses padding and illegal characters) and one set of messages: empty text and text that is not valid
+   base64url throw `CryptographicException`; a destination span that is too short throws `ArgumentException`. The
+   wrappers in this repository use the span form because each needs one contiguous buffer that a decryptor or an SDK
+   reads. Checks of a format's own structure, such as AES-GCM's minimum length, stay in the wrapper. Encoding stays in
+   each wrapper. The package references `NCode.Base64Url` for it.
 
 Public names, old to new:
 

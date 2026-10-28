@@ -1,6 +1,9 @@
 #nullable enable
 abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.AuthorizationService.get -> Microsoft.AspNetCore.Authorization.IAuthorizationService!
 abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.CryptoService.get -> NCode.Identity.Cryptography.ICryptoService!
+const NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames.GrantRevoked = "grant.revoked" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames.GrantsRevokedBulk = "grant.revoked.bulk" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames.SessionsRevoked = "session.revoked.admin" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.InitialAccessToken = "initial_access_token" -> string!
@@ -127,6 +130,7 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerC
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! serverId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames
 NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes
 NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent
@@ -606,10 +610,15 @@ NCode.Identity.OpenId.Management.OpenIdManagementLibrary.OpenIdManagementLibrary
 NCode.Identity.OpenId.Management.Operations
 override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent.ResourceType.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.Action.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.EventName.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.EventName.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 override NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent.ResourceType.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.EventName.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceType.get -> string!
@@ -684,3 +693,6 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantId.
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.To.get -> System.DateOnly
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.To.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantUsageResource() -> void
+NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void

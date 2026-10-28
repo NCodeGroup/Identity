@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Text;
+using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using Xunit;
 
@@ -37,7 +38,21 @@ public class AuditRecordWriterTests
             """{"schema_version":"1.0","event_id":"01890a5d-ac96-774b-bcce-b302099a8057","event_time":"2026-10-28T14:03:12.345Z","event_name":"test.detailed","event_category":"authentication","event_source":"openid","outcome":"failure","severity":"warning","tenant_id":"tenant-1","subject_id":"subject-1","client_id":"client-1","actor":{"type":"client","id":"client-1"},"request":{"request_id":"req-1","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"00f067aa0ba902b7","source_ip":"203.0.113.5","user_agent":"curl/8.0","http_method":"POST","path":"/oauth2/token","endpoint":"token_endpoint"},"resources":[{"type":"session","id":"sid-1"}],"error":{"code":"invalid_client","message":"bad secret","status_code":401},"details":{"token_type":"access_token"}}""";
 
         var output = new ArrayBufferWriter<byte>();
-        AuditRecordWriter.Write(output, TestDetailedAuditEvent.CreateSample());
+        AuditRecordWriter.Write(TestDetailedAuditEvent.CreateSample(), ref output);
+
+        Assert.Equal(expected, StrictUtf8.GetString(output.WrittenSpan));
+    }
+
+    [Fact]
+    public void Write_WhenTheDestinationIsAUtf8JsonWriter_WritesTheCanonicalRecord()
+    {
+        const string expected =
+            """{"schema_version":"1.0","event_id":"01890a5d-ac96-774b-bcce-b302099a8057","event_time":"2026-10-28T14:03:12.345Z","event_name":"test.detailed","event_category":"authentication","event_source":"openid","outcome":"failure","severity":"warning","tenant_id":"tenant-1","subject_id":"subject-1","client_id":"client-1","actor":{"type":"client","id":"client-1"},"request":{"request_id":"req-1","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"00f067aa0ba902b7","source_ip":"203.0.113.5","user_agent":"curl/8.0","http_method":"POST","path":"/oauth2/token","endpoint":"token_endpoint"},"resources":[{"type":"session","id":"sid-1"}],"error":{"code":"invalid_client","message":"bad secret","status_code":401},"details":{"token_type":"access_token"}}""";
+
+        var output = new ArrayBufferWriter<byte>();
+        using var writer = new Utf8JsonWriter(output);
+        AuditRecordWriter.Write(TestDetailedAuditEvent.CreateSample(), writer);
+        writer.Flush();
 
         Assert.Equal(expected, StrictUtf8.GetString(output.WrittenSpan));
     }
@@ -50,12 +65,12 @@ public class AuditRecordWriterTests
 
         var output = new ArrayBufferWriter<byte>();
         AuditRecordWriter.Write(
-            output,
             new TestAuditEvent
             {
                 EventSource = AuditEventSources.OpenId,
                 Outcome = AuditOutcome.Success,
-            }
+            },
+            ref output
         );
 
         Assert.Equal(expected, StrictUtf8.GetString(output.WrittenSpan));

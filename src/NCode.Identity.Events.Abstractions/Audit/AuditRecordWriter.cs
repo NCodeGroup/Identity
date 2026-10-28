@@ -19,6 +19,7 @@
 using System.Buffers;
 using System.Text.Json;
 using JetBrains.Annotations;
+using NCode.Buffers;
 
 namespace NCode.Identity.Events.Audit;
 
@@ -43,12 +44,16 @@ public static class AuditRecordWriter
     /// <summary>
     /// Writes the audit record of an audit event as one JSON object.
     /// </summary>
-    /// <param name="writer">The writer to write the audit record to.</param>
     /// <param name="auditEvent">The audit event to write.</param>
-    public static void Write(Utf8JsonWriter writer, IAuditEvent auditEvent)
+    /// <param name="writer">The writer to write the audit record to.</param>
+    /// <remarks>
+    /// A caller with a heap <see cref="IBufferWriter{T}"/> that wants no copy wraps it in a
+    /// <see cref="Utf8JsonWriter"/> and calls this overload.
+    /// </remarks>
+    public static void Write(IAuditEvent auditEvent, Utf8JsonWriter writer)
     {
-        ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(auditEvent);
+        ArgumentNullException.ThrowIfNull(writer);
 
         writer.WriteStartObject();
 
@@ -93,6 +98,43 @@ public static class AuditRecordWriter
     }
 
     /// <summary>
+    /// Writes the audit record of an audit event as one JSON object.
+    /// </summary>
+    /// <param name="writer">The writer to write the audit record to.</param>
+    /// <param name="auditEvent">The audit event to write.</param>
+    public static void Write(Utf8JsonWriter writer, IAuditEvent auditEvent) =>
+        Write(auditEvent, writer);
+
+    /// <summary>
+    /// Writes the audit record of an audit event as UTF-8 encoded JSON into a buffer writer.
+    /// </summary>
+    /// <typeparam name="TWriter">The type of the buffer writer.</typeparam>
+    /// <param name="auditEvent">The audit event to write.</param>
+    /// <param name="destination">The buffer writer to write the UTF-8 encoded JSON of the audit record to.</param>
+    /// <remarks>
+    /// A <see cref="Utf8JsonWriter"/> cannot hold a <see langword="ref"/> <see langword="struct"/>, so this
+    /// overload stages the record in a pooled buffer and copies it into <paramref name="destination"/>. A caller
+    /// with a heap <see cref="IBufferWriter{T}"/> that wants no copy wraps it in a
+    /// <see cref="Utf8JsonWriter"/> and calls <see cref="Write(IAuditEvent, Utf8JsonWriter)"/> instead.
+    /// </remarks>
+    public static void Write<TWriter>(IAuditEvent auditEvent, ref TWriter destination)
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        ArgumentNullException.ThrowIfNull(auditEvent);
+
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        using var writer = new Utf8JsonWriter(buffer);
+        Write(auditEvent, writer);
+        writer.Flush();
+
+        foreach (var segment in buffer.AsReadOnlySequence)
+        {
+            segment.Span.CopyTo(destination.GetSpan(segment.Length));
+            destination.Advance(segment.Length);
+        }
+    }
+
+    /// <summary>
     /// Writes the audit record of an audit event as UTF-8 encoded JSON into a buffer writer.
     /// </summary>
     /// <param name="output">The buffer writer to write the UTF-8 encoded JSON of the audit record to.</param>
@@ -103,7 +145,7 @@ public static class AuditRecordWriter
         ArgumentNullException.ThrowIfNull(auditEvent);
 
         using var writer = new Utf8JsonWriter(output);
-        Write(writer, auditEvent);
+        Write(auditEvent, writer);
     }
 
     private static void WriteIfNotNull(Utf8JsonWriter writer, string name, string? value)

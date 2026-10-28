@@ -7,6 +7,31 @@ NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AuthorizationCodeToke
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.Code.get -> string!
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.CodeVerifier.get -> string!
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.RedirectUri.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequest
+NCode.Identity.OpenId.Client.AuthorizationRequest.AdditionalParameters.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+NCode.Identity.OpenId.Client.AuthorizationRequest.AdditionalParameters.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.AuthorizationRequest(string! redirectUri, string! state, string! codeVerifier) -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.CodeVerifier.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequest.Nonce.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequest.Nonce.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.RedirectUri.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequest.Resources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Client.AuthorizationRequest.Resources.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.ResponseMode.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequest.ResponseMode.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.Scope.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequest.Scope.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.State.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequestResult
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(NCode.Identity.OpenId.Client.ProtocolError! error) -> void
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(System.Uri! authorizationUri) -> void
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(System.Uri! authorizationUri, string! requestUri, int expiresIn) -> void
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationUri.get -> System.Uri?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.ExpiresIn.get -> int?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.IsPushed.get -> bool
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.IsSuccess.get -> bool
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.RequestUri.get -> string?
 NCode.Identity.OpenId.Client.ClientAuthenticationContext
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.ClientAuthenticationContext(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.OpenIdProviderMetadata! metadata, string! endpoint, System.Net.Http.HttpRequestMessage! request, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.Endpoint.get -> string!
@@ -27,6 +52,10 @@ NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.get -> 
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.KeyRing.get -> string?
 NCode.Identity.OpenId.Client.ClientRegistration.KeyRing.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.RequirePushedAuthorizationRequests.get -> bool
+NCode.Identity.OpenId.Client.ClientRegistration.RequirePushedAuthorizationRequests.init -> void
+NCode.Identity.OpenId.Client.IAuthorizationRequestClient
+NCode.Identity.OpenId.Client.IAuthorizationRequestClient.CreateAuthorizationUriAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.AuthorizationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.AuthorizationRequestResult!>
 NCode.Identity.OpenId.Client.IClientAuthenticator
 NCode.Identity.OpenId.Client.IClientAuthenticator.AuthenticateAsync(NCode.Identity.OpenId.Client.ClientAuthenticationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Client.IClientAuthenticator.MethodName.get -> string!

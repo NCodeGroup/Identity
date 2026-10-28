@@ -281,7 +281,9 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
 - `dpop_jkt` is sent when DPoP is in use.
 - The request goes through **PAR** whenever the OP advertises `pushed_authorization_request_endpoint`. PAR is mandatory
   when the OP advertises `require_pushed_authorization_requests`. Only `client_id` and `request_uri` then travel on the
-  front channel.
+  front channel. The protocol client's `IAuthorizationRequestClient` applies this rule, and also honors the client's own
+  `require_pushed_authorization_requests` registration
+  ([ADR-0275](decisions/0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)).
 - Extra parameters (`prompt`, `max_age`, `acr_values`, `login_hint`, `ui_locales`) pass through from
   `/bff/login` **only when the frontend allow-lists them**.
 
@@ -964,7 +966,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | Phase | Delivers                                                                                                                                                                                                         |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
-| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS; ID-token validation (ADR-0273) and logout-token validation ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. |
+| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: DPoP, mTLS; ID-token validation (ADR-0273) and logout-token validation ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. PAR is delivered ([ADR-0275](decisions/0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)). |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |

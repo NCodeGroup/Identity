@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Logging;
@@ -73,7 +74,7 @@ internal class ServerSecretProtectorWarmup(
             HostEnvironment.IsProduction()
             && string.Equals(
                 ProtectionOptionsAccessor.Value.RootKeyProvider,
-                RootKeyProviderNames.Local,
+                KeyWrapperNames.Local,
                 StringComparison.Ordinal
             )
         )

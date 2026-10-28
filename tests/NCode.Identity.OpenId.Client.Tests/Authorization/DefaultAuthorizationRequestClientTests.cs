@@ -467,6 +467,52 @@ public class DefaultAuthorizationRequestClientTests : BaseTests
     }
 
     [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParExpiresInZeroFraction_ReturnsWholeSeconds()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.Created,
+            """{"request_uri":"urn:ietf:params:oauth:request_uri:abc","expires_in":60.0}"""
+        );
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsPushed);
+        Assert.Equal("urn:ietf:params:oauth:request_uri:abc", result.RequestUri);
+        Assert.Equal(60, result.ExpiresIn);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParExpiresInNonZeroFraction_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.Created,
+            """{"request_uri":"urn:ietf:params:oauth:request_uri:abc","expires_in":60.5}"""
+        );
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.CreateAuthorizationUriAsync(
+                CreateRegistration(),
+                CreateRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
     public async Task CreateAuthorizationUriAsync_WithParServerErrorWithoutOAuthError_Throws()
     {
         var handler = StubHttpMessageHandler.Respond(

@@ -41,6 +41,10 @@ override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Read(re
 override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
 override NCode.Json.UriJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> System.Uri?
 override NCode.Json.UriJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value, System.Text.Json.JsonSerializerOptions! options) -> void
+NCode.Json.WholeInt32JsonConverter
+NCode.Json.WholeInt32JsonConverter.WholeInt32JsonConverter() -> void
+override NCode.Json.WholeInt32JsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> int
+override NCode.Json.WholeInt32JsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, int value, System.Text.Json.JsonSerializerOptions! options) -> void
 static NCode.Json.DateCoercion.TryFromNumericDate(double seconds, out System.DateTimeOffset value) -> bool
 static NCode.Json.DateCoercion.TryFromNumericDate(long seconds, out System.DateTimeOffset value) -> bool
 static NCode.Json.DateCoercion.TryParseDateTime(string? text, out System.DateTime value) -> bool

@@ -24,7 +24,7 @@ using NCode.Encoders;
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
-/// Wraps and unwraps a key with a root key that is held in memory, using AES-GCM. The root key providers that keep
+/// Wraps and unwraps a key with a root key that is held in memory, using AES-GCM. The key wrappers that keep
 /// their root key in the process share this implementation.
 /// </summary>
 /// <remarks>
@@ -39,7 +39,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </para>
 /// </remarks>
 // See ADR-0235.
-internal static class AesGcmRootKeyWrapper
+internal static class AesGcmKeyWrap
 {
     /// <summary>
     /// The number of characters in a fingerprint, which is the base64url encoding of a SHA-256 hash.

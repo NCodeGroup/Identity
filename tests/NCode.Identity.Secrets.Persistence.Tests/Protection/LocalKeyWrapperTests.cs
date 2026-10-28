@@ -25,14 +25,14 @@ using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class LocalRootKeyProviderTests : IDisposable
+public class LocalKeyWrapperTests : IDisposable
 {
     private readonly string _tempDirectory = Path.Combine(
         Path.GetTempPath(),
-        $"{nameof(LocalRootKeyProviderTests)}-{Guid.NewGuid():N}"
+        $"{nameof(LocalKeyWrapperTests)}-{Guid.NewGuid():N}"
     );
 
-    public LocalRootKeyProviderTests()
+    public LocalKeyWrapperTests()
     {
         Directory.CreateDirectory(_tempDirectory);
     }
@@ -50,7 +50,7 @@ public class LocalRootKeyProviderTests : IDisposable
 
     private static byte[] CreateContext() => "root-context"u8.ToArray();
 
-    private static LocalRootKeyProvider CreateProvider(LocalRootKeyOptions options) =>
+    private static LocalKeyWrapper CreateProvider(LocalRootKeyOptions options) =>
         new(Microsoft.Extensions.Options.Options.Create(options));
 
     private string WriteKeyFile(string content)
@@ -188,11 +188,8 @@ public class LocalRootKeyProviderTests : IDisposable
 
         var wrappedKey = await provider.WrapAsync(key, CreateContext(), CancellationToken.None);
 
-        Assert.Equal(AesGcmRootKeyWrapper.FingerprintLength, wrappedKey.KeyId.Length);
-        Assert.Equal(
-            AesGcmRootKeyWrapper.GetWrappedLength(key.Length),
-            wrappedKey.Ciphertext.Length
-        );
+        Assert.Equal(AesGcmKeyWrap.FingerprintLength, wrappedKey.KeyId.Length);
+        Assert.Equal(AesGcmKeyWrap.GetWrappedLength(key.Length), wrappedKey.Ciphertext.Length);
     }
 
     [Fact]

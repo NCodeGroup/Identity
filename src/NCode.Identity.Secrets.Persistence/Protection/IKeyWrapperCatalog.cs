@@ -21,12 +21,12 @@ using NCode.Identity.Secrets.KeyWrapping;
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
-/// Provides the ability to find a root key provider by name. A wrapped key records the name of the provider that
-/// wrapped it, so the catalog resolves the provider that can unwrap it as well as the provider that the options select
-/// for wrapping new keys.
+/// Provides the ability to find a key wrapper by name, and the key wrapper that the options select as the root key
+/// wrapper. A wrapped key records the name of the key wrapper that wrapped it, so the catalog resolves the key wrapper
+/// that can unwrap it as well as the one that the options select for wrapping new keys.
 /// </summary>
 // See ADR-0235.
-internal interface IRootKeyProviderCatalog
+internal interface IKeyWrapperCatalog
 {
     /// <summary>
     /// Gets the root key provider that has the specified name.

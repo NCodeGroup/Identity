@@ -41,21 +41,19 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The keys are loaded once, on the first call to <see cref="WrapAsync"/> or <see cref="UnwrapAsync"/>, so a provider
+/// The keys are loaded once, on the first call to <see cref="WrapAsync"/> or <see cref="UnwrapAsync"/>, so a key wrapper
 /// that is not selected and is not configured never fails. A failure to load the keys is cached until the process
 /// restarts, because a configuration error is fixed by deploying the corrected configuration.
 /// </para>
 /// <para>
 /// Keys wrap with the current key. Keys that an older root key wrapped unwrap when the file of that root key is listed
 /// in the previous key paths. Each key lives in a pinned buffer from the secure memory pool so that the garbage
-/// collector never copies it, and the keys are zeroed when the provider is disposed. A key file is read as bytes and a
+/// collector never copies it, and the keys are zeroed when the key wrapper is disposed. A key file is read as bytes and a
 /// key is never held as text, except for the inline key, which the configuration supplies as a <see cref="string"/>.
 /// </para>
 /// </remarks>
 // See ADR-0235.
-internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
-    : IKeyWrapper,
-        IDisposable
+internal class LocalKeyWrapper(IOptions<LocalRootKeyOptions> options) : IKeyWrapper, IDisposable
 {
     private const string SectionName = LocalRootKeyOptions.DefaultSectionName;
 
@@ -92,12 +90,12 @@ internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
         var (currentKey, currentKeyId, _) = Keys.Value;
 
         var ciphertext = string.Create(
-            AesGcmRootKeyWrapper.GetWrappedLength(key.Length),
+            AesGcmKeyWrap.GetWrappedLength(key.Length),
             (RootKey: currentKey, Key: key, Context: context),
             static (chars, state) =>
             {
                 var writer = chars.GetFixedBufferWriter();
-                AesGcmRootKeyWrapper.Wrap(
+                AesGcmKeyWrap.Wrap(
                     state.RootKey.Span,
                     state.Key.Span,
                     state.Context.Span,
@@ -146,7 +144,7 @@ internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
             );
         }
 
-        var written = AesGcmRootKeyWrapper.Unwrap(
+        var written = AesGcmKeyWrap.Unwrap(
             rootKey.Key.Span,
             wrappedKey.Ciphertext,
             context.Span,
@@ -208,9 +206,9 @@ internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
 
     private static string ComputeFingerprint(ReadOnlyMemory<byte> rootKey) =>
         string.Create(
-            AesGcmRootKeyWrapper.FingerprintLength,
+            AesGcmKeyWrap.FingerprintLength,
             rootKey,
-            static (chars, key) => AesGcmRootKeyWrapper.ComputeFingerprint(key.Span, chars)
+            static (chars, key) => AesGcmKeyWrap.ComputeFingerprint(key.Span, chars)
         );
 
     private static LoadedKey LoadCurrentKey(LocalRootKeyOptions options)

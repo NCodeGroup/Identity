@@ -22,7 +22,7 @@ using NCode.Identity.Secrets.KeyWrapping;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class EphemeralRootKeyProviderTests
+public class EphemeralKeyWrapperTests
 {
     private static byte[] CreateKey() =>
         RandomNumberGenerator.GetBytes(SecretProtectionFormat.MasterKeySizeBytes);
@@ -34,7 +34,7 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task WrapThenUnwrap_RoundTrips()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var key = CreateKey();
         var context = CreateContext();
         var destination = new byte[key.Length];
@@ -54,7 +54,7 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task Unwrap_DestinationLargerThanKey_WritesOnlyTheKey()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var key = CreateKey();
         var context = CreateContext();
         var destination = new byte[key.Length + 8];
@@ -76,7 +76,7 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task Unwrap_DestinationTooSmall_Throws()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
         var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes - 1];
@@ -89,7 +89,7 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task Unwrap_DifferentContext_Throws()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var wrappedKey = await provider.WrapAsync(
             CreateKey(),
             CreateContext(),
@@ -111,8 +111,8 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task Unwrap_OtherInstance_Throws()
     {
-        using var provider = new EphemeralRootKeyProvider();
-        using var otherProvider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
+        using var otherProvider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
         var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
@@ -132,7 +132,7 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task Wrap_SetsProviderNameAndFingerprint()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
 
         var wrappedKey = await provider.WrapAsync(
             CreateKey(),
@@ -142,28 +142,25 @@ public class EphemeralRootKeyProviderTests
 
         Assert.Equal(KeyWrapperNames.Ephemeral, provider.Name);
         Assert.Equal(KeyWrapperNames.Ephemeral, wrappedKey.WrapperName);
-        Assert.Equal(AesGcmRootKeyWrapper.FingerprintLength, wrappedKey.KeyId.Length);
+        Assert.Equal(AesGcmKeyWrap.FingerprintLength, wrappedKey.KeyId.Length);
         Assert.Equal(SHA256.HashSizeInBytes, Base64Url.DecodeFromChars(wrappedKey.KeyId).Length);
     }
 
     [Fact]
     public async Task Wrap_CiphertextLength_EqualsGetWrappedLength()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var key = CreateKey();
 
         var wrappedKey = await provider.WrapAsync(key, CreateContext(), CancellationToken.None);
 
-        Assert.Equal(
-            AesGcmRootKeyWrapper.GetWrappedLength(key.Length),
-            wrappedKey.Ciphertext.Length
-        );
+        Assert.Equal(AesGcmKeyWrap.GetWrappedLength(key.Length), wrappedKey.Ciphertext.Length);
     }
 
     [Fact]
     public async Task Unwrap_TamperedCiphertext_ThrowsAndZeroesDestination()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
         var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
@@ -191,7 +188,7 @@ public class EphemeralRootKeyProviderTests
     [InlineData("AAAA")]
     public async Task Unwrap_MalformedCiphertext_Throws(string ciphertext)
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
         var malformedKey = new WrappedKey
@@ -210,7 +207,7 @@ public class EphemeralRootKeyProviderTests
     [Fact]
     public async Task Unwrap_IllegalCharacters_Throws()
     {
-        using var provider = new EphemeralRootKeyProvider();
+        using var provider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
         var malformedKey = new WrappedKey

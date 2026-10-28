@@ -44,12 +44,12 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="timeProvider">The time provider that supplies the creation time of a new master key.</param>
 // See ADR-0235.
 internal class MasterKeyFactory(
-    IRootKeyProviderCatalog catalog,
+    IKeyWrapperCatalog catalog,
     IRecoveryKeyWrapper recovery,
     TimeProvider timeProvider
 )
 {
-    private IRootKeyProviderCatalog Catalog { get; } = catalog;
+    private IKeyWrapperCatalog Catalog { get; } = catalog;
 
     private IRecoveryKeyWrapper Recovery { get; } = recovery;
 

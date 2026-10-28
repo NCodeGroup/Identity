@@ -91,15 +91,12 @@ public static class DefaultRegistration
             // Secret protection
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IKeyWrapper, EphemeralRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, EphemeralKeyWrapper>()
             );
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IKeyWrapper, LocalRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, LocalKeyWrapper>()
             );
-            serviceCollection.TryAddSingleton<
-                IRootKeyProviderCatalog,
-                DefaultRootKeyProviderCatalog
-            >();
+            serviceCollection.TryAddSingleton<IKeyWrapperCatalog, DefaultKeyWrapperCatalog>();
             serviceCollection.TryAddSingleton<IRecoveryKeyWrapper, RecoveryKeyWrapper>();
             serviceCollection.TryAddSingleton<MasterKeyFactory>();
             serviceCollection.TryAddSingleton<ISecretProtectorProvider, DefaultMasterKeyRing>();

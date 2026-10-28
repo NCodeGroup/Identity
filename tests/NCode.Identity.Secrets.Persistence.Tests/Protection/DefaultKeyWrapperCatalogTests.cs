@@ -22,7 +22,7 @@ using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class DefaultRootKeyProviderCatalogTests : IDisposable
+public class DefaultKeyWrapperCatalogTests : IDisposable
 {
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
 
@@ -38,7 +38,7 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
         return provider;
     }
 
-    private static DefaultRootKeyProviderCatalog CreateCatalog(
+    private static DefaultKeyWrapperCatalog CreateCatalog(
         IEnumerable<IKeyWrapper> providers,
         string? rootKeyProvider = null
     ) =>

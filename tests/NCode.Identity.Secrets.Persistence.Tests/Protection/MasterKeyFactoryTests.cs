@@ -34,16 +34,16 @@ public class MasterKeyFactoryTests : IDisposable
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
 
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
-    private readonly Mock<IRootKeyProviderCatalog> _catalog;
+    private readonly Mock<IKeyWrapperCatalog> _catalog;
     private readonly Mock<TimeProvider> _timeProvider;
-    private readonly EphemeralRootKeyProvider _provider = new();
+    private readonly EphemeralKeyWrapper _provider = new();
     private readonly RecoveryKeyWrapper _disabledRecovery = new(
         Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
     );
 
     public MasterKeyFactoryTests()
     {
-        _catalog = _mocks.Create<IRootKeyProviderCatalog>();
+        _catalog = _mocks.Create<IKeyWrapperCatalog>();
         _timeProvider = _mocks.Create<TimeProvider>();
     }
 

@@ -24,7 +24,7 @@ using NCode.Identity.Secrets.Persistence.Options;
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IRootKeyProviderCatalog"/> over the registered
+/// Provides the default implementation of <see cref="IKeyWrapperCatalog"/> over the registered
 /// <see cref="IKeyWrapper"/> instances. Providers are keyed ordinally by
 /// <see cref="IKeyWrapper.Name"/>.
 /// </summary>
@@ -35,10 +35,10 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="providers">The registered root key providers.</param>
 /// <param name="options">The options that select the provider for wrapping new keys.</param>
 // See ADR-0150 and ADR-0235.
-internal class DefaultRootKeyProviderCatalog(
+internal class DefaultKeyWrapperCatalog(
     IEnumerable<IKeyWrapper> providers,
     IOptions<SecretProtectionOptions> options
-) : IRootKeyProviderCatalog
+) : IKeyWrapperCatalog
 {
     private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; } = IndexByName(providers);
 

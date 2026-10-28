@@ -24,22 +24,22 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
 /// Provides an implementation of <see cref="IKeyWrapper"/> that generates a random root key when it is created
-/// and keeps the key in memory for the lifetime of the object. A key that this provider wrapped can only be unwrapped
+/// and keeps the key in memory for the lifetime of the object. A key that this key wrapper wrapped can only be unwrapped
 /// by the same instance, so it is suitable for development and tests but not for data that must survive a restart.
 /// </summary>
 /// <remarks>
 /// The root key lives in a pinned buffer from the secure memory pool so that the garbage collector never copies it,
-/// and it is zeroed when the provider is disposed.
+/// and it is zeroed when the key wrapper is disposed.
 /// </remarks>
 // See ADR-0235.
-internal class EphemeralRootKeyProvider : IKeyWrapper, IDisposable
+internal class EphemeralKeyWrapper : IKeyWrapper, IDisposable
 {
     private const int RootKeySizeBytes = 32;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EphemeralRootKeyProvider"/> class with a new random root key.
+    /// Initializes a new instance of the <see cref="EphemeralKeyWrapper"/> class with a new random root key.
     /// </summary>
-    public EphemeralRootKeyProvider()
+    public EphemeralKeyWrapper()
     {
         RootKeyLease = BufferFactory.Rent(
             RootKeySizeBytes,
@@ -50,9 +50,9 @@ internal class EphemeralRootKeyProvider : IKeyWrapper, IDisposable
         RootKey = rootKey;
 
         KeyId = string.Create(
-            AesGcmRootKeyWrapper.FingerprintLength,
+            AesGcmKeyWrap.FingerprintLength,
             RootKey,
-            static (chars, key) => AesGcmRootKeyWrapper.ComputeFingerprint(key.Span, chars)
+            static (chars, key) => AesGcmKeyWrap.ComputeFingerprint(key.Span, chars)
         );
     }
 
@@ -73,12 +73,12 @@ internal class EphemeralRootKeyProvider : IKeyWrapper, IDisposable
     )
     {
         var ciphertext = string.Create(
-            AesGcmRootKeyWrapper.GetWrappedLength(key.Length),
+            AesGcmKeyWrap.GetWrappedLength(key.Length),
             (RootKey: RootKey, Key: key, Context: context),
             static (chars, state) =>
             {
                 var writer = chars.GetFixedBufferWriter();
-                AesGcmRootKeyWrapper.Wrap(
+                AesGcmKeyWrap.Wrap(
                     state.RootKey.Span,
                     state.Key.Span,
                     state.Context.Span,
@@ -121,7 +121,7 @@ internal class EphemeralRootKeyProvider : IKeyWrapper, IDisposable
             );
         }
 
-        var written = AesGcmRootKeyWrapper.Unwrap(
+        var written = AesGcmKeyWrap.Unwrap(
             RootKey.Span,
             wrappedKey.Ciphertext,
             context.Span,

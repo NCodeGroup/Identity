@@ -127,18 +127,10 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
-    public void GetPermittedKeyManagementAlgorithms_WhenSymmetricRsa15OrUnknown_ExcludesThem()
+    public void GetPermittedKeyManagementAlgorithms_WhenSymmetricOrUnknown_ExcludesThem()
     {
         var registration = CreateRegistration(
-            keyManagement:
-            [
-                "A128KW",
-                "dir",
-                "PBES2-HS256+A128KW",
-                "RSA1_5",
-                "X-UNKNOWN",
-                "RSA-OAEP",
-            ]
+            keyManagement: ["A128KW", "dir", "PBES2-HS256+A128KW", "X-UNKNOWN", "RSA-OAEP"]
         );
 
         var result = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
@@ -147,6 +139,38 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
         );
 
         Assert.Equal(["RSA-OAEP"], result);
+    }
+
+    [Fact]
+    public void GetPermittedKeyManagementAlgorithms_WhenRsa15IsRegistered_ExcludesIt()
+    {
+        var mockRsa15 = CreateStrictMock<KeyManagementAlgorithm>();
+        mockRsa15.Setup(x => x.KeyType).Returns(typeof(RsaSecretKey)).Verifiable();
+
+        var mockRsaOaep256 = CreateStrictMock<KeyManagementAlgorithm>();
+        mockRsaOaep256.Setup(x => x.KeyType).Returns(typeof(RsaSecretKey)).Verifiable();
+
+        var rsa15 = mockRsa15.Object;
+        var rsaOaep256 = mockRsaOaep256.Object;
+
+        var mockAlgorithms = CreateStrictMock<IAlgorithmCollection>();
+        mockAlgorithms
+            .Setup(x => x.TryGetKeyManagementAlgorithm("RSA1_5", out rsa15))
+            .Returns(true)
+            .Verifiable();
+        mockAlgorithms
+            .Setup(x => x.TryGetKeyManagementAlgorithm("RSA-OAEP-256", out rsaOaep256))
+            .Returns(true)
+            .Verifiable();
+
+        var registration = CreateRegistration(keyManagement: ["RSA1_5", "RSA-OAEP-256"]);
+
+        var result = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
+            mockAlgorithms.Object,
+            registration
+        );
+
+        Assert.Equal(["RSA-OAEP-256"], result);
     }
 
     #endregion

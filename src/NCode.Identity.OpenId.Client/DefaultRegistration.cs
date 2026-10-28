@@ -44,7 +44,7 @@ public static class DefaultRegistration
         /// <summary>
         /// Registers the OpenID client library: provider metadata and key set resolution, client authentication,
         /// the authorization request client (with PAR), the token and token revocation clients, and ID-token and logout-token validation, layered on the
-        /// <see cref="JwtLibrary"/>. Logout-token validation records each token's <c>jti</c> in the shared
+        /// <see cref="JwtLibrary"/>. Logout-token validation looks each token's <c>jti</c> up, and <c>TryRecordHandledAsync</c> records it, in the shared
         /// <c>IExpiringKeySet</c>, whose adapter the composition root registers
         /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet()</c> for one replica, Valkey for several).
         /// </summary>

@@ -309,7 +309,7 @@ standards.
 | [0271](./0271-a-key-type-registers-its-json-web-key-rules.md) | A key type registers its JSON Web Key rules | Accepted |
 | [0272](./0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [0273](./0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted (amended by [0278](./0278-token-validation-failures-carry-a-machine-readable-code.md), [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)) |
-| [0274](./0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted (amended by [0278](./0278-token-validation-failures-carry-a-machine-readable-code.md), [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)) |
+| [0274](./0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted (amended by [0278](./0278-token-validation-failures-carry-a-machine-readable-code.md), [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), [0284](./0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md)) |
 | [0275](./0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted (amended by [0277](./0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md)) |
 | [0276](./0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |
 | [0277](./0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md) | A whole-number JSON value is accepted with a zero fraction | Accepted |
@@ -319,3 +319,4 @@ standards.
 | [0281](./0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md) | The JWK package takes contributed key types and hash names from its caller | Accepted |
 | [0282](./0282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |
 | [0283](./0283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) | Audit records are CloudTrail-shaped JSON with an indexable envelope | Accepted |
+| [0284](./0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md) | A logout token is recorded only after the client handles it | Accepted |

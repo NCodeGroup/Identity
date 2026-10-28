@@ -420,8 +420,8 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   issued that client an ID token in the session, so run the code flow first, end the session with
   `GET /oauth2/end_session` and the session cookie, and poll the queue with a deadline because a background job
   delivers the token; the protocol client's container adds `AddSharedStateServices().AddInProcessExpiringKeySet()`,
-  because `AddOpenIdClientLibrary()` registers no `IExpiringKeySet` and the logout-token validator records each `jti`
-  in one (`LogoutTokenValidatorEndToEndTests`).
+  because `AddOpenIdClientLibrary()` registers no `IExpiringKeySet` and the logout-token validator looks each `jti` up
+  in one and `TryRecordHandledAsync` records it (`LogoutTokenValidatorEndToEndTests`).
 - 👁 **Build a certificate subject with `X500DistinguishedNameBuilder` to choose each value's string type.** A subject
   DN is matched by RFC 4517 rules, not by bytes.
 - 👁 **Serve revocation data through a stub handler, never the network.** Build a CRL with

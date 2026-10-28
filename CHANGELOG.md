@@ -75,12 +75,16 @@ change to the public API is a **major** version bump.
 
 - **The OpenID protocol client validates back-channel logout tokens.** `ILogoutTokenValidator.ValidateAsync` takes a
   `ClientRegistration` and a `LogoutTokenValidationRequest` and returns a `LogoutTokenValidationResult` with
-  `IsValid`, the `TokenId`, `ExpiresAt`, `Subject`, `SessionId` and a `FailureReason`. It applies the ID-token
+  `IsValid`, the `TokenId`, `ExpiresAt`, `Issuer`, `Subject`, `SessionId` and a `FailureReason`. It applies the ID-token
   signature policy, then requires the `logout+jwt` `typ`, the back-channel logout `events` claim and a `sid` or `sub`,
   refuses a `nonce`, and bounds a token's lifetime to 10 minutes. `ClientRegistration.BackchannelLogoutSessionRequired`
-  makes the `sid` mandatory. The `jti` is recorded in `IExpiringKeySet`, so a token validates once; that needs a
-  SharedState adapter registered
-  ([ADR-0274](docs/decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
+  makes the `sid` mandatory. `ValidateAsync` refuses a token whose `jti` is recorded in `IExpiringKeySet`, and
+  `TryRecordHandledAsync` records it once the client has ended the token's sessions, so a delivery the client failed to
+  handle validates again when the OP retries it; that needs a SharedState adapter registered
+  ([ADR-0274](docs/decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md),
+  [ADR-0284](docs/decisions/0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md), issues
+  [#123](https://github.com/NCodeGroup/Identity/issues/123),
+  [#349](https://github.com/NCodeGroup/Identity/issues/349)).
 
 - **The OpenID protocol client validates ID tokens.** `IIdTokenValidator.ValidateAsync` takes a `ClientRegistration`
   and an `IdTokenValidationRequest` and returns an `IdTokenValidationResult` with `IsValid`, the `Payload` and a

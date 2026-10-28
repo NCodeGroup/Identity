@@ -85,6 +85,7 @@ NCode.Identity.OpenId.Client.IIdTokenValidator
 NCode.Identity.OpenId.Client.IIdTokenValidator.ValidateAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.IdTokenValidationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.IdTokenValidationResult!>
 NCode.Identity.OpenId.Client.ILogoutTokenValidator
 NCode.Identity.OpenId.Client.ILogoutTokenValidator.ValidateAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.LogoutTokenValidationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.LogoutTokenValidationResult!>
+NCode.Identity.OpenId.Client.ILogoutTokenValidator.TryRecordHandledAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.LogoutTokenValidationResult! result, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Client.IProviderKeySetResolver
 NCode.Identity.OpenId.Client.IProviderKeySetResolver.GetSigningKeysAsync(string! authority, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Collections.ISecretKeyCollection!>
 NCode.Identity.OpenId.Client.IProviderKeySetResolver.RefreshSigningKeysAsync(string! authority, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Collections.ISecretKeyCollection!>
@@ -126,8 +127,9 @@ NCode.Identity.OpenId.Client.LogoutTokenValidationResult.ExpiresAt.get -> System
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.FailureCode.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.FailureReason.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.IsValid.get -> bool
+NCode.Identity.OpenId.Client.LogoutTokenValidationResult.Issuer.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(string! failureCode, string! failureReason) -> void
-NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(System.Text.Json.JsonElement payload, string! tokenId, System.DateTimeOffset expiresAt, string? subject, string? sessionId) -> void
+NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(System.Text.Json.JsonElement payload, string! issuer, string! tokenId, System.DateTimeOffset expiresAt, string? subject, string? sessionId) -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.Payload.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.SessionId.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.Subject.get -> string?

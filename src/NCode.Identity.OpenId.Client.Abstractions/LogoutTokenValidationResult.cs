@@ -32,27 +32,31 @@ public sealed class LogoutTokenValidationResult
     /// Initializes a new instance of the <see cref="LogoutTokenValidationResult"/> class for a valid logout token.
     /// </summary>
     /// <param name="payload">The verified payload of the logout token.</param>
+    /// <param name="issuer">The verified <c>iss</c> claim of the logout token.</param>
     /// <param name="tokenId">The <c>jti</c> claim of the logout token.</param>
     /// <param name="expiresAt">The expiry (the <c>exp</c> claim) of the logout token.</param>
     /// <param name="subject">The <c>sub</c> claim of the logout token, if any.</param>
     /// <param name="sessionId">The <c>sid</c> claim of the logout token, if any.</param>
     /// <exception cref="ArgumentException">
-    /// <paramref name="tokenId"/> is null or empty, or both <paramref name="subject"/> and <paramref name="sessionId"/>
+    /// <paramref name="issuer"/> or <paramref name="tokenId"/> is null or empty, or both <paramref name="subject"/> and <paramref name="sessionId"/>
     /// are null or empty.
     /// </exception>
     public LogoutTokenValidationResult(
         JsonElement payload,
+        string issuer,
         string tokenId,
         DateTimeOffset expiresAt,
         string? subject,
         string? sessionId
     )
     {
+        ArgumentException.ThrowIfNullOrEmpty(issuer);
         ArgumentException.ThrowIfNullOrEmpty(tokenId);
         if (string.IsNullOrEmpty(subject) && string.IsNullOrEmpty(sessionId))
             throw new ArgumentException("A logout token identifies a subject, a session, or both.");
 
         Payload = payload;
+        Issuer = issuer;
         TokenId = tokenId;
         ExpiresAt = expiresAt;
         Subject = subject;
@@ -78,14 +82,19 @@ public sealed class LogoutTokenValidationResult
     public JsonElement Payload { get; }
 
     /// <summary>
+    /// Gets the verified <c>iss</c> claim when the logout token is valid; otherwise, <see langword="null"/>.
+    /// </summary>
+    public string? Issuer { get; }
+
+    /// <summary>
     /// Gets the <c>jti</c> claim when the logout token is valid; otherwise, <see langword="null"/>.
     /// </summary>
     public string? TokenId { get; }
 
     /// <summary>
     /// Gets the expiry (the <c>exp</c> claim) of the logout token when it is valid; otherwise,
-    /// <see langword="default"/>. The validator has already recorded the <c>jti</c> until this instant plus five
-    /// minutes of clock skew.
+    /// <see langword="default"/>. <see cref="ILogoutTokenValidator.TryRecordHandledAsync"/> records the <c>jti</c>
+    /// until this instant plus five minutes of clock skew.
     /// </summary>
     public DateTimeOffset ExpiresAt { get; }
 
@@ -115,6 +124,6 @@ public sealed class LogoutTokenValidationResult
     /// Gets a value indicating whether the logout token is valid.
     /// </summary>
     [MemberNotNullWhen(false, nameof(FailureCode), nameof(FailureReason))]
-    [MemberNotNullWhen(true, nameof(TokenId))]
+    [MemberNotNullWhen(true, nameof(TokenId), nameof(Issuer))]
     public bool IsValid => FailureCode is null;
 }

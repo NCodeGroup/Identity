@@ -134,6 +134,99 @@ public sealed class AuditEventShapeTests
 
     #endregion
 
+    #region AuthorizationGrantedAuditEvent Tests
+
+    [Fact]
+    public void EventName_WhenAuthorizationIsGranted_IsAuthorizationGranted()
+    {
+        var auditEvent = CreateAuthorizationGrantedEvent();
+
+        Assert.Equal(OpenIdAuditEventNames.AuthorizationGranted, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenAuthorizationIsGranted_IsAuthorization()
+    {
+        var auditEvent = CreateAuthorizationGrantedEvent();
+
+        Assert.Equal(AuditEventCategories.Authorization, auditEvent.EventCategory);
+    }
+
+    #endregion
+
+    #region AuthorizationDeniedAuditEvent Tests
+
+    [Fact]
+    public void EventName_WhenAuthorizationIsDenied_IsAuthorizationDenied()
+    {
+        var auditEvent = CreateAuthorizationDeniedEvent();
+
+        Assert.Equal(OpenIdAuditEventNames.AuthorizationDenied, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenAuthorizationIsDenied_IsAuthorization()
+    {
+        var auditEvent = CreateAuthorizationDeniedEvent();
+
+        Assert.Equal(AuditEventCategories.Authorization, auditEvent.EventCategory);
+    }
+
+    #endregion
+
+    #region ClientAuthenticationFailedAuditEvent Tests
+
+    [Fact]
+    public void EventName_WhenClientAuthenticationFails_IsClientAuthentication()
+    {
+        var auditEvent = CreateClientAuthenticationFailedEvent();
+
+        Assert.Equal(OpenIdAuditEventNames.ClientAuthentication, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenClientAuthenticationFails_IsAuthentication()
+    {
+        var auditEvent = CreateClientAuthenticationFailedEvent();
+
+        Assert.Equal(AuditEventCategories.Authentication, auditEvent.EventCategory);
+    }
+
+    [Fact]
+    public void Serialize_WhenClientAuthenticationFails_WritesTheAuthenticationMethodAsTheDetails()
+    {
+        var auditEvent = CreateClientAuthenticationFailedEvent();
+
+        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+
+        Assert.Equal(
+            """{"authentication_method":"private_key_jwt"}""",
+            record.RootElement.GetProperty("details").GetRawText()
+        );
+    }
+
+    #endregion
+
+    #region SubjectAuthenticationAuditEvent Tests
+
+    [Fact]
+    public void EventName_WhenASubjectAuthenticates_IsSubjectAuthentication()
+    {
+        var auditEvent = CreateSubjectAuthenticationEvent();
+
+        Assert.Equal(OpenIdAuditEventNames.SubjectAuthentication, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenASubjectAuthenticates_IsAuthentication()
+    {
+        var auditEvent = CreateSubjectAuthenticationEvent();
+
+        Assert.Equal(AuditEventCategories.Authentication, auditEvent.EventCategory);
+    }
+
+    #endregion
+
     #region Helpers
 
     private static TokenIssuedAuditEvent CreateTokenIssuedEvent() =>
@@ -165,6 +258,43 @@ public sealed class AuditEventShapeTests
         };
 
     private static RefreshTokenRetryAuditEvent CreateRefreshTokenRetryEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Success,
+        };
+
+    private static AuthorizationGrantedAuditEvent CreateAuthorizationGrantedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Success,
+        };
+
+    private static AuthorizationDeniedAuditEvent CreateAuthorizationDeniedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Failure,
+        };
+
+    private static ClientAuthenticationFailedAuditEvent CreateClientAuthenticationFailedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Failure,
+            AuthenticationMethod = "private_key_jwt",
+        };
+
+    private static SubjectAuthenticationAuditEvent CreateSubjectAuthenticationEvent() =>
         new()
         {
             EventId = Guid.NewGuid(),

@@ -30,5 +30,8 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record SubjectAuthenticationAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditEventNames.SubjectAuthentication;
+    public override string EventName => OpenIdAuditEventNames.SubjectAuthentication;
+
+    /// <inheritdoc />
+    public override string EventCategory => AuditEventCategories.Authentication;
 }

@@ -1610,16 +1610,20 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenReq
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenRequest.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityTokenContext.TokenType.init -> void
-override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationDeniedAuditEvent.Action.get -> string!
-override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAuditEvent.Action.get -> string!
-override NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationDeniedAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationDeniedAuditEvent.EventName.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAuditEvent.EventName.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.EventName.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.OpenIdErrorEvent.Action.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEvent.EventCategory.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEvent.EventName.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenReplayAuditEvent.Severity.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenRetryAuditEvent.EventCategory.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.RefreshTokenRetryAuditEvent.EventName.get -> string!
-override NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.EventName.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.EventCategory.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.EventName.get -> string!
 override NCode.Identity.OpenId.Authentication.Auditing.TokenRevokedAuditEvent.EventCategory.get -> string!
@@ -1671,6 +1675,7 @@ NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.AddMetricAtt
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 const NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethodMetricAttribute = "ncode.identity.client_authentication.method" -> string!
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
+NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethod.get -> string!
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethod.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointFrontChannelMetadata

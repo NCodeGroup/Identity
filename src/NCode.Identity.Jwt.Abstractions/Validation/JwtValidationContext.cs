@@ -129,14 +129,6 @@ public sealed class JwtValidationContext
         _pendingRequirements.Remove(requirement);
 
     /// <summary>
-    /// Records a hard validation failure with the machine-readable code
-    /// <see cref="JwtValidationFailureCodes.InvalidToken"/>. Once called, <see cref="HasSucceeded"/> can never
-    /// become <c>true</c>, even if every requirement is subsequently satisfied.
-    /// </summary>
-    /// <param name="reason">A human-readable description of why validation failed.</param>
-    public void Fail(string reason) => Fail(JwtValidationFailureCodes.InvalidToken, reason);
-
-    /// <summary>
     /// Records a hard validation failure. Once called, <see cref="HasSucceeded"/> can never become <c>true</c>,
     /// even if every requirement is subsequently satisfied. The first code recorded is kept in
     /// <see cref="FailureCode"/>, and every <paramref name="reason"/> is kept in <see cref="FailureReasons"/>.

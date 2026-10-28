@@ -1923,6 +1923,16 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **`RSA1_5` is not a registered JOSE algorithm.** RSAES-PKCS1-v1_5 key encryption is open to padding-oracle attacks
+  (RFC 8725 §3.2), and a JWE that named it decrypted through `IJoseSerializer` and through an `IJwtValidator` call
+  that sets no `ValidKeyManagementAlgorithms`. `AddJoseLibrary()` registers RSA key management only as `RSA-OAEP`,
+  `RSA-OAEP-256`, `RSA-OAEP-384` and `RSA-OAEP-512`, so such a JWE fails with `JoseInvalidAlgorithmException`.
+  `AlgorithmCodes.KeyManagement.RsaPkcs1` remains as the name a policy refuses, and the algorithm settings and the
+  protocol client refuse `RSA1_5` even when a host registers an implementation of its own. **Breaking:** a consumer
+  that exchanges `RSA1_5` JWEs moves to RSA-OAEP or ECDH-ES
+  ([ADR-0282](docs/decisions/0282-the-jose-library-does-not-implement-rsa1-5.md), issue
+  [#339](https://github.com/NCodeGroup/Identity/issues/339)).
+
 - **ES256, ES384 and ES512 accept only their own curve.** RFC 7518 §3.4 binds them to P-256, P-384 and P-521, so a
   256-bit key on another curve no longer signs as ES256, and `EccSecretKey.GetECCurve()` reads the actual curve from
   the key material instead of inferring it from the key size

@@ -180,7 +180,6 @@ static NCode.Identity.Events.Audit.AuditActor.Anonymous.get -> NCode.Identity.Ev
 static NCode.Identity.Events.Audit.AuditActor.Client(string! clientId) -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.EndUser(string? subjectId) -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.System.get -> NCode.Identity.Events.Audit.AuditActor!
-static NCode.Identity.Events.Audit.AuditRecordWriter.SerializeToUtf8Bytes(NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> byte[]!
 static NCode.Identity.Events.Audit.AuditRecordWriter.Write(System.Buffers.IBufferWriter<byte>! output, NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> void
 static NCode.Identity.Events.Audit.AuditRecordWriter.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int

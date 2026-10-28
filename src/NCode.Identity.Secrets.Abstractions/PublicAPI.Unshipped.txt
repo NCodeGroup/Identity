@@ -192,6 +192,9 @@ NCode.Identity.Secrets.KeyWrapping.WrappedKey.KeyId.init -> void
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrapperName.get -> string!
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrapperName.init -> void
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrappedKey() -> void
+NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext
+static NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext.Decode(System.ReadOnlySpan<char> ciphertext, System.Span<byte> destination) -> int
+static NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext.GetByteCount(System.ReadOnlySpan<char> ciphertext) -> int
 NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.AwsKms = "aws-kms" -> string!
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.AzureKeyVault = "azure-key-vault" -> string!

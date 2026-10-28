@@ -113,6 +113,32 @@ public interface IAuditEvent : IEvent
     string? ClientId { get; }
 
     /// <summary>
+    /// Gets the caller that performed the audited operation, such as an end user, a client or an
+    /// administrator. This is <see cref="AuditActor.Anonymous"/> when the caller has not been
+    /// identified.
+    /// </summary>
+    AuditActor Actor { get; }
+
+    /// <summary>
+    /// Gets the context of the request that the audited operation was part of (trace, network and
+    /// endpoint details), captured at publish time, or <see langword="null"/> when the operation was
+    /// not performed in the context of a request.
+    /// </summary>
+    AuditRequest? Request { get; }
+
+    /// <summary>
+    /// Gets the entities the audited operation acted on. The target comes first, followed by the
+    /// resources that own it. This is empty when the operation acted on no distinct entity.
+    /// </summary>
+    IReadOnlyList<AuditResource> Resources { get; }
+
+    /// <summary>
+    /// Gets the machine-readable error that caused the audited operation to fail, or
+    /// <see langword="null"/> when the operation did not fail.
+    /// </summary>
+    AuditError? Error { get; }
+
+    /// <summary>
     /// Gets the stable, dotted action name that identifies the audited operation (for example
     /// <c>token.issued</c>).
     /// </summary>

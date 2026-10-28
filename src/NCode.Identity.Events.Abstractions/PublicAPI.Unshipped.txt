@@ -31,10 +31,16 @@ NCode.Identity.Events.Audit.AuditError.Message.get -> string?
 NCode.Identity.Events.Audit.AuditError.Message.init -> void
 NCode.Identity.Events.Audit.AuditError.StatusCode.get -> int?
 NCode.Identity.Events.Audit.AuditError.StatusCode.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Actor.get -> NCode.Identity.Events.Audit.AuditActor!
+NCode.Identity.Events.Audit.AuditEvent.Actor.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Error.get -> NCode.Identity.Events.Audit.AuditError?
+NCode.Identity.Events.Audit.AuditEvent.Error.init -> void
 NCode.Identity.Events.Audit.AuditEvent.EventSource.get -> string!
 NCode.Identity.Events.Audit.AuditEvent.EventSource.init -> void
 NCode.Identity.Events.Audit.AuditEvent.EventTime.get -> System.DateTimeOffset
 NCode.Identity.Events.Audit.AuditEvent.EventTime.init -> void
+NCode.Identity.Events.Audit.AuditEvent.Request.get -> NCode.Identity.Events.Audit.AuditRequest?
+NCode.Identity.Events.Audit.AuditEvent.Request.init -> void
 NCode.Identity.Events.Audit.AuditEventCategories
 NCode.Identity.Events.Audit.AuditEventSources
 NCode.Identity.Events.Audit.AuditRequest
@@ -62,10 +68,14 @@ NCode.Identity.Events.Audit.AuditResource.Type.get -> string!
 NCode.Identity.Events.Audit.AuditResource.Type.init -> void
 NCode.Identity.Events.Audit.AuditResourceTypes
 NCode.Identity.Events.Audit.AuditSeverities
+NCode.Identity.Events.Audit.IAuditEvent.Actor.get -> NCode.Identity.Events.Audit.AuditActor!
+NCode.Identity.Events.Audit.IAuditEvent.Error.get -> NCode.Identity.Events.Audit.AuditError?
 NCode.Identity.Events.Audit.IAuditEvent.EventCategory.get -> string!
 NCode.Identity.Events.Audit.IAuditEvent.EventName.get -> string!
 NCode.Identity.Events.Audit.IAuditEvent.EventSource.get -> string!
 NCode.Identity.Events.Audit.IAuditEvent.EventTime.get -> System.DateTimeOffset
+NCode.Identity.Events.Audit.IAuditEvent.Request.get -> NCode.Identity.Events.Audit.AuditRequest?
+NCode.Identity.Events.Audit.IAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 NCode.Identity.Events.Audit.IAuditEvent.Severity.get -> string!
 NCode.Identity.Events.EventsLibrary
 NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
@@ -152,6 +162,7 @@ static NCode.Identity.Events.DefaultHandlerPriorities.Low.set -> void
 virtual NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
 virtual NCode.Identity.Events.Audit.AuditEvent.EventCategory.get -> string!
 virtual NCode.Identity.Events.Audit.AuditEvent.EventName.get -> string!
+virtual NCode.Identity.Events.Audit.AuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 virtual NCode.Identity.Events.Audit.AuditEvent.SchemaVersion.get -> int
 virtual NCode.Identity.Events.Audit.AuditEvent.Severity.get -> string!
 NCode.Identity.Events.ISupportMetricAttributes

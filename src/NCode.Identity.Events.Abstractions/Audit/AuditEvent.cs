@@ -83,6 +83,22 @@ public abstract record AuditEvent : IAuditEvent
     /// <inheritdoc />
     public string? ClientId { get; init; }
 
+    /// <inheritdoc />
+    public AuditActor Actor { get; init; } = AuditActor.Anonymous;
+
+    /// <inheritdoc />
+    public AuditRequest? Request { get; init; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Derived events override this to compute the resources from their typed properties, listing the
+    /// target first and then the resources that own it.
+    /// </remarks>
+    public virtual IReadOnlyList<AuditResource> Resources => [];
+
+    /// <inheritdoc />
+    public AuditError? Error { get; init; }
+
     // Bridge: reads EventName until Action is removed (plan step 33).
     /// <inheritdoc />
     public virtual string Action => EventName;

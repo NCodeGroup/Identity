@@ -187,6 +187,61 @@ public class EccSignatureAlgorithmTests : BaseTests
         Assert.False(algorithm.IsKeyCompatible(secretKey));
     }
 
+    public static IEnumerable<object[]> GetLargerCurveMatchesTestData()
+    {
+        yield return ["ES384", ECCurve.NamedCurves.nistP384, HashAlgorithmName.SHA384];
+        yield return ["ES512", ECCurve.NamedCurves.nistP521, HashAlgorithmName.SHA512];
+    }
+
+    [Theory]
+    [MemberData(nameof(GetLargerCurveMatchesTestData))]
+    public void IsKeyCompatible_WhenEs384OrEs512CurveMatches_ReturnsTrue(
+        string code,
+        ECCurve curve,
+        HashAlgorithmName hashAlgorithmName
+    )
+    {
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        using var key = ECDsa.Create(curve);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
+
+        var algorithm = new EccSignatureAlgorithm(code, curve, hashAlgorithmName);
+        Assert.True(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenEs384AndSameSizeDifferentCurve_ReturnsFalse()
+    {
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        using var key = ECDsa.Create(ECCurve.NamedCurves.brainpoolP384r1);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
+
+        var algorithm = new EccSignatureAlgorithm(
+            "ES384",
+            ECCurve.NamedCurves.nistP384,
+            HashAlgorithmName.SHA384
+        );
+
+        Assert.Equal(384, secretKey.KeySizeBits);
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenEs512AndSameSizeDifferentCurve_ReturnsFalse()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.brainpoolP512r1);
+        var secretKey = new StubEccSecretKey(key, curveSizeBits: 521);
+
+        var algorithm = new EccSignatureAlgorithm(
+            "ES512",
+            ECCurve.NamedCurves.nistP521,
+            HashAlgorithmName.SHA512
+        );
+
+        Assert.Equal(521, secretKey.KeySizeBits);
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
     [Fact]
     public void TrySign_WhenSameSizeDifferentCurve_Throws()
     {
@@ -208,5 +263,15 @@ public class EccSignatureAlgorithmTests : BaseTests
         Assert.Throws<ArgumentException>(() =>
             algorithm.Verify(secretKey, new byte[16], new byte[64])
         );
+    }
+
+    private sealed class StubEccSecretKey(ECDsa ecdsa, int curveSizeBits)
+        : EccSecretKey(new KeyMetadata { KeyId = "keyId" }, curveSizeBits, certificateRawData: null)
+    {
+        public override ECDsa ExportECDsa() =>
+            ECDsa.Create(ecdsa.ExportParameters(includePrivateParameters: true));
+
+        public override ECDiffieHellman ExportECDiffieHellman() =>
+            throw new NotSupportedException();
     }
 }

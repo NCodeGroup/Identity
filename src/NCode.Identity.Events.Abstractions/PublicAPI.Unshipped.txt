@@ -1,4 +1,16 @@
 #nullable enable
+const NCode.Identity.Events.Audit.AuditActorTypes.Administrator = "administrator" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.Anonymous = "anonymous" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.Client = "client" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.EndUser = "end_user" -> string!
+const NCode.Identity.Events.Audit.AuditActorTypes.System = "system" -> string!
+NCode.Identity.Events.Audit.AuditActor
+NCode.Identity.Events.Audit.AuditActor.AuditActor(string! Type, string? Id = null) -> void
+NCode.Identity.Events.Audit.AuditActor.Id.get -> string?
+NCode.Identity.Events.Audit.AuditActor.Id.init -> void
+NCode.Identity.Events.Audit.AuditActor.Type.get -> string!
+NCode.Identity.Events.Audit.AuditActor.Type.init -> void
+NCode.Identity.Events.Audit.AuditActorTypes
 NCode.Identity.Events.EventsLibrary
 NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
 abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
@@ -71,6 +83,11 @@ NCode.Identity.Events.ISupportBackgroundDelivery
 NCode.Identity.Events.ISupportHandlerPriority
 NCode.Identity.Events.ISupportHandlerPriority.HandlerPriority.get -> int
 override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.Action.get -> string!
+static NCode.Identity.Events.Audit.AuditActor.Administrator(string? administratorId) -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.Anonymous.get -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.Client(string! clientId) -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.EndUser(string? subjectId) -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditActor.System.get -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int

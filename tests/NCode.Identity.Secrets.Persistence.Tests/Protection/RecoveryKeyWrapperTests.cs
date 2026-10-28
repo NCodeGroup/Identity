@@ -250,7 +250,7 @@ public class RecoveryKeyWrapperTests : IDisposable
             await wrapper.UnwrapAsync(
                 wrapped,
                 ReadOnlyMemory<byte>.Empty,
-                new byte[SecretProtectionFormat.MasterKeySizeBytes],
+                new ArrayBufferWriter<byte>(),
                 CancellationToken.None
             )
         );

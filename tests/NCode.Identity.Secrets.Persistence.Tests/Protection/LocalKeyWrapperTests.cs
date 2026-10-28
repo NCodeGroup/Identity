@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
@@ -70,19 +71,14 @@ public class LocalKeyWrapperTests : IDisposable
         );
         var key = CreateKey();
         var context = CreateContext();
-        var destination = new byte[key.Length];
+        var destination = new ArrayBufferWriter<byte>();
 
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
         Assert.Equal(KeyWrapperNames.Local, wrappedKey.WrapperName);
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination);
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -116,18 +112,13 @@ public class LocalKeyWrapperTests : IDisposable
         using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
         var key = CreateKey();
         var context = CreateContext();
-        var destination = new byte[key.Length];
+        var destination = new ArrayBufferWriter<byte>();
 
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination);
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -137,18 +128,13 @@ public class LocalKeyWrapperTests : IDisposable
         using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
         var key = CreateKey();
         var context = CreateContext();
-        var destination = new byte[key.Length];
+        var destination = new ArrayBufferWriter<byte>();
 
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination);
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -164,18 +150,13 @@ public class LocalKeyWrapperTests : IDisposable
         using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
         var key = CreateKey();
         var context = CreateContext();
-        var destination = new byte[key.Length];
+        var destination = new ArrayBufferWriter<byte>();
 
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination);
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -190,21 +171,6 @@ public class LocalKeyWrapperTests : IDisposable
 
         Assert.Equal(AesGcmKeyWrap.FingerprintLength, wrappedKey.KeyId.Length);
         Assert.Equal(AesGcmKeyWrap.GetWrappedLength(key.Length), wrappedKey.Ciphertext.Length);
-    }
-
-    [Fact]
-    public async Task Unwrap_DestinationTooSmall_Throws()
-    {
-        using var provider = CreateProvider(
-            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
-        );
-        var context = CreateContext();
-        var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes - 1];
-
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None)
-        );
     }
 
     [Fact]
@@ -225,17 +191,12 @@ public class LocalKeyWrapperTests : IDisposable
                 PreviousKeyPaths = [previousPath],
             }
         );
-        var destination = new byte[key.Length];
+        var destination = new ArrayBufferWriter<byte>();
 
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination);
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -253,7 +214,7 @@ public class LocalKeyWrapperTests : IDisposable
         using var provider = CreateProvider(
             new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
         );
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
+        var destination = new ArrayBufferWriter<byte>();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
             await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None)

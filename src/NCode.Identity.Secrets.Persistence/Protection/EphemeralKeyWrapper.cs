@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Identity.Secrets.KeyWrapping;
@@ -105,10 +106,10 @@ internal class EphemeralKeyWrapper : IKeyWrapper, IDisposable
     /// Thrown when the key was wrapped by a different instance of this provider, which includes an instance in another
     /// process, or when the key was altered or the context does not match.
     /// </exception>
-    public ValueTask<int> UnwrapAsync(
+    public ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     )
     {
@@ -121,13 +122,8 @@ internal class EphemeralKeyWrapper : IKeyWrapper, IDisposable
             );
         }
 
-        var written = AesGcmKeyWrap.Unwrap(
-            RootKey.Span,
-            wrappedKey.Ciphertext,
-            context.Span,
-            destination.Span
-        );
-        return ValueTask.FromResult(written);
+        AesGcmKeyWrap.Unwrap(RootKey.Span, wrappedKey.Ciphertext, context.Span, ref destination);
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>

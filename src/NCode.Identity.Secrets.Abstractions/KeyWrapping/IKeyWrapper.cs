@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
@@ -52,9 +53,11 @@ public interface IKeyWrapper
     );
 
     /// <summary>
-    /// Unwraps a key that was wrapped by <see cref="WrapAsync"/> and writes it into a buffer that the caller provides.
-    /// The caller owns the buffer, should rent it from a sensitive pool, and is responsible for zeroing it when the key
-    /// is no longer needed.
+    /// Unwraps a key that was wrapped by <see cref="WrapAsync"/> and writes it to a writer that the caller provides.
+    /// The wrapper advances <paramref name="destination"/> by the length of the key. The caller cannot know that
+    /// length in advance, so it should pass a sensitive writer, such as one from
+    /// <c>BufferFactory.CreatePooledBufferWriter(isSensitive: true, …)</c>, and is responsible for zeroing it when the
+    /// key is no longer needed.
     /// </summary>
     /// <param name="wrappedKey">The wrapped key to unwrap.</param>
     /// <param name="context">
@@ -62,16 +65,10 @@ public interface IKeyWrapper
     /// must match the context that was used to wrap the key.
     /// </param>
     /// <param name="destination">
-    /// The buffer that receives the unwrapped key, which must be at least as long as the key. The wrapper writes
-    /// nothing beyond the key, and leaves the bytes that it did write zeroed when the key cannot be unwrapped.
+    /// The writer that receives the unwrapped key. When the key cannot be unwrapped, the wrapper advances nothing and
+    /// zeroes any span that it obtained from the writer.
     /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// The number of bytes that were written to <paramref name="destination"/>, which is the length of the key.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="destination"/> is too small to hold the unwrapped key.
-    /// </exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the key cannot be unwrapped, for example because it was altered, because the context does not match,
     /// or because the key encryption key is not available.
@@ -79,10 +76,10 @@ public interface IKeyWrapper
     /// <exception cref="NotSupportedException">
     /// Thrown when the wrapper can only wrap, for example because it holds only the public half of an asymmetric key.
     /// </exception>
-    ValueTask<int> UnwrapAsync(
+    ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     );
 }

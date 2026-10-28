@@ -169,27 +169,23 @@ internal class MasterKeyFactory(
         );
         var context = contextBuffer[..contextWritten];
 
-        // The destination is twice the size of a master key, so a provider that unwraps a longer key writes it and the
-        // length check below reports it, instead of the provider rejecting a destination that is too small.
-        const int destinationSize = SecretProtectionFormat.MasterKeySizeBytes * 2;
-        using var lease = BufferFactory.Rent(
-            destinationSize,
+        using var destination = BufferFactory.CreatePooledBufferWriter(
             isSensitive: true,
-            out Memory<byte> destination
+            SecretProtectionFormat.MasterKeySizeBytes
         );
 
-        var written = await Catalog
+        await Catalog
             .Get(row.RootKeyProvider)
             .UnwrapAsync(wrappedKey, context, destination, cancellationToken);
 
-        if (written != SecretProtectionFormat.MasterKeySizeBytes)
+        if (destination.Length != SecretProtectionFormat.MasterKeySizeBytes)
         {
             throw new CryptographicException(
                 $"The master key '{row.KeyId}' of owner '{owner}' does not have the size of a master key."
             );
         }
 
-        var material = destination[..written];
+        using var material = destination.GetSpanLease(isSensitive: true);
 
         if (!IsKeyCheckValid(material.Span, row, owner))
         {

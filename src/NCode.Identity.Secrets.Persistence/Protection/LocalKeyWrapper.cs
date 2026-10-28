@@ -125,10 +125,10 @@ internal class LocalKeyWrapper(IOptions<LocalKeyWrapperOptions> options) : IKeyW
     /// Thrown when none of the configured root keys wrapped the key, or when the key was altered or the context does
     /// not match.
     /// </exception>
-    public ValueTask<int> UnwrapAsync(
+    public ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     )
     {
@@ -144,13 +144,13 @@ internal class LocalKeyWrapper(IOptions<LocalKeyWrapperOptions> options) : IKeyW
             );
         }
 
-        var written = AesGcmKeyWrap.Unwrap(
+        AesGcmKeyWrap.Unwrap(
             rootKey.Key.Span,
             wrappedKey.Ciphertext,
             context.Span,
-            destination.Span
+            ref destination
         );
-        return ValueTask.FromResult(written);
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>

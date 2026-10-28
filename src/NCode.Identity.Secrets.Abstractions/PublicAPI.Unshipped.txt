@@ -182,7 +182,7 @@ const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Jwk = "jwk" -> s
 const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Pem = "pem" -> string!
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.Name.get -> string!
-NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, System.ReadOnlyMemory<byte> context, System.Memory<byte> destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, System.ReadOnlyMemory<byte> context, System.Buffers.IBufferWriter<byte>! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.WrapAsync(System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
 NCode.Identity.Secrets.KeyWrapping.WrappedKey
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.get -> string!

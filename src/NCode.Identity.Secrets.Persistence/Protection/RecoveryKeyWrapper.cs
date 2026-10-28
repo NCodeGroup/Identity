@@ -164,10 +164,10 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
     /// <exception cref="NotSupportedException">
     /// Always thrown, because the recovery private key is kept offline.
     /// </exception>
-    public ValueTask<int> UnwrapAsync(
+    public ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     ) =>
         throw new NotSupportedException(

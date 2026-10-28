@@ -115,29 +115,27 @@ internal static class AesGcmKeyWrap
 
     /// <summary>
     /// Unwraps a key that was wrapped by <see cref="Wrap{TWriter}"/> and writes it into a buffer that the caller
-    /// provides. The caller owns the buffer and is responsible for zeroing it when the key is no longer needed.
+    /// provides. The caller owns the writer and is responsible for zeroing it when the key is no longer needed.
     /// </summary>
+    /// <typeparam name="TWriter">The type of the writer that receives the unwrapped key.</typeparam>
     /// <param name="rootKey">The root key that wrapped the key.</param>
     /// <param name="ciphertext">The wrapped key as base64url text.</param>
     /// <param name="context">The associated data that was bound to the wrapped key.</param>
     /// <param name="destination">
-    /// The buffer that receives the unwrapped key, which must be at least as long as the key. The bytes that were
-    /// written are zeroed when the key cannot be unwrapped.
+    /// The writer that receives the unwrapped key. It is advanced only on success, and the span that was obtained from
+    /// it is zeroed when the key cannot be unwrapped.
     /// </param>
-    /// <returns>The length of the unwrapped key.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="destination"/> is too small to hold the unwrapped key.
-    /// </exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the wrapped key is not valid base64url text, is too short, or was altered, or when the root key or
     /// the context does not match the ones that wrapped the key.
     /// </exception>
-    public static int Unwrap(
+    public static void Unwrap<TWriter>(
         ReadOnlySpan<byte> rootKey,
         ReadOnlySpan<char> ciphertext,
         ReadOnlySpan<byte> context,
-        Span<byte> destination
+        ref TWriter destination
     )
+        where TWriter : IBufferWriter<byte>, allows ref struct
     {
         // A remainder of one character is not a valid base64url length, and counting its bytes throws.
         if (ciphertext.Length % 4 == 1)
@@ -152,14 +150,6 @@ internal static class AesGcmKeyWrap
         }
 
         var keyLength = wrappedSize - MinimumWrappedSizeBytes;
-        if (destination.Length < keyLength)
-        {
-            throw new ArgumentException(
-                "The destination is too small to hold the unwrapped key.",
-                nameof(destination)
-            );
-        }
-
         using var lease = BufferFactory.Rent(
             wrappedSize,
             isSensitive: false,
@@ -191,7 +181,7 @@ internal static class AesGcmKeyWrap
         var encrypted = wrapped.Slice(SecretProtectionFormat.NonceSizeBytes, keyLength);
         var tag = wrapped[(SecretProtectionFormat.NonceSizeBytes + keyLength)..];
 
-        var key = destination[..keyLength];
+        var key = destination.GetSpan(keyLength)[..keyLength];
         var succeeded = false;
         try
         {
@@ -199,7 +189,6 @@ internal static class AesGcmKeyWrap
             aes.Decrypt(nonce, encrypted, tag, key, context);
 
             succeeded = true;
-            return keyLength;
         }
         finally
         {
@@ -208,6 +197,8 @@ internal static class AesGcmKeyWrap
                 CryptographicOperations.ZeroMemory(key);
             }
         }
+
+        destination.Advance(keyLength);
     }
 
     /// <summary>

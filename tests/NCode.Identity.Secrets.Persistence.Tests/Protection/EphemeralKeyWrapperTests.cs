@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using NCode.Identity.Secrets.KeyWrapping;
@@ -37,53 +38,28 @@ public class EphemeralKeyWrapperTests
         using var provider = new EphemeralKeyWrapper();
         var key = CreateKey();
         var context = CreateContext();
-        var destination = new byte[key.Length];
+        var destination = new ArrayBufferWriter<byte>();
 
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination);
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
-    public async Task Unwrap_DestinationLargerThanKey_WritesOnlyTheKey()
+    public async Task Unwrap_WritesExactlyTheKey()
     {
         using var provider = new EphemeralKeyWrapper();
         var key = CreateKey();
         var context = CreateContext();
-        var destination = new byte[key.Length + 8];
-        Array.Fill(destination, (byte)0xFF);
+        var destination = new ArrayBufferWriter<byte>();
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
 
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(key.Length, written);
-        Assert.Equal(key, destination[..written]);
-        Assert.All(destination[written..], x => Assert.Equal(0xFF, x));
-    }
-
-    [Fact]
-    public async Task Unwrap_DestinationTooSmall_Throws()
-    {
-        using var provider = new EphemeralKeyWrapper();
-        var context = CreateContext();
-        var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes - 1];
-
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None)
-        );
+        Assert.Equal(key.Length, destination.WrittenCount);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -96,7 +72,7 @@ public class EphemeralKeyWrapperTests
             CancellationToken.None
         );
         var otherContext = "other-context"u8.ToArray();
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
+        var destination = new ArrayBufferWriter<byte>();
 
         await Assert.ThrowsAnyAsync<CryptographicException>(async () =>
             await provider.UnwrapAsync(
@@ -115,7 +91,7 @@ public class EphemeralKeyWrapperTests
         using var otherProvider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
+        var destination = new ArrayBufferWriter<byte>();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
             await otherProvider.UnwrapAsync(
@@ -163,8 +139,7 @@ public class EphemeralKeyWrapperTests
         using var provider = new EphemeralKeyWrapper();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
-        Array.Fill(destination, (byte)0xFF);
+        var destination = new ArrayBufferWriter<byte>();
 
         var bytes = Base64Url.DecodeFromChars(wrappedKey.Ciphertext);
         bytes[SecretProtectionFormat.NonceSizeBytes] ^= 0x01;
@@ -179,7 +154,11 @@ public class EphemeralKeyWrapperTests
             await provider.UnwrapAsync(tamperedKey, context, destination, CancellationToken.None)
         );
 
-        Assert.All(destination, x => Assert.Equal(0, x));
+        Assert.Equal(0, destination.WrittenCount);
+        var spare = destination.GetSpan(SecretProtectionFormat.MasterKeySizeBytes)[
+            ..SecretProtectionFormat.MasterKeySizeBytes
+        ];
+        Assert.All(spare.ToArray(), x => Assert.Equal(0, x));
     }
 
     [Theory]
@@ -197,7 +176,7 @@ public class EphemeralKeyWrapperTests
             KeyId = wrappedKey.KeyId,
             Ciphertext = ciphertext,
         };
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
+        var destination = new ArrayBufferWriter<byte>();
 
         await Assert.ThrowsAnyAsync<CryptographicException>(async () =>
             await provider.UnwrapAsync(malformedKey, context, destination, CancellationToken.None)
@@ -216,7 +195,7 @@ public class EphemeralKeyWrapperTests
             KeyId = wrappedKey.KeyId,
             Ciphertext = new string('!', wrappedKey.Ciphertext.Length),
         };
-        var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
+        var destination = new ArrayBufferWriter<byte>();
 
         await Assert.ThrowsAnyAsync<CryptographicException>(async () =>
             await provider.UnwrapAsync(malformedKey, context, destination, CancellationToken.None)

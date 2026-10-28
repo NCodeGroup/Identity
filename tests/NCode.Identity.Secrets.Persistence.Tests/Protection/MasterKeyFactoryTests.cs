@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Moq;
@@ -171,8 +172,8 @@ public class MasterKeyFactoryTests : IDisposable
             context,
             CancellationToken.None
         );
-        var rootDestination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
-        var rootWritten = await _provider.UnwrapAsync(
+        var rootDestination = new ArrayBufferWriter<byte>();
+        await _provider.UnwrapAsync(
             new WrappedKey
             {
                 WrapperName = row.RootKeyProvider,
@@ -186,8 +187,8 @@ public class MasterKeyFactoryTests : IDisposable
 
         Assert.Equal(KeyWrapperNames.Ephemeral, row.RootKeyProvider);
         Assert.Equal(probe.KeyId, row.RootKeyId);
-        Assert.Equal(SecretProtectionFormat.MasterKeySizeBytes, rootWritten);
-        Assert.Equal(key.Material.ToArray(), rootDestination);
+        Assert.Equal(SecretProtectionFormat.MasterKeySizeBytes, rootDestination.WrittenCount);
+        Assert.Equal(key.Material.ToArray(), rootDestination.WrittenSpan.ToArray());
         Assert.Equal(recovery.RecoveryKeyId, row.RecoveryKeyId);
         Assert.NotNull(row.RecoveryWrappedKey);
         var recoveryUnwrapped = recoveryKey.Decrypt(
@@ -231,7 +232,7 @@ public class MasterKeyFactoryTests : IDisposable
                 x.UnwrapAsync(
                     It.IsAny<WrappedKey>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
-                    It.IsAny<Memory<byte>>(),
+                    It.IsAny<IBufferWriter<byte>>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -239,7 +240,7 @@ public class MasterKeyFactoryTests : IDisposable
                 (
                     WrappedKey wrapped,
                     ReadOnlyMemory<byte> _,
-                    Memory<byte> destination,
+                    IBufferWriter<byte> destination,
                     CancellationToken token
                 ) => _provider.UnwrapAsync(wrapped, originalContext, destination, token)
             )
@@ -320,7 +321,7 @@ public class MasterKeyFactoryTests : IDisposable
                     It.Is<ReadOnlyMemory<byte>>(context =>
                         Enumerable.SequenceEqual(context.ToArray(), expectedContext)
                     ),
-                    It.IsAny<Memory<byte>>(),
+                    It.IsAny<IBufferWriter<byte>>(),
                     CancellationToken.None
                 )
             )
@@ -328,12 +329,12 @@ public class MasterKeyFactoryTests : IDisposable
                 (
                     WrappedKey _,
                     ReadOnlyMemory<byte> _,
-                    Memory<byte> destination,
+                    IBufferWriter<byte> destination,
                     CancellationToken _
                 ) =>
                 {
-                    material.CopyTo(destination);
-                    return ValueTask.FromResult(material.Length);
+                    destination.Write(material);
+                    return ValueTask.CompletedTask;
                 }
             )
             .Verifiable();
@@ -371,7 +372,7 @@ public class MasterKeyFactoryTests : IDisposable
                 x.UnwrapAsync(
                     It.IsAny<WrappedKey>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
-                    It.IsAny<Memory<byte>>(),
+                    It.IsAny<IBufferWriter<byte>>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -379,12 +380,12 @@ public class MasterKeyFactoryTests : IDisposable
                 (
                     WrappedKey _,
                     ReadOnlyMemory<byte> _,
-                    Memory<byte> destination,
+                    IBufferWriter<byte> destination,
                     CancellationToken _
                 ) =>
                 {
-                    material.CopyTo(destination);
-                    return ValueTask.FromResult(material.Length);
+                    destination.Write(material);
+                    return ValueTask.CompletedTask;
                 }
             )
             .Verifiable();

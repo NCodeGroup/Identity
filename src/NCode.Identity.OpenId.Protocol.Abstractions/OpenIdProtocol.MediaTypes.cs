@@ -37,5 +37,16 @@ public static partial class OpenIdProtocol
         /// authorization error page.
         /// </summary>
         public const string Html = "text/html";
+
+        /// <summary>
+        /// Contains the <c>application/x-www-form-urlencoded</c> content type used by <c>OAuth</c> and <c>OpenID Connect</c> requests.
+        /// </summary>
+        public const string FormUrlEncoded = "application/x-www-form-urlencoded";
+
+        /// <summary>
+        /// The <c>application/jwk-set+json</c> media type of a JSON Web Key Set
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc7517#section-8.5.1">RFC 7517 §8.5.1</see>).
+        /// </summary>
+        public const string JwkSet = "application/jwk-set+json";
     }
 }

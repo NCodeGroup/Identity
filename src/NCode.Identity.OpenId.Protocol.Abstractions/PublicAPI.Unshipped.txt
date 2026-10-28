@@ -23,6 +23,7 @@ const NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods.SmartCard = "sc
 const NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods.UserPresenceTest = "user" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods.VoiceBiometric = "vbm" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods.WindowsIntegratedAuthentication = "wia" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.BackChannelLogout.EventName = "http://schemas.openid.net/event/backchannel-logout" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.BackchannelTokenDeliveryModes.Ping = "ping" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.BackchannelTokenDeliveryModes.Poll = "poll" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.BackchannelTokenDeliveryModes.Push = "push" -> string!
@@ -83,8 +84,10 @@ const NCode.Identity.OpenId.OpenIdProtocol.GrantTypes.Implicit = "implicit" -> s
 const NCode.Identity.OpenId.OpenIdProtocol.GrantTypes.Password = "password" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.GrantTypes.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.GrantTypes.TokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.FormUrlEncoded = "application/x-www-form-urlencoded" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.Html = "text/html" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.Json = "application/json" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.JwkSet = "application/jwk-set+json" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.AccessToken = "access_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.AccessTokenHash = "at_hash" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.AcrValues = "acr_values" -> string!
@@ -193,6 +196,8 @@ const NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes.Phone = "phone" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes.Profile = "profile" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes.Pairwise = "pairwise" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes.Public = "public" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeHints.AccessToken = "access_token" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeHints.RefreshToken = "refresh_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers.AccessToken = "urn:ietf:params:oauth:token-type:access_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers.IdToken = "urn:ietf:params:oauth:token-type:id_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers.Jwt = "urn:ietf:params:oauth:token-type:jwt" -> string!
@@ -206,6 +211,7 @@ const NCode.Identity.OpenId.OpenIdProtocol.TokenTypes.RefreshToken = "refresh_to
 NCode.Identity.OpenId.OpenIdProtocol
 NCode.Identity.OpenId.OpenIdProtocol.AuthenticationContextClassReferences
 NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods
+NCode.Identity.OpenId.OpenIdProtocol.BackChannelLogout
 NCode.Identity.OpenId.OpenIdProtocol.BackchannelTokenDeliveryModes
 NCode.Identity.OpenId.OpenIdProtocol.ClaimTypes
 NCode.Identity.OpenId.OpenIdProtocol.ClientAssertionTypes
@@ -223,5 +229,6 @@ NCode.Identity.OpenId.OpenIdProtocol.ResponseModes
 NCode.Identity.OpenId.OpenIdProtocol.ResponseTypes
 NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes
 NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes
+NCode.Identity.OpenId.OpenIdProtocol.TokenTypeHints
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypes

@@ -73,7 +73,10 @@ public static class WrappedKeyCiphertext
         }
 
         if (!decoded)
-            throw new ArgumentException("The destination is too small to hold the decoded wrapped key.", nameof(destination));
+            throw new ArgumentException(
+                "The destination is too small to hold the decoded wrapped key.",
+                nameof(destination)
+            );
 
         return bytesWritten;
     }

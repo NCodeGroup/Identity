@@ -43,7 +43,9 @@ public class WrappedKeyCiphertextTests
     [Fact]
     public void GetByteCount_Empty_ThrowsCryptographicException()
     {
-        var exception = Assert.Throws<CryptographicException>(() => WrappedKeyCiphertext.GetByteCount(string.Empty));
+        var exception = Assert.Throws<CryptographicException>(() =>
+            WrappedKeyCiphertext.GetByteCount(string.Empty)
+        );
 
         Assert.Equal(EmptyMessage, exception.Message);
     }
@@ -53,7 +55,9 @@ public class WrappedKeyCiphertextTests
     [InlineData("AAAAA")]
     public void GetByteCount_ImpossibleLength_ThrowsCryptographicException(string text)
     {
-        var exception = Assert.Throws<CryptographicException>(() => WrappedKeyCiphertext.GetByteCount(text));
+        var exception = Assert.Throws<CryptographicException>(() =>
+            WrappedKeyCiphertext.GetByteCount(text)
+        );
 
         Assert.Equal(NotBase64UrlMessage, exception.Message);
     }
@@ -80,7 +84,9 @@ public class WrappedKeyCiphertextTests
     {
         var destination = new byte[4];
 
-        var exception = Assert.Throws<CryptographicException>(() => WrappedKeyCiphertext.Decode(string.Empty, destination));
+        var exception = Assert.Throws<CryptographicException>(() =>
+            WrappedKeyCiphertext.Decode(string.Empty, destination)
+        );
 
         Assert.Equal(EmptyMessage, exception.Message);
     }
@@ -94,7 +100,9 @@ public class WrappedKeyCiphertextTests
     {
         var destination = new byte[4];
 
-        var exception = Assert.Throws<CryptographicException>(() => WrappedKeyCiphertext.Decode(text, destination));
+        var exception = Assert.Throws<CryptographicException>(() =>
+            WrappedKeyCiphertext.Decode(text, destination)
+        );
 
         Assert.Equal(NotBase64UrlMessage, exception.Message);
         Assert.IsType<FormatException>(exception.InnerException);
@@ -106,7 +114,9 @@ public class WrappedKeyCiphertextTests
         const string text = "AA==";
         var destination = new byte[4];
 
-        var exception = Assert.Throws<CryptographicException>(() => WrappedKeyCiphertext.Decode(text, destination));
+        var exception = Assert.Throws<CryptographicException>(() =>
+            WrappedKeyCiphertext.Decode(text, destination)
+        );
 
         Assert.Equal(NotBase64UrlMessage, exception.Message);
     }
@@ -117,7 +127,9 @@ public class WrappedKeyCiphertextTests
         const string text = "AAAAA";
         var destination = new byte[4];
 
-        var exception = Assert.Throws<CryptographicException>(() => WrappedKeyCiphertext.Decode(text, destination));
+        var exception = Assert.Throws<CryptographicException>(() =>
+            WrappedKeyCiphertext.Decode(text, destination)
+        );
 
         Assert.Equal(NotBase64UrlMessage, exception.Message);
     }
@@ -128,7 +140,9 @@ public class WrappedKeyCiphertextTests
         var text = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
         var destination = new byte[31];
 
-        var exception = Assert.Throws<ArgumentException>(() => WrappedKeyCiphertext.Decode(text, destination));
+        var exception = Assert.Throws<ArgumentException>(() =>
+            WrappedKeyCiphertext.Decode(text, destination)
+        );
 
         Assert.Equal("destination", exception.ParamName);
     }

@@ -1,0 +1,203 @@
+#region Copyright Preamble
+
+//
+//    Copyright @ 2023 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+namespace NCode.Identity.OpenId;
+
+public static partial class OpenIdProtocol
+{
+    /// <summary>
+    /// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> error codes.
+    /// </summary>
+    public static class ErrorCodes
+    {
+        // OAuth 2.0 Authorization/Token Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1
+        // https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_grant</c>.
+        /// </summary>
+        public const string InvalidGrant = "invalid_grant";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_client</c>.
+        /// </summary>
+        public const string InvalidClient = "invalid_client";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_request</c>.
+        /// </summary>
+        public const string InvalidRequest = "invalid_request";
+
+        /// <summary>
+        /// Contains the error code for <c>unauthorized_client</c>.
+        /// </summary>
+        public const string UnauthorizedClient = "unauthorized_client";
+
+        /// <summary>
+        /// Contains the error code for <c>unsupported_grant_type</c>.
+        /// </summary>
+        public const string UnsupportedGrantType = "unsupported_grant_type";
+
+        /// <summary>
+        /// Contains the error code for <c>access_denied</c>.
+        /// </summary>
+        public const string AccessDenied = "access_denied";
+
+        // OAuth 2.0 Device Authorization Grant Token Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc8628#section-3.5
+
+        /// <summary>
+        /// Contains the error code for <c>authorization_pending</c>, returned while the end user has not yet completed
+        /// the device authorization (<see href="https://datatracker.ietf.org/doc/html/rfc8628#section-3.5">RFC 8628</see>).
+        /// </summary>
+        public const string AuthorizationPending = "authorization_pending";
+
+        /// <summary>
+        /// Contains the error code for <c>slow_down</c>, returned when the device polls faster than the permitted
+        /// interval and must increase its polling interval (<see href="https://datatracker.ietf.org/doc/html/rfc8628#section-3.5">RFC 8628</see>).
+        /// </summary>
+        public const string SlowDown = "slow_down";
+
+        /// <summary>
+        /// Contains the error code for <c>expired_token</c>, returned when the <c>device_code</c> has expired
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc8628#section-3.5">RFC 8628</see>).
+        /// </summary>
+        public const string ExpiredToken = "expired_token";
+
+        /// <summary>
+        /// Contains the constant value 'unknown_user_id' (OpenID Connect CIBA): the OP could not resolve the supplied
+        /// login hint to a known user.
+        /// </summary>
+        public const string UnknownUserId = "unknown_user_id";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_token</c>, used when a bearer access token is missing, malformed,
+        /// expired, revoked, or otherwise invalid (<see href="https://datatracker.ietf.org/doc/html/rfc6750#section-3.1">RFC 6750</see>).
+        /// </summary>
+        public const string InvalidToken = "invalid_token";
+
+        /// <summary>
+        /// Contains the error code for <c>unsupported_response_type</c>.
+        /// </summary>
+        public const string UnsupportedResponseType = "unsupported_response_type";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_scope</c>.
+        /// </summary>
+        public const string InvalidScope = "invalid_scope";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_target</c>, returned when a requested <c>resource</c> indicator
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc8707">RFC 8707</see>) is unknown, malformed, or exceeds
+        /// what the client is authorized to target.
+        /// </summary>
+        public const string InvalidTarget = "invalid_target";
+
+        /// <summary>
+        /// Contains the error code for <c>server_error</c>.
+        /// </summary>
+        public const string ServerError = "server_error";
+
+        /// <summary>
+        /// Contains the error code for <c>temporarily_unavailable</c>.
+        /// </summary>
+        public const string TemporarilyUnavailable = "temporarily_unavailable";
+
+        // https://openid.net/specs/openid-connect-core-1_0.html#AuthError
+
+        /// <summary>
+        /// Contains the error code for <c>interaction_required</c>.
+        /// </summary>
+        public const string InteractionRequired = "interaction_required";
+
+        /// <summary>
+        /// Contains the error code for <c>login_required</c>.
+        /// </summary>
+        public const string LoginRequired = "login_required";
+
+        /// <summary>
+        /// Contains the error code for <c>account_selection_required</c>.
+        /// </summary>
+        public const string AccountSelectionRequired = "account_selection_required";
+
+        /// <summary>
+        /// Contains the error code for <c>consent_required</c>.
+        /// </summary>
+        public const string ConsentRequired = "consent_required";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_request_uri</c>.
+        /// </summary>
+        public const string InvalidRequestUri = "invalid_request_uri";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_request_object</c>.
+        /// </summary>
+        public const string InvalidRequestJwt = "invalid_request_object";
+
+        /// <summary>
+        /// Contains the error code for <c>request_not_supported</c>.
+        /// </summary>
+        public const string RequestNotSupported = "request_not_supported";
+
+        /// <summary>
+        /// Contains the error code for <c>request_uri_not_supported</c>.
+        /// </summary>
+        public const string RequestUriNotSupported = "request_uri_not_supported";
+
+        /// <summary>
+        /// Contains the error code for <c>registration_not_supported</c>.
+        /// </summary>
+        public const string RegistrationNotSupported = "registration_not_supported";
+
+        // OAuth 2.0 Dynamic Client Registration Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_redirect_uri</c>, returned when one or more redirection URIs in a
+        /// dynamic client registration request are invalid (<see href="https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2">RFC 7591</see>).
+        /// </summary>
+        public const string InvalidRedirectUri = "invalid_redirect_uri";
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_client_metadata</c>, returned when a dynamic client registration
+        /// request contains invalid, inconsistent, or unsupported client metadata
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2">RFC 7591</see>).
+        /// </summary>
+        public const string InvalidClientMetadata = "invalid_client_metadata";
+
+        // OAuth 2.0 Demonstrating Proof of Possession (DPoP) Error Responses
+        // https://datatracker.ietf.org/doc/html/rfc9449#section-5
+
+        /// <summary>
+        /// Contains the error code for <c>invalid_dpop_proof</c>, returned when a required DPoP proof JWT is missing,
+        /// malformed, has an invalid signature, or fails one of the proof validations
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-5">RFC 9449</see>).
+        /// </summary>
+        public const string InvalidDPoPProof = "invalid_dpop_proof";
+
+        /// <summary>
+        /// Contains the error code for <c>use_dpop_nonce</c>, returned when the server requires the DPoP proof to
+        /// include a server-provided <c>nonce</c>; the response carries the value in a <c>DPoP-Nonce</c> header
+        /// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-8">RFC 9449</see>).
+        /// </summary>
+        public const string UseDPoPNonce = "use_dpop_nonce";
+    }
+}

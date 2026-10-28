@@ -377,6 +377,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidIssuer, result.FailureCode);
     }
 
     [Fact]
@@ -393,6 +394,28 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidAudience, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenClaimValueMismatch_FailsWithInvalidClaim()
+    {
+        var token = EncodeToken();
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateClaim(
+                JoseClaimNames.Payload.Iss,
+                usePayload: true,
+                allowCollection: false,
+                ["https://other.example"]
+            );
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidClaim, result.FailureCode);
     }
 
     [Fact]
@@ -409,6 +432,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.Expired, result.FailureCode);
     }
 
     [Fact]
@@ -436,6 +460,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtDecodeException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidSignature, result.FailureCode);
     }
 
     [Fact]
@@ -450,6 +475,22 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await result.GetClaimsIdentityAsync(CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAssertionIsNotSatisfied_FailsWithAssertionFailed()
+    {
+        var token = EncodeToken();
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .RequireAssertion((_, _) => ValueTask.FromResult(false));
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.AssertionFailed, result.FailureCode);
     }
 
     #endregion
@@ -514,6 +555,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("'iat'", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]
@@ -540,6 +582,22 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("issued in the future", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.NotYetValid, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNotBeforeIsInFutureBeyondClockSkew_FailsAsNotYetValid()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["nbf"] = now + 301, ["exp"] = now + 600 }
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("not valid before", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.NotYetValid, result.FailureCode);
     }
 
     #endregion
@@ -574,6 +632,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("issued-at", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]
@@ -625,6 +684,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("exceeds the maximum", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]
@@ -736,6 +796,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
+        Assert.Null(result.FailureCode);
     }
 
     [Theory]
@@ -774,6 +835,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidTokenType, result.FailureCode);
     }
 
     [Fact]
@@ -789,6 +851,56 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
+    }
+
+    #endregion
+
+    #region JwtValidationContext Tests
+
+    [Fact]
+    public async Task ValidateAsync_WhenAHandlerFailsWithACode_RecordsTheFirstCode()
+    {
+        var token = EncodeToken();
+        JwtValidationContext? captured = null;
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .RequireAssertion(
+                (context, _) =>
+                {
+                    context.Fail("custom_code", "The custom check failed.");
+                    captured = context;
+                    return ValueTask.FromResult(false);
+                }
+            );
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        var capturedContext = Assert.IsType<JwtValidationContext>(captured);
+        Assert.True(capturedContext.HasFailed);
+        Assert.Equal("custom_code", capturedContext.FailureCode);
+        Assert.Equal("custom_code", result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAHandlerFailsWithAnEmptyCode_Throws()
+    {
+        var token = EncodeToken();
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .RequireAssertion(
+                (context, _) =>
+                {
+                    Assert.Throws<ArgumentException>(() => context.Fail(string.Empty, "reason"));
+                    return ValueTask.FromResult(true);
+                }
+            );
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.True(result.IsValid);
     }
 
     #endregion

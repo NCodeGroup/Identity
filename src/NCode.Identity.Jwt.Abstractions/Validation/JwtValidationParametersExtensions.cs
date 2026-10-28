@@ -105,30 +105,42 @@ public static class JwtValidationParametersExtensions
 
         /// <summary>
         /// Adds a requirement that asserts the <c>iss</c> payload claim is any of the specified <paramref name="validIssuers"/>.
+        /// The requirement fails with <see cref="JwtValidationFailureCodes.InvalidIssuer"/>.
         /// </summary>
         /// <param name="validIssuers">The collection of allowable values for the <c>iss</c> claim.</param>
         /// <returns>The <see cref="JwtValidationParameters"/> instance for method chaining.</returns>
         public JwtValidationParameters ValidateIssuer(params IEnumerable<string> validIssuers) =>
-            parameters.ValidateClaim(
-                JoseClaimNames.Payload.Iss,
-                usePayload: true,
-                allowCollection: false,
-                validIssuers
+            parameters.AddRequirement(
+                new ClaimValueRequirement(
+                    JoseClaimNames.Payload.Iss,
+                    UsePayload: true,
+                    AllowCollection: false,
+                    validIssuers as IReadOnlyCollection<string> ?? [.. validIssuers]
+                )
+                {
+                    FailureCode = JwtValidationFailureCodes.InvalidIssuer,
+                }
             );
 
         /// <summary>
         /// Adds a requirement that asserts the <c>aud</c> payload claim is any of the specified <paramref name="validAudiences"/>.
+        /// The requirement fails with <see cref="JwtValidationFailureCodes.InvalidAudience"/>.
         /// </summary>
         /// <param name="validAudiences">The collection of allowable values for the <c>aud</c> claim.</param>
         /// <returns>The <see cref="JwtValidationParameters"/> instance for method chaining.</returns>
         public JwtValidationParameters ValidateAudience(
             params IEnumerable<string> validAudiences
         ) =>
-            parameters.ValidateClaim(
-                JoseClaimNames.Payload.Aud,
-                usePayload: true,
-                allowCollection: true,
-                validAudiences
+            parameters.AddRequirement(
+                new ClaimValueRequirement(
+                    JoseClaimNames.Payload.Aud,
+                    UsePayload: true,
+                    AllowCollection: true,
+                    validAudiences as IReadOnlyCollection<string> ?? [.. validAudiences]
+                )
+                {
+                    FailureCode = JwtValidationFailureCodes.InvalidAudience,
+                }
             );
 
         /// <summary>

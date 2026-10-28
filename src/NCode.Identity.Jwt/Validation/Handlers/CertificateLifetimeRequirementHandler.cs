@@ -69,13 +69,19 @@ internal sealed class CertificateLifetimeRequirementHandler
 
         if (notBeforeTicks > nowTicks + clockSkewTicks)
         {
-            context.Fail($"The certificate is not valid before {notBefore}.");
+            context.Fail(
+                JwtValidationFailureCodes.InvalidCertificate,
+                $"The certificate is not valid before {notBefore}."
+            );
             return ValueTask.CompletedTask;
         }
 
         if (notAfterTicks < nowTicks - clockSkewTicks)
         {
-            context.Fail($"The certificate is not valid after {notAfter}.");
+            context.Fail(
+                JwtValidationFailureCodes.InvalidCertificate,
+                $"The certificate is not valid after {notAfter}."
+            );
             return ValueTask.CompletedTask;
         }
 

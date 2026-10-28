@@ -62,10 +62,13 @@ public sealed class LogoutTokenValidationResult
     /// <summary>
     /// Initializes a new instance of the <see cref="LogoutTokenValidationResult"/> class for an invalid logout token.
     /// </summary>
+    /// <param name="failureCode">The machine-readable code of the reason the logout token is invalid.</param>
     /// <param name="failureReason">The reason the logout token is invalid.</param>
-    public LogoutTokenValidationResult(string failureReason)
+    public LogoutTokenValidationResult(string failureCode, string failureReason)
     {
+        ArgumentException.ThrowIfNullOrEmpty(failureCode);
         ArgumentException.ThrowIfNullOrEmpty(failureReason);
+        FailureCode = failureCode;
         FailureReason = failureReason;
     }
 
@@ -97,6 +100,13 @@ public sealed class LogoutTokenValidationResult
     public string? SessionId { get; }
 
     /// <summary>
+    /// Gets the machine-readable code of the reason the logout token is invalid, a
+    /// <see cref="TokenValidationFailureCodes"/> value or another code a validator reports; otherwise,
+    /// <see langword="null"/>.
+    /// </summary>
+    public string? FailureCode { get; }
+
+    /// <summary>
     /// Gets the reason the logout token is invalid; otherwise, <see langword="null"/>.
     /// </summary>
     public string? FailureReason { get; }
@@ -104,7 +114,7 @@ public sealed class LogoutTokenValidationResult
     /// <summary>
     /// Gets a value indicating whether the logout token is valid.
     /// </summary>
-    [MemberNotNullWhen(false, nameof(FailureReason))]
+    [MemberNotNullWhen(false, nameof(FailureCode), nameof(FailureReason))]
     [MemberNotNullWhen(true, nameof(TokenId))]
-    public bool IsValid => FailureReason is null;
+    public bool IsValid => FailureCode is null;
 }

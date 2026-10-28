@@ -1,4 +1,4 @@
-# 278. Key wrapping is a secrets abstraction shared by the root and recovery wrappers
+# 279. Key wrapping is a secrets abstraction shared by the root and recovery wrappers
 
 - **Status:** Accepted
 - **Date:** 2026-10-28

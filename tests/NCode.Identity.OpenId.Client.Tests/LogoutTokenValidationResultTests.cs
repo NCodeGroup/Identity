@@ -42,6 +42,7 @@ public class LogoutTokenValidationResultTests
         );
 
         Assert.True(result.IsValid);
+        Assert.Null(result.FailureCode);
         Assert.Null(result.FailureReason);
         Assert.Equal(payload.ToString(), result.Payload.ToString());
         Assert.Equal("jti-1", result.TokenId);
@@ -97,17 +98,31 @@ public class LogoutTokenValidationResultTests
     [Fact]
     public void Constructor_WhenFailureReason_IsInvalid()
     {
-        var result = new LogoutTokenValidationResult("bad signature");
+        var result = new LogoutTokenValidationResult(
+            TokenValidationFailureCodes.InvalidSignature,
+            "bad signature"
+        );
 
         Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
         Assert.Equal("bad signature", result.FailureReason);
         Assert.Null(result.TokenId);
     }
 
     [Fact]
+    public void Constructor_WhenFailureCodeIsEmpty_Throws()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new LogoutTokenValidationResult("", "bad signature")
+        );
+    }
+
+    [Fact]
     public void Constructor_WhenFailureReasonIsEmpty_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new LogoutTokenValidationResult(""));
+        Assert.Throws<ArgumentException>(() =>
+            new LogoutTokenValidationResult(TokenValidationFailureCodes.InvalidSignature, "")
+        );
     }
 
     #endregion

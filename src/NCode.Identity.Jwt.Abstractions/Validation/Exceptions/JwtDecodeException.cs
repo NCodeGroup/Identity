@@ -22,6 +22,7 @@ namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
 /// Represents errors that occur when decoding a <c>JSON Web Token (JWT)</c> fails.
+/// The failure code defaults to <see cref="JwtValidationFailureCodes.InvalidSignature"/>.
 /// </summary>
 [PublicAPI]
 [Serializable]
@@ -39,7 +40,7 @@ public class JwtDecodeException : JwtValidationException
     public JwtDecodeException()
         : base(DefaultMessage)
     {
-        // nothing
+        FailureCode = JwtValidationFailureCodes.InvalidSignature;
     }
 
     /// <summary>
@@ -49,7 +50,7 @@ public class JwtDecodeException : JwtValidationException
     public JwtDecodeException(string message)
         : base(message)
     {
-        // nothing
+        FailureCode = JwtValidationFailureCodes.InvalidSignature;
     }
 
     /// <summary>
@@ -62,6 +63,6 @@ public class JwtDecodeException : JwtValidationException
     public JwtDecodeException(string message, Exception inner)
         : base(message, inner)
     {
-        // nothing
+        FailureCode = JwtValidationFailureCodes.InvalidSignature;
     }
 }

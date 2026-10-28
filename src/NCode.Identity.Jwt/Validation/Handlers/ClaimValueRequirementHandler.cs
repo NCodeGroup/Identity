@@ -42,13 +42,16 @@ internal sealed class ClaimValueRequirementHandler : JwtValidationHandler<ClaimV
 
         if (!claims.TryGetProperty(requirement.ClaimName, out var property))
         {
-            context.Fail($"The claim '{requirement.ClaimName}' is missing.");
+            context.Fail(
+                requirement.FailureCode,
+                $"The claim '{requirement.ClaimName}' is missing."
+            );
             return ValueTask.CompletedTask;
         }
 
         if (property.IsNullOrUndefined())
         {
-            context.Fail($"The claim '{requirement.ClaimName}' is null.");
+            context.Fail(requirement.FailureCode, $"The claim '{requirement.ClaimName}' is null.");
             return ValueTask.CompletedTask;
         }
 
@@ -60,6 +63,7 @@ internal sealed class ClaimValueRequirementHandler : JwtValidationHandler<ClaimV
             if (!requirement.AllowCollection)
             {
                 context.Fail(
+                    requirement.FailureCode,
                     $"The claim '{requirement.ClaimName}' does not allow multiple values."
                 );
                 return ValueTask.CompletedTask;
@@ -74,6 +78,7 @@ internal sealed class ClaimValueRequirementHandler : JwtValidationHandler<ClaimV
             )
             {
                 context.Fail(
+                    requirement.FailureCode,
                     $"The claim '{requirement.ClaimName}' is invalid because it does not contain any of the valid values."
                 );
                 return ValueTask.CompletedTask;
@@ -85,6 +90,7 @@ internal sealed class ClaimValueRequirementHandler : JwtValidationHandler<ClaimV
             if (!validValueSet.Contains(stringValue))
             {
                 context.Fail(
+                    requirement.FailureCode,
                     $"The claim '{requirement.ClaimName}' is invalid because it does not contain any of the valid values."
                 );
                 return ValueTask.CompletedTask;

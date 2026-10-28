@@ -36,7 +36,10 @@ internal sealed class AssertionRequirementHandler : JwtValidationHandler<Asserti
         }
         else
         {
-            context.Fail("The assertion requirement was not satisfied.");
+            context.Fail(
+                JwtValidationFailureCodes.AssertionFailed,
+                "The assertion requirement was not satisfied."
+            );
         }
     }
 }

@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// name is an open string, so these are not necessarily all of the key wrappers that exist. A secret protection
 /// configuration selects its root key wrapper by one of these names.
 /// </summary>
-// See ADR-0278.
+// See ADR-0279.
 [PublicAPI]
 public static class KeyWrapperNames
 {

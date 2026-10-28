@@ -24,9 +24,10 @@ namespace NCode.Identity.OpenId.Client;
 /// Validates the logout tokens that a provider posts to a client's back-channel logout endpoint.
 /// </summary>
 /// <remarks>
-/// An invalid token is returned as data in <see cref="LogoutTokenValidationResult.FailureReason"/>. A failure of the
-/// provider, such as an unreachable discovery or JWKS endpoint, throws <see cref="OpenIdProviderException"/>. A valid
-/// token's <c>jti</c> is recorded in the shared <c>IExpiringKeySet</c>, so the same token validates only once.
+/// An invalid token is returned as data, where <see cref="LogoutTokenValidationResult.FailureCode"/> names why it is
+/// invalid and <see cref="LogoutTokenValidationResult.FailureReason"/> describes it. A failure of the provider, such as
+/// an unreachable discovery or JWKS endpoint, throws <see cref="OpenIdProviderException"/>. A valid token's <c>jti</c>
+/// is recorded in the shared <c>IExpiringKeySet</c>, so the same token validates only once.
 /// </remarks>
 [PublicAPI]
 public interface ILogoutTokenValidator

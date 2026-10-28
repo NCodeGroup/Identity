@@ -1034,7 +1034,11 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   there. Name the decryption keys with `UseDecryptionKeys` (the recipient's keys, never the signer's); the validator
   never infers them. Never re-check `alg` by hand after validation in place of the allow-list — a check after decoding
   runs after the cryptography it must precede; an early check that only picks a precise error code is fine alongside it.
-  The validator accepts only signed compact JWTs (a JWE only as a Nested JWT); there is no opt-in for `alg:none`. See
+  The validator accepts only signed compact JWTs (a JWE only as a Nested JWT); there is no opt-in for `alg:none`. A
+  validation handler fails with `JwtValidationContext.Fail(failureCode, reason)`, naming a `JwtValidationFailureCodes`
+  value or a code of its own, and code that acts on why a token failed reads `JwtValidationResult.FailureCode` or a
+  result's `FailureCode`, never the message text
+  ([ADR-0278](../../docs/decisions/0278-token-validation-failures-carry-a-machine-readable-code.md)). See
   [ADR-0154](../../docs/decisions/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md).
 - 👁 **Protect a JWT addressed to a client through `IClientJwtCredentialSelector`.** It signs with the algorithm the
   client registered (`*_signed_response_alg`) and encrypts to a public key the client published, within the client's

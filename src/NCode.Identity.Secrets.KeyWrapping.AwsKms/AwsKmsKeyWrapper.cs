@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Amazon.KeyManagementService;
@@ -118,17 +119,14 @@ internal class AwsKmsKeyWrapper(
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="wrappedKey"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="destination"/> is too small to hold the unwrapped key.
-    /// </exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the wrapped key does not name a KMS key, is not valid base64url text, or was rejected by the
     /// service as altered or as wrapped under another key or context.
     /// </exception>
-    public async ValueTask<int> UnwrapAsync(
+    public async ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     )
     {
@@ -200,7 +198,7 @@ internal class AwsKmsKeyWrapper(
             );
         }
 
-        return CopyPlaintext(response.Plaintext, destination.Span);
+        CopyPlaintext(response.Plaintext, destination);
     }
 
     private static Dictionary<string, string> CreateEncryptionContext(
@@ -244,7 +242,7 @@ internal class AwsKmsKeyWrapper(
         return Base64Url.Encode(buffer);
     }
 
-    private static int CopyPlaintext(MemoryStream plaintext, Span<byte> destination)
+    private static void CopyPlaintext(MemoryStream plaintext, IBufferWriter<byte> destination)
     {
         if (plaintext.TryGetBuffer(out var segment))
         {
@@ -252,30 +250,15 @@ internal class AwsKmsKeyWrapper(
             var source = segment.AsSpan();
             using var lifetime = source.GetSecureLifetime();
 
-            if (source.Length > destination.Length)
-            {
-                throw new ArgumentException(
-                    "The destination is too small to hold the unwrapped key.",
-                    nameof(destination)
-                );
-            }
-
-            source.CopyTo(destination);
-            return source.Length;
+            source.CopyTo(destination.GetSpan(source.Length));
+            destination.Advance(source.Length);
+            return;
         }
 
         // The SDK did not expose its buffer, so the key is read straight into the destination.
         plaintext.Position = 0;
-        if (plaintext.Length > destination.Length)
-        {
-            throw new ArgumentException(
-                "The destination is too small to hold the unwrapped key.",
-                nameof(destination)
-            );
-        }
-
-        var length = (int)plaintext.Length;
-        plaintext.ReadExactly(destination[..length]);
-        return length;
+        var length = checked((int)plaintext.Length);
+        plaintext.ReadExactly(destination.GetSpan(length)[..length]);
+        destination.Advance(length);
     }
 }

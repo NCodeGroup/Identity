@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Amazon.KeyManagementService;
@@ -218,7 +219,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(OtherRegionKeyArn, ciphertext);
-        var destination = new byte[48];
+        var destination = new ArrayBufferWriter<byte>();
         using var cancellationSource = new CancellationTokenSource();
         SetupClient("eu-central-1");
         SetupDecrypt(
@@ -227,12 +228,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         );
         var provider = CreateProvider(KeyArn);
 
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            cancellationSource.Token
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, cancellationSource.Token);
 
         var request = Assert.IsType<CapturedRequest>(DecryptCall);
         Assert.Equal(OtherRegionKeyArn, request.KeyId);
@@ -241,35 +237,8 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var contextEntry = Assert.Single(request.EncryptionContext);
         Assert.Equal(ExpectedContextKey, contextEntry.Key);
         Assert.Equal(Base64Url.EncodeToString(context), contextEntry.Value);
-        Assert.Equal(plaintext.Length, written);
-        Assert.Equal(plaintext, destination[..written]);
-        Assert.Equal(new byte[destination.Length - written], destination[written..]);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task UnwrapAsync_DestinationTooSmall_ThrowsArgumentException(
-        bool plaintextBufferIsVisible
-    )
-    {
-        var plaintext = RandomNumberGenerator.GetBytes(32);
-        var ciphertext = RandomNumberGenerator.GetBytes(64);
-        var context = "root-context"u8.ToArray();
-        var wrappedKey = CreateWrappedKey(KeyArn, ciphertext);
-        var destination = new byte[16];
-        SetupClient("us-west-2");
-        SetupDecrypt(
-            new DecryptResponse { Plaintext = CreateStream(plaintext, plaintextBufferIsVisible) },
-            CancellationToken.None
-        );
-        var provider = CreateProvider(KeyArn);
-
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None).AsTask()
-        );
-
-        Assert.Equal("destination", exception.ParamName);
+        Assert.Equal(plaintext.Length, destination.WrittenCount);
+        Assert.Equal(plaintext, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -278,7 +247,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyArn, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var kmsException = new InvalidCiphertextException("The ciphertext is invalid.");
         SetupClient("us-west-2");
         SetupDecryptThrows(kmsException);
@@ -297,7 +266,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyArn, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var kmsException = new IncorrectKeyException("The key does not match the ciphertext.");
         SetupClient("us-west-2");
         SetupDecryptThrows(kmsException);
@@ -316,7 +285,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyArn, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var kmsException = new KMSInternalException("The service failed.");
         SetupClient("us-west-2");
         SetupDecryptThrows(kmsException);
@@ -335,7 +304,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey("not-an-arn", ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var provider = CreateProvider(KeyArn);
 
         await Assert.ThrowsAsync<CryptographicException>(() =>
@@ -359,7 +328,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
             KeyId = KeyArn,
             Ciphertext = ciphertext,
         };
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var provider = CreateProvider(KeyArn);
 
         await Assert.ThrowsAsync<CryptographicException>(() =>

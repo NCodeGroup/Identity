@@ -65,10 +65,14 @@ internal class ProviderHttpClient(
 
             var mediaType = response.Content.Headers.ContentType?.MediaType;
             if (
-                !string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase)
+                !string.Equals(
+                    mediaType,
+                    OpenIdProtocol.MediaTypes.Json,
+                    StringComparison.OrdinalIgnoreCase
+                )
                 && !string.Equals(
                     mediaType,
-                    "application/jwk-set+json",
+                    OpenIdProtocol.MediaTypes.JwkSet,
                     StringComparison.OrdinalIgnoreCase
                 )
             )

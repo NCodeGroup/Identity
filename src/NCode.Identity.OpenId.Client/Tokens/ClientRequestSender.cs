@@ -70,7 +70,9 @@ internal class ClientRequestSender(
             );
 
         using var request = new HttpRequestMessage(HttpMethod.Post, uri);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue(OpenIdProtocol.MediaTypes.Json)
+        );
 
         await authenticator.AuthenticateAsync(
             new ClientAuthenticationContext(registration, metadata, endpoint, request, parameters),

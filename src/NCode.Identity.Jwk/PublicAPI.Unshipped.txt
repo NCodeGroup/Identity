@@ -71,6 +71,7 @@ NCode.Identity.Jwk.JsonWebKeyParameterNames
 NCode.Identity.Jwk.JsonWebKeySet
 NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Collections.Generic.IEnumerable<NCode.Identity.Jwk.JsonWebKey!>! keys) -> void
 NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Text.Json.JsonElement element) -> void
+NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Text.Json.JsonElement element, System.Collections.Generic.IEnumerable<NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!>! keyTypeDescriptors) -> void
 NCode.Identity.Jwk.JsonWebKeySet.Keys.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Jwk.JsonWebKey!>
 NCode.Identity.Jwk.JsonWebKeySet.ToJsonString() -> string!
 NCode.Identity.Jwk.JsonWebKeySet.TryGetKey(string! keyId, out NCode.Identity.Jwk.JsonWebKey? key) -> bool
@@ -88,6 +89,7 @@ override NCode.Identity.Jwk.JsonWebKeySet.ToString() -> string!
 static NCode.Identity.Jwk.JsonWebKey.Parse(string! json) -> NCode.Identity.Jwk.JsonWebKey!
 static NCode.Identity.Jwk.JsonWebKeySet.Empty.get -> NCode.Identity.Jwk.JsonWebKeySet!
 static NCode.Identity.Jwk.JsonWebKeySet.Parse(string! json) -> NCode.Identity.Jwk.JsonWebKeySet!
+static NCode.Identity.Jwk.JsonWebKeySet.Parse(string! json, System.Collections.Generic.IEnumerable<NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!>! keyTypeDescriptors) -> NCode.Identity.Jwk.JsonWebKeySet!
 static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Akp.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
 static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Ec.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
 static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Oct.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!

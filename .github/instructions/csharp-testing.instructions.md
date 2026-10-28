@@ -396,9 +396,16 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   registered `token_endpoint_auth_method`
   ([ADR-0145](../../docs/decisions/0145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
   seeder registers one: `SeedConfidentialClientAsync` (`client_secret_post`), `SeedClientSecretBasicClientAsync`,
-  `SeedClientSecretJwtClientAsync`, the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders,
-  and `SeedPublicClientAsync` (`none`). A negative test whose client is registered for another method is refused for the
+  `SeedClientSecretJwtClientAsync`, `SeedSharedSecretClientWithSettingsAsync` (either shared-secret method, with
+  redirect URIs and settings), the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders, and
+  `SeedPublicClientAsync` (`none`). A negative test whose client is registered for another method is refused for the
   wrong reason — `invalid_client` from the method mismatch — and passes without exercising the rule it names.
+- 👁 **Drive the protocol client against the host, and record what it sends.** Route
+  `OpenIdClientDefaults.HttpClientName` to `factory.Server.CreateHandler()` with `ConfigurePrimaryHttpMessageHandler`,
+  and add `RecordingHttpMessageHandler` with `AddHttpMessageHandler` over one `ConcurrentQueue<RecordedHttpExchange>`.
+  Each exchange keeps the request's path, `Authorization` scheme and body with the response's status code, so a test
+  proves the wire — a `201` push that carries `client_id` once and no `request_uri` — as well as the client's result
+  (`AuthorizationRequestClientEndToEndTests`).
 - 👁 **Build a certificate subject with `X500DistinguishedNameBuilder` to choose each value's string type.** A subject
   DN is matched by RFC 4517 rules, not by bytes.
 - 👁 **Serve revocation data through a stub handler, never the network.** Build a CRL with

@@ -79,7 +79,7 @@ public sealed class JsonWebKeySet
         // RFC 7517 §5.1: the "keys" member is REQUIRED and is an array of JWK objects.
         if (
             root.ValueKind != JsonValueKind.Object
-            || !root.TryGetProperty("keys", out var keys)
+            || !root.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keys)
             || keys.ValueKind != JsonValueKind.Array
         )
         {
@@ -142,7 +142,7 @@ public sealed class JsonWebKeySet
     internal void WriteTo(Utf8JsonWriter writer)
     {
         writer.WriteStartObject();
-        writer.WritePropertyName("keys");
+        writer.WritePropertyName(JsonWebKeySetParameterNames.Keys);
         writer.WriteStartArray();
         foreach (var key in Keys)
         {

@@ -1189,12 +1189,12 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     private static bool HasCertificate(JsonElement jwks) =>
-        jwks.TryGetProperty("keys", out var keys)
+        jwks.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keys)
         && keys.ValueKind == JsonValueKind.Array
         && keys.EnumerateArray()
             .Any(key =>
                 key.ValueKind == JsonValueKind.Object
-                && key.TryGetProperty("x5c", out var x5c)
+                && key.TryGetProperty(JsonWebKeyParameterNames.X509CertificateChain, out var x5c)
                 && x5c.ValueKind == JsonValueKind.Array
                 && x5c.GetArrayLength() > 0
             );

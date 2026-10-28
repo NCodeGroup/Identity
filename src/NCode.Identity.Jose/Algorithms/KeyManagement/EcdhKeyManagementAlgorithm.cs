@@ -25,6 +25,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
@@ -103,7 +104,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             {
                 header[JoseClaimNames.Header.Epk] = new Dictionary<string, object>
                 {
-                    [JoseClaimNames.Header.Kty] = "EC",
+                    [JoseClaimNames.Header.Kty] = JsonWebKeyTypes.Ec,
                     [JoseClaimNames.Header.Crv] = $"P-{curveSizeBits}",
                     [JoseClaimNames.Header.X] = Base64Url.Encode(parameters.Q.X),
                     [JoseClaimNames.Header.Y] = Base64Url.Encode(parameters.Q.Y),
@@ -141,9 +142,9 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             throw new JoseException("The 'epk' header is missing the 'kty' field.");
         }
 
-        if (!string.Equals(kty, "EC", StringComparison.Ordinal))
+        if (!string.Equals(kty, JsonWebKeyTypes.Ec, StringComparison.Ordinal))
         {
-            throw new JoseException("The 'kty' field was expected to be 'EC'.");
+            throw new JoseException($"The 'kty' field was expected to be '{JsonWebKeyTypes.Ec}'.");
         }
 
         if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Crv, out var crv))

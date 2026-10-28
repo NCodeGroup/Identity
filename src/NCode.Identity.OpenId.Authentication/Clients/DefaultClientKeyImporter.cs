@@ -51,17 +51,19 @@ internal class DefaultClientKeyImporter(
 {
     // RFC 7517 §4.3: the key operations that belong to each public key use. An operation outside both is not judged.
     private static FrozenSet<string> SignatureOperations { get; } =
-        new[] { "sign", "verify" }.ToFrozenSet(StringComparer.Ordinal);
+        new[] { JsonWebKeyOperations.Sign, JsonWebKeyOperations.Verify }.ToFrozenSet(
+            StringComparer.Ordinal
+        );
 
     private static FrozenSet<string> EncryptionOperations { get; } =
         new[]
         {
-            "encrypt",
-            "decrypt",
-            "wrapKey",
-            "unwrapKey",
-            "deriveKey",
-            "deriveBits",
+            JsonWebKeyOperations.Encrypt,
+            JsonWebKeyOperations.Decrypt,
+            JsonWebKeyOperations.WrapKey,
+            JsonWebKeyOperations.UnwrapKey,
+            JsonWebKeyOperations.DeriveKey,
+            JsonWebKeyOperations.DeriveBits,
         }.ToFrozenSet(StringComparer.Ordinal);
 
     private ILogger<DefaultClientKeyImporter> Logger { get; } = logger;
@@ -238,7 +240,7 @@ internal class DefaultClientKeyImporter(
         // RFC 7517 §5: a JSON Web Key Set is an object whose 'keys' member is an array of keys.
         if (
             keySet.ValueKind == JsonValueKind.Object
-            && keySet.TryGetProperty("keys", out keys)
+            && keySet.TryGetProperty(JsonWebKeySetParameterNames.Keys, out keys)
             && keys.ValueKind == JsonValueKind.Array
         )
         {

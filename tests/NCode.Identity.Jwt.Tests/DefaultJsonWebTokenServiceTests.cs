@@ -436,6 +436,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtDecodeException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidSignature, result.FailureCode);
     }
 
     [Fact]
@@ -736,6 +737,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.True(result.IsValid);
         Assert.Null(result.Exception);
+        Assert.Null(result.FailureCode);
     }
 
     [Theory]
@@ -818,6 +820,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         var capturedContext = Assert.IsType<JwtValidationContext>(captured);
         Assert.True(capturedContext.HasFailed);
         Assert.Equal("custom_code", capturedContext.FailureCode);
+        Assert.Equal("custom_code", result.FailureCode);
     }
 
     [Fact]

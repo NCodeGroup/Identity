@@ -131,6 +131,9 @@ internal sealed class DefaultJwtValidator(
                     propertyBag,
                     token,
                     new JwtValidationException(BuildFailureReason(context))
+                    {
+                        FailureCode = context.FailureCode ?? JwtValidationFailureCodes.InvalidToken,
+                    }
                 );
             }
 
@@ -269,7 +272,10 @@ internal sealed class DefaultJwtValidator(
         {
             throw new JwtValidationException(
                 "An unsecured JWT ('alg' of 'none') is never accepted."
-            );
+            )
+            {
+                FailureCode = JwtValidationFailureCodes.AlgorithmNotPermitted,
+            };
         }
 
         var validationKeys = await ResolveValidationKeysAsync(
@@ -314,7 +320,10 @@ internal sealed class DefaultJwtValidator(
         {
             throw new JwtValidationException(
                 $"The {algorithmKind} algorithm '{algorithm}' is not permitted."
-            );
+            )
+            {
+                FailureCode = JwtValidationFailureCodes.AlgorithmNotPermitted,
+            };
         }
 
         return algorithm;
@@ -377,6 +386,7 @@ internal sealed class DefaultJwtValidator(
         TryEachKey(
             encryptedToken,
             decryptionKeys,
+            JwtValidationFailureCodes.DecryptionFailed,
             (token, key) => JoseSerializer.Decode(token, key),
             out secretKey
         );
@@ -389,6 +399,7 @@ internal sealed class DefaultJwtValidator(
         TryEachKey(
             signedToken,
             validationKeys,
+            JwtValidationFailureCodes.InvalidSignature,
             (token, key) => JoseSerializer.Deserialize<JsonElement>(token, key),
             out secretKey
         );
@@ -396,6 +407,7 @@ internal sealed class DefaultJwtValidator(
     private static T TryEachKey<T>(
         JoseToken joseToken,
         IEnumerable<SecretKey> candidateKeys,
+        string decodeFailureCode,
         Func<JoseToken, SecretKey, T> decode,
         out SecretKey secretKey
     )
@@ -433,6 +445,9 @@ internal sealed class DefaultJwtValidator(
 
         throw new JwtDecodeException(
             $"{JwtDecodeException.DefaultMessage}.\n\nToken:\n{joseToken}\n\nKeys attempted:\n{attemptedKeys}\nInner exceptions:\n{exceptions}"
-        );
+        )
+        {
+            FailureCode = decodeFailureCode,
+        };
     }
 }

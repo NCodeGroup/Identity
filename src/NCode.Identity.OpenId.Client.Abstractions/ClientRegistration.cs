@@ -69,6 +69,12 @@ public sealed class ClientRegistration(
         init => _idTokenSigningAlgorithms = ValidateAlgorithms(value);
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the client registered <c>backchannel_logout_session_required</c>, so a logout
+    /// token without a <c>sid</c> claim is rejected. The default is <see langword="false"/>.
+    /// </summary>
+    public bool BackchannelLogoutSessionRequired { get; init; }
+
     private static string[]? ValidateAlgorithms(IReadOnlyList<string>? value)
     {
         if (value is null)

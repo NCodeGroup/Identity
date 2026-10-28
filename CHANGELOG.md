@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client validates back-channel logout tokens.** `ILogoutTokenValidator.ValidateAsync` takes a
+  `ClientRegistration` and a `LogoutTokenValidationRequest` and returns a `LogoutTokenValidationResult` with
+  `IsValid`, the `TokenId`, `ExpiresAt`, `Subject`, `SessionId` and a `FailureReason`. It applies the ID-token
+  signature policy, then requires the `logout+jwt` `typ`, the back-channel logout `events` claim and a `sid` or `sub`,
+  refuses a `nonce`, and bounds a token's lifetime to 10 minutes. `ClientRegistration.BackchannelLogoutSessionRequired`
+  makes the `sid` mandatory. The `jti` is recorded in `IExpiringKeySet`, so a token validates once; that needs a
+  SharedState adapter registered
+  ([ADR-0274](docs/decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
+
 - **The OpenID protocol client validates ID tokens.** `IIdTokenValidator.ValidateAsync` takes a `ClientRegistration`
   and an `IdTokenValidationRequest` and returns an `IdTokenValidationResult` with `IsValid`, the `Payload` and a
   `FailureReason`; `AddOpenIdClientLibrary()` registers it. The signature algorithm policy is asymmetric-only, never
@@ -33,8 +42,8 @@ change to the public API is a **major** version bump.
   `ITokenRevocationClient` makes revocation requests; `IProviderMetadataResolver` and `IProviderKeySetResolver` resolve
   and cache a provider's discovery document and JWKS. Client authentication is an open `IClientAuthenticator`
   collection with `client_secret_basic`, `client_secret_post` and `private_key_jwt`. A `ClientRegistration` names its
-  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. PAR, DPoP, mTLS and
-  logout-token validation remain in phase 1b, and the BFF itself is not yet delivered
+  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. PAR, DPoP and mTLS remain
+  in phase 1b, and the BFF itself is not yet delivered
   ([ADR-0270](docs/decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 
 - **Shared state holds versioned expiring values and membership indexes.** `IExpiringValueSet` stores an opaque,

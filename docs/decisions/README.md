@@ -314,3 +314,4 @@ standards.
 | [0276](./0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |
 | [0277](./0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md) | A whole-number JSON value is accepted with a zero fraction | Accepted |
 | [0278](./0278-token-validation-failures-carry-a-machine-readable-code.md) | Token validation failures carry a machine-readable code | Accepted |
+| [0281](./0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md) | The JWK package takes contributed key types and hash names from its caller | Accepted |

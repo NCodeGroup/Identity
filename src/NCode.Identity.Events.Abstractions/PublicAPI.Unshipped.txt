@@ -187,7 +187,9 @@ NCode.Identity.Events.IEventPublisher.PublishAsync<TEvent>(TEvent event, System.
 NCode.Identity.Events.ISupportBackgroundDelivery
 NCode.Identity.Events.ISupportHandlerPriority
 NCode.Identity.Events.ISupportHandlerPriority.HandlerPriority.get -> int
-override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.Action.get -> string!
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.EventName.get -> string!
+override NCode.Identity.Events.Audit.ResourceChangeAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 static NCode.Identity.Events.Audit.AuditActor.Administrator(string? administratorId) -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.Anonymous.get -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.Client(string! clientId) -> NCode.Identity.Events.Audit.AuditActor!
@@ -207,3 +209,5 @@ virtual NCode.Identity.Events.Audit.AuditEvent.SchemaVersion.get -> int
 virtual NCode.Identity.Events.Audit.AuditEvent.Severity.get -> string!
 NCode.Identity.Events.ISupportMetricAttributes
 NCode.Identity.Events.ISupportMetricAttributes.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
+virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ParentResources.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Events.Audit.AuditResource!>!
+virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void

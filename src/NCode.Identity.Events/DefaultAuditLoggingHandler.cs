@@ -64,6 +64,8 @@ internal class DefaultAuditLoggingHandler(ILoggerFactory loggerFactory)
 
         var message = $"Audit '{@event.EventName}' {@event.Outcome}.";
 
+        // The state is the record's per-event audit.* key set, which a [LoggerMessage] method cannot declare,
+        // so this logs through ILogger.Log directly (ADR-0282).
         Logger.Log(
             level,
             new EventId(EventIds.AuditRecorded, nameof(EventIds.AuditRecorded)),

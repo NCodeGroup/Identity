@@ -16,6 +16,21 @@ NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AuthorizationCodeToke
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.Code.get -> string!
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.CodeVerifier.get -> string!
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.RedirectUri.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequest
+NCode.Identity.OpenId.Client.AuthorizationRequest.AdditionalParameters.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+NCode.Identity.OpenId.Client.AuthorizationRequest.AdditionalParameters.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.AuthorizationRequest(string! redirectUri, string! state, string! codeVerifier) -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.CodeVerifier.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequest.Nonce.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequest.Nonce.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.RedirectUri.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationRequest.Resources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Client.AuthorizationRequest.Resources.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.ResponseMode.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequest.ResponseMode.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.Scope.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequest.Scope.init -> void
+NCode.Identity.OpenId.Client.AuthorizationRequest.State.get -> string!
 NCode.Identity.OpenId.Client.ClientAuthenticationContext
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.ClientAuthenticationContext(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.OpenIdProviderMetadata! metadata, string! endpoint, System.Net.Http.HttpRequestMessage! request, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.Endpoint.get -> string!

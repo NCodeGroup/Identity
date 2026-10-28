@@ -85,6 +85,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `ES384`); otherwise use a stub key that declares the algorithm's size on another curve, because no other named
   curve has 521 bits and Ed25519 and Ed448 differ in size (`StubEccSecretKey` in `EccSignatureAlgorithmTests`,
   `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`).
+- 👁 **Test a contributed key type's private members with a member no standard key type uses.** A JWK counts a
+  member as private when it is a standard private name (`d`, `k`, `priv` and the RSA factors) or one of its key
+  type's `JsonWebKeyTypeDescriptor.PrivateMembers`, so a contributed type that keeps its private half in `d` is
+  refused by the standard names, and the test passes with the type's own rule removed. Give the type a private
+  member of its own (`sk` on a made-up `XKP` type), assert that the key read without its descriptor
+  (`new JsonWebKey(element)`) reports no private material, and assert the refusal's error text, because a later
+  check, the descriptor's JWK import, refuses the same key with another message (`ContributedKeyTypeDPoPProofTests`).
 - 👁 **A fix that moves a refusal earlier is proven by a request the old code deferred.** When the change is *when* a
   request is refused (credentials checked before sign-in rather than when the response is written), send a request the
   old code accepts and parks, for example an authorization request without `prompt=none`, which the old code answers

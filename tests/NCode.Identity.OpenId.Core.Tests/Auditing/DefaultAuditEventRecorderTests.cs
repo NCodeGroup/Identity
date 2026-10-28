@@ -249,50 +249,6 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal(7, captured.EventId.Version);
     }
 
-    [Fact]
-    public async Task RecordSubjectAuthenticationFailedAsync_WithReason_ForwardsWithAuthenticationFailedCode()
-    {
-        var mockContext = MockRepository.Create<OpenIdContext>();
-        var mockTenant = MockRepository.Create<OpenIdTenant>();
-        var mockPublisher = MockRepository.Create<IEventPublisher>();
-
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
-
-        SubjectAuthenticationAuditEvent? captured = null;
-        mockPublisher
-            .Setup(x =>
-                x.PublishAsync(
-                    It.IsAny<SubjectAuthenticationAuditEvent>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Callback(
-                (SubjectAuthenticationAuditEvent auditEvent, CancellationToken _) =>
-                    captured = auditEvent
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
-
-        await recorder.RecordSubjectAuthenticationFailedAsync(
-            mockContext.Object,
-            "Failed to authenticate the end-user.",
-            attemptedSubjectId: null,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(captured);
-        Assert.Equal(AuditOutcome.Failure, captured.Outcome);
-        Assert.Null(captured.SubjectId);
-        Assert.Equal(AuditActor.Anonymous, captured.Actor);
-        Assert.Equal("authentication_failed", captured.Error?.Code);
-        Assert.Equal("Failed to authenticate the end-user.", captured.Error?.Message);
-    }
-
     #endregion
 
     #region Authorization Decision Tests

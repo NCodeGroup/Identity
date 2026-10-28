@@ -195,21 +195,6 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     /// <inheritdoc />
     public ValueTask RecordSubjectAuthenticationFailedAsync(
         OpenIdContext openIdContext,
-        string? reason,
-        string? attemptedSubjectId,
-        CancellationToken cancellationToken
-    ) =>
-        RecordSubjectAuthenticationFailedAsync(
-            openIdContext,
-            "authentication_failed",
-            reason,
-            attemptedSubjectId,
-            cancellationToken
-        );
-
-    /// <inheritdoc />
-    public ValueTask RecordSubjectAuthenticationFailedAsync(
-        OpenIdContext openIdContext,
         string errorCode,
         string? errorMessage,
         string? attemptedSubjectId,

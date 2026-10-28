@@ -158,28 +158,6 @@ public interface IAuditEventRecorder
 
     /// <summary>
     /// Records that the server failed to authenticate an end-user subject for a protocol flow (for
-    /// example, an invalid or expired session, or an unresolvable subject identifier).
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="reason">A short, non-sensitive reason the authentication failed.</param>
-    /// <param name="attemptedSubjectId">The unverified identifier the caller attempted to authenticate as (such as a
-    /// username), when known, so a failed attempt is attributable for security monitoring. This is never a credential
-    /// or password; it is <c>null</c> when no identifier was presented.</param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
-    /// <returns>
-    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
-    /// </returns>
-    ValueTask RecordSubjectAuthenticationFailedAsync(
-        OpenIdContext openIdContext,
-        string? reason,
-        string? attemptedSubjectId,
-        CancellationToken cancellationToken
-    );
-
-    /// <summary>
-    /// Records that the server failed to authenticate an end-user subject for a protocol flow (for
     /// example, an invalid or expired session, or an unresolvable subject identifier), with a
     /// machine-readable error code.
     /// </summary>

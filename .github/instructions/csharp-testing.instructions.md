@@ -406,6 +406,15 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   Each exchange keeps the request's path, `Authorization` scheme and body with the response's status code, so a test
   proves the wire — a `201` push that carries `client_id` once and no `request_uri` — as well as the client's result
   (`AuthorizationRequestClientEndToEndTests`).
+- 👁 **Read the logout token the server delivers from the back-channel logout client.** Set
+  `HostApplicationFactory.BackChannelLogoutExchanges` to a `ConcurrentQueue<RecordedHttpExchange>` before the first
+  request, which replaces the SSRF-guarded `NCode.Identity.OpenId.BackChannelLogout` client's handler with
+  `StubRecordingHttpMessageHandler` (answers `200`, records each `POST`); the server notifies a client only after it
+  issued that client an ID token in the session, so run the code flow first, end the session with
+  `GET /oauth2/end_session` and the session cookie, and poll the queue with a deadline because a background job
+  delivers the token; the protocol client's container adds `AddSharedStateServices().AddInProcessExpiringKeySet()`,
+  because `AddOpenIdClientLibrary()` registers no `IExpiringKeySet` and the logout-token validator records each `jti`
+  in one (`LogoutTokenValidatorEndToEndTests`).
 - 👁 **Build a certificate subject with `X500DistinguishedNameBuilder` to choose each value's string type.** A subject
   DN is matched by RFC 4517 rules, not by bytes.
 - 👁 **Serve revocation data through a stub handler, never the network.** Build a CRL with

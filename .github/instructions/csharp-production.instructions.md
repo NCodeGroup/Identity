@@ -1011,6 +1011,12 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   because they throw on out-of-range input. A time claim that is **present but invalid fails closed** — never read it
   as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`. See
   [ADR-0123](../../docs/decisions/0123-numeric-date-is-read-strictly-and-range-guarded.md).
+- **Read a count of seconds a remote party sends (`expires_in`, `interval`) with `JsonElement.TryGetWholeInt32` /
+  `TryGetPropertyWholeInt32`, or `[JsonConverter(typeof(WholeInt32JsonConverter))]` on a serialized member** — never
+  `JsonElement.TryGetInt32` or the serializer's default `int` handling. JSON has one number type, so a peer may write
+  60 as `60.0` or `6e1`, which the BCL readers reject; the `NCode.Json` readers accept any whole value in `int` range
+  and still refuse a non-zero fraction, a string, and an out-of-range number. See
+  [ADR-0277](../../docs/decisions/0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md).
 - **Stamp an instant that a JWT or a stored grant carries with `NCode.Time`'s whole-second helpers.** Use
   `TimeProvider.GetUtcNowWithPrecisionInSeconds()` (or `GetTimestampWithPrecisionInSeconds()` for ticks) and
   `WithPrecisionInSeconds()`, so a stored time equals the `NumericDate` it round-trips through. Reference the

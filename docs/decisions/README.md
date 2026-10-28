@@ -310,5 +310,6 @@ standards.
 | [0272](./0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [0273](./0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted |
 | [0274](./0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |
-| [0275](./0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted |
+| [0275](./0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted (amended by [0277](./0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md)) |
 | [0276](./0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |
+| [0277](./0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md) | A whole-number JSON value is accepted with a zero fraction | Accepted |

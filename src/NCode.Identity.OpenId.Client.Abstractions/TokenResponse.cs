@@ -19,6 +19,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client;
 
@@ -71,10 +72,12 @@ public sealed class TokenResponse
     public string? IssuedTokenType { get; init; }
 
     /// <summary>
-    /// Gets the lifetime of the access token in seconds.
+    /// Gets the lifetime of the access token in seconds. A whole number is read in any JSON number form, such as
+    /// <c>60</c> or <c>60.0</c>; a number with a non-zero fraction fails deserialization.
     /// </summary>
     [JsonPropertyName(OpenIdProtocol.Parameters.ExpiresIn)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(WholeInt32JsonConverter))]
     public int? ExpiresIn { get; init; }
 
     /// <summary>

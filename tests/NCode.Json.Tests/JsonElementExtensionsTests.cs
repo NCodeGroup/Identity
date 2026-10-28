@@ -600,4 +600,74 @@ public class JsonElementExtensionsTests
     }
 
     #endregion
+
+    #region TryGetWholeInt32 Tests
+
+    [Theory]
+    [InlineData("60", 60)]
+    [InlineData("60.0", 60)]
+    [InlineData("6e1", 60)]
+    [InlineData("600e-1", 60)]
+    [InlineData("-60.0", -60)]
+    [InlineData("2147483647.0", int.MaxValue)]
+    [InlineData("-2147483648.0", int.MinValue)]
+    public void TryGetWholeInt32_WhenWholeNumber_ReturnsValue(string json, int expected)
+    {
+        var jsonElement = JsonElement.Parse(json);
+
+        var exists = jsonElement.TryGetWholeInt32(out var value);
+
+        Assert.True(exists);
+        Assert.Equal(expected, value);
+    }
+
+    [Theory]
+    [InlineData("60.5")]
+    [InlineData("60.0000000000000001")]
+    [InlineData("2147483648")]
+    [InlineData("2147483648.0")]
+    [InlineData("-2147483649.0")]
+    [InlineData("1e30")]
+    [InlineData("\"60\"")]
+    [InlineData("null")]
+    [InlineData("true")]
+    [InlineData("{}")]
+    public void TryGetWholeInt32_WhenNotAWholeInt32_ReturnsFalse(string json)
+    {
+        var jsonElement = JsonElement.Parse(json);
+
+        var exists = jsonElement.TryGetWholeInt32(out _);
+
+        Assert.False(exists);
+    }
+
+    #endregion
+
+    #region TryGetPropertyWholeInt32 Tests
+
+    [Fact]
+    public void TryGetPropertyWholeInt32_WhenPresent_ReturnsValue()
+    {
+        var jsonElement = JsonElement.Parse("""{"expires_in":60.0}""");
+
+        var exists = jsonElement.TryGetPropertyWholeInt32("expires_in", out var value);
+
+        Assert.True(exists);
+        Assert.Equal(60, value);
+    }
+
+    [Theory]
+    [InlineData("""{}""")]
+    [InlineData("""{"expires_in":60.5}""")]
+    [InlineData("""{"expires_in":"60"}""")]
+    public void TryGetPropertyWholeInt32_WhenMissingOrInvalid_ReturnsFalse(string json)
+    {
+        var jsonElement = JsonElement.Parse(json);
+
+        var exists = jsonElement.TryGetPropertyWholeInt32("expires_in", out _);
+
+        Assert.False(exists);
+    }
+
+    #endregion
 }

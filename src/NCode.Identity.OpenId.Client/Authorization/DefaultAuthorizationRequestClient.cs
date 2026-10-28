@@ -24,6 +24,7 @@ using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Tokens;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Authorization;
 
@@ -118,12 +119,10 @@ internal class DefaultAuthorizationRequestClient(
                 )
                 || requestUriElement.ValueKind != JsonValueKind.String
                 || requestUriElement.GetString() is not { Length: > 0 } requestUri
-                || !json.TryGetProperty(
+                || !json.TryGetPropertyWholeInt32(
                     OpenIdProtocol.Parameters.ExpiresIn,
-                    out var expiresInElement
+                    out var expiresIn
                 )
-                || expiresInElement.ValueKind != JsonValueKind.Number
-                || !expiresInElement.TryGetInt32(out var expiresIn)
                 || expiresIn <= 0
             )
             {

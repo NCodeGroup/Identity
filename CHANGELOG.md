@@ -2313,6 +2313,13 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The protocol client accepts an `expires_in` written with a zero fraction.** A pushed authorization response or a
+  token response whose `expires_in` was a whole number written as `60.0` or `6e1` failed with
+  `OpenIdProviderException`; the client reads it as 60 seconds and still rejects a non-zero fraction such as `60.5`.
+  `NCode.Json` adds `JsonElement.TryGetWholeInt32`, `TryGetPropertyWholeInt32` and `WholeInt32JsonConverter` for such
+  values, and `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Json`
+  ([ADR-0277](docs/decisions/0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md), issue [#352](https://github.com/NCodeGroup/Identity/issues/352)).
+
 - **An `AKP` JWK thumbprint covers `alg`.** The thumbprint was computed over `kty` and `pub` only; RFC 9964 §6 also
   requires `alg`, so two `AKP` keys that differ only in algorithm no longer share a thumbprint
   ([ADR-0271](docs/decisions/0271-a-key-type-registers-its-json-web-key-rules.md)).

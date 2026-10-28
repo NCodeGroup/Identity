@@ -40,6 +40,25 @@ public class TokenResponseTests : BaseTests
     }
 
     [Fact]
+    public void Deserialize_WithExpiresInZeroFraction_ReadsWholeSeconds()
+    {
+        const string json = """{"access_token":"at","token_type":"Bearer","expires_in":60.0}""";
+
+        var response = JsonSerializer.Deserialize<TokenResponse>(json);
+
+        Assert.NotNull(response);
+        Assert.Equal(60, response.ExpiresIn);
+    }
+
+    [Fact]
+    public void Deserialize_WithExpiresInNonZeroFraction_ThrowsJsonException()
+    {
+        const string json = """{"access_token":"at","token_type":"Bearer","expires_in":60.5}""";
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TokenResponse>(json));
+    }
+
+    [Fact]
     public void Serialize_WithIssuedTokenTypeAndExtensionData_WritesBoth()
     {
         var response = JsonSerializer.Deserialize<TokenResponse>(Document);

@@ -41,6 +41,10 @@ override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Read(re
 override NCode.Json.DelegatingJsonConverter<TInterface, TImplementation>.Write(System.Text.Json.Utf8JsonWriter! writer, TInterface value, System.Text.Json.JsonSerializerOptions! options) -> void
 override NCode.Json.UriJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> System.Uri?
 override NCode.Json.UriJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value, System.Text.Json.JsonSerializerOptions! options) -> void
+NCode.Json.WholeInt32JsonConverter
+NCode.Json.WholeInt32JsonConverter.WholeInt32JsonConverter() -> void
+override NCode.Json.WholeInt32JsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> int
+override NCode.Json.WholeInt32JsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, int value, System.Text.Json.JsonSerializerOptions! options) -> void
 static NCode.Json.DateCoercion.TryFromNumericDate(double seconds, out System.DateTimeOffset value) -> bool
 static NCode.Json.DateCoercion.TryFromNumericDate(long seconds, out System.DateTimeOffset value) -> bool
 static NCode.Json.DateCoercion.TryParseDateTime(string? text, out System.DateTime value) -> bool
@@ -56,7 +60,9 @@ NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() 
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetNumericDate(out System.DateTimeOffset value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyNumericDate(string! propertyName, out System.DateTimeOffset value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyValue<T>(string! propertyName, out T value) -> bool
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyWholeInt32(string! propertyName, out int value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetValue<T>(out T value) -> bool
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetWholeInt32(out int value) -> bool
 NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!)
 NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!).TryGetValue<T>(string! key, out T value) -> bool
 static NCode.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement

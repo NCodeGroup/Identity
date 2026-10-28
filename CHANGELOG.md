@@ -778,6 +778,28 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Audit events are CloudTrail-shaped JSON records.** `AuditRecordWriter` writes each audit event as one compact,
+  snake_case record whose field names are the constants of `AuditRecordFields`: `schema_version` (`"1.0"`), `event_id`
+  (a UUIDv7), `event_time` (UTC), `event_name`, `event_category`, `event_source`, `outcome`, `severity`, `tenant_id`,
+  `subject_id`, `client_id`, the `actor`, `request` and `error` objects, a `resources` array of `{type, id}` and an
+  event-specific `details` object that the event writes through `ISupportAuditDetails`. Null members and an empty
+  `resources` are omitted. `AuditActor`, `AuditRequest`, `AuditResource` and `AuditError` model the objects, and
+  `AuditActorTypes`, `AuditSeverities`, `AuditEventCategories`, `AuditEventSources`, `AuditResourceTypes`,
+  `OpenIdAuditEventNames` and `ManagementAuditEventNames` hold the open vocabularies. `AuditRequestFactory` builds
+  `request` from the HTTP context: the request, trace and span ids, the source IP, the User-Agent, the method, the path
+  (never the query string) and the endpoint. `DefaultAuditLoggingHandler` logs the record under the category
+  `NCode.Identity.Audit` with EventId 14005 and a state of `audit.*` key/value pairs, the audit span event carries the
+  same `audit.*` tags, and the audit metrics gain the `ncode.identity.audit.event_category` attribute. A refresh-token
+  replay logs at Critical. Breaking: `AuditEvent.Action` is `EventName`, `Timestamp` is `EventTime` and
+  `OpenIdAuditActions` is `OpenIdAuditEventNames`; `AuditEvent.EventName` and `EventCategory` are abstract and
+  `EventSource` is required; `SchemaVersion`, `CorrelationId`, `ActorId`, `Source` and `Reason` are removed, and
+  `OpenIdErrorEvent.ErrorCode`, `ErrorDescription` and `StatusCode` are replaced by `Error`;
+  `IAuditEventRecorder.RecordAuthorizationDeniedAsync` and `RecordClientAuthenticationFailedAsync` take `errorCode` in
+  place of `reason`, and `RecordSubjectAuthenticationFailedAsync` takes `(errorCode, errorMessage, attemptedSubjectId)`;
+  the metric attribute `ncode.identity.audit.action` is `ncode.identity.audit.event_name`; EventIds 14003 and 14004 are
+  retired
+  ([ADR-0282](docs/decisions/0282-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md),
+  [audit records](docs/audit-records.md)).
 - **Key wrapping is a shared secrets abstraction.** Every key wrapper implements `IKeyWrapper` (`Name`, `WrapAsync`,
   and `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`,
   `KeyId`, `Ciphertext`); both, with `KeyWrapperNames`, live in `NCode.Identity.Secrets.Abstractions` under

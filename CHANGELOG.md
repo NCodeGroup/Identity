@@ -16,8 +16,11 @@ change to the public API is a **major** version bump.
   `ClaimValueRequirement.FailureCode` names a claim check's code. `JwtValidationException.FailureCode` and
   `JwtValidationResult.FailureCode` report the first failure's code. `IdTokenValidationResult` and
   `LogoutTokenValidationResult` gain a `FailureCode` from the open `TokenValidationFailureCodes`, which adds
-  `subject_mismatch`, `nonce_mismatch`, `max_age_exceeded`, `token_hash_mismatch` and `token_replayed`. Their failure
-  constructors take the code before the reason. `FailureReason` stays text without the token
+  `subject_mismatch`, `nonce_mismatch`, `max_age_exceeded`, `token_hash_mismatch` and `token_replayed`.
+  **Breaking:** `JwtValidationContext.Fail(string reason)` is removed, so a handler passes a code first, and the failure
+  constructors of `IdTokenValidationResult` and `LogoutTokenValidationResult` take `(failureCode, failureReason)`.
+  `NCode.Identity.OpenId.Client.Abstractions` now references `NCode.Identity.Jwt.Abstractions`. `FailureReason` stays
+  text without the token
   ([ADR-0278](docs/decisions/0278-token-validation-failures-carry-a-machine-readable-code.md), issue [#343](https://github.com/NCodeGroup/Identity/issues/343)).
 
 - **The JWK package names the JSON Web Key vocabulary.** `NCode.Identity.Jwk` adds `JsonWebKeyUses`,

@@ -122,14 +122,16 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   The push protocol in [`repository.instructions.md`](.github/instructions/repository.instructions.md) promotes the
   plan's Decisions before its final review.
 - **Landing a plan:** once `/review-plan-diff` finds nothing to fix and the push protocol's gates pass, run
-  `/ship-plan draft` (every tool has it): it pushes the plan's branch and opens a draft pull request against `main`,
-  as the [Landing](#landing) section says. Keep `draft`: a pull request stays a draft until its author reviews it
-  ([ADR-0269](docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)), and without it
-  `/ship-plan` opens one ready for review. The squash merge takes its subject from the pull request title, which
-  `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject, such as
-  `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows where every open plan stands and the
-  command to run next. In Claude Code, `/run-issues #<number> …` takes issues one at a time from plan to a draft pull
-  request and answers the review threads you start; the `main` ruleset requires pull requests, so it runs here.
+  `/ship-plan` (every tool has it): it runs the [Landing](#landing) section's `gate`, pushes the plan's branch and
+  opens a pull request against `main`, as a draft because that section sets `draft: yes`: a pull request stays a draft
+  until its author reviews it
+  ([ADR-0269](docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). The squash merge takes
+  its subject from the pull request title, which `/ship-plan` takes from the plan's title, so a plan's title is a
+  conventional commit subject, such as `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows
+  where every open plan stands and the command to run next. In Claude Code, `/run-issues #<number> …` takes issues, or
+  groups of up to three, from plan to a draft pull request, landing them in queue order while it plans the next one,
+  and answers your review threads, top-level comments and review summaries; the `main` ruleset requires pull requests,
+  so it runs here.
 - **Finishing a plan:** once the merge queue has merged the plan's pull request, run `/finish-plan` (in Claude Code
   from the plan's session, or `/finish-plan <name>` from the main checkout). It deletes `PLAN.md`, fast-forwards
   `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The merge queue squash-merges, so the

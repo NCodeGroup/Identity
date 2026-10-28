@@ -7,7 +7,7 @@
   KMS root key providers; amended by
   [ADR-0265](0265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the
   tenant master key; amended by
-  [ADR-0279]($20279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
+  [ADR-0279](0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
   provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group

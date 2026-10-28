@@ -787,7 +787,7 @@ change to the public API is a **major** version bump.
   `.GoogleCloudKms`, with `Add<Vendor>KeyWrapper` and `<Vendor>KeyWrapperOptions` in place of
   `Add<Vendor>RootKeyProvider` and `<Vendor>RootKeyOptions`. Stored master keys, configuration keys and wrapper names
   are unchanged
-  ([ADR-0279]($20279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
+  ([ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
 - **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.** The new
   `NCode.Identity.OpenId.Protocol.Abstractions` package holds `OpenIdProtocol`, shared by the OP and the protocol
   client. The groups `Parameters`, `ErrorCodes`, `GrantTypes`, `ResponseTypes`, `ResponseModes`, `CodeChallengeMethods`,

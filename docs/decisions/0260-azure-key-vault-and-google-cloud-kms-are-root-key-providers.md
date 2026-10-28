@@ -1,7 +1,7 @@
 # 260. Azure Key Vault and Google Cloud KMS are root key providers
 
 - **Status:** Accepted (amended by
-  [ADR-0279]($20279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
+  [ADR-0279](0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
   provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group

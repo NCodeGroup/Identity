@@ -17,7 +17,7 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
   opt-in key wrapper adapters `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`
   ([ADR-0235](docs/decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-0260](docs/decisions/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-0279]($20279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md))
+  [ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md))
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),

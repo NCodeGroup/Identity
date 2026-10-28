@@ -138,7 +138,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **The payload isn't bound to a master key.** Rotating a master key only rewraps 32-byte data keys and never
   re-encrypts payloads.
 - **Open provider model.** Any KMS can be a root key provider by registering an `IKeyWrapper`
-  ([ADR-0150](../decisions/0150-vocabularies-are-open-unless-provably-closed.md), [ADR-0279]($20279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
+  ([ADR-0150](../decisions/0150-vocabularies-are-open-unless-provably-closed.md), [ADR-0279](../decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
 - **Keyless cloud credentials.** Every cloud provider authenticates with workload identity federation, so no cloud
   credential is stored in the cluster.
 

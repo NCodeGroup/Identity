@@ -29,6 +29,14 @@ const NCode.Identity.OpenId.OpenIdProtocol.BackchannelTokenDeliveryModes.Push = 
 const NCode.Identity.OpenId.OpenIdProtocol.ClaimTypes.Aggregated = "aggregated" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ClaimTypes.Distributed = "distributed" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ClaimTypes.Normal = "normal" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAssertionTypes.JwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic = "client_secret_basic" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt = "client_secret_jwt" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost = "client_secret_post" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.None = "none" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth = "self_signed_tls_client_auth" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth = "tls_client_auth" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.CodeChallengeMethods.S256 = "S256" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ConfirmationMethods.JwkThumbprint = "jkt" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint = "x5t#S256" -> string!
@@ -183,6 +191,8 @@ const NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes.OfflineAccess = "offline_a
 const NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes.OpenId = "openid" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes.Phone = "phone" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes.Profile = "profile" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes.Pairwise = "pairwise" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes.Public = "public" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers.AccessToken = "urn:ietf:params:oauth:token-type:access_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers.IdToken = "urn:ietf:params:oauth:token-type:id_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers.Jwt = "urn:ietf:params:oauth:token-type:jwt" -> string!
@@ -198,6 +208,8 @@ NCode.Identity.OpenId.OpenIdProtocol.AuthenticationContextClassReferences
 NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods
 NCode.Identity.OpenId.OpenIdProtocol.BackchannelTokenDeliveryModes
 NCode.Identity.OpenId.OpenIdProtocol.ClaimTypes
+NCode.Identity.OpenId.OpenIdProtocol.ClientAssertionTypes
+NCode.Identity.OpenId.OpenIdProtocol.ClientAuthenticationMethods
 NCode.Identity.OpenId.OpenIdProtocol.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdProtocol.ConfirmationMethods
 NCode.Identity.OpenId.OpenIdProtocol.DisplayTypes
@@ -210,5 +222,6 @@ NCode.Identity.OpenId.OpenIdProtocol.PromptTypes
 NCode.Identity.OpenId.OpenIdProtocol.ResponseModes
 NCode.Identity.OpenId.OpenIdProtocol.ResponseTypes
 NCode.Identity.OpenId.OpenIdProtocol.ScopeTypes
+NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypes

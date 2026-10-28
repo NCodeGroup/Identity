@@ -111,10 +111,10 @@ internal class DefaultAuthenticateAccessTokenHandler(
 
             return new TokenConfirmation
             {
-                JwkThumbprint = GetString(root, OpenIdConstants.ConfirmationMethods.JwkThumbprint),
+                JwkThumbprint = GetString(root, OpenIdProtocol.ConfirmationMethods.JwkThumbprint),
                 X509CertificateSha256Thumbprint = GetString(
                     root,
-                    OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint
+                    OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint
                 ),
             };
         }

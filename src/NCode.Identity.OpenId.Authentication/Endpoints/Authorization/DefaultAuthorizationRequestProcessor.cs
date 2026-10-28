@@ -142,7 +142,7 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         {
             // prompt=none forbids interactive authentication, so report login_required back to the client instead
             // of redirecting the user-agent to the interactive login surface.
-            if (authorizationRequest.PromptTypes.Contains(OpenIdConstants.PromptTypes.None))
+            if (authorizationRequest.PromptTypes.Contains(OpenIdProtocol.PromptTypes.None))
             {
                 return ReadOnlyEndpointDisposition.Handled(
                     new AuthorizationResult(

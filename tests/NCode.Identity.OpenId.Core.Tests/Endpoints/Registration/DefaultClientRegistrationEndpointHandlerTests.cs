@@ -330,7 +330,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://a.example.com/callback", "https://b.example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
         };
 
         var error = handler.ValidateMetadata(factory, request, out _);
@@ -347,13 +347,13 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/one", "https://example.com/two"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
         };
 
         var error = handler.ValidateMetadata(factory, request, out var resolved);
 
         Assert.Null(error);
-        Assert.Equal(OpenIdConstants.SubjectTypes.Pairwise, resolved.SubjectType);
+        Assert.Equal(OpenIdProtocol.SubjectTypes.Pairwise, resolved.SubjectType);
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://a.example.com/callback", "https://b.example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
             SectorIdentifierUri = "https://sector.example.com/uris.json",
         };
 
@@ -758,7 +758,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
             SectorIdentifierUri = "https://sector.example.com/uris.json",
         };
         var resolved = new ResolvedMetadata
@@ -767,14 +767,14 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
             ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
-            SubjectType = OpenIdConstants.SubjectTypes.Pairwise,
+            SubjectType = OpenIdProtocol.SubjectTypes.Pairwise,
             SectorIdentifierUri = "https://sector.example.com/uris.json",
         };
 
         var settings = handler.BuildSettingsObject(request, resolved);
 
         Assert.Equal(
-            OpenIdConstants.SubjectTypes.Pairwise,
+            OpenIdProtocol.SubjectTypes.Pairwise,
             settings[OpenIdSettingNames.SubjectType]!.GetValue<string>()
         );
         Assert.Equal(

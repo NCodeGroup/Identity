@@ -65,7 +65,7 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the <c>access_token_confirmation_methods_supported</c> setting: the <c>cnf</c> confirmation
-    /// methods (<see cref="OpenIdConstants.ConfirmationMethods"/>, the IANA JWT Confirmation Methods) a resource server
+    /// methods (<see cref="OpenIdProtocol.ConfirmationMethods"/>, the IANA JWT Confirmation Methods) a resource server
     /// verifies. When a sender-constrained access token is required, it must be bound by one of the methods every
     /// resource server it targets verifies. Unset means every method the server binds with.
     /// </summary>

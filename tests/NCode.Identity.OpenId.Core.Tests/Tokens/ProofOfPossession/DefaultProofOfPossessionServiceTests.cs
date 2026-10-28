@@ -111,7 +111,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, binding.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, binding.TokenType);
         Assert.False(binding.IsSenderConstrained);
     }
 
@@ -129,7 +129,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, binding.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, binding.TokenType);
         Assert.False(binding.IsSenderConstrained);
     }
 
@@ -137,7 +137,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     public async Task EvaluateTokenRequestAsync_WhenDPoPProofPresent_ReturnsDPoPBinding()
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
-        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator
             .Setup(x =>
                 x.ValidateAsync(
@@ -160,7 +160,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal(OpenIdConstants.TokenTypes.DPoP, binding.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.DPoP, binding.TokenType);
         Assert.Equal("jkt-thumbprint", binding.Confirmation.JwkThumbprint);
     }
 
@@ -199,7 +199,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         );
 
         var expected = Base64Url.Encode(SHA256.HashData(certificate.RawData));
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, binding.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, binding.TokenType);
         Assert.Equal(expected, binding.Confirmation.X509CertificateSha256Thumbprint);
     }
 
@@ -247,7 +247,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
         SetupSenderConstraintRequired();
-        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator
             .Setup(x =>
                 x.ValidateAsync(
@@ -338,7 +338,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         SetupTenantSettings();
         HttpContext.Request.Headers.Authorization = "DPoP access-token";
-        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator
             .Setup(x =>
                 x.ValidateAsync(
@@ -369,7 +369,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         SetupTenantSettings();
         HttpContext.Request.Headers.Authorization = "DPoP access-token";
-        HttpContext.Request.Headers[OpenIdConstants.DPoP.HeaderName] = "proof-jwt";
+        HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator
             .Setup(x =>
                 x.ValidateAsync(

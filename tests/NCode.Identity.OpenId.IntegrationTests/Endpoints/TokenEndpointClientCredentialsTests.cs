@@ -67,7 +67,7 @@ public class TokenEndpointClientCredentialsTests
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
 
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
         Assert.Equal(TestServerSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
 
         // The access token audience is bound to the resource server that owns the scope, not the client (ADR-0027).

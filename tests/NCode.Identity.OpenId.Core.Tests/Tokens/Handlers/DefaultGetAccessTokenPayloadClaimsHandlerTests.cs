@@ -100,7 +100,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
             tokenRequest,
             SigningCredentials: null!,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.AccessToken
+            TokenType: OpenIdProtocol.TokenTypes.AccessToken
         );
 
         var payloadClaims = new Dictionary<string, object>(StringComparer.Ordinal);
@@ -183,7 +183,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         var cnf = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(
             payloadClaims[JoseClaimNames.Payload.Cnf]
         );
-        Assert.Equal("jkt-value", cnf[OpenIdConstants.ConfirmationMethods.JwkThumbprint]);
+        Assert.Equal("jkt-value", cnf[OpenIdProtocol.ConfirmationMethods.JwkThumbprint]);
     }
 
     [Fact]

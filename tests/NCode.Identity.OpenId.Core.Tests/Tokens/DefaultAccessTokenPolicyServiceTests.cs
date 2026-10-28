@@ -55,7 +55,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     private const string EcdhEs = AlgorithmCodes.KeyManagement.EcdhEs;
     private const string A128CbcHs256 = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256;
     private const string A256Gcm = AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm;
-    private const string Jkt = OpenIdConstants.ConfirmationMethods.JwkThumbprint;
+    private const string Jkt = OpenIdProtocol.ConfirmationMethods.JwkThumbprint;
     private const string X5tS256 = OpenIdConstants
         .ConfirmationMethods
         .X509CertificateSha256Thumbprint;

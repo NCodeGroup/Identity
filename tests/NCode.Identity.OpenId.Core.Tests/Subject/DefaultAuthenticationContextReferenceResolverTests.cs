@@ -51,15 +51,15 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
         var settings = CreateStrictMock<IReadOnlySettingCollection>();
         var request = CreateRequest(
             [
-                OpenIdConstants.AuthenticationMethods.Password,
-                OpenIdConstants.AuthenticationMethods.OneTimePassword,
+                OpenIdProtocol.AuthenticationMethods.Password,
+                OpenIdProtocol.AuthenticationMethods.OneTimePassword,
             ],
             settings.Object
         );
 
         var acr = await Resolver.ResolveAsync(request, CancellationToken.None);
 
-        Assert.Equal(OpenIdConstants.AuthenticationContextClassReferences.MultiFactor, acr);
+        Assert.Equal(OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor, acr);
     }
 
     [Fact]
@@ -67,13 +67,13 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
     {
         var settings = CreateStrictMock<IReadOnlySettingCollection>();
         var request = CreateRequest(
-            [OpenIdConstants.AuthenticationMethods.MultiFactorAuthentication],
+            [OpenIdProtocol.AuthenticationMethods.MultiFactorAuthentication],
             settings.Object
         );
 
         var acr = await Resolver.ResolveAsync(request, CancellationToken.None);
 
-        Assert.Equal(OpenIdConstants.AuthenticationContextClassReferences.MultiFactor, acr);
+        Assert.Equal(OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor, acr);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
             .Returns(true);
 
         var request = CreateRequest(
-            [OpenIdConstants.AuthenticationMethods.Password],
+            [OpenIdProtocol.AuthenticationMethods.Password],
             settings.Object
         );
 
@@ -106,7 +106,7 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
             .Returns(false);
 
         var request = CreateRequest(
-            [OpenIdConstants.AuthenticationMethods.Password],
+            [OpenIdProtocol.AuthenticationMethods.Password],
             settings.Object
         );
 

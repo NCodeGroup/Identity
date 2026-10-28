@@ -616,7 +616,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod))
             .Returns(registeredAuthMethod);
-        IReadOnlyCollection<string> methods = [OpenIdConstants.CodeChallengeMethods.S256];
+        IReadOnlyCollection<string> methods = [OpenIdProtocol.CodeChallengeMethods.S256];
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.CodeChallengeMethodsSupported))
             .Returns(methods);
@@ -705,7 +705,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         scaffold.Request.SetupGet(x => x.CodeChallenge).Returns(CodeChallenge);
         scaffold
             .Request.SetupGet(x => x.CodeChallengeMethod)
-            .Returns(OpenIdConstants.CodeChallengeMethods.S256);
+            .Returns(OpenIdProtocol.CodeChallengeMethods.S256);
 
         var exception = Record.Exception(() => InvokeValidateCodeChallenge(scaffold));
 

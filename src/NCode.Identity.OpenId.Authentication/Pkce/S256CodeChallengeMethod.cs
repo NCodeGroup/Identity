@@ -31,7 +31,7 @@ internal sealed class S256CodeChallengeMethod(ICryptoService cryptoService) : IC
     private ICryptoService CryptoService { get; } = cryptoService;
 
     /// <inheritdoc />
-    public string Method => OpenIdConstants.CodeChallengeMethods.S256;
+    public string Method => OpenIdProtocol.CodeChallengeMethods.S256;
 
     /// <inheritdoc />
     public string ComputeChallenge(string codeVerifier) =>

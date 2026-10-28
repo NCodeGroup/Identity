@@ -128,8 +128,8 @@ internal class DefaultCreateAuthorizationTicketHandler(
             ticket.AccessToken = securityToken.TokenValue;
             ticket.ExpiresIn = securityToken.TokenLifetime.Duration;
             ticket.TokenType = isDPoPBound
-                ? OpenIdConstants.TokenTypes.DPoP
-                : OpenIdConstants.TokenTypes.Bearer;
+                ? OpenIdProtocol.TokenTypes.DPoP
+                : OpenIdProtocol.TokenTypes.Bearer;
         }
 
         // ReSharper disable once InvertIf

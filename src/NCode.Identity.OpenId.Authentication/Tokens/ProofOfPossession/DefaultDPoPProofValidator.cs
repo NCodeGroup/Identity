@@ -92,7 +92,7 @@ internal class DefaultDPoPProofValidator(
                     openIdContext,
                     cancellationToken
                 );
-                openIdContext.Http.Response.Headers[OpenIdConstants.DPoP.NonceHeaderName] =
+                openIdContext.Http.Response.Headers[OpenIdProtocol.DPoP.NonceHeaderName] =
                     freshNonce;
 
                 throw errorFactory

@@ -455,7 +455,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.ClaimTypesSupported,
                 AppliesTo = Tenants,
                 Rule = SettingRules.Each(OpenIdSettingRules.ClaimType()),
-                Default = [OpenIdConstants.ClaimTypes.Normal],
+                Default = [OpenIdProtocol.ClaimTypes.Normal],
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
@@ -1688,7 +1688,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.SubjectType,
                 AppliesTo = Clients,
                 Rule = OpenIdSettingRules.SubjectType(),
-                Default = OpenIdConstants.SubjectTypes.Public,
+                Default = OpenIdProtocol.SubjectTypes.Public,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1939,8 +1939,8 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = SettingRules.Each(OpenIdSettingRules.SubjectType()),
                 Default =
                 [
-                    OpenIdConstants.SubjectTypes.Public,
-                    OpenIdConstants.SubjectTypes.Pairwise,
+                    OpenIdProtocol.SubjectTypes.Public,
+                    OpenIdProtocol.SubjectTypes.Pairwise,
                 ],
 
                 IsDiscoverable = IsStdDiscoverable,

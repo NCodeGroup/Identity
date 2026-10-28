@@ -196,7 +196,7 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
             )
         );
         Assert.Equal<string>(
-            [OpenIdConstants.CodeChallengeMethods.S256],
+            [OpenIdProtocol.CodeChallengeMethods.S256],
             Assert.IsAssignableFrom<IReadOnlyCollection<string>>(
                 recorder.Values[OpenIdSettingKeys.CodeChallengeMethodsSupported.SettingName]
             )

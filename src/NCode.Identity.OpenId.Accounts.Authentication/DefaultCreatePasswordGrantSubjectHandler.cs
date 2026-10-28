@@ -76,13 +76,13 @@ internal class DefaultCreatePasswordGrantSubjectHandler(
         // The password was just verified, so record 'pwd' (RFC 8176) and resolve the authentication context class
         // reference (acr) from it, letting the deployment's policy assert a stronger value when applicable.
         claims.Add(
-            new Claim(JoseClaimNames.Payload.Amr, OpenIdConstants.AuthenticationMethods.Password)
+            new Claim(JoseClaimNames.Payload.Amr, OpenIdProtocol.AuthenticationMethods.Password)
         );
 
         var acr = await AuthenticationContextReferenceResolver.ResolveAsync(
             new AuthenticationContextReferenceRequest
             {
-                AuthenticationMethods = [OpenIdConstants.AuthenticationMethods.Password],
+                AuthenticationMethods = [OpenIdProtocol.AuthenticationMethods.Password],
                 IdentityProvider = null,
                 Settings = settings,
             },

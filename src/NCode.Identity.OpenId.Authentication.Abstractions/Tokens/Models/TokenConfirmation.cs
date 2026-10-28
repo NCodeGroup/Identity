@@ -66,10 +66,10 @@ public readonly record struct TokenConfirmation
         var members = new Dictionary<string, object>(StringComparer.Ordinal);
 
         if (!string.IsNullOrEmpty(JwkThumbprint))
-            members[OpenIdConstants.ConfirmationMethods.JwkThumbprint] = JwkThumbprint;
+            members[OpenIdProtocol.ConfirmationMethods.JwkThumbprint] = JwkThumbprint;
 
         if (!string.IsNullOrEmpty(X509CertificateSha256Thumbprint))
-            members[OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint] =
+            members[OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint] =
                 X509CertificateSha256Thumbprint;
 
         return members;

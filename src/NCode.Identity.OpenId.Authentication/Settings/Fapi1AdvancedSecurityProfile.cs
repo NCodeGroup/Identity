@@ -93,7 +93,7 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.ResponseTypesSupported, ResponseTypes);
         ceiling.Set(
             OpenIdSettingKeys.CodeChallengeMethodsSupported,
-            (IReadOnlyCollection<string>)[OpenIdConstants.CodeChallengeMethods.S256]
+            (IReadOnlyCollection<string>)[OpenIdProtocol.CodeChallengeMethods.S256]
         );
 
         // Require PKCE, PAR and a signed request object (Or floors cannot be un-required by a child) (§5.2.2-1/18/19).

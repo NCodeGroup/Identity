@@ -82,7 +82,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
             tokenRequest,
             SigningCredentials: null!,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.AccessToken
+            TokenType: OpenIdProtocol.TokenTypes.AccessToken
         );
 
         return new GetAccessTokenSubjectClaimsCommand(

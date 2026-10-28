@@ -218,7 +218,7 @@ public class TokenEndpointResourceServerPolicyTests
                 [OpenIdSettingNames.AccessTokenSenderConstraintRequired] = true,
                 [OpenIdSettingNames.AccessTokenConfirmationMethodsSupported] = new[]
                 {
-                    OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint,
+                    OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint,
                 },
             }
         );
@@ -236,7 +236,7 @@ public class TokenEndpointResourceServerPolicyTests
             payload
                 .RootElement.GetProperty("cnf")
                 .TryGetProperty(
-                    OpenIdConstants.ConfirmationMethods.X509CertificateSha256Thumbprint,
+                    OpenIdProtocol.ConfirmationMethods.X509CertificateSha256Thumbprint,
                     out _
                 )
         );
@@ -297,7 +297,7 @@ public class TokenEndpointResourceServerPolicyTests
                 [OpenIdSettingNames.AccessTokenSenderConstraintRequired] = true,
                 [OpenIdSettingNames.AccessTokenConfirmationMethodsSupported] = new[]
                 {
-                    OpenIdConstants.ConfirmationMethods.JwkThumbprint,
+                    OpenIdProtocol.ConfirmationMethods.JwkThumbprint,
                 },
             }
         );

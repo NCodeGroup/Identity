@@ -34,7 +34,7 @@ public readonly record struct ProofOfPossessionBinding
     public static ProofOfPossessionBinding Unbound { get; } =
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             Confirmation = TokenConfirmation.None,
         };
 

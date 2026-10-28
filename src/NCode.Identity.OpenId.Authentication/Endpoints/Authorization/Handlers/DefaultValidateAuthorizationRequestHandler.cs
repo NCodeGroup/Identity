@@ -246,12 +246,12 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         if (request.PromptTypes.Count > 1)
         {
-            if (request.PromptTypes.Contains(OpenIdConstants.PromptTypes.None))
+            if (request.PromptTypes.Contains(OpenIdProtocol.PromptTypes.None))
                 throw errorFactory
                     .InvalidRequest("The 'none' prompt must not be combined with other values.")
                     .AsException();
 
-            if (request.PromptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
+            if (request.PromptTypes.Contains(OpenIdProtocol.PromptTypes.CreateAccount))
                 throw errorFactory
                     .InvalidRequest("The 'create' prompt must not be combined with other values.")
                     .AsException();

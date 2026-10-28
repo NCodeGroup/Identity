@@ -128,7 +128,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public string? DPoPJwkThumbprint => Values.DPoPJwkThumbprint;
 
     /// <inheritdoc />
-    public string DisplayType => Values.DisplayType ?? OpenIdConstants.DisplayTypes.Page;
+    public string DisplayType => Values.DisplayType ?? OpenIdProtocol.DisplayTypes.Page;
 
     /// <inheritdoc />
     public string? IdTokenHint => Values.IdTokenHint;

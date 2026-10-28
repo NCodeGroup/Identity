@@ -191,12 +191,10 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         var codeChallengeMethod = mockMethod.Object;
         scaffold
             .AuthRequest.SetupGet(x => x.CodeChallengeMethod)
-            .Returns(OpenIdConstants.CodeChallengeMethods.S256)
+            .Returns(OpenIdProtocol.CodeChallengeMethods.S256)
             .Verifiable();
         MockCodeChallengeMethodProvider
-            .Setup(x =>
-                x.TryGet(OpenIdConstants.CodeChallengeMethods.S256, out codeChallengeMethod)
-            )
+            .Setup(x => x.TryGet(OpenIdProtocol.CodeChallengeMethods.S256, out codeChallengeMethod))
             .Returns(true)
             .Verifiable();
     }

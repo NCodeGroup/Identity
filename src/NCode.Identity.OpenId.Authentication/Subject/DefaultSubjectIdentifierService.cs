@@ -49,12 +49,12 @@ internal class DefaultSubjectIdentifierService(ICryptoService cryptoService)
             settings.TryGetValue(OpenIdSettingKeys.SubjectType, out var configuredSubjectType)
             && !string.IsNullOrEmpty(configuredSubjectType)
                 ? configuredSubjectType
-                : OpenIdConstants.SubjectTypes.Public;
+                : OpenIdProtocol.SubjectTypes.Public;
 
         if (
             !string.Equals(
                 subjectType,
-                OpenIdConstants.SubjectTypes.Pairwise,
+                OpenIdProtocol.SubjectTypes.Pairwise,
                 StringComparison.Ordinal
             )
         )

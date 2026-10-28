@@ -261,7 +261,7 @@ public class TokenEndpointSecurityProfileTests
         Assert.NotEmpty(authMethods);
         Assert.All(authMethods, method => Assert.Contains(method, StrongAuthMethods));
         Assert.Equal(
-            [OpenIdConstants.CodeChallengeMethods.S256],
+            [OpenIdProtocol.CodeChallengeMethods.S256],
             ReadStrings(metadata, "code_challenge_methods_supported")
         );
         Assert.Equal(

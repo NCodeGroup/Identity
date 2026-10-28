@@ -78,7 +78,7 @@ public class DefaultGetAccessTokenMetadataClaimsHandlerTests : BaseTests
             tokenRequest,
             SigningCredentials: null!,
             EncryptionCredentials: null,
-            TokenType: OpenIdConstants.TokenTypes.AccessToken
+            TokenType: OpenIdProtocol.TokenTypes.AccessToken
         );
 
         var mockClient = CreateStrictMock<OpenIdClient>();

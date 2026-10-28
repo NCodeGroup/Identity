@@ -362,7 +362,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         var mockTokenResponse = CreateStrictMock<ITokenResponse>();
         mockTokenResponse.SetupGet(x => x.AccessToken).Returns("access-token-value");
-        mockTokenResponse.SetupGet(x => x.TokenType).Returns(OpenIdConstants.TokenTypes.Bearer);
+        mockTokenResponse.SetupGet(x => x.TokenType).Returns(OpenIdProtocol.TokenTypes.Bearer);
         mockTokenResponse.SetupGet(x => x.ExpiresIn).Returns(TimeSpan.FromHours(1));
         mockTokenResponse.SetupGet(x => x.RefreshToken).Returns((string?)null);
         mockTokenResponse.SetupGet(x => x.IdToken).Returns("id-token-value");
@@ -396,7 +396,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
         MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal("access-token-value", CapturedJob?.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, CapturedJob?.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, CapturedJob?.TokenType);
         Assert.Equal(3600, CapturedJob?.ExpiresInSeconds);
         Assert.Null(CapturedJob?.RefreshToken);
         Assert.Equal("id-token-value", CapturedJob?.IdToken);

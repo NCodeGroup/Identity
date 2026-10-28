@@ -130,7 +130,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod
             {
@@ -420,7 +420,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), response.ExpiresIn);
         Assert.Equal(["api"], response.Scopes);
     }

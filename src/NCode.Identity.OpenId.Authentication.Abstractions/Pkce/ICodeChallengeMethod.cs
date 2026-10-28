@@ -31,7 +31,7 @@ public interface ICodeChallengeMethod
 {
     /// <summary>
     /// Gets the case-sensitive <c>code_challenge_method</c> value this transformation handles (for example,
-    /// <see cref="OpenIdConstants.CodeChallengeMethods.S256"/>).
+    /// <see cref="OpenIdProtocol.CodeChallengeMethods.S256"/>).
     /// </summary>
     string Method { get; }
 

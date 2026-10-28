@@ -75,7 +75,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod
             {
@@ -192,7 +192,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Equal("access-token-value", result.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, result.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, result.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), result.ExpiresIn);
         Assert.Null(result.AuthorizationCode);
     }

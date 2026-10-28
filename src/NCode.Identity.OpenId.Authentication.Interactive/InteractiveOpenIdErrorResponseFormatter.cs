@@ -39,7 +39,7 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> MediaTypes { get; } = [OpenIdConstants.MediaTypes.Html];
+    public IReadOnlyList<string> MediaTypes { get; } = [OpenIdProtocol.MediaTypes.Html];
 
     /// <inheritdoc />
     public bool CanFormat(IOpenIdResponse response) => response is IOpenIdError;

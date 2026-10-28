@@ -58,11 +58,11 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
         settings.Set(
             OpenIdSettingKeys.PromptValuesSupported,
             [
-                OpenIdConstants.PromptTypes.None,
-                OpenIdConstants.PromptTypes.Login,
-                OpenIdConstants.PromptTypes.Consent,
-                OpenIdConstants.PromptTypes.SelectAccount,
-                OpenIdConstants.PromptTypes.CreateAccount,
+                OpenIdProtocol.PromptTypes.None,
+                OpenIdProtocol.PromptTypes.Login,
+                OpenIdProtocol.PromptTypes.Consent,
+                OpenIdProtocol.PromptTypes.SelectAccount,
+                OpenIdProtocol.PromptTypes.CreateAccount,
             ]
         );
 

@@ -117,11 +117,11 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupAccessTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.AccessToken);
+        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.AccessToken);
 
         Assert.True(result.IsValid);
         Assert.Equal(Subject, result.Principal?.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
-        Assert.Equal(OpenIdConstants.TokenTypeIdentifiers.AccessToken, result.TokenTypeIdentifier);
+        Assert.Equal(OpenIdProtocol.TokenTypeIdentifiers.AccessToken, result.TokenTypeIdentifier);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
 
-        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.AccessToken);
+        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.AccessToken);
 
         Assert.False(result.IsValid);
         Assert.Same(MockError.Object, result.Error);
@@ -140,7 +140,7 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupIdTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.IdToken);
+        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.IdToken);
 
         Assert.True(result.IsValid);
         Assert.Equal(Subject, result.Principal?.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
@@ -151,7 +151,7 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
     {
         SetupAccessTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.Jwt);
+        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.Jwt);
 
         Assert.True(result.IsValid);
     }
@@ -162,7 +162,7 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
         SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
         SetupIdTokenValidation(ValidResult());
 
-        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.Jwt);
+        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.Jwt);
 
         Assert.True(result.IsValid);
     }
@@ -173,7 +173,7 @@ public class DefaultSubjectTokenValidatorTests : BaseTests
         SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
         SetupIdTokenValidation(TestJwtValidationResults.Invalid(Token));
 
-        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.Jwt);
+        var result = await ValidateAsync(OpenIdProtocol.TokenTypeIdentifiers.Jwt);
 
         Assert.False(result.IsValid);
         Assert.Same(MockError.Object, result.Error);

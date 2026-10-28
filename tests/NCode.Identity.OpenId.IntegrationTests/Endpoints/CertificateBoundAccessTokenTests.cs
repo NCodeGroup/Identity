@@ -81,7 +81,7 @@ public class CertificateBoundAccessTokenTests
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.TokenTypes.Bearer,
+            OpenIdProtocol.TokenTypes.Bearer,
             document.RootElement.GetProperty("token_type").GetString()
         );
     }

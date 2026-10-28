@@ -110,7 +110,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
         };
         var securityToken = new SecurityToken
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = "access-token-value",
             TokenLifetime = tokenLifetime,
         };
@@ -171,7 +171,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("access-token-value", response.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, response.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, response.TokenType);
         Assert.Equal(TimeSpan.FromHours(1), response.ExpiresIn);
         Assert.Equal(scopes, response.Scopes);
     }

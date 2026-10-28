@@ -60,7 +60,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
     private static SecurityToken CreateSecurityToken(string tokenValue) =>
         new()
         {
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             TokenValue = tokenValue,
             TokenLifetime = new TimePeriod { StartTime = UtcNow, EndTime = UtcNow.AddHours(1) },
         };
@@ -117,7 +117,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         );
 
         Assert.Equal("access-token-value", result.AccessToken);
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, result.TokenType);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, result.TokenType);
         Assert.Equal(["api"], result.Scopes);
         Assert.Null(result.IdToken);
         Assert.Null(result.RefreshToken);

@@ -84,7 +84,7 @@ public class TokenEndpointPasswordTests
 
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
-        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
 
         // The access token's subject is the stable, server-owned principal id resolved for the authenticated account —
         // never the raw local-account id or username (ADR-0035).

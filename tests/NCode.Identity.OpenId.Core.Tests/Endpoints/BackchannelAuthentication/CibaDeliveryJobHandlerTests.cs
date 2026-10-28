@@ -117,7 +117,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
             ClientNotificationToken = NotificationToken,
             AuthReqId = AuthReqId,
             AccessToken = "access-token-value",
-            TokenType = OpenIdConstants.TokenTypes.Bearer,
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
             ExpiresInSeconds = 3600,
             IdToken = "id-token-value",
             Scope = "openid api",

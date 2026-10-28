@@ -83,15 +83,15 @@ internal class DefaultAuthorizeHandler(
         // prompt=consent uses below (ADR-0081).
         if (!authorizationRequest.IsContinuation)
         {
-            if (promptTypes.Contains(OpenIdConstants.PromptTypes.CreateAccount))
+            if (promptTypes.Contains(OpenIdProtocol.PromptTypes.CreateAccount))
             {
                 Logger.ClientRequestedAccountCreation();
                 return ChallengeRequired();
             }
 
             if (
-                promptTypes.Contains(OpenIdConstants.PromptTypes.Login)
-                || promptTypes.Contains(OpenIdConstants.PromptTypes.SelectAccount)
+                promptTypes.Contains(OpenIdProtocol.PromptTypes.Login)
+                || promptTypes.Contains(OpenIdProtocol.PromptTypes.SelectAccount)
             )
             {
                 Logger.ClientRequestedReAuthentication();
@@ -99,7 +99,7 @@ internal class DefaultAuthorizeHandler(
             }
         }
 
-        var noPrompt = promptTypes.Contains(OpenIdConstants.PromptTypes.None);
+        var noPrompt = promptTypes.Contains(OpenIdProtocol.PromptTypes.None);
 
         var subjectDisposition = await ValidateSubjectAsync(
             openIdContext,
@@ -183,7 +183,7 @@ internal class DefaultAuthorizeHandler(
     )
     {
         var promptConsent = authorizationRequest.PromptTypes.Contains(
-            OpenIdConstants.PromptTypes.Consent
+            OpenIdProtocol.PromptTypes.Consent
         );
         var requireConsent = openIdClient.Settings.GetValue(OpenIdSettingKeys.RequireConsent);
 

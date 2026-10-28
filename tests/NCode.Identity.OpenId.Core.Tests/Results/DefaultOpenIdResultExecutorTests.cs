@@ -41,7 +41,7 @@ public sealed class DefaultOpenIdResultExecutorTests : BaseTests
         var mockFormatter = CreateStrictMock<IOpenIdResponseFormatter>();
         mockFormatter
             .SetupGet(x => x.MediaTypes)
-            .Returns([OpenIdConstants.MediaTypes.Json])
+            .Returns([OpenIdProtocol.MediaTypes.Json])
             .Verifiable();
         mockFormatter.Setup(x => x.CanFormat(response)).Returns(true).Verifiable();
         mockFormatter

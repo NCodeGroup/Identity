@@ -88,7 +88,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         );
         ceiling.Set(
             OpenIdSettingKeys.CodeChallengeMethodsSupported,
-            (IReadOnlyCollection<string>)[OpenIdConstants.CodeChallengeMethods.S256]
+            (IReadOnlyCollection<string>)[OpenIdProtocol.CodeChallengeMethods.S256]
         );
 
         // Require PKCE and PAR (Or floors cannot be un-required by a child).

@@ -87,8 +87,8 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     private static readonly string[] SupportedSubjectTypes =
     [
-        OpenIdConstants.SubjectTypes.Public,
-        OpenIdConstants.SubjectTypes.Pairwise,
+        OpenIdProtocol.SubjectTypes.Public,
+        OpenIdProtocol.SubjectTypes.Pairwise,
     ];
 
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -906,7 +906,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             string.IsNullOrEmpty(sectorIdentifierUri)
             && string.Equals(
                 subjectType,
-                OpenIdConstants.SubjectTypes.Pairwise,
+                OpenIdProtocol.SubjectTypes.Pairwise,
                 StringComparison.Ordinal
             )
             && HasMultipleDistinctHosts(redirectUris)

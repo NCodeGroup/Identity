@@ -54,11 +54,11 @@ public class DefaultPkceSettingDescriptorDataSourceTests : BaseTests
     [Fact]
     public void Collection_CodeChallengeMethodsSupported_DefaultsToS256Alone()
     {
-        var dataSource = CreateDataSource(CustomMethod, OpenIdConstants.CodeChallengeMethods.S256);
+        var dataSource = CreateDataSource(CustomMethod, OpenIdProtocol.CodeChallengeMethods.S256);
 
         var descriptor = GetDescriptor(dataSource);
 
-        Assert.Equal([OpenIdConstants.CodeChallengeMethods.S256], descriptor.Default);
+        Assert.Equal([OpenIdProtocol.CodeChallengeMethods.S256], descriptor.Default);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class DefaultPkceSettingDescriptorDataSourceTests : BaseTests
         bool expected
     )
     {
-        var dataSource = CreateDataSource(OpenIdConstants.CodeChallengeMethods.S256, CustomMethod);
+        var dataSource = CreateDataSource(OpenIdProtocol.CodeChallengeMethods.S256, CustomMethod);
         var descriptor = GetDescriptor(dataSource);
         IReadOnlyCollection<string> values = [value];
 
@@ -93,15 +93,15 @@ public class DefaultPkceSettingDescriptorDataSourceTests : BaseTests
     [Fact]
     public void Collection_CodeChallengeMethodsSupported_IsADiscoverableCeiling()
     {
-        var dataSource = CreateDataSource(OpenIdConstants.CodeChallengeMethods.S256);
+        var dataSource = CreateDataSource(OpenIdProtocol.CodeChallengeMethods.S256);
         var descriptor = GetDescriptor(dataSource);
-        IReadOnlyCollection<string> parent = [OpenIdConstants.CodeChallengeMethods.S256];
-        IReadOnlyCollection<string> child = [OpenIdConstants.CodeChallengeMethods.S256, "plain"];
+        IReadOnlyCollection<string> parent = [OpenIdProtocol.CodeChallengeMethods.S256];
+        IReadOnlyCollection<string> child = [OpenIdProtocol.CodeChallengeMethods.S256, "plain"];
 
         var merged = descriptor.OnMerge(parent, child);
 
         Assert.True(descriptor.IsDiscoverable);
-        Assert.Equal([OpenIdConstants.CodeChallengeMethods.S256], merged);
+        Assert.Equal([OpenIdProtocol.CodeChallengeMethods.S256], merged);
     }
 
     #endregion

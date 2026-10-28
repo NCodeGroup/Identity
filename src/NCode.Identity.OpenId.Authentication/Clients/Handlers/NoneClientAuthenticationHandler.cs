@@ -40,7 +40,7 @@ internal class NoneClientAuthenticationHandler(
         IClientAuthenticationHandler
 {
     /// <inheritdoc />
-    public override string AuthenticationMethod => OpenIdConstants.ClientAuthenticationMethods.None;
+    public override string AuthenticationMethod => OpenIdProtocol.ClientAuthenticationMethods.None;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(

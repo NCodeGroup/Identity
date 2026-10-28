@@ -72,7 +72,7 @@ public class RefreshTokenRotationRetryCoherenceRuleTests : BaseTests
             retryRequired: true,
             policy: OpenIdConstants.RefreshTokenRotationPolicy.Always,
             interval: TimeSpan.Zero,
-            authMethod: OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            authMethod: OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         var violations = new RefreshTokenRotationRetryCoherenceRule().FindViolations(
@@ -95,7 +95,7 @@ public class RefreshTokenRotationRetryCoherenceRuleTests : BaseTests
             retryRequired: true,
             policy: OpenIdConstants.RefreshTokenRotationPolicy.Always,
             interval: TimeSpan.FromSeconds(30),
-            authMethod: OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            authMethod: OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         var violations = new RefreshTokenRotationRetryCoherenceRule().FindViolations(
@@ -112,7 +112,7 @@ public class RefreshTokenRotationRetryCoherenceRuleTests : BaseTests
             retryRequired: true,
             policy: OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
             interval: TimeSpan.Zero,
-            authMethod: OpenIdConstants.ClientAuthenticationMethods.None
+            authMethod: OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         var violations = new RefreshTokenRotationRetryCoherenceRule().FindViolations(
@@ -135,7 +135,7 @@ public class RefreshTokenRotationRetryCoherenceRuleTests : BaseTests
             retryRequired: true,
             policy: OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
             interval: TimeSpan.Zero,
-            authMethod: OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            authMethod: OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         var violations = new RefreshTokenRotationRetryCoherenceRule().FindViolations(
@@ -152,7 +152,7 @@ public class RefreshTokenRotationRetryCoherenceRuleTests : BaseTests
             retryRequired: false,
             policy: OpenIdConstants.RefreshTokenRotationPolicy.Always,
             interval: TimeSpan.Zero,
-            authMethod: OpenIdConstants.ClientAuthenticationMethods.None
+            authMethod: OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         var violations = new RefreshTokenRotationRetryCoherenceRule().FindViolations(

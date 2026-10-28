@@ -40,9 +40,9 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     // FAPI 2.0 permits only strong (asymmetric / mutual-TLS) client authentication.
     private static readonly string[] TokenEndpointAuthMethods =
     [
-        OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
     /// <inheritdoc />

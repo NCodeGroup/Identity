@@ -141,7 +141,7 @@ public class TokenEndpointBootstrapAdminTests
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                             ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] =
-                                OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+                                OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                         }
                     )
             )

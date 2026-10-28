@@ -67,7 +67,7 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
         var (openIdContext, subjectAuthentication, claims) = command;
 
         var scopes = GetGrantedScopes(subjectAuthentication.Subject);
-        var wantsEmail = scopes.Contains(OpenIdConstants.ScopeTypes.Email);
+        var wantsEmail = scopes.Contains(OpenIdProtocol.ScopeTypes.Email);
         var claimTypes = CollectScopeClaimTypes(scopes);
 
         // Also honor individual claims requested via the OIDC 'claims' parameter's 'userinfo' member (OIDC Core §5.5),
@@ -171,17 +171,17 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
     {
         var claimTypes = new HashSet<string>(StringComparer.Ordinal);
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Profile))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.Profile))
         {
             claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Profile);
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Address))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.Address))
         {
             claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Address);
         }
 
-        if (scopes.Contains(OpenIdConstants.ScopeTypes.Phone))
+        if (scopes.Contains(OpenIdProtocol.ScopeTypes.Phone))
         {
             claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Phone);
         }

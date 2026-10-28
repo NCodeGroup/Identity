@@ -57,7 +57,7 @@ internal sealed class ClientSecretJwtClientAuthenticationHandler(
 {
     /// <inheritdoc />
     public override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt;
 
     /// <inheritdoc />
     protected override bool OwnsAlgorithm(SignatureAlgorithm algorithm) =>

@@ -53,7 +53,7 @@ public readonly record struct CibaGrant
     public required string Status { get; init; }
 
     /// <summary>
-    /// Gets the token delivery mode for the request. See <see cref="OpenIdConstants.BackchannelTokenDeliveryModes"/>.
+    /// Gets the token delivery mode for the request. See <see cref="OpenIdProtocol.BackchannelTokenDeliveryModes"/>.
     /// </summary>
     public required string DeliveryMode { get; init; }
 

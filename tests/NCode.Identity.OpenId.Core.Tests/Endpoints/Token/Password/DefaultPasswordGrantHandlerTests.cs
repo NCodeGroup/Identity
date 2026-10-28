@@ -271,7 +271,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     {
         var (mockContext, mockClient, mockMediator, mockTokenRequest, _) = CreateScaffold();
 
-        List<string> scopes = [OpenIdConstants.ScopeTypes.OpenId];
+        List<string> scopes = [OpenIdProtocol.ScopeTypes.OpenId];
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
         SetupAuthenticate(
@@ -309,7 +309,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     {
         var (mockContext, mockClient, mockMediator, mockTokenRequest, _) = CreateScaffold();
 
-        List<string> scopes = [OpenIdConstants.ScopeTypes.OfflineAccess];
+        List<string> scopes = [OpenIdProtocol.ScopeTypes.OfflineAccess];
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
         SetupAuthenticate(

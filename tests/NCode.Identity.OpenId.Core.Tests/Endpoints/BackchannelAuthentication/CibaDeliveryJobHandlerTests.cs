@@ -86,7 +86,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         var job = new CibaDeliveryJob
         {
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             ClientId = "client-1",
             EndpointUrl = Endpoint,
             ClientNotificationToken = NotificationToken,
@@ -111,7 +111,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         var job = new CibaDeliveryJob
         {
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             ClientId = "client-1",
             EndpointUrl = Endpoint,
             ClientNotificationToken = NotificationToken,
@@ -148,7 +148,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         var job = new CibaDeliveryJob
         {
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             ClientId = "client-1",
             EndpointUrl = Endpoint,
             ClientNotificationToken = NotificationToken,
@@ -179,7 +179,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         var job = new CibaDeliveryJob
         {
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
             ClientId = "client-1",
             EndpointUrl = Endpoint,
             ClientNotificationToken = NotificationToken,

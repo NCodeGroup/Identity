@@ -78,7 +78,7 @@ internal static class RefreshTokenRotationRequirement
             )
             && string.Equals(
                 settings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod),
-                OpenIdConstants.ClientAuthenticationMethods.None,
+                OpenIdProtocol.ClientAuthenticationMethods.None,
                 StringComparison.Ordinal
             );
     }

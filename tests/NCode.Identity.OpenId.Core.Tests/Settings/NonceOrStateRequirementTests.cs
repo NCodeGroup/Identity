@@ -84,7 +84,7 @@ public class NonceOrStateRequirementTests : BaseTests
         var (context, _) = CreateContext(
             nonce: "nonce",
             state: null,
-            OpenIdConstants.ScopeTypes.OpenId
+            OpenIdProtocol.ScopeTypes.OpenId
         );
 
         var exception = await Record.ExceptionAsync(async () =>
@@ -101,7 +101,7 @@ public class NonceOrStateRequirementTests : BaseTests
         var (context, capturedCode) = CreateContext(
             nonce: null,
             state: "state",
-            OpenIdConstants.ScopeTypes.OpenId
+            OpenIdProtocol.ScopeTypes.OpenId
         );
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>

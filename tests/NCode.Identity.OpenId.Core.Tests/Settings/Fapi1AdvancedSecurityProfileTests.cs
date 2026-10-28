@@ -181,9 +181,9 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
 
         Assert.Equal<string>(
             [
-                OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-                OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-                OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+                OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
             ],
             Assert.IsAssignableFrom<IReadOnlyCollection<string>>(
                 recorder.Values[OpenIdSettingKeys.TokenEndpointAuthMethodsSupported.SettingName]

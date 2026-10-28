@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients.Handlers;
 public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthenticationHandlerTestBase
 {
     protected override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
 
     #region Scaffolding
 
@@ -77,7 +77,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         SetupCredentialsForm();
         SetupErrorFactory();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             ceiling: null,
             readsClientId: true
         );
@@ -99,7 +99,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         SetupCredentialsForm();
         SetupErrorFactory();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.None,
+            OpenIdProtocol.ClientAuthenticationMethods.None,
             ceiling: null,
             readsClientId: true
         );
@@ -121,8 +121,8 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         SetupCredentialsForm();
         SetupErrorFactory();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt],
             readsClientId: true
         );
         SetupResolvedClient(client);
@@ -149,8 +149,8 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             .Returns(() => Array.Empty<SecretKey>().GetEnumerator())
             .Verifiable();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-            [OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost],
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost],
             readsClientId: true
         );
         Mock.Get(client).SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object).Verifiable();

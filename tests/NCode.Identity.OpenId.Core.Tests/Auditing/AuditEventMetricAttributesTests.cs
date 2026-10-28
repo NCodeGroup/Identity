@@ -58,7 +58,7 @@ public sealed class AuditEventMetricAttributesTests
             TenantId = "tenant-1",
             Source = "token_endpoint",
             Outcome = AuditOutcome.Failure,
-            AuthenticationMethod = OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            AuthenticationMethod = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         };
         var tags = new TagList();
 
@@ -69,7 +69,7 @@ public sealed class AuditEventMetricAttributesTests
             ClientAuthenticationFailedAuditEvent.AuthenticationMethodMetricAttribute,
             tag.Key
         );
-        Assert.Equal(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, tag.Value);
+        Assert.Equal(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt, tag.Value);
     }
 
     #endregion

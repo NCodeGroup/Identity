@@ -76,7 +76,7 @@ internal class DefaultClientSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.TokenEndpointAuthMethod,
                 AppliesTo = [OpenIdSettingScopes.Client],
                 Rule = AuthMethod(),
-                Default = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+                Default = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
 
                 IsDiscoverable = false,
                 OnMerge = SettingMerge.Replace,

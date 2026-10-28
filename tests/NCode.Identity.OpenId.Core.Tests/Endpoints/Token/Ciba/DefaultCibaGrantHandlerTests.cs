@@ -100,7 +100,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
                 ClientId = "client-1",
                 Scopes = ["api"],
                 Status = status,
-                DeliveryMode = deliveryMode ?? OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                DeliveryMode = deliveryMode ?? OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
                 SubjectAuthentication = subjectAuthentication,
                 LastPolledWhen = lastPolledWhen,
             },
@@ -517,7 +517,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Approved,
-                deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push
+                deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Push
             )
         );
         SetupClientId(mockClient);

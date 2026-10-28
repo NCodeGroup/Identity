@@ -68,7 +68,7 @@ public class PasswordAttemptLimitTests
                 ["client_secret"] = ClientSecret,
                 ["username"] = UserName,
                 ["password"] = password,
-                ["scope"] = OpenIdConstants.ScopeTypes.OpenId,
+                ["scope"] = OpenIdProtocol.ScopeTypes.OpenId,
             }
         );
 

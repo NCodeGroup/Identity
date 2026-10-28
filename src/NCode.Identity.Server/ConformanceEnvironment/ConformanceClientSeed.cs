@@ -69,7 +69,7 @@ public sealed class ConformanceClientSeed
     /// <c>client_secret_basic</c>.
     /// </summary>
     public string TokenEndpointAuthMethod { get; set; } =
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <summary>
     /// Gets or sets the PKCE code-challenge methods this client supports. When none are configured, the client uses

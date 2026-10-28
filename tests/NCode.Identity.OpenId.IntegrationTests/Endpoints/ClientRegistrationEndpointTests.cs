@@ -74,7 +74,7 @@ public class ClientRegistrationEndpointTests
         // The response reports the scopes the client may actually request: it holds no grant to the API, so the
         // requested 'api' scope is not among them.
         var scopes = root.GetProperty("scope").GetString()?.Split(' ') ?? [];
-        Assert.Contains(OpenIdConstants.ScopeTypes.OpenId, scopes);
+        Assert.Contains(OpenIdProtocol.ScopeTypes.OpenId, scopes);
         Assert.DoesNotContain(TestServerSettingsProvider.ApiScope, scopes);
 
         await factory.SeedResourceServerWithClientGrantAsync(
@@ -740,7 +740,7 @@ public class ClientRegistrationEndpointTests
         using var registered = JsonDocument.Parse(registrationBody);
         var root = registered.RootElement;
         Assert.Equal(
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             root.GetProperty("token_endpoint_auth_method").GetString()
         );
         // A key-based client verifies with its keys; a shared secret would be a second, weaker credential.
@@ -757,7 +757,7 @@ public class ClientRegistrationEndpointTests
                 new Dictionary<string, string>
                 {
                     ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                    ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                     ["client_assertion"] = BuildPrivateKeyJwt(clientId, rsa, issuer),
                 }
             )
@@ -925,7 +925,7 @@ public class ClientRegistrationEndpointTests
                 document.GetProperty("token_endpoint_auth_signing_alg").GetString()
             );
             Assert.Equal(
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
                 document.GetProperty("backchannel_token_delivery_mode").GetString()
             );
             Assert.Equal(

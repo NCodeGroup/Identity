@@ -210,7 +210,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
     )
     {
         var requestedScopes = request.Scopes;
-        var hasOpenIdScope = requestedScopes.Contains(OpenIdConstants.ScopeTypes.OpenId);
+        var hasOpenIdScope = requestedScopes.Contains(OpenIdProtocol.ScopeTypes.OpenId);
 
         // A response type that includes 'id_token' or 'token' returns a token from the authorization endpoint (the
         // implicit and hybrid flows).

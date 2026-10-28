@@ -121,8 +121,8 @@ internal class DefaultClientCredentialsGrantHandler(
         tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
         tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
 
-        Debug.Assert(!scopes.Contains(OpenIdConstants.ScopeTypes.OpenId));
-        Debug.Assert(!scopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess));
+        Debug.Assert(!scopes.Contains(OpenIdProtocol.ScopeTypes.OpenId));
+        Debug.Assert(!scopes.Contains(OpenIdProtocol.ScopeTypes.OfflineAccess));
 
         return tokenResponse;
     }

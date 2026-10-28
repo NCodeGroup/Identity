@@ -75,7 +75,7 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
         // The client's configured delivery mode must be one the server supports.
         var deliveryMode =
             settings.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode)
-            ?? OpenIdConstants.BackchannelTokenDeliveryModes.Poll;
+            ?? OpenIdProtocol.BackchannelTokenDeliveryModes.Poll;
 
         var deliveryModesSupported = settings.GetValue(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported
@@ -91,7 +91,7 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
         // Ping and push delivery require a client_notification_token (CIBA §7.1).
         var isPoll = string.Equals(
             deliveryMode,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
             StringComparison.Ordinal
         );
         if (!isPoll && string.IsNullOrEmpty(request.ClientNotificationToken))

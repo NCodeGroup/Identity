@@ -105,7 +105,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         if (
             !string.Equals(
                 assertionType,
-                OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 StringComparison.Ordinal
             )
         )

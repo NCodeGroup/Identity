@@ -53,7 +53,7 @@ internal sealed class SelfSignedTlsClientAuthClientAuthenticationHandler(
 
     /// <inheritdoc />
     public override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth;
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth;
 
     /// <inheritdoc />
     protected override async ValueTask<SecretKey?> MatchCertificateAsync(

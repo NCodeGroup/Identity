@@ -547,7 +547,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.BackchannelTokenDeliveryMode,
                 AppliesTo = Clients,
                 Rule = OpenIdSettingRules.BackchannelTokenDeliveryMode(),
-                Default = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                Default = OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,

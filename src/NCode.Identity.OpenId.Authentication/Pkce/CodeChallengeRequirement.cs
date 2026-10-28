@@ -90,7 +90,7 @@ internal static class CodeChallengeRequirement
         // The nonce mitigates code injection only in an OpenID Connect request that uses it.
         var usesNonce =
             !string.IsNullOrEmpty(nonce)
-            && scopes.Contains(OpenIdConstants.ScopeTypes.OpenId, StringComparer.Ordinal);
+            && scopes.Contains(OpenIdProtocol.ScopeTypes.OpenId, StringComparer.Ordinal);
 
         return !usesNonce;
     }

@@ -238,8 +238,8 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenAPublicClientIsRegisteredAsPublic_ReturnsIt()
     {
         var client = CreatePublicClient(
-            OpenIdConstants.ClientAuthenticationMethods.None,
-            [OpenIdConstants.ClientAuthenticationMethods.None],
+            OpenIdProtocol.ClientAuthenticationMethods.None,
+            [OpenIdProtocol.ClientAuthenticationMethods.None],
             isRefused: false
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
@@ -258,13 +258,13 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     {
         // A client registered as confidential never authenticates by presenting only its client_id.
         var client = CreatePublicClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             ceiling: null,
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
         SetupAudit(
-            OpenIdConstants.ClientAuthenticationMethods.None,
+            OpenIdProtocol.ClientAuthenticationMethods.None,
             "authentication_method_not_registered"
         );
 
@@ -284,9 +284,9 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenTheClientUsesItsRegisteredMethod_ReturnsIt()
     {
         var client = CreateConfidentialClient(
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt],
             isRefused: false
         );
         SetupClientRateLimitAdmits(client);
@@ -305,14 +305,14 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenTheClientUsesAnotherMethod_ReturnsInvalidClient()
     {
         var client = CreateConfidentialClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             ceiling: null,
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
         SetupAudit(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             "authentication_method_not_registered"
         );
 
@@ -332,14 +332,14 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenTheCeilingExcludesTheRegisteredMethod_ReturnsInvalidClient()
     {
         var client = CreateConfidentialClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt],
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
         SetupAudit(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             "authentication_method_not_permitted"
         );
 
@@ -360,14 +360,14 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     {
         // An empty ceiling (the intersection of disjoint ceilings) permits no method rather than every method.
         var client = CreateConfidentialClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             [],
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
         SetupAudit(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             "authentication_method_not_permitted"
         );
 
@@ -464,8 +464,8 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenAPublicClientIsAuthenticated_DoesNotCountItsRateLimit()
     {
         var client = CreatePublicClient(
-            OpenIdConstants.ClientAuthenticationMethods.None,
-            [OpenIdConstants.ClientAuthenticationMethods.None],
+            OpenIdProtocol.ClientAuthenticationMethods.None,
+            [OpenIdProtocol.ClientAuthenticationMethods.None],
             isRefused: false
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
@@ -478,9 +478,9 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenTheClientIsOverItsRateLimit_ReturnsTooManyRequests()
     {
         var client = CreateConfidentialClient(
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt],
             isRefused: false
         );
         MockRateLimiter

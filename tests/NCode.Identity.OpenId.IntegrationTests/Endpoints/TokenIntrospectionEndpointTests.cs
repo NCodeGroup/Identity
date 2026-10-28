@@ -796,7 +796,7 @@ public class TokenIntrospectionEndpointTests
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
@@ -841,7 +841,7 @@ public class TokenIntrospectionEndpointTests
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             new Dictionary<string, object>
             {
                 ["introspection_signed_response_alg"] = "RS256",
@@ -915,7 +915,7 @@ public class TokenIntrospectionEndpointTests
         using var response = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -946,7 +946,7 @@ public class TokenIntrospectionEndpointTests
         using var firstResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
         var firstBody = await firstResponse.Content.ReadAsStringAsync();
         Assert.True(firstResponse.StatusCode == HttpStatusCode.Created, firstBody);
@@ -954,7 +954,7 @@ public class TokenIntrospectionEndpointTests
         using var secondResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         var secondBody = await secondResponse.Content.ReadAsStringAsync();
@@ -985,7 +985,7 @@ public class TokenIntrospectionEndpointTests
         using var refusedResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.None
+            OpenIdProtocol.ClientAuthenticationMethods.None
         );
         var refusedBody = await refusedResponse.Content.ReadAsStringAsync();
         Assert.True(refusedResponse.StatusCode == HttpStatusCode.BadRequest, refusedBody);
@@ -993,7 +993,7 @@ public class TokenIntrospectionEndpointTests
         using var response = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -1019,7 +1019,7 @@ public class TokenIntrospectionEndpointTests
         using var registrationResponse = await RegisterAsync(
             client,
             initialAccessToken,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);

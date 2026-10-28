@@ -70,7 +70,7 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
 
     /// <inheritdoc />
     public override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth;
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth;
 
     /// <inheritdoc />
     protected override ValueTask<bool> IsCertificateTrustedAsync(

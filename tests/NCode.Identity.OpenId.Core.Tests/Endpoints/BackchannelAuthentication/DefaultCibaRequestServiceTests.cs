@@ -215,14 +215,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
         var update = SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
@@ -247,14 +247,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Approved,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             ),
             decided: false
         );
@@ -278,14 +278,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
         var update = SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Approved,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             ),
             decided: false
         );
@@ -311,14 +311,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
@@ -334,7 +334,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.True(result);
         MockJobDispatcher.Verify();
-        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
+        Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
         Assert.Equal(Endpoint, CapturedJob?.EndpointUrl);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
         Assert.Null(CapturedJob?.AccessToken);
@@ -349,14 +349,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push
             )
         );
 
@@ -394,7 +394,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
         Assert.True(result);
         MockTokenResponseService.Verify();
         MockJobDispatcher.Verify();
-        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
+        Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal("access-token-value", CapturedJob?.AccessToken);
         Assert.Equal(OpenIdConstants.TokenTypes.Bearer, CapturedJob?.TokenType);
         Assert.Equal(3600, CapturedJob?.ExpiresInSeconds);
@@ -411,14 +411,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
         var update = SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
@@ -443,14 +443,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
@@ -466,7 +466,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.False(result);
         MockJobDispatcher.Verify();
-        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
+        Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
         Assert.Null(CapturedJob?.Error);
     }
@@ -495,14 +495,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
         var update = SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
             )
         );
 
@@ -525,14 +525,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
@@ -547,7 +547,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.True(result);
         MockJobDispatcher.Verify();
-        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
+        Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
         Assert.Equal(Endpoint, CapturedJob?.EndpointUrl);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
         Assert.Null(CapturedJob?.Error);
@@ -562,14 +562,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push
             )
         );
 
@@ -584,7 +584,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.True(result);
         MockJobDispatcher.Verify();
-        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
+        Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
         Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, CapturedJob?.Error);
         Assert.Null(CapturedJob?.AccessToken);
@@ -597,14 +597,14 @@ public class DefaultCibaRequestServiceTests : BaseTests
         SetupLookup(
             CreateGrant(
                 DeviceAuthorizationStatus.Pending,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             )
         );
 
         SetupDecision(
             CreateGrant(
                 DeviceAuthorizationStatus.Denied,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping
             ),
             decided: false
         );

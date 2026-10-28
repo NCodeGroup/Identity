@@ -123,7 +123,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             RedirectUris = ["https://example.com/callback"],
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
         };
 
         var error = handler.ValidateMetadata(factory, request, out _);
@@ -185,7 +185,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.Null(error);
         Assert.Equal(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             resolved.TokenEndpointAuthMethod
         );
         Assert.Equal([OpenIdProtocol.GrantTypes.AuthorizationCode], resolved.GrantTypes);
@@ -200,7 +200,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
         };
 
         var error = handler.ValidateMetadata(factory, request, out var resolved);
@@ -474,7 +474,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         Assert.Null(error);
@@ -490,7 +490,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         );
 
         Assert.NotNull(error);
@@ -507,7 +507,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
         );
 
         Assert.NotNull(error);
@@ -524,7 +524,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
         );
 
         Assert.NotNull(error);
@@ -541,7 +541,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
         );
 
         Assert.Null(error);
@@ -557,7 +557,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
         );
 
         Assert.Null(error);
@@ -573,7 +573,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
         );
 
         Assert.NotNull(error);
@@ -594,7 +594,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
         );
 
         Assert.NotNull(error);
@@ -611,7 +611,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var error = handler.ValidateAuthenticationMetadata(
             factory,
             request,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
 
         Assert.NotNull(error);
@@ -680,7 +680,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
             GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
             ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
@@ -708,7 +708,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
             ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
@@ -736,7 +736,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
             ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
@@ -763,7 +763,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
             ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
@@ -790,7 +790,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest { TlsClientCertificateBoundAccessTokens = true };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
@@ -820,7 +820,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest { DPoPBoundAccessTokens = true };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
@@ -854,7 +854,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
             ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
             RedirectUris = ["https://example.com/callback"],
@@ -902,7 +902,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest();
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
@@ -924,7 +924,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest { Jwks = CreateJwks() };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
@@ -1243,14 +1243,14 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var request = new RegisterClientRequest
         {
             TokenEndpointAuthSigningAlg = "ES256",
-            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            BackchannelTokenDeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             BackchannelClientNotificationEndpoint = "https://client.example/cb",
             BackchannelAuthenticationRequestSigningAlg = "PS256",
             BackchannelUserCodeParameter = false,
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],
@@ -1274,7 +1274,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         );
         Assert.Equal("ES256", response.TokenEndpointAuthSigningAlg);
         Assert.Equal(
-            OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             response.BackchannelTokenDeliveryMode
         );
         Assert.Equal("https://client.example/cb", response.BackchannelClientNotificationEndpoint);
@@ -1320,7 +1320,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var resolved = new ResolvedMetadata
         {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
             ResponseTypes = [],
             RedirectUris = [],

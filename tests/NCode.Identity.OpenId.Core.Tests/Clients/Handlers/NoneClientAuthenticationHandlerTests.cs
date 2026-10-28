@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients.Handlers;
 public class NoneClientAuthenticationHandlerTests : ClientAuthenticationHandlerTestBase
 {
     protected override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.None;
+        OpenIdProtocol.ClientAuthenticationMethods.None;
 
     #region Scaffolding
 
@@ -106,8 +106,8 @@ public class NoneClientAuthenticationHandlerTests : ClientAuthenticationHandlerT
     {
         SetupClientIdForm();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.None,
-            [OpenIdConstants.ClientAuthenticationMethods.None],
+            OpenIdProtocol.ClientAuthenticationMethods.None,
+            [OpenIdProtocol.ClientAuthenticationMethods.None],
             readsClientId: false
         );
         SetupResolvedClient(client);
@@ -129,7 +129,7 @@ public class NoneClientAuthenticationHandlerTests : ClientAuthenticationHandlerT
         // certificate, never authenticates as public.
         SetupClientIdForm();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             ceiling: null,
             readsClientId: false
         );
@@ -150,8 +150,8 @@ public class NoneClientAuthenticationHandlerTests : ClientAuthenticationHandlerT
         SetupClientIdForm();
         SetupErrorFactory();
         var client = CreateClient(
-            OpenIdConstants.ClientAuthenticationMethods.None,
-            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            OpenIdProtocol.ClientAuthenticationMethods.None,
+            [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt],
             readsClientId: true
         );
         SetupResolvedClient(client);

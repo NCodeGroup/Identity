@@ -45,9 +45,9 @@ public class TokenEndpointSecurityProfileTests
 
     private static string[] StrongAuthMethods { get; } =
     [
-        OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>

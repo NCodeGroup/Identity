@@ -59,9 +59,9 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> BackchannelTokenDeliveryMode() =>
         SettingRules.OneOf(
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+            OpenIdProtocol.BackchannelTokenDeliveryModes.Push
         );
 
     /// <summary>

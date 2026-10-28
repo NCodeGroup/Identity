@@ -265,7 +265,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var isConfidential =
-            resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
+            resolved.TokenEndpointAuthMethod != OpenIdProtocol.ClientAuthenticationMethods.None;
 
         var resourceServerId = initialAccessToken?.ResourceServerId;
         var bindingError = ValidateResourceServerBinding(
@@ -597,7 +597,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             request,
             isBound: client.ResourceServerId is not null,
             isConfidential: resolved.TokenEndpointAuthMethod
-                != OpenIdConstants.ClientAuthenticationMethods.None
+                != OpenIdProtocol.ClientAuthenticationMethods.None
         );
         if (bindingError is not null)
         {
@@ -809,7 +809,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var tokenEndpointAuthMethod =
             request.TokenEndpointAuthMethod
-            ?? OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+            ?? OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
         // The method vocabulary is open: the settings validation accepts every method a registered method descriptor
         // names, and the tenant's effective token_endpoint_auth_methods_supported narrows it (ValidateCoherence).
@@ -1148,28 +1148,28 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         switch (tokenEndpointAuthMethod)
         {
-            case OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+            case OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
                 when !hasJwks && !hasJwksUri:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'private_key_jwt' method requires the client's public keys in 'jwks' or 'jwks_uri'."
                 );
 
-            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            case OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
                 when !hasJwks && !hasJwksUri:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'self_signed_tls_client_auth' method requires the client's certificates in 'jwks' or 'jwks_uri'."
                 );
 
-            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+            case OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth
                 when hasJwks && !hasCertificate:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'self_signed_tls_client_auth' method requires a 'jwks' key with an 'x5c' certificate."
                 );
 
-            case OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth when identityCount != 1:
+            case OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth when identityCount != 1:
                 return InvalidClientMetadata(
                     errorFactory,
                     "The 'tls_client_auth' method requires exactly one of 'tls_client_auth_subject_dn', "
@@ -1177,7 +1177,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                         + "'tls_client_auth_san_email'."
                 );
 
-            case not OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+            case not OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth
                 when identityCount != 0:
                 return InvalidClientMetadata(
                     errorFactory,

@@ -38,9 +38,9 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     // FAPI 1.0 Advanced §5.2.2-14 permits only mutual-TLS or private_key_jwt client authentication.
     private static readonly string[] TokenEndpointAuthMethods =
     [
-        OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-        OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-        OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+        OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+        OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
     ];
 
     // FAPI 1.0 Advanced §5.2.2-1/2: 'code id_token', or 'code' with a JWT-secured response mode (the requirement below).

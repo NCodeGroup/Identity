@@ -180,7 +180,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         mockRequestObject
             .SetupGet(x => x.ResponseTypes)
             .Returns([OpenIdProtocol.ResponseTypes.Code]);
-        mockRequestObject.SetupGet(x => x.Scopes).Returns([OpenIdConstants.ScopeTypes.OpenId]);
+        mockRequestObject.SetupGet(x => x.Scopes).Returns([OpenIdProtocol.ScopeTypes.OpenId]);
 
         return new RequestObjectScaffold(
             mockClient.Object,
@@ -289,7 +289,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         // An outer scope is never used in place of the object's (RFC 9101 §6.3).
         var scaffold = CreateRequestObjectScaffold();
         scaffold.RequestObject.SetupGet(x => x.Scopes).Returns((List<string>?)null);
-        scaffold.Message.SetupGet(x => x.Scopes).Returns([OpenIdConstants.ScopeTypes.OpenId]);
+        scaffold.Message.SetupGet(x => x.Scopes).Returns([OpenIdProtocol.ScopeTypes.OpenId]);
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
@@ -303,7 +303,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var scaffold = CreateRequestObjectScaffold();
         scaffold
             .Message.SetupGet(x => x.Scopes)
-            .Returns([OpenIdConstants.ScopeTypes.OpenId, "profile"]);
+            .Returns([OpenIdProtocol.ScopeTypes.OpenId, "profile"]);
 
         InvokeValidateRequestObject(scaffold);
 
@@ -625,7 +625,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
 
         var mockRequest = CreateRequest(OpenIdProtocol.ResponseTypes.Code);
-        IReadOnlyList<string> scopes = [OpenIdConstants.ScopeTypes.OpenId];
+        IReadOnlyList<string> scopes = [OpenIdProtocol.ScopeTypes.OpenId];
         mockRequest.SetupGet(x => x.Scopes).Returns(scopes);
 
         return new CodeChallengeScaffold(
@@ -672,7 +672,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         var scaffold = CreateCodeChallengeScaffold(
             requirePkce: false,
-            registeredAuthMethod: OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            registeredAuthMethod: OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             nonceExemption: true
         );
         scaffold.Request.SetupGet(x => x.Nonce).Returns("n-0S6_WzA2Mj");
@@ -688,7 +688,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         // A public client is bound to PKCE however the deployment relaxes require_pkce.
         var scaffold = CreateCodeChallengeScaffold(
             requirePkce: false,
-            registeredAuthMethod: OpenIdConstants.ClientAuthenticationMethods.None,
+            registeredAuthMethod: OpenIdProtocol.ClientAuthenticationMethods.None,
             nonceExemption: true
         );
         scaffold.Request.SetupGet(x => x.Nonce).Returns("n-0S6_WzA2Mj");

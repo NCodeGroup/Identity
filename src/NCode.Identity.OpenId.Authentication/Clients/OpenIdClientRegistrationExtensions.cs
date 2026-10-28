@@ -56,7 +56,7 @@ internal static class OpenIdClientRegistrationExtensions
         public bool IsRegisteredAsConfidential =>
             !string.Equals(
                 client.RegisteredAuthenticationMethod,
-                OpenIdConstants.ClientAuthenticationMethods.None,
+                OpenIdProtocol.ClientAuthenticationMethods.None,
                 StringComparison.Ordinal
             );
 

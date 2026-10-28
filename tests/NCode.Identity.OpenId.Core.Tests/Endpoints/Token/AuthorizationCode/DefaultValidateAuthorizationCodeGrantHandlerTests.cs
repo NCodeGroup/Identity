@@ -432,7 +432,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenUnboundCodeIsExemptedByTheNonce_CompletesSuccessfully()
     {
-        var scaffold = CreatePkceScaffold([OpenIdConstants.ScopeTypes.OpenId]);
+        var scaffold = CreatePkceScaffold([OpenIdProtocol.ScopeTypes.OpenId]);
         SetupUnboundCode(scaffold);
         SetupNonceExemption(scaffold, isConfidential: true);
 
@@ -443,7 +443,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenUnboundCodeIsRedeemedByAPublicClient_ThrowsInvalidGrant()
     {
         // The exemption covers only a client that authenticates at the token endpoint.
-        var scaffold = CreatePkceScaffold([OpenIdConstants.ScopeTypes.OpenId]);
+        var scaffold = CreatePkceScaffold([OpenIdProtocol.ScopeTypes.OpenId]);
         SetupUnboundCode(scaffold);
         SetupNonceExemption(scaffold, isConfidential: false);
 
@@ -455,7 +455,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     {
         // Without 'openid' no ID Token carries the nonce back, so the nonce cannot protect the code.
         var scaffold = CreatePkceScaffold(
-            [OpenIdConstants.ScopeTypes.OpenId, "api"],
+            [OpenIdProtocol.ScopeTypes.OpenId, "api"],
             requestedScopes: ["api"]
         );
         SetupUnboundCode(scaffold);

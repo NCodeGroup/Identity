@@ -38,26 +38,26 @@ public class DefaultClientAuthenticationMethodDataSourceTests : BaseTests
 
         Assert.Equal(
             [
-                OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-                OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-                OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-                OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
-                OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
-                OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
-                OpenIdConstants.ClientAuthenticationMethods.None,
+                OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+                OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+                OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+                OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+                OpenIdProtocol.ClientAuthenticationMethods.None,
             ],
             names
         );
     }
 
     [Theory]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic, true)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost, true)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt, true)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, false)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth, false)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth, false)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.None, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic, true)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost, true)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt, true)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.None, false)]
     public void Collection_RequiresAClientSecretOnlyForTheSecretMethods(
         string method,
         bool expected

@@ -92,7 +92,7 @@ public class TokenEndpointClientJwksUriTests
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
-                ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = assertion,
             }
         );

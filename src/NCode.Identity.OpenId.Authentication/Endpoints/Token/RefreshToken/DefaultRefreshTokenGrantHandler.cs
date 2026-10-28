@@ -199,7 +199,7 @@ internal class DefaultRefreshTokenGrantHandler(
                 refreshTokenGrant.Confirmation
             );
         var issuesRefreshToken = securityTokenRequest.EffectiveScopes.Contains(
-            OpenIdConstants.ScopeTypes.OfflineAccess
+            OpenIdProtocol.ScopeTypes.OfflineAccess
         );
 
         string? responseRefreshToken = null;
@@ -479,7 +479,7 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenResponse.TokenType = tokenType;
         }
 
-        if (securityTokenRequest.EffectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (securityTokenRequest.EffectiveScopes.Contains(OpenIdProtocol.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 

@@ -35,7 +35,7 @@ internal sealed class NonceOrStateRequirement : IAuthorizationRequestProfileRequ
     {
         var request = context.Request;
         var requestsOpenId = request.Scopes.Contains(
-            OpenIdConstants.ScopeTypes.OpenId,
+            OpenIdProtocol.ScopeTypes.OpenId,
             StringComparer.Ordinal
         );
 

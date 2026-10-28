@@ -118,7 +118,7 @@ public class TokenEndpointClientAssertionTests
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
-                ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = assertion,
             }
         );
@@ -248,8 +248,8 @@ public class TokenEndpointClientAssertionTests
             .Select(element => element.GetString())
             .ToList();
 
-        Assert.Contains(OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt, methods);
-        Assert.Contains(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, methods);
+        Assert.Contains(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt, methods);
+        Assert.Contains(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt, methods);
     }
 
     [Fact]

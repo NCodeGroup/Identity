@@ -62,7 +62,7 @@ internal class DefaultCreateBackchannelAuthenticationRequestHandler(
 
         var deliveryMode =
             settings.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode)
-            ?? OpenIdConstants.BackchannelTokenDeliveryModes.Poll;
+            ?? OpenIdProtocol.BackchannelTokenDeliveryModes.Poll;
 
         var authReqId = CryptoService.GenerateUrlSafeKey();
         var lifetime = ResolveLifetime(settings, request);

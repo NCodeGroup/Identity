@@ -229,10 +229,10 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         var command = CreateCommand(
             CreateSubjectAuthentication(),
             [
-                OpenIdConstants.ScopeTypes.Profile,
-                OpenIdConstants.ScopeTypes.Email,
-                OpenIdConstants.ScopeTypes.Address,
-                OpenIdConstants.ScopeTypes.Phone,
+                OpenIdProtocol.ScopeTypes.Profile,
+                OpenIdProtocol.ScopeTypes.Email,
+                OpenIdProtocol.ScopeTypes.Address,
+                OpenIdProtocol.ScopeTypes.Phone,
             ]
         );
 
@@ -371,7 +371,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         // OpenID Connect Core 1.0 §5.4: with no access token issued the scope-driven claims belong in the ID token.
         var command = CreateCommand(
             CreateSubjectAuthentication(),
-            [OpenIdConstants.ScopeTypes.Profile, OpenIdConstants.ScopeTypes.Email],
+            [OpenIdProtocol.ScopeTypes.Profile, OpenIdProtocol.ScopeTypes.Email],
             accessToken: null
         );
 
@@ -388,7 +388,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         // returned from the UserInfo endpoint, not the ID token; the account-sourced UserInfo enricher supplies them.
         var command = CreateCommand(
             CreateSubjectAuthentication(),
-            [OpenIdConstants.ScopeTypes.Profile, OpenIdConstants.ScopeTypes.Email],
+            [OpenIdProtocol.ScopeTypes.Profile, OpenIdProtocol.ScopeTypes.Email],
             accessToken: "the-access-token"
         );
 
@@ -413,7 +413,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         };
         var command = CreateCommand(
             CreateSubjectAuthentication(),
-            [OpenIdConstants.ScopeTypes.Profile],
+            [OpenIdProtocol.ScopeTypes.Profile],
             requestClaims,
             accessToken: "the-access-token"
         );

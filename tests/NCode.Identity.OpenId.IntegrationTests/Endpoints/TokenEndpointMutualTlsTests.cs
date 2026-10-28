@@ -668,9 +668,9 @@ public class TokenEndpointMutualTlsTests
             .Select(element => element.GetString())
             .ToList();
 
-        Assert.Contains(OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth, methods);
+        Assert.Contains(OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth, methods);
         Assert.Contains(
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
             methods
         );
     }

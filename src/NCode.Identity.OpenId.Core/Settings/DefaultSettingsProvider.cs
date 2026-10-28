@@ -49,9 +49,9 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
         settings.Set(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
             [
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
             ]
         );
 

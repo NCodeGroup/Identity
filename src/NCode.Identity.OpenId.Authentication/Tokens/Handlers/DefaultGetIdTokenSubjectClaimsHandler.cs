@@ -88,22 +88,22 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(
 
         if (!accessTokenIssued)
         {
-            if (scopes.Contains(OpenIdConstants.ScopeTypes.Profile))
+            if (scopes.Contains(OpenIdProtocol.ScopeTypes.Profile))
             {
                 claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Profile);
             }
 
-            if (scopes.Contains(OpenIdConstants.ScopeTypes.Email))
+            if (scopes.Contains(OpenIdProtocol.ScopeTypes.Email))
             {
                 claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Email);
             }
 
-            if (scopes.Contains(OpenIdConstants.ScopeTypes.Address))
+            if (scopes.Contains(OpenIdProtocol.ScopeTypes.Address))
             {
                 claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Address);
             }
 
-            if (scopes.Contains(OpenIdConstants.ScopeTypes.Phone))
+            if (scopes.Contains(OpenIdProtocol.ScopeTypes.Phone))
             {
                 claimTypes.UnionWith(OpenIdConstants.ClaimsByScope.Phone);
             }

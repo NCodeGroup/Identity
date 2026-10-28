@@ -87,13 +87,13 @@ internal sealed class OpenIdIdentityResourceServerSeedHandler(ICryptoService cry
 
     private static List<PersistedScope> BuildScopes() =>
         [
-            Scope(OpenIdConstants.ScopeTypes.OpenId, "Sign you in and issue an identity token."),
-            Scope(OpenIdConstants.ScopeTypes.Profile, "Access your profile information."),
-            Scope(OpenIdConstants.ScopeTypes.Email, "Access your email address."),
-            Scope(OpenIdConstants.ScopeTypes.Address, "Access your postal address."),
-            Scope(OpenIdConstants.ScopeTypes.Phone, "Access your phone number."),
+            Scope(OpenIdProtocol.ScopeTypes.OpenId, "Sign you in and issue an identity token."),
+            Scope(OpenIdProtocol.ScopeTypes.Profile, "Access your profile information."),
+            Scope(OpenIdProtocol.ScopeTypes.Email, "Access your email address."),
+            Scope(OpenIdProtocol.ScopeTypes.Address, "Access your postal address."),
+            Scope(OpenIdProtocol.ScopeTypes.Phone, "Access your phone number."),
             Scope(
-                OpenIdConstants.ScopeTypes.OfflineAccess,
+                OpenIdProtocol.ScopeTypes.OfflineAccess,
                 "Maintain access while you are offline (refresh tokens)."
             ),
         ];

@@ -197,7 +197,7 @@ public class TokenEndpointPasswordTests
                 ["client_secret"] = clientSecret,
                 ["username"] = UserName,
                 ["password"] = Password,
-                ["scope"] = OpenIdConstants.ScopeTypes.OpenId,
+                ["scope"] = OpenIdProtocol.ScopeTypes.OpenId,
             }
         );
         using var response = await client.PostAsync("/oauth2/token", content);

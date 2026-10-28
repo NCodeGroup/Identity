@@ -71,7 +71,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
             ClientId = "client-1",
             Scopes = scopes,
             Status = DeviceAuthorizationStatus.Approved,
-            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
             SubjectAuthentication = CreateSubjectAuthentication(),
         };
 
@@ -156,10 +156,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         var result = await Service.CreateTokenResponseAsync(
             context.Object,
             client.Object,
-            CreateGrant(
-                OpenIdConstants.ScopeTypes.OpenId,
-                OpenIdConstants.ScopeTypes.OfflineAccess
-            ),
+            CreateGrant(OpenIdProtocol.ScopeTypes.OpenId, OpenIdProtocol.ScopeTypes.OfflineAccess),
             ProofOfPossessionBinding.Unbound,
             CancellationToken.None
         );

@@ -39,7 +39,7 @@ internal class ClientSecretPostClientAuthenticationHandler(
 {
     /// <inheritdoc />
     public override string AuthenticationMethod =>
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost;
+        OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(

@@ -120,7 +120,7 @@ internal class DefaultCibaGrantHandler(
         if (
             string.Equals(
                 payload.DeliveryMode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
                 StringComparison.Ordinal
             )
         )

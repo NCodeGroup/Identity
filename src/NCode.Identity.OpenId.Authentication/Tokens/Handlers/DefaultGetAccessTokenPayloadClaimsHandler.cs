@@ -68,7 +68,7 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
             : tokenRequest.EffectiveScopes.Where(scope =>
                 !string.Equals(
                     scope,
-                    OpenIdConstants.ScopeTypes.OfflineAccess,
+                    OpenIdProtocol.ScopeTypes.OfflineAccess,
                     StringComparison.Ordinal
                 )
             );

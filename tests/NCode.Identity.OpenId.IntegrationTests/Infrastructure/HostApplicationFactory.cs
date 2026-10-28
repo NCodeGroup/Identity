@@ -170,7 +170,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = redirectUris,
-                ["token_endpoint_auth_method"] = OpenIdConstants.ClientAuthenticationMethods.None,
+                ["token_endpoint_auth_method"] = OpenIdProtocol.ClientAuthenticationMethods.None,
             }
         );
 
@@ -224,7 +224,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var allSettings = new Dictionary<string, object>(settings)
         {
             ["redirect_uris"] = redirectUris,
-            ["token_endpoint_auth_method"] = OpenIdConstants.ClientAuthenticationMethods.None,
+            ["token_endpoint_auth_method"] = OpenIdProtocol.ClientAuthenticationMethods.None,
         };
 
         using var scope = Services.CreateScope();
@@ -326,7 +326,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             grantTypes
         );
 
@@ -344,7 +344,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             grantTypes
         );
 
@@ -362,7 +362,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         SeedSharedSecretClientAsync(
             clientId,
             clientSecret,
-            OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
             grantTypes
         );
 
@@ -549,7 +549,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         SeedClientWithJwksUriAsync(
             clientId,
             jwksUri,
-            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             grantTypes
         );
 
@@ -566,7 +566,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         SeedClientWithJwksUriAsync(
             clientId,
             jwksUri,
-            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
             grantTypes
         );
 

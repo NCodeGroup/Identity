@@ -192,7 +192,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/par");
         request.Content = new FormUrlEncodedContent([
             new("client_id", clientId),
-            new("client_assertion_type", OpenIdConstants.ClientAssertionTypes.JwtBearer),
+            new("client_assertion_type", OpenIdProtocol.ClientAssertionTypes.JwtBearer),
             new("client_assertion", clientAssertion),
             new("request", requestObject),
         ]);

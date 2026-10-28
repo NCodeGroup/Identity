@@ -279,7 +279,7 @@ public class AuthorizationRequestTests : BaseTests
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            Scopes = [OpenIdConstants.ScopeTypes.OpenId],
+            Scopes = [OpenIdProtocol.ScopeTypes.OpenId],
         };
         var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
@@ -294,17 +294,17 @@ public class AuthorizationRequestTests : BaseTests
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            Scopes = [OpenIdConstants.ScopeTypes.OpenId, "outer"],
+            Scopes = [OpenIdProtocol.ScopeTypes.OpenId, "outer"],
         };
         var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object)
         {
-            Scopes = [OpenIdConstants.ScopeTypes.OpenId],
+            Scopes = [OpenIdProtocol.ScopeTypes.OpenId],
         };
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
 
         var scopes = authorizationRequest.Scopes;
 
-        Assert.Equal([OpenIdConstants.ScopeTypes.OpenId], scopes);
+        Assert.Equal([OpenIdProtocol.ScopeTypes.OpenId], scopes);
     }
 
     [Fact]

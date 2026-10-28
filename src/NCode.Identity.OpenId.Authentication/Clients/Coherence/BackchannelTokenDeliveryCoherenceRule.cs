@@ -61,12 +61,12 @@ internal sealed class BackchannelTokenDeliveryCoherenceRule : IClientCoherenceRu
             settings.TryGetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode, out var registered)
             && !string.IsNullOrEmpty(registered)
                 ? registered
-                : OpenIdConstants.BackchannelTokenDeliveryModes.Poll;
+                : OpenIdProtocol.BackchannelTokenDeliveryModes.Poll;
 
         if (
             !string.Equals(
                 mode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
                 StringComparison.Ordinal
             )
             && (

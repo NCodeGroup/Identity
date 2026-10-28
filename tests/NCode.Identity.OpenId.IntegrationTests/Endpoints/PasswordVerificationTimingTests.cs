@@ -124,7 +124,7 @@ public class PasswordVerificationTimingTests
                 ["client_secret"] = ClientSecret,
                 ["username"] = userName,
                 ["password"] = password,
-                ["scope"] = OpenIdConstants.ScopeTypes.OpenId,
+                ["scope"] = OpenIdProtocol.ScopeTypes.OpenId,
             }
         );
 

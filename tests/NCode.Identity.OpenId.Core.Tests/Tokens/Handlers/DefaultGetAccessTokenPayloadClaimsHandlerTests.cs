@@ -144,7 +144,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
     {
         var (command, payloadClaims) = CreateCommand(
             subjectAuthentication: null,
-            ["openid", OpenIdConstants.ScopeTypes.OfflineAccess]
+            ["openid", OpenIdProtocol.ScopeTypes.OfflineAccess]
         );
 
         MockCryptoService

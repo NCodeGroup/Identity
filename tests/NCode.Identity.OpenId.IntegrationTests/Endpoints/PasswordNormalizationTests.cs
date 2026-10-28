@@ -58,7 +58,7 @@ public class PasswordNormalizationTests
                 ["client_secret"] = ClientSecret,
                 ["username"] = UserName,
                 ["password"] = password,
-                ["scope"] = OpenIdConstants.ScopeTypes.OpenId,
+                ["scope"] = OpenIdProtocol.ScopeTypes.OpenId,
             }
         );
 

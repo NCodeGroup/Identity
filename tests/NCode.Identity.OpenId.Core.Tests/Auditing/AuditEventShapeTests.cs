@@ -227,6 +227,107 @@ public sealed class AuditEventShapeTests
 
     #endregion
 
+    #region OpenIdErrorEvent Tests
+
+    [Fact]
+    public void EventName_WhenAProtocolErrorIsReturned_IsError()
+    {
+        var auditEvent = CreateOpenIdErrorEvent();
+
+        Assert.Equal(OpenIdAuditEventNames.Error, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenAProtocolErrorIsReturned_IsProtocol()
+    {
+        var auditEvent = CreateOpenIdErrorEvent();
+
+        Assert.Equal(AuditEventCategories.Protocol, auditEvent.EventCategory);
+    }
+
+    #endregion
+
+    #region SessionCreatedAuditEvent Tests
+
+    [Fact]
+    public void EventName_WhenASessionIsCreated_IsSessionCreated()
+    {
+        var auditEvent = CreateSessionCreatedEvent();
+
+        Assert.Equal(OpenIdAuditEventNames.SessionCreated, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenASessionIsCreated_IsSession()
+    {
+        var auditEvent = CreateSessionCreatedEvent();
+
+        Assert.Equal(AuditEventCategories.Session, auditEvent.EventCategory);
+    }
+
+    [Fact]
+    public void Resources_WhenASessionIsCreated_ListsTheSession()
+    {
+        var auditEvent = CreateSessionCreatedEvent();
+
+        var resource = Assert.Single(auditEvent.Resources);
+
+        Assert.Equal(new AuditResource(AuditResourceTypes.Session, "sid-1"), resource);
+    }
+
+    #endregion
+
+    #region SessionTerminatedAuditEvent Tests
+
+    [Fact]
+    public void EventName_WhenASessionIsTerminated_IsSessionTerminated()
+    {
+        var auditEvent = CreateSessionTerminatedEvent("sid-1");
+
+        Assert.Equal(OpenIdAuditEventNames.SessionTerminated, auditEvent.EventName);
+    }
+
+    [Fact]
+    public void EventCategory_WhenASessionIsTerminated_IsSession()
+    {
+        var auditEvent = CreateSessionTerminatedEvent("sid-1");
+
+        Assert.Equal(AuditEventCategories.Session, auditEvent.EventCategory);
+    }
+
+    [Fact]
+    public void Resources_WhenASessionIsTerminated_ListsTheSession()
+    {
+        var auditEvent = CreateSessionTerminatedEvent("sid-1");
+
+        var resource = Assert.Single(auditEvent.Resources);
+
+        Assert.Equal(new AuditResource(AuditResourceTypes.Session, "sid-1"), resource);
+    }
+
+    [Fact]
+    public void Resources_WhenTheTerminationIsSubjectWide_IsEmpty()
+    {
+        var auditEvent = CreateSessionTerminatedEvent(null);
+
+        Assert.Empty(auditEvent.Resources);
+    }
+
+    [Fact]
+    public void Serialize_WhenASessionIsTerminated_WritesTheTerminationReasonAsTheDetails()
+    {
+        var auditEvent = CreateSessionTerminatedEvent("sid-1");
+
+        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+
+        Assert.Equal(
+            """{"termination_reason":"logout"}""",
+            record.RootElement.GetProperty("details").GetRawText()
+        );
+    }
+
+    #endregion
+
     #region Helpers
 
     private static TokenIssuedAuditEvent CreateTokenIssuedEvent() =>
@@ -301,6 +402,37 @@ public sealed class AuditEventShapeTests
             EventTime = DateTimeOffset.UnixEpoch,
             EventSource = AuditEventSources.OpenId,
             Outcome = AuditOutcome.Success,
+        };
+
+    private static OpenIdErrorEvent CreateOpenIdErrorEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Failure,
+            ErrorCode = "invalid_request",
+        };
+
+    private static SessionCreatedAuditEvent CreateSessionCreatedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Success,
+            SessionId = "sid-1",
+        };
+
+    private static SessionTerminatedAuditEvent CreateSessionTerminatedEvent(string? sessionId) =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Success,
+            SessionId = sessionId,
+            TerminationReason = "logout",
         };
 
     #endregion

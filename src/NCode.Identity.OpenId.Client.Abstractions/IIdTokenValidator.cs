@@ -24,7 +24,8 @@ namespace NCode.Identity.OpenId.Client;
 /// Validates the ID tokens that a provider issues to a client.
 /// </summary>
 /// <remarks>
-/// An invalid token is returned as data in <see cref="IdTokenValidationResult.FailureReason"/>. A failure of the
+/// An invalid token is returned as data, where <see cref="IdTokenValidationResult.FailureCode"/> names why it is
+/// invalid and <see cref="IdTokenValidationResult.FailureReason"/> describes it. A failure of the
 /// provider, such as an unreachable discovery or JWKS endpoint, throws <see cref="OpenIdProviderException"/>.
 /// </remarks>
 [PublicAPI]

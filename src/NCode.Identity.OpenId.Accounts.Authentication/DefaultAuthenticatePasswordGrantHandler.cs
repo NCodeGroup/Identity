@@ -47,6 +47,9 @@ internal class DefaultAuthenticatePasswordGrantHandler(
     IPasswordAttemptLimiter passwordAttemptLimiter
 ) : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>
 {
+    internal const string InvalidCredentialsErrorCode = "invalid_credentials";
+    internal const string AttemptLimitReachedErrorCode = "attempt_limit_reached";
+
     internal const string InvalidCredentialsReason = "The provided credentials are invalid.";
 
     internal const string AttemptLimitReachedReason =
@@ -108,6 +111,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
+                AttemptLimitReachedErrorCode,
                 AttemptLimitReachedReason,
                 username,
                 cancellationToken
@@ -120,6 +124,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
+                InvalidCredentialsErrorCode,
                 InvalidCredentialsReason,
                 username,
                 cancellationToken

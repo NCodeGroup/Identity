@@ -107,7 +107,7 @@ public class TokenEndpointBootstrapAdminTests
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                            ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdConstants
+                            ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdProtocol
                                 .ClientAuthenticationMethods
                                 .PrivateKeyJwt,
                         }

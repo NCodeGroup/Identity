@@ -62,9 +62,7 @@ public class TokenEndpointTests(HostApplicationFactory factory)
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
-                    .GrantTypes
-                    .ClientCredentials,
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol.GrantTypes.ClientCredentials,
             }
         );
         using var response = await client.PostAsync(TokenPath, content);

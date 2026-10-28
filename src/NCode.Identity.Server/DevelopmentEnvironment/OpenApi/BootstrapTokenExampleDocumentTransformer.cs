@@ -89,9 +89,7 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
                 "Exchange the configured bootstrap administrator credentials for a GlobalAdmin access token.",
             Value = new JsonObject
             {
-                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
-                    .GrantTypes
-                    .ClientCredentials,
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 [OpenIdProtocol.Parameters.ClientId] = clientId,
                 [OpenIdProtocol.Parameters.ClientSecret] = clientSecret,
                 [OpenIdProtocol.Parameters.Scope] = BootstrapScope,

@@ -231,7 +231,7 @@ public class ClientCoherenceTests
                 settings = new Dictionary<string, object>
                 {
                     ["redirect_uris"] = new[] { RedirectUri },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },
@@ -260,7 +260,7 @@ public class ClientCoherenceTests
         var clientSettings = new Dictionary<string, object>(settings)
         {
             ["redirect_uris"] = new[] { RedirectUri },
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };

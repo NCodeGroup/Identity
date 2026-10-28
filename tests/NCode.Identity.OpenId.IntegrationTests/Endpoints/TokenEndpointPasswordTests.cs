@@ -163,7 +163,7 @@ public class TokenEndpointPasswordTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.Password },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["id_token_encrypted_response_alg"] = "RSA-OAEP-256",

@@ -454,7 +454,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         var settings = new Dictionary<string, object>
         {
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .PrivateKeyJwt,
         };
@@ -496,7 +496,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var allSettings = new Dictionary<string, object>(settings)
         {
             ["redirect_uris"] = redirectUris,
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .PrivateKeyJwt,
         };
@@ -679,7 +679,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         var settings = new Dictionary<string, object>(additionalSettings)
         {
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .SelfSignedTlsClientAuth,
         };
@@ -735,7 +735,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         var settings = new Dictionary<string, object>
         {
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .TlsClientAuth,
             ["tls_client_auth_subject_dn"] = subjectDn,
@@ -840,7 +840,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         var settings = new Dictionary<string, object>
         {
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
             ["security_profiles"] = securityProfiles,

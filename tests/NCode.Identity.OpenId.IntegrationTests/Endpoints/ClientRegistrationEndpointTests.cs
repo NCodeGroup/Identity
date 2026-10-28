@@ -48,7 +48,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["client_name"] = "Registered Client",
@@ -116,7 +116,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["introspection_signed_response_alg"] = "RS256",
@@ -146,7 +146,7 @@ public class ClientRegistrationEndpointTests
                 new Dictionary<string, object>
                 {
                     ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 }
@@ -340,7 +340,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, string?>
             {
                 ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
-                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdConstants
+                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
             }
@@ -354,7 +354,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { RedirectUri },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
             }
@@ -476,7 +476,7 @@ public class ClientRegistrationEndpointTests
         new()
         {
             ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
             ["jwks"] = new Dictionary<string, object> { ["keys"] = new[] { jwk } },
@@ -621,7 +621,7 @@ public class ClientRegistrationEndpointTests
                 {
                     ["client_id"] = root.GetProperty("client_id").GetString() ?? string.Empty,
                     ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                     ["jwks_uri"] = "https://client.example/jwks",
@@ -726,7 +726,7 @@ public class ClientRegistrationEndpointTests
         );
         using var rsa = RSA.Create(2048);
         var registration = CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"));
-        registration["token_endpoint_auth_method"] = OpenIdConstants
+        registration["token_endpoint_auth_method"] = OpenIdProtocol
             .ClientAuthenticationMethods
             .PrivateKeyJwt;
 
@@ -785,7 +785,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .PrivateKeyJwt,
             }
@@ -811,7 +811,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .TlsClientAuth,
                 ["tls_client_auth_san_dns"] = "client.example.com",
@@ -857,7 +857,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .TlsClientAuth,
             }
@@ -887,11 +887,11 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["token_endpoint_auth_signing_alg"] = "ES256",
-                ["backchannel_token_delivery_mode"] = OpenIdConstants
+                ["backchannel_token_delivery_mode"] = OpenIdProtocol
                     .BackchannelTokenDeliveryModes
                     .Ping,
                 ["backchannel_client_notification_endpoint"] = "https://client.example/ciba",
@@ -996,7 +996,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["tls_client_certificate_bound_access_tokens"] = true,
@@ -1029,7 +1029,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["tls_client_certificate_bound_access_tokens"] = true,
@@ -1077,7 +1077,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
                 ["dpop_bound_access_tokens"] = true,

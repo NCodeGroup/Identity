@@ -109,7 +109,7 @@ internal sealed class DeveloperInteractiveSeedHandler(
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.RedirectUris] = spaClient.RedirectUris,
-                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdConstants
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .None,
                 [OpenIdSettingNames.RequireConsent] = spaClient.RequireConsent,

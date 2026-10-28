@@ -76,7 +76,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { RedirectUri },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
                 ["request_object_signing_alg"] = "RS256",

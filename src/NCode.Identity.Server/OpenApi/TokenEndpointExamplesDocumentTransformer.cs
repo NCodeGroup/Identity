@@ -133,9 +133,7 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
                 "Exchange a confidential client's credentials for an access token (machine-to-machine).",
             Value = new JsonObject
             {
-                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
-                    .GrantTypes
-                    .ClientCredentials,
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 [OpenIdProtocol.Parameters.ClientId] = "your-client-id",
                 [OpenIdProtocol.Parameters.ClientSecret] = "your-client-secret",
                 [OpenIdProtocol.Parameters.Scope] = "read:clients",
@@ -149,9 +147,7 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
             Description = "Exchange an authorization code (with PKCE) for tokens.",
             Value = new JsonObject
             {
-                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
-                    .GrantTypes
-                    .AuthorizationCode,
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol.GrantTypes.AuthorizationCode,
                 [OpenIdProtocol.Parameters.AuthorizationCode] = "the-authorization-code",
                 [OpenIdProtocol.Parameters.RedirectUri] = "https://your-app.example/callback",
                 [OpenIdProtocol.Parameters.ClientId] = "your-client-id",

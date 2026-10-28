@@ -155,7 +155,7 @@ public class TokenIntrospectionEndpointTests
     {
         var settings = new Dictionary<string, object>
         {
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };
@@ -437,7 +437,7 @@ public class TokenIntrospectionEndpointTests
                 resourceServerId = OrdersResourceServerId,
                 settings = new Dictionary<string, object>
                 {
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .None,
                 },
@@ -1043,7 +1043,7 @@ public class TokenIntrospectionEndpointTests
                 {
                     ["client_id"] = clientId ?? string.Empty,
                     ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .None,
                 }

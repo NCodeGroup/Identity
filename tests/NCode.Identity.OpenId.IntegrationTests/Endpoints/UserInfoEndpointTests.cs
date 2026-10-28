@@ -59,7 +59,7 @@ public class UserInfoEndpointTests
         var registration = new Dictionary<string, object>(metadata)
         {
             ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.Password },
-            ["token_endpoint_auth_method"] = OpenIdConstants
+            ["token_endpoint_auth_method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
         };

@@ -115,7 +115,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { redirectUri },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
             }

@@ -145,7 +145,7 @@ public class ClientSecretRotationTests
                 isDisabled = false,
                 settings = new Dictionary<string, object>
                 {
-                    ["token_endpoint_auth_method"] = OpenIdConstants
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
                 },

@@ -136,7 +136,7 @@ public class AuthorizationCodePkceTests
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { RedirectUri },
-                ["token_endpoint_auth_method"] = OpenIdConstants
+                ["token_endpoint_auth_method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
             }

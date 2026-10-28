@@ -26,14 +26,14 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
-public class RsaKeyManagementAlgorithmTests : BaseTests
+public class RsaOaepKeyManagementAlgorithmTests : BaseTests
 {
     [Fact]
     public void Code_ReturnsCode()
     {
         const string code = nameof(code);
 
-        var algorithm = new RsaKeyManagementAlgorithm(code, RSAEncryptionPadding.Pkcs1);
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
         Assert.Equal(code, algorithm.Code);
     }
 
@@ -42,7 +42,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     {
         const string code = nameof(code);
 
-        var algorithm = new RsaKeyManagementAlgorithm(code, RSAEncryptionPadding.Pkcs1);
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
         Assert.Equal(typeof(RsaSecretKey), algorithm.KeyType);
     }
 
@@ -51,7 +51,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     {
         const string code = nameof(code);
 
-        var algorithm = new RsaKeyManagementAlgorithm(code, RSAEncryptionPadding.Pkcs1);
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
         var result = Assert.Single(algorithm.KeyBitSizes);
         Assert.Equal(2048, result.MinSize);
         Assert.Equal(16384, result.MaxSize);
@@ -60,15 +60,15 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
     public static IEnumerable<object[]> GetCommonRsaKeyParameterTestData()
     {
-        yield return new object[] { 2048, RSAEncryptionPadding.Pkcs1 };
-        yield return new object[] { 2048, RSAEncryptionPadding.OaepSHA256 };
-        yield return new object[] { 2048, RSAEncryptionPadding.OaepSHA384 };
-        yield return new object[] { 2048, RSAEncryptionPadding.OaepSHA512 };
+        yield return new object[] { 2048, HashAlgorithmName.SHA1 };
+        yield return new object[] { 2048, HashAlgorithmName.SHA256 };
+        yield return new object[] { 2048, HashAlgorithmName.SHA384 };
+        yield return new object[] { 2048, HashAlgorithmName.SHA512 };
 
-        yield return new object[] { 3072, RSAEncryptionPadding.Pkcs1 };
-        yield return new object[] { 3072, RSAEncryptionPadding.OaepSHA256 };
-        yield return new object[] { 3072, RSAEncryptionPadding.OaepSHA384 };
-        yield return new object[] { 3072, RSAEncryptionPadding.OaepSHA512 };
+        yield return new object[] { 3072, HashAlgorithmName.SHA1 };
+        yield return new object[] { 3072, HashAlgorithmName.SHA256 };
+        yield return new object[] { 3072, HashAlgorithmName.SHA384 };
+        yield return new object[] { 3072, HashAlgorithmName.SHA512 };
     }
 
     public static IEnumerable<object[]> GetLegalCekByteSizesTestData()
@@ -78,69 +78,57 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         yield return new object[]
         {
             1024,
-            RSAEncryptionPadding.Pkcs1,
-            new[] { new KeySizes(1, 117, 1) },
-        };
-        yield return new object[]
-        {
-            1024,
-            RSAEncryptionPadding.OaepSHA256,
+            HashAlgorithmName.SHA256,
             new[] { new KeySizes(1, 62, 1) },
         };
         yield return new object[]
         {
             1024,
-            RSAEncryptionPadding.OaepSHA384,
+            HashAlgorithmName.SHA384,
             new[] { new KeySizes(1, 30, 1) },
         };
 
         yield return new object[]
         {
             2048,
-            RSAEncryptionPadding.Pkcs1,
-            new[] { new KeySizes(1, 245, 1) },
+            HashAlgorithmName.SHA1,
+            new[] { new KeySizes(1, 214, 1) },
         };
         yield return new object[]
         {
             2048,
-            RSAEncryptionPadding.OaepSHA256,
+            HashAlgorithmName.SHA256,
             new[] { new KeySizes(1, 190, 1) },
         };
         yield return new object[]
         {
             2048,
-            RSAEncryptionPadding.OaepSHA384,
+            HashAlgorithmName.SHA384,
             new[] { new KeySizes(1, 158, 1) },
         };
         yield return new object[]
         {
             2048,
-            RSAEncryptionPadding.OaepSHA512,
+            HashAlgorithmName.SHA512,
             new[] { new KeySizes(1, 126, 1) },
         };
 
         yield return new object[]
         {
             3072,
-            RSAEncryptionPadding.Pkcs1,
-            new[] { new KeySizes(1, 373, 1) },
-        };
-        yield return new object[]
-        {
-            3072,
-            RSAEncryptionPadding.OaepSHA256,
+            HashAlgorithmName.SHA256,
             new[] { new KeySizes(1, 318, 1) },
         };
         yield return new object[]
         {
             3072,
-            RSAEncryptionPadding.OaepSHA384,
+            HashAlgorithmName.SHA384,
             new[] { new KeySizes(1, 286, 1) },
         };
         yield return new object[]
         {
             3072,
-            RSAEncryptionPadding.OaepSHA512,
+            HashAlgorithmName.SHA512,
             new[] { new KeySizes(1, 254, 1) },
         };
     }
@@ -149,12 +137,12 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     [MemberData(nameof(GetLegalCekByteSizesTestData))]
     public void GetLegalCekByteSizes_WhenGivenKeySize_ReturnsExpected(
         int kekSizeBits,
-        RSAEncryptionPadding padding,
+        HashAlgorithmName hashAlgorithmName,
         IEnumerable<KeySizes> expected
     )
     {
         const string code = nameof(code);
-        var algorithm = new RsaKeyManagementAlgorithm(code, padding);
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, hashAlgorithmName);
         var result = algorithm.GetLegalCekByteSizes(kekSizeBits);
         Assert.Equal(JsonSerializer.Serialize(expected), JsonSerializer.Serialize(result));
     }
@@ -181,8 +169,8 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
     )
     {
         const string code = nameof(code);
-        var anyPadding = RSAEncryptionPadding.Pkcs1;
-        var algorithm = new RsaKeyManagementAlgorithm(code, anyPadding);
+        var anyHashAlgorithmName = HashAlgorithmName.SHA256;
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, anyHashAlgorithmName);
         var anyCekSizeBytes = RandomNumberGenerator.GetInt32(int.MaxValue);
         var result = algorithm.GetEncryptedContentKeySizeBytes(kekSizeBits, anyCekSizeBytes);
         Assert.Equal(expected, result);
@@ -190,14 +178,17 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
 
     [Theory]
     [MemberData(nameof(GetCommonRsaKeyParameterTestData))]
-    public void WrapKey_WhenGivenValidKey_EncryptsKey(int kekSizeBits, RSAEncryptionPadding padding)
+    public void WrapKey_WhenGivenValidKey_EncryptsKey(
+        int kekSizeBits,
+        HashAlgorithmName hashAlgorithmName
+    )
     {
         const string code = nameof(code);
 
         using var key = RSA.Create(kekSizeBits);
         var secretKey = SecretKeyFactory.CreateRsa(default, key);
 
-        var algorithm = new RsaKeyManagementAlgorithm(code, padding);
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, hashAlgorithmName);
         var header = new Dictionary<string, object>();
 
         var cekSizeBytes = algorithm.GetLegalCekByteSizes(kekSizeBits).Single().MaxSize;
@@ -214,13 +205,16 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         algorithm.WrapKey(secretKey, header, cek, encryptedCekWriter);
         Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
-        var decrypted = key.Decrypt(encryptedCekWriter.WrittenSpan.ToArray(), padding);
+        var decrypted = key.Decrypt(
+            encryptedCekWriter.WrittenSpan.ToArray(),
+            RSAEncryptionPadding.CreateOaep(hashAlgorithmName)
+        );
         Assert.Equal(Convert.ToBase64String(cek), Convert.ToBase64String(decrypted));
     }
 
     [Theory]
     [MemberData(nameof(GetCommonRsaKeyParameterTestData))]
-    public void RoundTrip_EncryptsAndDecrypts(int kekSizeBits, RSAEncryptionPadding padding)
+    public void RoundTrip_EncryptsAndDecrypts(int kekSizeBits, HashAlgorithmName hashAlgorithmName)
     {
         const string code = nameof(code);
         const string keyId = nameof(keyId);
@@ -229,7 +223,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         using var key = RSA.Create(kekSizeBits);
         var secretKey = SecretKeyFactory.CreateRsa(metadata, key);
 
-        var algorithm = new RsaKeyManagementAlgorithm(code, padding);
+        var algorithm = new RsaOaepKeyManagementAlgorithm(code, hashAlgorithmName);
         var headerForWrap = new Dictionary<string, object>();
 
         var cekSizeBytes = algorithm.GetLegalCekByteSizes(kekSizeBits).Single().MaxSize;
@@ -248,7 +242,7 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(encryptedCekSizeBytes, encryptedCekWriter.WrittenCount);
 
         var cekSizeBits = cekSizeBytes << 3;
-        var controlAlgorithm = GetControlAlgorithm(padding);
+        var controlAlgorithm = GetControlAlgorithm(hashAlgorithmName);
         if (controlAlgorithm != null)
         {
             var controlResult = controlAlgorithm.Unwrap(
@@ -273,17 +267,15 @@ public class RsaKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(cek.ToArray(), decryptedCek.ToArray());
     }
 
-    private static IKeyManagement? GetControlAlgorithm(RSAEncryptionPadding padding)
+    private static IKeyManagement? GetControlAlgorithm(HashAlgorithmName hashAlgorithmName)
     {
-        if (padding == RSAEncryptionPadding.Pkcs1)
-            return new RsaKeyManagement(false);
-        if (padding == RSAEncryptionPadding.OaepSHA1)
+        if (hashAlgorithmName == HashAlgorithmName.SHA1)
             return new RsaKeyManagement(true);
-        if (padding == RSAEncryptionPadding.OaepSHA256)
+        if (hashAlgorithmName == HashAlgorithmName.SHA256)
             return new RsaOaepKeyManagement(256);
-        if (padding == RSAEncryptionPadding.OaepSHA384)
+        if (hashAlgorithmName == HashAlgorithmName.SHA384)
             return new RsaOaepKeyManagement(384);
-        if (padding == RSAEncryptionPadding.OaepSHA512)
+        if (hashAlgorithmName == HashAlgorithmName.SHA512)
             return new RsaOaepKeyManagement(512);
         return null;
     }

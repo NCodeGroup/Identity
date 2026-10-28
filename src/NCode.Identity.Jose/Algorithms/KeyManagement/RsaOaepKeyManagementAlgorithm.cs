@@ -26,11 +26,12 @@ using NCode.Identity.Secrets.Keys;
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 
 /// <summary>
-/// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>RSA</c> cryptographic algorithm for key management.
+/// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses <c>RSAES-OAEP</c> for key management:
+/// <c>RSA-OAEP</c>, <c>RSA-OAEP-256</c>, <c>RSA-OAEP-384</c> and <c>RSA-OAEP-512</c>.
 /// </summary>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-/// <param name="padding">Contains a <see cref="RSAEncryptionPadding"/> value that describes the type of RSA padding to use.</param>
-internal class RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding padding)
+/// <param name="hashAlgorithmName">The hash function that <c>OAEP</c> and its <c>MGF1</c> mask generation function use.</param>
+internal class RsaOaepKeyManagementAlgorithm(string code, HashAlgorithmName hashAlgorithmName)
     : CommonKeyManagementAlgorithm
 {
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
@@ -45,28 +46,16 @@ internal class RsaKeyManagementAlgorithm(string code, RSAEncryptionPadding paddi
     /// <inheritdoc />
     public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
 
-    private RSAEncryptionPadding Padding { get; } = padding;
+    private RSAEncryptionPadding Padding { get; } =
+        RSAEncryptionPadding.CreateOaep(hashAlgorithmName);
 
     private int GetMaxCekSizeBytes(int kekSizeBits)
     {
-        if (Padding.Mode == RSAEncryptionPaddingMode.Oaep)
-        {
-            // https://crypto.stackexchange.com/a/42100
-            // ceil(kLenBits/8) - 2*ceil(hLenBits/8) - 2
-            var hLenBits = Padding.OaepHashAlgorithm.GetHashSizeBits();
-            var maxSizeBytes = ((kekSizeBits + 7) >> 3) - (((hLenBits + 7) >> 3) << 1) - 2;
-            return maxSizeBytes;
-        }
-
-        // ReSharper disable once InvertIf
-        if (Padding == RSAEncryptionPadding.Pkcs1)
-        {
-            // ceil(kLenBits/8) - Pkcs1Overhead
-            var maxSizeBytes = ((kekSizeBits + 7) >> 3) - 11;
-            return maxSizeBytes;
-        }
-
-        throw new InvalidOperationException();
+        // https://crypto.stackexchange.com/a/42100
+        // ceil(kLenBits/8) - 2*ceil(hLenBits/8) - 2
+        var hLenBits = Padding.OaepHashAlgorithm.GetHashSizeBits();
+        var maxSizeBytes = ((kekSizeBits + 7) >> 3) - (((hLenBits + 7) >> 3) << 1) - 2;
+        return maxSizeBytes;
     }
 
     /// <inheritdoc />

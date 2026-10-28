@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record SessionCreatedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.SessionCreated;
+    public override string Action => OpenIdAuditEventNames.SessionCreated;
 
     /// <summary>
     /// Gets the opaque session identifier (<c>sid</c>) that was created.

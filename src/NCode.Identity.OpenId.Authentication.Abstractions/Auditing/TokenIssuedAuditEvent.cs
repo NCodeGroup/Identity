@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record TokenIssuedAuditEvent : AuditEvent, ISupportMetricAttributes
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.TokenIssued;
+    public override string Action => OpenIdAuditEventNames.TokenIssued;
 
     /// <summary>
     /// Gets the type of the issued token (for example an access token, ID token, refresh token, or

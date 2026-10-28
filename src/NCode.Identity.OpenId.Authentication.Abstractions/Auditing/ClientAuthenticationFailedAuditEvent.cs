@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record ClientAuthenticationFailedAuditEvent : AuditEvent, ISupportMetricAttributes
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.ClientAuthentication;
+    public override string Action => OpenIdAuditEventNames.ClientAuthentication;
 
     /// <summary>
     /// The name of the metric attribute that carries <see cref="AuthenticationMethod"/> on the counter of published

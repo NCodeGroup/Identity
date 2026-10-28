@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record OpenIdErrorEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.Error;
+    public override string Action => OpenIdAuditEventNames.Error;
 
     /// <summary>
     /// Gets the <c>OAuth</c> or <c>OpenID Connect</c> error code (the <c>error</c> parameter).

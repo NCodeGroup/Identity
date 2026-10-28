@@ -30,5 +30,5 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record RefreshTokenReplayAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.RefreshTokenReplay;
+    public override string Action => OpenIdAuditEventNames.RefreshTokenReplay;
 }

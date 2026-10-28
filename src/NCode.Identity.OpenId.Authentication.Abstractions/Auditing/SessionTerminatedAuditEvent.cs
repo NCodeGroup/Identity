@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record SessionTerminatedAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditActions.SessionTerminated;
+    public override string Action => OpenIdAuditEventNames.SessionTerminated;
 
     /// <summary>
     /// Gets the opaque session identifier (<c>sid</c>) that was terminated, or <see langword="null"/> for a

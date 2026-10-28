@@ -117,6 +117,8 @@ NCode.Identity.Events.Audit.IAuditEvent.Resources.get -> System.Collections.Gene
 NCode.Identity.Events.Audit.IAuditEvent.Severity.get -> string!
 NCode.Identity.Events.EventsLibrary
 NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
+abstract NCode.Identity.Events.Audit.AuditEvent.EventCategory.get -> string!
+abstract NCode.Identity.Events.Audit.AuditEvent.EventName.get -> string!
 abstract NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ResourceType.get -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Denied = "denied" -> string!
 const NCode.Identity.Events.Audit.AuditOutcome.Failure = "failure" -> string!
@@ -126,40 +128,23 @@ const NCode.Identity.Events.Audit.ResourceChangeTypes.Deleted = "deleted" -> str
 const NCode.Identity.Events.Audit.ResourceChangeTypes.SettingsUpdated = "settings.updated" -> string!
 const NCode.Identity.Events.Audit.ResourceChangeTypes.Updated = "updated" -> string!
 NCode.Identity.Events.Audit.AuditEvent
-NCode.Identity.Events.Audit.AuditEvent.ActorId.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.ActorId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.ClientId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.ClientId.init -> void
-NCode.Identity.Events.Audit.AuditEvent.CorrelationId.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.CorrelationId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.EventId.get -> System.Guid
 NCode.Identity.Events.Audit.AuditEvent.EventId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.Outcome.get -> string!
 NCode.Identity.Events.Audit.AuditEvent.Outcome.init -> void
-NCode.Identity.Events.Audit.AuditEvent.Reason.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.Reason.init -> void
-NCode.Identity.Events.Audit.AuditEvent.Source.get -> string?
-NCode.Identity.Events.Audit.AuditEvent.Source.init -> void
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.init -> void
 NCode.Identity.Events.Audit.AuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.TenantId.init -> void
-NCode.Identity.Events.Audit.AuditEvent.Timestamp.get -> System.DateTimeOffset
-NCode.Identity.Events.Audit.AuditEvent.Timestamp.init -> void
 NCode.Identity.Events.Audit.AuditOutcome
 NCode.Identity.Events.Audit.IAuditEvent
-NCode.Identity.Events.Audit.IAuditEvent.Action.get -> string!
-NCode.Identity.Events.Audit.IAuditEvent.ActorId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.ClientId.get -> string?
-NCode.Identity.Events.Audit.IAuditEvent.CorrelationId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.EventId.get -> System.Guid
 NCode.Identity.Events.Audit.IAuditEvent.Outcome.get -> string!
-NCode.Identity.Events.Audit.IAuditEvent.Reason.get -> string?
-NCode.Identity.Events.Audit.IAuditEvent.SchemaVersion.get -> int
-NCode.Identity.Events.Audit.IAuditEvent.Source.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
-NCode.Identity.Events.Audit.IAuditEvent.Timestamp.get -> System.DateTimeOffset
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ChangeType.get -> string!
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceId.get -> string?
@@ -201,11 +186,7 @@ static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.set -> void
-virtual NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!
-virtual NCode.Identity.Events.Audit.AuditEvent.EventCategory.get -> string!
-virtual NCode.Identity.Events.Audit.AuditEvent.EventName.get -> string!
 virtual NCode.Identity.Events.Audit.AuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
-virtual NCode.Identity.Events.Audit.AuditEvent.SchemaVersion.get -> int
 virtual NCode.Identity.Events.Audit.AuditEvent.Severity.get -> string!
 NCode.Identity.Events.ISupportMetricAttributes
 NCode.Identity.Events.ISupportMetricAttributes.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void

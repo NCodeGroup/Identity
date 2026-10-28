@@ -25,9 +25,12 @@ namespace NCode.Identity.Events.Audit;
 /// once so each derived event only declares what is specific to it.
 /// </summary>
 /// <remarks>
-/// This type is a deliberate extension point; derive a concrete audit event from it and override
-/// <see cref="Action"/> (and <see cref="SchemaVersion"/> when the serialized shape changes). An audit
-/// event carries identifiers and metadata only, never secret material.
+/// This type is a deliberate extension point; derive a concrete audit event from it, override
+/// <see cref="EventName"/> and <see cref="EventCategory"/>, set <see cref="EventSource"/>, override
+/// <see cref="Resources"/> for the entities acted on, and implement <see cref="ISupportAuditDetails"/>
+/// for event-specific fields. The schema version of the serialized record is
+/// <see cref="AuditRecordWriter.SchemaVersion"/>. An audit event carries identifiers and metadata
+/// only, never secret material.
 /// </remarks>
 [PublicAPI]
 public abstract record AuditEvent : IAuditEvent
@@ -38,26 +41,14 @@ public abstract record AuditEvent : IAuditEvent
     /// <inheritdoc />
     public DateTimeOffset EventTime { get; init; }
 
-    // Bridge: aliases EventTime until Timestamp is removed (plan step 33).
     /// <inheritdoc />
-    public DateTimeOffset Timestamp
-    {
-        get => EventTime;
-        init => EventTime = value;
-    }
+    public abstract string EventName { get; }
 
-    // Bridge: reads Action until EventName becomes abstract (plan step 33). A derived event must
-    // override EventName or Action, never neither.
     /// <inheritdoc />
-    public virtual string EventName => Action;
+    public abstract string EventCategory { get; }
 
-    // Bridge: defaults to empty until EventCategory becomes abstract (plan step 33).
     /// <inheritdoc />
-    public virtual string EventCategory => string.Empty;
-
-    // Bridge: defaults to empty until EventSource becomes required (plan step 33).
-    /// <inheritdoc />
-    public string EventSource { get; init; } = string.Empty;
+    public required string EventSource { get; init; }
 
     /// <inheritdoc />
     public virtual string Severity =>
@@ -66,19 +57,10 @@ public abstract record AuditEvent : IAuditEvent
             : AuditSeverities.Info;
 
     /// <inheritdoc />
-    public virtual int SchemaVersion => 1;
-
-    /// <inheritdoc />
-    public string? CorrelationId { get; init; }
-
-    /// <inheritdoc />
     public string? TenantId { get; init; }
 
     /// <inheritdoc />
     public string? SubjectId { get; init; }
-
-    /// <inheritdoc />
-    public string? ActorId { get; init; }
 
     /// <inheritdoc />
     public string? ClientId { get; init; }
@@ -99,16 +81,6 @@ public abstract record AuditEvent : IAuditEvent
     /// <inheritdoc />
     public AuditError? Error { get; init; }
 
-    // Bridge: reads EventName until Action is removed (plan step 33).
-    /// <inheritdoc />
-    public virtual string Action => EventName;
-
-    /// <inheritdoc />
-    public string? Source { get; init; }
-
     /// <inheritdoc />
     public required string Outcome { get; init; }
-
-    /// <inheritdoc />
-    public string? Reason { get; init; }
 }

@@ -4,6 +4,7 @@ const NCode.Identity.Events.Audit.AuditActorTypes.Anonymous = "anonymous" -> str
 const NCode.Identity.Events.Audit.AuditActorTypes.Client = "client" -> string!
 const NCode.Identity.Events.Audit.AuditActorTypes.EndUser = "end_user" -> string!
 const NCode.Identity.Events.Audit.AuditActorTypes.System = "system" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.Session = "session" -> string!
 NCode.Identity.Events.Audit.AuditActor
 NCode.Identity.Events.Audit.AuditActor.AuditActor(string! Type, string? Id = null) -> void
 NCode.Identity.Events.Audit.AuditActor.Id.get -> string?
@@ -11,6 +12,21 @@ NCode.Identity.Events.Audit.AuditActor.Id.init -> void
 NCode.Identity.Events.Audit.AuditActor.Type.get -> string!
 NCode.Identity.Events.Audit.AuditActor.Type.init -> void
 NCode.Identity.Events.Audit.AuditActorTypes
+NCode.Identity.Events.Audit.AuditError
+NCode.Identity.Events.Audit.AuditError.AuditError(string! Code, string? Message = null, int? StatusCode = null) -> void
+NCode.Identity.Events.Audit.AuditError.Code.get -> string!
+NCode.Identity.Events.Audit.AuditError.Code.init -> void
+NCode.Identity.Events.Audit.AuditError.Message.get -> string?
+NCode.Identity.Events.Audit.AuditError.Message.init -> void
+NCode.Identity.Events.Audit.AuditError.StatusCode.get -> int?
+NCode.Identity.Events.Audit.AuditError.StatusCode.init -> void
+NCode.Identity.Events.Audit.AuditResource
+NCode.Identity.Events.Audit.AuditResource.AuditResource(string! Type, string? Id) -> void
+NCode.Identity.Events.Audit.AuditResource.Id.get -> string?
+NCode.Identity.Events.Audit.AuditResource.Id.init -> void
+NCode.Identity.Events.Audit.AuditResource.Type.get -> string!
+NCode.Identity.Events.Audit.AuditResource.Type.init -> void
+NCode.Identity.Events.Audit.AuditResourceTypes
 NCode.Identity.Events.EventsLibrary
 NCode.Identity.Events.EventsLibrary.EventsLibrary() -> void
 abstract NCode.Identity.Events.Audit.AuditEvent.Action.get -> string!

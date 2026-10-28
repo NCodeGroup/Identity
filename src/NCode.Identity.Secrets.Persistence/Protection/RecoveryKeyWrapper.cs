@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -41,8 +42,14 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </para>
 /// </remarks>
 // See ADR-0235.
-internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
+internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IKeyWrapper, IDisposable
 {
+    /// <summary>
+    /// The name that <see cref="Name"/> reports. The name is never persisted or configured, because the recovery
+    /// wrapper is not a root key wrapper.
+    /// </summary>
+    public const string WrapperName = "recovery-rsa-oaep-256";
+
     private const string SectionName =
         $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.Recovery)}";
 
@@ -97,6 +104,74 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
     /// Thrown when the text is not an RSA public key of at least 3072 bits.
     /// </exception>
     internal static RecoveryKeyWrapper FromPem(string pem) => new(ImportPublicKey(pem));
+
+    /// <inheritdoc />
+    public string Name => WrapperName;
+
+    /// <summary>
+    /// Gets a value indicating whether a recovery public key is configured.
+    /// </summary>
+    public bool IsConfigured => PublicKey is not null;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// RSA-OAEP takes no associated data here, so the context is not bound; the key-check value of the master key
+    /// binds it to its owner and version.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no recovery key is configured, or when the wrapper writes fewer characters than it reported.
+    /// </exception>
+    public ValueTask<WrappedKey> WrapAsync(
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (PublicKey is null || RecoveryKeyId is not { } keyId)
+        {
+            throw new InvalidOperationException("No recovery key is configured.");
+        }
+
+        var ciphertext = string.Create(
+            WrappedLength,
+            (Wrapper: this, Key: key),
+            static (chars, state) =>
+            {
+                var writer = chars.GetFixedBufferWriter();
+                state.Wrapper.Wrap(state.Key.Span, ref writer);
+
+                if (writer.WrittenCount != chars.Length)
+                {
+                    throw new InvalidOperationException(
+                        "The recovery key wrapper wrote fewer characters than it reported."
+                    );
+                }
+            }
+        );
+
+        return ValueTask.FromResult(
+            new WrappedKey
+            {
+                WrapperName = Name,
+                KeyId = keyId,
+                Ciphertext = ciphertext,
+            }
+        );
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">
+    /// Always thrown, because the recovery private key is kept offline.
+    /// </exception>
+    public ValueTask<int> UnwrapAsync(
+        WrappedKey wrappedKey,
+        ReadOnlyMemory<byte> context,
+        Memory<byte> destination,
+        CancellationToken cancellationToken
+    ) =>
+        throw new NotSupportedException(
+            "The recovery private key is kept offline, so the recovery key wrapper can only wrap."
+        );
 
     /// <inheritdoc />
     public int GetWrappedLength() => WrappedLength;

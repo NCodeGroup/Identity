@@ -30,5 +30,15 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 public sealed record RefreshTokenReplayAuditEvent : AuditEvent
 {
     /// <inheritdoc />
-    public override string Action => OpenIdAuditEventNames.RefreshTokenReplay;
+    public override string EventName => OpenIdAuditEventNames.RefreshTokenReplay;
+
+    /// <inheritdoc />
+    public override string EventCategory => AuditEventCategories.Token;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A replayed refresh token is a recognized token-theft signal, so the event is
+    /// <see cref="AuditSeverities.Critical"/>.
+    /// </remarks>
+    public override string Severity => AuditSeverities.Critical;
 }

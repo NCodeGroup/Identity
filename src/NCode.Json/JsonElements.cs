@@ -125,6 +125,62 @@ public static class JsonElements
         }
 
         /// <summary>
+        /// Attempts to read the JSON property with the specified name as a whole number within the range of an
+        /// <see cref="int"/>. See <see cref="TryGetWholeInt32"/>.
+        /// </summary>
+        /// <param name="propertyName">The name of the JSON property to read.</param>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the whole number.</param>
+        /// <returns>
+        /// <see langword="true"/> if the property exists and is a whole number within the range of an
+        /// <see cref="int"/>; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool TryGetPropertyWholeInt32(string propertyName, out int value)
+        {
+            if (!jsonElement.TryGetProperty(propertyName, out var property))
+            {
+                value = default;
+                return false;
+            }
+
+            return property.TryGetWholeInt32(out value);
+        }
+
+        /// <summary>
+        /// Attempts to read this JSON value as a whole number within the range of an <see cref="int"/>. JSON has one
+        /// number type, so a whole value written <c>60</c>, <c>60.0</c> or <c>6e1</c> reads as 60. A non-zero fraction
+        /// (<c>60.5</c>), a value outside the <see cref="int"/> range, a JSON string and any other value kind return
+        /// <see langword="false"/> rather than throwing. Use it for a whole number a remote party sends, such as a
+        /// lifetime in seconds.
+        /// </summary>
+        /// <param name="value">When this method returns <see langword="true"/>, contains the whole number.</param>
+        /// <returns>
+        /// <see langword="true"/> if this value is a whole number within the range of an <see cref="int"/>; otherwise,
+        /// <see langword="false"/>.
+        /// </returns>
+        public bool TryGetWholeInt32(out int value)
+        {
+            if (jsonElement.ValueKind == JsonValueKind.Number)
+            {
+                if (jsonElement.TryGetInt32(out value))
+                    return true;
+
+                if (
+                    jsonElement.TryGetDecimal(out var number)
+                    && decimal.Truncate(number) == number
+                    && number >= int.MinValue
+                    && number <= int.MaxValue
+                )
+                {
+                    value = (int)number;
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
+
+        /// <summary>
         /// Attempts to convert this JSON value to <typeparamref name="T"/>.
         /// </summary>
         /// <param name="value">When this method returns, contains the converted value if the conversion succeeded.</param>

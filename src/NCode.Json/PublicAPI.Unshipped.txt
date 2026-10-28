@@ -56,7 +56,9 @@ NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).OrEmptyObject() 
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetNumericDate(out System.DateTimeOffset value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyNumericDate(string! propertyName, out System.DateTimeOffset value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyValue<T>(string! propertyName, out T value) -> bool
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetPropertyWholeInt32(string! propertyName, out int value) -> bool
 NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetValue<T>(out T value) -> bool
+NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetWholeInt32(out int value) -> bool
 NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!)
 NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!).TryGetValue<T>(string! key, out T value) -> bool
 static NCode.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement

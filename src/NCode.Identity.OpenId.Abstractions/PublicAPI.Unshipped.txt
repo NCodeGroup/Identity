@@ -100,7 +100,6 @@ const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy.Always = 
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy.Unbound = "unbound" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AccessToken = "access_token" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.AuthorizationCode = "authorization_code" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.SecurityTokenTypes.LogoutToken = "logout+jwt" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientName = "client_name" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientUri = "client_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.Contacts = "contacts" -> string!

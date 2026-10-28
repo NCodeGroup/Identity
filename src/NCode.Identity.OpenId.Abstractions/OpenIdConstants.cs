@@ -406,12 +406,6 @@ public static partial class OpenIdConstants
         /// Identifies an <c>authorization code</c> security token.
         /// </summary>
         public const string AuthorizationCode = "authorization_code";
-
-        /// <summary>
-        /// Identifies a <c>logout token</c> security token (OpenID Connect Back-Channel Logout); its value is the
-        /// <c>typ</c> header of the <c>logout_token</c> JWT.
-        /// </summary>
-        public const string LogoutToken = "logout+jwt";
     }
 
     /// <summary>

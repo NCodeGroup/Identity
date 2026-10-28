@@ -223,7 +223,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         Assert.Equal(LogoutToken, CapturedJob?.LogoutToken);
 
         var parameters = captured[0];
-        Assert.Equal(OpenIdConstants.SecurityTokenTypes.LogoutToken, parameters.TokenType);
+        Assert.Equal(JoseTokenTypes.LogoutJwt, parameters.TokenType);
         Assert.Null(parameters.EncryptionCredentials);
         Assert.Equal(Issuer, parameters.Issuer);
         Assert.Equal(ClientId, parameters.Audience);

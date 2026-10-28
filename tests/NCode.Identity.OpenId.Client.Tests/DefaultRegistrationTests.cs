@@ -18,10 +18,12 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.Secrets;
+using NCode.Identity.SharedState;
 using NCode.Registration;
 using Xunit;
 
@@ -71,6 +73,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     public void AddOpenIdClientLibrary_RegistersThePublicServices()
     {
         JwtBuilder.AddOpenIdClientLibrary();
+        Services.AddSingleton(new Mock<IExpiringKeySet>(MockBehavior.Strict).Object);
 
         var provider = BuildProvider();
 
@@ -80,6 +83,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         Assert.NotNull(provider.GetRequiredService<ITokenClient>());
         Assert.NotNull(provider.GetRequiredService<ITokenRevocationClient>());
         Assert.NotNull(provider.GetRequiredService<IIdTokenValidator>());
+        Assert.NotNull(provider.GetRequiredService<ILogoutTokenValidator>());
     }
 
     [Fact]

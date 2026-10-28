@@ -42,7 +42,10 @@ public static class DefaultRegistration
     {
         /// <summary>
         /// Registers the OpenID client library: provider metadata and key set resolution, client authentication,
-        /// the token and token revocation clients, and ID-token validation, layered on the <see cref="JwtLibrary"/>.
+        /// the token and token revocation clients, and ID-token and logout-token validation, layered on the
+        /// <see cref="JwtLibrary"/>. Logout-token validation records each token's <c>jti</c> in the shared
+        /// <c>IExpiringKeySet</c>, whose adapter the composition root registers
+        /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet()</c> for one replica, Valkey for several).
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<OpenIdClientLibrary> AddOpenIdClientLibrary()
@@ -91,6 +94,7 @@ public static class DefaultRegistration
                 DefaultTokenRevocationClient
             >();
             serviceCollection.TryAddSingleton<IIdTokenValidator, DefaultIdTokenValidator>();
+            serviceCollection.TryAddSingleton<ILogoutTokenValidator, DefaultLogoutTokenValidator>();
 
             serviceCollection.TryAddEnumerable([
                 ServiceDescriptor.Singleton<

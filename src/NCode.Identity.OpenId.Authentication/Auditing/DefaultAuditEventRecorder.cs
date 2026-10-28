@@ -177,14 +177,16 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new SubjectAuthenticationAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = Activity.Current?.Id,
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
-            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
+            Actor = AuditActor.EndUser(subjectId),
+            Request = CreateRequest(openIdContext),
             Outcome = AuditOutcome.Success,
         };
 
@@ -197,18 +199,36 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
         string? reason,
         string? attemptedSubjectId,
         CancellationToken cancellationToken
+    ) =>
+        RecordSubjectAuthenticationFailedAsync(
+            openIdContext,
+            "authentication_failed",
+            reason,
+            attemptedSubjectId,
+            cancellationToken
+        );
+
+    /// <inheritdoc />
+    public ValueTask RecordSubjectAuthenticationFailedAsync(
+        OpenIdContext openIdContext,
+        string errorCode,
+        string? errorMessage,
+        string? attemptedSubjectId,
+        CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new SubjectAuthenticationAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = Activity.Current?.Id,
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
-            Source = openIdContext.EndpointName,
-            Outcome = AuditOutcome.Failure,
-            Reason = reason,
             SubjectId = attemptedSubjectId,
+            Actor = AuditActor.Anonymous,
+            Request = CreateRequest(openIdContext),
+            Outcome = AuditOutcome.Failure,
+            Error = new AuditError(errorCode, errorMessage),
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

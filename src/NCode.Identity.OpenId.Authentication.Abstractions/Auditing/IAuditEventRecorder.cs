@@ -179,6 +179,31 @@ public interface IAuditEventRecorder
     );
 
     /// <summary>
+    /// Records that the server failed to authenticate an end-user subject for a protocol flow (for
+    /// example, an invalid or expired session, or an unresolvable subject identifier), with a
+    /// machine-readable error code.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="errorCode">The machine-readable error code.</param>
+    /// <param name="errorMessage">A human-readable description; never secret material.</param>
+    /// <param name="attemptedSubjectId">The unverified identifier the caller attempted to authenticate as (such as a
+    /// username), when known, so a failed attempt is attributable for security monitoring. This is never a credential
+    /// or password; it is <c>null</c> when no identifier was presented.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordSubjectAuthenticationFailedAsync(
+        OpenIdContext openIdContext,
+        string errorCode,
+        string? errorMessage,
+        string? attemptedSubjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that a refresh token was presented whose grant had already been revoked (a token-reuse
     /// signal), distinct from a benign expiry.
     /// </summary>

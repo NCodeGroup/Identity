@@ -1,4 +1,4 @@
-# 282. Audit records are CloudTrail-shaped JSON with an indexable envelope
+# 283. Audit records are CloudTrail-shaped JSON with an indexable envelope
 
 - **Status:** Accepted
 - **Date:** 2026-10-28

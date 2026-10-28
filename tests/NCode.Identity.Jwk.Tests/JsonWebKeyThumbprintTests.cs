@@ -108,14 +108,89 @@ public class JsonWebKeyThumbprintTests
         );
     }
 
+    [Theory]
+    [InlineData("SHA256", "sha-256")]
+    [InlineData("SHA384", "sha-384")]
+    [InlineData("SHA512", "sha-512")]
+    public void ComputeThumbprintUri_WhenSha2Hash_UsesItsRegistryName(
+        string algorithm,
+        string hashName
+    )
+    {
+        var jwk = JsonWebKey.Parse($$"""{"kty":"RSA","n":"{{Rfc7638Modulus}}","e":"AQAB"}""");
+        var hash = new HashAlgorithmName(algorithm);
+
+        Assert.Equal(
+            $"{JsonWebKey.ThumbprintUriPrefix}{hashName}:{jwk.ComputeThumbprint(hash)}",
+            jwk.ComputeThumbprintUri(hash)
+        );
+    }
+
+    [Theory]
+    [InlineData("SHA3-256", "sha3-256")]
+    [InlineData("SHA3-384", "sha3-384")]
+    [InlineData("SHA3-512", "sha3-512")]
+    public void ComputeThumbprintUri_WhenSha3Hash_UsesItsRegistryName(
+        string algorithm,
+        string hashName
+    )
+    {
+        // Some Windows versions lack SHA-3.
+        if (!SHA3_256.IsSupported || !SHA3_384.IsSupported || !SHA3_512.IsSupported)
+            return;
+
+        var jwk = JsonWebKey.Parse($$"""{"kty":"RSA","n":"{{Rfc7638Modulus}}","e":"AQAB"}""");
+        var hash = new HashAlgorithmName(algorithm);
+
+        Assert.Equal(
+            $"{JsonWebKey.ThumbprintUriPrefix}{hashName}:{jwk.ComputeThumbprint(hash)}",
+            jwk.ComputeThumbprintUri(hash)
+        );
+    }
+
     [Fact]
-    public void ComputeThumbprintUri_WhenSha384_NamesTheHash()
+    public void ComputeThumbprintUri_WhenHashHasNoRegistryName_ThrowsNotSupported()
     {
         var jwk = JsonWebKey.Parse($$"""{"kty":"RSA","n":"{{Rfc7638Modulus}}","e":"AQAB"}""");
 
-        Assert.StartsWith(
-            "urn:ietf:params:oauth:jwk-thumbprint:sha-384:",
-            jwk.ComputeThumbprintUri(HashAlgorithmName.SHA384)
+        Assert.Throws<NotSupportedException>(() =>
+            jwk.ComputeThumbprintUri(HashAlgorithmName.SHA1)
+        );
+    }
+
+    [Fact]
+    public void ComputeThumbprintUri_WhenHashNameSupplied_UsesIt()
+    {
+        var jwk = JsonWebKey.Parse($$"""{"kty":"RSA","n":"{{Rfc7638Modulus}}","e":"AQAB"}""");
+
+        Assert.Equal(
+            $"{JsonWebKey.ThumbprintUriPrefix}sha-1:{jwk.ComputeThumbprint(HashAlgorithmName.SHA1)}",
+            jwk.ComputeThumbprintUri(HashAlgorithmName.SHA1, "sha-1")
+        );
+    }
+
+    [Theory]
+    [InlineData("sha-512")]
+    [InlineData("sha-256-128")]
+    public void ComputeThumbprintUri_WhenHashNameNamesAnotherHash_Throws(string hashName)
+    {
+        var jwk = JsonWebKey.Parse($$"""{"kty":"RSA","n":"{{Rfc7638Modulus}}","e":"AQAB"}""");
+
+        Assert.Throws<ArgumentException>(() =>
+            jwk.ComputeThumbprintUri(HashAlgorithmName.SHA256, hashName)
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("sha:1")]
+    [InlineData("sha 1")]
+    public void ComputeThumbprintUri_WhenHashNameNotUnreserved_Throws(string hashName)
+    {
+        var jwk = JsonWebKey.Parse($$"""{"kty":"RSA","n":"{{Rfc7638Modulus}}","e":"AQAB"}""");
+
+        Assert.Throws<ArgumentException>(() =>
+            jwk.ComputeThumbprintUri(HashAlgorithmName.SHA1, hashName)
         );
     }
 }

@@ -26,6 +26,7 @@ using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
@@ -188,7 +189,6 @@ public class JoseSerializerTests : BaseTests
         jweAlgorithm switch
         {
             JweAlgorithm.DIR => CreateRandomSymmetricKey(keyId, GetBitCount(jweEncryption)),
-            JweAlgorithm.RSA1_5 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_256 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_384 => CreateRandomRsaKey(keyId),
@@ -225,7 +225,9 @@ public class JoseSerializerTests : BaseTests
     {
         get
         {
-            var algorithmTypes = Enum.GetValues<JweAlgorithm>();
+            // The library registers no RSA1_5; Decode_WhenJweUsesRsa15_ThrowsJoseInvalidAlgorithmException covers it.
+            var algorithmTypes = Enum.GetValues<JweAlgorithm>()
+                .Where(algorithmType => algorithmType != JweAlgorithm.RSA1_5);
             var encryptionTypes = Enum.GetValues<JweEncryption>();
             var compressionTypes = new JweCompression?[] { null, JweCompression.DEF };
 
@@ -451,6 +453,28 @@ public class JoseSerializerTests : BaseTests
 
         var kid = Assert.IsType<string>(Assert.Contains("kid", headerToVerify));
         Assert.Equal(keyId, kid);
+    }
+
+    [Fact]
+    public void Decode_WhenJweUsesRsa15_ThrowsJoseInvalidAlgorithmException()
+    {
+        const string keyId = nameof(keyId);
+        var (controlKey, secretKey) = CreateRandomRsaKey(keyId);
+
+        using var disposableNativeKey = controlKey as IDisposable ?? Disposable.Empty;
+
+        var payload = new Dictionary<string, object> { ["sub"] = "alice" };
+        var token = JWT.Encode(payload, controlKey, JweAlgorithm.RSA1_5, JweEncryption.A256GCM);
+        var parsedToken = JoseSerializer.Parse(token);
+
+        var exception = Assert.Throws<JoseInvalidAlgorithmException>(() =>
+            JoseSerializer.Decode(parsedToken, secretKey)
+        );
+
+        Assert.Equal(
+            "The `RSA1_5` algorithm is not supported for key management.",
+            exception.Message
+        );
     }
 
     public static IEnumerable<object[]> GetEncodeDecodeJwsTestData()

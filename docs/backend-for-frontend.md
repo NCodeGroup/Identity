@@ -303,6 +303,9 @@ policy:
 - `exp`, `iat`, and `nonce` are checked, and `auth_time` when `max_age` was requested.
 - `at_hash`, `c_hash` and `s_hash`, when present, are checked through the signing algorithm's token hash, in constant
   time ([ADR-0273](decisions/0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
+- When the client registers ID-token encryption, the ID token must be a Nested JWT that decrypts with the asymmetric
+  keys of the client's key ring under its registered `alg` and `enc` (RSA-OAEP or ECDH-ES only)
+  ([ADR-0280](decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).
 
 The family therefore has one JOSE stack for every token the BFF validates.
 
@@ -632,6 +635,8 @@ Without a session, logout is idempotent: it redirects to the allow-listed return
   `sid`, `sub`, or both, and must **not** contain `nonce`.
 - When the token is explicitly typed, the type must be `logout+jwt`. An untyped token is accepted, because the
   `events` and `nonce` checks already tell it apart from an ID token (spec §2.6).
+- When the client registers ID-token encryption, the logout token must be encrypted the same way (spec §2.6;
+  [ADR-0280](decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).
 - `jti` is recorded in `IExpiringKeySet` so a token cannot be replayed.
 
 The protocol client's `ILogoutTokenValidator` performs all of these checks, including the `jti` record, and bounds a
@@ -969,7 +974,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | Phase | Delivers                                                                                                                                                                                                         |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
-| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: DPoP, mTLS; ID-token validation (ADR-0273) and logout-token validation ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. PAR is delivered ([ADR-0275](decisions/0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)). |
+| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: DPoP, mTLS; ID-token validation (ADR-0273) and logout-token validation ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. PAR is delivered ([ADR-0275](decisions/0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)). Encrypted ID and logout tokens are delivered ([ADR-0280](decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)). |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |

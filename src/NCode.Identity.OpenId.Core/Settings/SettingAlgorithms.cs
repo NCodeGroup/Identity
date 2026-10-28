@@ -49,6 +49,7 @@ internal static class SettingAlgorithms
             AlgorithmCodes.KeyManagement.Direct,
             StringComparison.Ordinal
         )
+        // The default JOSE registry has no RSA1_5; this refuses one a host registers itself (ADR-0282).
         && !string.Equals(
             algorithm.Code,
             AlgorithmCodes.KeyManagement.RsaPkcs1,

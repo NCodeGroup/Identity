@@ -227,13 +227,8 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
                 kekSizeBits: 256
             );
 
-            // RSA1_5
-            // https://datatracker.ietf.org/doc/html/rfc7518#section-4.2
-
-            yield return new RsaKeyManagementAlgorithm(
-                AlgorithmCodes.KeyManagement.RsaPkcs1,
-                RSAEncryptionPadding.Pkcs1
-            );
+            // RSAES-PKCS1-v1_5 (RSA1_5, RFC 7518 §4.2) is deliberately not registered: RFC 8725 §3.2 says to avoid it
+            // because of padding-oracle attacks (ADR-0282).
 
             // RSA-OAEP
             // RSA-OAEP-256
@@ -241,24 +236,24 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
             // RSA-OAEP-512
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.3
 
-            yield return new RsaKeyManagementAlgorithm(
+            yield return new RsaOaepKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaOaep,
-                RSAEncryptionPadding.OaepSHA1
+                HashAlgorithmName.SHA1
             );
 
-            yield return new RsaKeyManagementAlgorithm(
+            yield return new RsaOaepKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaOaep256,
-                RSAEncryptionPadding.OaepSHA256
+                HashAlgorithmName.SHA256
             );
 
-            yield return new RsaKeyManagementAlgorithm(
+            yield return new RsaOaepKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaOaep384,
-                RSAEncryptionPadding.OaepSHA384
+                HashAlgorithmName.SHA384
             );
 
-            yield return new RsaKeyManagementAlgorithm(
+            yield return new RsaOaepKeyManagementAlgorithm(
                 AlgorithmCodes.KeyManagement.RsaOaep512,
-                RSAEncryptionPadding.OaepSHA512
+                HashAlgorithmName.SHA512
             );
 
             // Key Agreement with Elliptic Curve Diffie-Hellman Ephemeral Static (ECDH-ES)

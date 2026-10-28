@@ -36,7 +36,15 @@ public static class JsonWebKeyTypeDescriptors
         new(
             JsonWebKeyTypes.Rsa,
             [JsonWebKeyParameterNames.Exponent, JsonWebKeyParameterNames.Modulus],
-            [JsonWebKeyParameterNames.EccPrivateKey, "p", "q", "dp", "dq", "qi", "oth"]
+            [
+                JsonWebKeyParameterNames.D,
+                JsonWebKeyParameterNames.FirstPrimeFactor,
+                JsonWebKeyParameterNames.SecondPrimeFactor,
+                JsonWebKeyParameterNames.FirstFactorCrtExponent,
+                JsonWebKeyParameterNames.SecondFactorCrtExponent,
+                JsonWebKeyParameterNames.FirstCrtCoefficient,
+                JsonWebKeyParameterNames.OtherPrimesInfo,
+            ]
         );
 
     /// <summary>
@@ -50,7 +58,7 @@ public static class JsonWebKeyTypeDescriptors
                 JsonWebKeyParameterNames.X,
                 JsonWebKeyParameterNames.Y,
             ],
-            [JsonWebKeyParameterNames.EccPrivateKey]
+            [JsonWebKeyParameterNames.D]
         );
 
     /// <summary>
@@ -60,7 +68,7 @@ public static class JsonWebKeyTypeDescriptors
         new(
             JsonWebKeyTypes.Okp,
             [JsonWebKeyParameterNames.Curve, JsonWebKeyParameterNames.X],
-            [JsonWebKeyParameterNames.EccPrivateKey]
+            [JsonWebKeyParameterNames.D]
         );
 
     /// <summary>

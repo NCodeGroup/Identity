@@ -47,6 +47,11 @@ public static class TokenValidationFailureCodes
     public const string InvalidSignature = JwtValidationFailureCodes.InvalidSignature;
 
     /// <summary>
+    /// No key of the client decrypted the encrypted token.
+    /// </summary>
+    public const string DecryptionFailed = JwtValidationFailureCodes.DecryptionFailed;
+
+    /// <summary>
     /// The <c>iss</c> claim is not the issuer of the provider.
     /// </summary>
     public const string InvalidIssuer = JwtValidationFailureCodes.InvalidIssuer;

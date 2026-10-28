@@ -1,7 +1,7 @@
 # 47. Auditing and events: a dedicated observation seam, distinct from the mediator
 
 - **Status:** Accepted (amended by
-  [ADR-0282](0282-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md): the audit envelope and the
+  [ADR-0283](0283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md): the audit envelope and the
   audit log entry follow the CloudTrail-shaped audit record)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group

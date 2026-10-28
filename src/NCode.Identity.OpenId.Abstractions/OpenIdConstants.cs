@@ -58,7 +58,7 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Contains the name for the <c>authorization</c> endpoint.
         /// </summary>
-        public const string Authorization = "authorization_endpoint";
+        public const string Authorization = OpenIdProtocol.MetadataNames.AuthorizationEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>continue</c> (callback) endpoint.
@@ -74,7 +74,9 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>device authorization</c> endpoint.
         /// This value is also used as the <c>device_authorization_endpoint</c> key in the discovery metadata.
         /// </summary>
-        public const string DeviceAuthorization = "device_authorization_endpoint";
+        public const string DeviceAuthorization = OpenIdProtocol
+            .MetadataNames
+            .DeviceAuthorizationEndpoint;
 
         /// <summary>
         /// Contains the name for the user-facing <c>device verification</c> endpoint where the end user enters their
@@ -86,57 +88,61 @@ public static partial class OpenIdConstants
         /// Contains the name for the <c>backchannel authentication</c> endpoint (OpenID Connect CIBA).
         /// This value is also used as the <c>backchannel_authentication_endpoint</c> key in the discovery metadata.
         /// </summary>
-        public const string BackchannelAuthentication = "backchannel_authentication_endpoint";
+        public const string BackchannelAuthentication = OpenIdProtocol
+            .MetadataNames
+            .BackchannelAuthenticationEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>pushed authorization request</c> endpoint (RFC 9126).
         /// This value is also used as the <c>pushed_authorization_request_endpoint</c> key in the discovery metadata.
         /// </summary>
-        public const string PushedAuthorizationRequest = "pushed_authorization_request_endpoint";
+        public const string PushedAuthorizationRequest = OpenIdProtocol
+            .MetadataNames
+            .PushedAuthorizationRequestEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>JSON Web Key Set (JWKS)</c> endpoint.
         /// This value is also used as the <c>jwks_uri</c> key in the discovery metadata.
         /// </summary>
-        public const string Jwks = "jwks_uri";
+        public const string Jwks = OpenIdProtocol.MetadataNames.JwksUri;
 
         /// <summary>
         /// Contains the name for the <c>token</c> endpoint.
         /// </summary>
-        public const string Token = "token_endpoint";
+        public const string Token = OpenIdProtocol.MetadataNames.TokenEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>revocation</c> endpoint.
         /// </summary>
-        public const string Revocation = "revocation_endpoint";
+        public const string Revocation = OpenIdProtocol.MetadataNames.RevocationEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>introspection</c> endpoint.
         /// </summary>
-        public const string Introspection = "introspection_endpoint";
+        public const string Introspection = OpenIdProtocol.MetadataNames.IntrospectionEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>userinfo</c> endpoint.
         /// </summary>
-        public const string UserInfo = "userinfo_endpoint";
+        public const string UserInfo = OpenIdProtocol.MetadataNames.UserInfoEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>end session</c> (RP-initiated logout) endpoint.
         /// This value is also used as the <c>end_session_endpoint</c> key in the discovery metadata.
         /// </summary>
-        public const string EndSession = "end_session_endpoint";
+        public const string EndSession = OpenIdProtocol.MetadataNames.EndSessionEndpoint;
 
         /// <summary>
         /// Contains the name for the <c>check session</c> iframe endpoint (OpenID Connect Session Management 1.0).
         /// This value is also used as the <c>check_session_iframe</c> key in the discovery metadata.
         /// </summary>
-        public const string CheckSessionIframe = "check_session_iframe";
+        public const string CheckSessionIframe = OpenIdProtocol.MetadataNames.CheckSessionIframe;
 
         /// <summary>
         /// Contains the name for the <c>dynamic client registration</c> endpoint (RFC 7591).
         /// This value is also used as the <c>registration_endpoint</c> key in the discovery metadata.
         /// </summary>
-        public const string Registration = "registration_endpoint";
+        public const string Registration = OpenIdProtocol.MetadataNames.RegistrationEndpoint;
 
         /// <summary>
         /// Contains the name for the per-client <c>registration management</c> endpoint (RFC 7592) that a client uses
@@ -169,7 +175,7 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Contains the relative path for the <c>discovery</c> endpoint.
         /// </summary>
-        public const string Discovery = "/.well-known/openid-configuration";
+        public const string Discovery = OpenIdProtocol.WellKnownPaths.OpenIdConfiguration;
 
         /// <summary>
         /// Contains the relative path for the <c>device authorization</c> endpoint.

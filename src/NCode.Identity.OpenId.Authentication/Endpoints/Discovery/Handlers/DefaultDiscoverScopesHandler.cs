@@ -33,9 +33,6 @@ internal class DefaultDiscoverScopesHandler(
     IAmbientTenantAccessor ambientTenantAccessor
 ) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority
 {
-    // A discovery metadata field, not a setting: the scope catalog is the tenant's resource servers (ADR-0026).
-    private const string ScopesSupportedKey = "scopes_supported";
-
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
@@ -67,6 +64,7 @@ internal class DefaultDiscoverScopesHandler(
             StringComparer.Ordinal
         );
 
-        metadata[ScopesSupportedKey] = scopes.ToList();
+        // A discovery metadata field, not a setting: the scope catalog is the tenant's resource servers (ADR-0026).
+        metadata[OpenIdProtocol.MetadataNames.ScopesSupported] = scopes.ToList();
     }
 }

@@ -93,6 +93,20 @@ public static class AuditRecordWriter
     }
 
     /// <summary>
+    /// Writes the audit record of an audit event as UTF-8 encoded JSON into a buffer writer.
+    /// </summary>
+    /// <param name="output">The buffer writer to write the UTF-8 encoded JSON of the audit record to.</param>
+    /// <param name="auditEvent">The audit event to write.</param>
+    public static void Write(IBufferWriter<byte> output, IAuditEvent auditEvent)
+    {
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(auditEvent);
+
+        using var writer = new Utf8JsonWriter(output);
+        Write(writer, auditEvent);
+    }
+
+    /// <summary>
     /// Serializes the audit record of an audit event to UTF-8 encoded JSON.
     /// </summary>
     /// <param name="auditEvent">The audit event to serialize.</param>

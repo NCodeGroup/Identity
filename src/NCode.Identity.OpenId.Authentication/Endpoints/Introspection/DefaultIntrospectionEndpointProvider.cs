@@ -186,7 +186,7 @@ internal class DefaultIntrospectionEndpointProvider(
         if (string.IsNullOrEmpty(introspectionRequest.Token))
         {
             return errorFactory
-                .InvalidRequest($"The '{OpenIdConstants.Parameters.Token}' parameter is required.")
+                .InvalidRequest($"The '{OpenIdProtocol.Parameters.Token}' parameter is required.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
         }

@@ -91,7 +91,7 @@ internal class DefaultTokenExchangeGrantHandler(
         if (string.IsNullOrEmpty(subjectToken))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.SubjectToken)
+                .MissingParameter(OpenIdProtocol.Parameters.SubjectToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
@@ -99,7 +99,7 @@ internal class DefaultTokenExchangeGrantHandler(
         if (string.IsNullOrEmpty(subjectTokenType))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.SubjectTokenType)
+                .MissingParameter(OpenIdProtocol.Parameters.SubjectTokenType)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
@@ -267,7 +267,7 @@ internal class DefaultTokenExchangeGrantHandler(
         {
             return new DelegationResult(
                 errorFactory
-                    .MissingParameter(OpenIdConstants.Parameters.ActorTokenType)
+                    .MissingParameter(OpenIdProtocol.Parameters.ActorTokenType)
                     .WithStatusCode(StatusCodes.Status400BadRequest),
                 null,
                 null
@@ -662,7 +662,7 @@ internal class DefaultTokenExchangeGrantHandler(
         return string.IsNullOrEmpty(scope)
             ? []
             : scope.Split(
-                OpenIdConstants.ParameterSeparatorChar,
+                OpenIdProtocol.ParameterSeparatorChar,
                 StringSplitOptions.RemoveEmptyEntries
             );
     }

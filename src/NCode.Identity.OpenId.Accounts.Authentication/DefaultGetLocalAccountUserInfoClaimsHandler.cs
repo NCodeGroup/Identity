@@ -161,7 +161,7 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
 
         return scope
             .Split(
-                OpenIdConstants.ParameterSeparatorChar,
+                OpenIdProtocol.ParameterSeparatorChar,
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
             )
             .ToHashSet(StringComparer.Ordinal);

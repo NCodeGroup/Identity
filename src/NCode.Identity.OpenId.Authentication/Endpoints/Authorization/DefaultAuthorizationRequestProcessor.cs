@@ -269,19 +269,19 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         // https://github.com/dotnet/aspnetcore/blob/cd5ca6985645aa4929747bd690109a99a97126e3/src/Security/Authentication/OpenIdConnect/src/OpenIdConnectHandler.cs#L398
 
         authenticationProperties.SetParameter(
-            OpenIdConstants.Parameters.Prompt,
+            OpenIdProtocol.Parameters.Prompt,
             // OpenIdConnectHandler requires a string, but we have an IReadOnlyList<string>
-            string.Join(OpenIdConstants.ParameterSeparatorChar, authorizationRequest.PromptTypes)
+            string.Join(OpenIdProtocol.ParameterSeparatorChar, authorizationRequest.PromptTypes)
         );
 
         authenticationProperties.SetParameter(
-            OpenIdConstants.Parameters.Scope,
+            OpenIdProtocol.Parameters.Scope,
             // OpenIdConnectHandler requires an ICollection<string> but we have an IReadOnlyList<string>
             authorizationRequest.Scopes.ToList()
         );
 
         authenticationProperties.SetParameter(
-            OpenIdConstants.Parameters.MaxAge,
+            OpenIdProtocol.Parameters.MaxAge,
             // OpenIdConnectHandler uses TimeSpan? just like we do
             authorizationRequest.MaxAge
         );

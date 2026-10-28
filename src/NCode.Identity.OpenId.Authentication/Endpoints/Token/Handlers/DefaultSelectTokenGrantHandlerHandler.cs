@@ -56,7 +56,7 @@ internal class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHand
         {
             // invalid_request
             throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.GrantType)
+                .MissingParameter(OpenIdProtocol.Parameters.GrantType)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }

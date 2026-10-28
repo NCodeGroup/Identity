@@ -100,8 +100,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         using var document = JsonDocument.Parse(Handler.RequestBody!);
         var root = document.RootElement;
-        Assert.Equal(AuthReqId, root.GetProperty(OpenIdConstants.Parameters.AuthReqId).GetString());
-        Assert.False(root.TryGetProperty(OpenIdConstants.Parameters.AccessToken, out _));
+        Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
+        Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.AccessToken, out _));
     }
 
     [Fact]
@@ -127,18 +127,18 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         using var document = JsonDocument.Parse(Handler.RequestBody!);
         var root = document.RootElement;
-        Assert.Equal(AuthReqId, root.GetProperty(OpenIdConstants.Parameters.AuthReqId).GetString());
+        Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.Equal(
             "access-token-value",
-            root.GetProperty(OpenIdConstants.Parameters.AccessToken).GetString()
+            root.GetProperty(OpenIdProtocol.Parameters.AccessToken).GetString()
         );
-        Assert.Equal(3600, root.GetProperty(OpenIdConstants.Parameters.ExpiresIn).GetInt64());
+        Assert.Equal(3600, root.GetProperty(OpenIdProtocol.Parameters.ExpiresIn).GetInt64());
         Assert.Equal(
             "id-token-value",
-            root.GetProperty(OpenIdConstants.Parameters.IdToken).GetString()
+            root.GetProperty(OpenIdProtocol.Parameters.IdToken).GetString()
         );
-        Assert.Equal("openid api", root.GetProperty(OpenIdConstants.Parameters.Scope).GetString());
-        Assert.False(root.TryGetProperty(OpenIdConstants.Parameters.RefreshToken, out _));
+        Assert.Equal("openid api", root.GetProperty(OpenIdProtocol.Parameters.Scope).GetString());
+        Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.RefreshToken, out _));
     }
 
     [Fact]
@@ -160,12 +160,12 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         using var document = JsonDocument.Parse(Handler.RequestBody!);
         var root = document.RootElement;
-        Assert.Equal(AuthReqId, root.GetProperty(OpenIdConstants.Parameters.AuthReqId).GetString());
+        Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.AccessDenied,
-            root.GetProperty(OpenIdConstants.Parameters.ErrorCode).GetString()
+            root.GetProperty(OpenIdProtocol.Parameters.ErrorCode).GetString()
         );
-        Assert.False(root.TryGetProperty(OpenIdConstants.Parameters.AccessToken, out _));
+        Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.AccessToken, out _));
     }
 
     [Fact]

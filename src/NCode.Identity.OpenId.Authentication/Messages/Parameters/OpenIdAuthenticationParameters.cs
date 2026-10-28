@@ -36,7 +36,7 @@ public static class OpenIdAuthenticationParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>claims</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="IRequestClaims"/> result.
     /// </summary>
     public static readonly KnownParameter<IRequestClaims> Claims = new(
-        OpenIdConstants.Parameters.Claims,
+        OpenIdProtocol.Parameters.Claims,
         AuthenticationParameterParsers.RequestClaims
     )
     {

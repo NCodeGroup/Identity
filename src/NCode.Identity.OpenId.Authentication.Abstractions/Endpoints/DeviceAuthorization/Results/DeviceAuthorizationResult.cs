@@ -30,38 +30,38 @@ public sealed class DeviceAuthorizationResult
     /// <summary>
     /// Gets the device verification code.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.DeviceCode)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.DeviceCode)]
     public required string DeviceCode { get; init; }
 
     /// <summary>
     /// Gets the end-user verification code.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.UserCode)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.UserCode)]
     public required string UserCode { get; init; }
 
     /// <summary>
     /// Gets the end-user verification URI on the authorization server.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.VerificationUri)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.VerificationUri)]
     public required string VerificationUri { get; init; }
 
     /// <summary>
     /// Gets the verification URI that includes the <c>user_code</c>, designed for non-textual transmission.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.VerificationUriComplete)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.VerificationUriComplete)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? VerificationUriComplete { get; init; }
 
     /// <summary>
     /// Gets the lifetime in seconds of the <c>device_code</c> and <c>user_code</c>.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.ExpiresIn)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.ExpiresIn)]
     public required int ExpiresIn { get; init; }
 
     /// <summary>
     /// Gets the minimum amount of time in seconds that the client should wait between polling requests to the
     /// token endpoint.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.Interval)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.Interval)]
     public required int Interval { get; init; }
 }

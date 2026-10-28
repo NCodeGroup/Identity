@@ -156,7 +156,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         );
 
         Assert.Equal(
-            OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference,
+            OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference,
             result.RequestUri
         );
         Assert.Equal(90, result.ExpiresIn);
@@ -233,7 +233,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
             )
             .Verifiable();
 
-        var requestUri = OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference;
+        var requestUri = OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference;
 
         var result = await Service.ConsumeAsync(
             mockContext.Object,
@@ -311,7 +311,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .ConsumeAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference,
+                    OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference,
                     CancellationToken.None
                 )
                 .AsTask()
@@ -382,7 +382,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .ConsumeAsync(
                     mockContext.Object,
                     mockClient.Object,
-                    OpenIdConstants.PushedAuthorizationRequestUriPrefix + Reference,
+                    OpenIdProtocol.PushedAuthorizationRequestUriPrefix + Reference,
                     CancellationToken.None
                 )
                 .AsTask()

@@ -58,7 +58,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         var client = CreateClient();
 
         using var response = await client.GetAsync(
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -91,9 +91,9 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         var client = CreateClient();
 
         using var response = await client.GetAsync(
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}={clientId}"
-                + $"&{OpenIdConstants.Parameters.RedirectUri}=https://client.example/callback"
-                + $"&{OpenIdConstants.Parameters.ResponseType}=code"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}={clientId}"
+                + $"&{OpenIdProtocol.Parameters.RedirectUri}=https://client.example/callback"
+                + $"&{OpenIdProtocol.Parameters.ResponseType}=code"
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -107,8 +107,8 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         var client = CreateClient();
 
         using var response = await client.GetAsync(
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=any-client"
-                + $"&{OpenIdConstants.Parameters.ClientSecret}=any-secret"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=any-client"
+                + $"&{OpenIdProtocol.Parameters.ClientSecret}=any-secret"
         );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -123,8 +123,8 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                [OpenIdConstants.Parameters.ClientId] = "any-client",
-                [OpenIdConstants.Parameters.ClientSecret] = "any-secret",
+                [OpenIdProtocol.Parameters.ClientId] = "any-client",
+                [OpenIdProtocol.Parameters.ClientSecret] = "any-secret",
             }
         );
         using var response = await client.PostAsync(AuthorizePath, content);
@@ -150,7 +150,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
         request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml,*/*;q=0.8");
 
@@ -170,7 +170,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
         request.Headers.Accept.ParseAdd("application/json");
 
@@ -188,7 +188,7 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            $"{AuthorizePath}?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            $"{AuthorizePath}?{OpenIdProtocol.Parameters.ClientId}=unknown-client"
         );
         request.Headers.Accept.ParseAdd("*/*");
 

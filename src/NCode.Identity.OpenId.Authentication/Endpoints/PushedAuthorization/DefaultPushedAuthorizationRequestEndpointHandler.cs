@@ -125,7 +125,7 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
         var requestValues = new RequestValuesUsingForm(formData);
 
         // RFC 9126 §2.1: the request_uri authorization request parameter must not be provided to the PAR endpoint.
-        if (requestValues.ContainsKey(OpenIdConstants.Parameters.RequestUri))
+        if (requestValues.ContainsKey(OpenIdProtocol.Parameters.RequestUri))
         {
             return errorFactory
                 .InvalidRequest(

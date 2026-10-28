@@ -59,7 +59,7 @@ internal class DefaultRevokeTokenHandler(
             // invalid_request
             throw openIdContext
                 .ErrorFactory.InvalidRequest(
-                    $"The '{OpenIdConstants.Parameters.Token}' parameter is required."
+                    $"The '{OpenIdProtocol.Parameters.Token}' parameter is required."
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();

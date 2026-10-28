@@ -96,8 +96,8 @@ internal class DefaultDeviceVerificationEndpointHandler(
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
 
         var userCodeRaw = isPostVerb
-            ? httpContext.Request.Form[OpenIdConstants.Parameters.UserCode].ToString()
-            : httpContext.Request.Query[OpenIdConstants.Parameters.UserCode].ToString();
+            ? httpContext.Request.Form[OpenIdProtocol.Parameters.UserCode].ToString()
+            : httpContext.Request.Query[OpenIdProtocol.Parameters.UserCode].ToString();
 
         if (string.IsNullOrEmpty(userCodeRaw))
         {

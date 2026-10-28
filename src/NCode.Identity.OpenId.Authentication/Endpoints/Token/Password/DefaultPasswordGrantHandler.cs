@@ -61,7 +61,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         if (string.IsNullOrEmpty(username))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.Username)
+                .MissingParameter(OpenIdProtocol.Parameters.Username)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 

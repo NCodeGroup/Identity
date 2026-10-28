@@ -1585,7 +1585,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         var scope =
             allowedScopes.Count == 0
                 ? null
-                : string.Join(OpenIdConstants.ParameterSeparatorString, orderedScopes);
+                : string.Join(OpenIdProtocol.ParameterSeparatorString, orderedScopes);
 
         return ToResponse(client) with
         {

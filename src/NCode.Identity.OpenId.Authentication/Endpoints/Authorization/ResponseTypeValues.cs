@@ -39,7 +39,7 @@ internal static class ResponseTypeValues
     public static string Canonicalize(IEnumerable<string> names)
     {
         var orderedNames = names.Order(StringComparer.Ordinal);
-        return string.Join(OpenIdConstants.ParameterSeparatorChar, orderedNames);
+        return string.Join(OpenIdProtocol.ParameterSeparatorChar, orderedNames);
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ internal static class ResponseTypeValues
     /// <returns>The canonical form of <paramref name="value"/>, or <paramref name="value"/> when it is malformed.</returns>
     public static string Canonicalize(string value)
     {
-        var names = value.Split(OpenIdConstants.ParameterSeparatorChar);
+        var names = value.Split(OpenIdProtocol.ParameterSeparatorChar);
         return names.Any(name => name.Length == 0) ? value : Canonicalize(names);
     }
 
@@ -113,7 +113,7 @@ internal static class ResponseTypeValues
     /// <returns>The grant types the response type uses.</returns>
     public static IReadOnlyList<string> GetGrantTypes(string value)
     {
-        var names = value.Split(OpenIdConstants.ParameterSeparatorChar);
+        var names = value.Split(OpenIdProtocol.ParameterSeparatorChar);
         return GetGrantTypes(names);
     }
 }

@@ -51,9 +51,9 @@ internal sealed class DefaultPushedAuthorizationRequestService(
     // itself and are not replayed at the authorization endpoint.
     private static readonly HashSet<string> ExcludedParameters = new(StringComparer.Ordinal)
     {
-        OpenIdConstants.Parameters.ClientSecret,
-        OpenIdConstants.Parameters.ClientAssertion,
-        OpenIdConstants.Parameters.ClientAssertionType,
+        OpenIdProtocol.Parameters.ClientSecret,
+        OpenIdProtocol.Parameters.ClientAssertion,
+        OpenIdProtocol.Parameters.ClientAssertionType,
     };
 
     /// <inheritdoc />
@@ -110,7 +110,7 @@ internal sealed class DefaultPushedAuthorizationRequestService(
 
         return new PushedAuthorizationResult
         {
-            RequestUri = OpenIdConstants.PushedAuthorizationRequestUriPrefix + reference,
+            RequestUri = OpenIdProtocol.PushedAuthorizationRequestUriPrefix + reference,
             ExpiresIn = (int)lifetime.TotalSeconds,
         };
     }
@@ -123,7 +123,7 @@ internal sealed class DefaultPushedAuthorizationRequestService(
         CancellationToken cancellationToken
     )
     {
-        const string prefix = OpenIdConstants.PushedAuthorizationRequestUriPrefix;
+        const string prefix = OpenIdProtocol.PushedAuthorizationRequestUriPrefix;
         if (!requestUri.StartsWith(prefix, StringComparison.Ordinal))
             throw InvalidRequestUri(
                 openIdContext,

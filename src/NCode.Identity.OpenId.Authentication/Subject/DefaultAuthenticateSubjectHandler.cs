@@ -271,7 +271,7 @@ internal class DefaultAuthenticateSubjectHandler(
         )
         {
             var form = await request.ReadFormAsync();
-            var bodyToken = form[OpenIdConstants.Parameters.AccessToken].ToString();
+            var bodyToken = form[OpenIdProtocol.Parameters.AccessToken].ToString();
             if (!string.IsNullOrEmpty(bodyToken))
             {
                 return bodyToken;

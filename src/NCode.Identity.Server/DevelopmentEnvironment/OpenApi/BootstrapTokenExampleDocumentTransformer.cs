@@ -76,10 +76,10 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
 
         (string Name, string Value)[] fields =
         [
-            (OpenIdConstants.Parameters.GrantType, OpenIdProtocol.GrantTypes.ClientCredentials),
-            (OpenIdConstants.Parameters.ClientId, clientId),
-            (OpenIdConstants.Parameters.ClientSecret, clientSecret),
-            (OpenIdConstants.Parameters.Scope, BootstrapScope),
+            (OpenIdProtocol.Parameters.GrantType, OpenIdProtocol.GrantTypes.ClientCredentials),
+            (OpenIdProtocol.Parameters.ClientId, clientId),
+            (OpenIdProtocol.Parameters.ClientSecret, clientSecret),
+            (OpenIdProtocol.Parameters.Scope, BootstrapScope),
         ];
 
         var example = new OpenApiExample
@@ -89,12 +89,12 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
                 "Exchange the configured bootstrap administrator credentials for a GlobalAdmin access token.",
             Value = new JsonObject
             {
-                [OpenIdConstants.Parameters.GrantType] = OpenIdConstants
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
                     .GrantTypes
                     .ClientCredentials,
-                [OpenIdConstants.Parameters.ClientId] = clientId,
-                [OpenIdConstants.Parameters.ClientSecret] = clientSecret,
-                [OpenIdConstants.Parameters.Scope] = BootstrapScope,
+                [OpenIdProtocol.Parameters.ClientId] = clientId,
+                [OpenIdProtocol.Parameters.ClientSecret] = clientSecret,
+                [OpenIdProtocol.Parameters.Scope] = BootstrapScope,
             },
         };
 

@@ -73,7 +73,7 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
                 )
             );
 
-        var scopeValue = string.Join(OpenIdConstants.ParameterSeparatorChar, scopesToInclude);
+        var scopeValue = string.Join(OpenIdProtocol.ParameterSeparatorChar, scopesToInclude);
         if (!string.IsNullOrEmpty(scopeValue))
         {
             payloadClaims[JoseClaimNames.Payload.Scope] = scopeValue;

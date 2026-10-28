@@ -67,7 +67,7 @@ internal class DefaultDeviceCodeGrantHandler(
         var deviceCode = tokenRequest.DeviceCode;
         if (string.IsNullOrEmpty(deviceCode))
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.DeviceCode)
+                .MissingParameter(OpenIdProtocol.Parameters.DeviceCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var deviceCodeGrantId = PersistedGrantService.CreateGrantId(

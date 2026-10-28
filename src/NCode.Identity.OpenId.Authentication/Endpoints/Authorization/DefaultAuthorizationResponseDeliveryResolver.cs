@@ -59,7 +59,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         // The default follows the response type, so a response that returns a token is never redirected in a query
         // string, whether it carries the tokens or an error (ADR-0141); the JARM 'jwt' shorthand resolves the same way.
         requestValues.TryGetValue(
-            OpenIdConstants.Parameters.ResponseType,
+            OpenIdProtocol.Parameters.ResponseType,
             out var responseTypeStringValues
         );
         var responseTypes = SplitResponseTypeNames(responseTypeStringValues);
@@ -195,7 +195,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     }
 
     private static string? GetState(IRequestValues requestValues) =>
-        requestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues)
+        requestValues.TryGetValue(OpenIdProtocol.Parameters.State, out var stateStringValues)
         && !StringValues.IsNullOrEmpty(stateStringValues)
             ? stateStringValues.ToString()
             : null;
@@ -208,7 +208,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     {
         if (
             !requestValues.TryGetValue(
-                OpenIdConstants.Parameters.ResponseMode,
+                OpenIdProtocol.Parameters.ResponseMode,
                 out var responseModeStringValues
             )
         )
@@ -219,7 +219,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         if (responseModeStringValues.Count > 1)
         {
             throw openIdContext
-                .ErrorFactory.TooManyParameterValues(OpenIdConstants.Parameters.ResponseMode)
+                .ErrorFactory.TooManyParameterValues(OpenIdProtocol.Parameters.ResponseMode)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();
@@ -236,7 +236,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     {
         if (
             !requestValues.TryGetValue(
-                OpenIdConstants.Parameters.RedirectUri,
+                OpenIdProtocol.Parameters.RedirectUri,
                 out var redirectUriStringValues
             )
         )
@@ -248,7 +248,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         if (redirectUriStringValues.Count > 1)
         {
             throw openIdContext
-                .ErrorFactory.TooManyParameterValues(OpenIdConstants.Parameters.RedirectUri)
+                .ErrorFactory.TooManyParameterValues(OpenIdProtocol.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();
@@ -276,7 +276,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         )
         {
             throw openIdContext
-                .ErrorFactory.InvalidParameterValue(OpenIdConstants.Parameters.ResponseMode)
+                .ErrorFactory.InvalidParameterValue(OpenIdProtocol.Parameters.ResponseMode)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();
@@ -307,7 +307,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         if (redirectUriValue is null)
         {
             throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+                .MissingParameter(OpenIdProtocol.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .WithState(state)
                 .AsException();
@@ -362,7 +362,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     private static List<string> SplitResponseTypeNames(StringValues responseTypeStringValues) =>
         [
             .. responseTypeStringValues.SelectMany(value =>
-                value?.Split(OpenIdConstants.ParameterSeparatorChar) ?? []
+                value?.Split(OpenIdProtocol.ParameterSeparatorChar) ?? []
             ),
         ];
 }

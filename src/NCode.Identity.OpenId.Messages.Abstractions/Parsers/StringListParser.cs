@@ -76,7 +76,7 @@ public class StringListParser : ParameterParser<List<string>>
         foreach (var stringValue in stringValues)
         {
             var stringSpan = stringValue.AsSpan();
-            foreach (var range in stringSpan.Split(OpenIdConstants.ParameterSeparatorChar))
+            foreach (var range in stringSpan.Split(OpenIdProtocol.ParameterSeparatorChar))
             {
                 var part = stringSpan[range];
                 results.Add(part.ToString());

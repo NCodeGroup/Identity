@@ -71,7 +71,7 @@ internal class DefaultRefreshTokenGrantHandler(
         if (string.IsNullOrEmpty(refreshToken))
         {
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.RefreshToken)
+                .MissingParameter(OpenIdProtocol.Parameters.RefreshToken)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 

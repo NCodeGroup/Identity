@@ -157,7 +157,7 @@ public class ParameterParserHappyPathTests : BaseTests
     {
         var parser = new StringSetParser();
         var input =
-            $"a{OpenIdConstants.ParameterSeparatorChar}b{OpenIdConstants.ParameterSeparatorChar}c";
+            $"a{OpenIdProtocol.ParameterSeparatorChar}b{OpenIdProtocol.ParameterSeparatorChar}c";
 
         var result = parser.Parse(_environment, _allowMissingDescriptor, input);
 

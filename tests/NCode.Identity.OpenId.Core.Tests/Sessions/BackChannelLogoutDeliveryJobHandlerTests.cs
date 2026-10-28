@@ -90,7 +90,7 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
 
         Assert.Equal(new Uri(LogoutUri), Handler.RequestUri);
         Assert.NotNull(Handler.RequestBody);
-        Assert.Contains(OpenIdConstants.Parameters.LogoutToken, Handler.RequestBody);
+        Assert.Contains(OpenIdProtocol.Parameters.LogoutToken, Handler.RequestBody);
         Assert.Contains(LogoutToken, Handler.RequestBody);
     }
 

@@ -155,7 +155,7 @@ internal class DefaultIntrospectTokenHandler(
 
         var ownedScopes = resourceServer.Scopes;
         var narrowed = scope
-            .Split(OpenIdConstants.ParameterSeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+            .Split(OpenIdProtocol.ParameterSeparatorChar, StringSplitOptions.RemoveEmptyEntries)
             .Where(value => ownedScopes.Contains(value, StringComparer.Ordinal))
             .ToList();
 
@@ -166,7 +166,7 @@ internal class DefaultIntrospectTokenHandler(
         }
 
         result.Claims[JoseClaimNames.Payload.Scope] = string.Join(
-            OpenIdConstants.ParameterSeparatorChar,
+            OpenIdProtocol.ParameterSeparatorChar,
             narrowed
         );
     }
@@ -209,7 +209,7 @@ internal class DefaultIntrospectTokenHandler(
         if (payload.EffectiveScopes.Count > 0)
         {
             result.Claims[JoseClaimNames.Payload.Scope] = string.Join(
-                OpenIdConstants.ParameterSeparatorChar,
+                OpenIdProtocol.ParameterSeparatorChar,
                 payload.EffectiveScopes
             );
         }

@@ -62,7 +62,7 @@ public class TokenEndpointTests(HostApplicationFactory factory)
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                [OpenIdConstants.Parameters.GrantType] = OpenIdConstants
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
                     .GrantTypes
                     .ClientCredentials,
             }

@@ -67,7 +67,7 @@ internal class DefaultCibaGrantHandler(
         var authReqId = tokenRequest.AuthReqId;
         if (string.IsNullOrEmpty(authReqId))
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.AuthReqId)
+                .MissingParameter(OpenIdProtocol.Parameters.AuthReqId)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var grantId = PersistedGrantService.CreateGrantId(

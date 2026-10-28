@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -245,7 +245,7 @@ public class EnumParser<T> : ParameterParser<T>
                 continue;
 
             var stringSpan = stringValue.AsSpan();
-            foreach (var range in stringSpan.Split(OpenIdConstants.ParameterSeparatorChar))
+            foreach (var range in stringSpan.Split(OpenIdProtocol.ParameterSeparatorChar))
             {
                 var valueToParse = stringSpan[range];
                 var parsedValue = ParseValue(openIdEnvironment, descriptor, valueToParse);

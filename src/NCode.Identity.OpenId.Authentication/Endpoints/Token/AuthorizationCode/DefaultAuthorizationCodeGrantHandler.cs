@@ -68,7 +68,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         var authorizationCode = tokenRequest.AuthorizationCode;
         if (string.IsNullOrEmpty(authorizationCode))
             return errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.AuthorizationCode)
+                .MissingParameter(OpenIdProtocol.Parameters.AuthorizationCode)
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var persistedGrantId = PersistedGrantService.CreateGrantId(

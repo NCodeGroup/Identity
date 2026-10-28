@@ -75,28 +75,28 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
     {
         var properties = new Dictionary<string, IOpenApiSchema>(StringComparer.Ordinal)
         {
-            [OpenIdConstants.Parameters.GrantType] = StringSchema(
+            [OpenIdProtocol.Parameters.GrantType] = StringSchema(
                 "The grant type being requested, such as authorization_code, client_credentials, or refresh_token."
             ),
-            [OpenIdConstants.Parameters.ClientId] = StringSchema(
+            [OpenIdProtocol.Parameters.ClientId] = StringSchema(
                 "The identifier issued to the client during registration."
             ),
-            [OpenIdConstants.Parameters.ClientSecret] = StringSchema(
+            [OpenIdProtocol.Parameters.ClientSecret] = StringSchema(
                 "The client's secret, for clients that authenticate with a shared secret."
             ),
-            [OpenIdConstants.Parameters.Scope] = StringSchema(
+            [OpenIdProtocol.Parameters.Scope] = StringSchema(
                 "A space-delimited list of requested scopes."
             ),
-            [OpenIdConstants.Parameters.AuthorizationCode] = StringSchema(
+            [OpenIdProtocol.Parameters.AuthorizationCode] = StringSchema(
                 "The authorization code returned by the authorization endpoint (authorization_code grant)."
             ),
-            [OpenIdConstants.Parameters.RedirectUri] = StringSchema(
+            [OpenIdProtocol.Parameters.RedirectUri] = StringSchema(
                 "The client's redirect URI; must match the value used in the authorization request."
             ),
-            [OpenIdConstants.Parameters.CodeVerifier] = StringSchema(
+            [OpenIdProtocol.Parameters.CodeVerifier] = StringSchema(
                 "The PKCE code verifier (RFC 7636) matching the code_challenge sent to the authorization endpoint."
             ),
-            [OpenIdConstants.Parameters.RefreshToken] = StringSchema(
+            [OpenIdProtocol.Parameters.RefreshToken] = StringSchema(
                 "The refresh token previously issued to the client (refresh_token grant)."
             ),
         };
@@ -133,12 +133,12 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
                 "Exchange a confidential client's credentials for an access token (machine-to-machine).",
             Value = new JsonObject
             {
-                [OpenIdConstants.Parameters.GrantType] = OpenIdConstants
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
                     .GrantTypes
                     .ClientCredentials,
-                [OpenIdConstants.Parameters.ClientId] = "your-client-id",
-                [OpenIdConstants.Parameters.ClientSecret] = "your-client-secret",
-                [OpenIdConstants.Parameters.Scope] = "read:clients",
+                [OpenIdProtocol.Parameters.ClientId] = "your-client-id",
+                [OpenIdProtocol.Parameters.ClientSecret] = "your-client-secret",
+                [OpenIdProtocol.Parameters.Scope] = "read:clients",
             },
         };
 
@@ -149,14 +149,14 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
             Description = "Exchange an authorization code (with PKCE) for tokens.",
             Value = new JsonObject
             {
-                [OpenIdConstants.Parameters.GrantType] = OpenIdConstants
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdConstants
                     .GrantTypes
                     .AuthorizationCode,
-                [OpenIdConstants.Parameters.AuthorizationCode] = "the-authorization-code",
-                [OpenIdConstants.Parameters.RedirectUri] = "https://your-app.example/callback",
-                [OpenIdConstants.Parameters.ClientId] = "your-client-id",
-                [OpenIdConstants.Parameters.ClientSecret] = "your-client-secret",
-                [OpenIdConstants.Parameters.CodeVerifier] = "the-pkce-code-verifier",
+                [OpenIdProtocol.Parameters.AuthorizationCode] = "the-authorization-code",
+                [OpenIdProtocol.Parameters.RedirectUri] = "https://your-app.example/callback",
+                [OpenIdProtocol.Parameters.ClientId] = "your-client-id",
+                [OpenIdProtocol.Parameters.ClientSecret] = "your-client-secret",
+                [OpenIdProtocol.Parameters.CodeVerifier] = "the-pkce-code-verifier",
             },
         };
 
@@ -167,11 +167,11 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
             Description = "Exchange a refresh token for a new access token.",
             Value = new JsonObject
             {
-                [OpenIdConstants.Parameters.GrantType] = OpenIdProtocol.GrantTypes.RefreshToken,
-                [OpenIdConstants.Parameters.RefreshToken] = "the-refresh-token",
-                [OpenIdConstants.Parameters.ClientId] = "your-client-id",
-                [OpenIdConstants.Parameters.ClientSecret] = "your-client-secret",
-                [OpenIdConstants.Parameters.Scope] = "read:clients",
+                [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol.GrantTypes.RefreshToken,
+                [OpenIdProtocol.Parameters.RefreshToken] = "the-refresh-token",
+                [OpenIdProtocol.Parameters.ClientId] = "your-client-id",
+                [OpenIdProtocol.Parameters.ClientSecret] = "your-client-secret",
+                [OpenIdProtocol.Parameters.Scope] = "read:clients",
             },
         };
 }

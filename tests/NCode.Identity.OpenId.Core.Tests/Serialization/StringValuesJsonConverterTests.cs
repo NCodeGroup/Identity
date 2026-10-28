@@ -55,7 +55,7 @@ public class StringValuesJsonConverterTests
         var json = JsonSerializer.Serialize(new StringValues(["a", "b", "c"]), _options);
 
         Assert.Equal(
-            $"\"a{OpenIdConstants.ParameterSeparatorChar}b{OpenIdConstants.ParameterSeparatorChar}c\"",
+            $"\"a{OpenIdProtocol.ParameterSeparatorChar}b{OpenIdProtocol.ParameterSeparatorChar}c\"",
             json
         );
     }

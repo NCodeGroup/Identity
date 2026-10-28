@@ -30,19 +30,19 @@ public sealed class BackchannelAuthenticationResult
     /// <summary>
     /// Gets the unique identifier the client polls the token endpoint with.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.AuthReqId)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.AuthReqId)]
     public required string AuthReqId { get; init; }
 
     /// <summary>
     /// Gets the lifetime in seconds of the <c>auth_req_id</c>.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.ExpiresIn)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.ExpiresIn)]
     public required int ExpiresIn { get; init; }
 
     /// <summary>
     /// Gets the minimum amount of time in seconds the client should wait between polling requests to the token
     /// endpoint.
     /// </summary>
-    [JsonPropertyName(OpenIdConstants.Parameters.Interval)]
+    [JsonPropertyName(OpenIdProtocol.Parameters.Interval)]
     public required int Interval { get; init; }
 }

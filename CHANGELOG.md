@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Key wrappers share one decoder for base64url ciphertext.** `WrappedKeyCiphertext.GetByteCount` and
+  `WrappedKeyCiphertext.Decode` in `NCode.Identity.Secrets.KeyWrapping` decode a `WrappedKey.Ciphertext` stored as
+  base64url into a caller-supplied span or `IBufferWriter<byte>` and throw `CryptographicException` for empty or
+  malformed text. The AES-GCM, AWS KMS, Azure Key Vault and Google Cloud KMS wrappers use it, so every wrapper reports
+  empty ciphertext as "The wrapped key is empty." `NCode.Identity.Secrets.Abstractions` now references
+  `NCode.Base64Url`
+  ([ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  issue [#373](https://github.com/NCodeGroup/Identity/issues/373)).
+
 - **The OpenID protocol client decrypts encrypted ID tokens and logout tokens.**
   `ClientRegistration.IdTokenKeyManagementAlgorithms` and `IdTokenContentEncryptionAlgorithms` mirror the registered
   `id_token_encrypted_response_alg` and `id_token_encrypted_response_enc` (`enc` defaults to `A128CBC-HS256`). When they

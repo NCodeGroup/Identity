@@ -214,6 +214,24 @@ public class AkpIntegrationTests
         Assert.True(algorithm.Verify(publicKey, message, signature));
     }
 
+    [Fact]
+    public void ExportPublicKey_WhenMetadataIsSet_WritesKidAndUse()
+    {
+        if (!MLDsa.IsSupported)
+            return;
+
+        const string keyId = "kid-test";
+        const string use = "sig";
+        var descriptor = CreateDescriptor();
+        var privateKey = GeneratePrivateKey(descriptor, "ML-DSA-44");
+
+        var exported = descriptor.ExportPublicKey(privateKey);
+
+        Assert.NotNull(exported);
+        Assert.Equal(keyId, exported.Jwk.KeyId);
+        Assert.Equal(use, exported.Jwk.PublicKeyUse);
+    }
+
     [Theory]
     [InlineData("ML-DSA-65")]
     public void TrySign_WhenPublicOnlyKey_Throws(string name)

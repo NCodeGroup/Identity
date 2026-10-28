@@ -50,7 +50,7 @@ public class LocalKeyWrapperTests : IDisposable
 
     private static byte[] CreateContext() => "root-context"u8.ToArray();
 
-    private static LocalKeyWrapper CreateProvider(LocalRootKeyOptions options) =>
+    private static LocalKeyWrapper CreateProvider(LocalKeyWrapperOptions options) =>
         new(Microsoft.Extensions.Options.Options.Create(options));
 
     private string WriteKeyFile(string content)
@@ -66,7 +66,7 @@ public class LocalKeyWrapperTests : IDisposable
     public async Task WrapThenUnwrap_InlineKey_RoundTrips()
     {
         using var provider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(CreateKey()) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
         );
         var key = CreateKey();
         var context = CreateContext();
@@ -90,7 +90,7 @@ public class LocalKeyWrapperTests : IDisposable
     {
         var rootKey = CreateKey();
         using var provider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(rootKey) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(rootKey) }
         );
         var key = CreateKey();
         var context = CreateContext();
@@ -113,7 +113,7 @@ public class LocalKeyWrapperTests : IDisposable
     public async Task WrapThenUnwrap_KeyPath_RoundTrips()
     {
         var path = WriteKeyFile(Base64Url.EncodeToString(CreateKey()) + Environment.NewLine);
-        using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
         var key = CreateKey();
         var context = CreateContext();
         var destination = new byte[key.Length];
@@ -134,7 +134,7 @@ public class LocalKeyWrapperTests : IDisposable
     public async Task WrapThenUnwrap_KeyFileWithTrailingNewline_RoundTrips()
     {
         var path = WriteKeyFile(Base64Url.EncodeToString(CreateKey()) + "\r\n");
-        using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
         var key = CreateKey();
         var context = CreateContext();
         var destination = new byte[key.Length];
@@ -161,7 +161,7 @@ public class LocalKeyWrapperTests : IDisposable
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: true, throwOnInvalidBytes: true)
         );
         Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF }, File.ReadAllBytes(path)[..3]);
-        using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
         var key = CreateKey();
         var context = CreateContext();
         var destination = new byte[key.Length];
@@ -182,7 +182,7 @@ public class LocalKeyWrapperTests : IDisposable
     public async Task Wrap_CiphertextLength_EqualsGetWrappedLength()
     {
         using var provider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(CreateKey()) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
         );
         var key = CreateKey();
 
@@ -196,7 +196,7 @@ public class LocalKeyWrapperTests : IDisposable
     public async Task Unwrap_DestinationTooSmall_Throws()
     {
         using var provider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(CreateKey()) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
         );
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
@@ -214,12 +214,12 @@ public class LocalKeyWrapperTests : IDisposable
         var key = CreateKey();
         var context = CreateContext();
         using var previousProvider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(previousRootKey) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(previousRootKey) }
         );
         var wrappedKey = await previousProvider.WrapAsync(key, context, CancellationToken.None);
         var previousPath = WriteKeyFile(Base64Url.EncodeToString(previousRootKey));
         using var provider = CreateProvider(
-            new LocalRootKeyOptions
+            new LocalKeyWrapperOptions
             {
                 Key = Base64Url.EncodeToString(CreateKey()),
                 PreviousKeyPaths = [previousPath],
@@ -243,7 +243,7 @@ public class LocalKeyWrapperTests : IDisposable
     {
         var context = CreateContext();
         using var previousProvider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(CreateKey()) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
         );
         var wrappedKey = await previousProvider.WrapAsync(
             CreateKey(),
@@ -251,7 +251,7 @@ public class LocalKeyWrapperTests : IDisposable
             CancellationToken.None
         );
         using var provider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(CreateKey()) }
+            new LocalKeyWrapperOptions { Key = Base64Url.EncodeToString(CreateKey()) }
         );
         var destination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
 
@@ -259,7 +259,7 @@ public class LocalKeyWrapperTests : IDisposable
             await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None)
         );
 
-        Assert.Contains(nameof(LocalRootKeyOptions.PreviousKeyPaths), exception.Message);
+        Assert.Contains(nameof(LocalKeyWrapperOptions.PreviousKeyPaths), exception.Message);
     }
 
     #endregion
@@ -269,13 +269,13 @@ public class LocalKeyWrapperTests : IDisposable
     [Fact]
     public async Task Wrap_NotConfigured_Throws()
     {
-        using var provider = CreateProvider(new LocalRootKeyOptions());
+        using var provider = CreateProvider(new LocalKeyWrapperOptions());
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     [Fact]
@@ -283,21 +283,25 @@ public class LocalKeyWrapperTests : IDisposable
     {
         var path = WriteKeyFile(Base64Url.EncodeToString(CreateKey()));
         using var provider = CreateProvider(
-            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(CreateKey()), KeyPath = path }
+            new LocalKeyWrapperOptions
+            {
+                Key = Base64Url.EncodeToString(CreateKey()),
+                KeyPath = path,
+            }
         );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     [Fact]
     public async Task Wrap_KeyOfWrongLength_Throws()
     {
         using var provider = CreateProvider(
-            new LocalRootKeyOptions
+            new LocalKeyWrapperOptions
             {
                 Key = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16)),
             }
@@ -307,32 +311,32 @@ public class LocalKeyWrapperTests : IDisposable
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     [Fact]
     public async Task Wrap_KeyNotBase64Url_Throws()
     {
-        using var provider = CreateProvider(new LocalRootKeyOptions { Key = "not base64url!" });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { Key = "not base64url!" });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     [Fact]
     public async Task Wrap_KeyFileTooLarge_Throws()
     {
         var path = WriteKeyFile(new string('A', 1025));
-        using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
         Assert.Contains(path, exception.Message);
     }
 
@@ -345,13 +349,13 @@ public class LocalKeyWrapperTests : IDisposable
             Base64Url.EncodeToString(CreateKey()),
             new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)
         );
-        using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
         Assert.Contains(path, exception.Message);
         Assert.Contains("UTF-8", exception.Message);
     }
@@ -360,13 +364,13 @@ public class LocalKeyWrapperTests : IDisposable
     public async Task Wrap_KeyPathOfMissingFile_Throws()
     {
         var path = Path.Combine(_tempDirectory, "missing.key");
-        using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
+        using var provider = CreateProvider(new LocalKeyWrapperOptions { KeyPath = path });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await provider.WrapAsync(CreateKey(), CreateContext(), CancellationToken.None)
         );
 
-        Assert.Contains(LocalRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(LocalKeyWrapperOptions.DefaultSectionName, exception.Message);
         Assert.Contains(path, exception.Message);
     }
 

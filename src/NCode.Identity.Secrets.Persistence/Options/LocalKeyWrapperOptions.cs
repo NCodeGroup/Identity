@@ -21,13 +21,13 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Secrets.Persistence.Options;
 
 /// <summary>
-/// Contains the options for the root key provider that reads the root key from a local file or from the
+/// Contains the options for the local key wrapper that reads the root key from a local file or from the
 /// configuration, bound from the <see cref="DefaultSectionName"/> configuration section. Exactly one of
 /// <see cref="KeyPath"/> and <see cref="Key"/> must be set.
 /// </summary>
 // See ADR-0235.
 [PublicAPI]
-public sealed class LocalRootKeyOptions
+public sealed class LocalKeyWrapperOptions
 {
     /// <summary>
     /// Gets the name of the configuration section the options are bound from.

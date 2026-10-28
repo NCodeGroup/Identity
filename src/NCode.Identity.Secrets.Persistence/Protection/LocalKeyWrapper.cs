@@ -53,9 +53,9 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </para>
 /// </remarks>
 // See ADR-0235.
-internal class LocalKeyWrapper(IOptions<LocalRootKeyOptions> options) : IKeyWrapper, IDisposable
+internal class LocalKeyWrapper(IOptions<LocalKeyWrapperOptions> options) : IKeyWrapper, IDisposable
 {
-    private const string SectionName = LocalRootKeyOptions.DefaultSectionName;
+    private const string SectionName = LocalKeyWrapperOptions.DefaultSectionName;
 
     private const int RootKeySizeBytes = 32;
 
@@ -140,7 +140,7 @@ internal class LocalKeyWrapper(IOptions<LocalRootKeyOptions> options) : IKeyWrap
         {
             throw new CryptographicException(
                 "The key was wrapped by a root key that is not configured. "
-                    + $"Add the file of the old root key to '{SectionName}:{nameof(LocalRootKeyOptions.PreviousKeyPaths)}'."
+                    + $"Add the file of the old root key to '{SectionName}:{nameof(LocalKeyWrapperOptions.PreviousKeyPaths)}'."
             );
         }
 
@@ -169,7 +169,7 @@ internal class LocalKeyWrapper(IOptions<LocalRootKeyOptions> options) : IKeyWrap
         }
     }
 
-    private static LoadedKeys LoadKeys(LocalRootKeyOptions options)
+    private static LoadedKeys LoadKeys(LocalKeyWrapperOptions options)
     {
         var keysById = new Dictionary<string, LoadedKey>(StringComparer.Ordinal);
         var succeeded = false;
@@ -181,7 +181,10 @@ internal class LocalKeyWrapper(IOptions<LocalRootKeyOptions> options) : IKeyWrap
 
             foreach (var path in options.PreviousKeyPaths)
             {
-                var previousKey = ReadKeyFile(path, nameof(LocalRootKeyOptions.PreviousKeyPaths));
+                var previousKey = ReadKeyFile(
+                    path,
+                    nameof(LocalKeyWrapperOptions.PreviousKeyPaths)
+                );
                 var previousKeyId = ComputeFingerprint(previousKey.Key);
                 if (!keysById.TryAdd(previousKeyId, previousKey))
                 {
@@ -211,24 +214,24 @@ internal class LocalKeyWrapper(IOptions<LocalRootKeyOptions> options) : IKeyWrap
             static (chars, key) => AesGcmKeyWrap.ComputeFingerprint(key.Span, chars)
         );
 
-    private static LoadedKey LoadCurrentKey(LocalRootKeyOptions options)
+    private static LoadedKey LoadCurrentKey(LocalKeyWrapperOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.Key) && string.IsNullOrWhiteSpace(options.KeyPath))
         {
             return DecodeKey(
                 options.Key,
-                $"The '{SectionName}:{nameof(LocalRootKeyOptions.Key)}' setting"
+                $"The '{SectionName}:{nameof(LocalKeyWrapperOptions.Key)}' setting"
             );
         }
 
         if (string.IsNullOrWhiteSpace(options.Key) && !string.IsNullOrWhiteSpace(options.KeyPath))
         {
-            return ReadKeyFile(options.KeyPath, nameof(LocalRootKeyOptions.KeyPath));
+            return ReadKeyFile(options.KeyPath, nameof(LocalKeyWrapperOptions.KeyPath));
         }
 
         throw new InvalidOperationException(
-            $"Exactly one of '{SectionName}:{nameof(LocalRootKeyOptions.Key)}' and "
-                + $"'{SectionName}:{nameof(LocalRootKeyOptions.KeyPath)}' must be set to use the local root key provider."
+            $"Exactly one of '{SectionName}:{nameof(LocalKeyWrapperOptions.Key)}' and "
+                + $"'{SectionName}:{nameof(LocalKeyWrapperOptions.KeyPath)}' must be set to use the local root key provider."
         );
     }
 

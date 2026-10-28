@@ -29,14 +29,16 @@ using NCode.Json;
 namespace NCode.Identity.OpenId.Client.Tokens;
 
 /// <summary>
-/// Provides a default implementation of <see cref="ILogoutTokenValidator"/> that verifies the signature of a logout
-/// token with the provider's signing keys, checks its claims (OpenID Connect Back-Channel Logout 1.0 §2.6) and records
-/// its <c>jti</c> so that the same token validates only once (ADR-0274).
+/// Provides a default implementation of <see cref="ILogoutTokenValidator"/> that first decrypts an encrypted logout
+/// token with the client's keys, then verifies its signature with the provider's signing keys, checks its claims
+/// (OpenID Connect Back-Channel Logout 1.0 §2.6) and records its <c>jti</c> so that the same token validates only
+/// once (ADR-0274).
 /// </summary>
 internal class DefaultLogoutTokenValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IProviderMetadataResolver metadataResolver,
     IProviderKeySetResolver keySetResolver,
+    IClientKeyRingProvider keyRingProvider,
     IJwtValidator jwtValidator,
     IExpiringKeySet expiringKeySet
 ) : ILogoutTokenValidator
@@ -50,6 +52,7 @@ internal class DefaultLogoutTokenValidator(
         algorithmCollectionProvider;
     private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
     private IProviderKeySetResolver KeySetResolver { get; } = keySetResolver;
+    private IClientKeyRingProvider KeyRingProvider { get; } = keyRingProvider;
     private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IExpiringKeySet ExpiringKeySet { get; } = expiringKeySet;
 
@@ -77,8 +80,10 @@ internal class DefaultLogoutTokenValidator(
                 "The discovery document of the provider lacks the issuer."
             );
 
+        var collection = AlgorithmCollectionProvider.Collection;
+
         var algorithms = ProviderSignaturePolicy.GetPermittedAlgorithms(
-            AlgorithmCollectionProvider.Collection,
+            collection,
             registration,
             metadata
         );
@@ -88,17 +93,45 @@ internal class DefaultLogoutTokenValidator(
                 "No logout-token signing algorithm is both permitted by the client and advertised by the provider."
             );
 
+        var keyManagementAlgorithms = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
+            collection,
+            registration
+        );
+        var contentEncryptionAlgorithms =
+            ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(
+                collection,
+                registration
+            );
+        var encryptionRequired = ClientDecryptionPolicy.IsEncryptionRegistered(registration);
+        if (
+            encryptionRequired
+            && (keyManagementAlgorithms.Count == 0 || contentEncryptionAlgorithms.Count == 0)
+        )
+            return Fail(
+                TokenValidationFailureCodes.AlgorithmNotPermitted,
+                "No ID-token encryption algorithm that the client registered is permitted."
+            );
+
+        var signingKeysResolved = false;
         var parameters = new JwtValidationParameters
         {
             ClockSkew = ClockSkew,
             ValidSignatureAlgorithms = algorithms,
+            ValidKeyManagementAlgorithms = keyManagementAlgorithms,
+            ValidContentEncryptionAlgorithms = contentEncryptionAlgorithms,
+            ValidCompressionAlgorithms = [],
             ResolveValidationKeysAsync = (token, _, _, ct) =>
-                ProviderSignaturePolicy.ResolveKeysAsync(
+            {
+                // The signing keys are resolved only for the enclosed JWS, which exists only after decryption, so a
+                // key failure before this point is a decryption failure (ADR-0279).
+                signingKeysResolved = true;
+                return ProviderSignaturePolicy.ResolveKeysAsync(
                     KeySetResolver,
                     registration.Authority,
                     token,
                     ct
-                ),
+                );
+            },
         }
             .ValidateIssuer(issuer)
             .ValidateAudience(registration.ClientId)
@@ -107,6 +140,15 @@ internal class DefaultLogoutTokenValidator(
                 o.RequireIssuedAt = true;
                 o.MaxLifetime = MaxLifetime;
             });
+
+        if (encryptionRequired)
+        {
+            var decryptionKeys = ClientDecryptionPolicy.GetDecryptionKeys(
+                KeyRingProvider,
+                registration
+            );
+            parameters.UseDecryptionKeys(decryptionKeys);
+        }
 
         var result = await JwtValidator.ValidateAsync(
             request.LogoutToken,
@@ -120,13 +162,31 @@ internal class DefaultLogoutTokenValidator(
             ProviderSignaturePolicy.RethrowProviderFailure(exception);
 
             if (exception is JwtDecodeException or JwtSecretKeyNotFoundException)
-                return Fail(
-                    TokenValidationFailureCodes.InvalidSignature,
-                    "The logout token signature could not be verified with the provider's signing keys."
-                );
+                return signingKeysResolved
+                    ? Fail(
+                        TokenValidationFailureCodes.InvalidSignature,
+                        "The logout token signature could not be verified with the provider's signing keys."
+                    )
+                    : Fail(
+                        TokenValidationFailureCodes.DecryptionFailed,
+                        "The logout token could not be decrypted with the client's keys."
+                    );
 
             return Fail(result.FailureCode, "The logout token is invalid: " + exception.Message);
         }
+
+        var encryptionHeader = result.DecodedJwt.EncryptionHeader;
+        if (encryptionRequired && encryptionHeader is null)
+            return Fail(
+                TokenValidationFailureCodes.InvalidToken,
+                "The logout token is not encrypted, but the client registered ID-token encryption."
+            );
+
+        if (!ClientDecryptionPolicy.IsReplicatedIssuerValid(encryptionHeader, issuer))
+            return Fail(
+                TokenValidationFailureCodes.InvalidIssuer,
+                "The 'iss' header of the encrypted logout token does not match the issuer."
+            );
 
         var header = result.DecodedJwt.Header;
         var payload = result.DecodedJwt.Payload;

@@ -34,7 +34,7 @@ public static class JsonWebKeyTypeDescriptors
     /// </summary>
     public static JsonWebKeyTypeDescriptor Rsa { get; } =
         new(
-            "RSA",
+            JsonWebKeyTypes.Rsa,
             [JsonWebKeyParameterNames.Exponent, JsonWebKeyParameterNames.Modulus],
             [JsonWebKeyParameterNames.EccPrivateKey, "p", "q", "dp", "dq", "qi", "oth"]
         );
@@ -44,7 +44,7 @@ public static class JsonWebKeyTypeDescriptors
     /// </summary>
     public static JsonWebKeyTypeDescriptor Ec { get; } =
         new(
-            "EC",
+            JsonWebKeyTypes.Ec,
             [
                 JsonWebKeyParameterNames.Curve,
                 JsonWebKeyParameterNames.X,
@@ -58,7 +58,7 @@ public static class JsonWebKeyTypeDescriptors
     /// </summary>
     public static JsonWebKeyTypeDescriptor Okp { get; } =
         new(
-            "OKP",
+            JsonWebKeyTypes.Okp,
             [JsonWebKeyParameterNames.Curve, JsonWebKeyParameterNames.X],
             [JsonWebKeyParameterNames.EccPrivateKey]
         );
@@ -68,7 +68,7 @@ public static class JsonWebKeyTypeDescriptors
     /// </summary>
     public static JsonWebKeyTypeDescriptor Oct { get; } =
         new(
-            "oct",
+            JsonWebKeyTypes.Oct,
             [JsonWebKeyParameterNames.SymmetricKey],
             [JsonWebKeyParameterNames.SymmetricKey]
         );
@@ -78,7 +78,7 @@ public static class JsonWebKeyTypeDescriptors
     /// </summary>
     public static JsonWebKeyTypeDescriptor Akp { get; } =
         new(
-            "AKP",
+            JsonWebKeyTypes.Akp,
             [JsonWebKeyParameterNames.Algorithm, JsonWebKeyParameterNames.PublicKey],
             [JsonWebKeyParameterNames.PrivateKey]
         );

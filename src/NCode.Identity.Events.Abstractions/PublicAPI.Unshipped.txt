@@ -43,6 +43,7 @@ const NCode.Identity.Events.Audit.AuditRecordFields.SchemaVersion = "schema_vers
 const NCode.Identity.Events.Audit.AuditRecordFields.Severity = "severity" -> string!
 const NCode.Identity.Events.Audit.AuditRecordFields.SubjectId = "subject_id" -> string!
 const NCode.Identity.Events.Audit.AuditRecordFields.TenantId = "tenant_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordWriter.SchemaVersion = "1.0" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.Session = "session" -> string!
 const NCode.Identity.Events.Audit.AuditSeverities.Critical = "critical" -> string!
 const NCode.Identity.Events.Audit.AuditSeverities.Info = "info" -> string!
@@ -79,6 +80,7 @@ NCode.Identity.Events.Audit.AuditRecordFields.ActorFields
 NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields
 NCode.Identity.Events.Audit.AuditRecordFields.RequestFields
 NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields
+NCode.Identity.Events.Audit.AuditRecordWriter
 NCode.Identity.Events.Audit.AuditRequest
 NCode.Identity.Events.Audit.AuditRequest.Endpoint.get -> string?
 NCode.Identity.Events.Audit.AuditRequest.Endpoint.init -> void
@@ -191,6 +193,8 @@ static NCode.Identity.Events.Audit.AuditActor.Anonymous.get -> NCode.Identity.Ev
 static NCode.Identity.Events.Audit.AuditActor.Client(string! clientId) -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.EndUser(string? subjectId) -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.System.get -> NCode.Identity.Events.Audit.AuditActor!
+static NCode.Identity.Events.Audit.AuditRecordWriter.SerializeToUtf8Bytes(NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> byte[]!
+static NCode.Identity.Events.Audit.AuditRecordWriter.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int

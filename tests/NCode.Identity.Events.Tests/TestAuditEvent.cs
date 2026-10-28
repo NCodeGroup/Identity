@@ -25,5 +25,7 @@ namespace NCode.Identity.Events;
 /// </summary>
 internal sealed record TestAuditEvent : AuditEvent
 {
-    public override string Action => "test.action";
+    public override string EventName => "test.action";
+
+    public override string EventCategory => "test";
 }

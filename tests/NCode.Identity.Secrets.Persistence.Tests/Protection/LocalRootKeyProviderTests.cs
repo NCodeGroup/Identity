@@ -85,6 +85,30 @@ public class LocalRootKeyProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task Wrap_InlineKey_StoresNonceCiphertextTagUnderFingerprint()
+    {
+        var rootKey = CreateKey();
+        using var provider = CreateProvider(
+            new LocalRootKeyOptions { Key = Base64Url.EncodeToString(rootKey) }
+        );
+        var key = CreateKey();
+        var context = CreateContext();
+
+        var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
+
+        Assert.Equal(Base64Url.EncodeToString(SHA256.HashData(rootKey)), wrappedKey.KeyId);
+        var wrapped = Base64Url.DecodeFromChars(wrappedKey.Ciphertext);
+        Assert.Equal(12 + key.Length + 16, wrapped.Length);
+        var nonce = wrapped[..12];
+        var ciphertext = wrapped[12..^16];
+        var tag = wrapped[^16..];
+        var plaintext = new byte[key.Length];
+        using var aes = new AesGcm(rootKey, 16);
+        aes.Decrypt(nonce, ciphertext, tag, plaintext, context);
+        Assert.Equal(key, plaintext);
+    }
+
+    [Fact]
     public async Task WrapThenUnwrap_KeyPath_RoundTrips()
     {
         var path = WriteKeyFile(Base64Url.EncodeToString(CreateKey()) + Environment.NewLine);

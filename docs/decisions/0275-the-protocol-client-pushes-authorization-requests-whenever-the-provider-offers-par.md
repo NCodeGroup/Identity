@@ -1,6 +1,7 @@
 # 275. The protocol client pushes authorization requests whenever the provider offers PAR
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0277](0277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md): a
+  push response's `expires_in` may be written with a zero fraction, such as `60.0`)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 
@@ -145,6 +146,47 @@ public class WrappedKeyCiphertextTests
         );
 
         Assert.Equal("destination", exception.ParamName);
+    }
+
+    [Fact]
+    public void Decode_WriterValidText_WritesBytesAndAdvances()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        var text = Base64Url.EncodeToString(bytes);
+        var writer = new ArrayBufferWriter<byte>();
+
+        WrappedKeyCiphertext.Decode(text, ref writer);
+
+        Assert.Equal(32, writer.WrittenCount);
+        Assert.Equal(bytes, writer.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public void Decode_WriterEmpty_ThrowsCryptographicExceptionWithoutAdvancing()
+    {
+        var writer = new ArrayBufferWriter<byte>();
+
+        var exception = Assert.Throws<CryptographicException>(() =>
+        {
+            WrappedKeyCiphertext.Decode(string.Empty, ref writer);
+        });
+
+        Assert.Equal(EmptyMessage, exception.Message);
+        Assert.Equal(0, writer.WrittenCount);
+    }
+
+    [Fact]
+    public void Decode_WriterIllegalCharacter_ThrowsCryptographicExceptionWithoutAdvancing()
+    {
+        var writer = new ArrayBufferWriter<byte>();
+
+        var exception = Assert.Throws<CryptographicException>(() =>
+        {
+            WrappedKeyCiphertext.Decode("AA!A", ref writer);
+        });
+
+        Assert.Equal(NotBase64UrlMessage, exception.Message);
+        Assert.Equal(0, writer.WrittenCount);
     }
 
     #endregion

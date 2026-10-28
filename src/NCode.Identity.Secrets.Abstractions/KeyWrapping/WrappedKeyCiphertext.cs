@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Encoders;
@@ -79,5 +80,21 @@ public static class WrappedKeyCiphertext
             );
 
         return bytesWritten;
+    }
+
+    /// <summary>
+    /// Decodes the base64url text of a wrapped key into a buffer writer.
+    /// </summary>
+    /// <typeparam name="TWriter">The type of the buffer writer.</typeparam>
+    /// <param name="ciphertext">The base64url text of the wrapped key.</param>
+    /// <param name="destination">The writer that receives the decoded bytes; it advances by <see cref="GetByteCount"/> bytes.</param>
+    /// <exception cref="CryptographicException">The text is empty or is not valid base64url text; the writer does not advance.</exception>
+    public static void Decode<TWriter>(ReadOnlySpan<char> ciphertext, ref TWriter destination)
+        where TWriter : IBufferWriter<byte>, allows ref struct
+    {
+        var byteCount = GetByteCount(ciphertext);
+        var span = destination.GetSpan(byteCount);
+        var bytesWritten = Decode(ciphertext, span);
+        destination.Advance(bytesWritten);
     }
 }

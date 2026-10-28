@@ -194,6 +194,7 @@ NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrapperName.init -> void
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrappedKey() -> void
 NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext
 static NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext.Decode(System.ReadOnlySpan<char> ciphertext, System.Span<byte> destination) -> int
+static NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext.Decode<TWriter>(System.ReadOnlySpan<char> ciphertext, ref TWriter destination) -> void
 static NCode.Identity.Secrets.KeyWrapping.WrappedKeyCiphertext.GetByteCount(System.ReadOnlySpan<char> ciphertext) -> int
 NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.AwsKms = "aws-kms" -> string!

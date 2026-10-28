@@ -138,8 +138,8 @@ internal class AzureKeyVaultKeyWrapper(
     /// Thrown when <paramref name="wrappedKey"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="CryptographicException">
-    /// Thrown when the wrapped key does not name a Key Vault key version, is not valid base64url text, or was rejected
-    /// by the service with an HTTP 400 response.
+    /// Thrown when the wrapped key does not name a Key Vault key version, is empty or not valid base64url text, or was
+    /// rejected by the service with an HTTP 400 response.
     /// </exception>
     public async ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
@@ -158,7 +158,10 @@ internal class AzureKeyVaultKeyWrapper(
             );
         }
 
-        var ciphertext = DecodeCiphertext(wrappedKey.Ciphertext);
+        // The SDK demands an array of exactly the ciphertext's length.
+        var text = wrappedKey.Ciphertext;
+        var ciphertext = new byte[WrappedKeyCiphertext.GetByteCount(text)];
+        WrappedKeyCiphertext.Decode(text, ciphertext);
         var client = ClientFactory.GetClient(keyId);
 
         UnwrapResult result;
@@ -182,27 +185,6 @@ internal class AzureKeyVaultKeyWrapper(
         }
 
         CopyPlaintext(result.Key, destination);
-    }
-
-    private static byte[] DecodeCiphertext(string text)
-    {
-        // A remainder of one character is not a valid base64url length, and counting its bytes throws.
-        if (text.Length == 0 || text.Length % 4 == 1)
-        {
-            throw new CryptographicException("The wrapped key is not valid base64url text.");
-        }
-
-        try
-        {
-            return Base64Url.Decode(text);
-        }
-        catch (FormatException exception)
-        {
-            throw new CryptographicException(
-                "The wrapped key is not valid base64url text.",
-                exception
-            );
-        }
     }
 
     private static void CopyPlaintext(byte[] plaintext, IBufferWriter<byte> destination)

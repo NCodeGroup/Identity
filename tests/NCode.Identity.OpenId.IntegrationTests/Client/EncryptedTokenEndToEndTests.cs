@@ -16,6 +16,9 @@
 
 #endregion
 
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Web;
@@ -31,6 +34,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.SharedState;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Client;
@@ -46,6 +50,8 @@ public class EncryptedTokenEndToEndTests
     private const string ClientSecret = "encrypted-e2e-Kp4wT8nZ3xV7bQ2mL6cR9yH5jD1sGf0A";
     private const string RedirectUri = "https://client.example/callback";
     private const string BackChannelLogoutUri = "https://client.example/backchannel-logout";
+    private const string EndSessionPath = "/oauth2/end_session";
+    private const string BackChannelLogoutPath = "/backchannel-logout";
     private const string JwksUri = "https://client.example/jwks.json";
     private const string EncryptionKeyId = "client-enc";
     private const string UserName = "encrypted-e2e-user";
@@ -79,6 +85,8 @@ public class EncryptedTokenEndToEndTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary().AddOpenIdClientLibrary();
+        // AddOpenIdClientLibrary registers no IExpiringKeySet for the logout-token validator.
+        services.AddSharedStateServices().AddInProcessExpiringKeySet();
         services
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
@@ -224,6 +232,49 @@ public class EncryptedTokenEndToEndTests
         return header.RootElement.Clone();
     }
 
+    private static async Task EndSessionAsync(HttpClient browser, string sessionCookie)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
+        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        using var response = await browser.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // The provider delivers the logout token on a background worker, so it arrives after the end-session response.
+    private static async Task<string> WaitForLogoutTokenAsync(
+        ConcurrentQueue<RecordedHttpExchange> exchanges
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (exchanges.IsEmpty && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+
+        var delivery = Assert.Single(exchanges);
+        Assert.Equal(BackChannelLogoutPath, delivery.Path);
+
+        var logoutToken = HttpUtility.ParseQueryString(delivery.Body ?? string.Empty)[
+            OpenIdProtocol.Parameters.LogoutToken
+        ];
+        Assert.False(string.IsNullOrEmpty(logoutToken));
+        return logoutToken;
+    }
+
+    private static async Task<LogoutTokenValidationResult> ValidateLogoutTokenAsync(
+        ServiceProvider provider,
+        ClientRegistration registration,
+        string logoutToken
+    ) =>
+        await provider
+            .GetRequiredService<ILogoutTokenValidator>()
+            .ValidateAsync(
+                registration,
+                new LogoutTokenValidationRequest { LogoutToken = logoutToken },
+                CancellationToken.None
+            );
+
     #endregion
 
     #region ValidateAsync Tests
@@ -262,6 +313,54 @@ public class EncryptedTokenEndToEndTests
         Assert.False(header.TryGetProperty(JoseClaimNames.Header.Zip, out _));
         Assert.Equal(Nonce, payload.GetProperty("nonce").GetString());
         Assert.False(string.IsNullOrEmpty(payload.GetProperty("sub").GetString()));
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithALogoutTokenTheProviderEncryptedToTheClient_ReturnsItsSubjectAndSession()
+    {
+        const string clientId = "it-encrypted-e2e-logout";
+
+        using var clientRsa = RSA.Create(2048);
+        var jwks = BuildEncryptionJwks(clientRsa);
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        using var factory = new HostApplicationFactory
+        {
+            BackChannelLogoutExchanges = exchanges,
+            ClientJwksResponder = _ => jwks,
+        };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await SeedClientAsync(factory, clientId);
+        await using var provider = CreateClientProvider(factory, clientRsa);
+        var registration = CreateRegistration(clientId);
+        var browser = CreateBrowser(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var (_, idTokenPayload) = await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            registration
+        );
+
+        await EndSessionAsync(browser, sessionCookie);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+
+        var header = ReadEncryptionHeader(logoutToken);
+        Assert.Equal("RSA-OAEP-256", header.GetProperty(JoseClaimNames.Header.Alg).GetString());
+        Assert.Equal("A128CBC-HS256", header.GetProperty(JoseClaimNames.Header.Enc).GetString());
+        Assert.Equal(EncryptionKeyId, header.GetProperty("kid").GetString());
+        Assert.Equal("JWT", header.GetProperty("cty").GetString());
+        Assert.Equal(
+            HostApplicationFactory.TestServerIssuer,
+            header.GetProperty("iss").GetString()
+        );
+
+        var result = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Equal(HostApplicationFactory.TestServerIssuer, result.Issuer);
+        Assert.False(string.IsNullOrEmpty(result.TokenId));
+        Assert.Equal(idTokenPayload.GetProperty("sub").GetString(), result.Subject);
+        Assert.Equal(idTokenPayload.GetProperty("sid").GetString(), result.SessionId);
     }
 
     #endregion

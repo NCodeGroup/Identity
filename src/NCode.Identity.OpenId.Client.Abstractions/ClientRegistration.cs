@@ -51,7 +51,9 @@ public sealed class ClientRegistration(
     public string AuthenticationMethod { get; } = ValidateNotEmpty(authenticationMethod);
 
     /// <summary>
-    /// Gets the name of the keyed <see cref="NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider"/> holding the client's credentials.
+    /// Gets the name of the keyed <see cref="NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider"/>
+    /// holding the client's credentials and the private keys that decrypt the ID tokens and logout tokens encrypted
+    /// to it.
     /// </summary>
     public string? KeyRing { get; init; }
 
@@ -66,7 +68,47 @@ public sealed class ClientRegistration(
     public IReadOnlyList<string>? IdTokenSigningAlgorithms
     {
         get => _idTokenSigningAlgorithms;
-        init => _idTokenSigningAlgorithms = ValidateAlgorithms(value);
+        init =>
+            _idTokenSigningAlgorithms = ValidateAlgorithms(value, "ID-token signing algorithms");
+    }
+
+    private IReadOnlyList<string>? _idTokenKeyManagementAlgorithms;
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> names that ID tokens of this client are encrypted with, which is the
+    /// <c>id_token_encrypted_response_alg</c> the client registered at the provider. <see langword="null"/> or empty
+    /// (the default) means the client registered no ID-token encryption, so an encrypted ID token or logout token is
+    /// rejected. When set, every ID token and logout token must be encrypted with one of these algorithms and is
+    /// decrypted with the asymmetric keys of <see cref="KeyRing"/>. Only RSA-OAEP and ECDH-ES algorithms are
+    /// accepted, never <c>RSA1_5</c>, <c>dir</c> or a shared-key algorithm.
+    /// </summary>
+    public IReadOnlyList<string>? IdTokenKeyManagementAlgorithms
+    {
+        get => _idTokenKeyManagementAlgorithms;
+        init =>
+            _idTokenKeyManagementAlgorithms = ValidateAlgorithms(
+                value,
+                "ID-token key management algorithms"
+            );
+    }
+
+    private IReadOnlyList<string>? _idTokenContentEncryptionAlgorithms;
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> names that ID tokens of this client are encrypted with, which is the
+    /// <c>id_token_encrypted_response_enc</c> the client registered at the provider. <see langword="null"/> or empty
+    /// means <c>A128CBC-HS256</c>, the registration default. It applies only together with
+    /// <see cref="IdTokenKeyManagementAlgorithms"/>; setting it alone fails validation with
+    /// <see cref="InvalidOperationException"/>.
+    /// </summary>
+    public IReadOnlyList<string>? IdTokenContentEncryptionAlgorithms
+    {
+        get => _idTokenContentEncryptionAlgorithms;
+        init =>
+            _idTokenContentEncryptionAlgorithms = ValidateAlgorithms(
+                value,
+                "ID-token content encryption algorithms"
+            );
     }
 
     /// <summary>
@@ -82,7 +124,7 @@ public sealed class ClientRegistration(
     /// </summary>
     public bool RequirePushedAuthorizationRequests { get; init; }
 
-    private static string[]? ValidateAlgorithms(IReadOnlyList<string>? value)
+    private static string[]? ValidateAlgorithms(IReadOnlyList<string>? value, string description)
     {
         if (value is null)
             return null;
@@ -94,7 +136,7 @@ public sealed class ClientRegistration(
             var algorithm = value[i];
             if (string.IsNullOrWhiteSpace(algorithm))
                 throw new ArgumentException(
-                    "The ID-token signing algorithms must not contain a null, empty or whitespace entry.",
+                    $"The {description} must not contain a null, empty or whitespace entry.",
                     nameof(value)
                 );
 
@@ -106,13 +148,13 @@ public sealed class ClientRegistration(
                 )
             )
                 throw new ArgumentException(
-                    "The ID-token signing algorithms must not contain 'none'; an unsecured token is never acceptable.",
+                    $"The {description} must not contain 'none'; an unsecured token is never acceptable.",
                     nameof(value)
                 );
 
             if (!seen.Add(algorithm))
                 throw new ArgumentException(
-                    $"The ID-token signing algorithms must not contain duplicates; '{algorithm}' appears more than once.",
+                    $"The {description} must not contain duplicates; '{algorithm}' appears more than once.",
                     nameof(value)
                 );
 

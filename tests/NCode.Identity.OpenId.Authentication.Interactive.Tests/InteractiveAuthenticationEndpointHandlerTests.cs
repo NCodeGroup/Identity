@@ -58,6 +58,9 @@ public class InteractiveAuthenticationEndpointHandlerTests
     [InlineData("")]
     [InlineData("//evil.example")] // protocol-relative authority
     [InlineData("/\\evil.example")] // backslash-escaped authority
+    [InlineData("/\t/evil.example")] // tab stripped by browsers, leaving a protocol-relative authority
+    [InlineData("/\t\\evil.example")] // tab stripped by browsers, leaving a backslash-escaped authority
+    [InlineData("/\r\n/evil.example")] // newline stripped by browsers, leaving a protocol-relative authority
     [InlineData("https://evil.example/path")] // cross-origin absolute url
     [InlineData("evil.example")] // no leading slash
     [InlineData("javascript:alert(1)")] // scheme without slash

@@ -16,11 +16,11 @@
 
 #endregion
 
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using NCode.Buffers;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
@@ -153,9 +153,10 @@ internal class BffLogoutHandler
 
     private static bool IsGuardMatch(string sid, string guard)
     {
-        var sidBytes = SecureEncoding.UTF8.GetBytes(sid);
-        var guardBytes = SecureEncoding.UTF8.GetBytes(guard);
-        return CryptographicOperations.FixedTimeEquals(sidBytes, guardBytes);
+        return CryptographicOperations.FixedTimeEquals(
+            MemoryMarshal.AsBytes(sid.AsSpan()),
+            MemoryMarshal.AsBytes(guard.AsSpan())
+        );
     }
 
     private static Task WriteInvalidRequestAsync(HttpContext httpContext, string title) =>

@@ -58,20 +58,25 @@ internal static class BffStoreKeys
     // Each value is length-prefixed, so a value cannot make a key ambiguous or unbounded.
     private static string Digest(string first, string second)
     {
-        var firstBytes = SecureEncoding.UTF8.GetBytes(first);
-        var secondBytes = SecureEncoding.UTF8.GetBytes(second);
+        var firstLength = SecureEncoding.UTF8.GetByteCount(first);
+        var secondLength = SecureEncoding.UTF8.GetByteCount(second);
 
-        var secondOffset = sizeof(int) + firstBytes.Length;
-        var buffer = new byte[secondOffset + sizeof(int) + secondBytes.Length];
-        BinaryPrimitives.WriteInt32BigEndian(buffer.AsSpan(0, sizeof(int)), firstBytes.Length);
-        firstBytes.CopyTo(buffer.AsSpan(sizeof(int)));
-        BinaryPrimitives.WriteInt32BigEndian(
-            buffer.AsSpan(secondOffset, sizeof(int)),
-            secondBytes.Length
+        var secondOffset = sizeof(int) + firstLength;
+        using var lease = BufferFactory.Rent(
+            secondOffset + sizeof(int) + secondLength,
+            isSensitive: false,
+            out Span<byte> buffer
         );
-        secondBytes.CopyTo(buffer.AsSpan(secondOffset + sizeof(int)));
+        BinaryPrimitives.WriteInt32BigEndian(buffer[..sizeof(int)], firstLength);
+        SecureEncoding.UTF8.GetBytes(first, buffer.Slice(sizeof(int), firstLength));
+        BinaryPrimitives.WriteInt32BigEndian(buffer.Slice(secondOffset, sizeof(int)), secondLength);
+        SecureEncoding.UTF8.GetBytes(
+            second,
+            buffer.Slice(secondOffset + sizeof(int), secondLength)
+        );
 
-        var hash = SHA256.HashData(buffer);
+        Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
+        SHA256.HashData(buffer, hash);
         return Base64Url.Encode(hash);
     }
 }

@@ -30,6 +30,7 @@ using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Events;
 using NCode.Identity.OpenId.Client;
 using NCode.Registration;
@@ -81,6 +82,13 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
             serviceCollection.TryAddSingleton<BffUserHandler>();
+
+            serviceCollection.TryAddSingleton<BffRefreshLocks>();
+            serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffUserTokenRequirement>()
+            );
+            serviceCollection.TryAddSingleton<IBffTokenAccessor, DefaultBffTokenAccessor>();
 
             serviceCollection
                 .AddAuthentication()

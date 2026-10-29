@@ -566,6 +566,21 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.MaxConcurrentSessions);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'environment_type' setting.
+    /// </summary>
+    public static SettingKey<string> EnvironmentType => new(OpenIdSettingNames.EnvironmentType);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'environment_name' setting.
+    /// </summary>
+    public static SettingKey<string> EnvironmentName => new(OpenIdSettingNames.EnvironmentName);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'deletion_protection' setting.
+    /// </summary>
+    public static SettingKey<bool> DeletionProtection => new(OpenIdSettingNames.DeletionProtection);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'registration_endpoint_allow_anonymous' setting.
     /// </summary>
     public static SettingKey<bool> RegistrationEndpointAllowAnonymous =>

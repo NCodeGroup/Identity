@@ -195,6 +195,9 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionManagementSupport
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionAbsoluteLifetime = "session_absolute_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionIdleTimeout = "session_idle_timeout" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxConcurrentSessions = "max_concurrent_sessions" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.EnvironmentType = "environment_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.EnvironmentName = "environment_name" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeletionProtection = "deletion_protection" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSessionSupported = "backchannel_logout_session_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RegistrationEndpointAllowAnonymous = "registration_endpoint_allow_anonymous" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenExpirationPolicy = "refresh_token_expiration_policy" -> string!
@@ -768,6 +771,9 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionManagementSupport
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionAbsoluteLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionIdleTimeout.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MaxConcurrentSessions.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.EnvironmentType.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.EnvironmentName.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeletionProtection.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RegistrationEndpointAllowAnonymous.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenExpirationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>

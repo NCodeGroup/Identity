@@ -50,8 +50,9 @@ public interface ITokenResponse : IOpenIdResponse
     /// <summary>
     /// Gets or sets the de-facto <c>refresh_token_expires_in</c> parameter: the time until the refresh token's rotation
     /// family expires, however often its tokens are used or rotated. It never grows within a family, so a client may
-    /// bound a session by it (ADR-0297).
+    /// bound a session by it.
     /// </summary>
+    // See ADR-0297.
     TimeSpan? RefreshTokenExpiresIn { get; set; }
 
     /// <summary>

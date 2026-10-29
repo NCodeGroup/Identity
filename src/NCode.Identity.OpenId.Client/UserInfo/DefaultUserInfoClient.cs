@@ -31,9 +31,9 @@ namespace NCode.Identity.OpenId.Client.UserInfo;
 /// endpoint, or to its mTLS alias for a client that authenticates with mutual TLS, presenting the access token as a
 /// bearer token or with a DPoP proof that it retries once with the nonce the endpoint supplies (RFC 9449 §9). It reads
 /// the response in the format the client registered: JSON, or a JWT that it validates the way it validates an ID token
-/// when the client registered UserInfo signing. It maps the claims the way the JWT stack maps a payload (ADR-0122).
+/// when the client registered UserInfo signing. It maps the claims the way the JWT stack maps a payload.
 /// </summary>
-// See ADR-0299 and ADR-0301.
+// See ADR-0122, ADR-0299 and ADR-0301.
 internal class DefaultUserInfoClient(
     IProviderMetadataResolver metadataResolver,
     ClientRequestSender sender,

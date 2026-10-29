@@ -29,9 +29,10 @@ internal static class TokenResponseRefreshTokenExtensions
     {
         /// <summary>
         /// Sets the refresh token that a token response issues, and announces as <c>refresh_token_expires_in</c> how
-        /// long its rotation family lasts from the moment it was issued (ADR-0297).
+        /// long its rotation family lasts from the moment it was issued.
         /// </summary>
         /// <param name="issued">The issued refresh token.</param>
+        // See ADR-0297.
         public void SetRefreshToken(IssuedRefreshToken issued) =>
             response.SetRefreshToken(
                 issued.Token.TokenValue,
@@ -41,11 +42,12 @@ internal static class TokenResponseRefreshTokenExtensions
 
         /// <summary>
         /// Sets the refresh token that a token response returns, and announces as <c>refresh_token_expires_in</c> how
-        /// long its rotation family lasts from <paramref name="utcNow"/> (ADR-0297).
+        /// long its rotation family lasts from <paramref name="utcNow"/>.
         /// </summary>
         /// <param name="refreshToken">The refresh token.</param>
         /// <param name="lineageExpiresWhen">When the token's rotation family expires.</param>
         /// <param name="utcNow">The current time.</param>
+        // See ADR-0297.
         public void SetRefreshToken(
             string refreshToken,
             DateTimeOffset lineageExpiresWhen,

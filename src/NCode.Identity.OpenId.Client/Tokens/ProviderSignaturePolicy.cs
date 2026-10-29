@@ -26,8 +26,9 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 
 /// <summary>
 /// Provides the signature policy and the signing-key resolution shared by the validation of the JWTs the provider issues
-/// to the client (ADR-0273, ADR-0274, ADR-0301).
+/// to the client.
 /// </summary>
+// See ADR-0273, ADR-0274 and ADR-0301.
 internal static class ProviderSignaturePolicy
 {
     /// <summary>

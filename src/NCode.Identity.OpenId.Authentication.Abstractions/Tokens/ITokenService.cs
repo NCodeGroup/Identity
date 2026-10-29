@@ -69,7 +69,7 @@ public interface ITokenService
     /// <summary>
     /// Generates a refresh token. A request without <see cref="CreateSecurityTokenRequest.RefreshTokenLineageId"/>
     /// begins a new rotation family at <see cref="CreateSecurityTokenRequest.CreatedWhen"/>; the token expires as the
-    /// client's <c>refresh_token_expiration_policy</c> says, never after its family does (ADR-0297).
+    /// client's <c>refresh_token_expiration_policy</c> says, never after its family does.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
@@ -77,6 +77,7 @@ public interface ITokenService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="IssuedRefreshToken"/> that represents the newly generated refresh token.</returns>
+    // See ADR-0297.
     ValueTask<IssuedRefreshToken> CreateRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

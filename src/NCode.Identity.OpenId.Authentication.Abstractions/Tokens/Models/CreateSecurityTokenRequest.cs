@@ -90,8 +90,9 @@ public readonly record struct CreateSecurityTokenRequest
     /// Gets when the refresh-token rotation family named by <see cref="RefreshTokenLineageId"/> began, or
     /// <see langword="null"/> when this request begins a new family at <see cref="CreatedWhen"/>. A rotation or a retry
     /// passes the presented token's value, so every token of the family expires no later than the family does,
-    /// <c>refresh_token_lifetime</c> after it began (ADR-0297).
+    /// <c>refresh_token_lifetime</c> after it began.
     /// </summary>
+    // See ADR-0297.
     public DateTimeOffset? RefreshTokenLineageCreatedWhen { get; init; }
 
     /// <summary>

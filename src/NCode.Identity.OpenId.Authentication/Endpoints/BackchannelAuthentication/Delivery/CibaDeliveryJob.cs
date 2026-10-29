@@ -79,8 +79,9 @@ internal sealed record CibaDeliveryJob : IDispatchJob
 
     /// <summary>
     /// Gets the seconds until the issued refresh token's rotation family expires, delivered as
-    /// <c>refresh_token_expires_in</c>, or <c>null</c> when no refresh token was issued (ADR-0297).
+    /// <c>refresh_token_expires_in</c>, or <c>null</c> when no refresh token was issued.
     /// </summary>
+    // See ADR-0297.
     public long? RefreshTokenExpiresInSeconds { get; init; }
 
     /// <summary>

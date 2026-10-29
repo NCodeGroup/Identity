@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 /// end-user.</param>
 /// <param name="Confirmation">The proof-of-possession key the refresh token is bound to, if any.</param>
 /// <param name="LineageCreatedWhen">When the token's rotation family began: the issuance of its first token, which
-/// every rotation and retry inherits. The family expires <c>refresh_token_lifetime</c> after it (ADR-0297).</param>
+/// every rotation and retry inherits. The family expires <c>refresh_token_lifetime</c> after it.</param>
 [PublicAPI]
 public readonly record struct RefreshTokenGrant(
     string ClientId,
@@ -40,5 +40,6 @@ public readonly record struct RefreshTokenGrant(
     IReadOnlyList<string> EffectiveScopes,
     SubjectAuthentication? SubjectAuthentication,
     TokenConfirmation Confirmation,
+    // See ADR-0297.
     DateTimeOffset LineageCreatedWhen
 );

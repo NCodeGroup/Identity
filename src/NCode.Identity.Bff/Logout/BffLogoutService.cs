@@ -28,7 +28,7 @@ using NCode.Identity.OpenId.Client;
 namespace NCode.Identity.Bff.Logout;
 
 /// <summary>
-/// Ends a BFF session on behalf of the user: revokes the refresh token, removes the session and forgets the cookie.
+/// Ends a BFF session on behalf of the user: removes the session, forgets the cookie, then revokes the refresh token.
 /// </summary>
 internal class BffLogoutService(
     IBffSessionManager manager,
@@ -44,19 +44,14 @@ internal class BffLogoutService(
     /// <param name="httpContext">The current request.</param>
     /// <param name="state">The session to end.</param>
     /// <param name="reason">Why the session ends; see <see cref="BffSessionEndReasons"/>.</param>
-    /// <param name="cancellationToken">The token to cancel the revocation request.</param>
     public virtual async ValueTask EndSessionAsync(
         HttpContext httpContext,
         BffSessionState state,
-        string reason,
-        CancellationToken cancellationToken
+        string reason
     )
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(state);
-
-        if (state.Payload.RefreshToken is { Length: > 0 } refreshToken)
-            await RevokeAsync(refreshToken, cancellationToken);
 
         await manager.EndAsync(
             httpContext,
@@ -73,9 +68,14 @@ internal class BffLogoutService(
             feature.Session = null;
             feature.Principal = null;
         }
+
+        // Revocation follows the removal and nothing cancels it, so a disconnect cannot leave the session behind.
+        // See ADR-0293.
+        if (state.Payload.RefreshToken is { Length: > 0 } refreshToken)
+            await RevokeAsync(refreshToken);
     }
 
-    private async ValueTask RevokeAsync(string refreshToken, CancellationToken cancellationToken)
+    private async ValueTask RevokeAsync(string refreshToken)
     {
         var request = new TokenRevocationRequest(refreshToken)
         {
@@ -87,12 +87,12 @@ internal class BffLogoutService(
             var error = await revocation.RevokeTokenAsync(
                 registrations.Registration,
                 request,
-                cancellationToken
+                CancellationToken.None
             );
             if (error is not null)
                 logger.RefreshTokenRevocationFailed(error.Error, null);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception)
         {
             logger.RefreshTokenRevocationFailed(exception.GetType().Name, exception);
         }

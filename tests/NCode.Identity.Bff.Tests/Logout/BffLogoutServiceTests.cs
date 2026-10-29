@@ -81,7 +81,7 @@ public class BffLogoutServiceTests : BaseTests
     #region EndSessionAsync Tests
 
     [Fact]
-    public async Task EndSessionAsync_WithRefreshToken_RevokesThenEnds()
+    public async Task EndSessionAsync_WithRefreshToken_EndsThenRevokes()
     {
         var (service, manager, revocation) = CreateService();
         var state = CreateState("refresh-token");
@@ -98,7 +98,7 @@ public class BffLogoutServiceTests : BaseTests
                         r.Token == "refresh-token"
                         && r.TokenTypeHint == OpenIdProtocol.TokenTypeHints.RefreshToken
                     ),
-                    It.IsAny<CancellationToken>()
+                    CancellationToken.None
                 )
             )
             .Callback(() => order.Add("revoke"))
@@ -118,14 +118,9 @@ public class BffLogoutServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await service.EndSessionAsync(
-            httpContext,
-            state,
-            BffSessionEndReasons.LoggedOut,
-            CancellationToken.None
-        );
+        await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
 
-        Assert.Equal(["revoke", "end"], order);
+        Assert.Equal(["end", "revoke"], order);
         Assert.True(feature.IsResolved);
         Assert.Null(feature.Session);
         Assert.Null(feature.Principal);
@@ -165,11 +160,44 @@ public class BffLogoutServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await service.EndSessionAsync(
-            httpContext,
-            state,
-            BffSessionEndReasons.LoggedOut,
-            CancellationToken.None
+        await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
+    }
+
+    [Fact]
+    public async Task EndSessionAsync_RevocationCanceled_StillEndsAndDeletesTheCookie()
+    {
+        var (service, manager, revocation) = CreateService();
+        var state = CreateState("refresh-token");
+        var httpContext = new DefaultHttpContext();
+
+        revocation
+            .Setup(x =>
+                x.RevokeTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRevocationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Throws(new OperationCanceledException())
+            .Verifiable();
+        manager
+            .Setup(x =>
+                x.EndAsync(
+                    httpContext,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.LoggedOut,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
+
+        Assert.Contains(
+            BffDefaults.SessionCookieName,
+            httpContext.Response.Headers.SetCookie.ToString()
         );
     }
 
@@ -193,12 +221,7 @@ public class BffLogoutServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await service.EndSessionAsync(
-            httpContext,
-            state,
-            BffSessionEndReasons.LoggedOut,
-            CancellationToken.None
-        );
+        await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
     }
 
     #endregion

@@ -99,12 +99,7 @@ internal class BffAuthenticationHandler(
             return;
 
         var logout = Context.RequestServices.GetRequiredService<BffLogoutService>();
-        await logout.EndSessionAsync(
-            Context,
-            session,
-            BffSessionEndReasons.LoggedOut,
-            Context.RequestAborted
-        );
+        await logout.EndSessionAsync(Context, session, BffSessionEndReasons.LoggedOut);
     }
 
     /// <inheritdoc />

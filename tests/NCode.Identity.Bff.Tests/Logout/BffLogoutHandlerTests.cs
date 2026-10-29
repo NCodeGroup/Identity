@@ -161,14 +161,7 @@ public class BffLogoutHandlerTests : BaseTests
 
     private void SetupEnd(DefaultHttpContext httpContext, BffSessionState state) =>
         _logoutService
-            .Setup(x =>
-                x.EndSessionAsync(
-                    httpContext,
-                    state,
-                    BffSessionEndReasons.LoggedOut,
-                    It.IsAny<CancellationToken>()
-                )
-            )
+            .Setup(x => x.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 

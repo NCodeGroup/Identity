@@ -112,12 +112,7 @@ internal class BffLogoutHandler
 
         var idToken = session.Payload.IdToken;
 
-        await _logoutService.EndSessionAsync(
-            httpContext,
-            session,
-            BffSessionEndReasons.LoggedOut,
-            cancellationToken
-        );
+        await _logoutService.EndSessionAsync(httpContext, session, BffSessionEndReasons.LoggedOut);
 
         var registration = _registrationProvider.Registration;
 

@@ -92,6 +92,16 @@ NCode.Identity.Bff.BffSessionRecord.Version.get -> long
 NCode.Identity.Bff.BffStoreUnavailableException
 NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(string! message) -> void
 NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(string! message, System.Exception! innerException) -> void
+NCode.Identity.Bff.IBffSessionFeature
+NCode.Identity.Bff.IBffSessionFeature.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.IBffSessionFeature.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.BffSessionValidationContext
+NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
+NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffSessionValidationContext.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.BffSessionValidationContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffSessionValidator
+NCode.Identity.Bff.IBffSessionValidator.ValidateAsync(NCode.Identity.Bff.BffSessionValidationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore
 NCode.Identity.Bff.IBffSessionStore.FindBySessionIdAsync(string! issuer, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.Bff.IBffSessionStore.FindBySubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>

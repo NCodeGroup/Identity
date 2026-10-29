@@ -28,6 +28,7 @@ internal class DefaultBffSessionManager(IBffSessionStore store, IBffAuditRecorde
     : IBffSessionManager
 {
     private const int CreateAttempts = 2;
+    private const int UpdateAttempts = 5;
 
     private IBffSessionStore Store { get; } = store;
 
@@ -87,18 +88,56 @@ internal class DefaultBffSessionManager(IBffSessionStore store, IBffAuditRecorde
     }
 
     /// <inheritdoc />
-    public ValueTask<BffSessionState?> UpdateAsync(
+    public async ValueTask<BffSessionState?> UpdateAsync(
         BffSessionState current,
         Func<BffSessionState, BffSessionState?> update,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        var state = current;
+
+        for (var attempt = 0; attempt < UpdateAttempts; ++attempt)
+        {
+            var next = update(state);
+            if (next is null)
+                return state;
+
+            var nextVersion = state.Version + 1;
+            var record = BffSessionCodec.Encode(
+                next.Handle,
+                nextVersion,
+                next.Metadata,
+                next.Payload
+            );
+
+            var replaced = await Store.TryReplaceAsync(record, state.Version, cancellationToken);
+            if (replaced)
+                return next with { Version = nextVersion };
+
+            if (attempt == UpdateAttempts - 1)
+                break;
+
+            var reloaded = await LoadAsync(current.Handle, cancellationToken);
+            if (reloaded is null)
+                return null;
+
+            state = reloaded;
+        }
+
+        throw new BffStoreUnavailableException("The session changed too often to be updated.");
+    }
 
     /// <inheritdoc />
-    public ValueTask EndAsync(
+    public async ValueTask EndAsync(
         HttpContext? httpContext,
         string storeKey,
         BffSessionMetadata metadata,
         string reason,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        await Store.RemoveAsync(storeKey, metadata, cancellationToken);
+
+        await Recorder.SessionEndedAsync(httpContext, metadata.Subject, reason, cancellationToken);
+    }
 }

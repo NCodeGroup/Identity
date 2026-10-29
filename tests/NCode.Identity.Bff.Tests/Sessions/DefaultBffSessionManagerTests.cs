@@ -195,4 +195,190 @@ public class DefaultBffSessionManagerTests : BaseTests
     }
 
     #endregion
+
+    #region UpdateAsync Tests
+
+    private static BffSessionState CreateState(string handle, long version, string refreshToken)
+    {
+        BffSessionCodec.TryGetStoreKey(handle, out var storeKey);
+        return new BffSessionState(
+            handle,
+            storeKey!,
+            version,
+            CreateMetadata(),
+            CreatePayload() with
+            {
+                RefreshToken = refreshToken,
+            }
+        );
+    }
+
+    [Fact]
+    public async Task UpdateAsync_FirstTrySucceeds_ReturnsNextWithBumpedVersion()
+    {
+        var handle = BffKeyDerivation.CreateSecret();
+        var current = CreateState(handle, 3, "old");
+        BffSessionRecord? stored = null;
+        MockStore
+            .Setup(x =>
+                x.TryReplaceAsync(It.IsAny<BffSessionRecord>(), 3, It.IsAny<CancellationToken>())
+            )
+            .Callback<BffSessionRecord, long, CancellationToken>((record, _, _) => stored = record)
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await Manager.UpdateAsync(
+            current,
+            state => state with { Payload = state.Payload with { RefreshToken = "new" } },
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.NotNull(stored);
+        Assert.Equal(4, result.Version);
+        Assert.Equal(4, stored.Version);
+        Assert.Equal("new", result.Payload.RefreshToken);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdateReturnsNull_ReturnsStateUnchanged()
+    {
+        var current = CreateState(BffKeyDerivation.CreateSecret(), 3, "old");
+
+        var result = await Manager.UpdateAsync(current, _ => null, CancellationToken.None);
+
+        Assert.Same(current, result);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ConflictThenSuccess_ReloadsAndRetries()
+    {
+        var handle = BffKeyDerivation.CreateSecret();
+        var current = CreateState(handle, 3, "old");
+        var storeKey = current.StoreKey;
+        MockStore
+            .Setup(x =>
+                x.TryReplaceAsync(It.IsAny<BffSessionRecord>(), 3, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        MockStore
+            .SetupSequence(x => x.GetAsync(storeKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                BffSessionCodec.Encode(
+                    handle,
+                    7,
+                    CreateMetadata(),
+                    CreatePayload() with
+                    {
+                        RefreshToken = "concurrent",
+                    }
+                )
+            );
+        MockStore
+            .Setup(x =>
+                x.TryReplaceAsync(It.IsAny<BffSessionRecord>(), 7, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var seen = new List<string?>();
+        var result = await Manager.UpdateAsync(
+            current,
+            state =>
+            {
+                seen.Add(state.Payload.RefreshToken);
+                return state;
+            },
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal(8, result.Version);
+        Assert.Equal(["old", "concurrent"], seen);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ConflictThenSessionGone_ReturnsNull()
+    {
+        var handle = BffKeyDerivation.CreateSecret();
+        var current = CreateState(handle, 3, "old");
+        MockStore
+            .Setup(x =>
+                x.TryReplaceAsync(It.IsAny<BffSessionRecord>(), 3, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        MockStore
+            .Setup(x => x.GetAsync(current.StoreKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((BffSessionRecord?)null)
+            .Verifiable();
+
+        var result = await Manager.UpdateAsync(current, state => state, CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_FiveConflicts_Throws()
+    {
+        var handle = BffKeyDerivation.CreateSecret();
+        var current = CreateState(handle, 1, "old");
+        MockStore
+            .Setup(x =>
+                x.TryReplaceAsync(
+                    It.IsAny<BffSessionRecord>(),
+                    It.IsAny<long>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false);
+        MockStore
+            .SetupSequence(x => x.GetAsync(current.StoreKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BffSessionCodec.Encode(handle, 2, CreateMetadata(), CreatePayload()))
+            .ReturnsAsync(BffSessionCodec.Encode(handle, 3, CreateMetadata(), CreatePayload()))
+            .ReturnsAsync(BffSessionCodec.Encode(handle, 4, CreateMetadata(), CreatePayload()))
+            .ReturnsAsync(BffSessionCodec.Encode(handle, 5, CreateMetadata(), CreatePayload()));
+
+        await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
+            await Manager.UpdateAsync(current, state => state, CancellationToken.None)
+        );
+
+        MockStore.Verify(
+            x =>
+                x.TryReplaceAsync(
+                    It.IsAny<BffSessionRecord>(),
+                    It.IsAny<long>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Exactly(5)
+        );
+    }
+
+    #endregion
+
+    #region EndAsync Tests
+
+    [Fact]
+    public async Task EndAsync_Always_RemovesThenRecords()
+    {
+        var metadata = CreateMetadata();
+        var order = new List<string>();
+        MockStore
+            .Setup(x => x.RemoveAsync("key", metadata, It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("remove"))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockRecorder
+            .Setup(x => x.SessionEndedAsync(null, "sub-1", "logout", It.IsAny<CancellationToken>()))
+            .Callback(() => order.Add("record"))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Manager.EndAsync(null, "key", metadata, "logout", CancellationToken.None);
+
+        Assert.Equal(["remove", "record"], order);
+    }
+
+    #endregion
 }

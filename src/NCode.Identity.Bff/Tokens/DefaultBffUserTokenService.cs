@@ -324,8 +324,7 @@ internal class DefaultBffUserTokenService(
                 refreshToken,
                 resource,
                 scope,
-                now,
-                cancellationToken
+                now
             );
         }
         finally
@@ -401,8 +400,7 @@ internal class DefaultBffUserTokenService(
         string refreshToken,
         string? resource,
         string? scope,
-        DateTimeOffset now,
-        CancellationToken cancellationToken
+        DateTimeOffset now
     )
     {
         var request = new RefreshTokenRequest(refreshToken)
@@ -416,14 +414,16 @@ internal class DefaultBffUserTokenService(
         TokenResult result;
         try
         {
+            // The lease is won: a caller that aborts now must not lose the rotated refresh token, so nothing
+            // but the client's request timeout ends the request or the write-back. See ADR-0291.
             result = await _tokenClient.RequestTokenAsync(
                 _registrationProvider.Registration,
                 request,
-                cancellationToken
+                CancellationToken.None
             );
         }
         catch (Exception exception)
-            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
+            when (BffProviderFailures.IsUnavailable(exception, CancellationToken.None))
         {
             _logger.RefreshFailed(BffTokenFailureReasons.ProviderUnavailable, exception);
             await _auditRecorder.TokenRefreshFailedAsync(
@@ -504,7 +504,7 @@ internal class DefaultBffUserTokenService(
         var updated = await _sessionManager.UpdateAsync(
             current,
             s => ApplyRefresh(s, entry, refreshToken, response.RefreshToken, refreshExpiresAt),
-            cancellationToken
+            CancellationToken.None
         );
         if (updated is null)
             return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);

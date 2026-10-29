@@ -367,6 +367,93 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task GetAccessTokenAsync_CallerCancelsAfterWinningLease_StillWritesRotatedTokens()
+    {
+        using var cts = new CancellationTokenSource();
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.TryAcquireRefreshLeaseAsync(
+                    LeaseKey,
+                    Now.AddSeconds(40),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        const string resource = "https://api.example";
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.Is<TokenRequest>(r =>
+                        r is RefreshTokenRequest
+                        && ((RefreshTokenRequest)r).RefreshToken == "refresh-token"
+                        && r.Resources.SequenceEqual(new[] { resource })
+                        && r.Scope == "read"
+                        && r.DPoPJwkThumbprint == "jkt-1"
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .Callback(() => cts.Cancel())
+            .ReturnsAsync(
+                new TokenResult(
+                    new TokenResponse
+                    {
+                        AccessToken = "new-access",
+                        TokenType = "DPoP",
+                        RefreshToken = "rotated-refresh",
+                        ExpiresIn = 300,
+                    }
+                )
+                {
+                    DPoPJwkThumbprint = "jkt-2",
+                }
+            )
+            .Verifiable();
+        BffSessionState? written = null;
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) =>
+                {
+                    written = update(current);
+                    return ValueTask.FromResult(written);
+                }
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(httpContext, resource, "read", cts.Token);
+
+        Assert.True(cts.IsCancellationRequested);
+        Assert.True(result.IsSuccess);
+        var token = Assert.IsType<BffAccessToken>(result.Token);
+        Assert.Equal("new-access", token.Value);
+        Assert.NotNull(written);
+        Assert.Equal("rotated-refresh", written.Payload.RefreshToken);
+    }
+
+    [Fact]
     public async Task GetAccessTokenAsync_WriteMergedOntoNewerVersion_KeepsNewerRefreshToken()
     {
         var state = CreateState("refresh-token");

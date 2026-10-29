@@ -56,6 +56,13 @@ NCode.Identity.Bff.BffAuditEvent.Reason.init -> void
 NCode.Identity.Bff.BffAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 override NCode.Identity.Bff.BffAuditEvent.EventCategory.get -> string!
 override NCode.Identity.Bff.BffAuditEvent.EventName.get -> string!
+NCode.Identity.Bff.BffLoginGateContext
+NCode.Identity.Bff.BffLoginGateContext.BffLoginGateContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! issuer, System.Security.Claims.ClaimsPrincipal! principal) -> void
+NCode.Identity.Bff.BffLoginGateContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffLoginGateContext.Issuer.get -> string!
+NCode.Identity.Bff.BffLoginGateContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffLoginGate
+NCode.Identity.Bff.IBffLoginGate.AllowAsync(NCode.Identity.Bff.BffLoginGateContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.BffSessionMetadata
 NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.get -> System.DateTimeOffset
 NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.init -> void

@@ -212,6 +212,8 @@ NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.SubjectToken.get -> strin
 NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.SubjectTokenType.get -> string!
 NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.TokenExchangeTokenRequest(string! subjectToken, string! subjectTokenType) -> void
 NCode.Identity.OpenId.Client.TokenRequest
+NCode.Identity.OpenId.Client.TokenRequest.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.TokenRequest.DPoPJwkThumbprint.init -> void
 NCode.Identity.OpenId.Client.TokenRequest.Resources.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.OpenId.Client.TokenRequest.Resources.init -> void
 NCode.Identity.OpenId.Client.TokenRequest.Scope.get -> string?
@@ -236,6 +238,8 @@ NCode.Identity.OpenId.Client.TokenResponse.TokenResponse() -> void
 NCode.Identity.OpenId.Client.TokenResponse.TokenType.get -> string?
 NCode.Identity.OpenId.Client.TokenResponse.TokenType.init -> void
 NCode.Identity.OpenId.Client.TokenResult
+NCode.Identity.OpenId.Client.TokenResult.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.TokenResult.DPoPJwkThumbprint.init -> void
 NCode.Identity.OpenId.Client.TokenResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
 NCode.Identity.OpenId.Client.TokenResult.IsSuccess.get -> bool
 NCode.Identity.OpenId.Client.TokenResult.Response.get -> NCode.Identity.OpenId.Client.TokenResponse?

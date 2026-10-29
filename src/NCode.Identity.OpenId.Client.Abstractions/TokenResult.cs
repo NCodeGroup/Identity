@@ -58,6 +58,13 @@ public sealed class TokenResult
     public ProtocolError? Error { get; }
 
     /// <summary>
+    /// Gets the <c>jkt</c> of the DPoP key whose proof accompanied the request, which the issued access token is bound
+    /// to (<c>cnf.jkt</c>). <see langword="null"/> when the request carried no proof. Pass it back as
+    /// <see cref="TokenRequest.DPoPJwkThumbprint"/> on a later refresh.
+    /// </summary>
+    public string? DPoPJwkThumbprint { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the request succeeded.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Response))]

@@ -1561,6 +1561,15 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (request.BackchannelUserCodeParameter is { } userCodeParameter)
             settings[OpenIdSettingNames.BackchannelUserCodeParameterSupported] = userCodeParameter;
 
+        // The Back-Channel Logout 1.0 §2.2 members are the settings the back-channel logout notifier reads.
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.BackChannelLogoutUri,
+            request.BackchannelLogoutUri
+        );
+        if (request.BackchannelLogoutSessionRequired is { } sessionRequired)
+            settings[OpenIdSettingNames.BackChannelLogoutSessionRequired] = sessionRequired;
+
         return settings;
     }
 
@@ -1721,6 +1730,11 @@ internal class DefaultClientRegistrationEndpointHandler(
             BackchannelUserCodeParameter = ReadBoolean(
                 settings,
                 OpenIdSettingNames.BackchannelUserCodeParameterSupported
+            ),
+            BackchannelLogoutUri = ReadString(settings, OpenIdSettingNames.BackChannelLogoutUri),
+            BackchannelLogoutSessionRequired = ReadBoolean(
+                settings,
+                OpenIdSettingNames.BackChannelLogoutSessionRequired
             ),
         };
     }

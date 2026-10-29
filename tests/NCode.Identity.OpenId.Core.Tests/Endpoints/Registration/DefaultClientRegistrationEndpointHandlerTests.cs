@@ -1375,6 +1375,58 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     }
 
     #endregion
+
+    #region Back-Channel Logout Metadata
+
+    [Fact]
+    public void BuildSettingsObject_WhenBackChannelLogoutMetadata_RoundTripsIt()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            BackchannelLogoutUri = "https://client.example/logout",
+            BackchannelLogoutSessionRequired = true,
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var response = handler.ToResponse(
+            CreateClient(JsonSerializer.SerializeToElement(settings))
+        );
+
+        Assert.Equal(
+            "https://client.example/logout",
+            settings[OpenIdSettingNames.BackChannelLogoutUri]!.GetValue<string>()
+        );
+        Assert.True(
+            settings[OpenIdSettingNames.BackChannelLogoutSessionRequired]!.GetValue<bool>()
+        );
+        Assert.Equal("https://client.example/logout", response.BackchannelLogoutUri);
+        Assert.True(response.BackchannelLogoutSessionRequired);
+    }
+
+    [Fact]
+    public void ToResponse_WhenNoBackChannelLogoutMetadataIsStored_OmitsIt()
+    {
+        var handler = CreateHandler();
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>())
+        );
+
+        var response = handler.ToResponse(client);
+
+        Assert.Null(response.BackchannelLogoutUri);
+        Assert.Null(response.BackchannelLogoutSessionRequired);
+    }
+
+    #endregion
+
     #region ToResponseAsync
 
     [Fact]

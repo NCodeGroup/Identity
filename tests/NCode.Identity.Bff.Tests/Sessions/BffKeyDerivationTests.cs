@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using NCode.Encoders;
 using NCode.Identity.Bff.Sessions;
 using Xunit;
 
@@ -81,6 +83,31 @@ public class BffKeyDerivationTests : BaseTests
         Assert.False(
             BffKeyDerivation.TryDeriveKey(null, BffKeyDerivation.SessionPayloadPurpose, key)
         );
+    }
+
+    [Fact]
+    public void TryDeriveKey_SessionPayloadPurpose_IsHkdfOfTheUtf8Label()
+    {
+        var secret = BffKeyDerivation.CreateSecret();
+        var ikm = new byte[32];
+        Assert.True(BffKeyDerivation.TryDecodeSecret(secret, ikm));
+        var expected = HKDF.DeriveKey(
+            HashAlgorithmName.SHA256,
+            ikm,
+            32,
+            [],
+            "ncode.bff.session.payload"u8.ToArray()
+        );
+        var key = new byte[32];
+
+        var result = BffKeyDerivation.TryDeriveKey(
+            secret,
+            BffKeyDerivation.SessionPayloadPurpose,
+            key
+        );
+
+        Assert.True(result);
+        Assert.Equal(expected, key);
     }
 
     #endregion
@@ -161,6 +188,16 @@ public class BffKeyDerivationTests : BaseTests
         Assert.Equal(BffKeyDerivation.Fingerprint("a"), BffKeyDerivation.Fingerprint("a"));
         Assert.NotEqual(BffKeyDerivation.Fingerprint("a"), BffKeyDerivation.Fingerprint("b"));
         Assert.Equal(43, BffKeyDerivation.Fingerprint("a").Length);
+    }
+
+    [Fact]
+    public void Fingerprint_Value_IsBase64UrlSha256OfUtf8()
+    {
+        var expected = Base64Url.Encode(SHA256.HashData("refresh-token-value"u8));
+
+        var fingerprint = BffKeyDerivation.Fingerprint("refresh-token-value");
+
+        Assert.Equal(expected, fingerprint);
     }
 
     #endregion

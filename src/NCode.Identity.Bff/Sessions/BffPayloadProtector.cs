@@ -41,7 +41,7 @@ internal static class BffPayloadProtector
     /// <exception cref="ArgumentException">The secret is not valid.</exception>
     public static byte[] Protect(
         string secret,
-        string purpose,
+        ReadOnlySpan<byte> purpose,
         ReadOnlySpan<byte> plaintext,
         ReadOnlySpan<byte> associatedData
     )
@@ -80,7 +80,7 @@ internal static class BffPayloadProtector
     /// <returns><see langword="true"/> when the payload authenticates and decrypts.</returns>
     public static bool TryUnprotect(
         string secret,
-        string purpose,
+        ReadOnlySpan<byte> purpose,
         ReadOnlySpan<byte> protectedData,
         ReadOnlySpan<byte> associatedData,
         IBufferWriter<byte> plaintext

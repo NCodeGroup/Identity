@@ -32,22 +32,22 @@ internal static class BffKeyDerivation
     /// <summary>
     /// The HKDF purpose that derives a session's store identifier.
     /// </summary>
-    public const string SessionIdPurpose = "ncode.bff.session.id";
+    public static ReadOnlySpan<byte> SessionIdPurpose => "ncode.bff.session.id"u8;
 
     /// <summary>
     /// The HKDF purpose that derives a session's payload encryption key.
     /// </summary>
-    public const string SessionPayloadPurpose = "ncode.bff.session.payload";
+    public static ReadOnlySpan<byte> SessionPayloadPurpose => "ncode.bff.session.payload"u8;
 
     /// <summary>
     /// The HKDF purpose that derives a login transaction's store identifier.
     /// </summary>
-    public const string LoginIdPurpose = "ncode.bff.login.id";
+    public static ReadOnlySpan<byte> LoginIdPurpose => "ncode.bff.login.id"u8;
 
     /// <summary>
     /// The HKDF purpose that derives a login transaction's payload encryption key.
     /// </summary>
-    public const string LoginPayloadPurpose = "ncode.bff.login.payload";
+    public static ReadOnlySpan<byte> LoginPayloadPurpose => "ncode.bff.login.payload"u8;
 
     /// <summary>
     /// The length of a base64url-encoded 32-byte secret.
@@ -121,7 +121,11 @@ internal static class BffKeyDerivation
     /// <param name="purpose">The HKDF purpose.</param>
     /// <param name="destination32">The 32-byte destination.</param>
     /// <returns><see langword="true"/> when the secret is valid.</returns>
-    public static bool TryDeriveKey(string? secret, string purpose, Span<byte> destination32)
+    public static bool TryDeriveKey(
+        string? secret,
+        ReadOnlySpan<byte> purpose,
+        Span<byte> destination32
+    )
     {
         Span<byte> ikm = stackalloc byte[SecretByteCount];
         try
@@ -129,8 +133,7 @@ internal static class BffKeyDerivation
             if (!TryDecodeSecret(secret, ikm))
                 return false;
 
-            var info = SecureEncoding.UTF8.GetBytes(purpose);
-            HKDF.DeriveKey(HashAlgorithmName.SHA256, ikm, destination32, salt: [], info: info);
+            HKDF.DeriveKey(HashAlgorithmName.SHA256, ikm, destination32, salt: [], info: purpose);
             return true;
         }
         finally
@@ -148,7 +151,7 @@ internal static class BffKeyDerivation
     /// <returns><see langword="true"/> when the secret is valid.</returns>
     public static bool TryDeriveIdentifier(
         string? secret,
-        string purpose,
+        ReadOnlySpan<byte> purpose,
         [NotNullWhen(true)] out string? identifier
     )
     {
@@ -176,8 +179,15 @@ internal static class BffKeyDerivation
     /// <param name="value">The value to fingerprint.</param>
     public static string Fingerprint(string value)
     {
-        var bytes = SecureEncoding.UTF8.GetBytes(value);
-        var hash = SHA256.HashData(bytes);
+        using var lease = BufferFactory.Rent(
+            SecureEncoding.UTF8.GetByteCount(value),
+            isSensitive: true,
+            out Span<byte> bytes
+        );
+        SecureEncoding.UTF8.GetBytes(value, bytes);
+
+        Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
+        SHA256.HashData(bytes, hash);
         return Base64Url.Encode(hash);
     }
 }

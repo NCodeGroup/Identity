@@ -246,14 +246,14 @@ provider, and its `subject_id` is the session's subject when one is known. None 
 | `bff.session.ended`               | `session`        | `bff`  | `success` | `info`    | `end_user` for `logged_out`, `system` otherwise         | none      | none                                                                                | `reason`  |
 | `bff.token.refresh_failed`        | `token`          | `bff`  | `failure` | `warning` | `end_user`                                              | none      | The provider's OAuth error code, `provider_error` or `provider_unavailable`         | none      |
 | `bff.backchannel_logout.received` | `session`        | `bff`  | `success` | `info`    | `system`                                                | none      | none                                                                                | none      |
-| `bff.backchannel_logout.rejected` | `session`        | `bff`  | `failure` | `warning` | `anonymous`                                             | none      | The logout-token failure code, `invalid_request` or `session_end_failed`            | none      |
+| `bff.backchannel_logout.rejected` | `session`        | `bff`  | `failure` | `warning` | `anonymous`                                             | none      | The logout-token failure code, `invalid_request`, `provider_unavailable` or `session_end_failed` | none      |
 | `bff.antiforgery.rejected`        | `protocol`       | `bff`  | `denied`  | `info`    | `anonymous`                                             | none      | `antiforgery_header_missing` or `cross_site_request`                                | none      |
 
 Notes on the BFF events:
 
 - `bff.login.failed` codes are the names in `BffLoginFailureReasons`: `unknown_state`, `initiator_mismatch`,
-  `issuer_mismatch`, `authorization_error`, `authorization_request_failed`, `invalid_response`, `token_error`,
-  `id_token_invalid`, `nonce_mismatch` and `rejected_by_gate`.
+  `issuer_mismatch`, `authorization_error`, `authorization_request_failed`, `provider_unavailable`,
+  `invalid_response`, `token_error`, `id_token_invalid`, `nonce_mismatch` and `rejected_by_gate`.
 - `bff.session.ended`'s `details.reason` is a name in `BffSessionEndReasons`: `logged_out`, `idle_timeout`,
   `absolute_expiry`, `refresh_failed`, `backchannel_logout`, `replaced` or `ended_by_validator`.
 - `bff.backchannel_logout.received` is published once for each logout token handled, after the sessions it names have

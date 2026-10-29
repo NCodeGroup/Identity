@@ -244,5 +244,24 @@ public class BffLogoutHandlerTests : BaseTests
         Assert.Equal("/", httpContext.Response.Headers.Location.ToString());
     }
 
+    [Fact]
+    public async Task HandleAsync_TransportFailure_RedirectsToReturnUrl()
+    {
+        var state = CreateState();
+        SetupResolve(state);
+        var httpContext = CreateHttpContext("?sid=guard-value");
+        SetupEnd(httpContext, state);
+        _metadataResolver
+            .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("down"))
+            .Verifiable();
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal("/", httpContext.Response.Headers.Location.ToString());
+    }
+
     #endregion
 }

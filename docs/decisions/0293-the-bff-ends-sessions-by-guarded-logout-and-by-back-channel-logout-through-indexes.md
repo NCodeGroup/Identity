@@ -36,8 +36,8 @@ indexes, ends them, and only then records the token.**
    leave it behind, the cookie is deleted, and the end is audited as `bff.session.ended` with `logged_out`.
 5. **The end-session redirect.** When the provider advertises `end_session_endpoint`, the browser is redirected there
    with `id_token_hint`, `client_id`, `post_logout_redirect_uri` (the absolute return URL) and a random `state`.
-   Without the endpoint, or when discovery fails, the browser is redirected to the return URL; the local session has
-   already ended.
+   Without the endpoint, or when the provider cannot be reached, the browser is redirected to the return URL; the local
+   session has already ended.
 6. **Sign-out through the scheme.** `HttpContext.SignOutAsync("Bff")` ends the current session the same way, so an
    application's own sign-out code works without the endpoint.
 7. **The back-channel receiver.** `POST /bff/backchannel-logout` reads exactly one `logout_token` from a form body and
@@ -54,8 +54,9 @@ indexes, ends them, and only then records the token.**
    ([ADR-0284](0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md)), so a provider retry after a
    store failure is not refused as a replay.
 10. **Responses.** The receiver answers `200` with `Cache-Control: no-store`, and `400` when the request or token is
-    invalid or a session cannot be ended (`session_end_failed`), in which case it records no `jti`. Receipts and
-    rejections are audited as `bff.backchannel_logout.received` and `bff.backchannel_logout.rejected`.
+    invalid, the provider's keys cannot be read (`provider_unavailable`) or a session cannot be ended
+    (`session_end_failed`); a `400` records no `jti`, so the provider's retry is handled. Receipts and rejections are
+    audited as `bff.backchannel_logout.received` and `bff.backchannel_logout.rejected`.
 
 ## Options considered
 

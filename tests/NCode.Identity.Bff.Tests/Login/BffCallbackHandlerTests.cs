@@ -236,7 +236,7 @@ public class BffCallbackHandlerTests : BaseTests
     public async Task HandleAsync_TokenErrorResult_FailsWithTokenError()
     {
         SetupTransaction(issSupported: false);
-        SetupToken(new TokenResult(new ProtocolError("invalid_grant", 400)));
+        SetupToken(new TokenResult(new ProtocolError(OpenIdProtocol.ErrorCodes.InvalidGrant, 400)));
         SetupAudit(BffLoginFailureReasons.TokenError);
 
         await AssertFailsAsync(
@@ -246,7 +246,7 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_ProviderException_FailsWithTokenError()
+    public async Task HandleAsync_ProviderException_FailsWithProviderUnavailable()
     {
         SetupTransaction(issSupported: false);
         _tokenClient
@@ -259,11 +259,73 @@ public class BffCallbackHandlerTests : BaseTests
             )
             .Throws(new OpenIdProviderException("unavailable"))
             .Verifiable();
-        SetupAudit(BffLoginFailureReasons.TokenError);
+        SetupAudit(BffLoginFailureReasons.ProviderUnavailable);
 
         await AssertFailsAsync(
             CreateHttpContext($"?state={State}&code=abc"),
-            BffLoginFailureReasons.TokenError
+            BffLoginFailureReasons.ProviderUnavailable
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_TokenTransportFailure_FailsWithProviderUnavailable()
+    {
+        SetupTransaction(issSupported: false);
+        _tokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Throws(new HttpRequestException("down"))
+            .Verifiable();
+        SetupAudit(BffLoginFailureReasons.ProviderUnavailable);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.ProviderUnavailable
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_MetadataUnavailable_FailsWithProviderUnavailable()
+    {
+        var transaction = new BffLoginTransaction { Issuer = Issuer };
+        SetupTake(State, new BffLoginTransactionResult(transaction, null));
+        _metadataResolver
+            .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OpenIdProviderException("unavailable"))
+            .Verifiable();
+        SetupAudit(BffLoginFailureReasons.ProviderUnavailable);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.ProviderUnavailable
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_IdTokenKeysUnavailable_FailsWithProviderUnavailable()
+    {
+        SetupTransaction(issSupported: false);
+        SetupSuccessfulToken();
+        _idTokenValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<IdTokenValidationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new OpenIdProviderException("jwks unavailable"))
+            .Verifiable();
+        SetupAudit(BffLoginFailureReasons.ProviderUnavailable);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.ProviderUnavailable
         );
     }
 
@@ -323,7 +385,7 @@ public class BffCallbackHandlerTests : BaseTests
     {
         SetupTransaction(issSupported: false);
         SetupSuccessfulToken();
-        var identity = new ClaimsIdentity([new Claim("sub", "user-1")]);
+        var identity = new ClaimsIdentity([new Claim(JoseClaimNames.Payload.Sub, "user-1")]);
         SetupValidation(new IdTokenValidationResult(default(JsonElement)) { Identity = identity });
         var gate = CreateStrictMock<IBffLoginGate>();
         gate.Setup(x =>

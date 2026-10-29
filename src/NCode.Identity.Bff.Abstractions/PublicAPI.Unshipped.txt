@@ -34,6 +34,7 @@ const NCode.Identity.Bff.BffLoginFailureReasons.InitiatorMismatch = "initiator_m
 const NCode.Identity.Bff.BffLoginFailureReasons.IssuerMismatch = "issuer_mismatch" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.AuthorizationError = "authorization_error" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.AuthorizationRequestFailed = "authorization_request_failed" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.ProviderUnavailable = "provider_unavailable" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.InvalidResponse = "invalid_response" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.TokenError = "token_error" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.IdTokenInvalid = "id_token_invalid" -> string!

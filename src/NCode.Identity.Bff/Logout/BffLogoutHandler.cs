@@ -129,7 +129,8 @@ internal class BffLogoutHandler
                 cancellationToken
             );
         }
-        catch (OpenIdProviderException)
+        catch (Exception exception)
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
             httpContext.Response.Redirect(BffNavigation.LocalUrl(request, returnUrl));
             return;

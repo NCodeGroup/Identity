@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Bff;
 
 /// <summary>
-/// An opaque session record as an <c>IBffSessionStore</c> holds it: plaintext metadata and an encrypted payload.
+/// An opaque session record as an <see cref="IBffSessionStore"/> holds it: plaintext metadata and an encrypted payload.
 /// </summary>
 /// <param name="storeKey">The key of the record in the store.</param>
 /// <param name="version">The version of the record; the store bumps it on every replace.</param>

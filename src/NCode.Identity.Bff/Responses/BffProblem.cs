@@ -22,7 +22,7 @@ namespace NCode.Identity.Bff.Responses;
 /// The <c>application/problem+json</c> body of a BFF API refusal.
 /// </summary>
 /// <param name="Type">
-/// The problem type, one of the <c>BffProblemTypes</c> URNs.
+/// The problem type, one of the <see cref="BffProblemTypes"/> URNs.
 /// </param>
 /// <param name="Title">
 /// The short, human-readable summary of the problem.

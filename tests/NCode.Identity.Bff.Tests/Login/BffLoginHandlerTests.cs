@@ -35,8 +35,7 @@ namespace NCode.Identity.Bff.Tests.Login;
 
 public class BffLoginHandlerTests : BaseTests
 {
-    // The in-process value set expires entries by the real clock, so the fake clock starts at the real now.
-    private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow;
+    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
 
     private readonly Mock<IAuthorizationRequestClient> _client;
     private readonly Mock<IBffAuditRecorder> _auditRecorder;
@@ -141,7 +140,9 @@ public class BffLoginHandlerTests : BaseTests
             )
             .Returns(
                 new ValueTask<AuthorizationRequestResult>(
-                    new AuthorizationRequestResult(new ProtocolError("invalid_request", 400))
+                    new AuthorizationRequestResult(
+                        new ProtocolError(OpenIdProtocol.ErrorCodes.InvalidRequest, 400)
+                    )
                 )
             )
             .Verifiable();
@@ -177,9 +178,45 @@ public class BffLoginHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_ProviderUnavailable_RedirectsToErrorUrl()
+    {
+        var httpContext = CreateHttpContext("?returnUrl=/app");
+        _client
+            .Setup(x =>
+                x.CreateAuthorizationUriAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<AuthorizationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new OpenIdProviderException("metadata unavailable"))
+            .Verifiable();
+        _auditRecorder
+            .Setup(x =>
+                x.LoginFailedAsync(
+                    httpContext,
+                    BffLoginFailureReasons.ProviderUnavailable,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await CreateHandler(CreateOptions()).HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal(
+            $"/?error={BffLoginFailureReasons.ProviderUnavailable}",
+            httpContext.Response.Headers.Location.ToString()
+        );
+    }
+
+    [Fact]
     public async Task HandleAsync_Success_StoresTransactionSetsCookieAndRedirects()
     {
         var services = new ServiceCollection();
+        // The in-process value set expires entries by its TimeProvider, so it shares the handler's fixed clock.
+        services.AddSingleton<TimeProvider>(new MutableTimeProvider(Now));
         services
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()

@@ -23,6 +23,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Jose;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Endpoints;
@@ -53,7 +54,7 @@ public class BffUserHandlerTests : BaseTests
                 LogoutGuard = "guard+/1",
                 Claims =
                 [
-                    new BffStoredClaim { Type = "sub", Value = "sub-1" },
+                    new BffStoredClaim { Type = JoseClaimNames.Payload.Sub, Value = "sub-1" },
                     new BffStoredClaim { Type = "name", Value = "Ada" },
                     new BffStoredClaim { Type = "email", Value = "ada@example.com" },
                     new BffStoredClaim { Type = "role", Value = "admin" },
@@ -116,7 +117,7 @@ public class BffUserHandlerTests : BaseTests
         var body = await ReadBodyAsync(httpContext);
         using var document = JsonDocument.Parse(body);
         var root = document.RootElement;
-        Assert.Equal("sub-1", root.GetProperty("sub").GetString());
+        Assert.Equal("sub-1", root.GetProperty(JoseClaimNames.Payload.Sub).GetString());
         Assert.Equal("Ada", root.GetProperty("name").GetString());
 
         var claims = root.GetProperty("claims");

@@ -25,6 +25,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -115,7 +116,10 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 RefreshToken = refreshToken,
                 DPoPJwkThumbprint = "jkt-1",
                 AccessTokens = [.. accessTokens],
-                Claims = [new BffStoredClaim { Type = "sub", Value = "sub-1" }],
+                Claims =
+                [
+                    new BffStoredClaim { Type = JoseClaimNames.Payload.Sub, Value = "sub-1" },
+                ],
             }
         );
 
@@ -444,7 +448,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 Requirement = BffTokenRequirementNames.User,
                 Value = "winner-access",
                 TokenType = "Bearer",
-                ExpiresAt = DateTimeOffset.UtcNow.AddHours(1),
+                // The waiting service runs on the system clock, because its backoff waits in real time.
+                ExpiresAt = System.TimeProvider.System.GetUtcNow().AddHours(1),
             }
         );
         MockManager
@@ -640,7 +645,19 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task GetAccessTokenAsync_HttpRequestException_ReturnsProviderUnavailable()
+    public async Task GetAccessTokenAsync_HttpRequestException_ReturnsProviderUnavailable() =>
+        await AssertProviderUnavailableAsync(new HttpRequestException("down"));
+
+    [Fact]
+    public async Task GetAccessTokenAsync_OpenIdProviderException_ReturnsProviderUnavailable() =>
+        await AssertProviderUnavailableAsync(new OpenIdProviderException("bad metadata"));
+
+    [Fact]
+    public async Task GetAccessTokenAsync_TimeoutWithoutCallerCancellation_ReturnsProviderUnavailable() =>
+        await AssertProviderUnavailableAsync(new TaskCanceledException("timed out"));
+
+    [Fact]
+    public async Task GetAccessTokenAsync_SuccessWithoutAccessToken_ReturnsProviderError()
     {
         var state = CreateState("refresh-token");
         var httpContext = CreateHttpContext(state);
@@ -654,7 +671,51 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .ThrowsAsync(new HttpRequestException("down"))
+            .ReturnsAsync(new TokenResult(new TokenResponse { TokenType = "Bearer" }))
+            .Verifiable();
+        MockRecorder
+            .Setup(x =>
+                x.TokenRefreshFailedAsync(
+                    httpContext,
+                    "sub-1",
+                    BffTokenFailureReasons.ProviderError,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(502, result.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.ProviderError, result.Reason);
+    }
+
+    private async Task AssertProviderUnavailableAsync(Exception exception)
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(exception)
             .Verifiable();
         MockRecorder
             .Setup(x =>

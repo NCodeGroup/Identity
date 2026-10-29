@@ -118,10 +118,21 @@ internal class BffCallbackHandler
             return;
         }
 
-        var metadata = await _metadataResolver.GetMetadataAsync(
-            transaction.Issuer,
-            cancellationToken
-        );
+        OpenIdProviderMetadata metadata;
+        try
+        {
+            metadata = await _metadataResolver.GetMetadataAsync(
+                transaction.Issuer,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
+        {
+            await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+            return;
+        }
+
         var issValues = request.Query[OpenIdProtocol.Parameters.IssuerShort];
         var issMissing = issValues.Count == 0;
         var issMismatch =
@@ -163,9 +174,10 @@ internal class BffCallbackHandler
                 cancellationToken
             );
         }
-        catch (OpenIdProviderException)
+        catch (Exception exception)
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.TokenError);
+            await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
             return;
         }
 
@@ -186,11 +198,22 @@ internal class BffCallbackHandler
             AuthorizationCode = code,
             State = state,
         };
-        var validation = await _idTokenValidator.ValidateAsync(
-            registration,
-            validationRequest,
-            cancellationToken
-        );
+        IdTokenValidationResult validation;
+        try
+        {
+            validation = await _idTokenValidator.ValidateAsync(
+                registration,
+                validationRequest,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
+        {
+            await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+            return;
+        }
+
         if (validation.Identity is not { } identity || !validation.IsValid)
         {
             var reason = string.Equals(

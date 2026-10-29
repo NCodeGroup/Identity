@@ -21,8 +21,8 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Bff;
 
 /// <summary>
-/// Represents the failure of an <c>IBffSessionStore</c> to reach its backing store. Every
-/// <c>IBffSessionStore</c> throws it when the store cannot be reached.
+/// Represents the failure of an <see cref="IBffSessionStore"/> to reach its backing store. Every
+/// <see cref="IBffSessionStore"/> throws it when the store cannot be reached.
 /// </summary>
 [PublicAPI]
 public sealed class BffStoreUnavailableException : Exception

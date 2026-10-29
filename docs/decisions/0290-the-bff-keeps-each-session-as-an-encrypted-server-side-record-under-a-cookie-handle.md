@@ -60,6 +60,9 @@ without the cookie.**
    `Max-Age`). The callback **takes** the transaction atomically (`TryTakeAsync`) **before** it decrypts it, so a
    `state` is single-use on every replica and a wrong initiator cannot probe a transaction twice. The callback deletes
    the login cookie on every path, checks `iss` (RFC 9207) before it exchanges the code, and always mints a new handle.
+   A provider that cannot be reached or read at login or at the callback (its metadata, its keys or its token
+   endpoint, an `OpenIdProviderException`, an `HttpRequestException` or a timeout the caller did not cause) fails the
+   login as `provider_unavailable`, the classification the refresh, logout and back-channel logout share.
 8. **The session cookie** is `__Host-Http-bff`: `Secure`, `HttpOnly`, `Path=/`, no `Domain`, `SameSite=Strict` by
    default (`Lax` selectable, `None` refused, design D4), and a `Max-Age` that ends with the session.
 9. **Lifetimes.** `Session:AbsoluteLifetime` is 8 hours and `Session:IdleTimeout` 1 hour. The stored value expires at

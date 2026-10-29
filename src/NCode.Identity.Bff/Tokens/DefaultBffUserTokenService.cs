@@ -344,12 +344,7 @@ internal class DefaultBffUserTokenService(
             );
         }
         catch (Exception exception)
-            when (exception is OpenIdProviderException or HttpRequestException
-                || (
-                    exception is OperationCanceledException
-                    && !cancellationToken.IsCancellationRequested
-                )
-            )
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
             _logger.RefreshFailed(BffTokenFailureReasons.ProviderUnavailable, exception);
             await _auditRecorder.TokenRefreshFailedAsync(

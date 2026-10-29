@@ -43,6 +43,11 @@ internal class BffBackChannelLogoutHandler(
     internal const string SessionEndFailedReason = "session_end_failed";
 
     /// <summary>
+    /// The audit reason when the provider's keys or metadata could not be read to validate the token.
+    /// </summary>
+    internal const string ProviderUnavailableReason = BffLoginFailureReasons.ProviderUnavailable;
+
+    /// <summary>
     /// Handles the back-channel logout request.
     /// </summary>
     /// <param name="httpContext">The current HTTP context.</param>
@@ -72,11 +77,22 @@ internal class BffBackChannelLogoutHandler(
 
         var registration = registrationProvider.Registration;
         var validationRequest = new LogoutTokenValidationRequest { LogoutToken = logoutToken };
-        var result = await logoutTokenValidator.ValidateAsync(
-            registration,
-            validationRequest,
-            cancellationToken
-        );
+        LogoutTokenValidationResult result;
+        try
+        {
+            result = await logoutTokenValidator.ValidateAsync(
+                registration,
+                validationRequest,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
+        {
+            await RejectAsync(httpContext, ProviderUnavailableReason);
+            return;
+        }
+
         if (!result.IsValid)
         {
             await RejectAsync(httpContext, result.FailureCode);

@@ -26,12 +26,15 @@ namespace NCode.Identity.Bff.Tests.Login;
 
 public class BffLoginTransactionServiceTests : IAsyncLifetime
 {
+    private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);
+
     private ServiceProvider Provider { get; }
     private BffLoginTransactionService Service { get; }
 
     public BffLoginTransactionServiceTests()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<TimeProvider>(new MutableTimeProvider(Now));
         services
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()
@@ -59,7 +62,7 @@ public class BffLoginTransactionServiceTests : IAsyncLifetime
             MaxAge = 30,
         };
 
-    private static DateTimeOffset ExpiresWhen => DateTimeOffset.UtcNow.AddMinutes(10);
+    private static DateTimeOffset ExpiresWhen => Now.AddMinutes(10);
 
     #region StoreAsync and TakeAsync Tests
 

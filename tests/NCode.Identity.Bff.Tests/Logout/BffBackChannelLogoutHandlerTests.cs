@@ -214,6 +214,28 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_ProviderUnavailable_WritesBadRequest()
+    {
+        _validator
+            .Setup(x =>
+                x.ValidateAsync(
+                    _registrationProvider.Registration,
+                    It.Is<LogoutTokenValidationRequest>(r => r.LogoutToken == Token),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new OpenIdProviderException("jwks unavailable"))
+            .Verifiable();
+        SetupRejected(BffLoginFailureReasons.ProviderUnavailable);
+        var httpContext = CreateHttpContext(form: true);
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task HandleAsync_SessionIdPath_EndsMatchingSessionsAndSkipsForeignIssuer()
     {
         const string sid = "sid-1";

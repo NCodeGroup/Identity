@@ -56,6 +56,11 @@ public static class BffLoginFailureReasons
     public const string AuthorizationRequestFailed = "authorization_request_failed";
 
     /// <summary>
+    /// The provider could not be reached, or its metadata or keys could not be read.
+    /// </summary>
+    public const string ProviderUnavailable = "provider_unavailable";
+
+    /// <summary>
     /// The callback is malformed.
     /// </summary>
     public const string InvalidResponse = "invalid_response";

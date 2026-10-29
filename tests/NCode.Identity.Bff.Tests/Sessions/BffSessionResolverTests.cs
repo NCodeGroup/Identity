@@ -22,6 +22,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Jose;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Sessions;
@@ -111,7 +112,10 @@ public class BffSessionResolverTests : BaseTests
             {
                 IdToken = "id-token",
                 LogoutGuard = "guard",
-                Claims = [new BffStoredClaim { Type = "sub", Value = "sub-1" }],
+                Claims =
+                [
+                    new BffStoredClaim { Type = JoseClaimNames.Payload.Sub, Value = "sub-1" },
+                ],
             }
         );
 

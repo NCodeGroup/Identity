@@ -28,6 +28,7 @@ using NCode.Identity.Bff.Authentication;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Jose;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Authentication;
@@ -55,7 +56,10 @@ public class BffAuthenticationHandlerTests : BaseTests
             {
                 IdToken = "id-token",
                 LogoutGuard = "guard",
-                Claims = [new BffStoredClaim { Type = "sub", Value = "sub-1" }],
+                Claims =
+                [
+                    new BffStoredClaim { Type = JoseClaimNames.Payload.Sub, Value = "sub-1" },
+                ],
             }
         );
 
@@ -137,7 +141,7 @@ public class BffAuthenticationHandlerTests : BaseTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(BffDefaults.AuthenticationScheme, result.Ticket?.AuthenticationScheme);
-        Assert.Equal("sub-1", result.Principal?.FindFirstValue("sub"));
+        Assert.Equal("sub-1", result.Principal?.FindFirstValue(JoseClaimNames.Payload.Sub));
     }
 
     [Fact]

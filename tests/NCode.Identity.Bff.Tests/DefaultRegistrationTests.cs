@@ -158,7 +158,8 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         var provider = BuildProvider();
 
         var options = provider.GetRequiredService<IOptions<BffOptions>>();
-        Assert.ThrowsAny<Exception>(() => options.Value);
+        var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
+        Assert.Contains("NoSuchKey", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

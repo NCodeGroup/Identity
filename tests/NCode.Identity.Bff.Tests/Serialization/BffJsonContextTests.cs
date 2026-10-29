@@ -20,6 +20,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Bff.Serialization;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Jose;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Serialization;
@@ -34,7 +35,7 @@ public class BffJsonContextTests : BaseTests
         var expiresAt = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
         var claim = new BffStoredClaim
         {
-            Type = "sub",
+            Type = JoseClaimNames.Payload.Sub,
             Value = "u1",
             ValueType = "string",
         };

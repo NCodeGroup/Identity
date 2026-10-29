@@ -180,15 +180,20 @@ internal class BffLoginHandler
                 cancellationToken
             );
         }
-        catch (OpenIdProviderException)
+        catch (Exception exception)
+            when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, bffOptions);
+            await FailAsync(httpContext, bffOptions, BffLoginFailureReasons.ProviderUnavailable);
             return;
         }
 
         if (!result.IsSuccess)
         {
-            await FailAsync(httpContext, bffOptions);
+            await FailAsync(
+                httpContext,
+                bffOptions,
+                BffLoginFailureReasons.AuthorizationRequestFailed
+            );
             return;
         }
 
@@ -216,18 +221,10 @@ internal class BffLoginHandler
         httpContext.Response.Redirect(result.AuthorizationUri.AbsoluteUri);
     }
 
-    private async ValueTask FailAsync(HttpContext httpContext, BffOptions bffOptions)
+    private async ValueTask FailAsync(HttpContext httpContext, BffOptions bffOptions, string reason)
     {
-        await _auditRecorder.LoginFailedAsync(
-            httpContext,
-            BffLoginFailureReasons.AuthorizationRequestFailed,
-            httpContext.RequestAborted
-        );
-        var errorUrl = BffNavigation.ErrorUrl(
-            httpContext.Request,
-            bffOptions,
-            BffLoginFailureReasons.AuthorizationRequestFailed
-        );
+        await _auditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
+        var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, bffOptions, reason);
         httpContext.Response.Redirect(errorUrl);
     }
 

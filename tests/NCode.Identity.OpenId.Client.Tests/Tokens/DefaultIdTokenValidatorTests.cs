@@ -221,7 +221,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var issuedAt = DateTimeOffset.UtcNow + (issuedOffset ?? TimeSpan.Zero);
         var claims = new Dictionary<string, object>();
         if (includeSub)
-            claims["sub"] = "user-1";
+            claims[JoseClaimNames.Payload.Sub] = "user-1";
         if (extraClaims is not null)
         {
             foreach (var (name, value) in extraClaims)
@@ -318,7 +318,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         Assert.True(result.IsValid);
         Assert.Null(result.FailureCode);
-        Assert.Equal("user-1", result.Payload.GetProperty("sub").GetString());
+        Assert.Equal("user-1", result.Payload.GetProperty(JoseClaimNames.Payload.Sub).GetString());
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         Assert.True(result.IsValid);
         Assert.NotNull(result.Identity);
-        Assert.Equal("user-1", result.Identity.FindFirst("sub")?.Value);
+        Assert.Equal("user-1", result.Identity.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
     }
 
     [Fact]
@@ -942,7 +942,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         Assert.True(result.IsValid);
         Assert.Null(result.FailureCode);
-        Assert.Equal("user-1", result.Payload.GetProperty("sub").GetString());
+        Assert.Equal("user-1", result.Payload.GetProperty(JoseClaimNames.Payload.Sub).GetString());
     }
 
     [Fact]

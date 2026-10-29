@@ -43,6 +43,8 @@ NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResu
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(System.Uri! authorizationUri) -> void
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(System.Uri! authorizationUri, string! requestUri, int expiresIn) -> void
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationUri.get -> System.Uri?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.DPoPJwkThumbprint.init -> void
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.ExpiresIn.get -> int?
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.IsPushed.get -> bool

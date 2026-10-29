@@ -86,6 +86,13 @@ public sealed class AuthorizationRequestResult
     public ProtocolError? Error { get; }
 
     /// <summary>
+    /// Gets the <c>jkt</c> the client sent as <c>dpop_jkt</c> (RFC 9449 section 10), which binds the authorization
+    /// code to a DPoP key; otherwise, <see langword="null"/> when it sent none. Pass it as
+    /// <see cref="TokenRequest.DPoPJwkThumbprint"/> when the code is exchanged.
+    /// </summary>
+    public string? DPoPJwkThumbprint { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the request was pushed to the provider.
     /// </summary>
     public bool IsPushed => RequestUri is not null;

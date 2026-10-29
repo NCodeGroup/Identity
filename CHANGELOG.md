@@ -20,7 +20,11 @@ change to the public API is a **major** version bump.
   behind the replaceable `IBffSessionStore`. `IBffTokenAccessor` and `AddBffAccessTokenHandler` attach the user's
   access token, refreshed single-flight across replicas under a lease on the refresh token, and DPoP-bound when the
   provider supports it. `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and
-  back-channel logout ends sessions through `sid`/`sub` indexes. The protocol client gains
+  back-channel logout ends sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET
+  and HEAD only, and the session cookie authenticates, and the token accessor serves, only `AsBffApi`/`AsBffPage`
+  endpoints and `/bff/user`. A won refresh and a logout are never cancelled by the browser, so a rotated refresh token
+  is kept and a session always ends. `AddIdentityBff` validates the refresh lease against the client's request
+  timeout. The protocol client gains
   `IdTokenValidationResult.Identity`
   ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-0291](docs/decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
@@ -42,7 +46,8 @@ change to the public API is a **major** version bump.
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
   from the audit store, newest first, filtered by `startTime`/`endTime`, `eventName`, `eventCategory`, `outcome`,
   `subjectId`, `clientId`, `actorId`, `traceId` and a resource (`resourceType`, `resourceId`), with cursor pagination;
-  each `AuditRecordResource` carries the envelope and the whole `record`. `IAuditRecordStore.GetPageAsync` takes an
+  each `AuditRecordResource` carries the envelope and the whole `record`. Records page newest first by event time, with
+  ties broken by id. `IAuditRecordStore.GetPageAsync` takes an
   `AuditRecordFilter`
   ([ADR-0303](docs/decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)
   decision 6, issue [#384](https://github.com/NCodeGroup/Identity/issues/384)).
@@ -50,7 +55,8 @@ change to the public API is a **major** version bump.
   to the new `AuditRecords` table, with its resources in `AuditRecordResources`, through `IAuditRecordStore`
   (`PersistedAuditRecord`, `PersistedAuditResource`). The table indexes the envelope an operator filters on (event id
   and time, name, category, outcome, severity, tenant, subject, client, actor, trace and source IP) and keeps the whole
-  CloudTrail-shaped JSON. `OpenId:AuditRecords` (`AuditRecordOptions`) sets `Enabled`, `FlushInterval` (five seconds),
+  CloudTrail-shaped JSON, which `PersistedAuditRecord.Record` holds as a `JsonElement`. `OpenId:AuditRecords`
+  (`AuditRecordOptions`) sets `Enabled`, `FlushInterval` (five seconds),
   `QueueCapacity` (10,000) and `Retention` (90 days). A full queue drops and counts records, which the log still
   carries; a failed batch is retried without duplicating records; and records past the retention are removed hourly
   ([ADR-0303](docs/decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md),
@@ -79,7 +85,8 @@ change to the public API is a **major** version bump.
 - **UserInfo in the protocol client and at BFF login.** `IUserInfoClient` requests the provider's UserInfo endpoint with
   an access token the way it was issued (bearer, DPoP with a nonce retry, or over mutual TLS to the endpoint's alias),
   refuses a response about another subject than the ID token's, and maps the claims through the new
-  `IClaimsIdentityFactory`, the JWT stack's one claim mapping, which `DefaultJwtValidator` now uses too.
+  `IClaimsIdentityFactory`, the JWT stack's one claim mapping, which `DefaultJwtValidator` now uses too. A JSON
+  response whose `iss` names another issuer fails with `UserInfoFailureCodes.InvalidIssuer`.
   `Bff:UserInfo:Load` merges UserInfo into a session at login, before the claim contributors and the login gates; a
   failure ends the login with `userinfo_failed`
   ([ADR-0299](docs/decisions/0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md),
@@ -957,7 +964,9 @@ change to the public API is a **major** version bump.
   are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
   read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
   buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
-  which reads one value from a segmented buffer and refuses trailing content
+  which reads one value from a segmented buffer, honors every `JsonDocumentOptions` member and refuses trailing
+  content. A parsed value is named `jsonElement`, never `document`, and the parameter of
+  `IPersistedPayloadSerializer.Deserialize` is `jsonElement`
   (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
   expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
@@ -967,7 +976,9 @@ change to the public API is a **major** version bump.
   `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
   `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
   horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
-  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  are refused at their next use. Token exchange starts the family of a refresh token it issues at the subject token's
+  `auth_time` and refuses a subject token without one with `invalid_grant`, and introspection reports a token past its
+  horizon as inactive. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
   `RefreshTokenGrant` gains `LineageCreatedWhen`
   ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
   issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
@@ -2216,6 +2227,9 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
+  (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
+  it, so `/\t/evil.example` no longer redirects off-site after sign-in.
 - **ECDH-ES no longer discloses its ephemeral private key.** The `ECDH-ES` and `ECDH-ES+A*KW` key management algorithms
   wrote the ephemeral key's private `d` into the JWE's `epk` header, so anyone holding the token could derive its
   content encryption key from it and the recipient's public key and read every token encrypted to an EC key. The `epk`
@@ -2654,6 +2668,8 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A token issued by token exchange is issued now.** It started its lifetime at the subject's `auth_time`, so a token
+  exchanged after a long session was already expired; `auth_time` still carries the original authentication.
 - **An absolute URI means the same on every platform.** The new `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts
   only text that names its own scheme and contains no whitespace, where `Uri.TryCreate(…, UriKind.Absolute, …)` also
   read `/path` as `file:///path` on Linux and trimmed whitespace. Dynamic client registration therefore accepted a

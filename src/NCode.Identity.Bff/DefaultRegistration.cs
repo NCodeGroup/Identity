@@ -73,6 +73,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffCookies>();
             serviceCollection.TryAddSingleton<BffClientRegistrationProvider>();
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
+            serviceCollection.TryAddSingleton<BffLoginHandler>();
 
             return newBuilder;
         }

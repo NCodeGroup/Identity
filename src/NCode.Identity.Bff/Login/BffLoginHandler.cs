@@ -29,6 +29,7 @@ using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
+using NCode.Time;
 
 namespace NCode.Identity.Bff.Login;
 
@@ -122,6 +123,7 @@ internal class BffLoginHandler
             additionalParameters[name] = value;
         }
 
+        int? parsedMaxAge = null;
         if (additionalParameters.TryGetValue(OpenIdProtocol.Parameters.MaxAge, out var maxAge))
         {
             var isValidMaxAge =
@@ -140,6 +142,8 @@ internal class BffLoginHandler
                 );
                 return;
             }
+
+            parsedMaxAge = maxAgeSeconds;
         }
 
         var redirectUri = BffNavigation.CallbackUri(request, bffOptions);
@@ -182,8 +186,34 @@ internal class BffLoginHandler
             return;
         }
 
-        if (result.Error is not null || result.AuthorizationUri is null)
+        if (!result.IsSuccess)
+        {
             await FailAsync(httpContext, bffOptions);
+            return;
+        }
+
+        var transaction = new BffLoginTransaction
+        {
+            Issuer = registration.Authority,
+            RedirectUri = redirectUri,
+            CodeVerifier = verifier,
+            Nonce = nonce,
+            ReturnUrl = returnUrl,
+            DPoPJwkThumbprint = result.DPoPJwkThumbprint,
+            MaxAge = parsedMaxAge,
+        };
+        var expiresWhen =
+            _timeProvider.GetUtcNowWithPrecisionInSeconds() + bffOptions.Session.LoginLifetime;
+        await _transactionService.StoreAsync(
+            state,
+            initiator,
+            transaction,
+            expiresWhen,
+            cancellationToken
+        );
+
+        _cookies.SetLogin(httpContext.Response, initiator);
+        httpContext.Response.Redirect(result.AuthorizationUri.AbsoluteUri);
     }
 
     private async ValueTask FailAsync(HttpContext httpContext, BffOptions bffOptions)

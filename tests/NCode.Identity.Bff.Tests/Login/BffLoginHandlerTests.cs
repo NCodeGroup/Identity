@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using NCode.Identity.Bff.Auditing;
@@ -24,15 +25,18 @@ using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
+using NCode.Identity.SharedState;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Login;
 
 public class BffLoginHandlerTests : BaseTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    // The in-process value set expires entries by the real clock, so the fake clock starts at the real now.
+    private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow;
 
     private readonly Mock<IAuthorizationRequestClient> _client;
     private readonly Mock<IBffAuditRecorder> _auditRecorder;
@@ -45,7 +49,10 @@ public class BffLoginHandlerTests : BaseTests
         _store = CreateStrictMock<IBffSessionStore>();
     }
 
-    private BffLoginHandler CreateHandler(BffOptions bffOptions)
+    private BffLoginHandler CreateHandler(
+        BffOptions bffOptions,
+        BffLoginTransactionService? transactionService = null
+    )
     {
         var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
         var timeProvider = new MutableTimeProvider(Now);
@@ -53,7 +60,7 @@ public class BffLoginHandlerTests : BaseTests
             options,
             new BffClientRegistrationProvider(options),
             _client.Object,
-            new BffLoginTransactionService(_store.Object),
+            transactionService ?? new BffLoginTransactionService(_store.Object),
             new BffCookies(options, timeProvider),
             _auditRecorder.Object,
             CreateLooseMock<IHostEnvironment>().Object,
@@ -167,6 +174,68 @@ public class BffLoginHandlerTests : BaseTests
         var prompt = Assert.Single(additional);
         Assert.Equal(OpenIdProtocol.Parameters.Prompt, prompt.Key);
         Assert.Equal("login", prompt.Value);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Success_StoresTransactionSetsCookieAndRedirects()
+    {
+        var services = new ServiceCollection();
+        services
+            .AddSharedStateServices()
+            .AddInProcessExpiringValueSet()
+            .AddInProcessExpiringIndexSet();
+        await using var provider = services.BuildServiceProvider();
+        var values = provider.GetRequiredService<IExpiringValueSet>();
+        var indexes = provider.GetRequiredService<IExpiringIndexSet>();
+        var transactionService = new BffLoginTransactionService(
+            new DefaultBffSessionStore(values, indexes)
+        );
+
+        var httpContext = CreateHttpContext("?returnUrl=/app");
+        var authorizationUri = new Uri("https://op.example.com/authorize?client_id=bff");
+        AuthorizationRequest? captured = null;
+        _client
+            .Setup(x =>
+                x.CreateAuthorizationUriAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<AuthorizationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<ClientRegistration, AuthorizationRequest, CancellationToken>(
+                (_, request, _) => captured = request
+            )
+            .Returns(
+                new ValueTask<AuthorizationRequestResult>(
+                    new AuthorizationRequestResult(authorizationUri) { DPoPJwkThumbprint = "jkt" }
+                )
+            )
+            .Verifiable();
+
+        await CreateHandler(CreateOptions(), transactionService).HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal(
+            authorizationUri.AbsoluteUri,
+            httpContext.Response.Headers.Location.ToString()
+        );
+        var setCookie = httpContext.Response.Headers.SetCookie.ToString();
+        var cookiePrefix = BffDefaults.LoginCookieName + "=";
+        Assert.StartsWith(cookiePrefix, setCookie);
+        var initiator = setCookie[cookiePrefix.Length..].Split(';')[0];
+
+        Assert.NotNull(captured);
+        var result = await transactionService.TakeAsync(
+            captured.State,
+            initiator,
+            CancellationToken.None
+        );
+
+        Assert.Null(result.FailureReason);
+        var transaction = Assert.IsType<BffLoginTransaction>(result.Transaction);
+        Assert.Equal("/app", transaction.ReturnUrl);
+        Assert.Equal("jkt", transaction.DPoPJwkThumbprint);
+        Assert.Equal(captured.Nonce, transaction.Nonce);
     }
 
     #endregion

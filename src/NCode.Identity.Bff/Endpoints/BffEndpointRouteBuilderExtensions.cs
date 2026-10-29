@@ -40,7 +40,7 @@ public static class BffEndpointRouteBuilderExtensions
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Maps the <c>login</c>, <c>callback</c>, <c>user</c> and <c>logout</c> endpoints under the configured
+        /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints under the configured
         /// <see cref="BffOptions.PathPrefix"/>.
         /// </summary>
         /// <returns>The <see cref="RouteGroupBuilder"/> of the endpoints, so that the application can add a rate
@@ -94,6 +94,16 @@ public static class BffEndpointRouteBuilderExtensions
                             .HandleAsync(context)
                 )
                 .WithName("Bff.Logout");
+
+            group
+                .MapPost(
+                    "/backchannel-logout",
+                    static (HttpContext context) =>
+                        context
+                            .RequestServices.GetRequiredService<BffBackChannelLogoutHandler>()
+                            .HandleAsync(context)
+                )
+                .WithName("Bff.BackchannelLogout");
 
             return group;
         }

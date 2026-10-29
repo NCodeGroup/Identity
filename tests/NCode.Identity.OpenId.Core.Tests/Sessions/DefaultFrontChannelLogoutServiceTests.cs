@@ -47,12 +47,19 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
 
     #region Scaffolding
 
-    private Mock<OpenIdContext> CreateContext()
+    private Mock<OpenIdContext> CreateContext(bool sessionSupported = true)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
+        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
         mockTenant.SetupGet(x => x.Issuer).Returns(Issuer);
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockTenantSettings.Object);
+        mockTenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSessionSupported))
+            .Returns(sessionSupported);
         return mockContext;
     }
 
@@ -164,5 +171,30 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
         );
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetLogoutUrisAsync_WhenSessionRequiredButUnsupported_ReturnsUriAsIs()
+    {
+        var mockContext = CreateContext(sessionSupported: false);
+        var mockClient = SetupResolvedClient(ClientId);
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+
+        string? uri = LogoutUri;
+        mockSettings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.FrontChannelLogoutUri, out uri))
+            .Returns(true);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSessionRequired))
+            .Returns(true);
+
+        var result = await Service.GetLogoutUrisAsync(
+            mockContext.Object,
+            CreateSubject(ClientId),
+            CancellationToken.None
+        );
+
+        Assert.Equal([LogoutUri], result);
     }
 }

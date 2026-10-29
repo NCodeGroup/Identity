@@ -46,7 +46,13 @@ internal class DefaultFrontChannelLogoutService(IOpenIdClientResolver clientReso
         }
 
         var issuer = openIdContext.Tenant.Issuer;
-        var sessionId = subject.SessionId;
+
+        // The session identifier is appended only when the tenant advertises that it appends one (OpenID Connect
+        // Front-Channel Logout 1.0 §3).
+        var sessionSupported = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+            OpenIdSettingKeys.FrontChannelLogoutSessionSupported
+        );
+        var sessionId = sessionSupported ? subject.SessionId : null;
 
         var logoutUris = new List<string>(subject.ParticipatingClientIds.Count);
         foreach (var clientId in subject.ParticipatingClientIds)

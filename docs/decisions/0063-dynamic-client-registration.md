@@ -104,6 +104,13 @@ Concretely:
   without a fragment (`invalid_client_metadata` otherwise), because the spec permits http only for a confidential client
   the OP allows it for and a `logout_token` must not travel in clear; operator-configured clients keep the setting's
   own rule.
+- **RP-initiated and front-channel logout metadata.** `post_logout_redirect_uris` (RP-Initiated Logout 1.0 §3.1),
+  `frontchannel_logout_uri` and `frontchannel_logout_session_required` (Front-Channel Logout 1.0 §2) are stored as the
+  client settings of the same names, which the end-session endpoint and the front-channel logout service read, and are
+  reported back. Each post-logout redirect URI must be an absolute URI without a fragment, and the front-channel URI an
+  absolute URI without a fragment whose scheme, host and port are those of a registered redirect URI, as the spec
+  requires (`invalid_client_metadata` otherwise). A logout channel the tenant does not support is refused by the client
+  coherence rules.
 - **Delete removes the client with what it owns.** `DELETE` removes the client, and the store removes its secrets and
   grants, the `registration_access_token` grant included, in the same unit of work
   ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)).

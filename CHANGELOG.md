@@ -877,6 +877,16 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
+  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
+  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
+  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
+  a tenant write that would strand such clients is refused too, issue
+  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
+  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
+  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
+  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **Tenant environments: production hosts refuse a non-production server default, cached tenants follow server
   changes, and management audit records carry the tenant's type.** In the Production host environment
   `AddProductionSafety` refuses to start when `OpenId:Server:Settings:environment_type` names a registered type whose
@@ -3339,6 +3349,16 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
+  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
+  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
+  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
+  a tenant write that would strand such clients is refused too, issue
+  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
+  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
+  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
+  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **Every remaining `Logic` grab-bag namespace is split into purpose-based namespaces (issue [#27](https://github.com/NCodeGroup/Identity/issues/27)).** No `Logic`
   namespace or folder remains in the family. A contract, its DTOs, and its default implementation now share one purpose
   namespace across each `.Abstractions`/implementation pair: `NCode.Identity.Cryptography` (`ICryptoService`,
@@ -3775,6 +3795,16 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
+- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
+  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
+  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
+  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
+  a tenant write that would strand such clients is refused too, issue
+  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
+  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
+  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
+  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **An unsigned (`alg:none`) JWT-secured authorization request now returns `request_not_supported` (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).**
   Per OpenID Connect Core 1.0 §6.1, an OP that does not support unsigned request objects must answer exactly
   `request_not_supported`. `DefaultLoadAuthorizationRequestHandler` previously surfaced a generic
@@ -4732,6 +4762,16 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
+- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
+  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
+  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
+  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
+  a tenant write that would strand such clients is refused too, issue
+  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
+  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
+  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
+  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **Comprehensive XML-documentation quality pass across the published packages.** The `///` doc comments that reach
   consumers through IntelliSense and the generated OpenAPI descriptions were swept for correctness and consistency:
   property summaries follow the Microsoft convention (an `init`-only property opens with "Gets", not "Gets or sets");
@@ -5092,6 +5132,16 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
+  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
+  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
+  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
+  a tenant write that would strand such clients is refused too, issue
+  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
+  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
+  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
+  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - Setting merge is now a first-class policy expressed through a public `SettingMerge` vocabulary of lattice dual pairs
   (`Min`/`Max`, `And`/`Or`, `Intersect`/`Union`, `Keep`/`Replace`) in `NCode.Identity.Abstractions`, so host-authored
   descriptors reuse it. Each built-in setting is mapped to a **ceiling** (a parent caps the child), a **floor** (a

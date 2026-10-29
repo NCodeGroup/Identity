@@ -1254,5 +1254,73 @@ public class ClientRegistrationEndpointTests
         );
     }
 
+    [Fact]
+    public async Task PostRegister_WithPostLogoutRedirectUris_StoresAndReportsThem()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                ["post_logout_redirect_uris"] = new[] { "https://client.example/signed-out" },
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+
+        foreach (var document in new[] { root, read.RootElement })
+        {
+            var uris = document.GetProperty("post_logout_redirect_uris");
+            Assert.Equal(
+                "https://client.example/signed-out",
+                Assert.Single(uris.EnumerateArray()).GetString()
+            );
+        }
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheTenantDoesNotSupportFrontChannelLogout_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                ["frontchannel_logout_uri"] = "https://client.example/frontchannel-logout",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.FrontChannelLogoutUri
+        );
+    }
+
     #endregion
 }

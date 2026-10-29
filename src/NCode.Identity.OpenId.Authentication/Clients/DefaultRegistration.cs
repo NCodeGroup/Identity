@@ -197,6 +197,10 @@ internal static class DefaultRegistration
             );
 
             serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, LogoutChannelCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IClientCoherenceRule,
                     BackchannelTokenDeliveryCoherenceRule

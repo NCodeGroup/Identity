@@ -48,7 +48,10 @@ Concretely:
   must append `iss`/`sid`. When enabled, the `end_session_endpoint` collects the participating clients' front-channel
   URIs (via `IFrontChannelLogoutService`) into the `EndSessionDisposition` and renders a page with one hidden iframe per
   URI, then performs the validated post-logout redirect (or a confirmation). Back-Channel Logout remains the preferred,
-  always-on mechanism; front-channel is an additional best-effort layer.
+  always-on mechanism; front-channel is an additional best-effort layer. The OP appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true, and a client cannot register a `frontchannel_logout_uri` while
+  `frontchannel_logout_supported` is false, or require the session while `frontchannel_logout_session_supported` is
+  false (`LogoutChannelCoherenceRule`), so what the OP does always matches what it advertises.
 
 - **Session Management is gated by one server setting and emits `session_state`.** `session_management_supported`
   defaults **false** and is non-discoverable (the standard discovery signal is the `check_session_iframe` URL itself).

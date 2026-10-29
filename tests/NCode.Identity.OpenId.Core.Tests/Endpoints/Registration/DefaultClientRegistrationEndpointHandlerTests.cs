@@ -1299,6 +1299,63 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Null(error);
     }
 
+    [Theory]
+    [InlineData("https://client.example/signed-out#fragment")]
+    [InlineData("/signed-out")]
+    public void ValidateLogoutMetadata_WhenAPostLogoutRedirectUriIsInvalid_ReturnsInvalidClientMetadata(
+        string uri
+    )
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { PostLogoutRedirectUris = [uri] };
+
+        var error = handler.ValidateLogoutMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateLogoutMetadata_WhenFrontChannelUriSharesARedirectOrigin_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://client.example/callback"],
+            PostLogoutRedirectUris = ["https://client.example/signed-out"],
+            FrontchannelLogoutUri = "https://client.example/frontchannel-logout?app=1",
+        };
+
+        var error = handler.ValidateLogoutMetadata(factory, request);
+
+        Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData("https://other.example/frontchannel-logout")]
+    [InlineData("http://client.example/frontchannel-logout")]
+    [InlineData("https://client.example:8443/frontchannel-logout")]
+    [InlineData("https://client.example/frontchannel-logout#fragment")]
+    public void ValidateLogoutMetadata_WhenFrontChannelUriDoesNotShareARedirectOrigin_ReturnsInvalidClientMetadata(
+        string uri
+    )
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://client.example/callback"],
+            FrontchannelLogoutUri = uri,
+        };
+
+        var error = handler.ValidateLogoutMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
     #endregion
 
     #region Response Protection Metadata
@@ -1479,6 +1536,47 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     }
 
     [Fact]
+    public void BuildSettingsObject_WhenRpInitiatedAndFrontChannelLogoutMetadata_RoundTripsIt()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            PostLogoutRedirectUris = ["https://client.example/signed-out"],
+            FrontchannelLogoutUri = "https://client.example/frontchannel-logout",
+            FrontchannelLogoutSessionRequired = true,
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
+            RedirectUris = ["https://client.example/callback"],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var response = handler.ToResponse(
+            CreateClient(JsonSerializer.SerializeToElement(settings))
+        );
+
+        Assert.Equal(
+            "https://client.example/signed-out",
+            Assert
+                .Single(settings[OpenIdSettingNames.PostLogoutRedirectUris]!.AsArray())!
+                .GetValue<string>()
+        );
+        Assert.Equal(
+            "https://client.example/frontchannel-logout",
+            settings[OpenIdSettingNames.FrontChannelLogoutUri]!.GetValue<string>()
+        );
+        Assert.True(
+            settings[OpenIdSettingNames.FrontChannelLogoutSessionRequired]!.GetValue<bool>()
+        );
+        Assert.Equal(["https://client.example/signed-out"], response.PostLogoutRedirectUris);
+        Assert.Equal("https://client.example/frontchannel-logout", response.FrontchannelLogoutUri);
+        Assert.True(response.FrontchannelLogoutSessionRequired);
+    }
+
+    [Fact]
     public void ToResponse_WhenNoBackChannelLogoutMetadataIsStored_OmitsIt()
     {
         var handler = CreateHandler();
@@ -1490,6 +1588,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.Null(response.BackchannelLogoutUri);
         Assert.Null(response.BackchannelLogoutSessionRequired);
+        Assert.Null(response.PostLogoutRedirectUris);
+        Assert.Null(response.FrontchannelLogoutUri);
+        Assert.Null(response.FrontchannelLogoutSessionRequired);
     }
 
     #endregion

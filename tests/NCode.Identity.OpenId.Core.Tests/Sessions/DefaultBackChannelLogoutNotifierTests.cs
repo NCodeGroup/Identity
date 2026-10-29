@@ -88,13 +88,23 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
 
     #region Scaffolding
 
-    private Mock<OpenIdContext> CreateContext()
+    private Mock<OpenIdContext> CreateContext(bool supported = true, bool sessionSupported = true)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
+        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
 
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
         mockTenant.SetupGet(x => x.Issuer).Returns(Issuer);
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockTenantSettings.Object);
+        mockTenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.BackChannelLogoutSupported))
+            .Returns(supported);
+        mockTenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.BackChannelLogoutSessionSupported))
+            .Returns(sessionSupported);
 
         return mockContext;
     }
@@ -237,7 +247,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     [Fact]
     public async Task NotifyAsync_WhenNoBackChannelUri_DoesNothing()
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockContext = CreateContext();
         var mockClient = CreateClient(backChannelLogoutUri: null);
 
         await Notifier.NotifyAsync(
@@ -254,7 +264,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     [Fact]
     public async Task NotifyAsync_WhenNoSubjectAndNoSession_DoesNothing()
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockContext = CreateContext();
         var mockClient = CreateClient(LogoutUri);
 
         await Notifier.NotifyAsync(
@@ -266,6 +276,60 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         );
 
         Assert.Null(CapturedJob);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_WhenTheTenantDoesNotSupportBackChannelLogout_DoesNothing()
+    {
+        var mockContext = CreateContext(supported: false);
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient
+            .SetupGet(x => x.Settings)
+            .Returns(CreateStrictMock<IReadOnlySettingCollection>().Object)
+            .Verifiable();
+
+        await Notifier.NotifyAsync(
+            mockContext.Object,
+            mockClient.Object,
+            SubjectId,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.Null(CapturedJob);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_WhenTheTenantDoesNotSupportSessions_OmitsTheSid()
+    {
+        var mockContext = CreateContext(sessionSupported: false);
+        var mockClient = CreateClient(LogoutUri);
+        SetupClientId(mockClient);
+        SetupCredentials(
+            mockContext,
+            mockClient,
+            new ClientJwtCredentials(CreateSigningCredentials(), null)
+        );
+        MockSubjectIdentifierService
+            .Setup(x => x.ProjectSubjectId(mockContext.Object, mockClient.Object, SubjectId))
+            .Returns(SubjectId)
+            .Verifiable();
+        var captured = new JwtEncodingParameters[1];
+        SetupTokenGeneration(captured);
+        SetupDispatch();
+
+        await Notifier.NotifyAsync(
+            mockContext.Object,
+            mockClient.Object,
+            SubjectId,
+            SessionId,
+            CancellationToken.None
+        );
+
+        var claims = captured[0].ExtraPayloadClaims;
+        Assert.NotNull(claims);
+        Assert.Equal(SubjectId, claims[JoseClaimNames.Payload.Sub]);
+        Assert.False(claims.ContainsKey(JoseClaimNames.Payload.Sid));
     }
 
     [Fact]

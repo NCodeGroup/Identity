@@ -108,6 +108,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterCli
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.BackchannelLogoutSessionRequired.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.BackchannelLogoutUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.BackchannelLogoutUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.FrontchannelLogoutSessionRequired.get -> bool?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.FrontchannelLogoutSessionRequired.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.FrontchannelLogoutUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.FrontchannelLogoutUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.PostLogoutRedirectUris.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.PostLogoutRedirectUris.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.BackchannelTokenDeliveryMode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.BackchannelTokenDeliveryMode.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.BackchannelUserCodeParameter.get -> bool?
@@ -146,6 +152,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.BackchannelLogoutSessionRequired.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.BackchannelLogoutUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.BackchannelLogoutUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.FrontchannelLogoutSessionRequired.get -> bool?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.FrontchannelLogoutSessionRequired.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.FrontchannelLogoutUri.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.FrontchannelLogoutUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.PostLogoutRedirectUris.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.PostLogoutRedirectUris.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.BackchannelTokenDeliveryMode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.BackchannelTokenDeliveryMode.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.BackchannelUserCodeParameter.get -> bool?

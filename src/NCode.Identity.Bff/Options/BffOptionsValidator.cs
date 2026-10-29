@@ -16,9 +16,11 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Navigation;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Bff.Options;
 
@@ -57,10 +59,200 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
 
         ValidatePathPrefix(options.PathPrefix, failures);
         ValidateTrustedOrigins(options.TrustedOrigins, isDevelopment, failures);
+        ValidateSession(options.Session, failures);
+        ValidateDPoP(options.DPoP, failures);
+        ValidateTokens(options.Tokens, failures);
+        ValidateAntiforgery(options.Antiforgery, failures);
+        ValidateUserClaims(options.UserClaims, failures);
+        ValidateLoginParameters(options.LoginParameters, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static readonly string[] ForbiddenHeaderNames =
+    [
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Range",
+        "Cookie",
+        "Authorization",
+        "DPoP",
+    ];
+
+    private static readonly string[] ReservedUserClaims =
+    [
+        "iss",
+        "sid",
+        "nonce",
+        "at_hash",
+        "c_hash",
+        "s_hash",
+        "aud",
+        "azp",
+        "exp",
+        "iat",
+        "nbf",
+    ];
+
+    private static readonly string[] AllowedLoginParameters =
+    [
+        OpenIdProtocol.Parameters.Prompt,
+        OpenIdProtocol.Parameters.MaxAge,
+        OpenIdProtocol.Parameters.AcrValues,
+        OpenIdProtocol.Parameters.LoginHint,
+        OpenIdProtocol.Parameters.UiLocales,
+    ];
+
+    private static void ValidateSession(BffSessionOptions? session, List<string> failures)
+    {
+        if (session is null)
+        {
+            failures.Add("Bff:Session must be set.");
+            return;
+        }
+
+        if (
+            !Enum.IsDefined(session.SameSite)
+            || session.SameSite is not (SameSiteMode.Strict or SameSiteMode.Lax)
+        )
+        {
+            failures.Add("Bff:Session:SameSite must be 'Strict' or 'Lax'.");
+        }
+
+        if (session.IdleTimeout <= TimeSpan.Zero)
+        {
+            failures.Add("Bff:Session:IdleTimeout must be greater than zero.");
+        }
+
+        if (session.AbsoluteLifetime < session.IdleTimeout)
+        {
+            failures.Add(
+                "Bff:Session:AbsoluteLifetime must be greater than or equal to Bff:Session:IdleTimeout."
+            );
+        }
+
+        if (
+            session.LoginLifetime < TimeSpan.FromMinutes(1)
+            || session.LoginLifetime > TimeSpan.FromMinutes(30)
+        )
+        {
+            failures.Add("Bff:Session:LoginLifetime must be between 1 and 30 minutes.");
+        }
+    }
+
+    private static void ValidateDPoP(BffDPoPOptions? dpop, List<string> failures)
+    {
+        if (dpop is null)
+        {
+            failures.Add("Bff:DPoP must be set.");
+            return;
+        }
+
+        var isRequired = string.Equals(dpop.Mode, BffDPoPModes.Required, StringComparison.Ordinal);
+        var isKnown =
+            isRequired
+            || string.Equals(dpop.Mode, BffDPoPModes.WhenSupported, StringComparison.Ordinal);
+
+        if (!isKnown)
+        {
+            failures.Add(
+                $"Bff:DPoP:Mode must be '{BffDPoPModes.WhenSupported}' or '{BffDPoPModes.Required}'."
+            );
+        }
+        else if (isRequired && string.IsNullOrWhiteSpace(dpop.KeyRing))
+        {
+            failures.Add("Bff:DPoP:KeyRing must not be blank when Bff:DPoP:Mode is 'required'.");
+        }
+    }
+
+    private static void ValidateTokens(BffTokenOptions? tokens, List<string> failures)
+    {
+        if (tokens is null)
+        {
+            failures.Add("Bff:Tokens must be set.");
+            return;
+        }
+
+        if (
+            tokens.RefreshBeforeExpiry < TimeSpan.Zero
+            || tokens.RefreshBeforeExpiry > TimeSpan.FromHours(1)
+        )
+        {
+            failures.Add("Bff:Tokens:RefreshBeforeExpiry must be between 0 and 1 hour.");
+        }
+
+        if (
+            tokens.RefreshLeaseDuration < TimeSpan.FromSeconds(10)
+            || tokens.RefreshLeaseDuration > TimeSpan.FromMinutes(5)
+        )
+        {
+            failures.Add(
+                "Bff:Tokens:RefreshLeaseDuration must be between 10 seconds and 5 minutes."
+            );
+        }
+    }
+
+    private static void ValidateAntiforgery(
+        BffAntiforgeryOptions? antiforgery,
+        List<string> failures
+    )
+    {
+        if (antiforgery is null)
+        {
+            failures.Add("Bff:Antiforgery must be set.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(antiforgery.HeaderName))
+        {
+            failures.Add("Bff:Antiforgery:HeaderName must not be blank.");
+        }
+        else if (
+            ForbiddenHeaderNames.Any(x =>
+                string.Equals(x, antiforgery.HeaderName, StringComparison.OrdinalIgnoreCase)
+            )
+        )
+        {
+            failures.Add(
+                $"Bff:Antiforgery:HeaderName '{antiforgery.HeaderName}' must not be a header that skips a CORS preflight or carries credentials."
+            );
+        }
+
+        if (string.IsNullOrWhiteSpace(antiforgery.HeaderValue))
+        {
+            failures.Add("Bff:Antiforgery:HeaderValue must not be blank.");
+        }
+    }
+
+    private static void ValidateUserClaims(List<string>? userClaims, List<string> failures)
+    {
+        foreach (var claim in userClaims ?? [])
+        {
+            if (ReservedUserClaims.Contains(claim, StringComparer.Ordinal))
+            {
+                failures.Add($"Bff:UserClaims entry '{claim}' is reserved and cannot be listed.");
+            }
+        }
+    }
+
+    private static void ValidateLoginParameters(
+        List<string>? loginParameters,
+        List<string> failures
+    )
+    {
+        foreach (var parameter in loginParameters ?? [])
+        {
+            if (!AllowedLoginParameters.Contains(parameter, StringComparer.Ordinal))
+            {
+                failures.Add(
+                    $"Bff:LoginParameters entry '{parameter}' is not allowed; use only prompt, max_age, acr_values, login_hint and ui_locales."
+                );
+            }
+        }
     }
 
     private static void ValidateAuthority(

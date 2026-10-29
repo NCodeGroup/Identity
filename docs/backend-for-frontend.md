@@ -1,8 +1,15 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
-- **Status:** Proposed. This is a design only, and only phase 0 (SharedState) is implemented. The library is tracked as issue
-  [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). Phase 0 is delivered: [ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md). When each
-  phase lands, its decisions ([§8](#8-decisions-and-options-considered)) become ADRs.
+- **Status:** Proposed, and delivered in phases. Phase 0 (SharedState) is delivered:
+  [ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md). Phase 1 (the protocol
+  client) is delivered, and so is phase 2 (the `NCode.Identity.Bff` core):
+  [ADR-0290](decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
+  [ADR-0291](decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-0292](decisions/0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) and
+  [ADR-0293](decisions/0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md). The
+  library is tracked as issue [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management
+  console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). When each phase lands, its
+  decisions ([§8](#8-decisions-and-options-considered)) become ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a new **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
   of a browser frontend. The BFF is the OAuth client. It keeps tokens on the server, gives the browser only an
@@ -246,8 +253,8 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.OpenId.Protocol.Abstractions`   | nothing                                                         | The OAuth 2.0 / OpenID Connect **wire vocabulary** (`OpenIdProtocol`): parameter, error, grant type, media type and metadata names, shared by the OP and the protocol client ([ADR-0276](decisions/0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md)). |
 | `NCode.Identity.OpenId.Client.Abstractions`     | `NCode.Identity.Jose.Abstractions`, `NCode.Identity.Jwt.Abstractions`, `NCode.Identity.OpenId.Protocol.Abstractions`, `NCode.Json` | Contracts for an OAuth/OIDC **protocol client**: discovery document, token-endpoint requests and responses, client-authentication strategies, DPoP proof creation, ID-token and logout-token validation results.                                                            |
 | `NCode.Identity.OpenId.Client`                  | the above, `.SharedState.Abstractions` (abstractions only, ADR-0016)    | Default implementations: cached discovery and JWKS, PAR, code / refresh / client-credentials / token-exchange requests, revocation, `private_key_jwt` and mTLS client authentication, DPoP with nonce handling, and ID-token and logout-token validation under the family's JWT policy ([ADR-0154](decisions/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). It is useful on its own to any server-side client. It needs no ASP.NET Core runtime ([ADR-0285](decisions/0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md)). |
-| `NCode.Identity.Bff.Abstractions`               | `NCode.Identity.OpenId.Client.Abstractions`                     | BFF contracts: session and session store, token requirements, token accessor, frontend descriptors, login gates, claim contributors, event types, and name constants.                                                                                                        |
-| `NCode.Identity.Bff`                            | the above, `NCode.Registration.AspNetCore`, `.Events`           | The ASP.NET Core authentication scheme, the `/bff` endpoints, the cookie-acceptance middleware, the token manager, local-API endpoint metadata, the remote-API forwarder (YARP's `IHttpForwarder`), the back-channel logout receiver, and `AddIdentityBff()`.                 |
+| `NCode.Identity.Bff.Abstractions`               | the ASP.NET Core shared framework, `NCode.Identity.OpenId.Client.Abstractions`, `NCode.Identity.Events.Abstractions`, `NCode.Registration` | BFF contracts: the session record and `IBffSessionStore`, token requirements and `IBffTokenAccessor`, login gates and session validators, `[BffApi]`, the audit event, problem types and name constants ([ADR-0290](decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)). |
+| `NCode.Identity.Bff`                            | the above, `NCode.Identity.SharedState.Abstractions` (abstractions only, ADR-0016) | The ASP.NET Core authentication scheme, the `/bff` endpoints, `UseBff()` with the cookie-acceptance checks, the token manager and `AddBffAccessTokenHandler`, local-API endpoint metadata (`AsBffApi`), and the back-channel logout receiver. Composed with `AddBffLibrary(events)` on the protocol client's builder and `AddBffConfiguration(configuration)`; the host registers the protocol client, events and shared-state implementations. Phase 3 adds the remote-API forwarder (YARP's `IHttpForwarder`). |
 | `NCode.Identity.Bff.Yarp`                       | `NCode.Identity.Bff`, YARP                                      | Optional. Attaches tokens to routes defined in YARP configuration and applies the anti-forgery check to them.                                                                                                                                                               |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
@@ -732,12 +739,17 @@ that is not registered is rejected at startup.
 
 ### 5.12 Composition and configuration
 
-The sketch below is illustrative; the final API is decided in the implementation ADRs.
+The sketch below shows the phase-2 composition; `MapBffRemoteApi` and `RemoteApis` arrive in phase 3.
 
 ```csharp
-var bff = builder.Services.AddIdentityBff();            // IIdentityBffBuilder : IServiceBuilder<IdentityBff>
-bff.AddConfiguration(builder.Configuration, "Bff");     // binds the default frontend and its remote APIs
-bff.SharedStateLibraryBuilder.AddValkey(builder.Configuration); // only when running several replicas
+var services = builder.Services;
+services.AddSharedStateServices()                       // or the Valkey adapters when running several replicas
+    .AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet();
+var events = services.AddEventServices();
+services.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary()
+    .AddOpenIdClientLibrary()                           // the protocol client (phase 1)
+    .AddBffLibrary(events)                              // IServiceBuilder<BffLibrary>
+    .AddBffConfiguration(builder.Configuration);        // binds the "Bff" section strictly
 
 var app = builder.Build();
 app.UseForwardedHeaders();
@@ -765,6 +777,7 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
     "Scopes": ["openid", "profile", "email", "offline_access"],
     "ReturnUrls": ["/"],
     "UserClaims": ["email", "role"],
+    "TrustedOrigins": ["https://admin.example.com"],              // same-site origins allowed to call the APIs
     "Session": { "AbsoluteLifetime": "08:00:00", "IdleTimeout": "01:00:00", "SameSite": "Strict" },
     "DPoP": { "Mode": "when_supported", "KeyRing": "orders-web-dpop" },
     "RemoteApis": {
@@ -981,7 +994,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
 | 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. mTLS client authentication is delivered ([ADR-0288](decisions/0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md)); ID-token validation (ADR-0273) and logout-token validation ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. PAR is delivered ([ADR-0275](decisions/0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)). Encrypted ID and logout tokens are delivered ([ADR-0280](decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)). DPoP is delivered ([ADR-0286](decisions/0286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)). |
-| 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
+| 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. Delivered ([ADR-0290](decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md), [ADR-0291](decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md), [ADR-0292](decisions/0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md), [ADR-0293](decisions/0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)). |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |
 | 5     | [#158](https://github.com/NCodeGroup/Identity/issues/158): the management console moves onto the BFF. The reference host serves the console through the BFF as a confidential client of its own root tenant, and the console's `@ncode/auth` token custody is retired. The Playground stays a public client on purpose. |
@@ -1013,15 +1026,23 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
    client correctly in one step? It would set confidential `private_key_jwt`, PAR required, DPoP required,
    `backchannel_logout_session_required`, rotation with `revoke_all`, and a refresh-token absolute lifetime aligned
    with the BFF session, in the spirit of the FAPI ceiling ([ADR-0108](decisions/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+   Decided: no; a profile is a ceiling, not a provisioning template, so a BFF client registers explicit metadata and a
+   deployment that wants a ceiling selects `fapi2`
+   ([ADR-0294](decisions/0294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
 2. **Refresh-token lifetime discovery.** OPs do not advertise a refresh token's absolute expiry, so the BFF learns it
    only from `invalid_grant`. Should the NCode OP return a (non-standard) `refresh_token_expires_in`, so the BFF can cap
    the session up front?
+   Decided: the BFF honors `refresh_token_expires_in` from any OP that sends it, only to shorten a session
+   ([ADR-0291](decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)); making
+   the NCode OP send it is a separate OP change.
 3. **Telling other tabs that the session ended.** Should a back-channel logout reach open tabs immediately (for
    example through a server-sent-events endpoint), or is the next API `401` soon enough?
 4. **Server-rendered and Blazor hosts.** Is an authentication-state provider for Blazor, or guidance for Razor Pages,
    worth a separate package?
 5. **Package naming.** Should the packages be `NCode.Identity.Bff` or `NCode.Identity.OpenId.Bff`? The protocol client
    sits under `OpenId` because it is a protocol concern, and the BFF is an application pattern.
+   Decided: `NCode.Identity.Bff` and `NCode.Identity.Bff.Abstractions`, because the BFF is an application pattern
+   ([ADR-0290](decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)).
 6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/Identity/issues/158), should the console's BFF run in the OP host process (simplest),
    or as a separate host (cleaner separation of the OP and its first-party client)?
 

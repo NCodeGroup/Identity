@@ -137,10 +137,10 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -205,10 +205,10 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -250,10 +250,10 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -272,10 +272,10 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        using var document = JsonDocument.Parse(body);
+        var document = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -304,10 +304,10 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        using var document = JsonDocument.Parse(body);
+        var document = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 

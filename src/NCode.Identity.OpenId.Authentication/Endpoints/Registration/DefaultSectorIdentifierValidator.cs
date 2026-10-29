@@ -171,11 +171,11 @@ internal class DefaultSectorIdentifierValidator(
 
         try
         {
-            using var document = JsonDocument.Parse(content);
-            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            var document = JsonElement.Parse(content);
+            if (document.ValueKind != JsonValueKind.Array)
                 return false;
 
-            foreach (var element in document.RootElement.EnumerateArray())
+            foreach (var element in document.EnumerateArray())
             {
                 if (!element.TryGetValue<string>(out var value))
                     return false;

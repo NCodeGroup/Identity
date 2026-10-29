@@ -71,7 +71,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 
     #region Helpers
 
-    private static JsonElement Payload(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Payload(string json) => JsonElement.Parse(json);
 
     private (Mock<OpenIdContext> Context, Mock<IOpenIdError> Error) SetupContextWithErrorFactory()
     {

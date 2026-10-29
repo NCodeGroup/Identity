@@ -273,10 +273,8 @@ public class TokenEndpointMutualTlsTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     [Fact]
@@ -330,10 +328,10 @@ public class TokenEndpointMutualTlsTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -364,10 +362,10 @@ public class TokenEndpointMutualTlsTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -443,10 +441,8 @@ public class TokenEndpointMutualTlsTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     [Fact]
@@ -649,8 +645,8 @@ public class TokenEndpointMutualTlsTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.Equal("invalid_client", document.RootElement.GetProperty("error").GetString());
+        var document = JsonElement.Parse(body);
+        Assert.Equal("invalid_client", document.GetProperty("error").GetString());
     }
 
     [Fact]
@@ -660,10 +656,10 @@ public class TokenEndpointMutualTlsTests
         var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
 
         var methods = document
-            .RootElement.GetProperty("token_endpoint_auth_methods_supported")
+            .GetProperty("token_endpoint_auth_methods_supported")
             .EnumerateArray()
             .Select(element => element.GetString())
             .ToList();

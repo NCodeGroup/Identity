@@ -980,12 +980,13 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   named, debuggable, and readable.
 - **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
   (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
-  Never leave a `HttpResponseMessage`, `Stream`, `JsonDocument`, or `IHttpClientFactory`-created client undisposed.
-  **Prefer `JsonElement.Parse` when you only need a detached `JsonElement`** — its `string` and UTF-8
-  `ReadOnlySpan<byte>` overloads own no `JsonDocument` to dispose and replace
-  `JsonDocument.Parse(json).RootElement.Clone()` and `JsonSerializer.Deserialize<JsonElement>(json)`, so a token
-  segment decoded into a rented buffer parses straight from the span; keep `JsonDocument` only when you genuinely
-  enumerate within a scoped `using`.
+  Never leave a `HttpResponseMessage`, `Stream`, or `IHttpClientFactory`-created client undisposed.
+  **Parse JSON into a detached `JsonElement`, never a `JsonDocument`.** `JsonElement.Parse` (a `string`, a UTF-8
+  `ReadOnlySpan<byte>`, or, through `NCode.Json`, a `ReadOnlySequence<byte>`) and `JsonElement.ParseValue` own nothing
+  to dispose, so a token segment decoded into a rented buffer parses straight from the span; a `Stream` is read with
+  `JsonSerializer.Deserialize<JsonElement>` / `DeserializeAsync<JsonElement>`. `JsonDocument.Parse`, `ParseAsync`,
+  `ParseValue` and `TryParseValue` are banned (`BannedSymbols.txt`, RS0030) in production and test code alike: a
+  `JsonDocument` rents pooled buffers that leak when it is not disposed, and an element read from it fails once it is.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare

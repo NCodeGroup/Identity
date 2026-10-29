@@ -74,8 +74,8 @@ public class PasswordAttemptLimitTests
 
         using var response = await client.PostAsync("/oauth2/token", content);
         var body = await response.Content.ReadAsStringAsync();
-        using var document = JsonDocument.Parse(body);
-        var error = document.RootElement.TryGetProperty("error", out var errorElement)
+        var document = JsonElement.Parse(body);
+        var error = document.TryGetProperty("error", out var errorElement)
             ? errorElement.GetString()
             : null;
         return (response.StatusCode, error);

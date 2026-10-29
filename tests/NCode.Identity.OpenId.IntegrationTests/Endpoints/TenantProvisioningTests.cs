@@ -99,8 +99,8 @@ public class TenantProvisioningTests
         var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
 
-        using var token = JsonDocument.Parse(tokenBody);
-        var accessToken = token.RootElement.GetProperty("access_token").GetString();
+        var token = JsonElement.Parse(tokenBody);
+        var accessToken = token.GetProperty("access_token").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
             accessToken
@@ -127,11 +127,8 @@ public class TenantProvisioningTests
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
-        using var created = JsonDocument.Parse(createBody);
-        Assert.Equal(
-            "https://acme.auth.test",
-            created.RootElement.GetProperty("issuer").GetString()
-        );
+        var created = JsonElement.Parse(createBody);
+        Assert.Equal("https://acme.auth.test", created.GetProperty("issuer").GetString());
 
         // Seeded as soon as it exists, without waiting for its first request (ADR-0166).
         Assert.True(await HasOpenIdResourceServerAsync(factory, "acme"));
@@ -143,14 +140,11 @@ public class TenantProvisioningTests
         var discoveryBody = await discoveryResponse.Content.ReadAsStringAsync();
         Assert.True(discoveryResponse.StatusCode == HttpStatusCode.OK, discoveryBody);
 
-        using var discovery = JsonDocument.Parse(discoveryBody);
-        Assert.Equal(
-            "https://acme.auth.test",
-            discovery.RootElement.GetProperty("issuer").GetString()
-        );
+        var discovery = JsonElement.Parse(discoveryBody);
+        Assert.Equal("https://acme.auth.test", discovery.GetProperty("issuer").GetString());
         Assert.Equal(
             "https://acme.auth.test/oauth2/token",
-            discovery.RootElement.GetProperty("token_endpoint").GetString()
+            discovery.GetProperty("token_endpoint").GetString()
         );
     }
 
@@ -177,9 +171,8 @@ public class TenantProvisioningTests
         var listBody = await listResponse.Content.ReadAsStringAsync();
         Assert.True(listResponse.StatusCode == HttpStatusCode.OK, listBody);
 
-        using var list = JsonDocument.Parse(listBody);
-        var acme = list
-            .RootElement.GetProperty("items")
+        var list = JsonElement.Parse(listBody);
+        var acme = list.GetProperty("items")
             .EnumerateArray()
             .Single(item => item.GetProperty("tenantId").GetString() == "acme");
         var environment = acme.GetProperty("environment");
@@ -208,10 +201,10 @@ public class TenantProvisioningTests
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
-        using var created = JsonDocument.Parse(createBody);
+        var created = JsonElement.Parse(createBody);
         Assert.Equal(
             "https://acme.mtls.test",
-            created.RootElement.GetProperty("mtlsEndpointAliasAuthority").GetString()
+            created.GetProperty("mtlsEndpointAliasAuthority").GetString()
         );
 
         // A request to the alias host reaches the tenant (RFC 8705 §5), and its discovery document still names the issuer
@@ -222,17 +215,11 @@ public class TenantProvisioningTests
         var discoveryBody = await discoveryResponse.Content.ReadAsStringAsync();
         Assert.True(discoveryResponse.StatusCode == HttpStatusCode.OK, discoveryBody);
 
-        using var discovery = JsonDocument.Parse(discoveryBody);
-        Assert.Equal(
-            "https://acme.auth.test",
-            discovery.RootElement.GetProperty("issuer").GetString()
-        );
+        var discovery = JsonElement.Parse(discoveryBody);
+        Assert.Equal("https://acme.auth.test", discovery.GetProperty("issuer").GetString());
         Assert.Equal(
             "https://acme.mtls.test/oauth2/token",
-            discovery
-                .RootElement.GetProperty("mtls_endpoint_aliases")
-                .GetProperty("token_endpoint")
-                .GetString()
+            discovery.GetProperty("mtls_endpoint_aliases").GetProperty("token_endpoint").GetString()
         );
     }
 
@@ -248,14 +235,12 @@ public class TenantProvisioningTests
         var previewBody = await previewResponse.Content.ReadAsStringAsync();
         Assert.True(previewResponse.StatusCode == HttpStatusCode.OK, previewBody);
 
-        using var preview = JsonDocument.Parse(previewBody);
+        var preview = JsonElement.Parse(previewBody);
         Assert.Equal(
             "https://acme.mtls.test",
-            preview.RootElement.GetProperty("mtlsEndpointAliasAuthority").GetString()
+            preview.GetProperty("mtlsEndpointAliasAuthority").GetString()
         );
-        Assert.True(
-            preview.RootElement.GetProperty("isMtlsEndpointAliasAuthorityDerived").GetBoolean()
-        );
+        Assert.True(preview.GetProperty("isMtlsEndpointAliasAuthorityDerived").GetBoolean());
 
         using var createResponse = await client.PostAsJsonAsync(
             "/api/tenants",
@@ -270,10 +255,10 @@ public class TenantProvisioningTests
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
-        using var created = JsonDocument.Parse(createBody);
+        var created = JsonElement.Parse(createBody);
         Assert.Equal(
             "https://acme.mtls.test",
-            created.RootElement.GetProperty("mtlsEndpointAliasAuthority").GetString()
+            created.GetProperty("mtlsEndpointAliasAuthority").GetString()
         );
 
         using var discoveryRequest = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);
@@ -282,13 +267,10 @@ public class TenantProvisioningTests
         var discoveryBody = await discoveryResponse.Content.ReadAsStringAsync();
         Assert.True(discoveryResponse.StatusCode == HttpStatusCode.OK, discoveryBody);
 
-        using var discovery = JsonDocument.Parse(discoveryBody);
+        var discovery = JsonElement.Parse(discoveryBody);
         Assert.Equal(
             "https://acme.mtls.test/oauth2/token",
-            discovery
-                .RootElement.GetProperty("mtls_endpoint_aliases")
-                .GetProperty("token_endpoint")
-                .GetString()
+            discovery.GetProperty("mtls_endpoint_aliases").GetProperty("token_endpoint").GetString()
         );
     }
 
@@ -336,8 +318,8 @@ public class TenantProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var address = JsonDocument.Parse(body);
-        var root = address.RootElement;
+        var address = JsonElement.Parse(body);
+        var root = address;
         Assert.Equal("globex", root.GetProperty("tenantId").GetString());
         Assert.Equal("https://globex.auth.test", root.GetProperty("issuer").GetString());
         Assert.True(root.GetProperty("isIssuerDerived").GetBoolean());
@@ -357,8 +339,8 @@ public class TenantProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var address = JsonDocument.Parse(body);
-        var failures = address.RootElement.GetProperty("failures").EnumerateArray().ToList();
+        var address = JsonElement.Parse(body);
+        var failures = address.GetProperty("failures").EnumerateArray().ToList();
         Assert.Contains(failures, failure => failure.GetProperty("isConflict").GetBoolean());
     }
 
@@ -402,8 +384,8 @@ public class TenantProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var address = JsonDocument.Parse(body);
-        var failures = address.RootElement.GetProperty("failures").EnumerateArray().ToList();
+        var address = JsonElement.Parse(body);
+        var failures = address.GetProperty("failures").EnumerateArray().ToList();
         Assert.Contains(
             failures,
             failure =>

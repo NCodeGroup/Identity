@@ -100,8 +100,8 @@ public class TokenEndpointClientJwksUriTests
     private static async Task<string> GetIssuerAsync(HttpClient client)
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.GetProperty("issuer").GetString()!;
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return document.GetProperty("issuer").GetString()!;
     }
 
     [Fact]
@@ -135,10 +135,8 @@ public class TokenEndpointClientJwksUriTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     [Fact]
@@ -174,10 +172,10 @@ public class TokenEndpointClientJwksUriTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 }

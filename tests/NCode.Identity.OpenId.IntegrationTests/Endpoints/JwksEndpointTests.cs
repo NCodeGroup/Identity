@@ -41,9 +41,9 @@ public class JwksEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        using var document = JsonDocument.Parse(json);
+        var document = JsonElement.Parse(json);
 
-        Assert.True(document.RootElement.TryGetProperty("keys", out var keys));
+        Assert.True(document.TryGetProperty("keys", out var keys));
         Assert.Equal(JsonValueKind.Array, keys.ValueKind);
         Assert.True(keys.GetArrayLength() >= 1);
 

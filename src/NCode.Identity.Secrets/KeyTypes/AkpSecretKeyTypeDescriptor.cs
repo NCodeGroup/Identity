@@ -269,8 +269,8 @@ public sealed class AkpSecretKeyTypeDescriptor(
         JsonElement root;
         try
         {
-            using var document = JsonDocument.Parse(keyMaterial);
-            root = document.RootElement.Clone();
+            var document = JsonElement.Parse(keyMaterial);
+            root = document;
         }
         catch (JsonException exception)
         {

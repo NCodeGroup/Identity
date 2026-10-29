@@ -554,7 +554,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     {
         var response = new ProviderHttpResponse(
             400,
-            JsonDocument.Parse("""{"error":"invalid_grant","error_description":"d"}""").RootElement
+            JsonElement.Parse("""{"error":"invalid_grant","error_description":"d"}""")
         );
 
         var result = ProtocolErrorReader.TryRead(response, out var error);
@@ -570,7 +570,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     [Fact]
     public void TryRead_WithEmptyObject_ReturnsFalse()
     {
-        var response = new ProviderHttpResponse(400, JsonDocument.Parse("{}").RootElement);
+        var response = new ProviderHttpResponse(400, JsonElement.Parse("{}"));
 
         var result = ProtocolErrorReader.TryRead(response, out var error);
 

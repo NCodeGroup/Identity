@@ -242,10 +242,8 @@ public class EncryptedTokenEndToEndTests
     {
         var segments = token.Split('.');
         Assert.Equal(5, segments.Length);
-        using var header = JsonDocument.Parse(
-            System.Buffers.Text.Base64Url.DecodeFromChars(segments[0])
-        );
-        return header.RootElement.Clone();
+        var header = JsonElement.Parse(System.Buffers.Text.Base64Url.DecodeFromChars(segments[0]));
+        return header;
     }
 
     private static async Task EndSessionAsync(HttpClient browser, string sessionCookie)

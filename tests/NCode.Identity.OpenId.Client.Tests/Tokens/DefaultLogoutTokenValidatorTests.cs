@@ -980,7 +980,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var lookups = new List<string>();
         var records = new List<(string Key, DateTimeOffset ExpiresWhen)>();
         var validator = CreateRecordingValidator(CreateRecordingKeySet(lookups, records));
-        var payload = JsonDocument.Parse("{}").RootElement;
+        var payload = JsonElement.Parse("{}");
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(2);
 
         foreach (

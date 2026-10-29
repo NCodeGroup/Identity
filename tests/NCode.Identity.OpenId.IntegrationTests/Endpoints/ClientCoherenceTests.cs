@@ -239,8 +239,8 @@ public class ClientCoherenceTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        using var document = JsonDocument.Parse(body);
-        return document.RootElement.GetProperty("clientId").GetString()!;
+        var document = JsonElement.Parse(body);
+        return document.GetProperty("clientId").GetString()!;
     }
 
     private static Task<(HttpStatusCode StatusCode, string Body)> PostClientAsync(
@@ -307,8 +307,8 @@ public class ClientCoherenceTests
 
     private static bool HasError(string body, string settingName)
     {
-        using var document = JsonDocument.Parse(body);
-        return document.RootElement.TryGetProperty("errors", out var errors)
+        var document = JsonElement.Parse(body);
+        return document.TryGetProperty("errors", out var errors)
             && errors.TryGetProperty(settingName, out _);
     }
 

@@ -45,8 +45,8 @@ public class TokenEndpointClientAssertionTests
     private static async Task<string> GetIssuerAsync(HttpClient client)
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.GetProperty("issuer").GetString()!;
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return document.GetProperty("issuer").GetString()!;
     }
 
     private static string BuildClientSecretJwt(
@@ -127,10 +127,10 @@ public class TokenEndpointClientAssertionTests
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -165,10 +165,8 @@ public class TokenEndpointClientAssertionTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     [Fact]
@@ -240,10 +238,10 @@ public class TokenEndpointClientAssertionTests
         var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
 
         var methods = document
-            .RootElement.GetProperty("token_endpoint_auth_methods_supported")
+            .GetProperty("token_endpoint_auth_methods_supported")
             .EnumerateArray()
             .Select(element => element.GetString())
             .ToList();
@@ -267,10 +265,10 @@ public class TokenEndpointClientAssertionTests
         using var second = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
         Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
 
-        using var document = JsonDocument.Parse(await second.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await second.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -286,10 +284,10 @@ public class TokenEndpointClientAssertionTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -306,10 +304,10 @@ public class TokenEndpointClientAssertionTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -368,9 +366,7 @@ public class TokenEndpointClientAssertionTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 }

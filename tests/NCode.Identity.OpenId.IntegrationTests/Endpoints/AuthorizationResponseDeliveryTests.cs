@@ -181,10 +181,10 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -361,10 +361,10 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -387,10 +387,10 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 

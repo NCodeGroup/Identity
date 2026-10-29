@@ -286,14 +286,14 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
         Assert.Contains(
             "no key",
-            document.RootElement.GetProperty("error_description").GetString(),
+            document.GetProperty("error_description").GetString(),
             StringComparison.Ordinal
         );
     }
@@ -324,14 +324,14 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
         Assert.Contains(
             "no public key",
-            document.RootElement.GetProperty("error_description").GetString(),
+            document.GetProperty("error_description").GetString(),
             StringComparison.Ordinal
         );
     }
@@ -373,8 +373,8 @@ public class JwtSecuredAuthorizationResponseTests
         );
         var registerBody = await registerResponse.Content.ReadAsStringAsync();
         Assert.True(registerResponse.StatusCode == HttpStatusCode.Created, registerBody);
-        using var registration = JsonDocument.Parse(registerBody);
-        var clientId = registration.RootElement.GetProperty("client_id").GetString()!;
+        var registration = JsonElement.Parse(registerBody);
+        var clientId = registration.GetProperty("client_id").GetString()!;
 
         using var response = await AuthorizeWithoutSessionAsync(
             client,

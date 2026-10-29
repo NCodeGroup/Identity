@@ -57,12 +57,12 @@ public class ClientSecretRotationTests
         var rotateBody = await rotateResponse.Content.ReadAsStringAsync();
         Assert.True(rotateResponse.StatusCode == HttpStatusCode.Created, rotateBody);
 
-        using var rotated = JsonDocument.Parse(rotateBody);
-        var replacementId = rotated.RootElement.GetProperty("secretId").GetString()!;
-        var replacementMaterial = rotated.RootElement.GetProperty("secretMaterial").GetString()!;
+        var rotated = JsonElement.Parse(rotateBody);
+        var replacementId = rotated.GetProperty("secretId").GetString()!;
+        var replacementMaterial = rotated.GetProperty("secretMaterial").GetString()!;
         Assert.NotEqual(secretId, replacementId);
         Assert.False(string.IsNullOrEmpty(replacementMaterial));
-        Assert.Equal("symmetric", rotated.RootElement.GetProperty("secretType").GetString());
+        Assert.Equal("symmetric", rotated.GetProperty("secretType").GetString());
 
         Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
         Assert.Equal("invalid_client", await AuthenticateAsync(client, clientId, secretMaterial));
@@ -73,8 +73,8 @@ public class ClientSecretRotationTests
         );
         var listBody = await listResponse.Content.ReadAsStringAsync();
         Assert.True(listResponse.StatusCode == HttpStatusCode.OK, listBody);
-        using var list = JsonDocument.Parse(listBody);
-        var secret = Assert.Single(list.RootElement.GetProperty("secrets").EnumerateArray());
+        var list = JsonElement.Parse(listBody);
+        var secret = Assert.Single(list.GetProperty("secrets").EnumerateArray());
         Assert.Equal(replacementId, secret.GetProperty("secretId").GetString());
         Assert.False(secret.TryGetProperty("secretMaterial", out _));
     }
@@ -128,10 +128,10 @@ public class ClientSecretRotationTests
         using var response = await client.SendAsync(tokenRequest);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        using var document = JsonDocument.Parse(body);
+        var document = JsonElement.Parse(body);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            document.RootElement.GetProperty("access_token").GetString()
+            document.GetProperty("access_token").GetString()
         );
         return client;
     }
@@ -153,8 +153,8 @@ public class ClientSecretRotationTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        using var document = JsonDocument.Parse(body);
-        return document.RootElement.GetProperty("clientId").GetString()!;
+        var document = JsonElement.Parse(body);
+        return document.GetProperty("clientId").GetString()!;
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
@@ -173,10 +173,10 @@ public class ClientSecretRotationTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        using var document = JsonDocument.Parse(body);
+        var document = JsonElement.Parse(body);
         return (
-            document.RootElement.GetProperty("secretId").GetString()!,
-            document.RootElement.GetProperty("secretMaterial").GetString()!
+            document.GetProperty("secretId").GetString()!,
+            document.GetProperty("secretMaterial").GetString()!
         );
     }
 
@@ -202,8 +202,8 @@ public class ClientSecretRotationTests
             return null;
         }
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.GetProperty("error").GetString();
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return document.GetProperty("error").GetString();
     }
 
     private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory

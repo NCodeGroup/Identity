@@ -937,6 +937,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
+  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
+  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
+  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
+  which reads one value from a segmented buffer and refuses trailing content
+  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
   expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
   retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
@@ -3444,6 +3450,12 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
+  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
+  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
+  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
+  which reads one value from a segmented buffer and refuses trailing content
+  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
   expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
   retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
@@ -3920,6 +3932,12 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
+- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
+  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
+  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
+  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
+  which reads one value from a segmented buffer and refuses trailing content
+  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
   expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
   retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
@@ -4917,6 +4935,12 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
+- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
+  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
+  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
+  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
+  which reads one value from a segmented buffer and refuses trailing content
+  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
   expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
   retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
@@ -5317,6 +5341,12 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
+  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
+  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
+  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
+  which reads one value from a segmented buffer and refuses trailing content
+  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
   expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
   retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new

@@ -101,10 +101,10 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
     private static string GetAssertionAlgorithm(List<KeyValuePair<string, string>> parameters)
     {
         var assertion = Assert.Single(parameters, p => p.Key == "client_assertion").Value;
-        using var header = JsonDocument.Parse(
+        var header = JsonElement.Parse(
             System.Buffers.Text.Base64Url.DecodeFromChars(assertion.Split('.')[0])
         );
-        return header.RootElement.GetProperty("alg").GetString()!;
+        return header.GetProperty("alg").GetString()!;
     }
 
     private static ClientAuthenticationContext CreateContext(
@@ -156,10 +156,10 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
         Assert.True(result.IsValid);
 
         var payloadSegment = assertion.Split('.')[1];
-        using var payload = JsonDocument.Parse(
+        var payload = JsonElement.Parse(
             System.Buffers.Text.Base64Url.DecodeFromChars(payloadSegment)
         );
-        var root = payload.RootElement;
+        var root = payload;
         Assert.Equal(ClientId, root.GetProperty("sub").GetString());
         Assert.Equal(ClientId, root.GetProperty("iss").GetString());
         Assert.Equal(JsonValueKind.String, root.GetProperty("aud").ValueKind);

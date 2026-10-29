@@ -294,8 +294,8 @@ public class FrontendBootstrapDocumentTests
         );
 
         var json = JsonSerializer.Serialize(document, JsonSerializerOptions.Web);
-        using var parsed = JsonDocument.Parse(json);
-        var root = parsed.RootElement;
+        var parsed = JsonElement.Parse(json);
+        var root = parsed;
 
         Assert.Equal("https://id.example", root.GetProperty("apiBaseUrl").GetString());
         Assert.Equal(TenantIssuer, root.GetProperty("issuer").GetString());
@@ -316,8 +316,8 @@ public class FrontendBootstrapDocumentTests
         );
 
         var json = JsonSerializer.Serialize(document, JsonSerializerOptions.Web);
-        using var parsed = JsonDocument.Parse(json);
-        var root = parsed.RootElement;
+        var parsed = JsonElement.Parse(json);
+        var root = parsed;
 
         Assert.False(root.TryGetProperty("clientId", out _));
         Assert.False(root.TryGetProperty("scopes", out _));

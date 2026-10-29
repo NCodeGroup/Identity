@@ -122,8 +122,8 @@ internal class ProviderHttpClient(
                     WwwAuthenticate = wwwAuthenticate,
                 };
 
-            using var document = JsonDocument.Parse(bytes);
-            return new ProviderHttpResponse((int)response.StatusCode, document.RootElement.Clone())
+            var document = JsonElement.Parse(bytes);
+            return new ProviderHttpResponse((int)response.StatusCode, document)
             {
                 DPoPNonce = dpopNonce,
                 MediaType = mediaType,

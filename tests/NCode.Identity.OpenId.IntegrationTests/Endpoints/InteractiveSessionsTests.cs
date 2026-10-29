@@ -54,8 +54,8 @@ public class InteractiveSessionsTests
 
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        var session = Assert.Single(document.RootElement.GetProperty("sessions").EnumerateArray());
+        var document = JsonElement.Parse(body);
+        var session = Assert.Single(document.GetProperty("sessions").EnumerateArray());
 
         Assert.Equal(
             session.GetProperty("lastActivityWhen").GetInt64()

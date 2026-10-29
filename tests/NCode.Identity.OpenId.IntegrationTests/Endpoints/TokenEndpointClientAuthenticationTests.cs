@@ -102,10 +102,10 @@ public class TokenEndpointClientAuthenticationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == expectedStatusCode, body);
 
-        using var document = JsonDocument.Parse(body);
+        var document = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -242,10 +242,8 @@ public class TokenEndpointClientAuthenticationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     [Fact]
@@ -274,10 +272,8 @@ public class TokenEndpointClientAuthenticationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     #endregion
@@ -305,10 +301,10 @@ public class TokenEndpointClientAuthenticationTests
         Assert.Equal("Basic", challenge.Scheme);
         Assert.Contains("realm=", challenge.Parameter);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 
@@ -361,10 +357,8 @@ public class TokenEndpointClientAuthenticationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.False(
-            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
-        );
+        var document = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(document.GetProperty("access_token").GetString()));
     }
 
     [Fact]
@@ -389,10 +383,10 @@ public class TokenEndpointClientAuthenticationTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Empty(response.Headers.WwwAuthenticate);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            document.GetProperty("error").GetString()
         );
     }
 

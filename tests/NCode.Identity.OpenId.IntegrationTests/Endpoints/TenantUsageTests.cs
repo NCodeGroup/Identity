@@ -87,7 +87,7 @@ public class TenantUsageTests
             using var response = await administrator.GetAsync(UsagePath);
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-            var usage = JsonDocument.Parse(body).RootElement.Clone();
+            var usage = JsonElement.Parse(body);
             if (GetCount(usage, meter) >= expected || DateTime.UtcNow > deadline)
                 return usage;
             await Task.Delay(TimeSpan.FromMilliseconds(100));
@@ -126,10 +126,10 @@ public class TenantUsageTests
         var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
 
-        using var token = JsonDocument.Parse(tokenBody);
+        var token = JsonElement.Parse(tokenBody);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            token.RootElement.GetProperty("access_token").GetString()
+            token.GetProperty("access_token").GetString()
         );
         return client;
     }
@@ -185,7 +185,7 @@ public class TenantUsageTests
             using var response = await administrator.GetAsync(UsagePath);
             var body = await response.Content.ReadAsStringAsync();
             Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-            usage = JsonDocument.Parse(body).RootElement.Clone();
+            usage = JsonElement.Parse(body);
             if (GetCount(usage, TenantUsageMeters.Requests) >= 4 || DateTime.UtcNow > deadline)
                 break;
             await Task.Delay(TimeSpan.FromMilliseconds(100));

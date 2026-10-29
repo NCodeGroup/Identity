@@ -64,8 +64,8 @@ public class IncoherentClientReportTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        using var document = JsonDocument.Parse(body);
-        var items = document.RootElement.GetProperty("items").EnumerateArray().ToList();
+        var document = JsonElement.Parse(body);
+        var items = document.GetProperty("items").EnumerateArray().ToList();
         var item = Assert.Single(
             items,
             element => element.GetProperty("clientId").GetString() == IncoherentClientId
@@ -107,8 +107,8 @@ public class IncoherentClientReportTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        using var document = JsonDocument.Parse(body);
-        var items = document.RootElement.GetProperty("items").EnumerateArray().ToList();
+        var document = JsonElement.Parse(body);
+        var items = document.GetProperty("items").EnumerateArray().ToList();
         var item = Assert.Single(
             items,
             element => element.GetProperty("clientId").GetString() == IncoherentClientId
@@ -138,8 +138,8 @@ public class IncoherentClientReportTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        using var document = JsonDocument.Parse(body);
-        Assert.Empty(document.RootElement.GetProperty("items").EnumerateArray());
+        var document = JsonElement.Parse(body);
+        Assert.Empty(document.GetProperty("items").EnumerateArray());
     }
 
     #endregion

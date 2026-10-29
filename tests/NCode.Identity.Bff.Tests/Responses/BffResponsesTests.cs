@@ -60,8 +60,7 @@ public class BffResponsesTests : BaseTests
         Assert.Equal("no-store", httpContext.Response.Headers.CacheControl.ToString());
 
         body.Position = 0;
-        using var document = await JsonDocument.ParseAsync(body);
-        var root = document.RootElement;
+        var root = await JsonSerializer.DeserializeAsync<JsonElement>(body);
         Assert.Equal(BffProblemTypes.SessionRequired, root.GetProperty("type").GetString());
         Assert.Equal("Unauthenticated", root.GetProperty("title").GetString());
         Assert.Equal(401, root.GetProperty("status").GetInt32());

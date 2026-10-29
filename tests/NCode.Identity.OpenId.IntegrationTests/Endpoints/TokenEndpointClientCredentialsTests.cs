@@ -61,8 +61,8 @@ public class TokenEndpointClientCredentialsTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
+        var document = JsonElement.Parse(body);
+        var root = document;
 
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
@@ -71,8 +71,8 @@ public class TokenEndpointClientCredentialsTests
         Assert.Equal(TestServerSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
 
         // The access token audience is bound to the resource server that owns the scope, not the client (ADR-0027).
-        using var payload = DecodeJwtPayload(accessToken.GetString()!);
-        var audElement = payload.RootElement.GetProperty("aud");
+        var payload = DecodeJwtPayload(accessToken.GetString()!);
+        var audElement = payload.GetProperty("aud");
         var audiences =
             audElement.ValueKind == JsonValueKind.Array
                 ? audElement.EnumerateArray().Select(element => element.GetString()).ToList()
@@ -105,8 +105,8 @@ public class TokenEndpointClientCredentialsTests
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(document.RootElement.TryGetProperty("error", out _));
+        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(document.TryGetProperty("error", out _));
     }
 
     [Fact]
@@ -150,10 +150,10 @@ public class TokenEndpointClientCredentialsTests
             }
         );
 
-    private static JsonDocument DecodeJwtPayload(string jwt)
+    private static JsonElement DecodeJwtPayload(string jwt)
     {
         var payloadSegment = jwt.Split('.')[1];
         var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
-        return JsonDocument.Parse(payloadBytes);
+        return JsonElement.Parse(payloadBytes);
     }
 }

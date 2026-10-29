@@ -57,8 +57,7 @@ public class BffMiddlewareTests : BaseTests
     private static JsonElement ReadProblem(HttpContext httpContext)
     {
         httpContext.Response.Body.Position = 0;
-        using var document = JsonDocument.Parse(httpContext.Response.Body);
-        return document.RootElement.Clone();
+        return JsonSerializer.Deserialize<JsonElement>(httpContext.Response.Body);
     }
 
     private sealed class FakeAuthenticationFeature : IAuthenticationFeature

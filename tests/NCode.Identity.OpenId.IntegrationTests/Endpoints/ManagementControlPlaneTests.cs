@@ -110,8 +110,8 @@ public class ManagementControlPlaneTests
         var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
 
-        using var token = JsonDocument.Parse(tokenBody);
-        var accessToken = token.RootElement.GetProperty("access_token").GetString();
+        var token = JsonElement.Parse(tokenBody);
+        var accessToken = token.GetProperty("access_token").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
             accessToken
@@ -144,8 +144,8 @@ public class ManagementControlPlaneTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
-        using var document = JsonDocument.Parse(body);
-        return document.RootElement.Clone();
+        var document = JsonElement.Parse(body);
+        return document;
     }
 
     #endregion

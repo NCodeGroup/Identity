@@ -31,10 +31,7 @@ public class ProtocolErrorReaderTests
     public void TryRead_WithNonStandardStatusCode_PreservesTheStatusCode()
     {
         const int statusCode = 499;
-        var response = new ProviderHttpResponse(
-            statusCode,
-            JsonDocument.Parse("""{"error":"x"}""").RootElement
-        );
+        var response = new ProviderHttpResponse(statusCode, JsonElement.Parse("""{"error":"x"}"""));
 
         var result = ProtocolErrorReader.TryRead(response, out var error);
 

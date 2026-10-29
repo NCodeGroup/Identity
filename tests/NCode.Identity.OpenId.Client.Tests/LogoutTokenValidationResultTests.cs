@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Client.Tests;
 
 public class LogoutTokenValidationResultTests
 {
-    private static JsonElement CreatePayload() => JsonDocument.Parse("{}").RootElement;
+    private static JsonElement CreatePayload() => JsonElement.Parse("{}");
 
     #region Constructor Tests
 

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
@@ -43,6 +44,42 @@ public static class JsonElements
 
     extension(JsonElement jsonElement)
     {
+        /// <summary>
+        /// Parses one JSON value from UTF-8 text held in a sequence of segments, such as a buffered HTTP response body,
+        /// into a detached <see cref="JsonElement"/> with nothing to dispose, as <see cref="JsonElement.Parse(string, JsonDocumentOptions)"/>
+        /// does for contiguous text. The text must hold exactly one value (RFC 8259 §2): anything after it but
+        /// whitespace is malformed.
+        /// </summary>
+        /// <param name="utf8Json">The UTF-8 JSON text.</param>
+        /// <param name="options">The options that control the reader during parsing.</param>
+        /// <returns>The parsed value.</returns>
+        /// <exception cref="JsonException">The text is not one well-formed JSON value.</exception>
+        public static JsonElement Parse(
+            ReadOnlySequence<byte> utf8Json,
+            JsonDocumentOptions options = default
+        )
+        {
+            var reader = new Utf8JsonReader(
+                utf8Json,
+                new JsonReaderOptions
+                {
+                    AllowTrailingCommas = options.AllowTrailingCommas,
+                    CommentHandling = options.CommentHandling,
+                    MaxDepth = options.MaxDepth,
+                }
+            );
+
+            var value = JsonElement.ParseValue(ref reader);
+
+            // A reader that disallows multiple values throws on content after the value, and stops at its end.
+            if (reader.Read())
+            {
+                throw new JsonException("The JSON text holds more than one value.");
+            }
+
+            return value;
+        }
+
         /// <summary>
         /// Gets a value indicating whether this element is absent — its <see cref="JsonElement.ValueKind"/> is
         /// <see cref="JsonValueKind.Null"/> or <see cref="JsonValueKind.Undefined"/> — rather than a present value

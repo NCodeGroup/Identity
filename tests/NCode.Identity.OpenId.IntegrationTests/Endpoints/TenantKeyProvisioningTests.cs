@@ -145,9 +145,9 @@ public class TenantKeyProvisioningTests
         // Nothing is seeded: this one request provisions the tenant, its keys, and the bootstrap administrator.
         var accessToken = await GetBootstrapTokenAsync(client);
 
-        using var header = DecodeJwtHeader(accessToken);
-        var kid = header.RootElement.GetProperty("kid").GetString();
-        var alg = header.RootElement.GetProperty("alg").GetString();
+        var header = DecodeJwtHeader(accessToken);
+        var kid = header.GetProperty("kid").GetString();
+        var alg = header.GetProperty("alg").GetString();
 
         var keys = await GetJwksAsync(client, host: null);
         var signingKey = Assert.Single(keys, key => key.GetProperty("kid").GetString() == kid);
@@ -387,11 +387,8 @@ public class TenantKeyProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        return
-        [
-            .. document.RootElement.GetProperty("keys").EnumerateArray().Select(key => key.Clone()),
-        ];
+        var document = JsonElement.Parse(body);
+        return [.. document.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
     }
 
     // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
@@ -422,12 +419,12 @@ public class TenantKeyProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        return document.RootElement.GetProperty("access_token").GetString() ?? string.Empty;
+        var document = JsonElement.Parse(body);
+        return document.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
-    private static JsonDocument DecodeJwtHeader(string jwt) =>
-        JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));
+    private static JsonElement DecodeJwtHeader(string jwt) =>
+        JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));
 
     // One operation per signing list of the server's settings: an "add" replaces the list with the value, a "remove"
     // drops it so the default applies again.

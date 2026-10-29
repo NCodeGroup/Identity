@@ -1,3 +1,39 @@
 #nullable enable
 NCode.Identity.Bff.BffLibrary
 NCode.Identity.Bff.BffLibrary.BffLibrary() -> void
+NCode.Identity.Bff.BffDefaults
+const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
+const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!
+const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> string!
+const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
+const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
+const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
+const NCode.Identity.Bff.BffDefaults.FrontendName = "default" -> string!
+const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
+NCode.Identity.Bff.BffProblemTypes
+const NCode.Identity.Bff.BffProblemTypes.SessionRequired = "urn:ncode:identity:bff:session_required" -> string!
+const NCode.Identity.Bff.BffProblemTypes.AntiforgeryHeaderMissing = "urn:ncode:identity:bff:antiforgery_header_missing" -> string!
+const NCode.Identity.Bff.BffProblemTypes.CrossSiteRequest = "urn:ncode:identity:bff:cross_site_request" -> string!
+const NCode.Identity.Bff.BffProblemTypes.Forbidden = "urn:ncode:identity:bff:forbidden" -> string!
+const NCode.Identity.Bff.BffProblemTypes.StoreUnavailable = "urn:ncode:identity:bff:store_unavailable" -> string!
+const NCode.Identity.Bff.BffProblemTypes.TokenUnavailable = "urn:ncode:identity:bff:token_unavailable" -> string!
+const NCode.Identity.Bff.BffProblemTypes.InvalidRequest = "urn:ncode:identity:bff:invalid_request" -> string!
+NCode.Identity.Bff.BffSessionEndReasons
+const NCode.Identity.Bff.BffSessionEndReasons.LoggedOut = "logged_out" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.IdleTimeout = "idle_timeout" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.AbsoluteExpiry = "absolute_expiry" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.RefreshFailed = "refresh_failed" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.BackchannelLogout = "backchannel_logout" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.Replaced = "replaced" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.EndedByValidator = "ended_by_validator" -> string!
+NCode.Identity.Bff.BffLoginFailureReasons
+const NCode.Identity.Bff.BffLoginFailureReasons.UnknownState = "unknown_state" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.InitiatorMismatch = "initiator_mismatch" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.IssuerMismatch = "issuer_mismatch" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.AuthorizationError = "authorization_error" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.AuthorizationRequestFailed = "authorization_request_failed" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.InvalidResponse = "invalid_response" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.TokenError = "token_error" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.IdTokenInvalid = "id_token_invalid" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.NonceMismatch = "nonce_mismatch" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.RejectedByGate = "rejected_by_gate" -> string!

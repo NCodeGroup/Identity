@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -119,6 +120,11 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         // Every judgement reads the request's HTTP context for its rate-limit state and its endpoint.
         MockContext.Setup(x => x.Http).Returns(HttpContext).Verifiable();
+
+        // The environment type is read only when a limit applies, so this setup is not verified.
+        MockTenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
+            .Returns(OpenIdConstants.TenantEnvironmentTypes.Production);
     }
 
     protected override void Dispose(bool disposing)
@@ -298,6 +304,27 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
+    public async Task AcquireAsync_WhenALimitIsJudged_TagsTheMeasurementWithTheTenantEnvironmentType()
+    {
+        var descriptor = CreateDescriptor("tagged", usageMeter: "tagged_meter");
+        SetupStage(descriptor);
+        SetupTenant();
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 10);
+        SetupIncrements(
+            [CreateSlidingIncrement("tagged", limit: 10)],
+            new ExpiringCounterCount(1, 0)
+        );
+
+        await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+
+        var measurement = Assert.Single(Collector.GetMeasurementSnapshot());
+        Assert.Equal(
+            OpenIdConstants.TenantEnvironmentTypes.Production,
+            measurement.Tags.GetValueOrDefault(AuthenticationMetrics.TenantEnvironmentTypeAttribute)
+        );
+    }
+
+    [Fact]
     public async Task AcquireAsync_WhenAUsageMeterIsAddedAgain_KeepsItOnce()
     {
         var first = CreateDescriptor("first", order: 100, usageMeter: "shared");
@@ -458,6 +485,9 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         var descriptor = CreateDescriptor("client_limited", usageMeter: "client_meter");
         var mockClientSettings = CreateStrictMock<IReadOnlySettingCollection>();
         SetupLimit(mockClientSettings, descriptor.LimitKey, 5);
+        mockClientSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
+            .Returns(OpenIdConstants.TenantEnvironmentTypes.Production);
         var mockClient = CreateStrictMock<OpenIdClient>();
         mockClient.Setup(x => x.Settings).Returns(mockClientSettings.Object).Verifiable();
         SetupStage(descriptor);

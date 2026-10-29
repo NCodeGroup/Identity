@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.SharedState;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.SharedState;
 
 namespace NCode.Identity.OpenId.Authentication.RateLimiting;
@@ -129,11 +130,12 @@ internal class DefaultRequestRateLimiter(
         if (limits.Count == 0)
             return Admit(state, usageMeters);
 
+        var environmentType = settings.GetValue(OpenIdSettingKeys.EnvironmentType);
         var tenantId = openIdContext.Tenant.TenantId;
         var now = TimeProvider.GetUtcNow();
 
         if (!IsStoreAvailable(out var breakerState))
-            return AdmitUncounted(state, limits, usageMeters);
+            return AdmitUncounted(state, limits, usageMeters, environmentType);
 
         IReadOnlyList<ExpiringCounterCount> counts;
         try
@@ -148,7 +150,7 @@ internal class DefaultRequestRateLimiter(
             )
         {
             RecordStoreFailure(tenantId, stage, exception);
-            return AdmitUncounted(state, limits, usageMeters);
+            return AdmitUncounted(state, limits, usageMeters, environmentType);
         }
 
         OnStoreAnswered(breakerState);
@@ -158,7 +160,7 @@ internal class DefaultRequestRateLimiter(
         {
             var judged = limits[index];
             var (result, retryAfter) = Judge(judged, counts[index], now);
-            Metrics.RateLimitJudged(judged.Descriptor.Name, result);
+            Metrics.RateLimitJudged(judged.Descriptor.Name, result, environmentType);
 
             if (
                 result == AuthenticationMetrics.OverageResult
@@ -223,13 +225,15 @@ internal class DefaultRequestRateLimiter(
     private RateLimitDecision AdmitUncounted(
         RateLimitRequestState state,
         List<JudgedRateLimit> limits,
-        List<string> usageMeters
+        List<string> usageMeters,
+        string environmentType
     )
     {
         foreach (var judged in limits)
             Metrics.RateLimitJudged(
                 judged.Descriptor.Name,
-                AuthenticationMetrics.StoreUnavailableResult
+                AuthenticationMetrics.StoreUnavailableResult,
+                environmentType
             );
 
         return Admit(state, usageMeters);

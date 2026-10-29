@@ -1,4 +1,4 @@
-# 287. The protocol client authenticates with a TLS client certificate from its key ring
+# 288. The protocol client authenticates with a TLS client certificate from its key ring
 
 - **Status:** Accepted
 - **Date:** 2026-10-28

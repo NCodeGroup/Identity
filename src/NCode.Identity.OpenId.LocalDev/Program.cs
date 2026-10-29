@@ -18,9 +18,8 @@
 #endregion
 
 using System.Buffers;
-using System.Globalization;
 using System.Security.Cryptography;
-using NCode.Buffers;
+using NCode.Identity.OpenId.LocalDev.Frontend;
 
 // ASPIRE ORCHESTRATION-ONLY HOST (ADR-0071): a flat resource graph that is the single one-stop entry to build, run,
 // and debug the whole local stack (the OpenID host + the frontend apps) with deterministic startup ordering.
@@ -31,11 +30,11 @@ using NCode.Buffers;
 // globally linked, the AppHost (launched by VS Code) does not inherit it, so the frontend resources fail to start.
 var builder = DistributedApplication.CreateBuilder(args);
 
-// The frontend's Node major is pinned once, in src/frontend/.node-version, which CI and NVS read too. Prepend the
-// newest NVS-managed install of that major to this process's PATH before any resource starts; the child resources
-// inherit it, ahead of any other Node on PATH. No-op if NVS or that major is absent (`build/frontend-install.ps1` adds
-// it through NVS and installs the pinned pnpm beside it, once per clone).
-EnsurePinnedNodeOnPath(Path.Combine(builder.AppHostDirectory, "..", "frontend"));
+// The frontend's Node major is pinned once, in src/frontend/.node-version, which CI and NVS read too. The guard puts
+// the newest NVS-managed install of that major on this process's PATH (the child resources inherit it), then fails the
+// AppHost at startup, naming ./build/frontend-install.ps1, when no Node of the pinned major is available or
+// node_modules does not match the pnpm pin and lockfile (ADR-0287).
+new FrontendToolchainGuard(Path.Combine(builder.AppHostDirectory, "..", "frontend")).EnsureReady();
 
 // Every OP instance started below shares the one dev database, so they must all unwrap the same master keys: they are
 // handed the same development root key, as a key file (ADR-0235). The key is generated once per machine, outside the
@@ -119,17 +118,21 @@ var conformanceApi = builder
 // collide (ERR_PNPM_EBUSY).
 builder.AddJavaScriptApp("auth", "../frontend/apps/auth").WithPnpm(install: false);
 
-// The Management console (apps/mgmt) is a STANDALONE Vite dev server. It is pinned to http://localhost:5173 (direct,
+// The Management console (apps/mgmt) is a STANDALONE Vite dev server. It is pinned to https://localhost:5173 (direct,
 // un-proxied, so HMR and the OAuth authorization-code callback work) because the developer seed registers
-// https://localhost:5173/callback as the SPA redirect URI and AddDeveloperCors allowlists localhost:5173. The browser
-// SPA discovers the API from the host-published bootstrap document (ADR-0064); because this bundle is NOT served by the
-// OP host, its Vite dev server proxies /config/bootstrap.json to the api so local dev consumes the real runtime
-// endpoint instead of a static copy. WithReference injects the service-discovery variable that proxy targets AND
-// exposes Aspire service discovery to the Vite process; WaitFor holds startup until the API is healthy so the first
+// https://localhost:5173/callback as the SPA redirect URI and AddDeveloperCors allowlists localhost:5173. Like every
+// standalone surface below, it serves HTTPS with the ASP.NET Core development certificate the OP hosts use
+// (WithHttpsDeveloperCertificate): Aspire runs Vite under a wrapper config that sets `server.https` from that
+// certificate and switches the endpoint's scheme to https, so the browser sees one trusted certificate across the stack.
+// The browser SPA discovers the API from the host-published bootstrap document (ADR-0064); because this bundle is NOT
+// served by the OP host, its Vite dev server proxies /config/bootstrap.json to the api so local dev consumes the real
+// runtime endpoint instead of a static copy. WithReference injects the service-discovery variable that proxy targets
+// AND exposes Aspire service discovery to the Vite process; WaitFor holds startup until the API is healthy so the first
 // discovery/management call cannot race the API.
 builder
     .AddViteApp("mgmt", "../frontend/apps/mgmt")
     .WithPnpm(install: false)
+    .WithHttpsDeveloperCertificate()
     .WithEndpoint(
         "http",
         endpoint =>
@@ -144,14 +147,16 @@ builder
     .WaitFor(api)
     .WithExternalHttpEndpoints();
 
-// The Playground flow explorer (apps/playground) is a STANDALONE Vite dev server pinned to http://localhost:5174 (the
+// The Playground flow explorer (apps/playground) is a STANDALONE Vite dev server pinned to https://localhost:5174 (the
 // port the seeded `playground-spa` redirect URI and AddDeveloperCors allowlist assume). It drives a live
 // authorization-code + PKCE round trip against the OP, so — like `mgmt` — it has its own seeded public client and CORS
 // origin, and proxies /config/bootstrap.json to the api, discovering its `playground` surface coordinates at boot
-// (ADR-0064). The same un-proxied fixed-port rules as `mgmt` apply so the OAuth redirect callback resolves.
+// (ADR-0064). The same un-proxied fixed-port and development-certificate rules as `mgmt` apply so the OAuth redirect
+// callback resolves.
 builder
     .AddViteApp("playground", "../frontend/apps/playground")
     .WithPnpm(install: false)
+    .WithHttpsDeveloperCertificate()
     .WithEndpoint(
         "http",
         endpoint =>
@@ -167,13 +172,15 @@ builder
     .WithExternalHttpEndpoints();
 
 // The conformance posture dashboard (apps/conformance) is a STANDALONE, read-only Vite dev server pinned to
-// http://localhost:5175. It only audits the OP's published discovery metadata, so it needs no OAuth client; it proxies
-// /config/bootstrap.json to the dedicated conformance OP (`conformanceapi`, which advertises the opt-in capabilities)
-// to learn its issuer, then reads that issuer's discovery cross-origin (allowlisted by the Conformance overlay's
-// Cors:AllowedOrigins). WaitFor holds startup until that OP is healthy so the first discovery read cannot race it.
+// https://localhost:5175, served with the same development certificate as `mgmt`. It only audits the OP's published
+// discovery metadata, so it needs no OAuth client; it proxies /config/bootstrap.json to the dedicated conformance OP
+// (`conformanceapi`, which advertises the opt-in capabilities) to learn its issuer, then reads that issuer's discovery
+// cross-origin (allowlisted by the Conformance overlay's Cors:AllowedOrigins). WaitFor holds startup until that OP is
+// healthy so the first discovery read cannot race it.
 builder
     .AddViteApp("conformance", "../frontend/apps/conformance")
     .WithPnpm(install: false)
+    .WithHttpsDeveloperCertificate()
     .WithEndpoint(
         "http",
         endpoint =>
@@ -191,52 +198,6 @@ builder
 builder.Build().Run();
 
 return;
-
-static void EnsurePinnedNodeOnPath(string frontendDirectory)
-{
-    if (!OperatingSystem.IsWindows())
-        return;
-
-    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-    var nvsNodeRoot = Path.Combine(localAppData, "nvs", "node");
-    if (!Directory.Exists(nvsNodeRoot))
-        return;
-
-    // .node-version holds the major ("26"), optionally a full version or a leading "v"; only the major selects.
-    var pinned = File.ReadAllText(
-            Path.Combine(frontendDirectory, ".node-version"),
-            SecureEncoding.UTF8
-        )
-        .Trim()
-        .TrimStart('v');
-    var major = int.Parse(pinned.Split('.')[0], NumberStyles.None, CultureInfo.InvariantCulture);
-
-    // NVS lays each install out as <root>/node/<version>/<arch>; take the x64 directory of the highest version of the
-    // pinned major. Versions compare numerically (22.9.0 < 22.22.2), never as strings. build/frontend-install.ps1
-    // installs the pinned pnpm into this same directory, so it resolves alongside node.
-    var nodeDir = Directory
-        .EnumerateDirectories(nvsNodeRoot, $"{major}.*")
-        .Select(versionDir =>
-            (
-                VersionDir: versionDir,
-                Version: Version.TryParse(Path.GetFileName(versionDir), out var version)
-                    ? version
-                    : null
-            )
-        )
-        .Where(install => install.Version?.Major == major)
-        .OrderByDescending(install => install.Version)
-        .Select(install => Path.Combine(install.VersionDir, "x64"))
-        .FirstOrDefault(Directory.Exists);
-    if (nodeDir is null)
-        return;
-
-    var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-    if (path.Split(Path.PathSeparator).Contains(nodeDir, StringComparer.OrdinalIgnoreCase))
-        return;
-
-    Environment.SetEnvironmentVariable("PATH", $"{nodeDir}{Path.PathSeparator}{path}");
-}
 
 // Every OP instance that shares the dev database must unwrap the same master keys, and the key stays out of the
 // repository (ADR-0235): the first AppHost run on a machine writes a random 32-byte root key, base64url encoded, to

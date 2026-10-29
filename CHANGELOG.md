@@ -17,8 +17,13 @@ change to the public API is a **major** version bump.
   `client_id`. `IClientAuthenticator.UsesMutualTls` declares the transport (a breaking addition for custom
   authenticators), `OpenIdProviderMetadata.MtlsEndpointAliases` carries the aliases, and
   `OpenIdClientDefaults.MutualTlsHttpClientNamePrefix` names the per-certificate HTTP clients
-  ([ADR-0287](docs/decisions/0287-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
+  ([ADR-0288](docs/decisions/0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
   issue [#392](https://github.com/NCodeGroup/Identity/issues/392)).
+- **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of
+  the major pinned in `src/frontend/.node-version` and a `node_modules` that matches the pinned pnpm and
+  `pnpm-lock.yaml`, and otherwise stops with one message that names `./build/frontend-install.ps1`
+  ([ADR-0287](docs/decisions/0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md),
+  issue [#401](https://github.com/NCodeGroup/Identity/issues/401)).
 - **Dynamic client registration accepts back-channel logout metadata.** `RegisterClientRequest` and
   `RegisterClientResponse` carry `BackchannelLogoutUri` and `BackchannelLogoutSessionRequired`, stored as the
   `backchannel_logout_uri` and `backchannel_logout_session_required` client settings, so a self-registered client
@@ -842,6 +847,20 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **The local stack serves every browser surface over HTTPS with the .NET development certificate.** Under the
+  Aspire AppHost, the standalone Vite surfaces `mgmt`, `playground` and `conformance` serve
+  `https://localhost:5173`, `5174` and `5175` with the ASP.NET Core development certificate the OP hosts already use
+  (`WithHttpsDeveloperCertificate`), so the browser trusts one certificate across the stack and signs in through the
+  seeded `https://…/callback` redirect URIs. The AppHost's `http` launch profile, which could not start without
+  `ASPIRE_ALLOW_UNSECURED_TRANSPORT`, is removed
+  ([ADR-0071](docs/decisions/0071-aspire-local-dev-orchestrator.md)).
+
+- **The Aspire local-dev orchestrator moves to 13.6.4.** The `Aspire.AppHost.Sdk` (in `global.json`) and the
+  `Aspire.Hosting.AppHost`, `.JavaScript`, `.PostgreSQL` and `.Valkey` pins move from 13.6.1 to 13.6.4, which retries
+  a timed-out resource creation instead of failing it and keeps a slow resource watch from stalling startup. Aspire
+  13.6.2 and later pull `MessagePack` 2.5.307 themselves, so the transitive pin that cleared GHSA-qhrr-8q5h-9q3h is
+  removed.
 
 - **The OpenID protocol client needs no ASP.NET Core runtime.** `NCode.Identity.OpenId.Client` no longer references
   the `Microsoft.AspNetCore.App` shared framework and references

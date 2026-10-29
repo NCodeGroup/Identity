@@ -326,3 +326,4 @@ standards.
 | [0288](./0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |
 | [0289](./0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |
 | [0290](./0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |
+| [0291](./0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) | The BFF refreshes a session single-flight under a lease on its refresh token | Accepted |

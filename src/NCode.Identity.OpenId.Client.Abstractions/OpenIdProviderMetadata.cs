@@ -163,7 +163,7 @@ public sealed class OpenIdProviderMetadata
     /// </summary>
     [JsonPropertyName(OpenIdProtocol.MetadataNames.DPoPSigningAlgValuesSupported)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<string>? DpopSigningAlgValuesSupported { get; init; }
+    public List<string>? DPoPSigningAlgValuesSupported { get; init; }
 
     /// <summary>
     /// Gets or sets the metadata members that have no dedicated property.

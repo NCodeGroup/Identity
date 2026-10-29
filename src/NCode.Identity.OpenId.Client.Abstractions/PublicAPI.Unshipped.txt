@@ -151,8 +151,8 @@ NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSupported.g
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.init -> void
-NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DpopSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
-NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DpopSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.get -> string?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?

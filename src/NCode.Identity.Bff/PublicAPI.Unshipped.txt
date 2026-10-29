@@ -1,6 +1,9 @@
 #nullable enable
 const NCode.Identity.Bff.Options.BffDPoPModes.Required = "required" -> string!
 const NCode.Identity.Bff.Options.BffDPoPModes.WhenSupported = "when_supported" -> string!
+NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions
+NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseBff() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 NCode.Identity.Bff.BffLibraryRegistration
 NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
 NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!

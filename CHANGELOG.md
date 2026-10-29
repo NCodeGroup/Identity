@@ -39,6 +39,15 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **Audit records are kept in an indexed store.** Every audit event's record is queued in memory and written in batches
+  to the new `AuditRecords` table, with its resources in `AuditRecordResources`, through `IAuditRecordStore`
+  (`PersistedAuditRecord`, `PersistedAuditResource`). The table indexes the envelope an operator filters on (event id
+  and time, name, category, outcome, severity, tenant, subject, client, actor, trace and source IP) and keeps the whole
+  CloudTrail-shaped JSON. `OpenId:AuditRecords` (`AuditRecordOptions`) sets `Enabled`, `FlushInterval` (five seconds),
+  `QueueCapacity` (10,000) and `Retention` (90 days). A full queue drops and counts records, which the log still
+  carries; a failed batch is retried without duplicating records; and records past the retention are removed hourly
+  ([ADR-0303](docs/decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md),
+  issue [#383](https://github.com/NCodeGroup/Identity/issues/383)).
 - **A TLS client certificate is presented with its chain.** `AsymmetricSecretKey.IssuerCertificatesRawData` keeps the
   certificates of the authorities that issued a key's certificate, and `ExportIssuerCertificates()` materializes them.
   `ISecretKeyFactory.Create(KeyMetadata, X509Certificate2Collection)` builds a key from a collection such as a loaded

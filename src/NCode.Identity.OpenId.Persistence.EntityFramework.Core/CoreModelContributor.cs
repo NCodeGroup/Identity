@@ -54,6 +54,8 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
         modelBuilder.Entity<RetiredIssuerEntity>().ToTable("RetiredIssuers");
         modelBuilder.Entity<TenantUsageEntity>().ToTable("TenantUsage");
         modelBuilder.Entity<TenantUsageCheckpointEntity>().ToTable("TenantUsageCheckpoints");
+        modelBuilder.Entity<AuditRecordEntity>().ToTable("AuditRecords");
+        modelBuilder.Entity<AuditRecordResourceEntity>().ToTable("AuditRecordResources");
 
         // An owner has at most one active master key (the one with no retirement time), so enforce uniqueness only
         // over the active rows (a filtered index): two replicas that race to create an owner's first key cannot both

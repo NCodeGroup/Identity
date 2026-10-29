@@ -75,5 +75,10 @@ internal static class CoreDbContextExtensions
 
         public DbSet<TenantUsageCheckpointEntity> TenantUsageCheckpoints =>
             context.Set<TenantUsageCheckpointEntity>();
+
+        public DbSet<AuditRecordEntity> AuditRecords => context.Set<AuditRecordEntity>();
+
+        public DbSet<AuditRecordResourceEntity> AuditRecordResources =>
+            context.Set<AuditRecordResourceEntity>();
     }
 }

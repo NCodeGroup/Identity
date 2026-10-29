@@ -585,4 +585,40 @@ internal static partial class Log
         string tenantId,
         string grantType
     );
+
+    [LoggerMessage(
+        EventId = EventIds.AuditRecordFlushFailed,
+        Level = LogLevel.Warning,
+        Message = "{RecordCount} audit records could not be written to the audit store; they are kept in memory and written by the next flush."
+    )]
+    internal static partial void AuditRecordFlushFailed(
+        this ILogger logger,
+        int recordCount,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.AuditRecordsDropped,
+        Level = LogLevel.Warning,
+        Message = "{DroppedCount} audit records were not kept for the audit store because its queue of {QueueCapacity} records was full; the log still carries them."
+    )]
+    internal static partial void AuditRecordsDropped(
+        this ILogger logger,
+        long droppedCount,
+        int queueCapacity
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.AuditRecordsDiscardedOnStop,
+        Level = LogLevel.Warning,
+        Message = "{RecordCount} audit records could not be written to the audit store before the host stopped; the log still carries them."
+    )]
+    internal static partial void AuditRecordsDiscardedOnStop(this ILogger logger, int recordCount);
+
+    [LoggerMessage(
+        EventId = EventIds.AuditRecordPruneFailed,
+        Level = LogLevel.Warning,
+        Message = "The audit records past their retention could not be removed; the next flush tries again."
+    )]
+    internal static partial void AuditRecordPruneFailed(this ILogger logger, Exception exception);
 }

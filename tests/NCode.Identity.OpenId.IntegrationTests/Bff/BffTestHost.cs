@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
@@ -41,7 +42,7 @@ namespace NCode.Identity.OpenId.IntegrationTests.Bff;
 /// Hosts a minimal backend-for-frontend (BFF) application in-process, wired to the NCode OpenID provider of a
 /// <see cref="HostApplicationFactory"/>, and drives it as a browser with a cookie jar.
 /// </summary>
-public sealed class BffTestHost : IAsyncDisposable
+internal sealed class BffTestHost : IAsyncDisposable
 {
     public const string ClientId = "it-bff-e2e";
     public const string ClientSecret = "bff-e2e-Wq4mZ8vK2nT7xR5bL9cY3hF6jD1sGp0E";
@@ -95,7 +96,9 @@ public sealed class BffTestHost : IAsyncDisposable
         HostApplicationFactory factory,
         IExpiringKeySet keySet,
         IExpiringValueSet valueSet,
-        IExpiringIndexSet indexSet
+        IExpiringIndexSet indexSet,
+        IReadOnlyDictionary<string, string?>? extraConfiguration = null,
+        ConcurrentQueue<RecordedHttpExchange>? exchanges = null
     )
     {
         var builder = WebApplication.CreateBuilder(
@@ -119,6 +122,9 @@ public sealed class BffTestHost : IAsyncDisposable
                 ["Bff:UserClaims:0"] = "email",
             }
         );
+
+        if (extraConfiguration is not null)
+            builder.Configuration.AddInMemoryCollection(extraConfiguration);
 
         var services = builder.Services;
         services.AddSingleton(keySet);
@@ -149,9 +155,13 @@ public sealed class BffTestHost : IAsyncDisposable
             .AddBffConfiguration(builder.Configuration);
 
         // Registered after the library, which configures its own primary handler for the named client.
-        services
+        var httpClientBuilder = services
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(() => factory.Server.CreateHandler());
+        if (exchanges is not null)
+            httpClientBuilder.AddHttpMessageHandler(() =>
+                new RecordingHttpMessageHandler(exchanges)
+            );
 
         var app = builder.Build();
         app.UseBff();
@@ -213,6 +223,19 @@ public sealed class BffTestHost : IAsyncDisposable
     /// Removes every cookie from the jar.
     /// </summary>
     public void ClearCookies() => _cookies.Clear();
+
+    /// <summary>
+    /// Replaces the cookies of the jar with a copy of the cookies of another host's jar, as a browser that sends its
+    /// cookie to a different replica of the same application.
+    /// </summary>
+    public void CopyCookiesFrom(BffTestHost other)
+    {
+        _cookies.Clear();
+        foreach (var (name, value) in other._cookies)
+        {
+            _cookies[name] = value;
+        }
+    }
 
     private void StoreCookies(HttpResponseMessage response)
     {

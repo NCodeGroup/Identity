@@ -12,6 +12,8 @@
 #     itself, so Aspire finds pnpm next to node.
 #   - Installing the pnpm workspace once from the root avoids the per-app installs Aspire would otherwise run
 #     concurrently against the shared, symlinked node_modules.
+#   - The ASP.NET Core development certificate is exported as PEM to ~/.ncode/identity/dev-cert (or the directory in
+#     NCODE_DEV_CERT_DIR) so the standalone Vite dev servers serve HTTPS outside Aspire.
 # Run this once after a fresh clone, and again when dependencies or the pinned Node/pnpm change, then launch
 # `Aspire: Full stack (F5)`.
 #
@@ -163,5 +165,32 @@ if (-not (Test-FrontendNodeModulesIntact -Root $frontendDir)) {
         throw "Frontend node_modules is still incomplete after a forced reinstall; inspect src/frontend manually."
     }
 }
+
+# Export the ASP.NET Core development certificate as PEM (localhost.pem and localhost.key) for the standalone Vite dev
+# servers, which serve HTTPS from it outside Aspire. The export overwrites on every run, so a renewed certificate is
+# picked up. Failures only warn: this script also runs where dotnet may be absent, and the dev server then fails fast
+# with a message that names this script.
+$certDirectory = if ($env:NCODE_DEV_CERT_DIR) { $env:NCODE_DEV_CERT_DIR } else { Join-Path $HOME '.ncode/identity/dev-cert' }
+if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+    New-Item -ItemType Directory -Force -Path $certDirectory | Out-Null
+
+    dotnet dev-certs https --export-path (Join-Path $certDirectory 'localhost.pem') --format Pem --no-password
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning ("The ASP.NET Core development certificate could not be exported to '$certDirectory'; the " +
+            "standalone Vite surfaces will fail to start until it is.")
+    }
+    else {
+        Write-Host "Exported the development certificate to $certDirectory." -ForegroundColor Green
+    }
+
+    dotnet dev-certs https --check --trust | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "The ASP.NET Core development certificate is not trusted; run 'dotnet dev-certs https --trust'."
+    }
+}
+else {
+    Write-Warning "'dotnet' is not on PATH, so the ASP.NET Core development certificate was not exported."
+}
+$global:LASTEXITCODE = 0
 
 Write-Host "Frontend workspace installed. Launch 'Aspire: Full stack (F5)' to run the whole stack." -ForegroundColor Green

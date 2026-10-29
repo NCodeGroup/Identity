@@ -754,6 +754,93 @@ public sealed class DefaultRegistrationTests
         Assert.True(supported);
     }
 
+    [Fact]
+    public void AddIdentityServer_WhenATenantDeclaresNoEnvironmentType_ItTakesTheProductionProfile()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        var document = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.True(effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles));
+        Assert.Contains(OpenIdConstants.SecurityProfiles.Production, profiles);
+        Assert.True(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+        Assert.True(
+            effective.TryGetValue(OpenIdSettingKeys.RedirectUriKindsSupported, out var kinds)
+        );
+        Assert.DoesNotContain(OpenIdConstants.RedirectUriKinds.Http, kinds);
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenATenantIsADevelopmentEnvironment_ItTakesNoProductionProfile()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        var document = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object?>
+            {
+                [OpenIdSettingNames.EnvironmentType] = OpenIdConstants
+                    .TenantEnvironmentTypes
+                    .Development,
+            }
+        );
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.False(
+            effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
+                && profiles.Contains(OpenIdConstants.SecurityProfiles.Production)
+        );
+        Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenTheServerDeclaresADevelopmentEnvironment_ATenantInheritsIt()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        parentSettings.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Development
+        );
+        var document = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.False(
+            effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
+                && profiles.Contains(OpenIdConstants.SecurityProfiles.Production)
+        );
+        Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenAProductionTenantSetsDeletionProtectionOff_ItStaysOff()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        var document = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object?> { [OpenIdSettingNames.DeletionProtection] = false }
+        );
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+    }
+
     [Theory]
     [InlineData("security_profiles:0", "fapi-2")]
     [InlineData("subject_type", "pairwse")]

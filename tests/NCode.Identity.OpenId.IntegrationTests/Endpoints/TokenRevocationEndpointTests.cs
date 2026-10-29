@@ -77,8 +77,8 @@ public class TokenRevocationEndpointTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal("invalid_request", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("invalid_request", jsonElement.GetProperty("error").GetString());
     }
 
     [Fact]

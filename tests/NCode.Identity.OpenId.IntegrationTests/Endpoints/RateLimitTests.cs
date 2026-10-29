@@ -98,10 +98,10 @@ public class RateLimitTests
         Assert.InRange(retryAfter.Value, TimeSpan.FromSeconds(1), maxRetryAfter);
         Assert.True(response.Headers.CacheControl?.NoStore);
 
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.TemporarilyUnavailable,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 

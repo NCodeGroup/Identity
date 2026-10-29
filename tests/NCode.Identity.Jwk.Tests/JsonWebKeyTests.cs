@@ -52,8 +52,8 @@ public class JsonWebKeyTests
         Assert.NotNull(jwk);
 
         var reserialized = JsonSerializer.Serialize(jwk);
-        var document = JsonElement.Parse(reserialized);
-        var root = document;
+        var jsonElement = JsonElement.Parse(reserialized);
+        var root = jsonElement;
 
         Assert.Equal("EC", root.GetProperty("kty").GetString());
         Assert.Equal("P-256", root.GetProperty("crv").GetString());
@@ -90,7 +90,7 @@ public class JsonWebKeyTests
         Assert.Equal("RSA", first?.KeyType);
 
         var reserialized = JsonSerializer.Serialize(set);
-        var document = JsonElement.Parse(reserialized);
-        Assert.Equal(2, document.GetProperty("keys").GetArrayLength());
+        var jsonElement = JsonElement.Parse(reserialized);
+        Assert.Equal(2, jsonElement.GetProperty("keys").GetArrayLength());
     }
 }

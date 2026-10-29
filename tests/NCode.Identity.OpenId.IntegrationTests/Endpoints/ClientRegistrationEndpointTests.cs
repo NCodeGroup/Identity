@@ -281,10 +281,10 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -485,8 +485,8 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        var document = JsonElement.Parse(body);
-        var root = document;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         Assert.Equal(expectedError, root.GetProperty("error").GetString());
         Assert.Contains(
             $"'{expectedQuotedName}'",
@@ -961,25 +961,27 @@ public class ClientRegistrationEndpointTests
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
         var read = JsonElement.Parse(readBody);
 
-        foreach (var document in new[] { root, read })
+        foreach (var jsonElement in new[] { root, read })
         {
             Assert.Equal(
                 "ES256",
-                document.GetProperty("token_endpoint_auth_signing_alg").GetString()
+                jsonElement.GetProperty("token_endpoint_auth_signing_alg").GetString()
             );
             Assert.Equal(
                 OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
-                document.GetProperty("backchannel_token_delivery_mode").GetString()
+                jsonElement.GetProperty("backchannel_token_delivery_mode").GetString()
             );
             Assert.Equal(
                 "https://client.example/ciba",
-                document.GetProperty("backchannel_client_notification_endpoint").GetString()
+                jsonElement.GetProperty("backchannel_client_notification_endpoint").GetString()
             );
             Assert.Equal(
                 "PS256",
-                document.GetProperty("backchannel_authentication_request_signing_alg").GetString()
+                jsonElement
+                    .GetProperty("backchannel_authentication_request_signing_alg")
+                    .GetString()
             );
-            Assert.False(document.GetProperty("backchannel_user_code_parameter").GetBoolean());
+            Assert.False(jsonElement.GetProperty("backchannel_user_code_parameter").GetBoolean());
         }
     }
 
@@ -1208,13 +1210,15 @@ public class ClientRegistrationEndpointTests
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
         var read = JsonElement.Parse(readBody);
 
-        foreach (var document in new[] { root, read })
+        foreach (var jsonElement in new[] { root, read })
         {
             Assert.Equal(
                 "https://client.example/logout",
-                document.GetProperty("backchannel_logout_uri").GetString()
+                jsonElement.GetProperty("backchannel_logout_uri").GetString()
             );
-            Assert.True(document.GetProperty("backchannel_logout_session_required").GetBoolean());
+            Assert.True(
+                jsonElement.GetProperty("backchannel_logout_session_required").GetBoolean()
+            );
         }
     }
 
@@ -1280,9 +1284,9 @@ public class ClientRegistrationEndpointTests
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
         var read = JsonElement.Parse(readBody);
 
-        foreach (var document in new[] { root, read })
+        foreach (var jsonElement in new[] { root, read })
         {
-            var uris = document.GetProperty("post_logout_redirect_uris");
+            var uris = jsonElement.GetProperty("post_logout_redirect_uris");
             Assert.Equal(
                 "https://client.example/signed-out",
                 Assert.Single(uris.EnumerateArray()).GetString()

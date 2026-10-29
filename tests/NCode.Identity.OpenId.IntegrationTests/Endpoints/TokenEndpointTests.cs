@@ -38,8 +38,8 @@ public class TokenEndpointTests(HostApplicationFactory factory)
     private static async Task<string> GetErrorCodeAsync(HttpResponseMessage response)
     {
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        return document.GetProperty("error").GetString() ?? string.Empty;
+        var jsonElement = JsonElement.Parse(json);
+        return jsonElement.GetProperty("error").GetString() ?? string.Empty;
     }
 
     [Fact]

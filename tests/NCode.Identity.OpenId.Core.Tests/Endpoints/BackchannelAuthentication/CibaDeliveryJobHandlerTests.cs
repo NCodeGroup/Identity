@@ -98,8 +98,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         Assert.Equal(new Uri(Endpoint), Handler.RequestUri);
         Assert.Equal($"Bearer {NotificationToken}", Handler.Authorization);
 
-        var document = JsonElement.Parse(Handler.RequestBody!);
-        var root = document;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.AccessToken, out _));
     }
@@ -125,8 +125,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         await Subject.HandleAsync(job, Context(), CancellationToken.None);
 
-        var document = JsonElement.Parse(Handler.RequestBody!);
-        var root = document;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.Equal(
             "access-token-value",
@@ -163,8 +163,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         await Subject.HandleAsync(job, Context(), CancellationToken.None);
 
-        var document = JsonElement.Parse(Handler.RequestBody!);
-        var root = document;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(
             "refresh-token-value",
             root.GetProperty(OpenIdProtocol.Parameters.RefreshToken).GetString()
@@ -192,8 +192,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         await Subject.HandleAsync(job, Context(), CancellationToken.None);
 
-        var document = JsonElement.Parse(Handler.RequestBody!);
-        var root = document;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.AccessDenied,

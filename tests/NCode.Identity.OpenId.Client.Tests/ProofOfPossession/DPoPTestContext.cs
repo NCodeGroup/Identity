@@ -97,10 +97,10 @@ internal sealed class DPoPTestContext : IAsyncDisposable
 
     private static JsonElement DecodeSegment(string jwt, int index)
     {
-        var document = JsonElement.Parse(
+        var jsonElement = JsonElement.Parse(
             System.Buffers.Text.Base64Url.DecodeFromChars(jwt.Split('.')[index])
         );
-        return document;
+        return jsonElement;
     }
 
     public async ValueTask DisposeAsync()

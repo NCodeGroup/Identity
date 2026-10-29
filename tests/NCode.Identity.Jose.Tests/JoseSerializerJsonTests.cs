@@ -115,8 +115,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        var root = document;
+        var jsonElement = JsonElement.Parse(token);
+        var root = jsonElement;
         Assert.True(root.TryGetProperty("payload", out _));
         Assert.True(root.TryGetProperty("protected", out _));
         Assert.True(root.TryGetProperty("signature", out _));
@@ -140,8 +140,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        var signatures = document.GetProperty("signatures");
+        var jsonElement = JsonElement.Parse(token);
+        var signatures = jsonElement.GetProperty("signatures");
         Assert.Equal(JsonValueKind.Array, signatures.ValueKind);
         Assert.Equal(1, signatures.GetArrayLength());
 
@@ -163,8 +163,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        Assert.Equal(2, document.GetProperty("signatures").GetArrayLength());
+        var jsonElement = JsonElement.Parse(token);
+        Assert.Equal(2, jsonElement.GetProperty("signatures").GetArrayLength());
 
         Assert.Equal(Payload, JoseSerializer.Decode(token, rsa.SecretKey));
         Assert.Equal(Payload, JoseSerializer.Decode(token, hmac.SecretKey));
@@ -186,8 +186,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        var unprotected = document.GetProperty("header");
+        var jsonElement = JsonElement.Parse(token);
+        var unprotected = jsonElement.GetProperty("header");
         Assert.Equal("rsa-1", unprotected.GetProperty("kid").GetString());
 
         var parsed = JoseSerializer.Parse(token);
@@ -209,8 +209,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        Assert.False(document.TryGetProperty("payload", out _));
+        var jsonElement = JsonElement.Parse(token);
+        Assert.False(jsonElement.TryGetProperty("payload", out _));
     }
 
     [Fact]
@@ -332,8 +332,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        var root = document;
+        var jsonElement = JsonElement.Parse(token);
+        var root = jsonElement;
         Assert.True(root.TryGetProperty("protected", out _));
         Assert.True(root.TryGetProperty("encrypted_key", out _));
         Assert.True(root.TryGetProperty("iv", out _));
@@ -365,8 +365,8 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        Assert.Equal(2, document.GetProperty("recipients").GetArrayLength());
+        var jsonElement = JsonElement.Parse(token);
+        Assert.Equal(2, jsonElement.GetProperty("recipients").GetArrayLength());
 
         Assert.Equal(Payload, JoseSerializer.Decode(token, rsa.KeyManagementCredentials.SecretKey));
         Assert.Equal(Payload, JoseSerializer.Decode(token, aes.KeyManagementCredentials.SecretKey));
@@ -388,9 +388,9 @@ public class JoseSerializerJsonTests : BaseTests
 
         var token = JoseSerializer.CreateEncoder(options).Encode(Payload);
 
-        var document = JsonElement.Parse(token);
-        Assert.True(document.TryGetProperty("aad", out _));
-        Assert.Equal("bar", document.GetProperty("unprotected").GetProperty("foo").GetString());
+        var jsonElement = JsonElement.Parse(token);
+        Assert.True(jsonElement.TryGetProperty("aad", out _));
+        Assert.Equal("bar", jsonElement.GetProperty("unprotected").GetProperty("foo").GetString());
 
         var parsed = JoseSerializer.Parse(token);
         var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);

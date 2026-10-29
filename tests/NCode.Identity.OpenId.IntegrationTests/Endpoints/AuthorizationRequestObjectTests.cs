@@ -111,8 +111,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     private static async Task<string> GetIssuerAsync(HttpClient client)
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return document.GetProperty("issuer").GetString()!;
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return jsonElement.GetProperty("issuer").GetString()!;
     }
 
     private string CreateRequestObject(

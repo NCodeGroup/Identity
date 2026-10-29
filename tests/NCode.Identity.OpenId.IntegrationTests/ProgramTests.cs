@@ -88,9 +88,9 @@ public class ProgramTests
         var text = writer.ToString().TrimEnd('\r', '\n');
 
         Assert.DoesNotContain("\n", text);
-        var document = JsonElement.Parse(text);
-        var exceptionText = document.GetProperty("Exception").GetString();
-        var timestamp = document.GetProperty("Timestamp").GetString();
+        var jsonElement = JsonElement.Parse(text);
+        var exceptionText = jsonElement.GetProperty("Exception").GetString();
+        var timestamp = jsonElement.GetProperty("Timestamp").GetString();
         Assert.Contains("second line", exceptionText);
         Assert.EndsWith("+00:00", timestamp);
     }

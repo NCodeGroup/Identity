@@ -128,10 +128,10 @@ public class ClientSecretRotationTests
         using var response = await client.SendAsync(tokenRequest);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            document.GetProperty("access_token").GetString()
+            jsonElement.GetProperty("access_token").GetString()
         );
         return client;
     }
@@ -153,8 +153,8 @@ public class ClientSecretRotationTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        var document = JsonElement.Parse(body);
-        return document.GetProperty("clientId").GetString()!;
+        var jsonElement = JsonElement.Parse(body);
+        return jsonElement.GetProperty("clientId").GetString()!;
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
@@ -173,10 +173,10 @@ public class ClientSecretRotationTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         return (
-            document.GetProperty("secretId").GetString()!,
-            document.GetProperty("secretMaterial").GetString()!
+            jsonElement.GetProperty("secretId").GetString()!,
+            jsonElement.GetProperty("secretMaterial").GetString()!
         );
     }
 
@@ -202,8 +202,8 @@ public class ClientSecretRotationTests
             return null;
         }
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return document.GetProperty("error").GetString();
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return jsonElement.GetProperty("error").GetString();
     }
 
     private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory

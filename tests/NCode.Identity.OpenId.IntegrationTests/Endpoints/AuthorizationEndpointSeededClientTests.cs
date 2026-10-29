@@ -155,8 +155,8 @@ public class AuthorizationEndpointSeededClientTests(HostApplicationFactory facto
         // standard OpenID error response rather than open-redirect to the attacker-controlled URI.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(document.TryGetProperty("error", out var error));
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(jsonElement.TryGetProperty("error", out var error));
         Assert.False(string.IsNullOrEmpty(error.GetString()));
     }
 

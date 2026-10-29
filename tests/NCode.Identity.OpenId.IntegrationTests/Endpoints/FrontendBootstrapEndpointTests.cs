@@ -46,10 +46,10 @@ public class FrontendBootstrapEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl?.NoStore);
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             HostApplicationFactory.TestServerIssuer,
-            document.GetProperty("issuer").GetString()
+            jsonElement.GetProperty("issuer").GetString()
         );
     }
 }

@@ -79,8 +79,8 @@ public class TokenEndpointPasswordTests
         var (status, body) = await RequestTokenAsync();
         Assert.True(status == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        var root = document;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
 
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
@@ -141,8 +141,8 @@ public class TokenEndpointPasswordTests
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(document.TryGetProperty("error", out _));
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(jsonElement.TryGetProperty("error", out _));
     }
 
     [Fact]
@@ -203,8 +203,8 @@ public class TokenEndpointPasswordTests
         using var response = await client.PostAsync("/oauth2/token", content);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var document = JsonElement.Parse(body);
-        var idToken = document.GetProperty("id_token").GetString()!;
+        var jsonElement = JsonElement.Parse(body);
+        var idToken = jsonElement.GetProperty("id_token").GetString()!;
 
         // Signed by the tenant, then encrypted (a Nested JWT) to the client's key: only the client's private key opens it.
         var joseSerializer = factory.Services.GetRequiredService<IJoseSerializer>();

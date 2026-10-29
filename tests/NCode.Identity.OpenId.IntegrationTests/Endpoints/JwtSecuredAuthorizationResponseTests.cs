@@ -286,14 +286,14 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
         Assert.Contains(
             "no key",
-            document.GetProperty("error_description").GetString(),
+            jsonElement.GetProperty("error_description").GetString(),
             StringComparison.Ordinal
         );
     }
@@ -324,14 +324,14 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Null(response.Headers.Location);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
         Assert.Contains(
             "no public key",
-            document.GetProperty("error_description").GetString(),
+            jsonElement.GetProperty("error_description").GetString(),
             StringComparison.Ordinal
         );
     }

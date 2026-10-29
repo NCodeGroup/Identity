@@ -81,8 +81,8 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
         using var pinned = new PinnedIssuerApplicationFactory();
 
         var json = await GetDiscoveryAsync(pinned, "attacker.example");
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         Assert.Equal(ConfiguredIssuer, root.GetProperty("issuer").GetString());
 
@@ -120,11 +120,11 @@ public class DiscoveryPublishedOriginTests(HostApplicationFactory factory)
         // Nothing derives an issuer from the request, so even the default test host — pinned to the TestServer's own
         // origin — ignores a foreign Host header. The pinned-issuer tests above are therefore not the only guard.
         var json = await GetDiscoveryAsync(Factory, "attacker.example");
-        var document = JsonElement.Parse(json);
+        var jsonElement = JsonElement.Parse(json);
 
         Assert.Equal(
             HostApplicationFactory.TestServerIssuer,
-            document.GetProperty("issuer").GetString()
+            jsonElement.GetProperty("issuer").GetString()
         );
         Assert.DoesNotContain("attacker.example", json, StringComparison.Ordinal);
     }

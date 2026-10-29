@@ -73,8 +73,8 @@ public class TokenEndpointBootstrapAdminTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        var root = document;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
 
@@ -195,8 +195,8 @@ public class TokenEndpointBootstrapAdminTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        Assert.True(document.TryGetProperty("access_token", out var accessToken));
+        var jsonElement = JsonElement.Parse(body);
+        Assert.True(jsonElement.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
 
         var payload = DecodeJwtPayload(accessToken.GetString()!);

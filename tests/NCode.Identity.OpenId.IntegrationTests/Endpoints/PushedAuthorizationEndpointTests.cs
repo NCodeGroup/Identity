@@ -69,8 +69,8 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        var root = document;
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var root = jsonElement;
 
         Assert.True(root.TryGetProperty("request_uri", out var requestUri));
         Assert.StartsWith(RequestUriPrefix, requestUri.GetString());
@@ -103,8 +103,8 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync("/oauth2/par", form);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal("invalid_request", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("invalid_request", jsonElement.GetProperty("error").GetString());
     }
 
     [Fact]
@@ -139,10 +139,10 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync("/oauth2/par", form);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -176,10 +176,10 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync("/oauth2/par", form);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -209,8 +209,8 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.PostAsync("/oauth2/par", form);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal("invalid_client", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("invalid_client", jsonElement.GetProperty("error").GetString());
     }
 
     [Fact]
@@ -309,9 +309,9 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         using var response = await client.GetAsync("/.well-known/openid-configuration");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.True(
-            document.TryGetProperty("pushed_authorization_request_endpoint", out var endpoint)
+            jsonElement.TryGetProperty("pushed_authorization_request_endpoint", out var endpoint)
         );
         Assert.False(string.IsNullOrEmpty(endpoint.GetString()));
     }

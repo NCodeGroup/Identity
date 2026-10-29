@@ -80,8 +80,8 @@ public class ServerSettingsConvergenceTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        return document
+        var jsonElement = JsonElement.Parse(body);
+        return jsonElement
             .GetProperty(OpenIdSettingNames.IdTokenSigningAlgValuesSupported)
             .EnumerateArray()
             .Select(value => value.GetString() ?? string.Empty)

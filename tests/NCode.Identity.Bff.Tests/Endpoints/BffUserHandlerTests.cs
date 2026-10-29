@@ -121,8 +121,8 @@ public class BffUserHandlerTests : BaseTests
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("application/json; charset=utf-8", httpContext.Response.ContentType);
         var body = await ReadBodyAsync(httpContext);
-        var document = JsonElement.Parse(body);
-        var root = document;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         Assert.Equal("sub-1", root.GetProperty(JoseClaimNames.Payload.Sub).GetString());
         Assert.Equal("Ada", root.GetProperty("name").GetString());
 
@@ -187,8 +187,8 @@ public class BffUserHandlerTests : BaseTests
         await handler.HandleAsync(httpContext);
 
         var body = await ReadBodyAsync(httpContext);
-        var document = JsonElement.Parse(body);
-        var root = document;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         Assert.Equal("sub-1", root.GetProperty(JoseClaimNames.Payload.Sub).GetString());
         Assert.Equal("acme", root.GetProperty("tenant").GetString());
         Assert.Equal(

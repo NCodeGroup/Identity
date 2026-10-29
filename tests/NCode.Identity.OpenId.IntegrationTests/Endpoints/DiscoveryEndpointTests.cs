@@ -41,8 +41,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         Assert.True(root.TryGetProperty("issuer", out var issuer));
         Assert.False(string.IsNullOrEmpty(issuer.GetString()));
@@ -71,8 +71,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         // These settings carry a default (so they exist in the effective collection) but are
         // marked non-discoverable, so they must never appear in the discovery document.
@@ -92,8 +92,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         // The 'claims' request parameter is now honored end-to-end (ADR-0039), so it is advertised.
         Assert.True(
@@ -114,8 +114,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         // The authorization response always carries the 'iss' parameter (RFC 9207), so the OP advertises
         // 'authorization_response_iss_parameter_supported' as true so relying parties can validate it.
@@ -140,8 +140,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         // RFC 9701 §7: the algorithms a JWT introspection response may be signed and encrypted with.
         Assert.Contains(
@@ -182,8 +182,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
-        var document = JsonElement.Parse(json);
-        var root = document;
+        var jsonElement = JsonElement.Parse(json);
+        var root = jsonElement;
 
         // Secure-by-default: only the authorization-code flow is advertised — no implicit/hybrid response
         // types, and no 'implicit' grant type (RFC 9700 / OAuth 2.1 direction).

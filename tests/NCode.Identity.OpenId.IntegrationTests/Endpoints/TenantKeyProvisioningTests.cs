@@ -387,8 +387,8 @@ public class TenantKeyProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        return [.. document.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
+        var jsonElement = JsonElement.Parse(body);
+        return [.. jsonElement.GetProperty("keys").EnumerateArray().Select(key => key.Clone())];
     }
 
     // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
@@ -419,8 +419,8 @@ public class TenantKeyProvisioningTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        return document.GetProperty("access_token").GetString() ?? string.Empty;
+        var jsonElement = JsonElement.Parse(body);
+        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
     private static JsonElement DecodeJwtHeader(string jwt) =>

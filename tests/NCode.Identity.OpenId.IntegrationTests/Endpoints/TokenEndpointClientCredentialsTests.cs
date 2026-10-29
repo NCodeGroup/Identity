@@ -61,8 +61,8 @@ public class TokenEndpointClientCredentialsTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        var root = document;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
 
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
@@ -105,8 +105,8 @@ public class TokenEndpointClientCredentialsTests
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
 
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(document.TryGetProperty("error", out _));
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(jsonElement.TryGetProperty("error", out _));
     }
 
     [Fact]

@@ -120,8 +120,8 @@ public class TokenIntrospectionEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        var document = JsonElement.Parse(body);
-        var accessToken = document.GetProperty("access_token").GetString();
+        var jsonElement = JsonElement.Parse(body);
+        var accessToken = jsonElement.GetProperty("access_token").GetString();
         Assert.False(string.IsNullOrEmpty(accessToken));
         return accessToken;
     }
@@ -279,8 +279,8 @@ public class TokenIntrospectionEndpointTests
         using var response = await client.PostAsync(IntrospectPath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal("invalid_request", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("invalid_request", jsonElement.GetProperty("error").GetString());
     }
 
     [Fact]
@@ -411,8 +411,8 @@ public class TokenIntrospectionEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
-        var document = JsonElement.Parse(body);
-        Assert.Equal("invalid_client", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal("invalid_client", jsonElement.GetProperty("error").GetString());
     }
 
     [Fact]
@@ -457,8 +457,8 @@ public class TokenIntrospectionEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = JsonElement.Parse(body);
-        Assert.Equal("invalid_client", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal("invalid_client", jsonElement.GetProperty("error").GetString());
     }
 
     [Fact]
@@ -501,8 +501,8 @@ public class TokenIntrospectionEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = JsonElement.Parse(body);
-        Assert.Equal("invalid_client", document.GetProperty("error").GetString());
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal("invalid_client", jsonElement.GetProperty("error").GetString());
     }
 
     #endregion
@@ -727,9 +727,9 @@ public class TokenIntrospectionEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
-        var document = JsonElement.Parse(body);
-        Assert.Equal(resourceServerId, document.GetProperty("resourceServerId").GetString());
-        var initialAccessToken = document.GetProperty("initialAccessToken").GetString();
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal(resourceServerId, jsonElement.GetProperty("resourceServerId").GetString());
+        var initialAccessToken = jsonElement.GetProperty("initialAccessToken").GetString();
         Assert.False(string.IsNullOrEmpty(initialAccessToken));
         return initialAccessToken;
     }
@@ -914,10 +914,10 @@ public class TokenIntrospectionEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -953,10 +953,10 @@ public class TokenIntrospectionEndpointTests
 
         var secondBody = await secondResponse.Content.ReadAsStringAsync();
         Assert.True(secondResponse.StatusCode == HttpStatusCode.Unauthorized, secondBody);
-        var document = JsonElement.Parse(secondBody);
+        var jsonElement = JsonElement.Parse(secondBody);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidToken,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -1045,10 +1045,10 @@ public class TokenIntrospectionEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -1080,9 +1080,9 @@ public class TokenIntrospectionEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        var document = JsonElement.Parse(body);
-        var createdWhen = document.GetProperty("createdWhen").GetDateTimeOffset();
-        var expiresWhen = document.GetProperty("expiresWhen").GetDateTimeOffset();
+        var jsonElement = JsonElement.Parse(body);
+        var createdWhen = jsonElement.GetProperty("createdWhen").GetDateTimeOffset();
+        var expiresWhen = jsonElement.GetProperty("expiresWhen").GetDateTimeOffset();
         Assert.Equal(TimeSpan.FromDays(1), expiresWhen - createdWhen);
     }
 

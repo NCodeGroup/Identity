@@ -65,9 +65,9 @@ public class TokenResponseTests : BaseTests
 
         var json = JsonSerializer.Serialize(response);
 
-        var document = JsonElement.Parse(json);
-        Assert.Equal("urn:issued", document.GetProperty("issued_token_type").GetString());
-        Assert.Equal("value", document.GetProperty("custom").GetString());
+        var jsonElement = JsonElement.Parse(json);
+        Assert.Equal("urn:issued", jsonElement.GetProperty("issued_token_type").GetString());
+        Assert.Equal("value", jsonElement.GetProperty("custom").GetString());
     }
 
     #endregion

@@ -199,9 +199,9 @@ public class UnreadableSettingsDocumentTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         var item = Assert.Single(
-            document.GetProperty("items").EnumerateArray(),
+            jsonElement.GetProperty("items").EnumerateArray(),
             element => element.GetProperty("clientId").GetString() == UnreadableClientId
         );
         Assert.False(string.IsNullOrEmpty(item.GetProperty("documentError").GetString()), body);
@@ -221,8 +221,8 @@ public class UnreadableSettingsDocumentTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        var document = JsonElement.Parse(body);
-        var problem = document;
+        var jsonElement = JsonElement.Parse(body);
+        var problem = jsonElement;
         Assert.Equal(OpenIdSettingScopes.Tenant, problem.GetProperty("settingsScope").GetString());
         Assert.Equal(HostApplicationFactory.TenantId, problem.GetProperty("ownerId").GetString());
         Assert.Contains("it_retired_setting", problem.GetProperty("documentError").GetString());

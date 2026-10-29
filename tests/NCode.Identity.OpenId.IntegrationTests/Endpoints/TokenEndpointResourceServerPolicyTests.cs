@@ -154,8 +154,8 @@ public class TokenEndpointResourceServerPolicyTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var document = JsonElement.Parse(body);
-        Assert.Equal(60, document.GetProperty("expires_in").GetInt32());
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal(60, jsonElement.GetProperty("expires_in").GetInt32());
     }
 
     [Fact]
@@ -175,10 +175,10 @@ public class TokenEndpointResourceServerPolicyTests
             .PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        var document = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.ServerError,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -198,10 +198,10 @@ public class TokenEndpointResourceServerPolicyTests
             .PostAsync(TokenPath, ClientSecretPostBody(clientId));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -228,9 +228,9 @@ public class TokenEndpointResourceServerPolicyTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var document = JsonElement.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         var payload = DecodeJwtPayload(
-            document.GetProperty("access_token").GetString() ?? string.Empty
+            jsonElement.GetProperty("access_token").GetString() ?? string.Empty
         );
         Assert.True(
             payload
@@ -272,14 +272,14 @@ public class TokenEndpointResourceServerPolicyTests
             .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
         Assert.StartsWith(
             "The client's access tokens must be sender-constrained",
-            document.GetProperty("error_description").GetString(),
+            jsonElement.GetProperty("error_description").GetString(),
             StringComparison.Ordinal
         );
     }
@@ -306,10 +306,10 @@ public class TokenEndpointResourceServerPolicyTests
             .SendAsync(BuildCertificateTokenRequest(clientId, certificate));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var document = await ReadJsonAsync(response);
+        var jsonElement = await ReadJsonAsync(response);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            document.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 }

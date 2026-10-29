@@ -37,3 +37,22 @@ const NCode.Identity.Bff.BffLoginFailureReasons.TokenError = "token_error" -> st
 const NCode.Identity.Bff.BffLoginFailureReasons.IdTokenInvalid = "id_token_invalid" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.NonceMismatch = "nonce_mismatch" -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.RejectedByGate = "rejected_by_gate" -> string!
+NCode.Identity.Bff.BffAuditEventNames
+const NCode.Identity.Bff.BffAuditEventNames.Source = "bff" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.LoginSucceeded = "bff.login.succeeded" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.LoginFailed = "bff.login.failed" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.SessionEnded = "bff.session.ended" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.TokenRefreshFailed = "bff.token.refresh_failed" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.BackchannelLogoutReceived = "bff.backchannel_logout.received" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.BackchannelLogoutRejected = "bff.backchannel_logout.rejected" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.AntiforgeryRejected = "bff.antiforgery.rejected" -> string!
+NCode.Identity.Bff.BffAuditEvent
+NCode.Identity.Bff.BffAuditEvent.Category.get -> string!
+NCode.Identity.Bff.BffAuditEvent.Category.init -> void
+NCode.Identity.Bff.BffAuditEvent.Name.get -> string!
+NCode.Identity.Bff.BffAuditEvent.Name.init -> void
+NCode.Identity.Bff.BffAuditEvent.Reason.get -> string?
+NCode.Identity.Bff.BffAuditEvent.Reason.init -> void
+NCode.Identity.Bff.BffAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+override NCode.Identity.Bff.BffAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Bff.BffAuditEvent.EventName.get -> string!

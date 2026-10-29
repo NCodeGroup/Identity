@@ -23,6 +23,7 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Events;
@@ -71,6 +72,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
             serviceCollection.TryAddSingleton<BffClientRegistrationProvider>();
+            serviceCollection.TryAddSingleton<BffLoginTransactionService>();
 
             return newBuilder;
         }

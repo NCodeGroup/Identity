@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 
@@ -32,4 +33,5 @@ namespace NCode.Identity.Bff.Serialization;
 [JsonSerializable(typeof(BffSessionMetadata))]
 [JsonSerializable(typeof(BffSessionPayload))]
 [JsonSerializable(typeof(BffProblem))]
+[JsonSerializable(typeof(BffLoginTransaction))]
 internal sealed partial class BffJsonContext : JsonSerializerContext;

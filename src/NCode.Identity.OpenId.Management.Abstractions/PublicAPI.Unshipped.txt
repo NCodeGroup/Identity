@@ -518,11 +518,21 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.IsProduction.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.IsProduction.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.Name.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.Name.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.TenantEnvironmentResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.Type.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource.Type.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.ConcurrencyToken.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.DisplayName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.DisplayName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.Environment.get -> NCode.Identity.OpenId.Management.Contracts.Tenants.TenantEnvironmentResource?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.Environment.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.TenantId.get -> string!

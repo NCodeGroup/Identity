@@ -39,6 +39,14 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **The management console shows and filters tenants by environment.** `TenantResource` gains `environment`
+  (`TenantEnvironmentResource`: `type`, `name`, `isProduction`), the tenant's effective environment, on the tenant
+  list, read and create responses; it is omitted when the tenant's or the server's stored settings cannot be honored,
+  so such a tenant is still listed. `isProduction` comes from the registered type, so a contributed type is told
+  apart without knowing its name. The `apps/mgmt` tenant list shows each environment, highlights every non-production
+  one, and filters by environment type
+  ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) decision 13,
+  issue [#412](https://github.com/NCodeGroup/Identity/issues/412)).
 - **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
   `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
   EC key with a currently valid client-authentication certificate and a private key, never an `enc` key. Each request

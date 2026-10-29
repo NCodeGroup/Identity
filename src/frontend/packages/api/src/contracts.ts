@@ -19,6 +19,21 @@ export type TenantResource = {
   readonly mtlsEndpointAliasAuthority: string | null;
   readonly isDisabled: boolean;
   readonly displayName: string;
+  /**
+   * The tenant's effective environment, or absent when it cannot be determined (its settings need repair, or name a
+   * type that is not registered).
+   */
+  readonly environment?: TenantEnvironmentResource;
+};
+
+/**
+ * Mirror of `TenantEnvironmentResource`: a tenant's effective `environment_type` and `environment_name`. The
+ * vocabulary of types is open, so tell production from every other environment by `isProduction`, not by the name.
+ */
+export type TenantEnvironmentResource = {
+  readonly type: string;
+  readonly name: string | null;
+  readonly isProduction: boolean;
 };
 
 /**

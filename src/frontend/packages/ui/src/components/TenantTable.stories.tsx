@@ -18,6 +18,7 @@ export const Populated: Story = {
         issuer: 'https://auth.example',
         mtlsEndpointAliasAuthority: 'https://mtls.example',
         isDisabled: false,
+        environment: { type: 'production', name: null, isProduction: true },
       },
       {
         tenantId: 'acme',
@@ -25,6 +26,7 @@ export const Populated: Story = {
         issuer: 'https://acme.auth.example',
         mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
         isDisabled: false,
+        environment: { type: 'development', name: 'Acme Dev', isProduction: false },
       },
       {
         tenantId: 'old',

@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -71,6 +72,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
+    private Mock<ITenantEnvironmentCatalog> MockTenantEnvironmentCatalog { get; }
     private Mock<ITenantClientCoherenceChecker> MockTenantClientCoherenceChecker { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -105,6 +107,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
+        MockTenantEnvironmentCatalog = MockRepository.Create<ITenantEnvironmentCatalog>();
         MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -169,6 +172,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
             MockEffectiveSettingsResolver.Object,
+            MockTenantEnvironmentCatalog.Object,
             MockTenantClientCoherenceChecker.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
@@ -429,6 +433,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupTenantEnvironment("development", "Dev EU", isProduction: false);
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -437,7 +442,35 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var json = Assert.IsType<JsonHttpResult<TenantResource>>(result);
         Assert.Equal(TenantId, json.Value?.TenantId);
         Assert.Equal("Tenant One", json.Value?.DisplayName);
+        Assert.NotNull(json.Value?.Environment);
+        Assert.Equal("development", json.Value.Environment.Type);
+        Assert.Equal("Dev EU", json.Value.Environment.Name);
+        Assert.False(json.Value.Environment.IsProduction);
         Assert.Equal("tenant-ct", httpContext.Response.Headers.ETag);
+    }
+
+    [Fact]
+    public async Task GetTenantAsync_WhenEnvironmentHasNoName_OmitsTheName()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupTenantEnvironment();
+
+        var result = await Handler.GetTenantAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<TenantResource>>(result);
+        Assert.NotNull(json.Value?.Environment);
+        Assert.Equal("production", json.Value.Environment.Type);
+        Assert.Null(json.Value.Environment.Name);
+        Assert.True(json.Value.Environment.IsProduction);
     }
 
     [Fact]
@@ -468,9 +501,169 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: false);
 
+        // Strict mocks: no IEffectiveSettingsResolver setup, so resolving the environment before authorization would
+        // fail the test.
         var result = await Handler.GetTenantAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    #endregion
+
+    #region ListTenantsAsync Tests
+
+    [Fact]
+    public async Task ListTenantsAsync_WhenAuthorized_ReturnsEachTenantWithItsEnvironment()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PagedResult<PersistedTenant>
+                {
+                    Items = [CreateTenant("tenant-ct")],
+                    NextCursor = "next",
+                }
+            )
+            .Verifiable();
+        SetupTenantEnvironment("staging", "Staging", isProduction: false);
+
+        var result = await Handler.ListTenantsAsync(
+            CreateHttpContext(authenticated: true),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<TenantResource>>>(result);
+        var tenant = Assert.Single(json.Value!.Items);
+        Assert.Equal(TenantId, tenant.TenantId);
+        Assert.Equal("staging", tenant.Environment?.Type);
+        Assert.Equal("Staging", tenant.Environment?.Name);
+        Assert.False(tenant.Environment?.IsProduction);
+        Assert.Equal("next", json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListTenantsAsync_WhenUnauthenticated_ReturnsUnauthorizedWithoutReadingSettings()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: neither the store nor the IEffectiveSettingsResolver is set up, so reading either before
+        // authorization would fail the test.
+        var result = await Handler.ListTenantsAsync(
+            CreateHttpContext(authenticated: false),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    private void SetupTenantPage()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PagedResult<PersistedTenant>
+                {
+                    Items = [CreateTenant("tenant-ct")],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+    }
+
+    [Fact]
+    public async Task ListTenantsAsync_WhenTenantSettingsAreUnreadable_ListsTheTenantWithoutItsEnvironment()
+    {
+        SetupTenantPage();
+        var serverSettings = SetupServerSettings();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    serverSettings,
+                    OpenIdSettingScopes.Tenant,
+                    TenantId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Throws(CreateUnreadableSettingsException(OpenIdSettingScopes.Tenant, TenantId))
+            .Verifiable();
+
+        var result = await Handler.ListTenantsAsync(
+            CreateHttpContext(authenticated: true),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<TenantResource>>>(result);
+        var tenant = Assert.Single(json.Value!.Items);
+        Assert.Equal(TenantId, tenant.TenantId);
+        Assert.Null(tenant.Environment);
+    }
+
+    [Fact]
+    public async Task ListTenantsAsync_WhenServerSettingsAreUnreadable_ListsTheTenantsWithoutTheirEnvironment()
+    {
+        SetupTenantPage();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(CreateUnreadableSettingsException(OpenIdSettingScopes.Server, "server"))
+            .Verifiable();
+
+        var result = await Handler.ListTenantsAsync(
+            CreateHttpContext(authenticated: true),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<TenantResource>>>(result);
+        Assert.Null(Assert.Single(json.Value!.Items).Environment);
+    }
+
+    [Fact]
+    public async Task ListTenantsAsync_WhenEnvironmentTypeIsNotRegistered_ListsTheTenantWithoutItsEnvironment()
+    {
+        SetupTenantPage();
+        var serverSettings = SetupServerSettings();
+        var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        tenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
+            .Returns("retired")
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    serverSettings,
+                    OpenIdSettingScopes.Tenant,
+                    TenantId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(tenantSettings.Object)
+            .Verifiable();
+        ITenantEnvironmentType? unregistered = null;
+        MockTenantEnvironmentCatalog
+            .Setup(x => x.TryGetType("retired", out unregistered))
+            .Returns(false)
+            .Verifiable();
+
+        var result = await Handler.ListTenantsAsync(
+            CreateHttpContext(authenticated: true),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<TenantResource>>>(result);
+        Assert.Null(Assert.Single(json.Value!.Items).Environment);
     }
 
     #endregion
@@ -713,6 +906,61 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(effectiveSettings)
             .Verifiable();
     }
+
+    private IReadOnlySettingCollection SetupServerSettings()
+    {
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings.Object)
+            .Verifiable();
+        return serverSettings.Object;
+    }
+
+    private void SetupTenantEnvironment(
+        string environmentType = "production",
+        string environmentName = "",
+        bool isProduction = true,
+        string tenantId = TenantId
+    )
+    {
+        var serverSettings = SetupServerSettings();
+
+        var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        tenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
+            .Returns(environmentType)
+            .Verifiable();
+        tenantSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentName))
+            .Returns(environmentName)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    serverSettings,
+                    OpenIdSettingScopes.Tenant,
+                    tenantId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(tenantSettings.Object)
+            .Verifiable();
+
+        var type = MockRepository.Create<ITenantEnvironmentType>();
+        type.Setup(x => x.TypeName).Returns(environmentType).Verifiable();
+        type.Setup(x => x.IsProduction).Returns(isProduction).Verifiable();
+        var registered = type.Object;
+        MockTenantEnvironmentCatalog
+            .Setup(x => x.TryGetType(environmentType, out registered))
+            .Returns(true)
+            .Verifiable();
+    }
+
+    private static UnreadableSettingsException CreateUnreadableSettingsException(
+        string scopeName,
+        string ownerId
+    ) => new(scopeName, ownerId, new JsonException("The document cannot be honored."));
 
     private static ISettingCollection CreateSettingCollection(params Setting[] settings)
     {
@@ -1764,6 +2012,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupDefaultIssuer("acme", DerivedIssuer);
         var assertValidated = SetupCreateValidation();
         SetupCreatePersistence(CreateSeededTenant(DerivedIssuer));
+        SetupTenantEnvironment(tenantId: "acme");
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1796,6 +2045,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupDefaultAlias("acme", derivedAlias);
         var assertValidated = SetupCreateValidation();
         SetupCreatePersistence(CreateSeededTenant(DerivedIssuer));
+        SetupTenantEnvironment(tenantId: "acme");
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1823,6 +2073,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupStore();
         var assertValidated = SetupCreateValidation();
         SetupCreatePersistence(CreateSeededTenant(issuer));
+        SetupTenantEnvironment(tenantId: "acme");
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1846,6 +2097,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupDefaultIssuer("acme", DerivedIssuer);
         SetupCreateValidation();
         SetupCreatePersistence(CreateSeededTenant(DerivedIssuer));
+        SetupTenantEnvironment(tenantId: "acme");
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1859,6 +2111,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var created = Assert.IsType<Created<TenantResource>>(result);
         Assert.NotNull(created.Value);
         Assert.Equal("seeded-ct", created.Value.ConcurrencyToken);
+        Assert.Equal("production", created.Value.Environment?.Type);
         Assert.Equal("seeded-ct", httpContext.Response.Headers.ETag.ToString());
     }
 

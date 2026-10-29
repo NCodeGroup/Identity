@@ -155,6 +155,40 @@ public class TenantProvisioningTests
     }
 
     [Fact]
+    public async Task ListTenants_ShowsEachTenantsEffectiveEnvironment()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { environment_type = "development", environment_name = "Acme Dev" },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+
+        using var listResponse = await client.GetAsync("/api/tenants");
+        var listBody = await listResponse.Content.ReadAsStringAsync();
+        Assert.True(listResponse.StatusCode == HttpStatusCode.OK, listBody);
+
+        using var list = JsonDocument.Parse(listBody);
+        var acme = list
+            .RootElement.GetProperty("items")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("tenantId").GetString() == "acme");
+        var environment = acme.GetProperty("environment");
+        Assert.Equal("development", environment.GetProperty("type").GetString());
+        Assert.Equal("Acme Dev", environment.GetProperty("name").GetString());
+        Assert.False(environment.GetProperty("isProduction").GetBoolean());
+    }
+
+    [Fact]
     public async Task CreateTenant_WithAnMtlsEndpointAlias_IsServedOnTheAliasHostAndPublishesItsAliases()
     {
         using var factory = CreateFactory();

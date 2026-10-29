@@ -28,6 +28,7 @@ export type {
   SettingsResource,
   TenantAddressFailure,
   TenantAddressResource,
+  TenantEnvironmentResource,
   TenantResource,
   TenantUsageEntry,
   TenantUsageResource,

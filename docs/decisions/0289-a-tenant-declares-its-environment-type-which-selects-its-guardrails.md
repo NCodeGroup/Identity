@@ -90,6 +90,16 @@ tenant that declares nothing is `production`.**
     again, or a poll that saw one). A replica that missed the signal converges within
     `OpenIdTenantOptions.TenantCacheLifetime`
     ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+13. **The management API and console show each tenant's environment.** `TenantResource.Environment`
+    (`TenantEnvironmentResource`: `type`, `name`, `isProduction`) is the tenant's effective environment, resolved like
+    the audit stamp — its committed settings under the server's, the server's read once per list — and only after the
+    caller is authorized. `isProduction` is the registered type's `IsProduction`, so a client tells production from a
+    contributed type without knowing its name. The environment is best-effort: when the tenant's or the server's stored
+    settings cannot be honored, or name an unregistered type, it is omitted rather than answering `409`
+    ([ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)), because the
+    operator needs the list to find the tenant to repair. An audit record's resource values carry only the tenant's own
+    state and omit it. The `apps/mgmt` tenant list shows the environment, highlights every non-production one, and
+    filters by the types the listed tenants have.
 
 ## Options considered
 

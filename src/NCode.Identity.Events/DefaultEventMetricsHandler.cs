@@ -26,7 +26,9 @@ namespace NCode.Identity.Events;
 /// A universal subscriber that emits a metric for every published event, so metrics hang off the same
 /// seam as logging and audit. The counter is tagged with bounded dimensions only: the event type, for audit events the
 /// event name, event category and outcome, and whatever bounded attributes the event declares through
-/// <see cref="ISupportMetricAttributes"/>. High-cardinality fields such as subject or tenant are never dimensions.
+/// <see cref="ISupportMetricAttributes"/>. High-cardinality fields such as subject or tenant are never dimensions;
+/// the tenant's environment type, unlike the tenant id, is a bounded, registered value, so an audit event that carries
+/// one is tagged with it.
 /// </summary>
 // See ADR-0197.
 internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandlerPriority
@@ -43,6 +45,8 @@ internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandl
     internal const string AuditEventCategoryAttribute = "ncode.identity.audit.event_category";
 
     internal const string AuditOutcomeAttribute = "ncode.identity.audit.outcome";
+
+    internal const string TenantEnvironmentTypeAttribute = "ncode.identity.tenant.environment_type";
 
     private Counter<long> EventsPublished { get; }
 
@@ -70,6 +74,9 @@ internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandl
             tags.Add(AuditEventNameAttribute, auditEvent.EventName);
             tags.Add(AuditEventCategoryAttribute, auditEvent.EventCategory);
             tags.Add(AuditOutcomeAttribute, auditEvent.Outcome);
+
+            if (auditEvent.TenantEnvironmentType is { } environmentType)
+                tags.Add(TenantEnvironmentTypeAttribute, environmentType);
         }
 
         if (@event is ISupportMetricAttributes supportMetricAttributes)

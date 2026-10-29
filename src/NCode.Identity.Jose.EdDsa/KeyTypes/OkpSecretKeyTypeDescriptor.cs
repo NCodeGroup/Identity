@@ -260,8 +260,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         JsonElement root;
         try
         {
-            var document = JsonElement.Parse(keyMaterial);
-            root = document;
+            root = JsonElement.Parse(keyMaterial);
         }
         catch (JsonException exception)
         {

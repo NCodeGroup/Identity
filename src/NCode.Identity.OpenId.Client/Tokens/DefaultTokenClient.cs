@@ -17,7 +17,7 @@
 #endregion
 
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Client.Http;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 
@@ -80,7 +80,7 @@ internal class DefaultTokenClient(
         );
 
         if (
-            response.StatusCode == StatusCodes.Status200OK
+            response.StatusCode == ProviderStatusCodes.Status200OK
             && response.Json is { ValueKind: JsonValueKind.Object } json
         )
         {

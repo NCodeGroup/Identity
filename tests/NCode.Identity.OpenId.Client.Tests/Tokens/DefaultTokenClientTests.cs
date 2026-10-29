@@ -18,7 +18,6 @@
 
 using System.Net;
 using System.Web;
-using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
@@ -242,7 +241,7 @@ public class DefaultTokenClientTests : BaseTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal("invalid_grant", result.Error.Error);
-        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Equal(400, result.Error.StatusCode);
     }
 
     [Fact]

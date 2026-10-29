@@ -17,9 +17,8 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.WebUtilities;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Client.Http;
@@ -108,7 +107,7 @@ internal class DefaultAuthorizationRequestClient(
         );
 
         if (
-            response.StatusCode == StatusCodes.Status201Created
+            response.StatusCode == ProviderStatusCodes.Status201Created
             && response.Json is { ValueKind: JsonValueKind.Object } json
         )
         {
@@ -228,12 +227,22 @@ internal class DefaultAuthorizationRequestClient(
     private static string ComputeS256Challenge(string verifier) =>
         Base64Url.Encode(SHA256.HashData(SecureEncoding.ASCII.GetBytes(verifier)));
 
-    private static string AddQuery(
-        string endpoint,
-        List<KeyValuePair<string, string>> parameters
-    ) =>
-        QueryHelpers.AddQueryString(
-            endpoint,
-            parameters.Select(static p => new KeyValuePair<string, string?>(p.Key, p.Value))
-        );
+    private static string AddQuery(string endpoint, List<KeyValuePair<string, string>> parameters)
+    {
+        var builder = new StringBuilder(endpoint);
+
+        // ProviderUri.TryParseEndpoint rejects a fragment, so the query is appended at the end.
+        var separator = endpoint.Contains('?') ? '&' : '?';
+        foreach (var (name, value) in parameters)
+        {
+            builder
+                .Append(separator)
+                .Append(Uri.EscapeDataString(name))
+                .Append('=')
+                .Append(Uri.EscapeDataString(value));
+            separator = '&';
+        }
+
+        return builder.ToString();
+    }
 }

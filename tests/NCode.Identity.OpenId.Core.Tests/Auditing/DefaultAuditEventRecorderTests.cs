@@ -264,7 +264,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
             mockContext.Object,
             "subject_id_missing",
             "Unable to determine the end-user's subject id.",
-            attemptedSubjectId: "attempted-user",
+            attemptedUsername: "attempted-user",
             CancellationToken.None
         );
 
@@ -274,7 +274,8 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("production", captured.TenantEnvironmentType);
-        Assert.Equal("attempted-user", captured.SubjectId);
+        Assert.Null(captured.SubjectId);
+        Assert.Equal("attempted-user", captured.AttemptedUsername);
         Assert.Equal(AuditActor.Anonymous, captured.Actor);
         Assert.Equal("api/authorize", captured.Request?.Endpoint);
         Assert.Equal("subject_id_missing", captured.Error?.Code);

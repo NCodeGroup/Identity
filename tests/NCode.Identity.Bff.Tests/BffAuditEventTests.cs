@@ -90,4 +90,24 @@ public class BffAuditEventTests : BaseTests
     }
 
     #endregion
+
+    #region HasAuditDetails Property Tests
+
+    [Fact]
+    public void HasAuditDetails_WithReason_IsTrue()
+    {
+        var auditEvent = CreateEvent("x");
+
+        Assert.True(auditEvent.HasAuditDetails);
+    }
+
+    [Fact]
+    public void HasAuditDetails_WithoutReason_IsFalse()
+    {
+        var auditEvent = CreateEvent(null);
+
+        Assert.False(auditEvent.HasAuditDetails);
+    }
+
+    #endregion
 }

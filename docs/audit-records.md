@@ -210,7 +210,7 @@ One row for each event the library publishes. In a cell, `none` means the member
 | `authorization.granted`  | `authorization`  | `openid` | `success`            | `info`                                  | `end_user`, or `anonymous` with no subject    | none                  | none                                                                                                                                         | none                    |
 | `authorization.denied`   | `authorization`  | `openid` | `denied`             | `info`                                  | `end_user`, or `anonymous` with no subject    | none                  | The error code; `access_denied` by default                                                                                                   | none                    |
 | `client.authentication`  | `authentication` | `openid` | `failure`            | `warning`                               | `client`                                      | none                  | The error code; `invalid_client` by default                                                                                                  | `authentication_method` |
-| `subject.authentication` | `authentication` | `openid` | `success`, `failure` | `info` on success, `warning` on failure | `end_user` on success, `anonymous` on failure | none                  | Failure only: `authentication_failed`, the bearer token error's code, `subject_id_missing`, `invalid_credentials` or `attempt_limit_reached` | none                    |
+| `subject.authentication` | `authentication` | `openid` | `success`, `failure` | `info` on success, `warning` on failure | `end_user` on success, `anonymous` on failure | none                  | Failure only: `authentication_failed`, the bearer token error's code, `subject_id_missing`, `invalid_credentials` or `attempt_limit_reached` | `attempted_username`, on a failure that presented one |
 | `openid.error`           | `protocol`       | `openid` | `failure`, `denied`  | `warning` on failure, `info` on denied  | `anonymous`                                   | none                  | The OAuth error code; `message` is its description and `status_code` the HTTP status                                                         | none                    |
 | `session.created`        | `session`        | `openid` | `success`            | `info`                                  | `end_user`                                    | `session`             | none                                                                                                                                         | none                    |
 | `session.terminated`     | `session`        | `openid` | `success`            | `info`                                  | `system`                                      | `session`, when known | none                                                                                                                                         | `termination_reason`    |
@@ -228,7 +228,9 @@ Notes on the protocol events:
   code of the bearer token error (such as `invalid_token`), `subject_id_missing` (the authenticated principal has no
   subject id), `invalid_credentials` (the password grant refused the credentials) and `attempt_limit_reached` (the
   account reached its limit of failed password attempts). The `error.message` carries the prose that describes the
-  failure. A request that presents no credentials is not audited.
+  failure. A request that presents no credentials is not audited. A failure that presented a user name, such as a
+  refused password grant, writes it as `details.attempted_username` and leaves `subject_id` absent, so `subject_id` only
+  ever holds a verified subject id.
 - `session.terminated` has no `session` resource for a subject-wide termination. `details.termination_reason` is a
   session termination reason or an extension's own name.
 - `token.issued`'s `details.token_type` is the issued token's type, such as `access_token` or `id_token`; the token value
@@ -447,7 +449,7 @@ Category : "NCode.Identity.Audit" and State.audit.severity : "critical" and Stat
 
 Use it to find a source that is trying many credentials. Group the failures by `audit.request.source_ip` and
 `audit.error.code`; a source with many `invalid_credentials` or `attempt_limit_reached` failures across different
-`audit.subject_id` values is guessing credentials.
+`audit.details.attempted_username` values is guessing credentials.
 
 ```text
 Category : "NCode.Identity.Audit" and State.audit.event_name : "subject.authentication" and State.audit.outcome : "failure"

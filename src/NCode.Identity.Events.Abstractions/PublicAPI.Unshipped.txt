@@ -155,6 +155,7 @@ NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceId.get -> string?
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceType.get -> string!
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ResourceValues.get -> System.Text.Json.JsonElement?
 NCode.Identity.Events.Audit.ISupportAuditDetails
+NCode.Identity.Events.Audit.ISupportAuditDetails.HasAuditDetails.get -> bool
 NCode.Identity.Events.Audit.ISupportAuditDetails.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.Events.Audit.ResourceChangeAuditEvent
 NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ChangeType.get -> string!

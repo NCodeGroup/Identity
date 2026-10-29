@@ -877,6 +877,14 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A failed sign-in records the attempted user name as a detail, not as the subject.** `subject.authentication`
+  failures write the user name a password grant presented as `details.attempted_username` and leave `subject_id`
+  absent, so `subject_id` only ever holds a verified subject id. `IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync`
+  takes `attemptedUsername`, and `SubjectAuthenticationAuditEvent` gains `AttemptedUsername`. `ISupportAuditDetails`
+  gains `HasAuditDetails` (default `true`), so an event with nothing to write omits `details` instead of writing `{}`;
+  `BffAuditEvent` and `SubjectAuthenticationAuditEvent` use it, issue
+  [#385](https://github.com/NCodeGroup/Identity/issues/385).
+
 - **The ADR index gate refuses two ADRs with one number.** The `adr index` stage of `./build/dod.ps1` moves into
   `build/adr-index.ps1` with fixture tests, and also fails when two files in `docs/decisions/` share a four-digit
   number, when an index row's number is not its file's, or when a file is listed twice, issue

@@ -50,6 +50,9 @@ public sealed record BffAuditEvent : AuditEvent, ISupportAuditDetails
     public override string EventCategory => Category;
 
     /// <inheritdoc />
+    public bool HasAuditDetails => Reason is not null;
+
+    /// <inheritdoc />
     /// <remarks>
     /// Writes the <c>reason</c> when there is one; no token, handle or cookie value is ever written.
     /// </remarks>

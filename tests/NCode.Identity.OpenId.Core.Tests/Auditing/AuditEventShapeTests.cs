@@ -226,6 +226,34 @@ public sealed class AuditEventShapeTests
         Assert.Equal(AuditEventCategories.Authentication, auditEvent.EventCategory);
     }
 
+    [Fact]
+    public void Serialize_WhenAnAttemptNamesAUsername_WritesItAsTheDetailsAndNotTheSubject()
+    {
+        var auditEvent = CreateSubjectAuthenticationEvent() with
+        {
+            Outcome = AuditOutcome.Failure,
+            AttemptedUsername = "alice",
+        };
+
+        var record = ParseRecord(auditEvent);
+
+        Assert.Equal(
+            """{"attempted_username":"alice"}""",
+            record.GetProperty("details").GetRawText()
+        );
+        Assert.False(record.TryGetProperty("subject_id", out _));
+    }
+
+    [Fact]
+    public void Serialize_WhenNoUsernameIsAttempted_WritesNoDetails()
+    {
+        var auditEvent = CreateSubjectAuthenticationEvent();
+
+        var record = ParseRecord(auditEvent);
+
+        Assert.False(record.TryGetProperty("details", out _));
+    }
+
     #endregion
 
     #region OpenIdErrorEvent Tests

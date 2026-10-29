@@ -120,7 +120,7 @@ internal class DefaultAuthenticateSubjectHandler(
                 openIdContext,
                 AuthenticationFailedErrorCode,
                 "Failed to authenticate the end-user.",
-                attemptedSubjectId: null,
+                attemptedUsername: null,
                 cancellationToken
             );
             return Failed(
@@ -179,7 +179,7 @@ internal class DefaultAuthenticateSubjectHandler(
                 openIdContext,
                 disposition.Error.Code,
                 "Failed to authenticate the end-user.",
-                attemptedSubjectId: null,
+                attemptedUsername: null,
                 cancellationToken
             );
             return Failed(disposition.Error);
@@ -216,7 +216,7 @@ internal class DefaultAuthenticateSubjectHandler(
                 openIdContext,
                 SubjectIdMissingErrorCode,
                 "Unable to determine the end-user's subject id.",
-                attemptedSubjectId: null,
+                attemptedUsername: null,
                 cancellationToken
             );
             return Failed(

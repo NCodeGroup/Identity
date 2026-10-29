@@ -52,6 +52,7 @@ const NCode.Identity.Bff.BffAuditEventNames.AntiforgeryRejected = "bff.antiforge
 NCode.Identity.Bff.BffAuditEvent
 NCode.Identity.Bff.BffAuditEvent.Category.get -> string!
 NCode.Identity.Bff.BffAuditEvent.Category.init -> void
+NCode.Identity.Bff.BffAuditEvent.HasAuditDetails.get -> bool
 NCode.Identity.Bff.BffAuditEvent.Name.get -> string!
 NCode.Identity.Bff.BffAuditEvent.Name.init -> void
 NCode.Identity.Bff.BffAuditEvent.Reason.get -> string?

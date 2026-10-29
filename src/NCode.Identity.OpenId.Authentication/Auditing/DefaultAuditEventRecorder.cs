@@ -209,7 +209,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
         OpenIdContext openIdContext,
         string errorCode,
         string? errorMessage,
-        string? attemptedSubjectId,
+        string? attemptedUsername,
         CancellationToken cancellationToken
     )
     {
@@ -221,7 +221,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
             TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
-            SubjectId = attemptedSubjectId,
+            AttemptedUsername = attemptedUsername,
             Actor = AuditActor.Anonymous,
             Request = CreateRequest(openIdContext),
             Outcome = AuditOutcome.Failure,

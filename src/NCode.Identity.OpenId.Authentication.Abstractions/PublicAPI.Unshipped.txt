@@ -234,7 +234,7 @@ NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordRefreshT
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSessionCreatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSessionTerminatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! reason, string? subjectId, string? sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticatedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! errorCode, string? errorMessage, string? attemptedSubjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! errorCode, string? errorMessage, string? attemptedUsername, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordTokenIssuedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken securityToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordTokenRevokedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string? subjectId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditEventNames
@@ -250,6 +250,10 @@ NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.Sessio
 NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.TerminationReason.get -> string!
 NCode.Identity.OpenId.Authentication.Auditing.SessionTerminatedAuditEvent.TerminationReason.init -> void
 NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.AttemptedUsername.get -> string?
+NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.AttemptedUsername.init -> void
+NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.HasAuditDetails.get -> bool
+NCode.Identity.OpenId.Authentication.Auditing.SubjectAuthenticationAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.init -> void

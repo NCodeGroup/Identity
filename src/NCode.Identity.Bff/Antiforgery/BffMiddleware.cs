@@ -57,16 +57,11 @@ internal class BffMiddleware(
         context.Features.Set(feature);
 
         var endpoint = context.GetEndpoint();
-        if (
-            endpoint is not null
-            && (
-                endpoint.Metadata.GetMetadata<BffApiAttribute>() is not null
-                || endpoint.Metadata.GetMetadata<BffUserEndpointMetadata>() is not null
-            )
-        )
-        {
+        if (BffGuardedEndpoints.IsGuarded(endpoint))
             feature.CheckedEndpoint = endpoint;
 
+        if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
+        {
             var reason = BffRequestGuard.Check(context.Request, _options.Value);
             if (reason is not null)
             {

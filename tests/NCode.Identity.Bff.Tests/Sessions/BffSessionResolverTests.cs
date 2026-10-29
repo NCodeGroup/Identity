@@ -145,6 +145,19 @@ public class BffSessionResolverTests : BaseTests
     }
 
     [Fact]
+    public async Task ResolveAsync_UncheckedPageEndpoint_Throws()
+    {
+        var httpContext = CreateHttpContext(
+            endpointMetadata: new BffPageAttribute(),
+            checkedEndpoint: false
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Resolver.ResolveAsync(httpContext, CancellationToken.None)
+        );
+    }
+
+    [Fact]
     public async Task ResolveAsync_NoCookie_ReturnsNull()
     {
         var httpContext = CreateHttpContext(withCookie: false);
@@ -291,6 +304,41 @@ public class BffSessionResolverTests : BaseTests
     public async Task ResolveAsync_ApiRequestPastThreshold_SlidesSession()
     {
         var httpContext = CreateHttpContext(endpointMetadata: new BffApiAttribute());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        BffSessionState? slidState = null;
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => slidState = update(current)
+            )
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(Now, result.Metadata.LastAccessedAt);
+        Assert.Equal(Now.AddHours(1), result.Metadata.IdleExpiresAt);
+        Assert.Same(slidState, result);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_PageRequestPastThreshold_SlidesSession()
+    {
+        var httpContext = CreateHttpContext(endpointMetadata: new BffPageAttribute());
         var state = CreateState(Now.AddHours(5), Now.AddHours(1));
         BffSessionState? slidState = null;
         MockManager

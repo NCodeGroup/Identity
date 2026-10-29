@@ -60,9 +60,7 @@ internal class BffSessionResolver(
             );
 
         var endpoint = httpContext.GetEndpoint();
-        var isProtected =
-            endpoint?.Metadata.GetMetadata<BffApiAttribute>() is not null
-            || endpoint?.Metadata.GetMetadata<BffUserEndpointMetadata>() is not null;
+        var isProtected = BffGuardedEndpoints.IsGuarded(endpoint);
         if (isProtected && !ReferenceEquals(feature.CheckedEndpoint, endpoint))
             throw new InvalidOperationException("UseBff() must run after routing.");
 
@@ -123,9 +121,9 @@ internal class BffSessionResolver(
             return Complete(httpContext, feature, null);
         }
 
-        var isApi = endpoint?.Metadata.GetMetadata<BffApiAttribute>() is not null;
+        var slides = BffGuardedEndpoints.IsApi(endpoint) || BffGuardedEndpoints.IsPage(endpoint);
         var idleTimeout = _options.Value.Session.IdleTimeout;
-        if (isApi && now - state.Metadata.LastAccessedAt >= idleTimeout / 10)
+        if (slides && now - state.Metadata.LastAccessedAt >= idleTimeout / 10)
         {
             var slid = await _sessionManager.UpdateAsync(
                 state,

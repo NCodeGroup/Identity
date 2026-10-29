@@ -163,6 +163,29 @@ public class BffMiddlewareTests : BaseTests
     }
 
     [Fact]
+    public async Task InvokeAsync_PageEndpoint_CallsNextAndSetsCheckedEndpoint()
+    {
+        var httpContext = CreateContext(guarded: false);
+        httpContext.Request.Method = HttpMethods.Get;
+        httpContext.SetEndpoint(
+            new Endpoint(null, new EndpointMetadataCollection(new BffPageAttribute()), "page")
+        );
+        var nextCalled = false;
+        var middleware = CreateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.True(nextCalled);
+        var feature = httpContext.Features.Get<BffRequestFeature>();
+        Assert.NotNull(feature);
+        Assert.Same(httpContext.GetEndpoint(), feature.CheckedEndpoint);
+    }
+
+    [Fact]
     public async Task InvokeAsync_UnguardedEndpoint_CallsNextWithoutCheckedEndpoint()
     {
         var httpContext = CreateContext(guarded: false);

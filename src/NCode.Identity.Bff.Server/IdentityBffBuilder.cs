@@ -18,6 +18,9 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Options;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
@@ -81,5 +84,11 @@ internal sealed class IdentityBffBuilder : ServiceBuilder<IdentityBff>, IIdentit
         BffLibraryBuilder = OpenIdClientLibraryBuilder
             .AddBffLibrary(EventsLibraryBuilder)
             .AddBffConfiguration(configuration);
+
+        // Only the composition root knows both the BFF and the protocol client, so it checks the lease against the
+        // client's request timeout (ADR-0291).
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffRefreshLeaseValidator>()
+        );
     }
 }

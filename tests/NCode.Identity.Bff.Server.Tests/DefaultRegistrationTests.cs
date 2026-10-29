@@ -103,6 +103,22 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
+    public void AddIdentityBff_Always_RegistersTheRefreshLeaseValidator()
+    {
+        var services = CreateServices();
+
+        services.AddIdentityBff(CreateConfiguration());
+
+        Assert.Contains(
+            services,
+            x =>
+                x.ServiceType == typeof(IValidateOptions<BffOptions>)
+                && x.ImplementationType == typeof(BffRefreshLeaseValidator)
+                && x.Lifetime == ServiceLifetime.Singleton
+        );
+    }
+
+    [Fact]
     public void AddIdentityBff_WithNullConfiguration_Throws()
     {
         var services = CreateServices();

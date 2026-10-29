@@ -33,8 +33,9 @@ public sealed class BffTokenOptions
     public TimeSpan RefreshBeforeExpiry { get; set; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
-    /// Gets or sets how long the cluster-wide refresh lease lasts. The default is 40 seconds. The configuration key
-    /// is <c>Bff:Tokens:RefreshLeaseDuration</c>.
+    /// Gets or sets how long the cluster-wide refresh lease lasts. The default is 40 seconds. It must be at least twice
+    /// the protocol client's request timeout plus 10 seconds, which <c>AddIdentityBff</c> validates. The configuration
+    /// key is <c>Bff:Tokens:RefreshLeaseDuration</c>.
     /// </summary>
     public TimeSpan RefreshLeaseDuration { get; set; } = TimeSpan.FromSeconds(40);
 }

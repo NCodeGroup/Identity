@@ -53,7 +53,9 @@ rationale.
 - ✅ **Use `const` for compile-time literal values** of any type instead of `var`/`readonly` locals:
   `const string Expected = "hello";`, `const int Count = 5;`, `const char Separator = ',';`.
 - ✅ **Use UTF-8 string literals (`u8`)** when building `byte[]`/`ReadOnlySpan<byte>` from valid UTF-8 text:
-  `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests.
+  `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests. A fixed
+  protocol label — an HKDF `info`, a hash prefix — is a `static ReadOnlySpan<byte> Name => "…"u8` property, never a
+  `const string` encoded on each call.
 - ✅ Nullable reference types are **on** and nullable warnings are **errors**. 🚫 The **null-forgiving operator (`!`)
   is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
   `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
@@ -744,8 +746,17 @@ rationale.
   ([ADR-0228](../../docs/decisions/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)).
 - 👁 **A security effect that follows a committed change — ending the sessions after a password change or reset, an
   account disable or a principal block — runs with `CancellationToken.None`.** A client disconnect must not leave the
-  change committed without its effect; a step that precedes its commit keeps the request token. See
-  [ADR-0226](../../docs/decisions/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md).
+  change committed without its effect; a step that precedes its commit keeps the request token. Likewise, once a
+  request wins a single-use lease (the BFF refresh lease), the guarded operation and its write-back run with
+  `CancellationToken.None`, bounded by the client's own timeout, and a logout removes the session before any outbound
+  call it makes. See
+  [ADR-0226](../../docs/decisions/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  [ADR-0291](../../docs/decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) and
+  [ADR-0293](../../docs/decisions/0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md).
+- 👁 **A cookie authentication handler authenticates only the endpoints its guard checked.** The BFF's handler
+  authenticates the cookie on a guarded endpoint (an API, `/bff/user`, a page) and returns no result everywhere else, so
+  a cookie the browser attaches to an unguarded endpoint is never a credential there. See
+  [ADR-0292](../../docs/decisions/0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md).
 - 👁 **The interactive surface serves a cookie only while the session it names is active.** An interactive endpoint
   authenticates its cookie through the handler's `AuthenticateSessionAsync`, never `AuthenticateAsync` directly, and a
   refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the
@@ -989,6 +1000,7 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   `JsonSerializer.Deserialize<JsonElement>` / `DeserializeAsync<JsonElement>`. `JsonDocument.Parse`, `ParseAsync`,
   `ParseValue` and `TryParseValue` are banned (`BannedSymbols.txt`, RS0030) in production and test code alike: a
   `JsonDocument` rents pooled buffers that leak when it is not disposed, and an element read from it fails once it is.
+  Name a parsed `JsonElement` for what it holds, or `jsonElement`, never `document`, which names a `JsonDocument`.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare

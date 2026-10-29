@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -25,6 +27,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -34,6 +37,7 @@ public class BffCallbackHandlerTests : BaseTests
 {
     private const string Issuer = "https://op.example.com";
     private const string State = "state-value";
+    private const string Nonce = "nonce-value";
 
     // 32 random bytes in unpadded base64url.
     private static readonly string LoginSecret = new('a', 43);
@@ -41,6 +45,9 @@ public class BffCallbackHandlerTests : BaseTests
     private readonly Mock<BffLoginTransactionService> _transactionService;
     private readonly Mock<IProviderMetadataResolver> _metadataResolver;
     private readonly Mock<IBffAuditRecorder> _auditRecorder;
+    private readonly Mock<ITokenClient> _tokenClient;
+    private readonly Mock<IIdTokenValidator> _idTokenValidator;
+    private readonly List<IBffLoginGate> _gates = [];
 
     public BffCallbackHandlerTests()
     {
@@ -49,6 +56,8 @@ public class BffCallbackHandlerTests : BaseTests
         );
         _metadataResolver = CreateStrictMock<IProviderMetadataResolver>();
         _auditRecorder = CreateStrictMock<IBffAuditRecorder>();
+        _tokenClient = CreateStrictMock<ITokenClient>();
+        _idTokenValidator = CreateStrictMock<IIdTokenValidator>();
     }
 
     private BffCallbackHandler CreateHandler()
@@ -61,9 +70,9 @@ public class BffCallbackHandlerTests : BaseTests
             _transactionService.Object,
             new BffCookies(options, timeProvider),
             _metadataResolver.Object,
-            CreateStrictMock<ITokenClient>().Object,
-            CreateStrictMock<IIdTokenValidator>().Object,
-            [],
+            _tokenClient.Object,
+            _idTokenValidator.Object,
+            _gates,
             CreateStrictMock<IBffSessionManager>().Object,
             _auditRecorder.Object,
             timeProvider,
@@ -92,7 +101,13 @@ public class BffCallbackHandlerTests : BaseTests
 
     private void SetupTransaction(bool issSupported)
     {
-        var transaction = new BffLoginTransaction { Issuer = Issuer };
+        var transaction = new BffLoginTransaction
+        {
+            Issuer = Issuer,
+            RedirectUri = "https://app.example.com/bff/callback",
+            CodeVerifier = "verifier",
+            Nonce = Nonce,
+        };
         SetupTake(State, new BffLoginTransactionResult(transaction, null));
         var metadata = new OpenIdProviderMetadata
         {
@@ -207,5 +222,159 @@ public class BffCallbackHandlerTests : BaseTests
         );
     }
 
+    [Fact]
+    public async Task HandleAsync_TokenErrorResult_FailsWithTokenError()
+    {
+        SetupTransaction(issSupported: false);
+        SetupToken(new TokenResult(new ProtocolError("invalid_grant", 400)));
+        SetupAudit(BffLoginFailureReasons.TokenError);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.TokenError
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_ProviderException_FailsWithTokenError()
+    {
+        SetupTransaction(issSupported: false);
+        _tokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Throws(new OpenIdProviderException("unavailable"))
+            .Verifiable();
+        SetupAudit(BffLoginFailureReasons.TokenError);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.TokenError
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_NoIdToken_FailsWithTokenError()
+    {
+        SetupTransaction(issSupported: false);
+        SetupToken(new TokenResult(new TokenResponse { AccessToken = "at" }));
+        SetupAudit(BffLoginFailureReasons.TokenError);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.TokenError
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_NonceMismatch_FailsWithNonceMismatch()
+    {
+        SetupTransaction(issSupported: false);
+        SetupSuccessfulToken();
+        SetupValidation(
+            new IdTokenValidationResult(
+                TokenValidationFailureCodes.NonceMismatch,
+                "The nonce is wrong."
+            )
+        );
+        SetupAudit(BffLoginFailureReasons.NonceMismatch);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.NonceMismatch
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_InvalidIdToken_FailsWithIdTokenInvalid()
+    {
+        SetupTransaction(issSupported: false);
+        SetupSuccessfulToken();
+        SetupValidation(
+            new IdTokenValidationResult(
+                TokenValidationFailureCodes.InvalidSignature,
+                "The signature is wrong."
+            )
+        );
+        SetupAudit(BffLoginFailureReasons.IdTokenInvalid);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.IdTokenInvalid
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_GateRejects_FailsWithRejectedByGate()
+    {
+        SetupTransaction(issSupported: false);
+        SetupSuccessfulToken();
+        var identity = new ClaimsIdentity([new Claim("sub", "user-1")]);
+        SetupValidation(new IdTokenValidationResult(default(JsonElement)) { Identity = identity });
+        var gate = CreateStrictMock<IBffLoginGate>();
+        gate.Setup(x =>
+                x.AllowAsync(It.IsAny<BffLoginGateContext>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        _gates.Add(gate.Object);
+        SetupAudit(BffLoginFailureReasons.RejectedByGate);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.RejectedByGate
+        );
+    }
+
     #endregion
+
+    #region StoreClaims Tests
+
+    [Fact]
+    public void StoreClaims_WithNonceAndEmail_DropsNonceAndKeepsEmail()
+    {
+        var identity = new ClaimsIdentity([
+            new Claim(JoseClaimNames.Payload.Nonce, Nonce),
+            new Claim(JoseClaimNames.Payload.Email, "user@example.com"),
+        ]);
+
+        var result = BffSessionPrincipal.StoreClaims(identity);
+
+        var stored = Assert.Single(result);
+        Assert.Equal(JoseClaimNames.Payload.Email, stored.Type);
+        Assert.Equal("user@example.com", stored.Value);
+    }
+
+    #endregion
+
+    private void SetupToken(TokenResult result) =>
+        _tokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    private void SetupSuccessfulToken() =>
+        SetupToken(new TokenResult(new TokenResponse { AccessToken = "at", IdToken = "idt" }));
+
+    private void SetupValidation(IdTokenValidationResult result) =>
+        _idTokenValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.Is<IdTokenValidationRequest>(r => r.Nonce == Nonce && r.State == State),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
 }

@@ -132,13 +132,87 @@ internal class BffCallbackHandler
         }
 
         var codeValues = request.Query[OpenIdProtocol.Parameters.AuthorizationCode];
-        if (codeValues.Count != 1 || string.IsNullOrEmpty(codeValues[0]))
+        var code = codeValues.Count == 1 ? codeValues[0] : null;
+        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
         {
             await FailAsync(httpContext, BffLoginFailureReasons.InvalidResponse);
             return;
         }
 
-        // The code exchange, ID token validation and session creation follow in the next steps.
+        var registration = _registrationProvider.Registration;
+        var tokenRequest = new AuthorizationCodeTokenRequest(
+            code,
+            transaction.RedirectUri,
+            transaction.CodeVerifier
+        )
+        {
+            DPoPJwkThumbprint = transaction.DPoPJwkThumbprint,
+        };
+
+        TokenResult tokenResult;
+        try
+        {
+            tokenResult = await _tokenClient.RequestTokenAsync(
+                registration,
+                tokenRequest,
+                cancellationToken
+            );
+        }
+        catch (OpenIdProviderException)
+        {
+            await FailAsync(httpContext, BffLoginFailureReasons.TokenError);
+            return;
+        }
+
+        if (tokenResult.Response is not { IdToken: { } idToken, AccessToken: { } accessToken })
+        {
+            await FailAsync(httpContext, BffLoginFailureReasons.TokenError);
+            return;
+        }
+
+        var validationRequest = new IdTokenValidationRequest
+        {
+            IdToken = idToken,
+            Nonce = transaction.Nonce,
+            MaxAge = transaction.MaxAge is { } maxAgeSeconds
+                ? TimeSpan.FromSeconds(maxAgeSeconds)
+                : null,
+            AccessToken = accessToken,
+            AuthorizationCode = code,
+            State = state,
+        };
+        var validation = await _idTokenValidator.ValidateAsync(
+            registration,
+            validationRequest,
+            cancellationToken
+        );
+        if (validation.Identity is not { } identity || !validation.IsValid)
+        {
+            var reason = string.Equals(
+                validation.FailureCode,
+                TokenValidationFailureCodes.NonceMismatch,
+                StringComparison.Ordinal
+            )
+                ? BffLoginFailureReasons.NonceMismatch
+                : BffLoginFailureReasons.IdTokenInvalid;
+            await FailAsync(httpContext, reason);
+            return;
+        }
+
+        var claims = BffSessionPrincipal.StoreClaims(identity);
+        var principal = BffSessionPrincipal.Create(claims, transaction.Issuer);
+        var gateContext = new BffLoginGateContext(httpContext, transaction.Issuer, principal);
+        foreach (var gate in _gates)
+        {
+            var allowed = await gate.AllowAsync(gateContext, cancellationToken);
+            if (allowed)
+                continue;
+
+            await FailAsync(httpContext, BffLoginFailureReasons.RejectedByGate);
+            return;
+        }
+
+        // The session creation follows in the next step.
         throw new NotImplementedException();
     }
 

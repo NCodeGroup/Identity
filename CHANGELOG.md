@@ -839,6 +839,11 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` now exports the
+  ASP.NET Core development certificate as PEM, and the `ncode:serve-over-https` preset plugin serves it when `pnpm dev`
+  runs `mgmt`, `playground` or `conformance` directly, so the `http://` redirect URIs and developer CORS origins for
+  ports 5173–5175 are removed, issue [#402](https://github.com/NCodeGroup/Identity/issues/402).
+
 - **The local stack serves every browser surface over HTTPS with the .NET development certificate.** Under the
   Aspire AppHost, the standalone Vite surfaces `mgmt`, `playground` and `conformance` serve
   `https://localhost:5173`, `5174` and `5175` with the ASP.NET Core development certificate the OP hosts already use

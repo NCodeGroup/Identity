@@ -55,7 +55,9 @@ Rules:
   surfaces opt into `WithHttpsDeveloperCertificate`: Aspire runs Vite under a wrapper config that sets `server.https`
   from the same development certificate the OP hosts use, and switches the endpoint's scheme to `https`. The browser
   therefore trusts one certificate across the stack (`dotnet dev-certs https --trust`), and the AppHost has only an
-  `https` launch profile.
+  `https` launch profile. Outside Aspire the `defineStandaloneSurfaceConfig` preset serves the same certificate,
+  exported as PEM by `build/frontend-install.ps1`, and defers to Aspire's `TLS_CONFIG_PFX` when it is set, so the
+  seeded redirect URIs and the developer CORS origins register `https://` only (issue #402).
 - **`apps/auth` is a build-watcher, not a dev server.** Its `dev` script is `vite build --watch`; it is modeled
   with `AddJavaScriptApp` (no HTTP endpoint) so Aspire runs the watcher and the host serves the resulting
   `dist`. Only `apps/mgmt` (a true dev server) uses `AddViteApp`.

@@ -695,6 +695,13 @@ internal class TenantApiEndpointHandler(
 
         var resourceValues = ToResourceValues(ToTenantResource(tenant));
 
+        // The tenant's row is gone when the deletion is audited, so its environment type is recorded now (ADR-0289).
+        ManagementTenantEnvironment.Remember(
+            httpContext,
+            tenant.TenantId,
+            effectiveSettings.GetValue(OpenIdSettingKeys.EnvironmentType)
+        );
+
         await store.RemoveAsync(tenantId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 

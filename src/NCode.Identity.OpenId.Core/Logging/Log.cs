@@ -170,4 +170,11 @@ internal static partial class Log
         string serverId,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantCacheClearFailed,
+        Level = LogLevel.Warning,
+        Message = "Evicting the cached tenants after the server's settings changed failed; each tenant applies the change when its cache entry expires"
+    )]
+    internal static partial void TenantCacheClearFailed(this ILogger logger, Exception exception);
 }

@@ -110,4 +110,15 @@ internal static partial class Log
         string ownerId,
         string documentError
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantEnvironmentTypeUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The environment type of tenant '{TenantId}' cannot be read, so its management audit record carries none"
+    )]
+    internal static partial void TenantEnvironmentTypeUnreadable(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
 }

@@ -27,21 +27,24 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IManagementAuditRecorder"/> that derives the audit
-/// envelope — including the acting administrator — from the current request and publishes through the
-/// event seam.
+/// envelope — including the acting administrator and the effective environment type of the tenant the event names —
+/// from the current request and publishes through the event seam.
 /// </summary>
 internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
     IOpenIdEnvironmentProvider environmentProvider,
+    IManagementTenantEnvironmentResolver tenantEnvironmentResolver,
     TimeProvider timeProvider
 ) : IManagementAuditRecorder
 {
     private IEventPublisher EventPublisher { get; } = eventPublisher;
     private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
+    private IManagementTenantEnvironmentResolver TenantEnvironmentResolver { get; } =
+        tenantEnvironmentResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
-    public ValueTask RecordGrantRevokedAsync(
+    public async ValueTask RecordGrantRevokedAsync(
         HttpContext httpContext,
         string tenantId,
         string? subjectId,
@@ -57,6 +60,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             SubjectId = subjectId,
             ClientId = clientId,
             Actor = GetActor(httpContext),
@@ -65,11 +73,11 @@ internal class DefaultManagementAuditRecorder(
             GrantType = grantType,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordGrantsRevokedAsync(
+    public async ValueTask RecordGrantsRevokedAsync(
         HttpContext httpContext,
         string tenantId,
         string? subjectId,
@@ -86,6 +94,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             SubjectId = subjectId,
             ClientId = clientId,
             Actor = GetActor(httpContext),
@@ -95,11 +108,11 @@ internal class DefaultManagementAuditRecorder(
             RevokedCount = revokedCount,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordSessionsRevokedAsync(
+    public async ValueTask RecordSessionsRevokedAsync(
         HttpContext httpContext,
         string tenantId,
         string? subjectId,
@@ -115,6 +128,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             SubjectId = subjectId,
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
@@ -123,11 +141,11 @@ internal class DefaultManagementAuditRecorder(
             RevokedCount = revokedCount,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordClientChangedAsync(
+    public async ValueTask RecordClientChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string clientId,
@@ -143,6 +161,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             ClientId = clientId,
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
@@ -152,11 +175,11 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordClientSecretChangedAsync(
+    public async ValueTask RecordClientSecretChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string clientId,
@@ -173,6 +196,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             ClientId = clientId,
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
@@ -182,11 +210,11 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordTenantChangedAsync(
+    public async ValueTask RecordTenantChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string changeType,
@@ -201,6 +229,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
@@ -209,11 +242,11 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordTenantSecretChangedAsync(
+    public async ValueTask RecordTenantSecretChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string secretId,
@@ -229,6 +262,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
@@ -237,7 +275,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -295,7 +333,7 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
-    public ValueTask RecordResourceServerChangedAsync(
+    public async ValueTask RecordResourceServerChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string resourceServerId,
@@ -311,6 +349,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
@@ -319,11 +362,11 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordResourceServerScopeChangedAsync(
+    public async ValueTask RecordResourceServerScopeChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string resourceServerId,
@@ -340,6 +383,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
@@ -349,11 +397,11 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordResourceServerSecretChangedAsync(
+    public async ValueTask RecordResourceServerSecretChangedAsync(
         HttpContext httpContext,
         string tenantId,
         string resourceServerId,
@@ -370,6 +418,11 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            TenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            ),
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
@@ -379,16 +432,28 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask RecordResourceChangeAsync(
+    public async ValueTask RecordResourceChangeAsync(
         HttpContext httpContext,
         ResourceChangeAuditEvent auditEvent,
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(auditEvent);
+
+        var tenantEnvironmentType = auditEvent.TenantEnvironmentType;
+        if (tenantEnvironmentType is null && auditEvent.TenantId is { } tenantId)
+        {
+            tenantEnvironmentType = await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                httpContext,
+                tenantId,
+                cancellationToken
+            );
+        }
+
         // Stamp the common envelope (the caller owns the resource-specific fields and outcome); `with` preserves the
         // runtime event type so dispatch keys off the concrete event.
         var now = TimeProvider.GetUtcNow();
@@ -397,11 +462,12 @@ internal class DefaultManagementAuditRecorder(
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.Management,
+            TenantEnvironmentType = tenantEnvironmentType,
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
         };
 
-        return EventPublisher.PublishAsync(stamped, cancellationToken);
+        await EventPublisher.PublishAsync(stamped, cancellationToken);
     }
 
     private static AuditRequest CreateRequest(HttpContext httpContext) =>

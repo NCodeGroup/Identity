@@ -877,6 +877,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Tenant environments: production hosts refuse a non-production server default, cached tenants follow server
+  changes, and management audit records carry the tenant's type.** In the Production host environment
+  `AddProductionSafety` refuses to start when `OpenId:Server:Settings:environment_type` names a registered type whose
+  `IsProduction` is false, issue [#410](https://github.com/NCodeGroup/Identity/issues/410). The server provider evicts
+  every cached tenant whenever the server's settings change, so a changed server-wide `environment_type` reaches
+  tenants at once instead of after `TenantCacheLifetime`, issue
+  [#409](https://github.com/NCodeGroup/Identity/issues/409). Management audit events that name a tenant now carry
+  `tenant_environment_type`, resolved from the tenant's effective settings once per request, issue
+  [#411](https://github.com/NCodeGroup/Identity/issues/411)
+  ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+
 - **A failed sign-in records the attempted user name as a detail, not as the subject.** `subject.authentication`
   failures write the user name a password grant presented as `details.attempted_username` and leave `subject_id`
   absent, so `subject_id` only ever holds a verified subject id. `IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync`

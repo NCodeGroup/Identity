@@ -30,6 +30,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
+    private const string TenantEnvironmentType = "staging";
+
     public void Dispose() => MockRepository.Verify();
 
     private static HttpContext CreateHttpContext(string? actorId)
@@ -69,9 +71,22 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         var mockEnvironmentProvider = MockRepository.Create<IOpenIdEnvironmentProvider>();
         mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object);
 
+        var mockTenantEnvironmentResolver =
+            MockRepository.Create<IManagementTenantEnvironmentResolver>();
+        mockTenantEnvironmentResolver
+            .Setup(x =>
+                x.GetEnvironmentTypeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.FromResult<string?>(TenantEnvironmentType));
+
         return new DefaultManagementAuditRecorder(
             eventPublisher,
             mockEnvironmentProvider.Object,
+            mockTenantEnvironmentResolver.Object,
             TimeProvider.System
         );
     }
@@ -112,6 +127,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("authorization_code", captured.GrantType);
@@ -166,6 +182,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Null(captured.ClientId);
         Assert.Equal("sid-1", captured.SessionId);
@@ -216,6 +233,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Equal("sid-1", captured.SessionId);
         Assert.Equal(1, captured.RevokedCount);
@@ -268,6 +286,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("client-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
@@ -328,6 +347,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Deleted, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("secret-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
@@ -386,6 +406,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Updated, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("tenant-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
@@ -444,6 +465,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("secret-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
@@ -501,6 +523,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Updated, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Null(captured.TenantId);
+        Assert.Null(captured.TenantEnvironmentType);
         Assert.Equal("server-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
@@ -559,6 +582,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Null(captured.TenantId);
+        Assert.Null(captured.TenantEnvironmentType);
         Assert.Equal("server-1", captured.ServerId);
         Assert.Equal("secret-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
@@ -622,6 +646,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Updated, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("resource-server-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
@@ -680,6 +705,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("resource-server-1", captured.ResourceServerId);
         Assert.Equal("read:things", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
@@ -742,6 +768,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(ResourceChangeTypes.Deleted, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal("resource-server-1", captured.ResourceServerId);
         Assert.Equal("secret-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
@@ -758,6 +785,77 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             captured.Resources
         );
         Assert.Null(captured.ResourceValues);
+    }
+
+    #endregion
+
+    #region RecordResourceChangeAsync Tests
+
+    [Fact]
+    public async Task RecordResourceChangeAsync_WithATenant_StampsItsEnvironmentType()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        ResourceChangeAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<ResourceChangeAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ResourceChangeAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        await recorder.RecordResourceChangeAsync(
+            CreateHttpContext("admin-1"),
+            new PrincipalChangedAuditEvent
+            {
+                EventSource = AuditEventSources.Management,
+                TenantId = "tenant-1",
+                Outcome = AuditOutcome.Success,
+                ResourceId = "principal-1",
+                ChangeType = ResourceChangeTypes.Updated,
+            },
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
+    }
+
+    [Fact]
+    public async Task RecordResourceChangeAsync_WithAStampedEnvironmentType_KeepsIt()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        ResourceChangeAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<ResourceChangeAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ResourceChangeAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        await recorder.RecordResourceChangeAsync(
+            CreateHttpContext("admin-1"),
+            new PrincipalChangedAuditEvent
+            {
+                EventSource = AuditEventSources.Management,
+                TenantId = "tenant-1",
+                TenantEnvironmentType = "development",
+                Outcome = AuditOutcome.Success,
+                ResourceId = "principal-1",
+                ChangeType = ResourceChangeTypes.Updated,
+            },
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("development", captured.TenantEnvironmentType);
     }
 
     #endregion

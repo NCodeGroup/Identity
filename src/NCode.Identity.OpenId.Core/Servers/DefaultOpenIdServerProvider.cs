@@ -17,30 +17,45 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Logging;
+using NCode.Identity.OpenId.Tenants;
+using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction. The server it
 /// materializes is registered with <see cref="IMaterializedServerRegistry"/>, so background work can wait for the
-/// server and a committed change to its settings can refresh it.
+/// server and a committed change to its settings can refresh it. Whenever the server's settings change, by any path,
+/// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/>, because a tenant's settings derive from the
+/// server's when it is materialized.
 /// </summary>
+// See ADR-0219 and ADR-0289.
 internal class DefaultOpenIdServerProvider(
     IOpenIdServerFactory factory,
-    IMaterializedServerRegistry materializedServerRegistry
+    IMaterializedServerRegistry materializedServerRegistry,
+    IOpenIdTenantCache tenantCache,
+    ILogger<DefaultOpenIdServerProvider> logger
 ) : IOpenIdServerProvider, IAsyncDisposable
 {
     private IOpenIdServerFactory Factory { get; } = factory;
     private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
         materializedServerRegistry;
+    private IOpenIdTenantCache TenantCache { get; } = tenantCache;
+    private ILogger<DefaultOpenIdServerProvider> Logger { get; } = logger;
     private OpenIdServer? InstanceOrNull { get; set; }
+    private IDisposable? SettingsChangeRegistration { get; set; }
     private SemaphoreSlim SyncRoot { get; } = new(initialCount: 1, maxCount: 1);
 
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "SuspiciousTypeConversion.Global")]
     public async ValueTask DisposeAsync()
     {
+        SettingsChangeRegistration?.Dispose();
+
         switch (InstanceOrNull)
         {
             case IAsyncDisposable asyncDisposable:
@@ -76,6 +91,13 @@ internal class DefaultOpenIdServerProvider(
 
                     // Background work waits for the server this replica materializes, and a committed change refreshes it (ADR-0219).
                     MaterializedServerRegistry.Register(server);
+
+                    // A tenant computes the profiles its environment type implies from the server's settings when it is
+                    // materialized, so a changed server reaches cached tenants at once rather than when they expire (ADR-0289).
+                    SettingsChangeRegistration = ChangeToken.OnChange(
+                        server.SettingsProvider.GetChangeToken,
+                        EvictTenants
+                    );
                 }
             }
             finally
@@ -85,5 +107,34 @@ internal class DefaultOpenIdServerProvider(
         }
 
         return InstanceOrNull;
+    }
+
+    private void EvictTenants()
+    {
+        ValueTask clearing;
+        try
+        {
+            clearing = TenantCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            Logger.TenantCacheClearFailed(exception);
+            return;
+        }
+
+        if (!clearing.IsCompletedSuccessfully)
+            _ = ObserveAsync(clearing);
+    }
+
+    private async Task ObserveAsync(ValueTask clearing)
+    {
+        try
+        {
+            await clearing;
+        }
+        catch (Exception exception)
+        {
+            Logger.TenantCacheClearFailed(exception);
+        }
     }
 }

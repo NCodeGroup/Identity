@@ -69,13 +69,27 @@ tenant that declares nothing is `production`.**
    `IAuditEvent.TenantEnvironmentType` and `AuditRecordFields.TenantEnvironmentType`, and
    `AuditRecordWriter.SchemaVersion` moves from 1.0 to 1.1, an additive change. The metric attribute
    `ncode.identity.tenant.environment_type` is added to `ncode.identity.events.published` (for audit events that carry
-   it) and to `ncode.identity.rate_limiting.requests`. Protocol audit events (`DefaultAuditEventRecorder`) set it;
-   management audit events leave it null.
+   it) and to `ncode.identity.rate_limiting.requests`. Protocol audit events (`DefaultAuditEventRecorder`) set it, and
+   so do management audit events that name a tenant: `DefaultManagementAuditRecorder` resolves the tenant's effective
+   type from its committed settings under the server's, once per tenant per request, and a tenant deletion records the
+   type the tenant had before its row is gone. Server events name no tenant and leave it null.
 10. **The hosts declare their own environments.** `appsettings.Development.json`, which the integration-test host also
     loads, declares `OpenId:Server:Settings:environment_type` as `development`, so a developer sees the environment
     banner, can delete a scratch tenant, and a host that lets clients register anonymously keeps that setting;
     `appsettings.Conformance.json` declares `testing`, because the conformance suite registers its clients
     anonymously, which the `production` profile forbids.
+11. **A Production host refuses a non-production server-wide type.** The server-wide type is the default of every
+    tenant that declares none, so a development overlay copied into a Production deployment would silently drop every
+    such tenant's guardrails. `AddProductionSafety` therefore refuses to start, in the Production host environment, when
+    the configured `OpenId:Server:Settings:environment_type` names a registered type whose `IsProduction` is false; the
+    registered types decide, so a contributed type is judged by its own flag. Non-production tenants in a Production
+    host declare their type on the tenant.
+12. **A changed server reaches cached tenants at once.** A materialized tenant computes the profiles its type implies
+    from the server's settings when it reads its own document, so the server provider evicts every cached tenant on the
+    replica whenever the server's settings provider signals a change (a configuration reload, a committed change read
+    again, or a poll that saw one). A replica that missed the signal converges within
+    `OpenIdTenantOptions.TenantCacheLifetime`
+    ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 
 ## Options considered
 
@@ -90,6 +104,10 @@ tenant that declares nothing is `production`.**
   default sits in the baseline, so a server-scope ceiling would bind development tenants too (decision 6).
 - **Defaulting to `development`.** Rejected: it fails open, and a forgotten declaration would drop the guardrails
   (decision 4).
+- **Refusing a non-production server-wide type in every host.** Rejected: development and conformance hosts declare
+  one on purpose (decision 10); only the Production host environment refuses it (decision 11).
+- **Passing the environment type from each management handler.** Rejected: dozens of call sites would each have to
+  remember it; resolving it in the recorder stamps every event that names a tenant (decision 9).
 
 ## Consequences
 
@@ -97,11 +115,10 @@ tenant that declares nothing is `production`.**
   default, deletion protection. An operator who runs a non-production tenant declares its type.
 - The development and conformance host overlays declare a non-production type, so local development and conformance
   runs keep working; any other host that runs non-production tenants must declare it at the server or tenant.
-- A materialized tenant computes its added profiles when it reads its own document, so a change to the server-wide
-  `environment_type` alone reaches a cached tenant within `OpenIdTenantOptions.TenantCacheLifetime` (15 minutes by
-  default). One-shot resolutions, such as management and coherence checks, see it at once. A follow-up tracks this.
-- The audit record schema is 1.1; the new field is additive, so a reader of 1.0 records keeps working. Management audit
-  events leave `tenant_environment_type` null until a follow-up stamps them.
+- A change to the server-wide `environment_type` reaches cached tenants at once on every replica that sees the
+  server's settings change (decision 12), at the cost of materializing each tenant again on its next request.
+- The audit record schema is 1.1; the new field is additive, so a reader of 1.0 records keeps working. A management
+  audit event that names a tenant costs one read of the tenant's settings per tenant per request.
 - `IEffectiveSettingsResolver.ReadScopeSettings` takes the parent settings, a breaking change to the public API,
   acceptable before release ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)).
 - A package adds an environment type by registering a class; a type that selects an unregistered profile fails when the

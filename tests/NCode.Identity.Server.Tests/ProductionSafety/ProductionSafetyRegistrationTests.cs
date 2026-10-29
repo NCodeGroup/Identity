@@ -24,6 +24,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Server.ProductionSafety;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
@@ -256,6 +259,75 @@ public class ProductionSafetyRegistrationTests
         );
 
         Assert.Empty(services);
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenProductionAndServerEnvironmentTypeIsNotProduction_FailsOnStart()
+    {
+        using var serviceProvider = BuildProtectedProvider("development");
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IStartupValidator>().Validate()
+        );
+
+        var failure = Assert.Single(exception.Failures);
+        Assert.Contains(ProductionEnvironmentTypeValidator.ConfigurationKey, failure);
+        Assert.Contains("'development'", failure);
+    }
+
+    [Theory]
+    [InlineData("production")]
+    [InlineData("unregistered")]
+    [InlineData(null)]
+    public void AddProductionSafety_WhenProductionAndServerEnvironmentTypeIsNotANonProductionType_StartsCleanly(
+        string? typeName
+    )
+    {
+        using var serviceProvider = BuildProtectedProvider(typeName);
+
+        serviceProvider.GetRequiredService<IStartupValidator>().Validate();
+    }
+
+    /// <summary>
+    /// A Production provider with a protected key ring, the registered <c>production</c> and <c>development</c> types,
+    /// and configured server settings that select <paramref name="typeName"/> (or no type when it is null).
+    /// </summary>
+    private static ServiceProvider BuildProtectedProvider(string? typeName)
+    {
+        (string Key, string Value)[] settings = typeName is null
+            ? []
+            : [(ProductionEnvironmentTypeValidator.ConfigurationKey, typeName)];
+        var configuration = CreateConfiguration([
+            .. settings,
+            ("AllowedHosts", "op.example.com"),
+            ("DeveloperKeys:Mode", "None"),
+            .. SafeSecretProtectionSettings,
+        ]);
+        var services = new ServiceCollection();
+        services.AddProductionSafety(configuration, CreateEnvironment(Environments.Production));
+        services.Configure<KeyManagementOptions>(options =>
+        {
+            options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
+            options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
+        });
+        services.Configure<OpenIdOptions>(options =>
+            options.Server.Settings = configuration.GetSection("OpenId:Server:Settings")
+        );
+        services.AddSingleton<ITenantEnvironmentType>(new StubEnvironmentType("production", true));
+        services.AddSingleton<ITenantEnvironmentType>(
+            new StubEnvironmentType("development", false)
+        );
+        return services.BuildServiceProvider();
+    }
+
+    private sealed class StubEnvironmentType(string typeName, bool isProduction)
+        : ITenantEnvironmentType
+    {
+        public string TypeName { get; } = typeName;
+
+        public bool IsProduction { get; } = isProduction;
+
+        public IReadOnlyCollection<string> SecurityProfiles { get; } = [];
     }
 
     #endregion

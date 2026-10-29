@@ -20,7 +20,10 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.ProductionSafety;
@@ -73,7 +76,8 @@ public static class ProductionSafetyRegistration
         /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
         /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
         /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
-        /// Data Protection key ring that has no repository or is not encrypted at rest.
+        /// Data Protection key ring that has no repository or is not encrypted at rest, and configured server settings
+        /// whose <c>environment_type</c> is a registered non-production type.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
@@ -103,6 +107,15 @@ public static class ProductionSafetyRegistration
                 )
                 .Validate(options => options.XmlEncryptor is not null, KeyRingUnprotectedMessage)
                 .ValidateOnStart();
+
+            // The server-wide environment type needs the registered types, so it is checked as the host starts too.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OpenIdOptions>,
+                    ProductionEnvironmentTypeValidator
+                >()
+            );
+            serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
 
             var violations = ProductionSafetyRegistration.FindViolations(configuration);
             if (violations.Count == 0)

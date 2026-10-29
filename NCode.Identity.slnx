@@ -72,6 +72,7 @@
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Bff.Tests/NCode.Identity.Bff.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Dispatch.Tests/NCode.Identity.Dispatch.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Events.Tests/NCode.Identity.Events.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jose.EdDsa.Tests/NCode.Identity.Jose.EdDsa.Tests.csproj" />

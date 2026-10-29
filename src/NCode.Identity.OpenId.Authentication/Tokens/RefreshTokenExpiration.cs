@@ -42,6 +42,19 @@ internal static class RefreshTokenExpiration
     ) => lineageCreatedWhen + settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
 
     /// <summary>
+    /// Determines whether a rotation family has passed its horizon.
+    /// </summary>
+    /// <param name="settings">The client's effective settings.</param>
+    /// <param name="lineageCreatedWhen">When the family began.</param>
+    /// <param name="now">The current time.</param>
+    /// <returns><see langword="true"/> when the family expires at or before <paramref name="now"/>.</returns>
+    public static bool HasLineageExpired(
+        IReadOnlySettingCollection settings,
+        DateTimeOffset lineageCreatedWhen,
+        DateTimeOffset now
+    ) => GetLineageExpiresWhen(settings, lineageCreatedWhen) <= now;
+
+    /// <summary>
     /// Gets when a refresh token that is issued or used at <paramref name="usedWhen"/> expires.
     /// </summary>
     /// <param name="settings">The client's effective settings.</param>

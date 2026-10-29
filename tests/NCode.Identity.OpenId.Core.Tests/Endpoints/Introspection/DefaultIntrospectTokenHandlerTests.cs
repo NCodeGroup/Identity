@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Text.Json;
 using Moq;
 using NCode.Identity.Jose;
@@ -30,6 +31,7 @@ using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
@@ -46,9 +48,17 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     private const string Audience = "https://api.example.com";
     private const string OtherAudience = "https://other.example.com";
 
+    private static readonly DateTimeOffset UtcNow = DateTimeOffset.Parse(
+        "2025-01-01T00:00:00Z",
+        CultureInfo.InvariantCulture
+    );
+
+    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
+
     private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
     private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
+    private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdClient> MockClient { get; }
     private ISecretKeyCollection ResourceServerKeys { get; }
@@ -59,13 +69,15 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
         MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
+        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockClient = CreateStrictMock<OpenIdClient>();
         ResourceServerKeys = CreateLooseMock<ISecretKeyCollection>().Object;
         Handler = new DefaultIntrospectTokenHandler(
             MockIssuedTokenValidator.Object,
             MockSubjectIdentifierService.Object,
-            MockPersistedGrantService.Object
+            MockPersistedGrantService.Object,
+            MockTimeProvider.Object
         );
     }
 
@@ -171,7 +183,8 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
         PersistedGrantStatus status,
         string clientId,
         string? subjectId,
-        IReadOnlyList<string> effectiveScopes
+        IReadOnlyList<string> effectiveScopes,
+        DateTimeOffset? lineageCreatedWhen = null
     ) =>
         new()
         {
@@ -180,8 +193,28 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             ClientId = clientId,
             SubjectId = subjectId,
             SessionId = null,
-            Payload = new RefreshTokenGrant(clientId, [], effectiveScopes, null, default, default),
+            Payload = new RefreshTokenGrant(
+                clientId,
+                [],
+                effectiveScopes,
+                null,
+                default,
+                lineageCreatedWhen ?? UtcNow
+            ),
         };
+
+    // The clock and the client's refresh token lifetime, which together decide whether a family is past its horizon.
+    private void SetupRefreshTokenHorizon()
+    {
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenLifetime))
+            .Returns(RefreshTokenLifetime)
+            .Verifiable();
+
+        MockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+    }
 
     private static string? ClaimString(IntrospectionResult result, string name) =>
         result.Claims.TryGetValue(name, out var value)
@@ -307,6 +340,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
         var result = new IntrospectionResult { Active = false };
         var command = CreateCommand(Token, result);
         MockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+        SetupRefreshTokenHorizon();
         SetupRefreshTokenLookup(
             CreateGrant(PersistedGrantStatus.Active, ClientId, "subject-1", ["api", "profile"])
         );
@@ -321,6 +355,29 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
         Assert.Equal(ClientId, result.Claims[JoseClaimNames.Payload.ClientId]);
         Assert.Equal("api profile", result.Claims[JoseClaimNames.Payload.Scope]);
         Assert.Equal("pairwise-1", result.Claims[JoseClaimNames.Payload.Sub]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_RefreshTokenPastItsFamilyHorizon_IsInactive()
+    {
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result);
+        MockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+        SetupRefreshTokenHorizon();
+        SetupRefreshTokenLookup(
+            CreateGrant(
+                PersistedGrantStatus.Active,
+                ClientId,
+                "subject-1",
+                ["api"],
+                UtcNow - TimeSpan.FromDays(31)
+            )
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.Active);
+        Assert.Empty(result.Claims);
     }
 
     [Fact]

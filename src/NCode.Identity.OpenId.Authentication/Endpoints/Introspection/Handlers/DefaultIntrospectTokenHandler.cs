@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Json;
 using NCode.Mediator;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 
@@ -44,12 +45,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 internal class DefaultIntrospectTokenHandler(
     IIssuedTokenValidator issuedTokenValidator,
     ISubjectIdentifierService subjectIdentifierService,
-    IPersistedGrantService persistedGrantService
+    IPersistedGrantService persistedGrantService,
+    TimeProvider timeProvider
 ) : ICommandHandler<IntrospectTokenCommand>, ISupportMediatorPriority
 {
     private IIssuedTokenValidator IssuedTokenValidator { get; } = issuedTokenValidator;
     private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -199,6 +202,18 @@ internal class DefaultIntrospectTokenHandler(
         // A refresh token is a credential of the client it was issued to, and only that client may learn about it.
         var payload = grant.Value.Payload;
         if (!string.Equals(payload.ClientId, openIdClient.ClientId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // A family past its horizon is refused by the refresh grant, so it is not active (ADR-0297).
+        if (
+            RefreshTokenExpiration.HasLineageExpired(
+                openIdClient.Settings,
+                payload.LineageCreatedWhen,
+                TimeProvider.GetUtcNowWithPrecisionInSeconds()
+            )
+        )
         {
             return;
         }

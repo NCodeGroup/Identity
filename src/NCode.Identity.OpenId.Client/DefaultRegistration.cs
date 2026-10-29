@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Client.Discovery;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Keys;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
 using NCode.Registration;
 
@@ -76,6 +77,8 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ProviderHttpClient>();
             serviceCollection.TryAddSingleton<ProviderKeySetImporter>();
             serviceCollection.TryAddSingleton<ClientRequestSender>();
+            serviceCollection.TryAddSingleton<DPoPNonceCache>();
+            serviceCollection.TryAddSingleton<DPoPKeyResolver>();
 
             serviceCollection.TryAddSingleton<
                 IProviderMetadataResolver,

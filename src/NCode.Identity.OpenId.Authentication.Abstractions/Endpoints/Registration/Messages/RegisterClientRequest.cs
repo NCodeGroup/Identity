@@ -352,6 +352,20 @@ public sealed class RegisterClientRequest
     public bool? BackchannelUserCodeParameter { get; init; }
 
     /// <summary>
+    /// Gets the URL the server POSTs a <c>logout_token</c> to when one of the client's sessions ends (OpenID Connect Back-Channel Logout 1.0 §2.2); an absolute https URI without a fragment. No logout token is sent when omitted.
+    /// </summary>
+    [JsonPropertyName("backchannel_logout_uri")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelLogoutUri { get; init; }
+
+    /// <summary>
+    /// Gets whether the client requires a <c>sid</c> claim in every <c>logout_token</c> it receives (OpenID Connect Back-Channel Logout 1.0 §2.2); <see langword="false"/> when omitted.
+    /// </summary>
+    [JsonPropertyName("backchannel_logout_session_required")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? BackchannelLogoutSessionRequired { get; init; }
+
+    /// <summary>
     /// Gets or sets the unrecognized metadata members, so an unknown wire member round-trips instead of being dropped.
     /// </summary>
     [JsonExtensionData]

@@ -110,11 +110,21 @@ public class DefaultOpenIdServerProviderTests : BaseTests
     [Fact]
     public async Task DisposeAsync_AfterTheServerIsCreated_StopsEvictingTenants()
     {
-        var (mockEnvironment, _, _, provider) = CreateProvider();
+        var (mockEnvironment, _, mockTenantCache, provider) = CreateProvider();
+        mockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Never());
         await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
 
         await provider.DisposeAsync();
-        await SettingsChanged.CancelAsync();
+
+        // A fresh source stands in before the old one fires, so a registration that outlived the dispose fails the
+        // Times.Never() check instead of re-firing on the already cancelled token.
+        var changed = SettingsChanged;
+        SettingsChanged = new CancellationTokenSource();
+        await changed.CancelAsync();
+        changed.Dispose();
     }
 
     #endregion

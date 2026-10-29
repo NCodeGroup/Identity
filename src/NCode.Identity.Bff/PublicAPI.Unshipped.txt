@@ -7,6 +7,9 @@ NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceB
 NCode.Identity.Bff.DefaultRegistration
 NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
 NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddBffLibrary(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>! events) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffApi() -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffEndpoints() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!

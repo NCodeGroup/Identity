@@ -18,9 +18,8 @@
 #endregion
 
 using System.Buffers;
-using System.Globalization;
 using System.Security.Cryptography;
-using NCode.Buffers;
+using NCode.Identity.OpenId.LocalDev.Frontend;
 
 // ASPIRE ORCHESTRATION-ONLY HOST (ADR-0071): a flat resource graph that is the single one-stop entry to build, run,
 // and debug the whole local stack (the OpenID host + the frontend apps) with deterministic startup ordering.
@@ -31,11 +30,11 @@ using NCode.Buffers;
 // globally linked, the AppHost (launched by VS Code) does not inherit it, so the frontend resources fail to start.
 var builder = DistributedApplication.CreateBuilder(args);
 
-// The frontend's Node major is pinned once, in src/frontend/.node-version, which CI and NVS read too. Prepend the
-// newest NVS-managed install of that major to this process's PATH before any resource starts; the child resources
-// inherit it, ahead of any other Node on PATH. No-op if NVS or that major is absent (`build/frontend-install.ps1` adds
-// it through NVS and installs the pinned pnpm beside it, once per clone).
-EnsurePinnedNodeOnPath(Path.Combine(builder.AppHostDirectory, "..", "frontend"));
+// The frontend's Node major is pinned once, in src/frontend/.node-version, which CI and NVS read too. The guard puts
+// the newest NVS-managed install of that major on this process's PATH (the child resources inherit it), then fails the
+// AppHost at startup, naming ./build/frontend-install.ps1, when no Node of the pinned major is available or
+// node_modules does not match the pnpm pin and lockfile (ADR-0287).
+new FrontendToolchainGuard(Path.Combine(builder.AppHostDirectory, "..", "frontend")).EnsureReady();
 
 // Every OP instance started below shares the one dev database, so they must all unwrap the same master keys: they are
 // handed the same development root key, as a key file (ADR-0235). The key is generated once per machine, outside the
@@ -199,52 +198,6 @@ builder
 builder.Build().Run();
 
 return;
-
-static void EnsurePinnedNodeOnPath(string frontendDirectory)
-{
-    if (!OperatingSystem.IsWindows())
-        return;
-
-    var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-    var nvsNodeRoot = Path.Combine(localAppData, "nvs", "node");
-    if (!Directory.Exists(nvsNodeRoot))
-        return;
-
-    // .node-version holds the major ("26"), optionally a full version or a leading "v"; only the major selects.
-    var pinned = File.ReadAllText(
-            Path.Combine(frontendDirectory, ".node-version"),
-            SecureEncoding.UTF8
-        )
-        .Trim()
-        .TrimStart('v');
-    var major = int.Parse(pinned.Split('.')[0], NumberStyles.None, CultureInfo.InvariantCulture);
-
-    // NVS lays each install out as <root>/node/<version>/<arch>; take the x64 directory of the highest version of the
-    // pinned major. Versions compare numerically (22.9.0 < 22.22.2), never as strings. build/frontend-install.ps1
-    // installs the pinned pnpm into this same directory, so it resolves alongside node.
-    var nodeDir = Directory
-        .EnumerateDirectories(nvsNodeRoot, $"{major}.*")
-        .Select(versionDir =>
-            (
-                VersionDir: versionDir,
-                Version: Version.TryParse(Path.GetFileName(versionDir), out var version)
-                    ? version
-                    : null
-            )
-        )
-        .Where(install => install.Version?.Major == major)
-        .OrderByDescending(install => install.Version)
-        .Select(install => Path.Combine(install.VersionDir, "x64"))
-        .FirstOrDefault(Directory.Exists);
-    if (nodeDir is null)
-        return;
-
-    var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-    if (path.Split(Path.PathSeparator).Contains(nodeDir, StringComparer.OrdinalIgnoreCase))
-        return;
-
-    Environment.SetEnvironmentVariable("PATH", $"{nodeDir}{Path.PathSeparator}{path}");
-}
 
 // Every OP instance that shares the dev database must unwrap the same master keys, and the key stays out of the
 // repository (ADR-0235): the first AppHost run on a machine writes a random 32-byte root key, base64url encoded, to

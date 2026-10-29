@@ -12,6 +12,7 @@
         <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.AspNetCore.Abstractions/NCode.Identity.AspNetCore.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Bff.Abstractions/NCode.Identity.Bff.Abstractions.csproj" />
+        <Project Path="src/NCode.Identity.Bff/NCode.Identity.Bff.csproj" />
         <Project Path="src/NCode.Identity.Dispatch.Abstractions/NCode.Identity.Dispatch.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Dispatch/NCode.Identity.Dispatch.csproj" />
         <Project Path="src/NCode.Identity.Events.Abstractions/NCode.Identity.Events.Abstractions.csproj" />

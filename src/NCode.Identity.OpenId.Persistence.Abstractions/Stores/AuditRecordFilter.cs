@@ -22,8 +22,9 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 
 /// <summary>
 /// Describes which of a tenant's audit records a lookup returns: every criterion that is set must match, as CloudTrail's
-/// <c>LookupEvents</c> filters do (ADR-0303).
+/// <c>LookupEvents</c> filters do.
 /// </summary>
+// See ADR-0303.
 [PublicAPI]
 public readonly record struct AuditRecordFilter
 {

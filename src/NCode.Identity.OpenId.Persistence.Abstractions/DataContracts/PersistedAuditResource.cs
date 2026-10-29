@@ -24,8 +24,9 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains an entity an audited operation acted on, as an audit store keeps it (ADR-0303).
+/// Contains an entity an audited operation acted on, as an audit store keeps it.
 /// </summary>
+// See ADR-0303.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedAuditResource

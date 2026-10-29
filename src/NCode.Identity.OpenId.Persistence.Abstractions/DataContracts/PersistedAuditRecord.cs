@@ -26,10 +26,11 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
 /// Contains an audit record as an audit store keeps it: the envelope fields an operator filters on, which the store
-/// indexes, and the whole record as the JSON that <c>AuditRecordWriter</c> writes (ADR-0283, ADR-0303). An envelope value
-/// longer than the store indexes is <see langword="null"/>, or for a required field its leading characters, while
+/// indexes, and the whole record as the JSON that <c>AuditRecordWriter</c> writes. An envelope value longer than the
+/// store indexes is <see langword="null"/>, or for a required field its leading characters, while
 /// <see cref="Record"/> keeps it whole.
 /// </summary>
+// See ADR-0283 and ADR-0303.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedAuditRecord

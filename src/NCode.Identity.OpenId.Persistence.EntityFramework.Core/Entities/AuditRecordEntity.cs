@@ -25,12 +25,13 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 
 /// <summary>
-/// Represents an entity framework data contract for an audit record: its indexed envelope and the whole record's JSON
-/// (ADR-0283, ADR-0303). The tenant is referenced by identifier, not by a foreign key, so a record outlives a deleted
-/// tenant until its retention ends. Each index leads with the field a lookup filters on and then the event time, so a
-/// lookup reads one time range of one value; the tenant's index ends with the surrogate identifier, which orders the
-/// records of one instant for paging.
+/// Represents an entity framework data contract for an audit record: its indexed envelope and the whole record's JSON.
+/// The tenant is referenced by identifier, not by a foreign key, so a record outlives a deleted tenant until its
+/// retention ends. Each index leads with the field a lookup filters on and then the event time, so a lookup reads one
+/// time range of one value; the tenant's index ends with the surrogate identifier, which orders the records of one
+/// instant for paging.
 /// </summary>
+// See ADR-0283 and ADR-0303.
 [Index(nameof(EventId), IsUnique = true)]
 [Index(nameof(EventTime))]
 [Index(nameof(TenantId), nameof(EventTime), nameof(Id))]

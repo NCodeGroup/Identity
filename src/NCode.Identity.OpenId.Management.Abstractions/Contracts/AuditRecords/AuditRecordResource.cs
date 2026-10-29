@@ -23,9 +23,9 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.AuditRecords;
 
 /// <summary>
-/// Represents an audit record: the envelope an operator filters on and the whole CloudTrail-shaped record (ADR-0283,
-/// ADR-0303).
+/// Represents an audit record: the envelope an operator filters on and the whole CloudTrail-shaped record.
 /// </summary>
+// See ADR-0283 and ADR-0303.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class AuditRecordResource

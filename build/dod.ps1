@@ -178,46 +178,11 @@ try {
     Invoke-Step 'tool-restore' { dotnet tool restore }
     Invoke-Step 'format (csharpier check)' { dotnet csharpier check . }
 
-    # ADR index gate: the index in docs/decisions/README.md is maintained by hand, and hand-maintenance demonstrably fails --
-    # ten ADRs sat unindexed and a malformed delimiter row (which silently degrades the whole table to a paragraph)
-    # survived dozens of commits before anyone noticed. An unindexed ADR is an ADR nobody finds, which defeats the
-    # point of writing it (ADR-0008). Cheap and build-free, so it runs before the slow stages.
+    # ADR index gate: the index in docs/decisions/README.md is maintained by hand, and hand-maintenance demonstrably fails
+    # (build/adr-index.ps1 lists what it checks). Cheap and build-free, so it runs before the slow stages. Its fixture
+    # tests end with the repository's own index, so a problem there fails the stage with the problem named.
     Invoke-Step 'adr index' {
-        $adrDir = Join-Path $repoRoot 'docs/decisions'
-        $indexPath = Join-Path $adrDir 'README.md'
-        $indexLines = Get-Content $indexPath
-        $problems = @()
-
-        # A GitHub table renders only while every row has the same column count as its delimiter row. One row with the
-        # wrong count collapses the entire table into a run-on paragraph, so this is a correctness check, not cosmetics.
-        for ($i = 0; $i -lt $indexLines.Count; $i++) {
-            if ($indexLines[$i].StartsWith('|')) {
-                $columns = $indexLines[$i].TrimEnd().Split('|').Count - 2
-                if ($columns -ne 3) {
-                    $problems += "docs/decisions/README.md($($i + 1)): table row has $columns columns, expected 3."
-                }
-            }
-        }
-
-        # 0000-template.md is the template, not a decision, so it is deliberately absent from the index.
-        $onDisk = Get-ChildItem $adrDir -Filter '0*.md' |
-            Where-Object { $_.Name -match '^(?!0000-)(\d{4})-' } |
-            ForEach-Object { $_.Name }
-        $indexed = $indexLines |
-            Select-String -Pattern '^\| \[\d{4}\]\(\./([^)]+)\)' |
-            ForEach-Object { $_.Matches[0].Groups[1].Value }
-
-        foreach ($file in $onDisk | Where-Object { $_ -notin $indexed }) {
-            $problems += "docs/decisions/$file is not listed in docs/decisions/README.md."
-        }
-        foreach ($entry in $indexed | Where-Object { $_ -notin $onDisk }) {
-            $problems += "docs/decisions/README.md links ./$entry, which does not exist."
-        }
-
-        if ($problems.Count -gt 0) {
-            $problems | ForEach-Object { Write-Host $_ -ForegroundColor Red }
-            throw "adr index failed with $($problems.Count) problem(s)."
-        }
+        & (Join-Path $PSScriptRoot 'tests\adr-index.tests.ps1')
         $global:LASTEXITCODE = 0
     }
 

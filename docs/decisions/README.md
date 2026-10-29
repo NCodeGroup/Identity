@@ -25,7 +25,9 @@ standards.
 - Files are named `NNNN-title-in-kebab-case.md`, where `NNNN` is a zero-padded, monotonically
   increasing number. Take the next number above the highest ADR on a freshly fetched `origin/main` and any a change
   in flight elsewhere has claimed; re-check it when you rebase, and renumber yours (file name, title, index row, and
-  links) if it was taken in the meantime.
+  links) if it was taken in the meantime. The `adr index` stage of `./build/dod.ps1` (`build/adr-index.ps1`) fails
+  when two files share a number, when the index misses a file or links a missing one, or when a row's number is not
+  its file's, so a collision that slips past a textual merge still fails the merge queue.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
 - **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`.
 - Keep ADRs short, concrete, and link to real code so future readers can verify the decision

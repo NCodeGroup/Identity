@@ -877,6 +877,11 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The ADR index gate refuses two ADRs with one number.** The `adr index` stage of `./build/dod.ps1` moves into
+  `build/adr-index.ps1` with fixture tests, and also fails when two files in `docs/decisions/` share a four-digit
+  number, when an index row's number is not its file's, or when a file is listed twice, issue
+  [#371](https://github.com/NCodeGroup/Identity/issues/371).
+
 - **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` now exports the
   ASP.NET Core development certificate as PEM, and the `ncode:serve-over-https` preset plugin serves it when `pnpm dev`
   runs `mgmt`, `playground` or `conformance` directly, so the `http://` redirect URIs and developer CORS origins for

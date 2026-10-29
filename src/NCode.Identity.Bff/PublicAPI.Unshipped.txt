@@ -1,1 +1,41 @@
 #nullable enable
+NCode.Identity.Bff.Options.BffAntiforgeryOptions
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.BffAntiforgeryOptions() -> void
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderName.get -> string!
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderName.set -> void
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderValue.get -> string!
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderValue.set -> void
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.BffClientAuthenticationOptions() -> void
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.KeyRing.get -> string?
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.KeyRing.set -> void
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.Method.get -> string!
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.Method.set -> void
+NCode.Identity.Bff.Options.BffOptions
+NCode.Identity.Bff.Options.BffOptions.Antiforgery.get -> NCode.Identity.Bff.Options.BffAntiforgeryOptions!
+NCode.Identity.Bff.Options.BffOptions.Antiforgery.set -> void
+NCode.Identity.Bff.Options.BffOptions.Authority.get -> string!
+NCode.Identity.Bff.Options.BffOptions.Authority.set -> void
+NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.get -> bool
+NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.set -> void
+NCode.Identity.Bff.Options.BffOptions.BffOptions() -> void
+NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.get -> NCode.Identity.Bff.Options.BffClientAuthenticationOptions!
+NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.set -> void
+NCode.Identity.Bff.Options.BffOptions.ClientId.get -> string!
+NCode.Identity.Bff.Options.BffOptions.ClientId.set -> void
+NCode.Identity.Bff.Options.BffOptions.ErrorPath.get -> string!
+NCode.Identity.Bff.Options.BffOptions.ErrorPath.set -> void
+NCode.Identity.Bff.Options.BffOptions.LoginParameters.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.LoginParameters.set -> void
+NCode.Identity.Bff.Options.BffOptions.PathPrefix.get -> string!
+NCode.Identity.Bff.Options.BffOptions.PathPrefix.set -> void
+NCode.Identity.Bff.Options.BffOptions.Resources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.Resources.set -> void
+NCode.Identity.Bff.Options.BffOptions.ReturnUrls.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.ReturnUrls.set -> void
+NCode.Identity.Bff.Options.BffOptions.Scopes.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.Scopes.set -> void
+NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.set -> void
+NCode.Identity.Bff.Options.BffOptions.UserClaims.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.UserClaims.set -> void

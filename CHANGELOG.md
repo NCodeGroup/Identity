@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
+  `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
+  EC key with a currently valid client-authentication certificate and a private key, never an `enc` key. Each request
+  goes over a connection per certificate, to the provider's `mtls_endpoint_aliases` entry when it has one, and sends
+  `client_id`. `IClientAuthenticator.UsesMutualTls` declares the transport (a breaking addition for custom
+  authenticators), `OpenIdProviderMetadata.MtlsEndpointAliases` carries the aliases, and
+  `OpenIdClientDefaults.MutualTlsHttpClientNamePrefix` names the per-certificate HTTP clients
+  ([ADR-0287](docs/decisions/0287-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
+  issue [#392](https://github.com/NCodeGroup/Identity/issues/392)).
 - **Dynamic client registration accepts back-channel logout metadata.** `RegisterClientRequest` and
   `RegisterClientResponse` carry `BackchannelLogoutUri` and `BackchannelLogoutSessionRequired`, stored as the
   `backchannel_logout_uri` and `backchannel_logout_session_required` client settings, so a self-registered client

@@ -1,6 +1,6 @@
 # 270. The OpenID protocol client uses the family's JOSE stack and named key rings
 
-- **Status:** Accepted (phase 1b's ID-token validation: [ADR-0273](0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md); amended by [ADR-0285](0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md): the implementation package references no ASP.NET Core shared framework)
+- **Status:** Accepted (phase 1b's mTLS client authentication: [ADR-0287](0287-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md); phase 1b's ID-token validation: [ADR-0273](0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md); amended by [ADR-0285](0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md): the implementation package references no ASP.NET Core shared framework)
 - **Date:** 2026-10-26
 - **Deciders:** NCode Group
 

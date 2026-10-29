@@ -31,37 +31,49 @@ internal static class BffPayloadProtector
     private const int TagLength = 16;
 
     /// <summary>
+    /// Gets the length of a protected payload: the nonce, the ciphertext and the tag.
+    /// </summary>
+    /// <param name="plaintextLength">The length of the payload to encrypt.</param>
+    public static int GetProtectedLength(int plaintextLength) =>
+        NonceLength + plaintextLength + TagLength;
+
+    /// <summary>
     /// Encrypts a payload.
     /// </summary>
     /// <param name="secret">The base64url secret that the key is derived from.</param>
     /// <param name="purpose">The HKDF purpose of the key.</param>
     /// <param name="plaintext">The payload to encrypt.</param>
     /// <param name="associatedData">The data that the ciphertext is bound to.</param>
-    /// <returns>The nonce, then the ciphertext, then the tag.</returns>
-    /// <exception cref="ArgumentException">The secret is not valid.</exception>
-    public static byte[] Protect(
+    /// <param name="destination">The buffer that receives the nonce, then the ciphertext, then the tag; exactly <c>GetProtectedLength(plaintext.Length)</c> bytes.</param>
+    /// <exception cref="ArgumentException">The secret is not valid or the destination is not exactly the protected length.</exception>
+    public static void Protect(
         string secret,
         ReadOnlySpan<byte> purpose,
         ReadOnlySpan<byte> plaintext,
-        ReadOnlySpan<byte> associatedData
+        ReadOnlySpan<byte> associatedData,
+        Span<byte> destination
     )
     {
+        if (destination.Length != GetProtectedLength(plaintext.Length))
+            throw new ArgumentException(
+                "The destination must be exactly the protected length.",
+                nameof(destination)
+            );
+
         Span<byte> key = stackalloc byte[KeyLength];
         try
         {
             if (!BffKeyDerivation.TryDeriveKey(secret, purpose, key))
                 throw new ArgumentException("The secret is not valid.", nameof(secret));
 
-            var output = new byte[NonceLength + plaintext.Length + TagLength];
-            var nonce = output.AsSpan(0, NonceLength);
-            var ciphertext = output.AsSpan(NonceLength, plaintext.Length);
-            var tag = output.AsSpan(NonceLength + plaintext.Length, TagLength);
+            var nonce = destination[..NonceLength];
+            var ciphertext = destination.Slice(NonceLength, plaintext.Length);
+            var tag = destination.Slice(NonceLength + plaintext.Length, TagLength);
 
             RandomNumberGenerator.Fill(nonce);
 
             using var aes = new AesGcm(key, TagLength);
             aes.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
-            return output;
         }
         finally
         {

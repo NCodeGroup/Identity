@@ -72,11 +72,13 @@ internal class BffLoginTransactionService(BffInstrumentedSessionStore store)
             BffJsonContext.Default.BffLoginTransaction
         );
         var keyBytes = SecureEncoding.UTF8.GetBytes(key);
-        var protectedTransaction = BffPayloadProtector.Protect(
+        var protectedTransaction = new byte[BffPayloadProtector.GetProtectedLength(json.Length)];
+        BffPayloadProtector.Protect(
             initiatorSecret,
             BffKeyDerivation.LoginPayloadPurpose,
             json,
-            keyBytes
+            keyBytes,
+            protectedTransaction
         );
 
         var added = await store.TryAddTransactionAsync(

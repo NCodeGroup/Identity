@@ -33,11 +33,13 @@ public class BffPayloadProtectorTests : BaseTests
     public void TryUnprotect_RoundTrip_ReturnsThePlaintext()
     {
         var secret = BffKeyDerivation.CreateSecret();
-        var protectedData = BffPayloadProtector.Protect(
+        var protectedData = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+        BffPayloadProtector.Protect(
             secret,
             BffKeyDerivation.SessionPayloadPurpose,
             Plaintext,
-            AssociatedData
+            AssociatedData,
+            protectedData
         );
         var writer = new ArrayBufferWriter<byte>();
 
@@ -57,14 +59,40 @@ public class BffPayloadProtectorTests : BaseTests
     [Fact]
     public void Protect_InvalidSecret_Throws()
     {
+        var destination = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+
         Assert.Throws<ArgumentException>(() =>
             BffPayloadProtector.Protect(
                 "short",
                 BffKeyDerivation.SessionPayloadPurpose,
                 Plaintext,
-                AssociatedData
+                AssociatedData,
+                destination
             )
         );
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    public void Protect_DestinationOfWrongLength_Throws(int difference)
+    {
+        var secret = BffKeyDerivation.CreateSecret();
+        var destination = new byte[
+            BffPayloadProtector.GetProtectedLength(Plaintext.Length) + difference
+        ];
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            BffPayloadProtector.Protect(
+                secret,
+                BffKeyDerivation.SessionPayloadPurpose,
+                Plaintext,
+                AssociatedData,
+                destination
+            )
+        );
+
+        Assert.Equal("destination", exception.ParamName);
     }
 
     [Fact]
@@ -72,11 +100,13 @@ public class BffPayloadProtectorTests : BaseTests
     {
         var secret = BffKeyDerivation.CreateSecret();
         var other = BffKeyDerivation.CreateSecret();
-        var protectedData = BffPayloadProtector.Protect(
+        var protectedData = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+        BffPayloadProtector.Protect(
             secret,
             BffKeyDerivation.SessionPayloadPurpose,
             Plaintext,
-            AssociatedData
+            AssociatedData,
+            protectedData
         );
         var writer = new ArrayBufferWriter<byte>();
 
@@ -96,11 +126,13 @@ public class BffPayloadProtectorTests : BaseTests
     public void TryUnprotect_WrongPurpose_ReturnsFalse()
     {
         var secret = BffKeyDerivation.CreateSecret();
-        var protectedData = BffPayloadProtector.Protect(
+        var protectedData = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+        BffPayloadProtector.Protect(
             secret,
             BffKeyDerivation.SessionPayloadPurpose,
             Plaintext,
-            AssociatedData
+            AssociatedData,
+            protectedData
         );
         var writer = new ArrayBufferWriter<byte>();
 
@@ -119,11 +151,13 @@ public class BffPayloadProtectorTests : BaseTests
     public void TryUnprotect_ChangedAssociatedData_ReturnsFalse()
     {
         var secret = BffKeyDerivation.CreateSecret();
-        var protectedData = BffPayloadProtector.Protect(
+        var protectedData = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+        BffPayloadProtector.Protect(
             secret,
             BffKeyDerivation.SessionPayloadPurpose,
             Plaintext,
-            AssociatedData
+            AssociatedData,
+            protectedData
         );
         var writer = new ArrayBufferWriter<byte>();
 
@@ -142,11 +176,13 @@ public class BffPayloadProtectorTests : BaseTests
     public void TryUnprotect_FlippedCiphertextByte_ReturnsFalse()
     {
         var secret = BffKeyDerivation.CreateSecret();
-        var protectedData = BffPayloadProtector.Protect(
+        var protectedData = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+        BffPayloadProtector.Protect(
             secret,
             BffKeyDerivation.SessionPayloadPurpose,
             Plaintext,
-            AssociatedData
+            AssociatedData,
+            protectedData
         );
         protectedData[12] ^= 0x01;
         var writer = new ArrayBufferWriter<byte>();
@@ -167,11 +203,13 @@ public class BffPayloadProtectorTests : BaseTests
     public void TryUnprotect_TruncatedInput_ReturnsFalse()
     {
         var secret = BffKeyDerivation.CreateSecret();
-        var protectedData = BffPayloadProtector.Protect(
+        var protectedData = new byte[BffPayloadProtector.GetProtectedLength(Plaintext.Length)];
+        BffPayloadProtector.Protect(
             secret,
             BffKeyDerivation.SessionPayloadPurpose,
             Plaintext,
-            AssociatedData
+            AssociatedData,
+            protectedData
         );
         var writer = new ArrayBufferWriter<byte>();
 

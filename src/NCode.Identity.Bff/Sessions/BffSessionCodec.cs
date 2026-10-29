@@ -63,11 +63,14 @@ internal static class BffSessionCodec
 
         var associatedData = CreateAssociatedData(storeKey, version, metadata);
         using var lease = buffer.GetSpanLease(isSensitive: true);
-        var protectedPayload = BffPayloadProtector.Protect(
+        // The record owns its protected payload beyond this call, so it is an exactly sized array.
+        var protectedPayload = new byte[BffPayloadProtector.GetProtectedLength(lease.Span.Length)];
+        BffPayloadProtector.Protect(
             handle,
             BffKeyDerivation.SessionPayloadPurpose,
             lease.Span,
-            associatedData
+            associatedData,
+            protectedPayload
         );
 
         return new BffSessionRecord(storeKey, version, metadata, protectedPayload);

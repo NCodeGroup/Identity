@@ -120,11 +120,6 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         // Every judgement reads the request's HTTP context for its rate-limit state and its endpoint.
         MockContext.Setup(x => x.Http).Returns(HttpContext).Verifiable();
-
-        // The environment type is read only when a limit applies, so this setup is not verified.
-        MockTenantSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
-            .Returns(OpenIdConstants.TenantEnvironmentTypes.Production);
     }
 
     protected override void Dispose(bool disposing)
@@ -170,6 +165,12 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         var value = limit.GetValueOrDefault();
         mockSettings.Setup(x => x.TryGetValue(key, out value)).Returns(limit.HasValue).Verifiable();
     }
+
+    private static void SetupEnvironmentType(Mock<IReadOnlySettingCollection> mockSettings) =>
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
+            .Returns(OpenIdConstants.TenantEnvironmentTypes.Production)
+            .Verifiable();
 
     private void SetupIncrements(
         IReadOnlyList<ExpiringCounterIncrement> expected,
@@ -265,6 +266,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupStage(descriptor);
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 1);
+        SetupEnvironmentType(MockTenantSettings);
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         return descriptor;
     }
@@ -310,6 +312,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupStage(descriptor);
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 10);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements(
             [CreateSlidingIncrement("tagged", limit: 10)],
             new ExpiringCounterCount(1, 0)
@@ -359,6 +362,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupStage(descriptor);
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 10);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements(
             [CreateSlidingIncrement("within", limit: 10)],
             new ExpiringCounterCount(7, 4)
@@ -381,6 +385,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupStage(descriptor);
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 10);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements(
             [CreateSlidingIncrement("crowded", limit: 10)],
             new ExpiringCounterCount(3, 12)
@@ -406,6 +411,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, first.LimitKey, 10);
         SetupLimit(MockTenantSettings, second.LimitKey, 20);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements(
             [
                 CreateSlidingIncrement("first", limit: 10),
@@ -436,6 +442,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupStage(metered, plain);
         SetupTenant();
         SetupLimit(MockTenantSettings, plain.LimitKey, 10);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements(
             [CreateSlidingIncrement("plain", limit: 10)],
             new ExpiringCounterCount(1, 0)
@@ -466,6 +473,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupStage(skipped, applied);
         SetupTenant();
         SetupLimit(MockTenantSettings, applied.LimitKey, 10);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements(
             [CreateSlidingIncrement("applied", limit: 10)],
             new ExpiringCounterCount(1, 0)
@@ -485,9 +493,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         var descriptor = CreateDescriptor("client_limited", usageMeter: "client_meter");
         var mockClientSettings = CreateStrictMock<IReadOnlySettingCollection>();
         SetupLimit(mockClientSettings, descriptor.LimitKey, 5);
-        mockClientSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
-            .Returns(OpenIdConstants.TenantEnvironmentTypes.Production);
+        SetupEnvironmentType(mockClientSettings);
         var mockClient = CreateStrictMock<OpenIdClient>();
         mockClient.Setup(x => x.Settings).Returns(mockClientSettings.Object).Verifiable();
         SetupStage(descriptor);
@@ -519,6 +525,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 5);
         SetupLimit(MockTenantSettings, GetOverageKey("daily"), null);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements([CreateFixedIncrement("daily", limit: 5)], new ExpiringCounterCount(5, 0));
 
         var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
@@ -539,6 +546,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 5);
         SetupLimit(MockTenantSettings, GetOverageKey("daily"), 2);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements([CreateFixedIncrement("daily", limit: 7)], new ExpiringCounterCount(6, 0));
 
         var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
@@ -559,6 +567,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 5);
         SetupLimit(MockTenantSettings, GetOverageKey("daily"), 2);
+        SetupEnvironmentType(MockTenantSettings);
         SetupIncrements([CreateFixedIncrement("daily", limit: 7)], new ExpiringCounterCount(8, 0));
 
         var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);

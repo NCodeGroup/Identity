@@ -16,10 +16,12 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Json;
@@ -204,6 +206,95 @@ public sealed class AuditRecordFlushServiceTests : IDisposable
                 x.RemoveBeforeAsync(It.IsAny<DateTimeOffset>(), It.IsAny<int>(), cancellationToken),
             Times.Exactly(2)
         );
+    }
+
+    #endregion
+
+    #region StopAsync Tests
+
+    [Fact]
+    public async Task StopAsync_CalledTwiceConcurrently_FlushesOnce()
+    {
+        var cancellationToken = CancellationToken.None;
+        var save = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        SetupStores();
+        Enqueue(1);
+        MockAuditRecordStore
+            .Setup(x =>
+                x.AddAsync(It.IsAny<IReadOnlyCollection<PersistedAuditRecord>>(), cancellationToken)
+            )
+            .ReturnsAsync(1)
+            .Verifiable(Times.Once);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(new ValueTask(save.Task))
+            .Verifiable(Times.Once);
+
+        var first = Service.StopAsync(cancellationToken);
+        var second = Service.StopAsync(cancellationToken);
+        save.SetResult();
+        await Task.WhenAll(first, second);
+
+        Assert.Same(first, second);
+        Assert.Equal(0, Queue.Count);
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenTheStopTokenEndsTheWait_LogsTheHeldRecords()
+    {
+        var cancellationToken = CancellationToken.None;
+        var save = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockLogger = MockRepository.Create<ILogger<AuditRecordFlushService>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(eventId => eventId.Id == EventIds.AuditRecordsDiscardedOnStop),
+                    It.Is<It.IsAnyType>(
+                        (state, _) =>
+                            $"{state}".StartsWith("3 audit records ", StringComparison.Ordinal)
+                    ),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable(Times.Once);
+        using var service = new AuditRecordFlushService(
+            Queue,
+            MockStoreManagerFactory.Object,
+            Options.Create(new AuditRecordOptions { QueueCapacity = 1000 }),
+            MockTimeProvider.Object,
+            mockLogger.Object
+        );
+        SetupStores();
+        Enqueue(2);
+        var written = new List<int>();
+        MockAuditRecordStore
+            .Setup(x =>
+                x.AddAsync(It.IsAny<IReadOnlyCollection<PersistedAuditRecord>>(), cancellationToken)
+            )
+            .Callback<IReadOnlyCollection<PersistedAuditRecord>, CancellationToken>(
+                (batch, _) => written.Add(batch.Count)
+            )
+            .ReturnsAsync(1)
+            .Verifiable(Times.Exactly(2));
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(new ValueTask(save.Task))
+            .Verifiable(Times.Exactly(2));
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        var flush = service.FlushAsync(cancellationToken).AsTask();
+        Enqueue(1);
+
+        await service.StopAsync(cancellation.Token);
+
+        save.SetResult();
+        await flush;
+
+        Assert.Equal([2, 1], written);
     }
 
     #endregion

@@ -51,11 +51,19 @@ internal sealed class AuditRecordFlushService(
 
     private DateTimeOffset? _lastPrunedTime;
 
+    // The records in Batch, kept with Interlocked so a stop whose token ended the wait for FlushGate can count them
+    // without reading the list.
+    private int _heldRecordCount;
+
     // Serializes the periodic and the final flush, which share the held batch. Never disposed: it allocates no wait
     // handle, and a stop that races the host's disposal must still release it.
     private SemaphoreSlim FlushGate { get; } = new(initialCount: 1, maxCount: 1);
 
     private List<PersistedAuditRecord> Batch { get; } = new(BatchSize);
+
+    private Lock StopGate { get; } = new();
+
+    private Task? StopTask { get; set; }
 
     private AuditRecordQueue Queue { get; } = queue;
 
@@ -89,7 +97,17 @@ internal sealed class AuditRecordFlushService(
     }
 
     /// <inheritdoc />
-    public override async Task StopAsync(CancellationToken cancellationToken)
+    public override Task StopAsync(CancellationToken cancellationToken)
+    {
+        // A host can stop a service twice at once, and every caller must wait for the one final flush, or its owner
+        // disposes the services under it.
+        lock (StopGate)
+        {
+            return StopTask ??= StopOnceAsync(cancellationToken);
+        }
+    }
+
+    private async Task StopOnceAsync(CancellationToken cancellationToken)
     {
         await base.StopAsync(cancellationToken);
 
@@ -98,14 +116,41 @@ internal sealed class AuditRecordFlushService(
 
         try
         {
-            await FlushAsync(cancellationToken);
+            await FlushGate.WaitAsync(cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            // The host stopped waiting; what is left is counted below.
+            // The stop token ended the wait, so the flush that holds the gate owns the batch and cannot be read
+            // safely; the held records are counted through the Interlocked field.
+            LogDiscardedRecords();
+            return;
         }
 
-        var discarded = Batch.Count + Queue.Count;
+        try
+        {
+            try
+            {
+                await FlushHeldAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // The host stopped waiting; what is left is counted below.
+            }
+
+            LogDiscardedRecords();
+        }
+        finally
+        {
+            FlushGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Logs the records that this replica holds and cannot write to the audit store before it stops.
+    /// </summary>
+    private void LogDiscardedRecords()
+    {
+        var discarded = Volatile.Read(ref _heldRecordCount) + Queue.Count;
         if (discarded > 0)
             Logger.AuditRecordsDiscardedOnStop(discarded);
     }
@@ -121,25 +166,33 @@ internal sealed class AuditRecordFlushService(
         await FlushGate.WaitAsync(cancellationToken);
         try
         {
-            var dropped = Queue.TakeDroppedCount();
-            if (dropped > 0)
-                Logger.AuditRecordsDropped(dropped, Options.QueueCapacity);
-
-            while (true)
-            {
-                Queue.Drain(Batch, BatchSize);
-                if (Batch.Count == 0)
-                    return;
-
-                if (!await TryWriteAsync(cancellationToken))
-                    return;
-
-                Batch.Clear();
-            }
+            await FlushHeldAsync(cancellationToken);
         }
         finally
         {
             FlushGate.Release();
+        }
+    }
+
+    // Runs under FlushGate, which the periodic flush and the final flush each hold.
+    private async ValueTask FlushHeldAsync(CancellationToken cancellationToken)
+    {
+        var dropped = Queue.TakeDroppedCount();
+        if (dropped > 0)
+            Logger.AuditRecordsDropped(dropped, Options.QueueCapacity);
+
+        while (true)
+        {
+            Queue.Drain(Batch, BatchSize);
+            Interlocked.Exchange(ref _heldRecordCount, Batch.Count);
+            if (Batch.Count == 0)
+                return;
+
+            if (!await TryWriteAsync(cancellationToken))
+                return;
+
+            Batch.Clear();
+            Interlocked.Exchange(ref _heldRecordCount, Batch.Count);
         }
     }
 

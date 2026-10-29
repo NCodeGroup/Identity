@@ -114,6 +114,7 @@ public static class DefaultRegistration
                 ITokenRevocationClient,
                 DefaultTokenRevocationClient
             >();
+            serviceCollection.TryAddSingleton<ProviderJwtValidator>();
             serviceCollection.TryAddSingleton<IIdTokenValidator, DefaultIdTokenValidator>();
             serviceCollection.TryAddSingleton<ILogoutTokenValidator, DefaultLogoutTokenValidator>();
 

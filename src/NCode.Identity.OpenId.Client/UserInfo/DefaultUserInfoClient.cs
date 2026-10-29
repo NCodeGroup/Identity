@@ -29,15 +29,17 @@ namespace NCode.Identity.OpenId.Client.UserInfo;
 /// <summary>
 /// Provides the default implementation of <see cref="IUserInfoClient"/>. It sends a <c>GET</c> to the UserInfo
 /// endpoint, or to its mTLS alias for a client that authenticates with mutual TLS, presenting the access token as a
-/// bearer token or with a DPoP proof that it retries once with the nonce the endpoint supplies (RFC 9449 §9), and maps
-/// a JSON response to claims the way the JWT stack maps a payload (ADR-0122).
+/// bearer token or with a DPoP proof that it retries once with the nonce the endpoint supplies (RFC 9449 §9). It reads
+/// the response in the format the client registered: JSON, or a JWT that it validates the way it validates an ID token
+/// when the client registered UserInfo signing. It maps the claims the way the JWT stack maps a payload (ADR-0122).
 /// </summary>
-// See ADR-0299.
+// See ADR-0299 and ADR-0301.
 internal class DefaultUserInfoClient(
     IProviderMetadataResolver metadataResolver,
     ClientRequestSender sender,
     ProviderHttpClient providerHttpClient,
     DPoPKeyResolver dpopKeyResolver,
+    ProviderJwtValidator providerJwtValidator,
     IClaimsIdentityFactory claimsIdentityFactory
 ) : IUserInfoClient
 {
@@ -50,6 +52,7 @@ internal class DefaultUserInfoClient(
     private ClientRequestSender Sender { get; } = sender;
     private ProviderHttpClient ProviderHttpClient { get; } = providerHttpClient;
     private DPoPKeyResolver DPoPKeyResolver { get; } = dpopKeyResolver;
+    private ProviderJwtValidator ProviderJwtValidator { get; } = providerJwtValidator;
     private IClaimsIdentityFactory ClaimsIdentityFactory { get; } = claimsIdentityFactory;
 
     /// <inheritdoc />
@@ -73,6 +76,10 @@ internal class DefaultUserInfoClient(
                 $"The OpenID Provider '{registration.Authority}' does not advertise a UserInfo endpoint."
             );
 
+        // The registration says which format the response takes, so a misconfigured registration fails before a request.
+        var profile = ProviderJwtProfile.ForUserInfo(registration, metadata);
+        var signed = profile.SigningAlgorithms is { Count: > 0 };
+
         var target = Sender.ResolveTarget(
             registration,
             metadata,
@@ -87,7 +94,13 @@ internal class DefaultUserInfoClient(
                     $"The client '{registration.ClientId}' cannot present its DPoP-bound access token: it has no DPoP key with the thumbprint the token is bound to."
                 );
 
-        var response = await SendOnceAsync(target, request.AccessToken, dpopKey, cancellationToken);
+        var response = await SendOnceAsync(
+            target,
+            request.AccessToken,
+            dpopKey,
+            signed,
+            cancellationToken
+        );
         if (dpopKey is not null && !string.IsNullOrEmpty(response.DPoPNonce))
         {
             dpopKey.RecordNonce(target.Uri, response.DPoPNonce);
@@ -99,6 +112,7 @@ internal class DefaultUserInfoClient(
                     target,
                     request.AccessToken,
                     dpopKey,
+                    signed,
                     cancellationToken
                 );
 
@@ -107,7 +121,7 @@ internal class DefaultUserInfoClient(
             }
         }
 
-        return ReadResult(response, request, metadata);
+        return await ReadResultAsync(response, request, metadata, profile, cancellationToken);
     }
 
     private static bool IsUseDPoPNonce(ProviderHttpResponse response) =>
@@ -122,12 +136,15 @@ internal class DefaultUserInfoClient(
         ProviderTarget target,
         string accessToken,
         DPoPProofKey? dpopKey,
+        bool signed,
         CancellationToken cancellationToken
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, target.Uri);
         request.Headers.Accept.Add(
-            new MediaTypeWithQualityHeaderValue(OpenIdProtocol.MediaTypes.Json)
+            new MediaTypeWithQualityHeaderValue(
+                signed ? OpenIdProtocol.MediaTypes.Jwt : OpenIdProtocol.MediaTypes.Json
+            )
         );
 
         if (dpopKey is null)
@@ -156,14 +173,16 @@ internal class DefaultUserInfoClient(
         );
     }
 
-    private UserInfoResult ReadResult(
+    private async ValueTask<UserInfoResult> ReadResultAsync(
         ProviderHttpResponse response,
         UserInfoRequest request,
-        OpenIdProviderMetadata metadata
+        OpenIdProviderMetadata metadata,
+        ProviderJwtProfile profile,
+        CancellationToken cancellationToken
     )
     {
         if (response.StatusCode == ProviderStatusCodes.Status200OK)
-            return ReadClaims(response, request, metadata);
+            return await ReadClaimsAsync(response, request, metadata, profile, cancellationToken);
 
         if (
             ProtocolErrorReader.TryReadChallenge(response, out var error)
@@ -176,32 +195,66 @@ internal class DefaultUserInfoClient(
         );
     }
 
-    private UserInfoResult ReadClaims(
+    private async ValueTask<UserInfoResult> ReadClaimsAsync(
         ProviderHttpResponse response,
         UserInfoRequest request,
-        OpenIdProviderMetadata metadata
+        OpenIdProviderMetadata metadata,
+        ProviderJwtProfile profile,
+        CancellationToken cancellationToken
     )
     {
-        if (
-            string.Equals(
-                response.MediaType,
-                OpenIdProtocol.MediaTypes.Jwt,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-            return new UserInfoResult(
-                UserInfoFailureCodes.UnsupportedResponse,
-                "The UserInfo response is a signed or encrypted JWT, which the client does not validate."
+        var isJwt = string.Equals(
+            response.MediaType,
+            OpenIdProtocol.MediaTypes.Jwt,
+            StringComparison.OrdinalIgnoreCase
+        );
+
+        JsonElement? claims;
+        if (profile.SigningAlgorithms is { Count: > 0 })
+        {
+            // A JSON response to a client that registered signing would downgrade it to claims nobody signed.
+            if (!isJwt || string.IsNullOrEmpty(response.Jwt))
+                return new UserInfoResult(
+                    UserInfoFailureCodes.UnsupportedResponse,
+                    "The UserInfo response is not a JWT, but the client registered UserInfo signing."
+                );
+
+            var issuer =
+                metadata.Issuer
+                ?? throw new OpenIdProviderException(
+                    "The discovery document of the provider lacks the issuer."
+                );
+
+            var validation = await ProviderJwtValidator.ValidateAsync(
+                response.Jwt,
+                issuer,
+                profile,
+                cancellationToken
             );
+            if (!validation.IsValid)
+                return new UserInfoResult(validation.FailureCode, validation.FailureReason);
+
+            claims = validation.DecodedJwt.Payload;
+        }
+        else
+        {
+            if (isJwt)
+                return new UserInfoResult(
+                    UserInfoFailureCodes.UnsupportedResponse,
+                    "The UserInfo response is a JWT, but the client registered no UserInfo signing."
+                );
+
+            claims = response.Json;
+        }
 
         if (
-            response.Json is not { ValueKind: JsonValueKind.Object } claims
-            || !claims.TryGetProperty(JoseClaimNames.Payload.Sub, out var sub)
+            claims is not { ValueKind: JsonValueKind.Object } claimSet
+            || !claimSet.TryGetProperty(JoseClaimNames.Payload.Sub, out var sub)
             || sub.ValueKind != JsonValueKind.String
         )
             return new UserInfoResult(
                 UserInfoFailureCodes.InvalidResponse,
-                "The UserInfo response is not a JSON object with a string 'sub'."
+                "The claims of the UserInfo response are not a JSON object with a string 'sub'."
             );
 
         // OpenID Connect Core 1.0 §5.3.2: a response about another subject must not be used.
@@ -212,12 +265,12 @@ internal class DefaultUserInfoClient(
             );
 
         var identity = ClaimsIdentityFactory.CreateClaimsIdentity(
-            claims,
+            claimSet,
             AuthenticationType,
             JoseClaimNames.Payload.Name,
             JoseClaimNames.Payload.Role,
             metadata.Issuer
         );
-        return new UserInfoResult(claims, identity);
+        return new UserInfoResult(claimSet, identity);
     }
 }

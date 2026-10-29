@@ -100,6 +100,7 @@ const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.DPoPSigningAlgValuesSup
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.EndSessionEndpoint = "end_session_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.GrantTypesSupported = "grant_types_supported" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.UserInfoSigningAlgValuesSupported = "userinfo_signing_alg_values_supported" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.IntrospectionEndpoint = "introspection_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.Issuer = "issuer" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.JwksUri = "jwks_uri" -> string!

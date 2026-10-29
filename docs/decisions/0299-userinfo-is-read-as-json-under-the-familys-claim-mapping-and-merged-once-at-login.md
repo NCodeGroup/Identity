@@ -35,13 +35,15 @@ mapping.
 3. **The result.** A JSON object whose `sub` equals `UserInfoRequest.ExpectedSubject` is a `UserInfoResult` with the
    JSON and its `Identity`. A `WWW-Authenticate` challenge's `error` (RFC 6750 §3), or an OAuth error body, is a
    `ProtocolError`. Another subject is `subject_mismatch`, a response that is not a JSON object with a string `sub` is
-   `invalid_response`, and an `application/jwt` response is `unsupported_response` (`UserInfoFailureCodes`). An
+   `invalid_response`, and a response in another format than the client registered is `unsupported_response`
+   (`UserInfoFailureCodes`). An
    endpoint that answers with neither claims nor an error throws `OpenIdProviderException`, and a provider without a
    UserInfo endpoint throws `InvalidOperationException`.
-4. **Signed and encrypted UserInfo responses are not yet validated.** The client refuses them as unsupported rather
-   than reading claims it has not verified; validating them under the client's registered algorithms, as ID tokens are,
-   is tracked as issue [#421](https://github.com/NCodeGroup/Identity/issues/421).
-5. **The BFF merges UserInfo once, at login, when asked.** `Bff:LoadUserInfo` (default `false`) requests UserInfo at
+4. **Signed and encrypted UserInfo responses are validated as ID tokens are.** A client that registered UserInfo
+   signing asks for and accepts only a signed JWT, or a Nested JWT when it also registered encryption, and validates it
+   under its registered algorithms with the provider's keys; a client that registered neither accepts only JSON
+   ([ADR-0301](0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
+5. **The BFF merges UserInfo once, at login, when asked.** `Bff:UserInfo:Load` (default `false`) requests UserInfo at
    the callback with the new access token, after the ID token validates and before the session claim contributors and
    the login gates. Each UserInfo claim type replaces the ID token's claims of that type, because UserInfo is the
    provider's current profile; the claims that anchor the session to the authentication (`iss`, `sub`, `sid`,
@@ -66,7 +68,8 @@ mapping.
 - A BFF in front of a provider that keeps profile claims out of the ID token gets them with one setting.
 - Any server-side client of the family can read UserInfo with the same proof-of-possession and mTLS handling as its
   token requests.
-- A provider configured to sign UserInfo responses cannot be used with `Bff:LoadUserInfo` until the follow-up lands.
+- A provider configured to sign or encrypt UserInfo responses is used by registering the same algorithms in the
+  client (`Bff:UserInfo`), as [ADR-0301](0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) says.
 - `IClaimsIdentityFactory` is new public surface of the JWT stack, and `DefaultJwtValidator` takes it.
 
 ## References

@@ -97,13 +97,16 @@ public sealed class BffOptions
     public bool BackchannelLogoutSessionRequired { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the BFF requests the provider's UserInfo endpoint at login and adds its
-    /// claims to the session, for providers that keep profile claims out of the ID token. A UserInfo claim replaces the
-    /// ID token's claims of its type, except the ones that anchor the session to the authentication. The default is
-    /// <c>false</c>. The configuration key is <c>Bff:LoadUserInfo</c>.
+    /// Gets or sets the protection the BFF registered for its ID tokens and logout tokens. The configuration section is
+    /// <c>Bff:IdToken</c>.
     /// </summary>
-    // See ADR-0299.
-    public bool LoadUserInfo { get; set; }
+    public BffIdTokenOptions IdToken { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets whether the BFF loads UserInfo at login and the protection it registered for the UserInfo
+    /// responses. The configuration section is <c>Bff:UserInfo</c>.
+    /// </summary>
+    public BffUserInfoOptions UserInfo { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the anti-forgery header options. The configuration section is <c>Bff:Antiforgery</c>.

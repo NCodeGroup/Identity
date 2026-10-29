@@ -73,6 +73,12 @@ NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.get -> string?
 NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoContentEncryptionAlgorithms.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoKeyManagementAlgorithms.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoSigningAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoSigningAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenKeyManagementAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
@@ -176,6 +182,8 @@ NCode.Identity.OpenId.Client.OpenIdProviderMetadata.GrantTypesSupported.get -> S
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.GrantTypesSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.IdTokenSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.IdTokenSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.UserInfoSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.UserInfoSigningAlgValuesSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.Issuer.get -> string?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.Issuer.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.JwksUri.get -> string?

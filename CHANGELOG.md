@@ -48,13 +48,24 @@ change to the public API is a **major** version bump.
   the new method
   ([ADR-0300](docs/decisions/0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
   issue [#407](https://github.com/NCodeGroup/Identity/issues/407)).
+- **Signed and encrypted UserInfo responses.** `ClientRegistration.UserInfoSigningAlgorithms`,
+  `UserInfoKeyManagementAlgorithms` and `UserInfoContentEncryptionAlgorithms` record the client's
+  `userinfo_signed_response_alg` and `userinfo_encrypted_response_alg`/`enc`. A client that registered signing asks for
+  `application/jwt` and validates the response as it validates an ID token: the provider's keys under its registered
+  algorithms and the provider's `userinfo_signing_alg_values_supported`, decryption of a Nested JWT with its key ring,
+  `iss`, `aud`, `typ` and any lifetime claims, then the ID token's `sub`; it refuses JSON, and a client that registered
+  no signing refuses a JWT. A response encrypted without a signature is never accepted, so UserInfo encryption without
+  UserInfo signing throws before the request. The ID-token, logout-token and UserInfo validations now share one
+  validation core. The BFF names what it registered in `Bff:IdToken` and `Bff:UserInfo` (`SigningAlgorithms`,
+  `KeyManagementAlgorithms`, `ContentEncryptionAlgorithms`), validated at startup
+  ([ADR-0301](docs/decisions/0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md),
+  issue [#421](https://github.com/NCodeGroup/Identity/issues/421)).
 - **UserInfo in the protocol client and at BFF login.** `IUserInfoClient` requests the provider's UserInfo endpoint with
   an access token the way it was issued (bearer, DPoP with a nonce retry, or over mutual TLS to the endpoint's alias),
   refuses a response about another subject than the ID token's, and maps the claims through the new
-  `IClaimsIdentityFactory`, the JWT stack's one claim mapping, which `DefaultJwtValidator` now uses too. A signed or
-  encrypted UserInfo response is refused as `unsupported_response` until issue
-  [#421](https://github.com/NCodeGroup/Identity/issues/421). `Bff:LoadUserInfo` merges UserInfo into a session at
-  login, before the claim contributors and the login gates; a failure ends the login with `userinfo_failed`
+  `IClaimsIdentityFactory`, the JWT stack's one claim mapping, which `DefaultJwtValidator` now uses too.
+  `Bff:UserInfo:Load` merges UserInfo into a session at login, before the claim contributors and the login gates; a
+  failure ends the login with `userinfo_failed`
   ([ADR-0299](docs/decisions/0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md),
   issue [#415](https://github.com/NCodeGroup/Identity/issues/415)).
 - **BFF session claim and `/bff/user` contributors.** `IBffSessionClaimContributor` strategies shape a session's

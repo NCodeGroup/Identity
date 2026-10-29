@@ -150,6 +150,17 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         return mock;
     }
 
+    private ProviderJwtValidator CreateProviderJwtValidator(
+        IProviderKeySetResolver keySetResolver,
+        IClientKeyRingProvider keyRingProvider
+    ) =>
+        new(
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            keySetResolver,
+            keyRingProvider,
+            ServiceProvider.GetRequiredService<IJwtValidator>()
+        );
+
     private DefaultIdTokenValidator CreateValidator(
         Mock<IProviderKeySetResolver>? keySetMock,
         List<string>? advertised = null,
@@ -177,9 +188,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             TimeProvider.System,
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             mockMetadata.Object,
-            keySetMock.Object,
-            keyRingMock.Object,
-            ServiceProvider.GetRequiredService<IJwtValidator>()
+            CreateProviderJwtValidator(keySetMock.Object, keyRingMock.Object)
         );
     }
 
@@ -858,9 +867,10 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             TimeProvider.System,
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             CreateStrictMock<IProviderMetadataResolver>().Object,
-            CreateStrictMock<IProviderKeySetResolver>().Object,
-            CreateStrictMock<IClientKeyRingProvider>().Object,
-            ServiceProvider.GetRequiredService<IJwtValidator>()
+            CreateProviderJwtValidator(
+                CreateStrictMock<IProviderKeySetResolver>().Object,
+                CreateStrictMock<IClientKeyRingProvider>().Object
+            )
         );
 
         var result = await ValidateAsync(validator, string.Empty);
@@ -883,9 +893,10 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             TimeProvider.System,
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             mockMetadata.Object,
-            mockKeySet.Object,
-            CreateStrictMock<IClientKeyRingProvider>().Object,
-            ServiceProvider.GetRequiredService<IJwtValidator>()
+            CreateProviderJwtValidator(
+                mockKeySet.Object,
+                CreateStrictMock<IClientKeyRingProvider>().Object
+            )
         );
 
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>

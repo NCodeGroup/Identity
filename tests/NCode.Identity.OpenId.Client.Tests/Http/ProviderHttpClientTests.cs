@@ -239,6 +239,51 @@ public class ProviderHttpClientTests : BaseTests
     }
 
     [Fact]
+    public async Task SendAsync_WithJwtBody_ReturnsTheCompactJwt()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) =>
+                Task.FromResult(
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(
+                            "a.b.c\r\n",
+                            SecureEncoding.UTF8,
+                            "application/jwt"
+                        ),
+                    }
+                )
+        );
+        var client = CreateClient(handler);
+
+        var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Null(response.Json);
+        Assert.Equal("a.b.c", response.Jwt);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithJsonBody_ReturnsNoJwt()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) =>
+                Task.FromResult(
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("{}", SecureEncoding.UTF8, "application/json"),
+                    }
+                )
+        );
+        var client = CreateClient(handler);
+
+        var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.NotNull(response.Json);
+        Assert.Null(response.Jwt);
+    }
+
+    [Fact]
     public async Task SendAsync_WithoutDPoPNonceHeader_ReturnsNullNonce()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, """{"issuer":"x"}""");

@@ -29,6 +29,24 @@ NCode.Identity.Bff.Options.BffClientAuthenticationOptions.KeyRing.set -> void
 NCode.Identity.Bff.Options.BffClientAuthenticationOptions.Method.get -> string!
 NCode.Identity.Bff.Options.BffClientAuthenticationOptions.Method.set -> void
 NCode.Identity.Bff.Options.BffDPoPModes
+NCode.Identity.Bff.Options.BffIdTokenOptions
+NCode.Identity.Bff.Options.BffIdTokenOptions.BffIdTokenOptions() -> void
+NCode.Identity.Bff.Options.BffIdTokenOptions.ContentEncryptionAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffIdTokenOptions.ContentEncryptionAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffIdTokenOptions.KeyManagementAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffIdTokenOptions.KeyManagementAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffIdTokenOptions.SigningAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffIdTokenOptions.SigningAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions
+NCode.Identity.Bff.Options.BffUserInfoOptions.BffUserInfoOptions() -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.ContentEncryptionAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffUserInfoOptions.ContentEncryptionAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.KeyManagementAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffUserInfoOptions.KeyManagementAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.Load.get -> bool
+NCode.Identity.Bff.Options.BffUserInfoOptions.Load.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.SigningAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffUserInfoOptions.SigningAlgorithms.set -> void
 NCode.Identity.Bff.Options.BffDPoPOptions
 NCode.Identity.Bff.Options.BffDPoPOptions.BffDPoPOptions() -> void
 NCode.Identity.Bff.Options.BffDPoPOptions.KeyRing.get -> string?
@@ -42,8 +60,10 @@ NCode.Identity.Bff.Options.BffOptions.Authority.get -> string!
 NCode.Identity.Bff.Options.BffOptions.Authority.set -> void
 NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.get -> bool
 NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.set -> void
-NCode.Identity.Bff.Options.BffOptions.LoadUserInfo.get -> bool
-NCode.Identity.Bff.Options.BffOptions.LoadUserInfo.set -> void
+NCode.Identity.Bff.Options.BffOptions.IdToken.get -> NCode.Identity.Bff.Options.BffIdTokenOptions!
+NCode.Identity.Bff.Options.BffOptions.IdToken.set -> void
+NCode.Identity.Bff.Options.BffOptions.UserInfo.get -> NCode.Identity.Bff.Options.BffUserInfoOptions!
+NCode.Identity.Bff.Options.BffOptions.UserInfo.set -> void
 NCode.Identity.Bff.Options.BffOptions.BffOptions() -> void
 NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.get -> NCode.Identity.Bff.Options.BffClientAuthenticationOptions!
 NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.set -> void

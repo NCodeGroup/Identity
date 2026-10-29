@@ -19,7 +19,6 @@
 using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jwt.Validation;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
 
@@ -34,20 +33,14 @@ internal class DefaultIdTokenValidator(
     TimeProvider timeProvider,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IProviderMetadataResolver metadataResolver,
-    IProviderKeySetResolver keySetResolver,
-    IClientKeyRingProvider keyRingProvider,
-    IJwtValidator jwtValidator
+    ProviderJwtValidator providerJwtValidator
 ) : IIdTokenValidator
 {
-    private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
-
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
-    private IProviderKeySetResolver KeySetResolver { get; } = keySetResolver;
-    private IClientKeyRingProvider KeyRingProvider { get; } = keyRingProvider;
-    private IJwtValidator JwtValidator { get; } = jwtValidator;
+    private ProviderJwtValidator ProviderJwtValidator { get; } = providerJwtValidator;
 
     /// <inheritdoc />
     public async ValueTask<IdTokenValidationResult> ValidateAsync(
@@ -73,124 +66,18 @@ internal class DefaultIdTokenValidator(
                 "The discovery document of the provider lacks the issuer."
             );
 
-        var collection = AlgorithmCollectionProvider.Collection;
-
-        var algorithms = ProviderSignaturePolicy.GetPermittedAlgorithms(
-            collection,
-            registration,
-            metadata
-        );
-        if (algorithms.Count == 0)
-            return Fail(
-                TokenValidationFailureCodes.AlgorithmNotPermitted,
-                "No ID-token signing algorithm is both permitted by the client and advertised by the provider."
-            );
-
-        var keyManagementAlgorithms = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
-            collection,
-            registration
-        );
-        var contentEncryptionAlgorithms =
-            ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(
-                collection,
-                registration
-            );
-        var encryptionRequired = ClientDecryptionPolicy.IsEncryptionRegistered(registration);
-        if (
-            encryptionRequired
-            && (keyManagementAlgorithms.Count == 0 || contentEncryptionAlgorithms.Count == 0)
-        )
-            return Fail(
-                TokenValidationFailureCodes.AlgorithmNotPermitted,
-                "No ID-token encryption algorithm that the client registered is permitted."
-            );
-
-        var signingKeysResolved = false;
-        var parameters = new JwtValidationParameters
-        {
-            ClockSkew = ClockSkew,
-            ValidSignatureAlgorithms = algorithms,
-            ValidKeyManagementAlgorithms = keyManagementAlgorithms,
-            ValidContentEncryptionAlgorithms = contentEncryptionAlgorithms,
-            ValidCompressionAlgorithms = [],
-            ResolveValidationKeysAsync = (token, _, _, ct) =>
-            {
-                // The signing keys are resolved only for the enclosed JWS, which exists only after decryption, so a
-                // key failure before this point is a decryption failure (ADR-0280).
-                signingKeysResolved = true;
-                return ProviderSignaturePolicy.ResolveKeysAsync(
-                    KeySetResolver,
-                    registration.Authority,
-                    token,
-                    ct
-                );
-            },
-        }
-            .ValidateIssuer(issuer)
-            .ValidateAudience(registration.ClientId)
-            .ValidateTokenLifeTime(o => o.RequireIssuedAt = true);
-
-        if (encryptionRequired)
-        {
-            var decryptionKeys = ClientDecryptionPolicy.GetDecryptionKeys(
-                KeyRingProvider,
-                registration
-            );
-            parameters.UseDecryptionKeys(decryptionKeys);
-        }
-
-        var result = await JwtValidator.ValidateAsync(
+        var validation = await ProviderJwtValidator.ValidateAsync(
             request.IdToken,
-            parameters,
+            issuer,
+            ProviderJwtProfile.ForIdToken(registration, metadata),
             cancellationToken
         );
+        if (!validation.IsValid)
+            return Fail(validation.FailureCode, validation.FailureReason);
 
-        if (!result.IsValid)
-        {
-            var exception = result.Exception;
-            ProviderSignaturePolicy.RethrowProviderFailure(exception);
-
-            if (exception is JwtDecodeException or JwtSecretKeyNotFoundException)
-                return signingKeysResolved
-                    ? Fail(
-                        TokenValidationFailureCodes.InvalidSignature,
-                        "The ID token signature could not be verified with the provider's signing keys."
-                    )
-                    : Fail(
-                        TokenValidationFailureCodes.DecryptionFailed,
-                        "The ID token could not be decrypted with the client's keys."
-                    );
-
-            return Fail(result.FailureCode, "The ID token is invalid: " + exception.Message);
-        }
-
-        var encryptionHeader = result.DecodedJwt.EncryptionHeader;
-        if (encryptionRequired && encryptionHeader is null)
-            return Fail(
-                TokenValidationFailureCodes.InvalidToken,
-                "The ID token is not encrypted, but the client registered ID-token encryption."
-            );
-
-        if (!ClientDecryptionPolicy.IsReplicatedIssuerValid(encryptionHeader, issuer))
-            return Fail(
-                TokenValidationFailureCodes.InvalidIssuer,
-                "The 'iss' header of the encrypted ID token does not match the issuer."
-            );
-
-        var header = result.DecodedJwt.Header;
-        var payload = result.DecodedJwt.Payload;
-
-        if (
-            header.TryGetProperty(JoseClaimNames.Header.Typ, out var typ)
-            && (
-                typ.ValueKind != JsonValueKind.String
-                || !JoseTokenTypes.AreSame(typ.GetString(), JoseTokenTypes.Jwt)
-            )
-        )
-            return Fail(
-                TokenValidationFailureCodes.InvalidTokenType,
-                "The 'typ' header of the ID token is not JWT."
-            );
+        var decodedJwt = validation.DecodedJwt;
+        var header = decodedJwt.Header;
+        var payload = decodedJwt.Payload;
 
         if (
             !payload.TryGetProperty(JoseClaimNames.Payload.Sub, out var sub)
@@ -249,17 +136,17 @@ internal class DefaultIdTokenValidator(
                     "The ID token has no valid 'auth_time' claim."
                 );
 
-            if (TimeProvider.GetUtcNow() - authTime - ClockSkew > maxAge)
+            if (TimeProvider.GetUtcNow() - authTime - ProviderJwtValidator.ClockSkew > maxAge)
                 return Fail(
                     TokenValidationFailureCodes.MaxAgeExceeded,
                     "The authentication of the ID token is older than the maximum age."
                 );
         }
 
-        if (CheckHashes(header, payload, result.DecodedJwt.SigningKey, request) is { } hashFailure)
+        if (CheckHashes(header, payload, decodedJwt.SigningKey, request) is { } hashFailure)
             return hashFailure;
 
-        var identity = await result.GetClaimsIdentityAsync(cancellationToken);
+        var identity = await validation.Result.GetClaimsIdentityAsync(cancellationToken);
         return new IdTokenValidationResult(payload) { Identity = identity };
     }
 

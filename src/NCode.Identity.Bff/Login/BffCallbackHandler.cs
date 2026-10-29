@@ -240,7 +240,7 @@ internal class BffCallbackHandler
 
         var bffOptions = _options.Value;
         IEnumerable<Claim> sessionClaims = BffSessionPrincipal.SelectSessionClaims(identity);
-        if (bffOptions.LoadUserInfo)
+        if (bffOptions.UserInfo.Load)
         {
             // UserInfo is requested with the new access token, the way it was issued, and must be about the ID token's
             // subject (OpenID Connect Core 1.0 §5.3.2). See ADR-0299.

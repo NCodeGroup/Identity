@@ -338,3 +338,4 @@ standards.
 | [0298](./0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md) | A package traces its own mechanisms through one activity source named like its meter | Accepted |
 | [0299](./0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |
 | [0300](./0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md) | An asymmetric key carries its issuers' certificates, and a TLS client presents them | Accepted |
+| [0301](./0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) | A signed UserInfo response is validated like an ID token under the client's registered algorithms | Accepted |

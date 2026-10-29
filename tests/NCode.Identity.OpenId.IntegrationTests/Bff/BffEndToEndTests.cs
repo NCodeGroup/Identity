@@ -21,6 +21,7 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.Bff;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Bff;
@@ -39,20 +40,23 @@ public class BffEndToEndTests
 
     #region Login Tests
 
-    private static async Task SeedAsync(HostApplicationFactory factory)
+    private static async Task SeedAsync(
+        HostApplicationFactory factory,
+        IReadOnlyDictionary<string, object>? settings = null
+    )
     {
         await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
             BffTestHost.ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
-            NoSettings,
+            settings ?? NoSettings,
             BffTestHost.CallbackUri
         );
     }
 
     [Fact]
-    public async Task Login_WithLoadUserInfo_CreatesTheSessionWithTheUserInfoClaims()
+    public async Task Login_WithUserInfoLoad_CreatesTheSessionWithTheUserInfoClaims()
     {
         using var factory = new HostApplicationFactory();
         await SeedAsync(factory);
@@ -63,7 +67,7 @@ public class BffEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?> { ["Bff:LoadUserInfo"] = "true" },
+            extraConfiguration: new Dictionary<string, string?> { ["Bff:UserInfo:Load"] = "true" },
             exchanges: exchanges
         );
 
@@ -87,6 +91,44 @@ public class BffEndToEndTests
             csrf
         );
         Assert.Equal(HttpStatusCode.OK, user.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_WithSignedUserInfo_ValidatesTheJwtAndCreatesTheSession()
+    {
+        using var factory = new HostApplicationFactory();
+        await SeedAsync(
+            factory,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.UserInfoSignedResponseAlg] = "RS256",
+            }
+        );
+        var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var host = await BffTestHost.StartAsync(
+            factory,
+            keySet,
+            valueSet,
+            indexSet,
+            extraConfiguration: new Dictionary<string, string?>
+            {
+                ["Bff:UserInfo:Load"] = "true",
+                ["Bff:UserInfo:SigningAlgorithms:0"] = "RS256",
+            },
+            exchanges: exchanges
+        );
+
+        // A UserInfo response that failed its validation would redirect with userinfo_failed instead.
+        using var callback = await CompleteLoginAsync(factory, host);
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
+        Assert.Equal("/", callback.Headers.Location?.OriginalString);
+
+        var userInfo = exchanges.Last(exchange =>
+            exchange.Path.EndsWith("/userinfo", StringComparison.Ordinal)
+        );
+        Assert.Equal(HttpStatusCode.OK, userInfo.StatusCode);
+        Assert.Equal(3, userInfo.ResponseBody?.Split('.').Length);
     }
 
     private static async Task<HttpResponseMessage> CompleteLoginAsync(

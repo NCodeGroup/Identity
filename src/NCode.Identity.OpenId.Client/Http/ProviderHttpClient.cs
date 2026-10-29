@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Client.Options;
 
 namespace NCode.Identity.OpenId.Client.Http;
@@ -85,6 +86,21 @@ internal class ProviderHttpClient(
                     DPoPNonce = dpopNonce,
                     MediaType = mediaType,
                     WwwAuthenticate = wwwAuthenticate,
+                };
+
+            if (
+                string.Equals(
+                    mediaType,
+                    OpenIdProtocol.MediaTypes.Jwt,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+                return new ProviderHttpResponse((int)response.StatusCode, null)
+                {
+                    DPoPNonce = dpopNonce,
+                    MediaType = mediaType,
+                    WwwAuthenticate = wwwAuthenticate,
+                    Jwt = SecureEncoding.UTF8.GetString(bytes).Trim(),
                 };
 
             if (

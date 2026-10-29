@@ -316,19 +316,27 @@ policy:
 - When the client registers ID-token encryption, the ID token must be a Nested JWT that decrypts with the asymmetric
   keys of the client's key ring under its registered `alg` and `enc` (RSA-OAEP or ECDH-ES only)
   ([ADR-0280](decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).
+- `Bff:IdToken` names the signing algorithms, and the encryption `alg` and `enc`, the BFF registered for its ID
+  tokens and logout tokens; encryption needs `Bff:ClientAuthentication:KeyRing`, which holds the decryption keys.
 
 The family therefore has one JOSE stack for every token the BFF validates.
 
 **Discovery.** Discovery is fetched lazily and cached, and the issuer must equal the configured authority (OIDC
 Discovery §4.3). The JWKS is refreshed when a token carries an unknown `kid`.
 
-**UserInfo.** With `Bff:LoadUserInfo`, the callback requests UserInfo once, with the new access token presented the way
-it was issued (bearer, DPoP or over mutual TLS), and refuses a response about another subject than the ID token's
+**UserInfo.** With `Bff:UserInfo:Load`, the callback requests UserInfo once, with the new access token presented the
+way it was issued (bearer, DPoP or over mutual TLS), and refuses a response about another subject than the ID token's
 (OIDC Core §5.3.2). Each UserInfo claim type replaces the ID token's claims of that type, except the claims that anchor
 the session (`iss`, `sub`, `sid`, `auth_time`, `acr`, `amr`); the session claim contributors and the login gates then
 see the merged claims. A failed request ends the login with `userinfo_failed`, or `provider_unavailable` when the OP
 cannot be reached. Without the option, the session's claims come from the ID token
 ([ADR-0299](decisions/0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
+When the BFF registered `userinfo_signed_response_alg` (`Bff:UserInfo:SigningAlgorithms`), the response must be a JWT
+the OP signed under those algorithms, with its `iss` and an `aud` naming the client, and a Nested JWT that decrypts with
+the client's key ring when it also registered encryption (`Bff:UserInfo:KeyManagementAlgorithms`); a JSON response is
+then refused, as is an encrypted response that is not signed
+([ADR-0301](decisions/0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
+
 ### 5.2 Login transaction and callback binding
 
 The login transaction is a **server-side record**, not a protected cookie or a protected `state` blob:
@@ -803,6 +811,9 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 - A remote API's destination is not `https` (outside Development) or overlaps another API's local prefix.
 - `SameSite` is `None`.
 - `AbsoluteLifetime` is shorter than `IdleTimeout`.
+- A `Bff:IdToken` or `Bff:UserInfo` algorithm list has a blank entry, `none` or a duplicate; content encryption is
+  listed without key management; UserInfo encryption is listed without UserInfo signing; or encryption is listed without
+  `ClientAuthentication:KeyRing`, which holds the decryption keys.
 - `DPoP.Mode` is `required` and the OP does not support DPoP. This check runs when discovery is first fetched, not at
   startup.
 

@@ -265,6 +265,107 @@ public class BffOptionsValidatorTests : BaseTests
         Assert.True(result.Succeeded);
     }
 
+    [Fact]
+    public void Validate_WhenIdTokenAndUserInfoProtectionIsConsistent_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.ClientAuthentication.KeyRing = "client-keys";
+        options.IdToken.SigningAlgorithms = ["PS256"];
+        options.IdToken.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+        options.UserInfo.Load = true;
+        options.UserInfo.SigningAlgorithms = ["PS256"];
+        options.UserInfo.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+        options.UserInfo.ContentEncryptionAlgorithms = ["A256GCM"];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(" ", "must not contain a blank entry")]
+    [InlineData("none", "must not contain 'none'")]
+    [InlineData("PS256", "must not contain 'PS256' more than once")]
+    public void Validate_WhenAnIdTokenAlgorithmListIsInvalid_Fails(string entry, string message)
+    {
+        var options = CreateValidOptions();
+        options.IdToken.SigningAlgorithms = ["PS256", entry];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith("Bff:IdToken:SigningAlgorithms", StringComparison.Ordinal)
+                && x.Contains(message, StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenUserInfoContentEncryptionHasNoKeyManagement_Fails()
+    {
+        var options = CreateValidOptions();
+        options.UserInfo.SigningAlgorithms = ["PS256"];
+        options.UserInfo.ContentEncryptionAlgorithms = ["A256GCM"];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x
+                == "Bff:UserInfo:ContentEncryptionAlgorithms requires Bff:UserInfo:KeyManagementAlgorithms."
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenUserInfoIsEncryptedButNotSigned_Fails()
+    {
+        var options = CreateValidOptions();
+        options.ClientAuthentication.KeyRing = "client-keys";
+        options.UserInfo.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith(
+                    "Bff:UserInfo:KeyManagementAlgorithms requires Bff:UserInfo:SigningAlgorithms",
+                    StringComparison.Ordinal
+                )
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenIdTokenEncryptionHasNoKeyRing_Fails()
+    {
+        var options = CreateValidOptions();
+        options.IdToken.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith("Bff:ClientAuthentication:KeyRing", StringComparison.Ordinal)
+                && x.Contains("Bff:IdToken:KeyManagementAlgorithms", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenTheIdTokenAndUserInfoSectionsAreMissing_Fails()
+    {
+        var options = CreateValidOptions();
+        options.IdToken = null!;
+        options.UserInfo = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x == "Bff:IdToken must be set.");
+        Assert.Contains(result.Failures ?? [], x => x == "Bff:UserInfo must be set.");
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(3601)]

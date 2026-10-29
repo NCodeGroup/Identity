@@ -55,8 +55,9 @@ public sealed class UserInfoResult
     /// <summary>
     /// Initializes a new instance of the <see cref="UserInfoResult"/> class for an invalid response.
     /// </summary>
-    /// <param name="failureCode">The machine-readable code of the reason, a <see cref="UserInfoFailureCodes"/>
-    /// value.</param>
+    /// <param name="failureCode">The machine-readable code of the reason, a <see cref="UserInfoFailureCodes"/> value,
+    /// or a <see cref="TokenValidationFailureCodes"/> value for a signed or encrypted response that fails its
+    /// validation.</param>
     /// <param name="failureReason">The reason the response is invalid.</param>
     public UserInfoResult(string failureCode, string failureReason)
     {
@@ -67,7 +68,8 @@ public sealed class UserInfoResult
     }
 
     /// <summary>
-    /// Gets the JSON object of the claims when the response is valid; otherwise, <see langword="default"/>.
+    /// Gets the JSON object of the claims when the response is valid, the payload of a signed response; otherwise,
+    /// <see langword="default"/>.
     /// </summary>
     public JsonElement Claims { get; }
 

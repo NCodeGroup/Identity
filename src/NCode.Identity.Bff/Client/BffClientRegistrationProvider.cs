@@ -41,5 +41,11 @@ internal class BffClientRegistrationProvider(IOptions<BffOptions> options)
             DPoPKeyRing = bffOptions.DPoP.KeyRing,
             DPoPBoundAccessTokens = bffOptions.DPoP.Mode == BffDPoPModes.Required,
             BackchannelLogoutSessionRequired = bffOptions.BackchannelLogoutSessionRequired,
+            IdTokenSigningAlgorithms = bffOptions.IdToken.SigningAlgorithms,
+            IdTokenKeyManagementAlgorithms = bffOptions.IdToken.KeyManagementAlgorithms,
+            IdTokenContentEncryptionAlgorithms = bffOptions.IdToken.ContentEncryptionAlgorithms,
+            UserInfoSigningAlgorithms = bffOptions.UserInfo.SigningAlgorithms,
+            UserInfoKeyManagementAlgorithms = bffOptions.UserInfo.KeyManagementAlgorithms,
+            UserInfoContentEncryptionAlgorithms = bffOptions.UserInfo.ContentEncryptionAlgorithms,
         };
 }

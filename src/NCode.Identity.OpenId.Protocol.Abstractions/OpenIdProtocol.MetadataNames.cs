@@ -164,5 +164,11 @@ public static partial class OpenIdProtocol
         /// Contains the constant value 'dpop_signing_alg_values_supported'.
         /// </summary>
         public const string DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported";
+
+        /// <summary>
+        /// Contains the constant value 'userinfo_signing_alg_values_supported'.
+        /// </summary>
+        public const string UserInfoSigningAlgValuesSupported =
+            "userinfo_signing_alg_values_supported";
     }
 }

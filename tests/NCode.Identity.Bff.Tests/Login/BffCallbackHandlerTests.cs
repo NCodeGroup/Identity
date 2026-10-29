@@ -74,7 +74,7 @@ public class BffCallbackHandlerTests : BaseTests
     private BffCallbackHandler CreateHandler()
     {
         var bffOptions = CreateOptions();
-        bffOptions.LoadUserInfo = _loadUserInfo;
+        bffOptions.UserInfo.Load = _loadUserInfo;
         var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
         var timeProvider = _timeProvider;
         return new BffCallbackHandler(
@@ -636,7 +636,7 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WithLoadUserInfo_AddsTheUserInfoClaimsButNeverTheAnchors()
+    public async Task HandleAsync_WithUserInfoLoad_AddsTheUserInfoClaimsButNeverTheAnchors()
     {
         _loadUserInfo = true;
         SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
@@ -666,7 +666,7 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WithLoadUserInfo_WhenUserInfoFails_FailsWithUserInfoFailed()
+    public async Task HandleAsync_WithUserInfoLoad_WhenUserInfoFails_FailsWithUserInfoFailed()
     {
         _loadUserInfo = true;
         SetupUserInfoFailedLogin();
@@ -685,7 +685,7 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WithLoadUserInfo_WhenTheProviderIsUnavailable_FailsWithProviderUnavailable()
+    public async Task HandleAsync_WithUserInfoLoad_WhenTheProviderIsUnavailable_FailsWithProviderUnavailable()
     {
         _loadUserInfo = true;
         SetupUserInfoFailedLogin();

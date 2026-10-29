@@ -72,5 +72,40 @@ public class BffClientRegistrationProviderTests : BaseTests
         Assert.False(registration.DPoPBoundAccessTokens);
     }
 
+    [Fact]
+    public void Registration_BindsTheIdTokenAndUserInfoProtection()
+    {
+        var bffOptions = new BffOptions
+        {
+            Authority = "https://op.example.com",
+            ClientId = "bff",
+            IdToken = new BffIdTokenOptions
+            {
+                SigningAlgorithms = ["PS256"],
+                KeyManagementAlgorithms = ["RSA-OAEP-256"],
+                ContentEncryptionAlgorithms = ["A256GCM"],
+            },
+            UserInfo = new BffUserInfoOptions
+            {
+                Load = true,
+                SigningAlgorithms = ["ES256"],
+                KeyManagementAlgorithms = ["ECDH-ES"],
+                ContentEncryptionAlgorithms = ["A128GCM"],
+            },
+        };
+        var provider = new BffClientRegistrationProvider(
+            Microsoft.Extensions.Options.Options.Create(bffOptions)
+        );
+
+        var registration = provider.Registration;
+
+        Assert.Equal(["PS256"], registration.IdTokenSigningAlgorithms);
+        Assert.Equal(["RSA-OAEP-256"], registration.IdTokenKeyManagementAlgorithms);
+        Assert.Equal(["A256GCM"], registration.IdTokenContentEncryptionAlgorithms);
+        Assert.Equal(["ES256"], registration.UserInfoSigningAlgorithms);
+        Assert.Equal(["ECDH-ES"], registration.UserInfoKeyManagementAlgorithms);
+        Assert.Equal(["A128GCM"], registration.UserInfoContentEncryptionAlgorithms);
+    }
+
     #endregion
 }

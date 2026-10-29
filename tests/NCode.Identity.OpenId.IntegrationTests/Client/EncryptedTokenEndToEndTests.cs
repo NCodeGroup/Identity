@@ -127,19 +127,29 @@ public class EncryptedTokenEndToEndTests
             IdTokenKeyManagementAlgorithms = ["RSA-OAEP-256"],
         };
 
-    private static Task SeedClientAsync(HostApplicationFactory factory, string clientId) =>
-        factory.SeedSharedSecretClientWithSettingsAsync(
+    private static Task SeedClientAsync(
+        HostApplicationFactory factory,
+        string clientId,
+        IReadOnlyDictionary<string, object>? extraSettings = null
+    )
+    {
+        var settings = new Dictionary<string, object>
+        {
+            [OpenIdSettingNames.BackChannelLogoutUri] = BackChannelLogoutUri,
+            [OpenIdSettingNames.JwksUri] = JwksUri,
+            [OpenIdSettingNames.IdTokenEncryptedResponseAlg] = "RSA-OAEP-256",
+        };
+        foreach (var (name, value) in extraSettings ?? new Dictionary<string, object>())
+            settings[name] = value;
+
+        return factory.SeedSharedSecretClientWithSettingsAsync(
             clientId,
             ClientSecret,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
-            new Dictionary<string, object>
-            {
-                [OpenIdSettingNames.BackChannelLogoutUri] = BackChannelLogoutUri,
-                [OpenIdSettingNames.JwksUri] = JwksUri,
-                [OpenIdSettingNames.IdTokenEncryptedResponseAlg] = "RSA-OAEP-256",
-            },
+            settings,
             RedirectUri
         );
+    }
 
     private static HttpClient CreateBrowser(HostApplicationFactory factory) =>
         factory.CreateClient(
@@ -152,7 +162,11 @@ public class EncryptedTokenEndToEndTests
 
     // Follows the authorization URL as the signed-in end-user's browser (prompt=none lets the session answer without an
     // interactive page), redeems the code with the client and returns the raw ID token with its verified payload.
-    private static async Task<(string IdToken, JsonElement Payload)> RequestIdTokenAsync(
+    private static async Task<(
+        string IdToken,
+        JsonElement Payload,
+        string AccessToken
+    )> RequestIdTokenAsync(
         HttpClient browser,
         string sessionCookie,
         ServiceProvider provider,
@@ -219,7 +233,9 @@ public class EncryptedTokenEndToEndTests
                 CancellationToken.None
             );
         Assert.True(validation.IsValid, validation.FailureReason);
-        return (idToken, validation.Payload);
+        var accessToken = tokenResult.Response.AccessToken;
+        Assert.NotNull(accessToken);
+        return (idToken, validation.Payload, accessToken);
     }
 
     private static JsonElement ReadEncryptionHeader(string token)
@@ -277,6 +293,74 @@ public class EncryptedTokenEndToEndTests
 
     #endregion
 
+    #region GetUserInfoAsync Tests
+
+    [Fact]
+    public async Task GetUserInfoAsync_WithAResponseTheProviderSignedAndEncryptedToTheClient_ReturnsItsClaims()
+    {
+        const string clientId = "it-encrypted-e2e-userinfo";
+
+        using var clientRsa = RSA.Create(2048);
+        var jwks = BuildEncryptionJwks(clientRsa);
+        using var factory = new HostApplicationFactory
+        {
+            BackChannelLogoutExchanges = new(),
+            ClientJwksResponder = _ => jwks,
+        };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await SeedClientAsync(
+            factory,
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.UserInfoSignedResponseAlg] = "RS256",
+                [OpenIdSettingNames.UserInfoEncryptedResponseAlg] = "RSA-OAEP-256",
+                [OpenIdSettingNames.UserInfoEncryptedResponseEnc] = "A256GCM",
+            }
+        );
+        await using var provider = CreateClientProvider(factory, clientRsa);
+        var registration = new ClientRegistration(
+            HostApplicationFactory.TestServerIssuer,
+            clientId,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            KeyRing = KeyRing,
+            IdTokenKeyManagementAlgorithms = ["RSA-OAEP-256"],
+            UserInfoSigningAlgorithms = ["RS256"],
+            UserInfoKeyManagementAlgorithms = ["RSA-OAEP-256"],
+            UserInfoContentEncryptionAlgorithms = ["A256GCM"],
+        };
+        var browser = CreateBrowser(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var (_, idTokenPayload, accessToken) = await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            registration
+        );
+        var subject = idTokenPayload.GetProperty("sub").GetString()!;
+
+        var result = await provider
+            .GetRequiredService<IUserInfoClient>()
+            .GetUserInfoAsync(
+                registration,
+                new UserInfoRequest(accessToken, subject),
+                CancellationToken.None
+            );
+
+        // The Nested JWT decrypted with the client's key and verified with the provider's: OIDC Core 1.0 §5.3.2.
+        Assert.True(result.IsSuccess, result.FailureReason ?? result.Error?.ToString());
+        Assert.Equal(subject, result.Claims.GetProperty("sub").GetString());
+        Assert.Equal(clientId, result.Claims.GetProperty("aud").GetString());
+        Assert.Equal(
+            HostApplicationFactory.TestServerIssuer,
+            result.Claims.GetProperty("iss").GetString()
+        );
+    }
+
+    #endregion
+
     #region ValidateAsync Tests
 
     [Fact]
@@ -298,7 +382,7 @@ public class EncryptedTokenEndToEndTests
         var browser = CreateBrowser(factory);
         var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
 
-        var (idToken, payload) = await RequestIdTokenAsync(
+        var (idToken, payload, _) = await RequestIdTokenAsync(
             browser,
             sessionCookie,
             provider,
@@ -334,7 +418,7 @@ public class EncryptedTokenEndToEndTests
         var registration = CreateRegistration(clientId);
         var browser = CreateBrowser(factory);
         var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
-        var (_, idTokenPayload) = await RequestIdTokenAsync(
+        var (_, idTokenPayload, _) = await RequestIdTokenAsync(
             browser,
             sessionCookie,
             provider,

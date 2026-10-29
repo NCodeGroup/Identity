@@ -111,6 +111,17 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         return mock;
     }
 
+    private ProviderJwtValidator CreateProviderJwtValidator(
+        IProviderKeySetResolver keySetResolver,
+        IClientKeyRingProvider keyRingProvider
+    ) =>
+        new(
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            keySetResolver,
+            keyRingProvider,
+            ServiceProvider.GetRequiredService<IJwtValidator>()
+        );
+
     private DefaultLogoutTokenValidator CreateValidator(
         Mock<IProviderKeySetResolver>? keySetMock,
         Mock<IExpiringKeySet>? keySet = null,
@@ -137,11 +148,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         keySet ??= CreateStrictMock<IExpiringKeySet>();
 
         return new DefaultLogoutTokenValidator(
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             mockMetadata.Object,
-            keySetMock.Object,
-            keyRingMock.Object,
-            ServiceProvider.GetRequiredService<IJwtValidator>(),
+            CreateProviderJwtValidator(keySetMock.Object, keyRingMock.Object),
             keySet.Object
         );
     }
@@ -612,11 +620,11 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenEmpty_Fails()
     {
         var validator = new DefaultLogoutTokenValidator(
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             CreateStrictMock<IProviderMetadataResolver>().Object,
-            CreateStrictMock<IProviderKeySetResolver>().Object,
-            CreateStrictMock<IClientKeyRingProvider>().Object,
-            ServiceProvider.GetRequiredService<IJwtValidator>(),
+            CreateProviderJwtValidator(
+                CreateStrictMock<IProviderKeySetResolver>().Object,
+                CreateStrictMock<IClientKeyRingProvider>().Object
+            ),
             CreateStrictMock<IExpiringKeySet>().Object
         );
 
@@ -860,11 +868,11 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
 
     private DefaultLogoutTokenValidator CreateRecordingValidator(Mock<IExpiringKeySet> keySet) =>
         new(
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             CreateStrictMock<IProviderMetadataResolver>().Object,
-            CreateStrictMock<IProviderKeySetResolver>().Object,
-            CreateStrictMock<IClientKeyRingProvider>().Object,
-            ServiceProvider.GetRequiredService<IJwtValidator>(),
+            CreateProviderJwtValidator(
+                CreateStrictMock<IProviderKeySetResolver>().Object,
+                CreateStrictMock<IClientKeyRingProvider>().Object
+            ),
             keySet.Object
         );
 

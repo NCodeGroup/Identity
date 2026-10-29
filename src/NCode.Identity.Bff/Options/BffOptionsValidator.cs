@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Navigation;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Bff.Options;
@@ -61,6 +62,8 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         ValidateTrustedOrigins(options.TrustedOrigins, isDevelopment, failures);
         ValidateSession(options.Session, failures);
         ValidateDPoP(options.DPoP, failures);
+        ValidateIdToken(options.IdToken, options.ClientAuthentication, failures);
+        ValidateUserInfo(options.UserInfo, options.ClientAuthentication, failures);
         ValidateTokens(options.Tokens, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateUserClaims(options.UserClaims, failures);
@@ -166,6 +169,136 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         else if (isRequired && string.IsNullOrWhiteSpace(dpop.KeyRing))
         {
             failures.Add("Bff:DPoP:KeyRing must not be blank when Bff:DPoP:Mode is 'required'.");
+        }
+    }
+
+    // See ADR-0301.
+    private static void ValidateIdToken(
+        BffIdTokenOptions? idToken,
+        BffClientAuthenticationOptions? clientAuthentication,
+        List<string> failures
+    )
+    {
+        if (idToken is null)
+        {
+            failures.Add("Bff:IdToken must be set.");
+            return;
+        }
+
+        ValidateResponseProtection(
+            "Bff:IdToken",
+            idToken.SigningAlgorithms,
+            idToken.KeyManagementAlgorithms,
+            idToken.ContentEncryptionAlgorithms,
+            clientAuthentication,
+            failures
+        );
+    }
+
+    // See ADR-0301.
+    private static void ValidateUserInfo(
+        BffUserInfoOptions? userInfo,
+        BffClientAuthenticationOptions? clientAuthentication,
+        List<string> failures
+    )
+    {
+        if (userInfo is null)
+        {
+            failures.Add("Bff:UserInfo must be set.");
+            return;
+        }
+
+        ValidateResponseProtection(
+            "Bff:UserInfo",
+            userInfo.SigningAlgorithms,
+            userInfo.KeyManagementAlgorithms,
+            userInfo.ContentEncryptionAlgorithms,
+            clientAuthentication,
+            failures
+        );
+
+        // A JWE that encloses no signature is refused, so UserInfo encryption is usable only with UserInfo signing.
+        if (
+            userInfo.KeyManagementAlgorithms is { Count: > 0 }
+            && userInfo.SigningAlgorithms is not { Count: > 0 }
+        )
+        {
+            failures.Add(
+                "Bff:UserInfo:KeyManagementAlgorithms requires Bff:UserInfo:SigningAlgorithms, because an encrypted UserInfo response must also be signed."
+            );
+        }
+    }
+
+    private static void ValidateResponseProtection(
+        string section,
+        List<string>? signingAlgorithms,
+        List<string>? keyManagementAlgorithms,
+        List<string>? contentEncryptionAlgorithms,
+        BffClientAuthenticationOptions? clientAuthentication,
+        List<string> failures
+    )
+    {
+        ValidateAlgorithmList($"{section}:SigningAlgorithms", signingAlgorithms, failures);
+        ValidateAlgorithmList(
+            $"{section}:KeyManagementAlgorithms",
+            keyManagementAlgorithms,
+            failures
+        );
+        ValidateAlgorithmList(
+            $"{section}:ContentEncryptionAlgorithms",
+            contentEncryptionAlgorithms,
+            failures
+        );
+
+        var encrypted = keyManagementAlgorithms is { Count: > 0 };
+        if (!encrypted && contentEncryptionAlgorithms is { Count: > 0 })
+        {
+            failures.Add(
+                $"{section}:ContentEncryptionAlgorithms requires {section}:KeyManagementAlgorithms."
+            );
+        }
+
+        if (encrypted && string.IsNullOrWhiteSpace(clientAuthentication?.KeyRing))
+        {
+            failures.Add(
+                $"Bff:ClientAuthentication:KeyRing must not be blank when {section}:KeyManagementAlgorithms is set, because it holds the decryption keys."
+            );
+        }
+    }
+
+    private static void ValidateAlgorithmList(
+        string key,
+        List<string>? algorithms,
+        List<string> failures
+    )
+    {
+        if (algorithms is null)
+        {
+            failures.Add($"{key} must be set.");
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var algorithm in algorithms)
+        {
+            if (string.IsNullOrWhiteSpace(algorithm))
+            {
+                failures.Add($"{key} must not contain a blank entry.");
+            }
+            else if (
+                string.Equals(
+                    algorithm,
+                    AlgorithmCodes.DigitalSignature.None,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                failures.Add($"{key} must not contain 'none'.");
+            }
+            else if (!seen.Add(algorithm))
+            {
+                failures.Add($"{key} must not contain '{algorithm}' more than once.");
+            }
         }
     }
 

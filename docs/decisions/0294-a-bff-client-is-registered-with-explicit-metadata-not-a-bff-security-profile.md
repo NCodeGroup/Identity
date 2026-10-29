@@ -33,6 +33,9 @@ A BFF client registers:
   ([ADR-0275](0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)).
 - `dpop_bound_access_tokens=true` when the BFF runs `Bff:DPoP:Mode` `required`
   ([ADR-0291](0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).
+- `id_token_signed_response_alg`, `userinfo_signed_response_alg` and their `_encrypted_response_alg` and `_enc`,
+  when set, the same as the BFF's `Bff:IdToken` and `Bff:UserInfo` name
+  ([ADR-0301](0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
 - The `authorization_code` and `refresh_token` grant types and the `offline_access` scope, which the BFF always
   requests.
 - A refresh-token absolute lifetime no shorter than the BFF's `Session:AbsoluteLifetime`, so the session does not end

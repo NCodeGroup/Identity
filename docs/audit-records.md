@@ -160,6 +160,7 @@ A severity the library does not define logs at Information.
 | -------------- | --------------------------------------------------------------- |
 | `openid`       | The OpenID protocol endpoints (authorization, token and so on). |
 | `management`   | The management API.                                             |
+| `bff`          | The backend-for-frontend (`NCode.Identity.Bff`).                |
 
 ### Actor types
 
@@ -232,6 +233,33 @@ Notes on the protocol events:
   session termination reason or an extension's own name.
 - `token.issued`'s `details.token_type` is the issued token's type, such as `access_token` or `id_token`; the token value
   is never written.
+
+### BFF plane
+
+Every BFF event is a `BffAuditEvent` with `event_source` `bff`. Its `client_id` is the BFF's own client id at the
+provider, and its `subject_id` is the session's subject when one is known. None carries a resource.
+
+| `event_name`                      | Category         | Source | Outcomes  | Severity  | Actor                                                   | Resources | `error.code`                                                                        | `details` |
+| --------------------------------- | ---------------- | ------ | --------- | --------- | ------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------- | --------- |
+| `bff.login.succeeded`             | `authentication` | `bff`  | `success` | `info`    | `end_user`                                              | none      | none                                                                                | none      |
+| `bff.login.failed`                | `authentication` | `bff`  | `failure` | `warning` | `anonymous`                                             | none      | A `BffLoginFailureReasons` name                                                     | none      |
+| `bff.session.ended`               | `session`        | `bff`  | `success` | `info`    | `end_user` for `logged_out`, `system` otherwise         | none      | none                                                                                | `reason`  |
+| `bff.token.refresh_failed`        | `token`          | `bff`  | `failure` | `warning` | `end_user`                                              | none      | The provider's OAuth error code, `provider_error` or `provider_unavailable`         | none      |
+| `bff.backchannel_logout.received` | `session`        | `bff`  | `success` | `info`    | `system`                                                | none      | none                                                                                | none      |
+| `bff.backchannel_logout.rejected` | `session`        | `bff`  | `failure` | `warning` | `anonymous`                                             | none      | The logout-token failure code, `invalid_request` or `session_end_failed`            | none      |
+| `bff.antiforgery.rejected`        | `protocol`       | `bff`  | `denied`  | `info`    | `anonymous`                                             | none      | `antiforgery_header_missing` or `cross_site_request`                                | none      |
+
+Notes on the BFF events:
+
+- `bff.login.failed` codes are the names in `BffLoginFailureReasons`: `unknown_state`, `initiator_mismatch`,
+  `issuer_mismatch`, `authorization_error`, `authorization_request_failed`, `invalid_response`, `token_error`,
+  `id_token_invalid`, `nonce_mismatch` and `rejected_by_gate`.
+- `bff.session.ended`'s `details.reason` is a name in `BffSessionEndReasons`: `logged_out`, `idle_timeout`,
+  `absolute_expiry`, `refresh_failed`, `backchannel_logout`, `replaced` or `ended_by_validator`.
+- `bff.backchannel_logout.received` is published once for each logout token handled, after the sessions it names have
+  ended.
+- No token, refresh token, session handle, cookie value, `state`, code, initiator secret or logout guard is ever
+  written to a BFF event.
 
 ### Management plane
 

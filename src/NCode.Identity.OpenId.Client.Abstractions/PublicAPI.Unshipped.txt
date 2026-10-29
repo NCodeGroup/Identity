@@ -87,6 +87,9 @@ NCode.Identity.OpenId.Client.IClientAuthenticator.AuthenticateAsync(NCode.Identi
 NCode.Identity.OpenId.Client.IClientAuthenticator.MethodName.get -> string!
 NCode.Identity.OpenId.Client.IClientKeyRingProvider
 NCode.Identity.OpenId.Client.IClientKeyRingProvider.GetKeyRing(string! keyRing) -> NCode.Identity.Secrets.Collections.ISecretKeyCollection!
+NCode.Identity.OpenId.Client.IDPoPProofFactory
+NCode.Identity.OpenId.Client.IDPoPProofFactory.CreateResourceProofAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, string! jwkThumbprint, System.Net.Http.HttpMethod! method, System.Uri! requestUri, string! accessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.OpenId.Client.IDPoPProofFactory.RecordNonce(System.Uri! requestUri, string! nonce) -> void
 NCode.Identity.OpenId.Client.IIdTokenValidator
 NCode.Identity.OpenId.Client.IIdTokenValidator.ValidateAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.IdTokenValidationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.IdTokenValidationResult!>
 NCode.Identity.OpenId.Client.ILogoutTokenValidator

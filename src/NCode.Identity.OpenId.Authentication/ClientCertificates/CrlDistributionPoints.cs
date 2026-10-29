@@ -174,7 +174,7 @@ internal static class CrlDistributionPoints
                 UniformResourceIdentifierTag
             );
             if (
-                Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                AbsoluteUri.TryParse(value, out var uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
             )
             {

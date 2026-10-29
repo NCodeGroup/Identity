@@ -102,7 +102,7 @@ internal sealed class RevocationDataFetcher(
         CancellationToken cancellationToken
     )
     {
-        if (!Uri.TryCreate(requestUri, UriKind.Absolute, out var parsedUri))
+        if (!AbsoluteUri.TryParse(requestUri, out var parsedUri))
         {
             content?.Dispose();
             Logger.RevocationInformationUnavailable(

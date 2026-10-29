@@ -1198,8 +1198,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         if (
-            Uri.TryCreate(returnUrl, UriKind.Absolute, out var target)
-            && Uri.TryCreate(requestOrigin, UriKind.Absolute, out var origin)
+            AbsoluteUri.TryParse(returnUrl, out var target)
+            && AbsoluteUri.TryParse(requestOrigin, out var origin)
             && string.Equals(target.Scheme, origin.Scheme, StringComparison.OrdinalIgnoreCase)
             && string.Equals(target.Authority, origin.Authority, StringComparison.OrdinalIgnoreCase)
         )

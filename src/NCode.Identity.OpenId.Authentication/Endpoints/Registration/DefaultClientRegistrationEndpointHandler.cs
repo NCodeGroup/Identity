@@ -870,7 +870,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         foreach (var redirectUri in redirectUris)
         {
             if (
-                !Uri.TryCreate(redirectUri, UriKind.Absolute, out _)
+                !AbsoluteUri.TryParse(redirectUri, out _)
                 || redirectUri.Contains('#', StringComparison.Ordinal)
             )
             {
@@ -1242,7 +1242,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         var sharesRedirectOrigin =
             TryParseWithoutFragment(frontChannelUri, out var frontChannel)
             && (request.RedirectUris ?? []).Any(redirectUri =>
-                Uri.TryCreate(redirectUri, UriKind.Absolute, out var redirect)
+                AbsoluteUri.TryParse(redirectUri, out var redirect)
                 && Uri.Compare(
                     frontChannel,
                     redirect,
@@ -1260,8 +1260,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     private static bool TryParseWithoutFragment(string value, [NotNullWhen(true)] out Uri? uri) =>
-        Uri.TryCreate(value, UriKind.Absolute, out uri)
-        && !value.Contains('#', StringComparison.Ordinal);
+        AbsoluteUri.TryParse(value, out uri) && !value.Contains('#', StringComparison.Ordinal);
 
     private static bool HasCertificate(JsonElement jwks) =>
         jwks.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keys)
@@ -1296,7 +1295,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         string? firstHost = null;
         foreach (var redirectUri in redirectUris)
         {
-            if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
+            if (!AbsoluteUri.TryParse(redirectUri, out var uri))
                 continue;
 
             if (firstHost is null)

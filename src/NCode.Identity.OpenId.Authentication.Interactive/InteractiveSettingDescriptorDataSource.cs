@@ -63,8 +63,7 @@ internal partial class InteractiveSettingDescriptorDataSource(INullChangeToken n
                 SettingRules.Must<string>(
                     "an absolute https URI",
                     value =>
-                        Uri.TryCreate(value, UriKind.Absolute, out var uri)
-                        && uri.Scheme == Uri.UriSchemeHttps
+                        AbsoluteUri.TryParse(value, out var uri) && uri.Scheme == Uri.UriSchemeHttps
                 )
             );
 

@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
@@ -52,7 +53,7 @@ internal class DeveloperCorsOptionsValidator : IValidateOptions<DeveloperCorsOpt
     }
 
     private static bool IsOrigin(string origin) =>
-        Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+        AbsoluteUri.TryParse(origin, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
         && string.IsNullOrEmpty(uri.UserInfo)
         && uri.AbsolutePath == "/"

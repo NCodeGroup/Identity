@@ -264,3 +264,5 @@ NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypes
 NCode.Identity.OpenId.OpenIdProtocol.WellKnownPaths
 const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.Jwt = "application/jwt" -> string!
+NCode.Identity.OpenId.AbsoluteUri
+static NCode.Identity.OpenId.AbsoluteUri.TryParse(string? value, out System.Uri? uri) -> bool

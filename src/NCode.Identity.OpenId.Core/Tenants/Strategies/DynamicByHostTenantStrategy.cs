@@ -209,7 +209,7 @@ internal class DynamicByHostTenantStrategy(
     )
     {
         var rootIssuer = await GetDefaultIssuerAsync(RootOptions.TenantId, cancellationToken);
-        return Uri.TryCreate(rootIssuer, UriKind.Absolute, out var rootIssuerUri)
+        return AbsoluteUri.TryParse(rootIssuer, out var rootIssuerUri)
             && string.Equals(rootIssuerUri.Host, issuerHost, StringComparison.OrdinalIgnoreCase);
     }
 

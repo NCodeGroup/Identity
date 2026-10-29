@@ -132,7 +132,7 @@ internal class DefaultSubjectIdentifierService(ICryptoService cryptoService)
     {
         if (
             !string.IsNullOrEmpty(value)
-            && Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && AbsoluteUri.TryParse(value, out var uri)
             && !string.IsNullOrEmpty(uri.Host)
         )
         {

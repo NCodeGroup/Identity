@@ -105,7 +105,7 @@ internal sealed class DefaultClientKeyResolver(
         var settings = openIdClient.Settings;
 
         if (
-            !Uri.TryCreate(jwksUri, UriKind.Absolute, out var uri)
+            !AbsoluteUri.TryParse(jwksUri, out var uri)
             || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
         )
         {

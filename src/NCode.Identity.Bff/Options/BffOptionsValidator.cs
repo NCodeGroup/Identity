@@ -400,7 +400,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         var isValid =
             !string.IsNullOrEmpty(authority)
             && !authority.Any(char.IsWhiteSpace)
-            && Uri.TryCreate(authority, UriKind.Absolute, out _)
+            && AbsoluteUri.TryParse(authority, out _)
             && (
                 authority.StartsWith(https, StringComparison.OrdinalIgnoreCase)
                 || (isDevelopment && authority.StartsWith(http, StringComparison.OrdinalIgnoreCase))
@@ -465,7 +465,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         {
             var isValid =
                 !string.IsNullOrEmpty(entry)
-                && Uri.TryCreate(entry, UriKind.Absolute, out var uri)
+                && AbsoluteUri.TryParse(entry, out var uri)
                 && string.Equals(
                     entry,
                     uri.GetLeftPart(UriPartial.Authority),

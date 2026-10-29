@@ -72,7 +72,7 @@ public class UriParser : ParameterParser<Uri>
         var stringValue = stringValues[0];
         Debug.Assert(stringValue is not null);
 
-        if (!Uri.TryCreate(stringValue, UriKind.Absolute, out var uri))
+        if (!AbsoluteUri.TryParse(stringValue, out var uri))
         {
             throw openIdEnvironment
                 .ErrorFactory.InvalidParameterValue(descriptor.ParameterName)

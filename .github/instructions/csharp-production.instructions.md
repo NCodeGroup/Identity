@@ -477,8 +477,10 @@ rationale.
   cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
   a different value instead of an error (`IPAddress.TryParse("10.0.0")` is `10.0.0.0`; `IPNetwork.TryParse` masks
   `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
-  Unix, `C:\path` on Windows — and trims surrounding whitespace, so an absolute URI must also start with its own
-  `scheme:` and contain no whitespace), and a value compared verbatim (a CORS origin) must be in the form it is compared
+  Unix, `C:\path` on Windows — and trims surrounding whitespace, so parse an absolute URI with
+  `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
+  `Uri.TryCreate` alone; a test that passes on Windows can fail on the Linux CI runner otherwise), and a value compared
+  verbatim (a CORS origin) must be in the form it is compared
   in — reject anything that parses to something other than what was written. The binder reads an enum option from a
   number as well as from a name and accepts a number that names no member (`"7"`), so the options validator refuses a
   value `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,

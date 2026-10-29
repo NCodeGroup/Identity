@@ -313,7 +313,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
                 .AsException();
         }
 
-        if (!Uri.TryCreate(redirectUriValue, UriKind.Absolute, out _))
+        if (!AbsoluteUri.TryParse(redirectUriValue, out _))
         {
             throw errorFactory
                 .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")

@@ -2638,6 +2638,11 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **An absolute URI means the same on every platform.** The new `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts
+  only text that names its own scheme and contains no whitespace, where `Uri.TryCreate(…, UriKind.Absolute, …)` also
+  read `/path` as `file:///path` on Linux and trimmed whitespace. Dynamic client registration therefore accepted a
+  relative `post_logout_redirect_uris` or `redirect_uris` value on Linux; it, the redirect URI kinds, the URI message
+  parameters, the URI setting rules and every other OpenID URI check now parse with it.
 - **A JSON Web Key Set skips a key with an empty `kty`.** `JsonWebKeySet(JsonElement)` and `JsonWebKeySet.Parse`
   failed the whole set with `ArgumentException` when one key's `kty` was the empty string; such a key is skipped like
   one with a missing or non-string `kty` (issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).

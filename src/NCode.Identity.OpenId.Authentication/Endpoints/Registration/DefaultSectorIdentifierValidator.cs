@@ -67,7 +67,7 @@ internal class DefaultSectorIdentifierValidator(
 
         // §8.1: the sector_identifier_uri must be an https URL.
         if (
-            !Uri.TryCreate(sectorIdentifierUri, UriKind.Absolute, out var uri)
+            !AbsoluteUri.TryParse(sectorIdentifierUri, out var uri)
             || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
         )
         {

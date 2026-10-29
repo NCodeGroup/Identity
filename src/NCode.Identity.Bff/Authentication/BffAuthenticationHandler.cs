@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
@@ -31,7 +32,8 @@ using NCode.Identity.Bff.Sessions;
 namespace NCode.Identity.Bff.Authentication;
 
 /// <summary>
-/// Authenticates a request from its BFF session cookie, and answers challenges and forbids.
+/// Authenticates the requests to the endpoints the BFF guards from the BFF session cookie, and answers challenges and
+/// forbids.
 /// </summary>
 internal class BffAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> schemeOptions,
@@ -48,12 +50,12 @@ internal class BffAuthenticationHandler(
     private readonly BffSessionResolver _resolver = resolver;
     private readonly IOptions<BffOptions> _options = options;
 
-    private bool IsApiEndpoint =>
-        Context.GetEndpoint()?.Metadata.GetMetadata<BffApiAttribute>() is not null;
-
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        if (!BffGuardedEndpoints.IsGuarded(Context.GetEndpoint()))
+            return AuthenticateResult.NoResult();
+
         var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
         if (session is null)
             return AuthenticateResult.NoResult();
@@ -69,13 +71,21 @@ internal class BffAuthenticationHandler(
     /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        if (IsApiEndpoint)
+        var endpoint = Context.GetEndpoint();
+        if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
         {
             return BffResponses.WriteProblemAsync(
                 Context,
                 StatusCodes.Status401Unauthorized,
                 BffProblemTypes.SessionRequired,
                 "A BFF session is required."
+            );
+        }
+
+        if (!BffGuardedEndpoints.IsPage(endpoint))
+        {
+            throw new InvalidOperationException(
+                "The BFF scheme challenged an endpoint it does not guard. Mark an API AsBffApi() or [BffApi], or a page AsBffPage() or [BffPage]."
             );
         }
 
@@ -94,6 +104,13 @@ internal class BffAuthenticationHandler(
     /// <inheritdoc />
     public async Task SignOutAsync(AuthenticationProperties? properties)
     {
+        if (!BffGuardedEndpoints.IsApi(Context.GetEndpoint()))
+        {
+            throw new InvalidOperationException(
+                "SignOutAsync with the BFF scheme ends a session only on an endpoint marked AsBffApi() or [BffApi], whose anti-forgery checks keep another site from ending it; a page sends the browser to /bff/logout."
+            );
+        }
+
         var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
         if (session is null)
             return;
@@ -105,7 +122,7 @@ internal class BffAuthenticationHandler(
     /// <inheritdoc />
     protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
     {
-        if (!IsApiEndpoint)
+        if (!BffGuardedEndpoints.RequiresAntiforgery(Context.GetEndpoint()))
             return base.HandleForbiddenAsync(properties);
 
         return BffResponses.WriteProblemAsync(

@@ -135,7 +135,7 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task AuthenticateAsync_WithSession_Succeeds()
     {
-        var (handler, _) = await CreateHandlerAsync(CreateState());
+        var (handler, _) = await CreateHandlerAsync(CreateState(), new BffApiAttribute());
 
         var result = await handler.AuthenticateAsync();
 
@@ -145,9 +145,31 @@ public class BffAuthenticationHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task AuthenticateAsync_PageEndpoint_Succeeds()
+    {
+        var (handler, _) = await CreateHandlerAsync(CreateState(), new BffPageAttribute());
+
+        var result = await handler.AuthenticateAsync();
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(BffDefaults.AuthenticationScheme, result.Ticket?.AuthenticationScheme);
+        Assert.Equal("sub-1", result.Principal?.FindFirstValue(JoseClaimNames.Payload.Sub));
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_UnguardedEndpoint_ReturnsNoResult()
+    {
+        var (handler, _) = await CreateHandlerAsync(CreateState());
+
+        var result = await handler.AuthenticateAsync();
+
+        Assert.True(result.None);
+    }
+
+    [Fact]
     public async Task AuthenticateAsync_NoSession_ReturnsNoResult()
     {
-        var (handler, _) = await CreateHandlerAsync(null);
+        var (handler, _) = await CreateHandlerAsync(null, new BffApiAttribute());
 
         var result = await handler.AuthenticateAsync();
 
@@ -175,7 +197,11 @@ public class BffAuthenticationHandlerTests : BaseTests
     public async Task ChallengeAsync_PageEndpoint_AllowedPath_RedirectsToLoginWithReturnUrl()
     {
         var bffOptions = new BffOptions { ReturnUrls = ["/app"] };
-        var (handler, httpContext) = await CreateHandlerAsync(null, bffOptions: bffOptions);
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffPageAttribute(),
+            bffOptions
+        );
         httpContext.Request.Path = "/app/page";
         httpContext.Request.QueryString = new QueryString("?a=1");
 
@@ -191,13 +217,41 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task ChallengeAsync_PageEndpoint_DisallowedPath_RedirectsToLoginWithRoot()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null);
+        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
         httpContext.Request.Path = "/other";
 
         await handler.ChallengeAsync(null);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
+    }
+
+    [Fact]
+    public async Task ChallengeAsync_UnguardedEndpoint_Throws()
+    {
+        var (handler, _) = await CreateHandlerAsync(null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ChallengeAsync(null)
+        );
+
+        Assert.Contains("does not guard", exception.Message);
+    }
+
+    #endregion
+
+    #region SignOutAsync Tests
+
+    [Fact]
+    public async Task SignOutAsync_UnguardedEndpoint_Throws()
+    {
+        var (handler, _) = await CreateHandlerAsync(CreateState());
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.SignOutAsync(null)
+        );
+
+        Assert.Contains("AsBffApi() or [BffApi]", exception.Message);
     }
 
     #endregion

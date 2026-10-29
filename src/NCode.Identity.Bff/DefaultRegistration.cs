@@ -17,12 +17,16 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
+using NCode.Identity.Bff.Authentication;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
@@ -76,6 +80,20 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
+            serviceCollection.TryAddSingleton<BffUserHandler>();
+
+            serviceCollection
+                .AddAuthentication()
+                .AddScheme<AuthenticationSchemeOptions, BffAuthenticationHandler>(
+                    BffDefaults.AuthenticationScheme,
+                    null,
+                    null
+                );
+            serviceCollection.PostConfigure<AuthenticationOptions>(o =>
+                o.DefaultScheme ??= BffDefaults.AuthenticationScheme
+            );
+            serviceCollection.AddAuthorization();
+            serviceCollection.AddHostedService<BffStartupCheck>();
 
             return newBuilder;
         }

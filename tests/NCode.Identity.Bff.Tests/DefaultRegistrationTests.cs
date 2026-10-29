@@ -16,9 +16,12 @@
 
 #endregion
 
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Bff.Options;
@@ -95,6 +98,48 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         ClientBuilder.AddBffLibrary(EventsBuilder);
 
         Assert.Throws<InvalidOperationException>(() => ClientBuilder.AddBffLibrary(EventsBuilder));
+    }
+
+    [Fact]
+    public async Task AddBffLibrary_RegistersTheBffSchemeAsTheDefault()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        var schemes = provider.GetRequiredService<IAuthenticationSchemeProvider>();
+        var scheme = await schemes.GetSchemeAsync(BffDefaults.AuthenticationScheme);
+        var defaultScheme = await schemes.GetDefaultAuthenticateSchemeAsync();
+        Assert.NotNull(scheme);
+        Assert.NotNull(defaultScheme);
+        Assert.Equal(BffDefaults.AuthenticationScheme, defaultScheme.Name);
+    }
+
+    [Fact]
+    public async Task AddBffLibrary_WhenTheHostSetsADefaultScheme_KeepsIt()
+    {
+        const string hostScheme = "Host";
+        Services
+            .AddAuthentication(hostScheme)
+            .AddScheme<AuthenticationSchemeOptions, StubAuthenticationHandler>(hostScheme, null);
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        var schemes = provider.GetRequiredService<IAuthenticationSchemeProvider>();
+        var defaultScheme = await schemes.GetDefaultAuthenticateSchemeAsync();
+        Assert.NotNull(defaultScheme);
+        Assert.Equal(hostScheme, defaultScheme.Name);
+    }
+
+    private sealed class StubAuthenticationHandler(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder
+    ) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    {
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync() =>
+            Task.FromResult(AuthenticateResult.NoResult());
     }
 
     #endregion

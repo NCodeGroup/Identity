@@ -240,6 +240,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `TenantStoreRelationalRemovalTests`).
 - 👁 **EF Core's SQLite provider cannot compare or order a `DateTimeOffset`.** Test a store query that filters on one,
   such as a grant's `ExpiresWhen` or `RevokedWhen`, on EF InMemory.
+- 👁 **Name an EF InMemory database once, outside the options lambda.** `AddDbContext(options => …)` runs the lambda for
+  every context, so `options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))` gives each scope its own empty
+  database and a test that writes in one scope reads nothing in the next. Draw the name into a local first and close
+  over it (`AuditRecordStoreTests.CreateInMemoryProvider`).
 - 👁 **A test that adds an entity to the `OpenIdDbContext` model calls `EnableServiceProviderCaching(false)`.** Entity
   Framework caches the model per context type across service providers, so without it the test may receive a model
   built without its entity (`TenantStoreContributedEntityRemovalTests`).

@@ -20,8 +20,6 @@ using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Tenants;
 
-// See ADR-0287.
-
 /// <summary>
 /// A kind of tenant environment, such as <c>production</c>, <c>staging</c> or <c>development</c>, that a tenant selects
 /// through its <c>environment_type</c> setting.
@@ -29,8 +27,9 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <remarks>
 /// This is a strategy collection: implementations are registered in DI and resolved by <see cref="TypeName"/> through
 /// <see cref="ITenantEnvironmentCatalog"/>. The vocabulary is open, so a consumer or sibling package adds a type by
-/// registering one rather than by editing the library (ADR-0150).
+/// registering one rather than by editing the library.
 /// </remarks>
+// See ADR-0287 and ADR-0150.
 [PublicAPI]
 public interface ITenantEnvironmentType
 {

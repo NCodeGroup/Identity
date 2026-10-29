@@ -116,3 +116,30 @@ NCode.Identity.Bff.IBffSessionStore.TryAddTransactionAsync(string! transactionKe
 NCode.Identity.Bff.IBffSessionStore.TryCreateAsync(NCode.Identity.Bff.BffSessionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.TryReplaceAsync(NCode.Identity.Bff.BffSessionRecord! record, long expectedVersion, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.TryTakeTransactionAsync(string! transactionKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.ReadOnlyMemory<byte>?>
+NCode.Identity.Bff.BffTokenRequest
+NCode.Identity.Bff.BffTokenRequest.BffTokenRequest(string! requirement) -> void
+NCode.Identity.Bff.BffTokenRequest.Requirement.get -> string!
+NCode.Identity.Bff.BffTokenRequest.Resource.get -> string?
+NCode.Identity.Bff.BffTokenRequest.Resource.init -> void
+NCode.Identity.Bff.BffTokenRequest.Scope.get -> string?
+NCode.Identity.Bff.BffTokenRequest.Scope.init -> void
+NCode.Identity.Bff.BffAccessToken
+NCode.Identity.Bff.BffAccessToken.BffAccessToken(string! value, string! tokenType, System.DateTimeOffset expiresAt) -> void
+NCode.Identity.Bff.BffAccessToken.DPoPJwkThumbprint.get -> string?
+NCode.Identity.Bff.BffAccessToken.DPoPJwkThumbprint.init -> void
+NCode.Identity.Bff.BffAccessToken.ExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffAccessToken.TokenType.get -> string!
+NCode.Identity.Bff.BffAccessToken.Value.get -> string!
+NCode.Identity.Bff.BffTokenResult
+NCode.Identity.Bff.BffTokenResult.IsSuccess.get -> bool
+NCode.Identity.Bff.BffTokenResult.Reason.get -> string?
+NCode.Identity.Bff.BffTokenResult.StatusCode.get -> int
+NCode.Identity.Bff.BffTokenResult.Token.get -> NCode.Identity.Bff.BffAccessToken?
+static NCode.Identity.Bff.BffTokenResult.Failure(int statusCode, string! reason) -> NCode.Identity.Bff.BffTokenResult!
+static NCode.Identity.Bff.BffTokenResult.Success(NCode.Identity.Bff.BffAccessToken? token) -> NCode.Identity.Bff.BffTokenResult!
+NCode.Identity.Bff.BffTokenFailureReasons
+const NCode.Identity.Bff.BffTokenFailureReasons.ProviderError = "provider_error" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.ProviderUnavailable = "provider_unavailable" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.RefreshFailed = "refresh_failed" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.RefreshWaitTimeout = "refresh_wait_timeout" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.SessionRequired = "session_required" -> string!

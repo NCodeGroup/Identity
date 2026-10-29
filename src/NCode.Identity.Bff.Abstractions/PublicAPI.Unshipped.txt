@@ -1,6 +1,8 @@
 #nullable enable
 NCode.Identity.Bff.BffLibrary
 NCode.Identity.Bff.BffLibrary.BffLibrary() -> void
+NCode.Identity.Bff.BffApiAttribute
+NCode.Identity.Bff.BffApiAttribute.BffApiAttribute() -> void
 NCode.Identity.Bff.BffDefaults
 const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
 const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!

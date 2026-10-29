@@ -113,5 +113,24 @@ public class JsonElementsParseTests
         Assert.True(value.GetProperty("a").GetBoolean());
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void Parse_WithDuplicatePropertiesDisallowed_Throws(int chunkSize)
+    {
+        const string json = """{"a":1,"a":2}""";
+        var sequence =
+            chunkSize == 0
+                ? new ReadOnlySequence<byte>(SecureEncoding.UTF8.GetBytes(json))
+                : CreateSequence(json, chunkSize);
+
+        Assert.ThrowsAny<JsonException>(() =>
+            JsonElement.Parse(
+                sequence,
+                new JsonDocumentOptions { AllowDuplicateProperties = false }
+            )
+        );
+    }
+
     #endregion
 }

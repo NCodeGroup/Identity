@@ -34,8 +34,14 @@ internal class ProviderHttpClient(
 
     private OpenIdClientOptions Options { get; } = options.Value;
 
+    public virtual ValueTask<ProviderHttpResponse> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken
+    ) => SendAsync(request, OpenIdClientDefaults.HttpClientName, cancellationToken);
+
     public virtual async ValueTask<ProviderHttpResponse> SendAsync(
         HttpRequestMessage request,
+        string httpClientName,
         CancellationToken cancellationToken
     )
     {
@@ -49,7 +55,7 @@ internal class ProviderHttpClient(
 
         try
         {
-            var client = HttpClientFactory.CreateClient(OpenIdClientDefaults.HttpClientName);
+            var client = HttpClientFactory.CreateClient(httpClientName);
 
             using var response = await client.SendAsync(
                 request,

@@ -20,6 +20,7 @@ using System.Net;
 using System.Web;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.Tokens;
 using Xunit;
@@ -73,6 +74,7 @@ public class DefaultTokenRevocationClientTests : BaseTests
 
         if (revocationEndpoint is not null)
         {
+            mockAuthenticator.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
             mockAuthenticator
                 .Setup(x =>
                     x.AuthenticateAsync(
@@ -89,7 +91,11 @@ public class DefaultTokenRevocationClientTests : BaseTests
                 MockHttpClientFactory.Object,
                 Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions())
             ),
-            [mockAuthenticator.Object]
+            [mockAuthenticator.Object],
+            new ClientCertificateProvider(
+                CreateStrictMock<IClientKeyRingProvider>().Object,
+                TimeProvider.System
+            )
         );
 
         return new DefaultTokenRevocationClient(MockMetadataResolver.Object, sender);

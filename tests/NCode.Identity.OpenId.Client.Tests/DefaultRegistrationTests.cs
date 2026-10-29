@@ -17,10 +17,12 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.Secrets;
 using NCode.Identity.SharedState;
@@ -61,6 +63,8 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     {
         public string MethodName => "custom";
 
+        public bool UsesMutualTls => false;
+
         public ValueTask AuthenticateAsync(
             ClientAuthenticationContext context,
             CancellationToken cancellationToken
@@ -89,7 +93,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public void AddOpenIdClientLibrary_RegistersTheThreeBuiltInAuthenticators()
+    public void AddOpenIdClientLibrary_RegistersTheFiveBuiltInAuthenticators()
     {
         JwtBuilder.AddOpenIdClientLibrary();
 
@@ -105,6 +109,8 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
         }
             .Order(StringComparer.Ordinal)
             .ToList();
@@ -147,6 +153,23 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         var socketsHandler = Assert.IsType<SocketsHttpHandler>(handler);
         Assert.False(socketsHandler.AllowAutoRedirect);
         Assert.False(socketsHandler.UseCookies);
+    }
+
+    [Fact]
+    public void AddOpenIdClientLibrary_ConfiguresMutualTlsHttpClients()
+    {
+        JwtBuilder.AddOpenIdClientLibrary();
+
+        var provider = BuildProvider();
+
+        var options = provider
+            .GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>()
+            .Get(OpenIdClientDefaults.MutualTlsHttpClientNamePrefix + "ABC");
+        Assert.NotEmpty(options.HttpMessageHandlerBuilderActions);
+        Assert.Same(
+            provider.GetRequiredService<ClientCertificateProvider>(),
+            provider.GetRequiredService<ClientCertificateProvider>()
+        );
     }
 
     #endregion

@@ -20,6 +20,7 @@ using System.Net;
 using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
@@ -29,7 +30,10 @@ namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
 public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 {
-    private const string Endpoint = "https://op.example.test/token";
+    private static readonly ProviderEndpoint Endpoint = new(
+        OpenIdProtocol.MetadataNames.TokenEndpoint,
+        "https://op.example.test/token"
+    );
 
     private DPoPTestContext DPoPContext { get; } = new();
 
@@ -57,12 +61,19 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
                 MockHttpClientFactory.Object,
                 Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions())
             ),
-            authenticators
+            authenticators,
+            new ClientCertificateProvider(
+                CreateStrictMock<IClientKeyRingProvider>().Object,
+                TimeProvider.System
+            )
         );
 
-    private void SetupHttpClient(HttpMessageHandler handler) =>
+    private void SetupHttpClient(
+        HttpMessageHandler handler,
+        string name = OpenIdClientDefaults.HttpClientName
+    ) =>
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(OpenIdClientDefaults.HttpClientName))
+            .Setup(x => x.CreateClient(name))
             .Returns(new HttpClient(handler, disposeHandler: false))
             .Verifiable();
 
@@ -75,6 +86,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     public async Task PostFormAsync_WithKnownMethod_PostsAuthenticatedForm()
     {
         var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
         mockAuthenticator
             .Setup(x =>
                 x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
@@ -100,7 +112,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         Assert.Equal(200, response.StatusCode);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
-        Assert.Equal(Endpoint, request.RequestUri?.AbsoluteUri);
+        Assert.Equal(Endpoint.Url, request.RequestUri?.AbsoluteUri);
         Assert.Equal("application/json", request.Accept);
         Assert.Equal("a=b&auth=1", request.Body);
     }
@@ -109,6 +121,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     public async Task PostFormAsync_WhenIncludeClientIdAndAuthenticatorAddsNone_AppendsClientId()
     {
         var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
         mockAuthenticator
             .Setup(x =>
                 x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
@@ -136,6 +149,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     public async Task PostFormAsync_WhenIncludeClientIdAndAuthenticatorAddsClientId_SendsItOnce()
     {
         var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
         mockAuthenticator
             .Setup(x =>
                 x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
@@ -169,6 +183,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     public async Task PostFormAsync_WhenNotIncludeClientId_SendsNoClientId()
     {
         var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
         mockAuthenticator
             .Setup(x =>
                 x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
@@ -195,6 +210,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
     private Mock<IClientAuthenticator> CreateFormAuthenticatorMock()
     {
         var mock = CreateAuthenticatorMock();
+        mock.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
         mock.Setup(x =>
                 x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
             )
@@ -235,7 +251,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         Assert.NotNull(request.DPoP);
         var payload = DPoPTestContext.DecodePayload(request.DPoP);
         Assert.Equal("POST", payload.GetProperty("htm").GetString());
-        Assert.Equal(Endpoint, payload.GetProperty("htu").GetString());
+        Assert.Equal(Endpoint.Url, payload.GetProperty("htu").GetString());
         Assert.False(payload.TryGetProperty("nonce", out _));
     }
 
@@ -344,7 +360,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 
         await PostWithDPoPAsync(sender, withKey: true);
 
-        Assert.Equal("n-2", DPoPContext.NonceCache.Get(new Uri(Endpoint)));
+        Assert.Equal("n-2", DPoPContext.NonceCache.Get(new Uri(Endpoint.Url)));
     }
 
     [Fact]
@@ -376,13 +392,144 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
             await sender.PostFormAsync(
                 CreateRegistration(),
                 new OpenIdProviderMetadata(),
-                "http://op.example.test/token",
+                new ProviderEndpoint(
+                    OpenIdProtocol.MetadataNames.TokenEndpoint,
+                    "http://op.example.test/token"
+                ),
                 [],
                 CancellationToken.None
             )
         );
 
         Assert.Empty(handler.Requests);
+    }
+
+    private const string Alias = "https://mtls.op.example.test/token";
+
+    private static OpenIdProviderMetadata CreateMetadataWithAlias() =>
+        new()
+        {
+            MtlsEndpointAliases = new Dictionary<string, string>
+            {
+                [OpenIdProtocol.MetadataNames.TokenEndpoint] = Alias,
+            },
+        };
+
+    private Mock<IClientAuthenticator> CreateMutualTlsAuthenticatorMock()
+    {
+        var mock = CreateAuthenticatorMock();
+        mock.Setup(x => x.UsesMutualTls).Returns(true).Verifiable();
+        mock.Setup(x =>
+                x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        return mock;
+    }
+
+    private (ClientRequestSender Sender, ClientRegistration Registration) CreateMutualTlsSender(
+        Mock<IClientAuthenticator> mockAuthenticator
+    )
+    {
+        var registration = CreateRegistration();
+        var mockProvider = CreateStrictMock<ClientCertificateProvider>(
+            CreateStrictMock<IClientKeyRingProvider>().Object,
+            TimeProvider.System
+        );
+        mockProvider
+            .Setup(x => x.SelectHttpClientName(registration))
+            .Returns("mtls-client")
+            .Verifiable();
+        var sender = new ClientRequestSender(
+            new ProviderHttpClient(
+                MockHttpClientFactory.Object,
+                Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions())
+            ),
+            [mockAuthenticator.Object],
+            mockProvider.Object
+        );
+        return (sender, registration);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WithMutualTlsAndAlias_PostsToAliasThroughCertificateClient()
+    {
+        var (sender, registration) = CreateMutualTlsSender(CreateMutualTlsAuthenticatorMock());
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler, "mtls-client");
+
+        await sender.PostFormAsync(
+            registration,
+            CreateMetadataWithAlias(),
+            Endpoint,
+            [],
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(Alias, request.RequestUri?.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WithMutualTlsWithoutAlias_PostsToEndpointThroughCertificateClient()
+    {
+        var (sender, registration) = CreateMutualTlsSender(CreateMutualTlsAuthenticatorMock());
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler, "mtls-client");
+
+        await sender.PostFormAsync(
+            registration,
+            new OpenIdProviderMetadata(),
+            Endpoint,
+            [],
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(Endpoint.Url, request.RequestUri?.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WithMutualTlsAndDPoP_ProvesTheAlias()
+    {
+        var (sender, registration) = CreateMutualTlsSender(CreateMutualTlsAuthenticatorMock());
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler, "mtls-client");
+
+        await sender.PostFormAsync(
+            registration,
+            CreateMetadataWithAlias(),
+            Endpoint,
+            [],
+            includeClientId: false,
+            DPoPContext.CreateProofKey(DPoPContext.EcKey),
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.NotNull(request.DPoP);
+        var payload = DPoPTestContext.DecodePayload(request.DPoP);
+        Assert.Equal(Alias, payload.GetProperty("htu").GetString());
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WithoutMutualTls_IgnoresAlias()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await sender.PostFormAsync(
+            CreateRegistration(),
+            CreateMetadataWithAlias(),
+            Endpoint,
+            [],
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(Endpoint.Url, request.RequestUri?.AbsoluteUri);
     }
 
     #endregion

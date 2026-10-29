@@ -35,6 +35,9 @@ internal class ClientSecretBasicClientAuthenticator(IClientKeyRingProvider keyRi
     public string MethodName => OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <inheritdoc />
+    public bool UsesMutualTls => false;
+
+    /// <inheritdoc />
     public ValueTask AuthenticateAsync(
         ClientAuthenticationContext context,
         CancellationToken cancellationToken

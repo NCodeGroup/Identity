@@ -2,6 +2,7 @@
 abstract NCode.Identity.OpenId.Client.TokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 abstract NCode.Identity.OpenId.Client.TokenRequest.GrantType.get -> string!
 const NCode.Identity.OpenId.Client.OpenIdClientDefaults.HttpClientName = "NCode.Identity.OpenId.Client" -> string!
+const NCode.Identity.OpenId.Client.OpenIdClientDefaults.MutualTlsHttpClientNamePrefix = "NCode.Identity.OpenId.Client.MutualTls:" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.DecryptionFailed = "decryption_failed" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.Expired = "expired" -> string!
@@ -85,6 +86,7 @@ NCode.Identity.OpenId.Client.IAuthorizationRequestClient.CreateAuthorizationUriA
 NCode.Identity.OpenId.Client.IClientAuthenticator
 NCode.Identity.OpenId.Client.IClientAuthenticator.AuthenticateAsync(NCode.Identity.OpenId.Client.ClientAuthenticationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Client.IClientAuthenticator.MethodName.get -> string!
+NCode.Identity.OpenId.Client.IClientAuthenticator.UsesMutualTls.get -> bool
 NCode.Identity.OpenId.Client.IClientKeyRingProvider
 NCode.Identity.OpenId.Client.IClientKeyRingProvider.GetKeyRing(string! keyRing) -> NCode.Identity.Secrets.Collections.ISecretKeyCollection!
 NCode.Identity.OpenId.Client.IDPoPProofFactory
@@ -162,6 +164,8 @@ NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupporte
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.MtlsEndpointAliases.get -> System.Collections.Generic.Dictionary<string!, string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.MtlsEndpointAliases.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.get -> string?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?

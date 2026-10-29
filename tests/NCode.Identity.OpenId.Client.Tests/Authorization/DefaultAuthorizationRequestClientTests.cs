@@ -21,6 +21,7 @@ using System.Web;
 using Moq;
 using NCode.Identity.OpenId.Client.Authorization;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
@@ -76,6 +77,7 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
                 .Returns(new HttpClient(handler, disposeHandler: false))
                 .Verifiable();
 
+            mockAuthenticator.Setup(x => x.UsesMutualTls).Returns(false).Verifiable();
             mockAuthenticator
                 .Setup(x =>
                     x.AuthenticateAsync(
@@ -95,7 +97,11 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
                 MockHttpClientFactory.Object,
                 Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions())
             ),
-            [mockAuthenticator.Object]
+            [mockAuthenticator.Object],
+            new ClientCertificateProvider(
+                CreateStrictMock<IClientKeyRingProvider>().Object,
+                TimeProvider.System
+            )
         );
 
         return new DefaultAuthorizationRequestClient(

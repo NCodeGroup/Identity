@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client.Authentication;
@@ -26,6 +27,7 @@ using NCode.Identity.OpenId.Client.Authorization;
 using NCode.Identity.OpenId.Client.Discovery;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Keys;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
@@ -43,7 +45,7 @@ public static class DefaultRegistration
     extension(IServiceBuilder<JwtLibrary> builder)
     {
         /// <summary>
-        /// Registers the OpenID client library: provider metadata and key set resolution, client authentication,
+        /// Registers the OpenID client library: provider metadata and key set resolution, client authentication (including mutual-TLS),
         /// the authorization request client (with PAR), the token and token revocation clients, DPoP proofs and nonces, and ID-token and logout-token validation, layered on the
         /// <see cref="JwtLibrary"/>. Logout-token validation looks each token's <c>jti</c> up, and <c>TryRecordHandledAsync</c> records it, in the shared
         /// <c>IExpiringKeySet</c>, whose adapter the composition root registers
@@ -73,6 +75,14 @@ public static class DefaultRegistration
                 .ConfigurePrimaryHttpMessageHandler(static () =>
                     new SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false }
                 );
+
+            serviceCollection.TryAddSingleton<ClientCertificateProvider>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IConfigureOptions<HttpClientFactoryOptions>,
+                    MutualTlsHttpClientOptionsSetup
+                >()
+            );
 
             serviceCollection.TryAddSingleton<ProviderHttpClient>();
             serviceCollection.TryAddSingleton<ProviderKeySetImporter>();
@@ -117,6 +127,14 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     IClientAuthenticator,
                     PrivateKeyJwtClientAuthenticator
+                >(),
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticator,
+                    TlsClientAuthClientAuthenticator
+                >(),
+                ServiceDescriptor.Singleton<
+                    IClientAuthenticator,
+                    SelfSignedTlsClientAuthClientAuthenticator
                 >(),
             ]);
 

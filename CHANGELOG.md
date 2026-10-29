@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
+  `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
+  EC key with a currently valid client-authentication certificate and a private key, never an `enc` key. Each request
+  goes over a connection per certificate, to the provider's `mtls_endpoint_aliases` entry when it has one, and sends
+  `client_id`. `IClientAuthenticator.UsesMutualTls` declares the transport (a breaking addition for custom
+  authenticators), `OpenIdProviderMetadata.MtlsEndpointAliases` carries the aliases, and
+  `OpenIdClientDefaults.MutualTlsHttpClientNamePrefix` names the per-certificate HTTP clients
+  ([ADR-0288](docs/decisions/0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
+  issue [#392](https://github.com/NCodeGroup/Identity/issues/392)).
 - **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of
   the major pinned in `src/frontend/.node-version` and a `node_modules` that matches the pinned pnpm and
   `pnpm-lock.yaml`, and otherwise stops with one message that names `./build/frontend-install.ps1`

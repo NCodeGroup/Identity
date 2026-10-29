@@ -2,6 +2,7 @@
 abstract NCode.Identity.OpenId.Client.TokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 abstract NCode.Identity.OpenId.Client.TokenRequest.GrantType.get -> string!
 const NCode.Identity.OpenId.Client.OpenIdClientDefaults.HttpClientName = "NCode.Identity.OpenId.Client" -> string!
+const NCode.Identity.OpenId.Client.OpenIdClientDefaults.MutualTlsHttpClientNamePrefix = "NCode.Identity.OpenId.Client.MutualTls:" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.DecryptionFailed = "decryption_failed" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.Expired = "expired" -> string!

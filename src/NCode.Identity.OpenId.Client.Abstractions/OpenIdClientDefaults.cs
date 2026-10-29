@@ -31,4 +31,10 @@ public static class OpenIdClientDefaults
     /// requests through.
     /// </summary>
     public const string HttpClientName = "NCode.Identity.OpenId.Client";
+
+    /// <summary>
+    /// The prefix of the names of the <c>IHttpClientFactory</c> clients that present a TLS client certificate. The rest
+    /// of the name is the uppercase hexadecimal SHA-256 hash of the certificate's DER encoding.
+    /// </summary>
+    public const string MutualTlsHttpClientNamePrefix = "NCode.Identity.OpenId.Client.MutualTls:";
 }

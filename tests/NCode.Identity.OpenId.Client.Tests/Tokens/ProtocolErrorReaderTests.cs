@@ -44,4 +44,62 @@ public class ProtocolErrorReaderTests
     }
 
     #endregion
+
+    #region TryReadChallenge Tests
+
+    private static ProviderHttpResponse CreateChallenge(string? challenge) =>
+        new(401, null) { WwwAuthenticate = challenge };
+
+    [Theory]
+    [InlineData(
+        "Bearer error=\"invalid_token\", error_description=\"The token expired\"",
+        "invalid_token",
+        "The token expired"
+    )]
+    [InlineData(
+        "Bearer realm=\"op\",error_description=\"error=\\\"forged\\\"\",error=\"insufficient_scope\"",
+        "insufficient_scope",
+        "error=\"forged\""
+    )]
+    [InlineData("DPoP algs=\"ES256 PS256\", error=use_dpop_nonce", "use_dpop_nonce", null)]
+    [InlineData(
+        "Bearer realm=\"op\", DPoP error=\"invalid_dpop_proof\"",
+        "invalid_dpop_proof",
+        null
+    )]
+    public void TryReadChallenge_WithAnErrorParameter_ReadsIt(
+        string challenge,
+        string expectedError,
+        string? expectedDescription
+    )
+    {
+        var result = ProtocolErrorReader.TryReadChallenge(
+            CreateChallenge(challenge),
+            out var error
+        );
+
+        Assert.True(result);
+        Assert.NotNull(error);
+        Assert.Equal(expectedError, error.Error);
+        Assert.Equal(expectedDescription, error.ErrorDescription);
+        Assert.Equal(401, error.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Bearer realm=\"op\"")]
+    [InlineData("Bearer error_description=\"no code\"")]
+    public void TryReadChallenge_WithoutAnErrorParameter_ReadsNothing(string? challenge)
+    {
+        var result = ProtocolErrorReader.TryReadChallenge(
+            CreateChallenge(challenge),
+            out var error
+        );
+
+        Assert.False(result);
+        Assert.Null(error);
+    }
+
+    #endregion
 }

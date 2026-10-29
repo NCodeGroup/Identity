@@ -81,6 +81,12 @@ public static class BffLoginFailureReasons
     public const string NonceMismatch = "nonce_mismatch";
 
     /// <summary>
+    /// The UserInfo endpoint answered with an error, or with claims about another subject or in a form the BFF does
+    /// not accept.
+    /// </summary>
+    public const string UserInfoFailed = "userinfo_failed";
+
+    /// <summary>
     /// A login gate rejected the login.
     /// </summary>
     public const string RejectedByGate = "rejected_by_gate";

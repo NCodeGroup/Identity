@@ -336,3 +336,4 @@ standards.
 | [0296](./0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md) | A failed JWE key unwrap is indistinguishable from a failed authentication tag | Accepted |
 | [0297](./0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
 | [0298](./0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md) | A package traces its own mechanisms through one activity source named like its meter | Accepted |
+| [0299](./0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |

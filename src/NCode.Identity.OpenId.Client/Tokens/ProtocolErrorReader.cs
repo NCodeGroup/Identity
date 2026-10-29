@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using NCode.Identity.OpenId.Client.Http;
 
@@ -50,6 +51,94 @@ internal static class ProtocolErrorReader
             ErrorUri = ReadString(json, OpenIdProtocol.Parameters.ErrorUri),
         };
         return true;
+    }
+
+    /// <summary>
+    /// Reads a <see cref="ProtocolError"/> from the <c>error</c>, <c>error_description</c> and <c>error_uri</c>
+    /// auth-params of the response's <c>WWW-Authenticate</c> challenge, with which a protected resource reports an error
+    /// (RFC 6750 §3, RFC 9449 §7.1).
+    /// </summary>
+    public static bool TryReadChallenge(
+        ProviderHttpResponse response,
+        [NotNullWhen(true)] out ProtocolError? error
+    )
+    {
+        error = null;
+
+        if (string.IsNullOrEmpty(response.WwwAuthenticate))
+            return false;
+
+        var errorCode = ReadAuthParam(
+            response.WwwAuthenticate,
+            OpenIdProtocol.Parameters.ErrorCode
+        );
+        if (string.IsNullOrEmpty(errorCode))
+            return false;
+
+        error = new ProtocolError(errorCode, response.StatusCode)
+        {
+            ErrorDescription = ReadAuthParam(
+                response.WwwAuthenticate,
+                OpenIdProtocol.Parameters.ErrorDescription
+            ),
+            ErrorUri = ReadAuthParam(response.WwwAuthenticate, OpenIdProtocol.Parameters.ErrorUri),
+        };
+        return true;
+    }
+
+    // An auth-param is name=token or name=quoted-string (RFC 9110 §11.2); a name matches only at the start of the
+    // challenge's parameters or after a separator, so error does not match inside error_description.
+    private static string? ReadAuthParam(string challenge, string name)
+    {
+        var position = 0;
+        while (position < challenge.Length)
+        {
+            var index = challenge.IndexOf(name, position, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return null;
+
+            position = index + name.Length;
+            var atBoundary = index == 0 || challenge[index - 1] is ' ' or ',' or '\t';
+            var afterName = position;
+            while (afterName < challenge.Length && challenge[afterName] is ' ' or '\t')
+                afterName++;
+
+            if (!atBoundary || afterName >= challenge.Length || challenge[afterName] != '=')
+                continue;
+
+            var valueStart = afterName + 1;
+            while (valueStart < challenge.Length && challenge[valueStart] is ' ' or '\t')
+                valueStart++;
+
+            if (valueStart >= challenge.Length)
+                return string.Empty;
+
+            if (challenge[valueStart] != '"')
+            {
+                var tokenEnd = challenge.IndexOfAny([',', ' ', '\t'], valueStart);
+                return tokenEnd < 0 ? challenge[valueStart..] : challenge[valueStart..tokenEnd];
+            }
+
+            var builder = new StringBuilder();
+            for (var i = valueStart + 1; i < challenge.Length; i++)
+            {
+                var c = challenge[i];
+                if (c == '\\' && i + 1 < challenge.Length)
+                {
+                    builder.Append(challenge[++i]);
+                    continue;
+                }
+
+                if (c == '"')
+                    return builder.ToString();
+
+                builder.Append(c);
+            }
+
+            return builder.ToString();
+        }
+
+        return null;
     }
 
     private static string? ReadString(JsonElement json, string name) =>

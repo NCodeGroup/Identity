@@ -179,3 +179,4 @@ NCode.Identity.Bff.IBffUserContributor
 NCode.Identity.Bff.IBffUserContributor.ContributeAsync(NCode.Identity.Bff.BffUserContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 static NCode.Identity.Bff.BffSessionClaimContext.ReservedClaimTypes.get -> System.Collections.Generic.IReadOnlySet<string!>!
 static NCode.Identity.Bff.BffUserContext.ReservedFieldNames.get -> System.Collections.Generic.IReadOnlySet<string!>!
+const NCode.Identity.Bff.BffLoginFailureReasons.UserInfoFailed = "userinfo_failed" -> string!

@@ -39,6 +39,15 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **UserInfo in the protocol client and at BFF login.** `IUserInfoClient` requests the provider's UserInfo endpoint with
+  an access token the way it was issued (bearer, DPoP with a nonce retry, or over mutual TLS to the endpoint's alias),
+  refuses a response about another subject than the ID token's, and maps the claims through the new
+  `IClaimsIdentityFactory`, the JWT stack's one claim mapping, which `DefaultJwtValidator` now uses too. A signed or
+  encrypted UserInfo response is refused as `unsupported_response` until issue
+  [#421](https://github.com/NCodeGroup/Identity/issues/421). `Bff:LoadUserInfo` merges UserInfo into a session at
+  login, before the claim contributors and the login gates; a failure ends the login with `userinfo_failed`
+  ([ADR-0299](docs/decisions/0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md),
+  issue [#415](https://github.com/NCodeGroup/Identity/issues/415)).
 - **BFF session claim and `/bff/user` contributors.** `IBffSessionClaimContributor` strategies shape a session's
   claims once, at login, after the ID token validates and before the login gates, which now judge the shaped claims;
   `BffSessionClaimContext` refuses to add or remove `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr`.

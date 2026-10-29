@@ -320,9 +320,13 @@ The family therefore has one JOSE stack for every token the BFF validates.
 **Discovery.** Discovery is fetched lazily and cached, and the issuer must equal the configured authority (OIDC
 Discovery §4.3). The JWKS is refreshed when a token carries an unknown `kid`.
 
-**UserInfo.** UserInfo is called once at login only when the frontend asks for it. The session's claims otherwise come
-from the ID token.
-
+**UserInfo.** With `Bff:LoadUserInfo`, the callback requests UserInfo once, with the new access token presented the way
+it was issued (bearer, DPoP or over mutual TLS), and refuses a response about another subject than the ID token's
+(OIDC Core §5.3.2). Each UserInfo claim type replaces the ID token's claims of that type, except the claims that anchor
+the session (`iss`, `sub`, `sid`, `auth_time`, `acr`, `amr`); the session claim contributors and the login gates then
+see the merged claims. A failed request ends the login with `userinfo_failed`, or `provider_unavailable` when the OP
+cannot be reached. Without the option, the session's claims come from the ID token
+([ADR-0299](decisions/0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
 ### 5.2 Login transaction and callback binding
 
 The login transaction is a **server-side record**, not a protected cookie or a protected `state` blob:

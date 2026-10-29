@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Jose;
+using NCode.Identity.Jwt.Claims;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Jwt.Validation;
 using NCode.Registration;
@@ -48,6 +49,10 @@ public static class DefaultRegistration
             var newBuilder = builder.NewBuilder<JwtLibrary>();
 
             serviceCollection.TryAddSingleton<IJwtEncoder, DefaultJwtEncoder>();
+            serviceCollection.TryAddSingleton<
+                IClaimsIdentityFactory,
+                DefaultClaimsIdentityFactory
+            >();
             serviceCollection.TryAddSingleton<IJwtValidator, DefaultJwtValidator>();
 
             serviceCollection.TryAddEnumerable([

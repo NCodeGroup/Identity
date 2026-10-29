@@ -212,6 +212,33 @@ public class ProviderHttpClientTests : BaseTests
     }
 
     [Fact]
+    public async Task SendAsync_WithChallengeAndJwtBody_ReturnsTheChallengeAndMediaType()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
+                {
+                    Content = new StringContent("a.b.c", SecureEncoding.UTF8, "application/jwt"),
+                };
+                response.Headers.TryAddWithoutValidation(
+                    "WWW-Authenticate",
+                    "Bearer error=\"invalid_token\""
+                );
+                return Task.FromResult(response);
+            }
+        );
+        var client = CreateClient(handler);
+
+        var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.Equal(401, response.StatusCode);
+        Assert.Null(response.Json);
+        Assert.Equal("application/jwt", response.MediaType);
+        Assert.Equal("Bearer error=\"invalid_token\"", response.WwwAuthenticate);
+    }
+
+    [Fact]
     public async Task SendAsync_WithoutDPoPNonceHeader_ReturnsNullNonce()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, """{"issuer":"x"}""");

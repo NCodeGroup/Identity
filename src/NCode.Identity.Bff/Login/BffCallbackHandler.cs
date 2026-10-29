@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -46,6 +47,7 @@ internal class BffCallbackHandler
     private readonly IProviderMetadataResolver _metadataResolver;
     private readonly ITokenClient _tokenClient;
     private readonly IIdTokenValidator _idTokenValidator;
+    private readonly IUserInfoClient _userInfoClient;
     private readonly IEnumerable<IBffLoginGate> _gates;
     private readonly IEnumerable<IBffSessionClaimContributor> _claimContributors;
     private readonly IBffSessionManager _sessionManager;
@@ -64,6 +66,7 @@ internal class BffCallbackHandler
         IProviderMetadataResolver metadataResolver,
         ITokenClient tokenClient,
         IIdTokenValidator idTokenValidator,
+        IUserInfoClient userInfoClient,
         IEnumerable<IBffLoginGate> gates,
         IEnumerable<IBffSessionClaimContributor> claimContributors,
         IBffSessionManager sessionManager,
@@ -79,6 +82,7 @@ internal class BffCallbackHandler
         _metadataResolver = metadataResolver;
         _tokenClient = tokenClient;
         _idTokenValidator = idTokenValidator;
+        _userInfoClient = userInfoClient;
         _gates = gates;
         _claimContributors = claimContributors;
         _sessionManager = sessionManager;
@@ -234,13 +238,48 @@ internal class BffCallbackHandler
             return;
         }
 
+        var bffOptions = _options.Value;
+        IEnumerable<Claim> sessionClaims = BffSessionPrincipal.SelectSessionClaims(identity);
+        if (bffOptions.LoadUserInfo)
+        {
+            // UserInfo is requested with the new access token, the way it was issued, and must be about the ID token's
+            // subject (OpenID Connect Core 1.0 §5.3.2). See ADR-0299.
+            var userInfoRequest = new UserInfoRequest(accessToken, subject)
+            {
+                DPoPJwkThumbprint = tokenResult.DPoPJwkThumbprint,
+            };
+            UserInfoResult userInfo;
+            try
+            {
+                userInfo = await _userInfoClient.GetUserInfoAsync(
+                    registration,
+                    userInfoRequest,
+                    cancellationToken
+                );
+            }
+            catch (Exception exception)
+                when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
+            {
+                await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+                return;
+            }
+
+            if (!userInfo.IsSuccess)
+            {
+                await FailAsync(httpContext, BffLoginFailureReasons.UserInfoFailed);
+                return;
+            }
+
+            sessionClaims = BffSessionPrincipal.MergeUserInfo(sessionClaims, userInfo.Identity);
+        }
+
         // The contributors shape the session's claims once, before the gates, so a gate judges the session as it will
         // be created; none of them can change the claims that anchor it to the provider's authentication.
         var claimContext = new BffSessionClaimContext(
             httpContext,
             transaction.Issuer,
             subject,
-            BffSessionPrincipal.SelectSessionClaims(identity)
+            sessionClaims
         );
         foreach (var contributor in _claimContributors)
         {
@@ -261,7 +300,6 @@ internal class BffCallbackHandler
         }
 
         var response = tokenResult.Response;
-        var bffOptions = _options.Value;
         var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
 
         var absolute = now + bffOptions.Session.AbsoluteLifetime;

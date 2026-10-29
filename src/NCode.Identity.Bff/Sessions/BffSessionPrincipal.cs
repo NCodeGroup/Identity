@@ -51,6 +51,33 @@ internal static class BffSessionPrincipal
     }
 
     /// <summary>
+    /// Merges the claims of a UserInfo response into the claims of a session: each UserInfo claim type replaces the
+    /// session's claims of that type, except the types that anchor the session to the provider's authentication
+    /// (<see cref="BffSessionClaimContext.ReservedClaimTypes"/>) and the ones that only matter during validation, which
+    /// the UserInfo response cannot change.
+    /// </summary>
+    /// <param name="claims">The claims of the session, from the ID token.</param>
+    /// <param name="userInfo">The claims of the UserInfo response.</param>
+    // See ADR-0299.
+    public static IReadOnlyList<Claim> MergeUserInfo(
+        IEnumerable<Claim> claims,
+        ClaimsIdentity userInfo
+    )
+    {
+        ArgumentNullException.ThrowIfNull(claims);
+        ArgumentNullException.ThrowIfNull(userInfo);
+
+        var replaced = userInfo.Claims.Where(IsMergeable).ToList();
+        var replacedTypes = replaced.Select(claim => claim.Type).ToHashSet(StringComparer.Ordinal);
+
+        return [.. claims.Where(claim => !replacedTypes.Contains(claim.Type)), .. replaced];
+    }
+
+    private static bool IsMergeable(Claim claim) =>
+        !BffSessionClaimContext.ReservedClaimTypes.Contains(claim.Type)
+        && !DroppedClaimTypes.Contains(claim.Type);
+
+    /// <summary>
     /// Converts the claims of a session into the form the session stores: each claim's type, value and value type.
     /// </summary>
     /// <param name="claims">The claims of the session.</param>

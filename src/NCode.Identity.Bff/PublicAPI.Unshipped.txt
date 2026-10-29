@@ -42,6 +42,8 @@ NCode.Identity.Bff.Options.BffOptions.Authority.get -> string!
 NCode.Identity.Bff.Options.BffOptions.Authority.set -> void
 NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.get -> bool
 NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.set -> void
+NCode.Identity.Bff.Options.BffOptions.LoadUserInfo.get -> bool
+NCode.Identity.Bff.Options.BffOptions.LoadUserInfo.set -> void
 NCode.Identity.Bff.Options.BffOptions.BffOptions() -> void
 NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.get -> NCode.Identity.Bff.Options.BffClientAuthenticationOptions!
 NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.set -> void

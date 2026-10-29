@@ -85,7 +85,10 @@ without the cookie.**
     as it will be created; its `BffSessionClaimContext` refuses to add or remove `iss`, `sub`, `sid`, `auth_time`, `acr`
     and `amr`, which anchor the session to the provider's authentication. `IBffUserContributor` adds fields to
     `/bff/user` on each request through `BffUserContext`, which refuses the reserved `sub`, `name`, `claims`, `session`
-    and `logoutUrl` and a name already added; the contributors run before the response starts. UserInfo is later work.12. **Audit.** One public record, `BffAuditEvent : AuditEvent, ISupportAuditDetails`, with event source `bff` and the
+    and `logoutUrl` and a name already added; the contributors run before the response starts. `Bff:LoadUserInfo`
+    merges the provider's UserInfo claims before the contributors run
+    ([ADR-0299](0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
+12. **Audit.** One public record, `BffAuditEvent : AuditEvent, ISupportAuditDetails`, with event source `bff` and the
     names in `BffAuditEventNames`, records logins, session ends, refresh failures, back-channel logouts and CSRF
     refusals ([audit records](../audit-records.md)). No token, handle, cookie value, state, code or secret is ever
     logged or audited.

@@ -119,37 +119,13 @@ internal class ClientRequestSender(
         CancellationToken cancellationToken
     )
     {
-        if (!ProviderUri.TryParseEndpoint(endpoint.Url, out var uri))
-            throw new OpenIdProviderException(
-                $"The endpoint '{endpoint.Url}' is not an acceptable endpoint (https, or http on loopback)."
-            );
-
-        if (!Authenticators.TryGetValue(registration.AuthenticationMethod, out var authenticator))
-            throw new InvalidOperationException(
-                $"No client authenticator is registered for the method '{registration.AuthenticationMethod}' of client '{registration.ClientId}'."
-            );
-
-        var target = endpoint.Url;
-        var httpClientName = OpenIdClientDefaults.HttpClientName;
-        if (authenticator.UsesMutualTls)
-        {
-            httpClientName = CertificateProvider.SelectHttpClientName(registration);
-
-            // RFC 8705 §5: a client using mutual TLS sends the request to the endpoint's alias when the provider has one.
-            if (
-                metadata.MtlsEndpointAliases is { } aliases
-                && aliases.TryGetValue(endpoint.MetadataName, out var alias)
-                && !string.IsNullOrEmpty(alias)
-            )
-            {
-                if (!ProviderUri.TryParseEndpoint(alias, out uri))
-                    throw new OpenIdProviderException(
-                        $"The mTLS endpoint alias '{alias}' is not an acceptable endpoint (https, or http on loopback)."
-                    );
-
-                target = alias;
-            }
-        }
+        var authenticator = GetAuthenticator(registration);
+        var (target, uri, httpClientName) = ResolveTarget(
+            registration,
+            metadata,
+            endpoint,
+            authenticator
+        );
 
         var response = await SendOnceAsync(
             authenticator,
@@ -197,6 +173,65 @@ internal class ClientRequestSender(
             dpopKey.RecordNonce(uri, retry.DPoPNonce);
 
         return retry;
+    }
+
+    /// <summary>
+    /// Resolves where and how a request of the client reaches a provider endpoint: a client that authenticates with
+    /// mutual TLS sends it to the endpoint's mTLS alias when the provider has one (RFC 8705 §5), over the connection
+    /// that presents its certificate, so the provider can also check a certificate-bound access token.
+    /// </summary>
+    /// <param name="registration">The client registration.</param>
+    /// <param name="metadata">The provider metadata.</param>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <returns>The target URL and URI, and the name of the HTTP client that reaches it.</returns>
+    public virtual ProviderTarget ResolveTarget(
+        ClientRegistration registration,
+        OpenIdProviderMetadata metadata,
+        ProviderEndpoint endpoint
+    ) => ResolveTarget(registration, metadata, endpoint, GetAuthenticator(registration));
+
+    private IClientAuthenticator GetAuthenticator(ClientRegistration registration) =>
+        Authenticators.TryGetValue(registration.AuthenticationMethod, out var authenticator)
+            ? authenticator
+            : throw new InvalidOperationException(
+                $"No client authenticator is registered for the method '{registration.AuthenticationMethod}' of client '{registration.ClientId}'."
+            );
+
+    private ProviderTarget ResolveTarget(
+        ClientRegistration registration,
+        OpenIdProviderMetadata metadata,
+        ProviderEndpoint endpoint,
+        IClientAuthenticator authenticator
+    )
+    {
+        if (!ProviderUri.TryParseEndpoint(endpoint.Url, out var uri))
+            throw new OpenIdProviderException(
+                $"The endpoint '{endpoint.Url}' is not an acceptable endpoint (https, or http on loopback)."
+            );
+
+        var target = endpoint.Url;
+        var httpClientName = OpenIdClientDefaults.HttpClientName;
+        if (authenticator.UsesMutualTls)
+        {
+            httpClientName = CertificateProvider.SelectHttpClientName(registration);
+
+            // RFC 8705 §5: a client using mutual TLS sends the request to the endpoint's alias when the provider has one.
+            if (
+                metadata.MtlsEndpointAliases is { } aliases
+                && aliases.TryGetValue(endpoint.MetadataName, out var alias)
+                && !string.IsNullOrEmpty(alias)
+            )
+            {
+                if (!ProviderUri.TryParseEndpoint(alias, out uri))
+                    throw new OpenIdProviderException(
+                        $"The mTLS endpoint alias '{alias}' is not an acceptable endpoint (https, or http on loopback)."
+                    );
+
+                target = alias;
+            }
+        }
+
+        return new ProviderTarget(target, uri, httpClientName);
     }
 
     private async ValueTask<ProviderHttpResponse> SendOnceAsync(

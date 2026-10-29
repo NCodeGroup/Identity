@@ -73,13 +73,20 @@ internal class ProviderHttpClient(
                 ? values.FirstOrDefault()
                 : null;
 
+            var wwwAuthenticate =
+                response.Headers.WwwAuthenticate.Count > 0
+                    ? response.Headers.WwwAuthenticate.ToString()
+                    : null;
+            var mediaType = response.Content.Headers.ContentType?.MediaType;
+
             if (bytes.Length == 0)
                 return new ProviderHttpResponse((int)response.StatusCode, null)
                 {
                     DPoPNonce = dpopNonce,
+                    MediaType = mediaType,
+                    WwwAuthenticate = wwwAuthenticate,
                 };
 
-            var mediaType = response.Content.Headers.ContentType?.MediaType;
             if (
                 !string.Equals(
                     mediaType,
@@ -95,12 +102,16 @@ internal class ProviderHttpClient(
                 return new ProviderHttpResponse((int)response.StatusCode, null)
                 {
                     DPoPNonce = dpopNonce,
+                    MediaType = mediaType,
+                    WwwAuthenticate = wwwAuthenticate,
                 };
 
             using var document = JsonDocument.Parse(bytes);
             return new ProviderHttpResponse((int)response.StatusCode, document.RootElement.Clone())
             {
                 DPoPNonce = dpopNonce,
+                MediaType = mediaType,
+                WwwAuthenticate = wwwAuthenticate,
             };
         }
         catch (OperationCanceledException exception)

@@ -49,6 +49,8 @@ public class BffCallbackHandlerTests : BaseTests
     private readonly Mock<IBffAuditRecorder> _auditRecorder;
     private readonly Mock<ITokenClient> _tokenClient;
     private readonly Mock<IIdTokenValidator> _idTokenValidator;
+    private readonly Mock<IUserInfoClient> _userInfoClient;
+    private bool _loadUserInfo;
     private readonly Mock<IBffSessionManager> _sessionManager;
     private readonly MutableTimeProvider _timeProvider = new(
         new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)
@@ -65,12 +67,15 @@ public class BffCallbackHandlerTests : BaseTests
         _auditRecorder = CreateStrictMock<IBffAuditRecorder>();
         _tokenClient = CreateStrictMock<ITokenClient>();
         _idTokenValidator = CreateStrictMock<IIdTokenValidator>();
+        _userInfoClient = CreateStrictMock<IUserInfoClient>();
         _sessionManager = CreateStrictMock<IBffSessionManager>();
     }
 
     private BffCallbackHandler CreateHandler()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(CreateOptions());
+        var bffOptions = CreateOptions();
+        bffOptions.LoadUserInfo = _loadUserInfo;
+        var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
         var timeProvider = _timeProvider;
         return new BffCallbackHandler(
             options,
@@ -80,6 +85,7 @@ public class BffCallbackHandlerTests : BaseTests
             _metadataResolver.Object,
             _tokenClient.Object,
             _idTokenValidator.Object,
+            _userInfoClient.Object,
             _gates,
             _claimContributors,
             _sessionManager.Object,
@@ -566,8 +572,133 @@ public class BffCallbackHandlerTests : BaseTests
         Assert.Equal("user@example.com", stored.Value);
     }
 
+    [Fact]
+    public void MergeUserInfo_WithAClaimTypeOfTheIdToken_ReplacesItsClaims()
+    {
+        var idTokenClaims = new[]
+        {
+            new Claim(JoseClaimNames.Payload.Sub, "user-1"),
+            new Claim(JoseClaimNames.Payload.Email, "old@example.com"),
+            new Claim(JoseClaimNames.Payload.Name, "Ada"),
+        };
+        var userInfo = new ClaimsIdentity([
+            new Claim(JoseClaimNames.Payload.Email, "new@example.com"),
+            new Claim(JoseClaimNames.Payload.Nonce, "replayed"),
+            new Claim("groups", "a"),
+            new Claim("groups", "b"),
+        ]);
+
+        var merged = BffSessionPrincipal.MergeUserInfo(idTokenClaims, userInfo);
+
+        Assert.Equal(
+            [
+                (JoseClaimNames.Payload.Sub, "user-1"),
+                (JoseClaimNames.Payload.Name, "Ada"),
+                (JoseClaimNames.Payload.Email, "new@example.com"),
+                ("groups", "a"),
+                ("groups", "b"),
+            ],
+            merged.Select(claim => (claim.Type, claim.Value))
+        );
+    }
+
     #endregion
 
+    #region UserInfo Tests
+
+    private void SetupUserInfo(Func<UserInfoResult> answer) =>
+        _userInfoClient
+            .Setup(x =>
+                x.GetUserInfoAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.Is<UserInfoRequest>(request =>
+                        request.AccessToken == "at"
+                        && request.ExpectedSubject == "user-1"
+                        && request.DPoPJwkThumbprint == "jkt"
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => ValueTask.FromResult(answer()))
+            .Verifiable();
+
+    private void SetupUserInfoFailedLogin()
+    {
+        SetupTransaction(issSupported: false);
+        SetupToken(
+            new TokenResult(new TokenResponse { AccessToken = "at", IdToken = "idt" })
+            {
+                DPoPJwkThumbprint = "jkt",
+            }
+        );
+        var identity = new ClaimsIdentity([new Claim(JoseClaimNames.Payload.Sub, "user-1")]);
+        SetupValidation(new IdTokenValidationResult(default(JsonElement)) { Identity = identity });
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithLoadUserInfo_AddsTheUserInfoClaimsButNeverTheAnchors()
+    {
+        _loadUserInfo = true;
+        SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
+        SetupUserInfo(() =>
+            new UserInfoResult(
+                default,
+                new ClaimsIdentity([
+                    new Claim(JoseClaimNames.Payload.Sub, "user-1"),
+                    new Claim(JoseClaimNames.Payload.Sid, "forged-sid"),
+                    new Claim(JoseClaimNames.Payload.Acr, "forged-acr"),
+                    new Claim(JoseClaimNames.Payload.Email, "ada@example.com"),
+                ])
+            )
+        );
+
+        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+
+        var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
+        Assert.Equal(
+            [
+                (JoseClaimNames.Payload.Sub, "user-1"),
+                (JoseClaimNames.Payload.Sid, "sid-1"),
+                (JoseClaimNames.Payload.Email, "ada@example.com"),
+            ],
+            payload.Claims.Select(claim => (claim.Type, claim.Value))
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithLoadUserInfo_WhenUserInfoFails_FailsWithUserInfoFailed()
+    {
+        _loadUserInfo = true;
+        SetupUserInfoFailedLogin();
+        SetupUserInfo(() =>
+            new UserInfoResult(
+                UserInfoFailureCodes.SubjectMismatch,
+                "The UserInfo response is about another subject than the ID token."
+            )
+        );
+        SetupAudit(BffLoginFailureReasons.UserInfoFailed);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.UserInfoFailed
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithLoadUserInfo_WhenTheProviderIsUnavailable_FailsWithProviderUnavailable()
+    {
+        _loadUserInfo = true;
+        SetupUserInfoFailedLogin();
+        SetupUserInfo(() => throw new OpenIdProviderException("The UserInfo endpoint is down."));
+        SetupAudit(BffLoginFailureReasons.ProviderUnavailable);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.ProviderUnavailable
+        );
+    }
+
+    #endregion
     #region Session Claim Contributor Tests
 
     [Fact]

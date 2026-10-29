@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using NCode.Identity.Jose;
@@ -56,28 +57,30 @@ namespace NCode.Identity.Jwt.Validation;
 /// <param name="joseSerializer">An <see cref="IJoseSerializer"/> instance that provides the core <c>JOSE</c> implementation.</param>
 /// <param name="secretKeyCollectionProvider">An <see cref="ISecretKeyCollectionProvider"/> instance that provides <see cref="SecretKey"/> instances.</param>
 /// <param name="handlers">The registered <see cref="IJwtValidationHandler"/> strategies.</param>
+/// <param name="claimsIdentityFactory">The <see cref="IClaimsIdentityFactory"/> that maps a payload to claims.</param>
 internal sealed class DefaultJwtValidator(
     IServiceProvider serviceProvider,
     TimeProvider timeProvider,
     IJoseSerializer joseSerializer,
     ISecretKeyCollectionProvider secretKeyCollectionProvider,
-    IEnumerable<IJwtValidationHandler> handlers
+    IEnumerable<IJwtValidationHandler> handlers,
+    IClaimsIdentityFactory claimsIdentityFactory
 ) : IJwtValidator
 {
-    private static readonly CreateClaimsIdentityAsync DefaultCreateClaimsIdentity = (
-        decodedJwt,
-        _,
-        authenticationType,
-        nameClaimType,
-        roleClaimType,
-        _
+    private ValueTask<ClaimsIdentity> DefaultCreateClaimsIdentity(
+        DecodedJwt decodedJwt,
+        IPropertyBag propertyBag,
+        string authenticationType,
+        string nameClaimType,
+        string roleClaimType,
+        CancellationToken cancellationToken
     ) =>
         ValueTask.FromResult(
-            DefaultClaimsIdentityFactory.CreateClaimsIdentity(
+            ClaimsIdentityFactory.CreateClaimsIdentity(
+                decodedJwt.Payload,
                 authenticationType,
                 nameClaimType,
-                roleClaimType,
-                decodedJwt.Payload
+                roleClaimType
             )
         );
 
@@ -87,6 +90,7 @@ internal sealed class DefaultJwtValidator(
     private ISecretKeyCollectionProvider SecretKeyCollectionProvider { get; } =
         secretKeyCollectionProvider;
     private IReadOnlyCollection<IJwtValidationHandler> Handlers { get; } = [.. handlers];
+    private IClaimsIdentityFactory ClaimsIdentityFactory { get; } = claimsIdentityFactory;
 
     /// <inheritdoc />
     public async ValueTask<JwtValidationResult> ValidateAsync(

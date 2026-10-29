@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.Bff;
@@ -38,10 +39,8 @@ public class BffEndToEndTests
 
     #region Login Tests
 
-    [Fact]
-    public async Task Login_ThenUserAndApi_Succeed()
+    private static async Task SeedAsync(HostApplicationFactory factory)
     {
-        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedSharedSecretClientWithSettingsAsync(
             BffTestHost.ClientId,
@@ -50,6 +49,83 @@ public class BffEndToEndTests
             NoSettings,
             BffTestHost.CallbackUri
         );
+    }
+
+    [Fact]
+    public async Task Login_WithLoadUserInfo_CreatesTheSessionWithTheUserInfoClaims()
+    {
+        using var factory = new HostApplicationFactory();
+        await SeedAsync(factory);
+        var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var host = await BffTestHost.StartAsync(
+            factory,
+            keySet,
+            valueSet,
+            indexSet,
+            extraConfiguration: new Dictionary<string, string?> { ["Bff:LoadUserInfo"] = "true" },
+            exchanges: exchanges
+        );
+
+        // The callback requests UserInfo with the new access token; a failure would redirect with an error instead.
+        using var callback = await CompleteLoginAsync(factory, host);
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
+        Assert.Equal("/", callback.Headers.Location?.OriginalString);
+
+        // The test host configures no DPoP key, so UserInfo is requested with the bearer token the OP issued.
+        var userInfo = exchanges.Last(exchange =>
+            exchange.Path.EndsWith("/userinfo", StringComparison.Ordinal)
+        );
+        Assert.Equal(HttpStatusCode.OK, userInfo.StatusCode);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, userInfo.AuthorizationScheme);
+        Assert.Null(userInfo.DPoPProof);
+
+        var csrf = (BffDefaults.AntiforgeryHeaderName, BffDefaults.AntiforgeryHeaderValue);
+        using var user = await host.SendAsync(
+            HttpMethod.Get,
+            $"{BffDefaults.EndpointPrefix}/user",
+            csrf
+        );
+        Assert.Equal(HttpStatusCode.OK, user.StatusCode);
+    }
+
+    private static async Task<HttpResponseMessage> CompleteLoginAsync(
+        HostApplicationFactory factory,
+        BffTestHost host
+    )
+    {
+        var browser = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+
+        var loginPath =
+            $"{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
+        using var login = await host.SendAsync(HttpMethod.Get, loginPath);
+        var authorizeUri = login.Headers.Location;
+        Assert.NotNull(authorizeUri);
+
+        using var authorizeRequest = new HttpRequestMessage(HttpMethod.Get, authorizeUri);
+        authorizeRequest.Headers.Add(
+            "Cookie",
+            $"{InteractiveLogin.SessionCookieName}={providerSession}"
+        );
+        using var authorize = await browser.SendAsync(authorizeRequest);
+        var callbackUri = authorize.Headers.Location;
+        Assert.NotNull(callbackUri);
+
+        return await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task Login_ThenUserAndApi_Succeed()
+    {
+        using var factory = new HostApplicationFactory();
+        await SeedAsync(factory);
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
         await using var host = await BffTestHost.StartAsync(factory, keySet, valueSet, indexSet);
 

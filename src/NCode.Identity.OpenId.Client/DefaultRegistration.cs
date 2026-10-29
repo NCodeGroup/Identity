@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
+using NCode.Identity.OpenId.Client.UserInfo;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Client;
@@ -107,6 +108,7 @@ public static class DefaultRegistration
                 DefaultAuthorizationRequestClient
             >();
             serviceCollection.TryAddSingleton<ITokenClient, DefaultTokenClient>();
+            serviceCollection.TryAddSingleton<IUserInfoClient, DefaultUserInfoClient>();
             serviceCollection.TryAddSingleton<IDPoPProofFactory, DefaultDPoPProofFactory>();
             serviceCollection.TryAddSingleton<
                 ITokenRevocationClient,

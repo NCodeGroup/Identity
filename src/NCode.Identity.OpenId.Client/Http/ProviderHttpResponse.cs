@@ -29,4 +29,15 @@ internal readonly record struct ProviderHttpResponse(int StatusCode, JsonElement
     /// The <c>DPoP-Nonce</c> response header, if any (RFC 9449 §8).
     /// </summary>
     public string? DPoPNonce { get; init; }
+
+    /// <summary>
+    /// The media type of the response body, if any, such as <c>application/json</c> or <c>application/jwt</c>.
+    /// </summary>
+    public string? MediaType { get; init; }
+
+    /// <summary>
+    /// The <c>WWW-Authenticate</c> response header, if any, with which a protected resource such as the UserInfo
+    /// endpoint reports an error (RFC 6750 §3, RFC 9449 §7.1).
+    /// </summary>
+    public string? WwwAuthenticate { get; init; }
 }

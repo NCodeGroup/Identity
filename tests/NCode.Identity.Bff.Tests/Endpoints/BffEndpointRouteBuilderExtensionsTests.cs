@@ -45,13 +45,16 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
     #region MapBffEndpoints Tests
 
     [Fact]
-    public void MapBffEndpoints_MapsTheThreeRoutesUnderThePrefix()
+    public void MapBffEndpoints_MapsTheFiveRoutesUnderThePrefix()
     {
         var endpoints = MapEndpoints();
 
         var patterns = endpoints.Select(x => x.RoutePattern.RawText).Order().ToList();
 
-        Assert.Equal(["/bff/callback", "/bff/login", "/bff/user"], patterns);
+        Assert.Equal(
+            ["/bff/backchannel-logout", "/bff/callback", "/bff/login", "/bff/logout", "/bff/user"],
+            patterns
+        );
     }
 
     [Fact]
@@ -61,7 +64,16 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
 
         var patterns = endpoints.Select(x => x.RoutePattern.RawText).Order().ToList();
 
-        Assert.Equal(["/auth/callback", "/auth/login", "/auth/user"], patterns);
+        Assert.Equal(
+            [
+                "/auth/backchannel-logout",
+                "/auth/callback",
+                "/auth/login",
+                "/auth/logout",
+                "/auth/user",
+            ],
+            patterns
+        );
     }
 
     [Fact]

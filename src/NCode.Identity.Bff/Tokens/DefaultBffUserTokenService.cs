@@ -154,39 +154,81 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
-        var tokenOptions = _options.Value.Tokens;
-
         var current = await _sessionManager.LoadAsync(state.Handle, cancellationToken);
         if (current is null)
             return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
 
-        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+        var result = await AcquireAndRefreshAsync(
+            httpContext,
+            current,
+            resource,
+            scope,
+            cancellationToken
+        );
+        if (result is not null)
+            return result;
+
+        return await WaitForRefreshAsync(httpContext, current, resource, scope, cancellationToken);
+    }
+
+    private BffTokenResult? TryGetFresh(
+        BffSessionPayload payload,
+        string? resource,
+        string? scope,
+        DateTimeOffset now
+    )
+    {
         if (
-            BffTokenCache.TryGetFresh(
-                current.Payload,
+            !BffTokenCache.TryGetFresh(
+                payload,
                 BffTokenRequirementNames.User,
                 resource,
                 scope,
                 now,
-                tokenOptions.RefreshBeforeExpiry,
+                _options.Value.Tokens.RefreshBeforeExpiry,
                 out var cached
             )
         )
+            return null;
+
+        var token = new BffAccessToken(cached.Value, cached.TokenType, cached.ExpiresAt)
         {
-            var cachedToken = new BffAccessToken(cached.Value, cached.TokenType, cached.ExpiresAt)
-            {
-                DPoPJwkThumbprint = cached.DPoPJwkThumbprint,
-            };
-            return BffTokenResult.Success(cachedToken);
-        }
+            DPoPJwkThumbprint = cached.DPoPJwkThumbprint,
+        };
+        return BffTokenResult.Success(token);
+    }
+
+    private static string GetLeaseKey(BffSessionState session, string refreshToken)
+    {
+        // the lease guards the invariant itself: a refresh token is never presented twice
+        var fingerprint = BffKeyDerivation.Fingerprint(refreshToken);
+        return $"{session.StoreKey}:{fingerprint}";
+    }
+
+    /// <summary>
+    /// Serves a fresh cached token or tries to win the lease and refresh; returns <c>null</c> when
+    /// another replica holds the lease.
+    /// </summary>
+    private async ValueTask<BffTokenResult?> AcquireAndRefreshAsync(
+        HttpContext httpContext,
+        BffSessionState current,
+        string? resource,
+        string? scope,
+        CancellationToken cancellationToken
+    )
+    {
+        var tokenOptions = _options.Value.Tokens;
+
+        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+        var fresh = TryGetFresh(current.Payload, resource, scope, now);
+        if (fresh is not null)
+            return fresh;
 
         var refreshToken = current.Payload.RefreshToken;
         if (refreshToken is null)
             return await EndRefreshFailedAsync(httpContext, current);
 
-        // the lease guards the invariant itself: a refresh token is never presented twice
-        var fingerprint = BffKeyDerivation.Fingerprint(refreshToken);
-        var leaseKey = $"{current.StoreKey}:{fingerprint}";
+        var leaseKey = GetLeaseKey(current, refreshToken);
         var acquiredAt = now;
         var leaseExpiresAt = acquiredAt + tokenOptions.RefreshLeaseDuration;
         var acquired = await _sessionStore.TryAcquireRefreshLeaseAsync(
@@ -195,10 +237,7 @@ internal class DefaultBffUserTokenService(
             cancellationToken
         );
         if (!acquired)
-        {
-            // step 49 waits for the winner of the lease to write the refreshed tokens
-            return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
-        }
+            return null;
 
         try
         {
@@ -219,6 +258,61 @@ internal class DefaultBffUserTokenService(
             var safetyMargin = TimeSpan.FromSeconds(5);
             if (finishedAt - acquiredAt < tokenOptions.RefreshLeaseDuration - safetyMargin)
                 await _sessionStore.ReleaseRefreshLeaseAsync(leaseKey, CancellationToken.None);
+        }
+    }
+
+    private async ValueTask<BffTokenResult> WaitForRefreshAsync(
+        HttpContext httpContext,
+        BffSessionState seen,
+        string? resource,
+        string? scope,
+        CancellationToken cancellationToken
+    )
+    {
+        // the old refresh token is never presented again: wait for the winner's write
+        var seenToken = seen.Payload.RefreshToken ?? string.Empty;
+        var leaseKey = GetLeaseKey(seen, seenToken);
+        var deadline = _timeProvider.GetUtcNow() + _options.Value.Tokens.RefreshLeaseDuration;
+        var delay = TimeSpan.FromMilliseconds(50);
+        var maxDelay = TimeSpan.FromMilliseconds(800);
+
+        while (true)
+        {
+            await Task.Delay(delay, _timeProvider, cancellationToken);
+            delay = delay * 2 < maxDelay ? delay * 2 : maxDelay;
+
+            var loaded = await _sessionManager.LoadAsync(seen.Handle, cancellationToken);
+            if (loaded is null)
+                return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
+
+            var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+            var fresh = TryGetFresh(loaded.Payload, resource, scope, now);
+            if (fresh is not null)
+                return fresh;
+
+            var loadedToken = loaded.Payload.RefreshToken;
+            var changed = !string.Equals(loadedToken, seenToken, StringComparison.Ordinal);
+            if (
+                changed || !await _sessionStore.IsRefreshLeaseHeldAsync(leaseKey, cancellationToken)
+            )
+            {
+                var result = await AcquireAndRefreshAsync(
+                    httpContext,
+                    loaded,
+                    resource,
+                    scope,
+                    cancellationToken
+                );
+                if (result is not null)
+                    return result;
+
+                seen = loaded;
+                seenToken = loadedToken ?? string.Empty;
+                leaseKey = GetLeaseKey(seen, seenToken);
+            }
+
+            if (_timeProvider.GetUtcNow() >= deadline)
+                return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
         }
     }
 

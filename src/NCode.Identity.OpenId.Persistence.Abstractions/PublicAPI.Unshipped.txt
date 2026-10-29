@@ -481,3 +481,30 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditResource.Type.init
 NCode.Identity.OpenId.Persistence.Stores.IAuditRecordStore
 NCode.Identity.OpenId.Persistence.Stores.IAuditRecordStore.AddAsync(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord!>! records, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
 NCode.Identity.OpenId.Persistence.Stores.IAuditRecordStore.RemoveBeforeAsync(System.DateTimeOffset time, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.AuditRecordFilter() -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ActorId.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ActorId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ClientId.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ClientId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.EventCategory.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.EventCategory.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.EventName.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.EventName.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.Outcome.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.Outcome.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ResourceId.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ResourceId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ResourceType.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.ResourceType.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.SubjectId.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.SubjectId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.TraceId.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.TraceId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.EndTime.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.EndTime.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.StartTime.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.StartTime.init -> void
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.IAuditRecordStore.GetPageAsync(NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter filter, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord!>!>

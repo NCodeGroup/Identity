@@ -45,6 +45,20 @@ public interface IAuditRecordStore : IStore
     );
 
     /// <summary>
+    /// Gets one page of a tenant's audit records that match a filter, newest first, using keyset (cursor) pagination,
+    /// with each record's resources.
+    /// </summary>
+    /// <param name="filter">The tenant and the criteria the records must match.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedAuditRecord>> GetPageAsync(
+        AuditRecordFilter filter,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Removes, when the unit of work is saved, up to <paramref name="limit"/> of the records of events that occurred
     /// before <paramref name="time"/>, the end of the records' retention.
     /// </summary>

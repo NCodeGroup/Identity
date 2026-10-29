@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Buffers.Binary;
+using System.Buffers.Text;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -117,6 +119,146 @@ internal sealed class AuditRecordStore(
         }
 
         return entity;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedAuditRecord>> GetPageAsync(
+        AuditRecordFilter filter,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentException.ThrowIfNullOrEmpty(filter.TenantId, nameof(filter));
+
+        var tenantId = filter.TenantId;
+        var query = DbContext
+            .AuditRecords.Include(entity => entity.Resources)
+            .Where(entity => entity.TenantId == tenantId);
+
+        // Newest first: the surrogate identifiers are time-ordered, so a page continues below the last one returned.
+        if (DecodeCursor(page.Cursor) is { } beforeId)
+            query = query.Where(entity => entity.Id < beforeId);
+
+        query = ApplyFilter(query, filter);
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderByDescending(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = entities.Count > page.Limit;
+        var count = hasMore ? page.Limit : entities.Count;
+        var items = entities.Take(count).Select(MapFromEntity).ToList();
+        var nextCursor = hasMore ? EncodeCursor(entities[count - 1].Id) : null;
+
+        return new PagedResult<PersistedAuditRecord> { Items = items, NextCursor = nextCursor };
+    }
+
+    private static IQueryable<AuditRecordEntity> ApplyFilter(
+        IQueryable<AuditRecordEntity> query,
+        AuditRecordFilter filter
+    )
+    {
+        if (filter.StartTime is { } startTime)
+        {
+            var start = startTime.ToUniversalTime();
+            query = query.Where(entity => entity.EventTime >= start);
+        }
+
+        if (filter.EndTime is { } endTime)
+        {
+            var end = endTime.ToUniversalTime();
+            query = query.Where(entity => entity.EventTime < end);
+        }
+
+        if (filter.EventName is { } eventName)
+            query = query.Where(entity => entity.EventName == eventName);
+
+        if (filter.EventCategory is { } eventCategory)
+            query = query.Where(entity => entity.EventCategory == eventCategory);
+
+        if (filter.Outcome is { } outcome)
+            query = query.Where(entity => entity.Outcome == outcome);
+
+        if (filter.SubjectId is { } subjectId)
+            query = query.Where(entity => entity.SubjectId == subjectId);
+
+        if (filter.ClientId is { } clientId)
+            query = query.Where(entity => entity.ClientId == clientId);
+
+        if (filter.ActorId is { } actorId)
+            query = query.Where(entity => entity.ActorId == actorId);
+
+        if (filter.TraceId is { } traceId)
+            query = query.Where(entity => entity.TraceId == traceId);
+
+        var resourceType = filter.ResourceType;
+        var resourceId = filter.ResourceId;
+        if (resourceType is not null || resourceId is not null)
+        {
+            query = query.Where(entity =>
+                entity.Resources.Any(resource =>
+                    (resourceType == null || resource.Type == resourceType)
+                    && (resourceId == null || resource.ResourceId == resourceId)
+                )
+            );
+        }
+
+        return query;
+    }
+
+    private static PersistedAuditRecord MapFromEntity(AuditRecordEntity entity) =>
+        new()
+        {
+            EventId = entity.EventId,
+            EventTime = entity.EventTime,
+            EventName = entity.EventName,
+            EventCategory = entity.EventCategory,
+            Outcome = entity.Outcome,
+            Severity = entity.Severity,
+            TenantId = entity.TenantId,
+            SubjectId = entity.SubjectId,
+            ClientId = entity.ClientId,
+            ActorType = entity.ActorType,
+            ActorId = entity.ActorId,
+            TraceId = entity.TraceId,
+            SourceIp = entity.SourceIp,
+            Resources =
+            [
+                .. entity
+                    .Resources.OrderBy(resource => resource.Ordinal)
+                    .Select(resource => new PersistedAuditResource
+                    {
+                        Type = resource.Type,
+                        Id = resource.ResourceId,
+                    }),
+            ],
+            Record = entity.Record,
+        };
+
+    // The cursor encoding of the keyset-paginated stores: the base64url of the big-endian surrogate identifier.
+    private static string EncodeCursor(long key)
+    {
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        BinaryPrimitives.WriteInt64BigEndian(bytes, key);
+        return Base64Url.EncodeToString(bytes);
+    }
+
+    private static long? DecodeCursor(string? cursor)
+    {
+        if (string.IsNullOrEmpty(cursor))
+            return null;
+
+        // A malformed cursor is treated as the start of the collection rather than a hard error.
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        if (
+            !Base64Url.TryDecodeFromChars(cursor, bytes, out var written)
+            || written != sizeof(long)
+        )
+            return null;
+
+        return BinaryPrimitives.ReadInt64BigEndian(bytes);
     }
 
     /// <inheritdoc />

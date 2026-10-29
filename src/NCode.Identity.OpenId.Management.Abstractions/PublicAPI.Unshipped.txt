@@ -706,3 +706,39 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantUsa
 NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.AuditRecordResource() -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.ActorId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.ActorId.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.ActorType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.ActorType.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.ClientId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventCategory.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventCategory.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventId.get -> System.Guid
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventId.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventName.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventTime.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.EventTime.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Outcome.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Outcome.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Record.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Record.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference!>!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Resources.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Severity.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.Severity.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.SourceIp.get -> string?
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.SourceIp.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.SubjectId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.SubjectId.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.TraceId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResource.TraceId.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.AuditRecordResourceReference() -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Id.get -> string?
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Id.init -> void
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Type.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Type.init -> void

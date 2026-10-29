@@ -22,6 +22,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -202,6 +203,129 @@ public sealed class AuditRecordStoreTests : IDisposable
 
     #endregion
 
+    #region GetPageAsync Tests
+
+    private static async Task<PagedResult<PersistedAuditRecord>> GetPageAsync(
+        ServiceProvider provider,
+        AuditRecordFilter filter,
+        string? cursor = null,
+        int limit = 10
+    )
+    {
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        var store = new AuditRecordStore(
+            Mock.Of<IStoreProvider>(),
+            provider.GetRequiredService<IIdGenerator<long>>(),
+            context
+        );
+        return await store.GetPageAsync(
+            filter,
+            new PageRequest { Cursor = cursor, Limit = limit },
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task GetPageAsync_ReturnsOnlyTheTenantsRecordsThatMatchEveryCriterion()
+    {
+        await using var provider = CreateInMemoryProvider();
+        var match = Record(eventTime: Now.AddHours(-1));
+        var otherTenant = new PersistedAuditRecord
+        {
+            EventId = Guid.CreateVersion7(),
+            EventTime = Now.AddHours(-1),
+            EventName = match.EventName,
+            EventCategory = match.EventCategory,
+            Outcome = match.Outcome,
+            Severity = match.Severity,
+            TenantId = "tenant-2",
+            ClientId = match.ClientId,
+            ActorType = match.ActorType,
+            Resources = [],
+            Record = "{}",
+        };
+        var tooOld = Record(eventTime: Now.AddDays(-2));
+        await AddAsync(provider, match, otherTenant, tooOld);
+
+        var page = await GetPageAsync(
+            provider,
+            new AuditRecordFilter
+            {
+                TenantId = "tenant-1",
+                StartTime = Now.AddDays(-1),
+                EndTime = Now,
+                EventName = "client.updated",
+                ClientId = "client-1",
+                ActorId = "admin-1",
+                TraceId = "0af7651916cd43dd8448eb211c80319c",
+            }
+        );
+
+        Assert.Equal(match.EventId, Assert.Single(page.Items).EventId);
+        Assert.Null(page.NextCursor);
+    }
+
+    [Fact]
+    public async Task GetPageAsync_MatchesAResourceAnywhereInTheRecord()
+    {
+        await using var provider = CreateInMemoryProvider();
+        var owner = Record(
+            resources:
+            [
+                new PersistedAuditResource { Type = "client", Id = "client-1" },
+                new PersistedAuditResource { Type = "tenant", Id = "tenant-1" },
+            ]
+        );
+        await AddAsync(provider, owner, Record());
+
+        var byOwner = await GetPageAsync(
+            provider,
+            new AuditRecordFilter
+            {
+                TenantId = "tenant-1",
+                ResourceType = "tenant",
+                ResourceId = "tenant-1",
+            }
+        );
+        var mismatched = await GetPageAsync(
+            provider,
+            new AuditRecordFilter
+            {
+                TenantId = "tenant-1",
+                ResourceType = "tenant",
+                ResourceId = "client-1",
+            }
+        );
+
+        var item = Assert.Single(byOwner.Items);
+        Assert.Equal(owner.EventId, item.EventId);
+        Assert.Equal(["client", "tenant"], item.Resources.Select(resource => resource.Type));
+        Assert.Empty(mismatched.Items);
+    }
+
+    [Fact]
+    public async Task GetPageAsync_PagesNewestFirst()
+    {
+        await using var provider = CreateInMemoryProvider();
+        var records = Enumerable.Range(0, 3).Select(_ => Record()).ToList();
+        foreach (var record in records)
+            await AddAsync(provider, record);
+        var filter = new AuditRecordFilter { TenantId = "tenant-1" };
+
+        var first = await GetPageAsync(provider, filter, limit: 2);
+        var second = await GetPageAsync(provider, filter, first.NextCursor, limit: 2);
+
+        Assert.Equal(
+            [records[2].EventId, records[1].EventId],
+            first.Items.Select(item => item.EventId)
+        );
+        Assert.NotNull(first.NextCursor);
+        Assert.Equal(records[0].EventId, Assert.Single(second.Items).EventId);
+        Assert.Null(second.NextCursor);
+    }
+
+    #endregion
     #region RemoveBeforeAsync Tests
 
     [Fact]

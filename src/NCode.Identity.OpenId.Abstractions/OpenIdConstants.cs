@@ -238,6 +238,11 @@ public static partial class OpenIdConstants
         public const string Grants = "Grants";
 
         /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>audit records</c> management endpoints.
+        /// </summary>
+        public const string AuditRecords = "AuditRecords";
+
+        /// <summary>
         /// Contains the OpenAPI tag applied to the <c>sessions</c> management endpoints.
         /// </summary>
         public const string Sessions = "Sessions";

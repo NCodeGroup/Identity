@@ -42,6 +42,13 @@ batches; the store keeps a record for 90 days by default.**
 5. **Configuration.** `OpenId:AuditRecords` binds `AuditRecordOptions` strictly and validates it when the host starts
    ([ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)); `Enabled: false`
    keeps the records out of the store and leaves them in the log.
+6. **The management API looks records up newest first.** `GET api/tenants/{tenantId}/audit-records` returns a page of the
+   addressed tenant's records, newest first, filtered by a time range (`startTime` inclusive, `endTime` exclusive),
+   `eventName`, `eventCategory`, `outcome`, `subjectId`, `clientId`, `actorId`, `traceId`, and a resource by
+   `resourceType` and `resourceId`, which matches the target or any owner it names, as CloudTrail's `LookupEvents` does.
+   It pages with the opaque cursor of the other management lists, over the time-ordered surrogate identifier. Records
+   are not tenant-scoped data, so the tenant is a criterion of every lookup, and a record without a tenant is not listed.
+   Each item carries the envelope and the whole `record`.
 
 ## Options considered
 
@@ -54,8 +61,8 @@ batches; the store keeps a record for 90 days by default.**
 
 ## Consequences
 
-- An operator queries audit history by tenant, subject, client, actor, resource, trace or event name over a time range;
-  the lookup API is issue #384.
+- An operator looks up a tenant's audit history through the management API by subject, client, actor, resource, trace or
+  event name over a time range.
 - A replica that stops abruptly loses at most `FlushInterval` of records from the store, never from the log.
 - The `AuditRecords` and `AuditRecordResources` tables grow with the audited traffic of `Retention`; a deployment with a
   compliance need sets a longer one, and one without a store need sets `Enabled: false`.

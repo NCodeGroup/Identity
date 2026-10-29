@@ -39,6 +39,13 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
+  from the audit store, newest first, filtered by `startTime`/`endTime`, `eventName`, `eventCategory`, `outcome`,
+  `subjectId`, `clientId`, `actorId`, `traceId` and a resource (`resourceType`, `resourceId`), with cursor pagination;
+  each `AuditRecordResource` carries the envelope and the whole `record`. `IAuditRecordStore.GetPageAsync` takes an
+  `AuditRecordFilter`
+  ([ADR-0303](docs/decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)
+  decision 6, issue [#384](https://github.com/NCodeGroup/Identity/issues/384)).
 - **Audit records are kept in an indexed store.** Every audit event's record is queued in memory and written in batches
   to the new `AuditRecords` table, with its resources in `AuditRecordResources`, through `IAuditRecordStore`
   (`PersistedAuditRecord`, `PersistedAuditResource`). The table indexes the envelope an operator filters on (event id

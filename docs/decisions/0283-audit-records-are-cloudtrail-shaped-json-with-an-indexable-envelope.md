@@ -111,7 +111,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
     `Error`.
 16. **The record is the shape a persisted store and a lookup API index.** The library fixes the record and the fields
     an operator indexes on; the store that keeps them is [ADR-0303](0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md),
-    and a management lookup API builds on it (issue [#384](https://github.com/NCodeGroup/Identity/issues/384)).
+    which also decides the management lookup API.
 
 ## Options considered
 

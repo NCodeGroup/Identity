@@ -64,6 +64,10 @@ NCode.Identity.OpenId.Client.ClientRegistration.BackchannelLogoutSessionRequired
 NCode.Identity.OpenId.Client.ClientRegistration.BackchannelLogoutSessionRequired.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.ClientId.get -> string!
 NCode.Identity.OpenId.Client.ClientRegistration.ClientRegistration(string! authority, string! clientId, string! authenticationMethod) -> void
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPBoundAccessTokens.get -> bool
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPBoundAccessTokens.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.get -> string?
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?

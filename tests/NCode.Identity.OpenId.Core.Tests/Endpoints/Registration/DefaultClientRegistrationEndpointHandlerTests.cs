@@ -211,6 +211,23 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     }
 
     [Fact]
+    public void ValidateMetadata_HttpBackChannelLogoutUri_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            GrantTypes = [OpenIdProtocol.GrantTypes.ClientCredentials],
+            BackchannelLogoutUri = "http://client.example/logout",
+        };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
     public void ValidateMetadata_ResponseTypeNamesInAnyOrder_ResolvesTheCanonicalForm()
     {
         var handler = CreateHandler();
@@ -1228,6 +1245,56 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
 
         var error = handler.ValidateKeyMetadata(factory, request);
+
+        Assert.Null(error);
+    }
+
+    #endregion
+
+    #region ValidateLogoutMetadata
+
+    [Theory]
+    [InlineData("http://client.example/logout")]
+    [InlineData("https://client.example/logout#fragment")]
+    [InlineData("/logout")]
+    [InlineData("not a uri")]
+    public void ValidateLogoutMetadata_WhenTheUriIsNotAnHttpsUri_ReturnsInvalidClientMetadata(
+        string uri
+    )
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { BackchannelLogoutUri = uri };
+
+        var error = handler.ValidateLogoutMetadata(factory, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateLogoutMetadata_WhenTheUriIsAnHttpsUri_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            BackchannelLogoutUri = "https://client.example/logout?tenant=a",
+        };
+
+        var error = handler.ValidateLogoutMetadata(factory, request);
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateLogoutMetadata_WhenNoUriIsRegistered_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest { BackchannelLogoutSessionRequired = true };
+
+        var error = handler.ValidateLogoutMetadata(factory, request);
 
         Assert.Null(error);
     }

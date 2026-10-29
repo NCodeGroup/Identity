@@ -510,6 +510,38 @@ public static partial class OpenIdConstants
         /// asymmetric-only signing (<c>PS256</c> / <c>ES256</c>).
         /// </summary>
         public const string Fapi1Advanced = "fapi1-advanced";
+
+        /// <summary>
+        /// The production guardrail profile that a production-grade tenant environment type selects.
+        /// </summary>
+        public const string Production = "production";
+    }
+
+    /// <summary>
+    /// Contains constants for the known tenant <c>environment_type</c> values. The vocabulary is open: a package
+    /// registers more environment types.
+    /// </summary>
+    public static class TenantEnvironmentTypes
+    {
+        /// <summary>
+        /// A tenant used for development.
+        /// </summary>
+        public const string Development = "development";
+
+        /// <summary>
+        /// A tenant used for testing.
+        /// </summary>
+        public const string Testing = "testing";
+
+        /// <summary>
+        /// A tenant used for staging, a pre-production rehearsal of the production tenant.
+        /// </summary>
+        public const string Staging = "staging";
+
+        /// <summary>
+        /// A tenant used for production.
+        /// </summary>
+        public const string Production = "production";
     }
 
     /// <summary>

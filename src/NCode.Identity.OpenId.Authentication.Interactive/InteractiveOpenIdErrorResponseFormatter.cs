@@ -19,6 +19,7 @@
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.Tenants;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
@@ -32,11 +33,13 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 internal sealed class InteractiveOpenIdErrorResponseFormatter(
     InteractiveBundleReader bundleReader,
-    InteractiveSurfacePaths surfacePaths
+    InteractiveSurfacePaths surfacePaths,
+    ITenantEnvironmentCatalog tenantEnvironmentCatalog
 ) : IOpenIdResponseFormatter
 {
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
+    private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
 
     /// <inheritdoc />
     public IReadOnlyList<string> MediaTypes { get; } = [OpenIdProtocol.MediaTypes.Html];
@@ -54,7 +57,10 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
 
         // A request that resolved no tenant has no branding to embed.
         var branding = context.HttpContext.GetOpenIdContextOrDefault() is { } openIdContext
-            ? InteractiveBranding.FromSettings(openIdContext.Tenant.SettingsProvider.Collection)
+            ? InteractiveBranding.FromSettings(
+                openIdContext.Tenant.SettingsProvider.Collection,
+                TenantEnvironmentCatalog
+            )
             : null;
         var security = InteractivePageSecurity.Create(branding);
 

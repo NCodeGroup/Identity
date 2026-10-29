@@ -432,6 +432,7 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         var initialSettings = EffectiveSettingsResolver.ReadScopeSettings(
+            openIdServer.SettingsProvider.Collection,
             OpenIdSettingScopes.Tenant,
             persistedTenant.Settings.Value
         );
@@ -483,6 +484,7 @@ public class DefaultOpenIdTenantFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var settings = EffectiveSettingsResolver.ReadScopeSettings(
+            state.OpenIdServer.SettingsProvider.Collection,
             OpenIdSettingScopes.Tenant,
             newSettings.Value
         );

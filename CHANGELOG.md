@@ -10,6 +10,17 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Tenants declare their environment.** The tenant settings `environment_type`, `environment_name` and
+  `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
+  `staging` and `production` (a package registers more as `ITenantEnvironmentType`), and the name is a display label.
+  The `production` security profile drops plain `http` redirect URIs, forbids anonymous client registration and turns
+  `deletion_protection` on, which makes `DELETE /api/tenants/{tenantId}` answer `409`; `production` and `staging`
+  select it. A tenant that declares nothing is now `production`, and the Development and Conformance host settings
+  declare `development` and `testing`. A non-production tenant's login pages show an environment banner. The audit
+  record gains `tenant_environment_type` (schema 1.1), and the metric attribute `ncode.identity.tenant.environment_type`
+  tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
+  `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
+  ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
 - **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
   `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
   EC key with a currently valid client-authentication certificate and a private key, never an `enc` key. Each request

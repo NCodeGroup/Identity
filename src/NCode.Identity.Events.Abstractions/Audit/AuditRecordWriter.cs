@@ -39,7 +39,7 @@ public static class AuditRecordWriter
     /// <summary>
     /// The version of the audit record's schema. A field added to the record bumps the minor version.
     /// </summary>
-    public const string SchemaVersion = "1.0";
+    public const string SchemaVersion = "1.1";
 
     /// <summary>
     /// Writes the audit record of an audit event as one JSON object.
@@ -67,6 +67,11 @@ public static class AuditRecordWriter
         writer.WriteString(AuditRecordFields.Severity, auditEvent.Severity);
 
         WriteIfNotNull(writer, AuditRecordFields.TenantId, auditEvent.TenantId);
+        WriteIfNotNull(
+            writer,
+            AuditRecordFields.TenantEnvironmentType,
+            auditEvent.TenantEnvironmentType
+        );
         WriteIfNotNull(writer, AuditRecordFields.SubjectId, auditEvent.SubjectId);
         WriteIfNotNull(writer, AuditRecordFields.ClientId, auditEvent.ClientId);
 

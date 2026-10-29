@@ -324,3 +324,4 @@ standards.
 | [0286](./0286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
 | [0287](./0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md) | The AppHost fails fast when the frontend toolchain is stale | Accepted (amends [0152](./0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)) |
 | [0288](./0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |
+| [0289](./0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |

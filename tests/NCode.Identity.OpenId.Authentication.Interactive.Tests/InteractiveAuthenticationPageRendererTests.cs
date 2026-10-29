@@ -37,7 +37,7 @@ public class InteractiveAuthenticationPageRendererTests
         + "<body><div id=\"root\"></div></body></html>";
 
     private static InteractiveBranding AcmeBranding { get; } =
-        new("Acme", null, null, null, "dark");
+        new("Acme", null, null, null, "dark", null);
 
     #region RenderLoginPage Tests
 
@@ -229,6 +229,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: new InteractiveBranding(
                 "</script><script>alert(1)</script>",
+                null,
                 null,
                 null,
                 null,

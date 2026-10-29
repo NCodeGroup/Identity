@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Registration;
 
@@ -86,6 +87,43 @@ internal static class DefaultRegistration
                 ISecurityProfileCatalog,
                 DefaultSecurityProfileCatalog
             >();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ISecurityProfile, ProductionSecurityProfile>()
+            );
+
+            // Each built-in type is its own class: TryAddEnumerable keeps one registration per implementation type
+            // (ADR-0289).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ITenantEnvironmentType,
+                    DevelopmentTenantEnvironmentType
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ITenantEnvironmentType, TestingTenantEnvironmentType>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ITenantEnvironmentType, StagingTenantEnvironmentType>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ITenantEnvironmentType,
+                    ProductionTenantEnvironmentType
+                >()
+            );
+
+            // The tenant environment catalog resolves the registered types by name, and the settings that govern them are
+            // contributed beside it as descriptors.
+            serviceCollection.TryAddSingleton<
+                ITenantEnvironmentCatalog,
+                DefaultTenantEnvironmentCatalog
+            >();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    TenantEnvironmentSettingDescriptorDataSource
+                >()
+            );
 
             // The effective-settings resolver is the one place that resolves a scope's effective settings outside the
             // live providers; a host can replace it (ADR-0204).

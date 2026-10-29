@@ -78,6 +78,11 @@ public static class AuditRecordFields
     public const string TenantId = "tenant_id";
 
     /// <summary>
+    /// The field name of the registered environment type of the tenant the audited operation ran under.
+    /// </summary>
+    public const string TenantEnvironmentType = "tenant_environment_type";
+
+    /// <summary>
     /// The field name of the identifier of the subject the audited operation concerns.
     /// </summary>
     public const string SubjectId = "subject_id";

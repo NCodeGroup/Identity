@@ -1,6 +1,7 @@
 export type {
   BootstrapDocument,
   BrandingConfig,
+  EnvironmentConfig,
   OpenIdDiscovery,
   RuntimeConfig,
   SurfaceKind,

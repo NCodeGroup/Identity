@@ -195,6 +195,9 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionManagementSupport
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionAbsoluteLifetime = "session_absolute_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SessionIdleTimeout = "session_idle_timeout" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxConcurrentSessions = "max_concurrent_sessions" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.EnvironmentType = "environment_type" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.EnvironmentName = "environment_name" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DeletionProtection = "deletion_protection" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSessionSupported = "backchannel_logout_session_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RegistrationEndpointAllowAnonymous = "registration_endpoint_allow_anonymous" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenExpirationPolicy = "refresh_token_expiration_policy" -> string!
@@ -491,6 +494,12 @@ NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi1Advanced = "fapi1-advanced" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Production = "production" -> string!
+NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Development = "development" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Production = "production" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Staging = "staging" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Testing = "testing" -> string!
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
 NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
 NCode.Identity.OpenId.OpenIdConstants.EndpointTags
@@ -585,7 +594,7 @@ NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.Settings.init -> void
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver
-NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(string! scopeName, System.Text.Json.JsonElement settings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.Resolve(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
@@ -762,6 +771,9 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionManagementSupport
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionAbsoluteLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionIdleTimeout.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MaxConcurrentSessions.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.EnvironmentType.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.EnvironmentName.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeletionProtection.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RegistrationEndpointAllowAnonymous.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenExpirationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>
@@ -946,3 +958,11 @@ NCode.Identity.OpenId.OpenIdConstants.InternalParameters
 const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.AuthorizationSourceType = "$authorization_source_type" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.CreatedWhen = "$created_when" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.RequestObjectSource = "$request_object_source" -> string!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog.GetEffectiveType(NCode.Identity.Settings.IReadOnlySettingCollection! settings) -> NCode.Identity.OpenId.Tenants.ITenantEnvironmentType!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog.SelectImpliedProfiles(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog.TryGetType(string! typeName, out NCode.Identity.OpenId.Tenants.ITenantEnvironmentType! type) -> bool
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.IsProduction.get -> bool
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.SecurityProfiles.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.TypeName.get -> string!

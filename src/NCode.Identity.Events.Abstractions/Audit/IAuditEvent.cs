@@ -76,6 +76,14 @@ public interface IAuditEvent : IEvent
     string? TenantId { get; }
 
     /// <summary>
+    /// Gets the registered environment type of the tenant the audited operation belongs to, such as
+    /// <c>production</c>, or <see langword="null"/> when the operation is not tenant-scoped or the
+    /// environment type is not known. This is a bounded value drawn from the registered environment
+    /// types.
+    /// </summary>
+    string? TenantEnvironmentType { get; }
+
+    /// <summary>
     /// Gets the identifier of the subject (actor) the audited operation acted on behalf of, or
     /// <see langword="null"/> when there is no subject.
     /// </summary>

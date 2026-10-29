@@ -42,8 +42,9 @@ const NCode.Identity.Events.Audit.AuditRecordFields.Resources = "resources" -> s
 const NCode.Identity.Events.Audit.AuditRecordFields.SchemaVersion = "schema_version" -> string!
 const NCode.Identity.Events.Audit.AuditRecordFields.Severity = "severity" -> string!
 const NCode.Identity.Events.Audit.AuditRecordFields.SubjectId = "subject_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.TenantEnvironmentType = "tenant_environment_type" -> string!
 const NCode.Identity.Events.Audit.AuditRecordFields.TenantId = "tenant_id" -> string!
-const NCode.Identity.Events.Audit.AuditRecordWriter.SchemaVersion = "1.0" -> string!
+const NCode.Identity.Events.Audit.AuditRecordWriter.SchemaVersion = "1.1" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.Session = "session" -> string!
 const NCode.Identity.Events.Audit.AuditSeverities.Critical = "critical" -> string!
 const NCode.Identity.Events.Audit.AuditSeverities.Info = "info" -> string!
@@ -136,6 +137,8 @@ NCode.Identity.Events.Audit.AuditEvent.Outcome.get -> string!
 NCode.Identity.Events.Audit.AuditEvent.Outcome.init -> void
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.SubjectId.init -> void
+NCode.Identity.Events.Audit.AuditEvent.TenantEnvironmentType.get -> string?
+NCode.Identity.Events.Audit.AuditEvent.TenantEnvironmentType.init -> void
 NCode.Identity.Events.Audit.AuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.TenantId.init -> void
 NCode.Identity.Events.Audit.AuditOutcome
@@ -144,6 +147,7 @@ NCode.Identity.Events.Audit.IAuditEvent.ClientId.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.EventId.get -> System.Guid
 NCode.Identity.Events.Audit.IAuditEvent.Outcome.get -> string!
 NCode.Identity.Events.Audit.IAuditEvent.SubjectId.get -> string?
+NCode.Identity.Events.Audit.IAuditEvent.TenantEnvironmentType.get -> string?
 NCode.Identity.Events.Audit.IAuditEvent.TenantId.get -> string?
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent
 NCode.Identity.Events.Audit.IResourceChangeAuditEvent.ChangeType.get -> string!

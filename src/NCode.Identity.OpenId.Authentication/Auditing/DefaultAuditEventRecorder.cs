@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
 
@@ -37,6 +38,11 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
 
     private static AuditRequest CreateRequest(OpenIdContext openIdContext) =>
         AuditRequestFactory.Create(openIdContext.Http);
+
+    private static string GetTenantEnvironmentType(OpenIdContext openIdContext) =>
+        openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+            OpenIdSettingKeys.EnvironmentType
+        );
 
     /// <inheritdoc />
     public ValueTask RecordTokenIssuedAsync(
@@ -54,6 +60,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Actor = AuditActor.Client(openIdClient.ClientId),
@@ -80,6 +87,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Actor = AuditActor.Client(openIdClient.ClientId),
@@ -105,6 +113,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Actor = AuditActor.EndUser(subjectId),
@@ -131,6 +140,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Actor = AuditActor.EndUser(subjectId),
@@ -158,6 +168,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             ClientId = clientId,
             Actor = AuditActor.Client(clientId),
             Request = CreateRequest(openIdContext),
@@ -183,6 +194,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             Actor = AuditActor.EndUser(subjectId),
             Request = CreateRequest(openIdContext),
@@ -208,6 +220,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = attemptedSubjectId,
             Actor = AuditActor.Anonymous,
             Request = CreateRequest(openIdContext),
@@ -233,6 +246,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Actor = AuditActor.Client(openIdClient.ClientId),
@@ -258,6 +272,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
             Actor = AuditActor.Client(openIdClient.ClientId),
@@ -290,6 +305,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             Actor = AuditActor.Anonymous,
             Request = CreateRequest(openIdContext),
             Outcome = outcome,
@@ -314,6 +330,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             Actor = AuditActor.EndUser(subjectId),
             Request = CreateRequest(openIdContext),
@@ -340,6 +357,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
             SubjectId = subjectId,
             Actor = AuditActor.System,
             Request = CreateRequest(openIdContext),

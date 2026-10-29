@@ -581,6 +581,25 @@ public static class OpenIdSettingNames
     public const string MaxConcurrentSessions = "max_concurrent_sessions";
 
     /// <summary>
+    /// Contains the name of the tenant <c>environment_type</c> setting: the name of the tenant's registered
+    /// environment type, which selects that type's security profiles. Defaults to <c>production</c>. Not advertised in
+    /// discovery.
+    /// </summary>
+    public const string EnvironmentType = "environment_type";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>environment_name</c> setting: a free-form display name for the tenant's
+    /// environment, such as <c>sandbox</c>. Empty by default. Not advertised in discovery.
+    /// </summary>
+    public const string EnvironmentName = "environment_name";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>deletion_protection</c> setting: whether deleting the tenant is refused
+    /// while the value is <c>true</c>. On by default under the <c>production</c> profile. Not advertised in discovery.
+    /// </summary>
+    public const string DeletionProtection = "deletion_protection";
+
+    /// <summary>
     /// Contains the name of <c>registration_endpoint_allow_anonymous</c> setting.
     /// </summary>
     public const string RegistrationEndpointAllowAnonymous =

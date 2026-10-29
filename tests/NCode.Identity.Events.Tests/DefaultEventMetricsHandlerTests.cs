@@ -91,6 +91,32 @@ public sealed class DefaultEventMetricsHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleAsync_WhenAuditEventHasTenantEnvironmentType_RecordsTheTag()
+    {
+        await Handler.HandleAsync(
+            new TestAuditEvent { TenantEnvironmentType = "production" },
+            CancellationToken.None
+        );
+
+        var measurement = Assert.Single(Collector.GetMeasurementSnapshot());
+        Assert.Equal(
+            "production",
+            measurement.Tags[DefaultEventMetricsHandler.TenantEnvironmentTypeAttribute]
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAuditEventHasNoTenantEnvironmentType_RecordsNoSuchTag()
+    {
+        await Handler.HandleAsync(new TestAuditEvent(), CancellationToken.None);
+
+        var measurement = Assert.Single(Collector.GetMeasurementSnapshot());
+        Assert.False(
+            measurement.Tags.ContainsKey(DefaultEventMetricsHandler.TenantEnvironmentTypeAttribute)
+        );
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenPlainEvent_RecordsCounterWithEventTypeOnly()
     {
         await Handler.HandleAsync(new SampleEvent(), CancellationToken.None);

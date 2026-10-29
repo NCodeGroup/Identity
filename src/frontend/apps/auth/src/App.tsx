@@ -1,5 +1,6 @@
 import type { BrandingConfig } from '@ncode/config';
 import { BrandHeader } from './BrandHeader.js';
+import { EnvironmentBanner } from './EnvironmentBanner.js';
 import { ANTIFORGERY_COOKIE, describeLoginError, getQueryParam, readCookie } from './params.js';
 import { resolveRoute } from './routes.js';
 import { EMPTY_SERVER_PAGE, type ServerPage } from './serverPage.js';
@@ -31,6 +32,7 @@ export function App({
 }: AppProps) {
   return (
     <>
+      {branding?.environment ? <EnvironmentBanner environment={branding.environment} /> : null}
       {branding ? <BrandHeader branding={branding} /> : null}
       {resolveRoute({
         pathname,

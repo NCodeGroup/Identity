@@ -37,15 +37,22 @@ public interface IEffectiveSettingsResolver
 {
     /// <summary>
     /// Deserializes a scope's persisted settings document and expands it with the ceilings and defaults of every
-    /// security profile it selects.
+    /// security profile it selects. The scope's environment type selects profiles too: the type is read from
+    /// <paramref name="parentSettings"/> when the document leaves it unset.
     /// </summary>
+    /// <param name="parentSettings">The effective settings of the scope's parent (the server for a tenant, the tenant
+    /// for a client or resource server).</param>
     /// <param name="scopeName">The name of the registered scope whose settings document <paramref name="settings"/>
     /// is; a setting that does not apply within it fails the read.</param>
     /// <param name="settings">The scope's own settings as a JSON document.</param>
     /// <returns>The deserialized, profile-expanded settings of the scope, not yet merged onto its parent.</returns>
     /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
     /// names no registered profile.</exception>
-    IReadOnlyCollection<Setting> ReadScopeSettings(string scopeName, JsonElement settings);
+    IReadOnlyCollection<Setting> ReadScopeSettings(
+        IReadOnlySettingCollection parentSettings,
+        string scopeName,
+        JsonElement settings
+    );
 
     /// <summary>
     /// Merges a scope's settings document onto the effective settings of its parent. It is equivalent to merging the

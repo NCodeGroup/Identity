@@ -71,6 +71,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IBffSessionManager, DefaultBffSessionManager>();
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
+            serviceCollection.TryAddSingleton<BffSessionResolver>();
             serviceCollection.TryAddSingleton<BffClientRegistrationProvider>();
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();

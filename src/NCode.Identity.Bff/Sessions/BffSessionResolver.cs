@@ -100,7 +100,74 @@ internal class BffSessionResolver(
             return Complete(httpContext, feature, null);
         }
 
+        var principal = BffSessionPrincipal.Create(state.Payload.Claims, state.Metadata.Issuer);
+        var validationContext = new BffSessionValidationContext(
+            httpContext,
+            state.Metadata,
+            principal
+        );
+        foreach (var validator in _validators)
+        {
+            var isValid = await validator.ValidateAsync(validationContext, cancellationToken);
+            if (isValid)
+                continue;
+
+            await _sessionManager.EndAsync(
+                httpContext,
+                state.StoreKey,
+                state.Metadata,
+                BffSessionEndReasons.EndedByValidator,
+                cancellationToken
+            );
+            _cookies.DeleteSession(httpContext.Response);
+            return Complete(httpContext, feature, null);
+        }
+
+        var isApi = endpoint?.Metadata.GetMetadata<BffApiAttribute>() is not null;
+        var idleTimeout = _options.Value.Session.IdleTimeout;
+        if (isApi && now - state.Metadata.LastAccessedAt >= idleTimeout / 10)
+        {
+            var slid = await _sessionManager.UpdateAsync(
+                state,
+                current => Slide(current, now, idleTimeout),
+                cancellationToken
+            );
+            if (slid is null)
+            {
+                _cookies.DeleteSession(httpContext.Response);
+                return Complete(httpContext, feature, null);
+            }
+
+            state = slid;
+        }
+
         return Complete(httpContext, feature, state);
+    }
+
+    private static BffSessionState Slide(
+        BffSessionState current,
+        DateTimeOffset now,
+        TimeSpan idleTimeout
+    )
+    {
+        var metadata = current.Metadata;
+        var idleExpiresAt = now + idleTimeout;
+        if (idleExpiresAt > metadata.AbsoluteExpiresAt)
+            idleExpiresAt = metadata.AbsoluteExpiresAt;
+
+        var slid = new BffSessionMetadata
+        {
+            Frontend = metadata.Frontend,
+            Issuer = metadata.Issuer,
+            Subject = metadata.Subject,
+            SessionId = metadata.SessionId,
+            CreatedAt = metadata.CreatedAt,
+            LastAccessedAt = now,
+            AbsoluteExpiresAt = metadata.AbsoluteExpiresAt,
+            IdleExpiresAt = idleExpiresAt,
+            ExtensionData = metadata.ExtensionData,
+        };
+        return current with { Metadata = slid };
     }
 
     private static BffSessionState? Complete(

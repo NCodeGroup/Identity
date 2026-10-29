@@ -74,9 +74,24 @@ public class BffSessionResolverTests : BaseTests
         return httpContext;
     }
 
+    private BffSessionResolver CreateResolver(IEnumerable<IBffSessionValidator> validators)
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
+        var timeProvider = new MutableTimeProvider(Now);
+        var cookies = new BffCookies(options, timeProvider);
+        return new BffSessionResolver(
+            MockManager.Object,
+            cookies,
+            validators,
+            options,
+            timeProvider
+        );
+    }
+
     private static BffSessionState CreateState(
         DateTimeOffset absoluteExpiresAt,
-        DateTimeOffset idleExpiresAt
+        DateTimeOffset idleExpiresAt,
+        DateTimeOffset? lastAccessedAt = null
     ) =>
         new(
             Handle,
@@ -88,7 +103,7 @@ public class BffSessionResolverTests : BaseTests
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
-                LastAccessedAt = Now.AddMinutes(-5),
+                LastAccessedAt = lastAccessedAt ?? Now.AddMinutes(-10),
                 AbsoluteExpiresAt = absoluteExpiresAt,
                 IdleExpiresAt = idleExpiresAt,
             },
@@ -227,6 +242,110 @@ public class BffSessionResolverTests : BaseTests
         var sessionFeature = httpContext.Features.Get<IBffSessionFeature>();
         Assert.NotNull(sessionFeature);
         Assert.Equal("sub-1", sessionFeature.Metadata.Subject);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_RejectingValidator_EndsSession()
+    {
+        var httpContext = CreateHttpContext();
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        var validator = CreateStrictMock<IBffSessionValidator>();
+        validator
+            .Setup(x =>
+                x.ValidateAsync(
+                    It.IsAny<BffSessionValidationContext>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.EndAsync(
+                    httpContext,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.EndedByValidator,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var resolver = CreateResolver([validator.Object]);
+
+        var result = await resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Single(httpContext.Response.Headers.SetCookie.ToArray());
+    }
+
+    [Fact]
+    public async Task ResolveAsync_ApiRequestPastThreshold_SlidesSession()
+    {
+        var httpContext = CreateHttpContext(endpointMetadata: new BffApiAttribute());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        BffSessionState? slidState = null;
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => slidState = update(current)
+            )
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(Now, result.Metadata.LastAccessedAt);
+        Assert.Equal(Now.AddHours(1), result.Metadata.IdleExpiresAt);
+        Assert.Same(slidState, result);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_ApiRequestUnderThreshold_DoesNotSlide()
+    {
+        var httpContext = CreateHttpContext(endpointMetadata: new BffApiAttribute());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1), Now.AddMinutes(-1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.Same(state, result);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_UserEndpointPastThreshold_DoesNotSlide()
+    {
+        var httpContext = CreateHttpContext(endpointMetadata: BffUserEndpointMetadata.Instance);
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.Same(state, result);
     }
 
     #endregion

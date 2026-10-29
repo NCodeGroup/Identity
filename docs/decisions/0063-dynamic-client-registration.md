@@ -98,6 +98,12 @@ Concretely:
   `response_types` to `code` per RFC 7591; a grant type that uses a redirect (`authorization_code`, `implicit`) requires
   at least one `redirect_uris` value; and each redirect URI must be a valid absolute URI without a fragment. Failures
   return the RFC 7591 error codes `invalid_client_metadata` / `invalid_redirect_uri`.
+- **Back-channel logout metadata.** `backchannel_logout_uri` and `backchannel_logout_session_required` (OpenID Connect
+  Back-Channel Logout 1.0 §2.2) are stored as the client settings of the same names, which the back-channel logout
+  notifier reads, and are reported back. A self-registered `backchannel_logout_uri` must be an absolute `https` URI
+  without a fragment (`invalid_client_metadata` otherwise), because the spec permits http only for a confidential client
+  the OP allows it for and a `logout_token` must not travel in clear; operator-configured clients keep the setting's
+  own rule.
 - **Delete removes the client with what it owns.** `DELETE` removes the client, and the store removes its secrets and
   grants, the `registration_access_token` grant included, in the same unit of work
   ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)).

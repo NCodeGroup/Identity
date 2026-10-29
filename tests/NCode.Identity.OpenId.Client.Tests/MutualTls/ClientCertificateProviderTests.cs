@@ -182,6 +182,31 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public void SelectHttpClientName_SameCertificateTwice_CachesOneEntry()
+    {
+        var (rsa, certificate) = CreateRsaCertificate();
+        var key = KeyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, rsa, certificate);
+        var provider = CreateProvider(key);
+
+        var firstName = provider.SelectHttpClientName(CreateRegistration());
+        var secondName = provider.SelectHttpClientName(CreateRegistration());
+
+        var thumbprint = GetThumbprint(certificate);
+        Assert.Equal(firstName, secondName);
+        Assert.True(provider.TryGetCertificate(thumbprint, out var first));
+        Assert.True(provider.TryGetCertificate(thumbprint, out var second));
+        Assert.Same(first, second);
+
+        using var firstHandler = provider.CreatePrimaryHandler(thumbprint);
+        using var secondHandler = provider.CreatePrimaryHandler(thumbprint);
+        Assert.NotNull(firstHandler.SslOptions.ClientCertificateContext);
+        Assert.Same(
+            firstHandler.SslOptions.ClientCertificateContext,
+            secondHandler.SslOptions.ClientCertificateContext
+        );
+    }
+
+    [Fact]
     public void SelectHttpClientName_WithEcdsaCertificate_ReturnsPrefixedThumbprint()
     {
         var ecdsa = Track(ECDsa.Create(ECCurve.NamedCurves.nistP256));
@@ -555,10 +580,6 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
 
         using var handler = provider.CreatePrimaryHandler(thumbprint);
 
-        Assert.Equal(
-            intermediate.RawData,
-            Assert.Single(provider.GetIssuerCertificates(thumbprint)).RawData
-        );
         var context = handler.SslOptions.ClientCertificateContext;
         Assert.NotNull(context);
         Assert.Contains(
@@ -578,7 +599,6 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
 
         using var handler = provider.CreatePrimaryHandler(thumbprint);
 
-        Assert.Empty(provider.GetIssuerCertificates(thumbprint));
         Assert.NotNull(handler.SslOptions.ClientCertificateContext);
         Assert.Empty(handler.SslOptions.ClientCertificateContext.IntermediateCertificates);
     }

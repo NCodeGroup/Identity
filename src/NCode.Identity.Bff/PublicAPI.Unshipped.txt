@@ -79,3 +79,6 @@ NCode.Identity.Bff.Options.BffTokenOptions.RefreshBeforeExpiry.get -> System.Tim
 NCode.Identity.Bff.Options.BffTokenOptions.RefreshBeforeExpiry.set -> void
 NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.get -> System.TimeSpan
 NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.set -> void
+NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions
+NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!)
+NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!).AddBffAccessTokenHandler(NCode.Identity.Bff.BffTokenRequest! request) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!

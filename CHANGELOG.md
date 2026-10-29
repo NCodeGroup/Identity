@@ -10,6 +10,12 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Dynamic client registration accepts back-channel logout metadata.** `RegisterClientRequest` and
+  `RegisterClientResponse` carry `BackchannelLogoutUri` and `BackchannelLogoutSessionRequired`, stored as the
+  `backchannel_logout_uri` and `backchannel_logout_session_required` client settings, so a self-registered client
+  receives logout tokens; the URI must be an absolute https URI without a fragment
+  ([ADR-0063](docs/decisions/0063-dynamic-client-registration.md),
+  issue [#389](https://github.com/NCodeGroup/Identity/issues/389)).
 - **The OpenID protocol client binds tokens with DPoP.** `ClientRegistration.DPoPKeyRing` names the proof key ring,
   and `DPoPBoundAccessTokens` makes DPoP required. Token requests carry proofs and require a `DPoP` token type, and
   authorization requests send `dpop_jkt`. A `use_dpop_nonce` challenge is retried once, with nonces cached per origin.

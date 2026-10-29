@@ -891,7 +891,8 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var keysError =
             ValidateKeyMetadata(errorFactory, request)
-            ?? ValidateAuthenticationMetadata(errorFactory, request, tokenEndpointAuthMethod);
+            ?? ValidateAuthenticationMetadata(errorFactory, request, tokenEndpointAuthMethod)
+            ?? ValidateLogoutMetadata(errorFactory, request);
         if (keysError is not null)
         {
             return keysError;
@@ -1186,6 +1187,38 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Verifies that a registered <c>backchannel_logout_uri</c> is an absolute <c>https</c> URI without a fragment.
+    /// Back-Channel Logout 1.0 §2.2 allows <c>http</c> only for a confidential client that the OP allows it for, and
+    /// this OP never sends a self-registered client's <c>logout_token</c> in clear; operator-configured clients are
+    /// governed by the setting's own rule. Returns an <c>invalid_client_metadata</c> error, or
+    /// <see langword="null"/> when no URI is registered or the URI is acceptable.
+    /// </summary>
+    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
+    /// <param name="request">The registration request.</param>
+    /// <returns>The error, or <see langword="null"/> when the metadata is consistent.</returns>
+    internal virtual IOpenIdError? ValidateLogoutMetadata(
+        IOpenIdErrorFactory errorFactory,
+        RegisterClientRequest request
+    )
+    {
+        var value = request.BackchannelLogoutUri;
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        return
+            Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+            && !value.Contains('#', StringComparison.Ordinal)
+            ? null
+            : InvalidClientMetadata(
+                errorFactory,
+                "The 'backchannel_logout_uri' value must be an absolute https URI without a fragment."
+            );
     }
 
     private static bool HasCertificate(JsonElement jwks) =>
@@ -1561,6 +1594,15 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (request.BackchannelUserCodeParameter is { } userCodeParameter)
             settings[OpenIdSettingNames.BackchannelUserCodeParameterSupported] = userCodeParameter;
 
+        // The Back-Channel Logout 1.0 §2.2 members are the settings the back-channel logout notifier reads.
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.BackChannelLogoutUri,
+            request.BackchannelLogoutUri
+        );
+        if (request.BackchannelLogoutSessionRequired is { } sessionRequired)
+            settings[OpenIdSettingNames.BackChannelLogoutSessionRequired] = sessionRequired;
+
         return settings;
     }
 
@@ -1721,6 +1763,11 @@ internal class DefaultClientRegistrationEndpointHandler(
             BackchannelUserCodeParameter = ReadBoolean(
                 settings,
                 OpenIdSettingNames.BackchannelUserCodeParameterSupported
+            ),
+            BackchannelLogoutUri = ReadString(settings, OpenIdSettingNames.BackChannelLogoutUri),
+            BackchannelLogoutSessionRequired = ReadBoolean(
+                settings,
+                OpenIdSettingNames.BackChannelLogoutSessionRequired
             ),
         };
     }

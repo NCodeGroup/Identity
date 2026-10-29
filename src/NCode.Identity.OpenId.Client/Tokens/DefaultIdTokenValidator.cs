@@ -259,7 +259,8 @@ internal class DefaultIdTokenValidator(
         if (CheckHashes(header, payload, result.DecodedJwt.SigningKey, request) is { } hashFailure)
             return hashFailure;
 
-        return new IdTokenValidationResult(payload);
+        var identity = await result.GetClaimsIdentityAsync(cancellationToken);
+        return new IdTokenValidationResult(payload) { Identity = identity };
     }
 
     private IdTokenValidationResult? CheckHashes(

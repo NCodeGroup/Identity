@@ -322,6 +322,18 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public async Task ValidateAsync_WhenValid_ReturnsTheIdentity()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(validator, CreateIdToken());
+
+        Assert.True(result.IsValid);
+        Assert.NotNull(result.Identity);
+        Assert.Equal("user-1", result.Identity.FindFirst("sub")?.Value);
+    }
+
+    [Fact]
     public async Task ValidateAsync_WhenIssuerDiffers_Fails()
     {
         var validator = CreateValidator(CreateKeySetMock());

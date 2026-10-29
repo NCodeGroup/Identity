@@ -189,27 +189,23 @@ internal class DefaultBffUserTokenService(
     {
         var tokenOptions = _options.Value.Tokens;
 
-        // inside a replica, refreshes of one session are serialized by a striped lock
-        var gate = _refreshLocks.For(state.StoreKey);
-        var entered = await gate.WaitAsync(tokenOptions.RefreshLeaseDuration, cancellationToken);
-        if (!entered)
+        // inside a replica, refreshes of one session wait on that session's own lock
+        using var held = await _refreshLocks.TryEnterAsync(
+            state.StoreKey,
+            tokenOptions.RefreshLeaseDuration,
+            cancellationToken
+        );
+        if (held is null)
             return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
 
-        try
-        {
-            return await RefreshLockedAsync(
-                httpContext,
-                state,
-                resource,
-                scope,
-                attempt,
-                cancellationToken
-            );
-        }
-        finally
-        {
-            gate.Release();
-        }
+        return await RefreshLockedAsync(
+            httpContext,
+            state,
+            resource,
+            scope,
+            attempt,
+            cancellationToken
+        );
     }
 
     private async ValueTask<BffTokenResult> RefreshLockedAsync(

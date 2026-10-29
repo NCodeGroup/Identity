@@ -78,7 +78,13 @@ any one host feature.
 - Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-0007](docs/decisions/0007-provenance-sourcelink-and-symbols.md))
   are published to [nuget.org](https://www.nuget.org). Only protected `main` / `release/*` / `v*` refs publish.
 - Release packages should be signed and RFC-3161 timestamped so signatures outlive the certificate; verify with
-  `dotnet nuget verify`. Prereleases from feature branches may publish unsigned.
+  `dotnet nuget verify`. Prereleases may publish unsigned.
+- A prerelease publishes through the `Publish prerelease packages` workflow
+  (`.github/workflows/publish-prerelease.yml`) from a `v*.*.*-*` tag that names a commit on `main` or a release line, or
+  from a manual run on `main`: bump the prerelease version in `version.json`, merge it, then tag `v<version>` or run the
+  workflow, and approve the `nuget` environment. Its publishing job holds only a short-lived key from nuget.org trusted
+  publishing, and it refuses a version already published
+  ([ADR-0302](docs/decisions/0302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
 
 ## Definition of Done
 

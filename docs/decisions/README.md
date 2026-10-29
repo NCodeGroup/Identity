@@ -339,3 +339,4 @@ standards.
 | [0299](./0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |
 | [0300](./0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md) | An asymmetric key carries its issuers' certificates, and a TLS client presents them | Accepted |
 | [0301](./0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) | A signed UserInfo response is validated like an ID token under the client's registered algorithms | Accepted |
+| [0302](./0302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |

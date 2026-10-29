@@ -1,0 +1,151 @@
+# Publish prerelease packages — pushes the family's prerelease NuGet packages to nuget.org (issue #324, ADR-0302).
+#
+# A prerelease publishes from a prerelease tag (`v0.1.0-alpha`, `v1.0.0-rc.1`) on main or a release line, or from a
+# manual run on main; never from every merge, which would flood nuget.org with versions nobody asked for. Releases are
+# signed and published from a release tag by a separate workflow (issue #184), so this one refuses a release version.
+#
+# Two jobs, so the job that runs third-party build and test code never holds a publishing credential (ADR-0143):
+#   - build runs the full Definition of Done, which packs every shippable project, checks the packages carry one
+#     prerelease version that the tag, if any, names, and uploads them;
+#   - publish runs in the protected `nuget` environment, exchanges the job's OIDC token for a short-lived nuget.org API
+#     key through the nuget.org trusted publishing policy for this workflow, and pushes the packages and their symbols.
+#     It refuses a version already on nuget.org, which needs a bump in version.json, but skips duplicates within a
+#     version so a run that failed part way can be run again.
+#
+# Setup the maintainers own: a nuget.org trusted publishing policy for NCodeGroup/Identity, this workflow file and the
+# `nuget` environment; the `nuget` environment with required reviewers and deployment rules for main and `v*` tags; and
+# the repository variable NUGET_USER naming the nuget.org account that owns the policy.
+name: Publish prerelease packages
+
+on:
+  push:
+    tags: ['v*.*.*-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publication at a time; a second waits rather than racing the first to nuget.org.
+concurrency:
+  group: publish-prerelease
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify
+    # A manual run publishes only from main; a tag publishes from the commit it names, checked below.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Nerdbank.GitVersioning computes the version from the history and fails on a shallow clone.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Only protected refs publish (GOVERNANCE.md "Publishing"): a tag must name a commit that main or a release line
+      # already holds, so a tag pushed on an unreviewed commit publishes nothing.
+      - name: Check the tagged commit is on a protected line
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $lines = @(git for-each-ref --format='%(refname)' refs/remotes/origin/main 'refs/remotes/origin/release/v*')
+          $onLine = $lines | Where-Object { git merge-base --is-ancestor HEAD $_; $LASTEXITCODE -eq 0 }
+          if (-not $onLine) { throw "The tag names a commit that is on neither main nor a release line." }
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # The full gate, as CI runs it: Release, every test, NuGet advisories as errors, and packing.
+      - name: Definition of Done
+        shell: pwsh
+        run: ./build/dod.ps1
+
+      - name: Read the package version
+        id: version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          $version = ./build/package-version.ps1 -Tag $env:TAG
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "Publishing **$version**." >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg
+          retention-days: 14
+          if-no-files-found: error
+
+  publish:
+    name: Publish to nuget.org
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages?q=NCode.Identity&prerel=true
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          name: nuget-packages
+          path: packages
+
+      # A version already on nuget.org needs a bump in version.json; a version some packages of which are already there
+      # is a run that failed part way, which the push below completes.
+      - name: Check the version is new
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          $packages = @(Get-ChildItem packages -Filter '*.nupkg')
+          $published = 0
+          foreach ($package in $packages) {
+            $id = $package.Name.Substring(0, $package.Name.Length - ".$env:VERSION.nupkg".Length).ToLowerInvariant()
+            $index = "https://api.nuget.org/v3-flatcontainer/$id/index.json"
+            try { $versions = (Invoke-RestMethod -Uri $index).versions } catch { $versions = @() }
+            if ($versions -contains $env:VERSION.ToLowerInvariant()) { $published++ }
+          }
+          if ($published -eq $packages.Count) {
+            throw "Every package is already on nuget.org at $env:VERSION; bump the version in version.json."
+          }
+          "$published of $($packages.Count) packages are already on nuget.org at $env:VERSION." >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Log in to nuget.org
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      # `dotnet nuget push` pushes each package's .snupkg beside it to the nuget.org symbol server.
+      - name: Push packages
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push 'packages/*.nupkg' --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -ne 0) { throw "dotnet nuget push failed with exit code $LASTEXITCODE." }

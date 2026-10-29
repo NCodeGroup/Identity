@@ -19,6 +19,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Tokens;
@@ -241,6 +242,112 @@ public class BffAccessTokenHandlerTests : BaseTests
 
         using var response = await client.GetAsync(RequestUri);
 
+        Assert.Single(inner.Requests);
+    }
+
+    private static HttpResponseMessage CreateChallenge(string scheme)
+    {
+        var challenge = new HttpResponseMessage(HttpStatusCode.Unauthorized);
+        challenge.Headers.Add(OpenIdProtocol.DPoP.NonceHeaderName, Nonce);
+        challenge.Headers.TryAddWithoutValidation(
+            "WWW-Authenticate",
+            $"{scheme} error=\"{OpenIdProtocol.ErrorCodes.UseDPoPNonce}\""
+        );
+        return challenge;
+    }
+
+    private void SetupDPoPToken()
+    {
+        SetupResult(
+            new DefaultHttpContext(),
+            BffTokenResult.Success(
+                new BffAccessToken("at", "dpop", DateTimeOffset.MaxValue)
+                {
+                    DPoPJwkThumbprint = Jkt,
+                }
+            )
+        );
+    }
+
+    private void SetupProofs(params string[] proofValues)
+    {
+        var queue = new Queue<string>(proofValues);
+        _proofs
+            .Setup(x =>
+                x.CreateResourceProofAsync(
+                    _registrations.Registration,
+                    Jkt,
+                    HttpMethod.Post,
+                    RequestUri,
+                    "at",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => new ValueTask<string>(queue.Dequeue()))
+            .Verifiable();
+        _proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
+    }
+
+    [Fact]
+    public async Task SendAsync_DPoPNonceChallenge_RetriesOnceWithNewProof()
+    {
+        SetupDPoPToken();
+        SetupProofs("proof-1", "proof-2");
+        var inner = StubHttpMessageHandler.Sequence(
+            CreateChallenge("DPoP"),
+            new HttpResponseMessage(HttpStatusCode.OK)
+        );
+        using var client = CreateClient(inner);
+
+        using var response = await client.PostAsync(
+            RequestUri,
+            new StringContent("body", SecureEncoding.UTF8)
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, inner.Requests.Count);
+        Assert.Equal("proof-1", inner.Requests[0].DPoP);
+        Assert.Equal("proof-2", inner.Requests[1].DPoP);
+        Assert.Equal("body", inner.Requests[0].Body);
+        Assert.Equal("body", inner.Requests[1].Body);
+    }
+
+    [Fact]
+    public async Task SendAsync_DPoPNonceChallengeTwice_ReturnsSecondResponse()
+    {
+        SetupDPoPToken();
+        SetupProofs("proof-1", "proof-2");
+        var inner = StubHttpMessageHandler.Sequence(
+            CreateChallenge("DPoP"),
+            CreateChallenge("DPoP")
+        );
+        using var client = CreateClient(inner);
+
+        using var response = await client.PostAsync(
+            RequestUri,
+            new StringContent("body", SecureEncoding.UTF8)
+        );
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(2, inner.Requests.Count);
+    }
+
+    [Fact]
+    public async Task SendAsync_BearerChallenge_IsNotRetried()
+    {
+        SetupResult(
+            new DefaultHttpContext(),
+            BffTokenResult.Success(
+                new BffAccessToken("at", OpenIdProtocol.TokenTypes.Bearer, DateTimeOffset.MaxValue)
+            )
+        );
+        _proofs.Setup(x => x.RecordNonce(RequestUri, Nonce)).Verifiable();
+        var inner = StubHttpMessageHandler.Sequence(CreateChallenge("Bearer"));
+        using var client = CreateClient(inner);
+
+        using var response = await client.GetAsync(RequestUri);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Single(inner.Requests);
     }
 

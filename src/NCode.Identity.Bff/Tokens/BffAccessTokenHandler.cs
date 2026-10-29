@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Client;
@@ -62,39 +63,68 @@ internal class BffAccessTokenHandler(
             OpenIdProtocol.TokenTypes.DPoP,
             StringComparison.OrdinalIgnoreCase
         );
-        if (isDPoP)
-        {
-            var jkt =
-                token.DPoPJwkThumbprint
-                ?? throw new InvalidOperationException(
-                    "A DPoP access token must carry the thumbprint of its key."
-                );
-            var requestUri =
-                request.RequestUri
-                ?? throw new InvalidOperationException("The request has no URI.");
-            var registration = registrations.Registration;
-            var proof = await proofs.CreateResourceProofAsync(
-                registration,
-                jkt,
-                request.Method,
-                requestUri,
-                token.Value,
-                cancellationToken
-            );
-            request.Headers.Authorization = new AuthenticationHeaderValue(
-                OpenIdProtocol.TokenTypes.DPoP,
-                token.Value
-            );
-            request.Headers.Add(OpenIdProtocol.DPoP.HeaderName, proof);
-        }
-        else
+        if (!isDPoP)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue(
                 OpenIdProtocol.TokenTypes.Bearer,
                 token.Value
             );
+            return await SendRecordingNonceAsync(request, cancellationToken);
         }
 
+        var jkt =
+            token.DPoPJwkThumbprint
+            ?? throw new InvalidOperationException(
+                "A DPoP access token must carry the thumbprint of its key."
+            );
+        var requestUri =
+            request.RequestUri ?? throw new InvalidOperationException("The request has no URI.");
+        var registration = registrations.Registration;
+
+        // The content must be replayable for the one retry of a nonce challenge.
+        if (request.Content is { } content)
+            await content.LoadIntoBufferAsync(cancellationToken);
+
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            OpenIdProtocol.TokenTypes.DPoP,
+            token.Value
+        );
+
+        var proof = await proofs.CreateResourceProofAsync(
+            registration,
+            jkt,
+            request.Method,
+            requestUri,
+            token.Value,
+            cancellationToken
+        );
+        request.Headers.Add(OpenIdProtocol.DPoP.HeaderName, proof);
+
+        var response = await SendRecordingNonceAsync(request, cancellationToken);
+        if (!IsNonceChallenge(response))
+            return response;
+
+        response.Dispose();
+
+        var retryProof = await proofs.CreateResourceProofAsync(
+            registration,
+            jkt,
+            request.Method,
+            requestUri,
+            token.Value,
+            cancellationToken
+        );
+        request.Headers.Remove(OpenIdProtocol.DPoP.HeaderName);
+        request.Headers.Add(OpenIdProtocol.DPoP.HeaderName, retryProof);
+
+        return await SendRecordingNonceAsync(request, cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> SendRecordingNonceAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken
+    )
+    {
         var response = await base.SendAsync(request, cancellationToken);
 
         if (
@@ -107,5 +137,33 @@ internal class BffAccessTokenHandler(
         }
 
         return response;
+    }
+
+    private static bool IsNonceChallenge(HttpResponseMessage response)
+    {
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
+            return false;
+
+        if (!response.Headers.Contains(OpenIdProtocol.DPoP.NonceHeaderName))
+            return false;
+
+        const string expected = $"error=\"{OpenIdProtocol.ErrorCodes.UseDPoPNonce}\"";
+        foreach (var challenge in response.Headers.WwwAuthenticate)
+        {
+            if (
+                string.Equals(
+                    challenge.Scheme,
+                    OpenIdProtocol.TokenTypes.DPoP,
+                    StringComparison.OrdinalIgnoreCase
+                )
+                && challenge.Parameter is { } parameter
+                && parameter.Contains(expected, StringComparison.Ordinal)
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

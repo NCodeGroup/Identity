@@ -91,7 +91,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public void AddOpenIdClientLibrary_RegistersTheThreeBuiltInAuthenticators()
+    public void AddOpenIdClientLibrary_RegistersTheFiveBuiltInAuthenticators()
     {
         JwtBuilder.AddOpenIdClientLibrary();
 
@@ -107,6 +107,8 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+            OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
         }
             .Order(StringComparer.Ordinal)
             .ToList();

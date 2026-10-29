@@ -21,16 +21,27 @@ using System.Web;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
+using NCode.Identity.Secrets.Keys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
-public class DefaultTokenClientTests : BaseTests
+public class DefaultTokenClientTests : BaseTests, IAsyncLifetime
 {
     private const string Authority = "https://op.example.test";
     private const string SuccessBody =
         """{"access_token":"at","token_type":"Bearer","expires_in":300,"refresh_token":"rt","id_token":"it","scope":"api"}""";
+
+    private const string DPoPBody =
+        """{"access_token":"at","token_type":"DPoP","expires_in":300}""";
+
+    private DPoPTestContext DPoPContext { get; } = new();
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync() => await DPoPContext.DisposeAsync();
 
     private Mock<IProviderMetadataResolver> MockMetadataResolver { get; }
 
@@ -42,7 +53,12 @@ public class DefaultTokenClientTests : BaseTests
         MockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
     }
 
-    private DefaultTokenClient CreateClient(StubHttpMessageHandler handler)
+    private DefaultTokenClient CreateClient(
+        StubHttpMessageHandler handler,
+        List<string>? dpopAlgorithms = null,
+        bool expectRequest = true,
+        params SecretKey[] dpopKeys
+    )
     {
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
@@ -53,24 +69,32 @@ public class DefaultTokenClientTests : BaseTests
                         Issuer = Authority,
                         TokenEndpoint = "https://op.example.test/token",
                         JwksUri = "https://op.example.test/jwks",
+                        DPoPSigningAlgValuesSupported = dpopAlgorithms,
                     }
                 )
             )
             .Verifiable();
 
-        MockHttpClientFactory
-            .Setup(x => x.CreateClient(OpenIdClientDefaults.HttpClientName))
-            .Returns(new HttpClient(handler, disposeHandler: false))
-            .Verifiable();
-
         var mockAuthenticator = CreateStrictMock<IClientAuthenticator>();
         mockAuthenticator.Setup(x => x.MethodName).Returns("test").Verifiable();
-        mockAuthenticator
-            .Setup(x =>
-                x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+
+        if (expectRequest)
+        {
+            MockHttpClientFactory
+                .Setup(x => x.CreateClient(OpenIdClientDefaults.HttpClientName))
+                .Returns(new HttpClient(handler, disposeHandler: false))
+                .Verifiable();
+
+            mockAuthenticator
+                .Setup(x =>
+                    x.AuthenticateAsync(
+                        It.IsAny<ClientAuthenticationContext>(),
+                        CancellationToken.None
+                    )
+                )
+                .Returns(ValueTask.CompletedTask)
+                .Verifiable();
+        }
 
         var sender = new ClientRequestSender(
             new ProviderHttpClient(
@@ -80,10 +104,22 @@ public class DefaultTokenClientTests : BaseTests
             [mockAuthenticator.Object]
         );
 
-        return new DefaultTokenClient(MockMetadataResolver.Object, sender);
+        return new DefaultTokenClient(
+            MockMetadataResolver.Object,
+            sender,
+            DPoPContext.CreateResolver(dpopKeys)
+        );
     }
 
-    private static ClientRegistration CreateRegistration() => new(Authority, "client-1", "test");
+    private static ClientRegistration CreateRegistration(
+        string? dpopKeyRing = null,
+        bool dpopBound = false
+    ) =>
+        new(Authority, "client-1", "test")
+        {
+            DPoPKeyRing = dpopKeyRing,
+            DPoPBoundAccessTokens = dpopBound,
+        };
 
     private static List<KeyValuePair<string, string>> ParseBody(string? body)
     {
@@ -279,6 +315,122 @@ public class DefaultTokenClientTests : BaseTests
                 CancellationToken.None
             )
         );
+    }
+
+    [Fact]
+    public async Task RequestTokenAsync_WithDPoP_SendsProofAndReturnsThumbprint()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, DPoPBody);
+        var client = CreateClient(handler, ["ES256"], true, DPoPContext.EcKey);
+
+        var result = await client.RequestTokenAsync(
+            CreateRegistration(DPoPTestContext.KeyRingName),
+            new RefreshTokenRequest("old-rt"),
+            CancellationToken.None
+        );
+
+        var proof = Assert.Single(handler.Requests).DPoP;
+        Assert.NotNull(proof);
+        Assert.Equal(
+            "EC",
+            DPoPTestContext.DecodeHeader(proof).GetProperty("jwk").GetProperty("kty").GetString()
+        );
+        Assert.True(result.IsSuccess);
+        Assert.Equal("DPoP", result.Response.TokenType);
+        Assert.Equal(DPoPContext.Thumbprint(DPoPContext.EcKey), result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public async Task RequestTokenAsync_WithDPoPAndBearerResponse_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, SuccessBody);
+        var client = CreateClient(handler, ["ES256"], true, DPoPContext.EcKey);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.RequestTokenAsync(
+                CreateRegistration(DPoPTestContext.KeyRingName),
+                new RefreshTokenRequest("old-rt"),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task RequestTokenAsync_WithPinnedThumbprint_UsesThatKey()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, DPoPBody);
+        var client = CreateClient(
+            handler,
+            ["ES256", "PS256"],
+            true,
+            DPoPContext.EcKey,
+            DPoPContext.RsaKey
+        );
+        var rsaThumbprint = DPoPContext.Thumbprint(DPoPContext.RsaKey);
+
+        var result = await client.RequestTokenAsync(
+            CreateRegistration(DPoPTestContext.KeyRingName),
+            new RefreshTokenRequest("old-rt") { DPoPJwkThumbprint = rsaThumbprint },
+            CancellationToken.None
+        );
+
+        var proof = Assert.Single(handler.Requests).DPoP;
+        Assert.NotNull(proof);
+        Assert.Equal(
+            "RSA",
+            DPoPTestContext.DecodeHeader(proof).GetProperty("jwk").GetProperty("kty").GetString()
+        );
+        Assert.Equal(rsaThumbprint, result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public async Task RequestTokenAsync_WhenProviderLacksDPoP_SendsNoProof()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, SuccessBody);
+        var client = CreateClient(handler, null, true, DPoPContext.EcKey);
+
+        var result = await client.RequestTokenAsync(
+            CreateRegistration(DPoPTestContext.KeyRingName),
+            new RefreshTokenRequest("old-rt"),
+            CancellationToken.None
+        );
+
+        Assert.Null(Assert.Single(handler.Requests).DPoP);
+        Assert.Null(result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public async Task RequestTokenAsync_WhenDPoPBoundAndProviderLacksDPoP_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, SuccessBody);
+        var client = CreateClient(handler, null, false, DPoPContext.EcKey);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.RequestTokenAsync(
+                CreateRegistration(DPoPTestContext.KeyRingName, dpopBound: true),
+                new RefreshTokenRequest("old-rt"),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task RequestTokenAsync_WithUnknownPinnedThumbprint_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, DPoPBody);
+        var client = CreateClient(handler, ["ES256"], false, DPoPContext.EcKey);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await client.RequestTokenAsync(
+                CreateRegistration(DPoPTestContext.KeyRingName),
+                new RefreshTokenRequest("old-rt") { DPoPJwkThumbprint = "unknown" },
+                CancellationToken.None
+            )
+        );
+
+        Assert.Empty(handler.Requests);
     }
 
     #endregion

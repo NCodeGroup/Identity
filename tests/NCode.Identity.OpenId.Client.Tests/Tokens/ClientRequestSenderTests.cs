@@ -21,14 +21,21 @@ using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
-public class ClientRequestSenderTests : BaseTests
+public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 {
     private const string Endpoint = "https://op.example.test/token";
+
+    private DPoPTestContext DPoPContext { get; } = new();
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync() => await DPoPContext.DisposeAsync();
 
     private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
 
@@ -183,6 +190,161 @@ public class ClientRequestSenderTests : BaseTests
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal("a=b", request.Body);
+    }
+
+    private Mock<IClientAuthenticator> CreateFormAuthenticatorMock()
+    {
+        var mock = CreateAuthenticatorMock();
+        mock.Setup(x =>
+                x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
+            )
+            .Callback<ClientAuthenticationContext, CancellationToken>(
+                (context, _) =>
+                    context.Parameters.Add(new KeyValuePair<string, string>("auth", "1"))
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        return mock;
+    }
+
+    private ValueTask<ProviderHttpResponse> PostWithDPoPAsync(
+        ClientRequestSender sender,
+        bool withKey
+    ) =>
+        sender.PostFormAsync(
+            CreateRegistration(),
+            new OpenIdProviderMetadata(),
+            Endpoint,
+            [new KeyValuePair<string, string>("a", "b")],
+            includeClientId: false,
+            withKey ? DPoPContext.CreateProofKey(DPoPContext.EcKey) : null,
+            CancellationToken.None
+        );
+
+    [Fact]
+    public async Task PostFormAsync_WithDPoPKey_SendsProofHeader()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await PostWithDPoPAsync(sender, withKey: true);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.NotNull(request.DPoP);
+        var payload = DPoPTestContext.DecodePayload(request.DPoP);
+        Assert.Equal("POST", payload.GetProperty("htm").GetString());
+        Assert.Equal(Endpoint, payload.GetProperty("htu").GetString());
+        Assert.False(payload.TryGetProperty("nonce", out _));
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WithoutDPoPKey_SendsNoProofHeader()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await PostWithDPoPAsync(sender, withKey: false);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Null(request.DPoP);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WhenUseDPoPNonce_RetriesOnceWithNonce()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Sequence(
+            StubHttpMessageHandler.CreateResponse(
+                HttpStatusCode.BadRequest,
+                """{"error":"use_dpop_nonce"}""",
+                "n-1"
+            ),
+            StubHttpMessageHandler.CreateResponse(HttpStatusCode.OK, "{}")
+        );
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        var response = await PostWithDPoPAsync(sender, withKey: true);
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal(2, handler.Requests.Count);
+        var proof = handler.Requests[1].DPoP;
+        Assert.NotNull(proof);
+        var payload = DPoPTestContext.DecodePayload(proof);
+        Assert.Equal("n-1", payload.GetProperty("nonce").GetString());
+        Assert.Equal("a=b&auth=1", handler.Requests[0].Body);
+        Assert.Equal("a=b&auth=1", handler.Requests[1].Body);
+        mockAuthenticator.Verify(
+            x =>
+                x.AuthenticateAsync(
+                    It.IsAny<ClientAuthenticationContext>(),
+                    CancellationToken.None
+                ),
+            Times.Exactly(2)
+        );
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WhenUseDPoPNonceTwice_ReturnsSecondError()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Sequence(
+            StubHttpMessageHandler.CreateResponse(
+                HttpStatusCode.BadRequest,
+                """{"error":"use_dpop_nonce"}""",
+                "n-1"
+            ),
+            StubHttpMessageHandler.CreateResponse(
+                HttpStatusCode.BadRequest,
+                """{"error":"use_dpop_nonce"}""",
+                "n-2"
+            )
+        );
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        var response = await PostWithDPoPAsync(sender, withKey: true);
+
+        Assert.Equal(400, response.StatusCode);
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WhenUseDPoPNonceWithoutNonceHeader_DoesNotRetry()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Sequence(
+            StubHttpMessageHandler.CreateResponse(
+                HttpStatusCode.BadRequest,
+                """{"error":"use_dpop_nonce"}"""
+            )
+        );
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        var response = await PostWithDPoPAsync(sender, withKey: true);
+
+        Assert.Equal(400, response.StatusCode);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WhenSuccessCarriesNonce_RecordsIt()
+    {
+        var mockAuthenticator = CreateFormAuthenticatorMock();
+        var handler = StubHttpMessageHandler.Sequence(
+            StubHttpMessageHandler.CreateResponse(HttpStatusCode.OK, "{}", "n-2")
+        );
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await PostWithDPoPAsync(sender, withKey: true);
+
+        Assert.Equal("n-2", DPoPContext.NonceCache.Get(new Uri(Endpoint)));
     }
 
     [Fact]

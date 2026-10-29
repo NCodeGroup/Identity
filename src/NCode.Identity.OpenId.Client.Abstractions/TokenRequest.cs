@@ -43,6 +43,13 @@ public abstract class TokenRequest
     public List<string> Resources { get; init; } = [];
 
     /// <summary>
+    /// Gets the RFC 7638 thumbprint (<c>jkt</c>) of the DPoP key that must sign this request's proof, as an earlier
+    /// <see cref="TokenResult"/> or <c>AuthorizationRequestResult</c> reported it. <see langword="null"/> uses the
+    /// current key of <c>ClientRegistration.DPoPKeyRing</c>. When set, a proof from that key is required.
+    /// </summary>
+    public string? DPoPJwkThumbprint { get; init; }
+
+    /// <summary>
     /// Adds the parameters that are specific to this grant type.
     /// </summary>
     /// <param name="parameters">The collection to add the parameters to.</param>

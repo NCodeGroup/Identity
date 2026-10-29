@@ -18,6 +18,7 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.ProofOfPossession;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 
@@ -26,12 +27,15 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// </summary>
 internal class DefaultTokenClient(
     IProviderMetadataResolver metadataResolver,
-    ClientRequestSender sender
+    ClientRequestSender sender,
+    DPoPKeyResolver dpopKeyResolver
 ) : ITokenClient
 {
     private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
 
     private ClientRequestSender Sender { get; } = sender;
+
+    private DPoPKeyResolver DPoPKeyResolver { get; } = dpopKeyResolver;
 
     /// <inheritdoc />
     public async ValueTask<TokenResult> RequestTokenAsync(
@@ -71,11 +75,15 @@ internal class DefaultTokenClient(
                 new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Resource, resource)
             );
 
+        var dpopKey = DPoPKeyResolver.Resolve(registration, metadata, request.DPoPJwkThumbprint);
+
         var response = await Sender.PostFormAsync(
             registration,
             metadata,
             tokenEndpoint,
             parameters,
+            includeClientId: false,
+            dpopKey,
             cancellationToken
         );
 
@@ -108,7 +116,21 @@ internal class DefaultTokenClient(
                 );
             }
 
-            return new TokenResult(tokenResponse);
+            if (
+                dpopKey is not null
+                && !string.Equals(
+                    tokenResponse.TokenType,
+                    OpenIdProtocol.TokenTypes.DPoP,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                throw new OpenIdProviderException(
+                    $"The token endpoint answered with token_type '{tokenResponse.TokenType}' to a request with a DPoP proof; a DPoP-bound access token was expected."
+                );
+            }
+
+            return new TokenResult(tokenResponse) { DPoPJwkThumbprint = dpopKey?.JwkThumbprint };
         }
 
         if (ProtocolErrorReader.TryRead(response, out var error))

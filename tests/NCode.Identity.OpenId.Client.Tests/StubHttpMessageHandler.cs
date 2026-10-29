@@ -43,6 +43,27 @@ internal sealed class StubHttpMessageHandler(
                 )
         );
 
+    public static StubHttpMessageHandler Sequence(params HttpResponseMessage[] responses)
+    {
+        var queue = new Queue<HttpResponseMessage>(responses);
+        return new((_, _) => Task.FromResult(queue.Dequeue()));
+    }
+
+    public static HttpResponseMessage CreateResponse(
+        HttpStatusCode statusCode,
+        string body,
+        string? dpopNonce = null
+    )
+    {
+        var response = new HttpResponseMessage(statusCode)
+        {
+            Content = new StringContent(body, SecureEncoding.UTF8, "application/json"),
+        };
+        if (dpopNonce is not null)
+            response.Headers.Add("DPoP-Nonce", dpopNonce);
+        return response;
+    }
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken
@@ -58,7 +79,8 @@ internal sealed class StubHttpMessageHandler(
                 request.RequestUri,
                 request.Headers.Authorization?.ToString(),
                 request.Headers.Accept.ToString(),
-                body
+                body,
+                request.Headers.TryGetValues("DPoP", out var dpop) ? dpop.Single() : null
             )
         );
 

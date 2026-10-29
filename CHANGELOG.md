@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client binds tokens with DPoP.** `ClientRegistration.DPoPKeyRing` names the proof key ring,
+  and `DPoPBoundAccessTokens` makes DPoP required. Token requests carry proofs and require a `DPoP` token type, and
+  authorization requests send `dpop_jkt`. A `use_dpop_nonce` challenge is retried once, with nonces cached per origin.
+  `TokenRequest`, `TokenResult` and `AuthorizationRequestResult` carry `DPoPJwkThumbprint`, and `IDPoPProofFactory`
+  creates resource proofs. `OpenIdProviderMetadata.DpopSigningAlgValuesSupported` is renamed
+  `DPoPSigningAlgValuesSupported`
+  ([ADR-0286](docs/decisions/0286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md),
+  issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
+
 - **A JSON Web Key Set types the keys of contributed key types.** The constructor
   `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and
   `JsonWebKeySet.Parse(string, IEnumerable<JsonWebKeyTypeDescriptor>)` build each key whose `kty` names a supplied
@@ -109,7 +118,7 @@ change to the public API is a **major** version bump.
   `ITokenRevocationClient` makes revocation requests; `IProviderMetadataResolver` and `IProviderKeySetResolver` resolve
   and cache a provider's discovery document and JWKS. Client authentication is an open `IClientAuthenticator`
   collection with `client_secret_basic`, `client_secret_post` and `private_key_jwt`. A `ClientRegistration` names its
-  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. DPoP and mTLS remain
+  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. mTLS remains
   in phase 1b, and the BFF itself is not yet delivered
   ([ADR-0270](docs/decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 

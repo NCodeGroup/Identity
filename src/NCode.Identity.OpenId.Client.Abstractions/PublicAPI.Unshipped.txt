@@ -43,6 +43,8 @@ NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResu
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(System.Uri! authorizationUri) -> void
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationRequestResult(System.Uri! authorizationUri, string! requestUri, int expiresIn) -> void
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.AuthorizationUri.get -> System.Uri?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.AuthorizationRequestResult.DPoPJwkThumbprint.init -> void
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.ExpiresIn.get -> int?
 NCode.Identity.OpenId.Client.AuthorizationRequestResult.IsPushed.get -> bool
@@ -64,6 +66,10 @@ NCode.Identity.OpenId.Client.ClientRegistration.BackchannelLogoutSessionRequired
 NCode.Identity.OpenId.Client.ClientRegistration.BackchannelLogoutSessionRequired.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.ClientId.get -> string!
 NCode.Identity.OpenId.Client.ClientRegistration.ClientRegistration(string! authority, string! clientId, string! authenticationMethod) -> void
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPBoundAccessTokens.get -> bool
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPBoundAccessTokens.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.get -> string?
+NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
@@ -81,6 +87,9 @@ NCode.Identity.OpenId.Client.IClientAuthenticator.AuthenticateAsync(NCode.Identi
 NCode.Identity.OpenId.Client.IClientAuthenticator.MethodName.get -> string!
 NCode.Identity.OpenId.Client.IClientKeyRingProvider
 NCode.Identity.OpenId.Client.IClientKeyRingProvider.GetKeyRing(string! keyRing) -> NCode.Identity.Secrets.Collections.ISecretKeyCollection!
+NCode.Identity.OpenId.Client.IDPoPProofFactory
+NCode.Identity.OpenId.Client.IDPoPProofFactory.CreateResourceProofAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, string! jwkThumbprint, System.Net.Http.HttpMethod! method, System.Uri! requestUri, string! accessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.OpenId.Client.IDPoPProofFactory.RecordNonce(System.Uri! requestUri, string! nonce) -> void
 NCode.Identity.OpenId.Client.IIdTokenValidator
 NCode.Identity.OpenId.Client.IIdTokenValidator.ValidateAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.IdTokenValidationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.IdTokenValidationResult!>
 NCode.Identity.OpenId.Client.ILogoutTokenValidator
@@ -151,8 +160,8 @@ NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSupported.g
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.init -> void
-NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DpopSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
-NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DpopSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.get -> string?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
@@ -208,6 +217,8 @@ NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.SubjectToken.get -> strin
 NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.SubjectTokenType.get -> string!
 NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.TokenExchangeTokenRequest(string! subjectToken, string! subjectTokenType) -> void
 NCode.Identity.OpenId.Client.TokenRequest
+NCode.Identity.OpenId.Client.TokenRequest.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.TokenRequest.DPoPJwkThumbprint.init -> void
 NCode.Identity.OpenId.Client.TokenRequest.Resources.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.OpenId.Client.TokenRequest.Resources.init -> void
 NCode.Identity.OpenId.Client.TokenRequest.Scope.get -> string?
@@ -232,6 +243,8 @@ NCode.Identity.OpenId.Client.TokenResponse.TokenResponse() -> void
 NCode.Identity.OpenId.Client.TokenResponse.TokenType.get -> string?
 NCode.Identity.OpenId.Client.TokenResponse.TokenType.init -> void
 NCode.Identity.OpenId.Client.TokenResult
+NCode.Identity.OpenId.Client.TokenResult.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.TokenResult.DPoPJwkThumbprint.init -> void
 NCode.Identity.OpenId.Client.TokenResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
 NCode.Identity.OpenId.Client.TokenResult.IsSuccess.get -> bool
 NCode.Identity.OpenId.Client.TokenResult.Response.get -> NCode.Identity.OpenId.Client.TokenResponse?

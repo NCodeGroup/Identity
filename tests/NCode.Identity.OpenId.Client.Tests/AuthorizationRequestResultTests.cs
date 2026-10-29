@@ -94,4 +94,24 @@ public class AuthorizationRequestResultTests
     }
 
     #endregion
+
+    #region DPoPJwkThumbprint Tests
+
+    [Fact]
+    public void DPoPJwkThumbprint_WhenNotSet_ThenNull()
+    {
+        var result = new AuthorizationRequestResult(CreateUri());
+
+        Assert.Null(result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public void DPoPJwkThumbprint_WhenSet_ThenValue()
+    {
+        var result = new AuthorizationRequestResult(CreateUri()) { DPoPJwkThumbprint = "jkt-1" };
+
+        Assert.Equal("jkt-1", result.DPoPJwkThumbprint);
+    }
+
+    #endregion
 }

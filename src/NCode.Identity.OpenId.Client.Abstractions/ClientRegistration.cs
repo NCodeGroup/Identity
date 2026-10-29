@@ -124,6 +124,20 @@ public sealed class ClientRegistration(
     /// </summary>
     public bool RequirePushedAuthorizationRequests { get; init; }
 
+    /// <summary>
+    /// Gets the name of the keyed <c>ISecretKeyCollectionProvider</c> whose asymmetric keys sign DPoP proofs
+    /// (RFC 9449). <see langword="null"/>, the default, sends no proofs unless DPoP is required. A key ring apart
+    /// from <see cref="KeyRing"/> is recommended.
+    /// </summary>
+    public string? DPoPKeyRing { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the client registered <c>dpop_bound_access_tokens</c> (RFC 9449 §5.2), so that
+    /// every token request must carry a DPoP proof and a provider without DPoP support is an error. The default is
+    /// <see langword="false"/>.
+    /// </summary>
+    public bool DPoPBoundAccessTokens { get; init; }
+
     private static string[]? ValidateAlgorithms(IReadOnlyList<string>? value, string description)
     {
         if (value is null)

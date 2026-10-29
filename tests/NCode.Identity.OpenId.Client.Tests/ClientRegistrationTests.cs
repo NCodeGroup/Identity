@@ -253,4 +253,66 @@ public class ClientRegistrationTests
     }
 
     #endregion
+
+    #region DPoPKeyRing Tests
+
+    [Fact]
+    public void DPoPKeyRing_WhenNotSet_ThenNull()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.Null(registration.DPoPKeyRing);
+    }
+
+    [Fact]
+    public void DPoPKeyRing_WhenSet_ThenValue()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            DPoPKeyRing = "dpop",
+        };
+
+        Assert.Equal("dpop", registration.DPoPKeyRing);
+    }
+
+    #endregion
+
+    #region DPoPBoundAccessTokens Tests
+
+    [Fact]
+    public void DPoPBoundAccessTokens_WhenNotSet_ThenFalse()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.False(registration.DPoPBoundAccessTokens);
+    }
+
+    [Fact]
+    public void DPoPBoundAccessTokens_WhenSet_ThenTrue()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            DPoPBoundAccessTokens = true,
+        };
+
+        Assert.True(registration.DPoPBoundAccessTokens);
+    }
+
+    #endregion
 }

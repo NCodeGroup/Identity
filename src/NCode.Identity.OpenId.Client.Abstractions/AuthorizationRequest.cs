@@ -46,6 +46,7 @@ public sealed class AuthorizationRequest(string redirectUri, string state, strin
         OpenIdProtocol.Parameters.ClientSecret,
         OpenIdProtocol.Parameters.ClientAssertion,
         OpenIdProtocol.Parameters.ClientAssertionType,
+        OpenIdProtocol.Parameters.DPoPJwkThumbprint,
     };
 
     private IReadOnlyDictionary<string, string>? _additionalParameters;
@@ -86,8 +87,8 @@ public sealed class AuthorizationRequest(string redirectUri, string state, strin
     public List<string> Resources { get; init; } = [];
 
     /// <summary>
-    /// Gets extension parameters such as <c>prompt</c>, <c>max_age</c>, <c>login_hint</c> or <c>dpop_jkt</c>.
-    /// Names the client writes itself are rejected with <see cref="ArgumentException"/>. The dictionary is copied.
+    /// Gets extension parameters such as <c>prompt</c>, <c>max_age</c> or <c>login_hint</c>. The client writes
+    /// <c>dpop_jkt</c> itself. Names the client writes itself are rejected with <see cref="ArgumentException"/>. The dictionary is copied.
     /// </summary>
     public IReadOnlyDictionary<string, string>? AdditionalParameters
     {

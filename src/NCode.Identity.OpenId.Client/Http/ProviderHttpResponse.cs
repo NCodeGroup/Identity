@@ -23,4 +23,10 @@ namespace NCode.Identity.OpenId.Client.Http;
 /// <summary>
 /// The status code and the parsed JSON body (when the response is JSON) of a provider response.
 /// </summary>
-internal readonly record struct ProviderHttpResponse(int StatusCode, JsonElement? Json);
+internal readonly record struct ProviderHttpResponse(int StatusCode, JsonElement? Json)
+{
+    /// <summary>
+    /// The <c>DPoP-Nonce</c> response header, if any (RFC 9449 §8).
+    /// </summary>
+    public string? DPoPNonce { get; init; }
+}

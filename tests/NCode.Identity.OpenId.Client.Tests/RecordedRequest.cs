@@ -24,5 +24,6 @@ internal sealed record RecordedRequest(
     Uri? RequestUri,
     string? Authorization,
     string Accept,
-    string? Body
+    string? Body,
+    string? DPoP
 );

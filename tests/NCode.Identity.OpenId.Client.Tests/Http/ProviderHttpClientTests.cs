@@ -18,6 +18,7 @@
 
 using System.Net;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
 using Xunit;
@@ -164,6 +165,42 @@ public class ProviderHttpClientTests : BaseTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             client.SendAsync(CreateRequest(), cancellationSource.Token).AsTask()
         );
+    }
+
+    [Fact]
+    public async Task SendAsync_WithDPoPNonceHeader_ReturnsNonce()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) =>
+                Task.FromResult(
+                    new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent(
+                            """{"error":"use_dpop_nonce"}""",
+                            SecureEncoding.UTF8,
+                            "application/json"
+                        ),
+                        Headers = { { "DPoP-Nonce", "n-1" } },
+                    }
+                )
+        );
+        var client = CreateClient(handler);
+
+        var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.Equal(400, response.StatusCode);
+        Assert.Equal("n-1", response.DPoPNonce);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithoutDPoPNonceHeader_ReturnsNullNonce()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, """{"issuer":"x"}""");
+        var client = CreateClient(handler);
+
+        var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.Null(response.DPoPNonce);
     }
 
     #endregion

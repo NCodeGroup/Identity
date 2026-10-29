@@ -100,4 +100,19 @@ public sealed class BffOptions
     /// Gets or sets the anti-forgery header options. The configuration section is <c>Bff:Antiforgery</c>.
     /// </summary>
     public BffAntiforgeryOptions Antiforgery { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the session lifetime and cookie options. The configuration section is <c>Bff:Session</c>.
+    /// </summary>
+    public BffSessionOptions Session { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the DPoP options. The configuration section is <c>Bff:DPoP</c>.
+    /// </summary>
+    public BffDPoPOptions DPoP { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the token refresh options. The configuration section is <c>Bff:Tokens</c>.
+    /// </summary>
+    public BffTokenOptions Tokens { get; set; } = new();
 }

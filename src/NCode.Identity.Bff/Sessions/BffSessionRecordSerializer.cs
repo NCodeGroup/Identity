@@ -16,9 +16,11 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.Bff.Serialization;
 
 namespace NCode.Identity.Bff.Sessions;
@@ -40,21 +42,62 @@ internal static class BffSessionRecordSerializer
         JsonSerializer.SerializeToUtf8Bytes(metadata, BffJsonContext.Default.BffSessionMetadata);
 
     /// <summary>
-    /// Writes the stored value for a session.
+    /// Writes the metadata as the JSON bytes that the envelope holds in plaintext.
     /// </summary>
-    public static byte[] Serialize(BffSessionMetadata metadata, ReadOnlySpan<byte> protectedPayload)
+    /// <param name="metadata">The metadata to write.</param>
+    /// <param name="destination">The buffer that receives the JSON bytes.</param>
+    public static void WriteMetadata(BffSessionMetadata metadata, IBufferWriter<byte> destination)
     {
-        var metadataBytes = SerializeMetadata(metadata);
+        using var writer = new Utf8JsonWriter(destination);
+        JsonSerializer.Serialize(writer, metadata, BffJsonContext.Default.BffSessionMetadata);
+    }
 
-        var result = new byte[HeaderLength + metadataBytes.Length + protectedPayload.Length];
-        result[0] = FormatVersion;
-        BinaryPrimitives.WriteInt32BigEndian(
-            result.AsSpan(sizeof(byte), sizeof(int)),
-            metadataBytes.Length
+    /// <summary>
+    /// Writes the stored value for a session into pooled memory.
+    /// </summary>
+    /// <param name="metadata">The plaintext metadata of the session.</param>
+    /// <param name="protectedPayload">The protected payload of the session.</param>
+    /// <param name="value">The stored value, which is valid until the returned rental is disposed.</param>
+    /// <returns>
+    /// The rental that owns <paramref name="value"/>; dispose it after the store has taken the value.
+    /// </returns>
+    public static IDisposable Serialize(
+        BffSessionMetadata metadata,
+        ReadOnlySpan<byte> protectedPayload,
+        out ReadOnlyMemory<byte> value
+    )
+    {
+        using var metadataBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        WriteMetadata(metadata, metadataBuffer);
+
+        using var metadataLease = metadataBuffer.GetSpanLease(isSensitive: false);
+        var metadataSpan = metadataLease.Span;
+
+        var rental = BufferFactory.Rent(
+            HeaderLength + metadataSpan.Length + protectedPayload.Length,
+            isSensitive: false,
+            out Memory<byte> memory
         );
-        metadataBytes.CopyTo(result.AsSpan(HeaderLength));
-        protectedPayload.CopyTo(result.AsSpan(HeaderLength + metadataBytes.Length));
-        return result;
+
+        try
+        {
+            var span = memory.Span;
+            span[0] = FormatVersion;
+            BinaryPrimitives.WriteInt32BigEndian(
+                span.Slice(sizeof(byte), sizeof(int)),
+                metadataSpan.Length
+            );
+            metadataSpan.CopyTo(span[HeaderLength..]);
+            protectedPayload.CopyTo(span[(HeaderLength + metadataSpan.Length)..]);
+        }
+        catch
+        {
+            rental.Dispose();
+            throw;
+        }
+
+        value = memory;
+        return rental;
     }
 
     /// <summary>

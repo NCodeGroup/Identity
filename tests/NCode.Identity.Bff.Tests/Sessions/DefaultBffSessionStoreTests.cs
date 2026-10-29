@@ -187,10 +187,14 @@ public class DefaultBffSessionStoreTests : BaseTests
     [Fact]
     public async Task GetAsync_Present_ReturnsTheRecordWithTheStoredVersion()
     {
-        var value = BffSessionRecordSerializer.Serialize(CreateMetadata(), new byte[] { 9, 8 });
+        using var lease = BffSessionRecordSerializer.Serialize(
+            CreateMetadata(),
+            new byte[] { 9, 8 },
+            out var value
+        );
         MockValues
             .Setup(x => x.GetAsync("bff:session:" + StoreKey, CancellationToken.None))
-            .ReturnsAsync(new ExpiringValue(value, 4))
+            .ReturnsAsync(new ExpiringValue(value.ToArray(), 4))
             .Verifiable();
 
         var record = await Store.GetAsync(StoreKey, CancellationToken.None);

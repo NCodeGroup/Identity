@@ -37,9 +37,10 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         {
             var metadata = record.Metadata;
             var key = BffStoreKeys.Session(record.StoreKey);
-            var value = BffSessionRecordSerializer.Serialize(
+            using var lease = BffSessionRecordSerializer.Serialize(
                 metadata,
-                record.ProtectedPayload.Span
+                record.ProtectedPayload.Span,
+                out var value
             );
             var expiresWhen = GetExpiresWhen(metadata);
 
@@ -115,9 +116,10 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         {
             var metadata = record.Metadata;
             var key = BffStoreKeys.Session(record.StoreKey);
-            var value = BffSessionRecordSerializer.Serialize(
+            using var lease = BffSessionRecordSerializer.Serialize(
                 metadata,
-                record.ProtectedPayload.Span
+                record.ProtectedPayload.Span,
+                out var value
             );
             var expiresWhen = GetExpiresWhen(metadata);
 

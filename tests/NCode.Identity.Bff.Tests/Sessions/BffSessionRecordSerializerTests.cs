@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using NCode.Identity.Bff.Sessions;
 using Xunit;
@@ -37,6 +38,33 @@ public class BffSessionRecordSerializerTests : BaseTests
             IdleExpiresAt = new DateTimeOffset(2026, 1, 2, 4, 4, 6, TimeSpan.Zero),
         };
 
+    #region Serialize Tests
+
+    [Fact]
+    public void Serialize_Value_StartsWithTheFormatByteAndMetadataLength()
+    {
+        var metadata = CreateMetadata();
+        byte[] payload = [1, 2, 3, 4];
+        var expectedMetadata = new ArrayBufferWriter<byte>();
+        BffSessionRecordSerializer.WriteMetadata(metadata, expectedMetadata);
+
+        using var lease = BffSessionRecordSerializer.Serialize(metadata, payload, out var value);
+
+        Assert.Equal((byte)1, value.Span[0]);
+        Assert.Equal(
+            expectedMetadata.WrittenCount,
+            BinaryPrimitives.ReadInt32BigEndian(value.Span.Slice(1, 4))
+        );
+        Assert.Equal(1 + 4 + expectedMetadata.WrittenCount + payload.Length, value.Length);
+        Assert.True(
+            value
+                .Span.Slice(5, expectedMetadata.WrittenCount)
+                .SequenceEqual(expectedMetadata.WrittenSpan)
+        );
+    }
+
+    #endregion
+
     #region TryDeserialize Tests
 
     [Fact]
@@ -45,7 +73,7 @@ public class BffSessionRecordSerializerTests : BaseTests
         var metadata = CreateMetadata();
         byte[] payload = [1, 2, 3, 4];
 
-        var value = BffSessionRecordSerializer.Serialize(metadata, payload);
+        using var lease = BffSessionRecordSerializer.Serialize(metadata, payload, out var value);
 
         Assert.True(
             BffSessionRecordSerializer.TryDeserialize(value, out var actual, out var actualPayload)
@@ -60,10 +88,15 @@ public class BffSessionRecordSerializerTests : BaseTests
     [Fact]
     public void TryDeserialize_WrongFormatByte_ReturnsFalse()
     {
-        var value = BffSessionRecordSerializer.Serialize(CreateMetadata(), [1]);
-        value[0] = 2;
+        using var lease = BffSessionRecordSerializer.Serialize(
+            CreateMetadata(),
+            [1],
+            out var value
+        );
+        var bytes = value.ToArray();
+        bytes[0] = 2;
 
-        Assert.False(BffSessionRecordSerializer.TryDeserialize(value, out var metadata, out _));
+        Assert.False(BffSessionRecordSerializer.TryDeserialize(bytes, out var metadata, out _));
         Assert.Null(metadata);
     }
 
@@ -78,10 +111,15 @@ public class BffSessionRecordSerializerTests : BaseTests
     [Fact]
     public void TryDeserialize_LengthPastTheEnd_ReturnsFalse()
     {
-        var value = BffSessionRecordSerializer.Serialize(CreateMetadata(), [1]);
-        BinaryPrimitives.WriteInt32BigEndian(value.AsSpan(1, 4), value.Length);
+        using var lease = BffSessionRecordSerializer.Serialize(
+            CreateMetadata(),
+            [1],
+            out var value
+        );
+        var bytes = value.ToArray();
+        BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(1, 4), bytes.Length);
 
-        Assert.False(BffSessionRecordSerializer.TryDeserialize(value, out _, out _));
+        Assert.False(BffSessionRecordSerializer.TryDeserialize(bytes, out _, out _));
     }
 
     [Fact]

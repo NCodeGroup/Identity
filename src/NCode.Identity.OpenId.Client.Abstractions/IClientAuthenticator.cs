@@ -37,6 +37,13 @@ public interface IClientAuthenticator
     string MethodName { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the method authenticates the client with its TLS client certificate (RFC 8705 §2).
+    /// When <see langword="true"/>, the request goes over a connection that presents the certificate from the client's
+    /// key ring, to the provider's mTLS endpoint alias when it has one.
+    /// </summary>
+    bool UsesMutualTls { get; }
+
+    /// <summary>
     /// Adds the client's credentials to the request headers or form parameters.
     /// </summary>
     /// <param name="context">The request to authenticate.</param>

@@ -61,6 +61,8 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     {
         public string MethodName => "custom";
 
+        public bool UsesMutualTls => false;
+
         public ValueTask AuthenticateAsync(
             ClientAuthenticationContext context,
             CancellationToken cancellationToken

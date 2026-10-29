@@ -80,15 +80,18 @@ internal sealed class DefaultPersistedPayloadSerializer : IPersistedPayloadSeria
     }
 
     /// <inheritdoc />
-    public TPayload Deserialize<TPayload>(JsonElement document, JsonSerializerOptions jsonOptions)
+    public TPayload Deserialize<TPayload>(
+        JsonElement jsonElement,
+        JsonSerializerOptions jsonOptions
+    )
     {
         var storedVersion = DefaultVersion;
         JsonNode? payloadNode;
 
         if (
-            document.ValueKind == JsonValueKind.Object
-            && document.TryGetPropertyValue<int>(VersionPropertyName, out storedVersion)
-            && document.TryGetProperty(PayloadPropertyName, out var payloadProperty)
+            jsonElement.ValueKind == JsonValueKind.Object
+            && jsonElement.TryGetPropertyValue<int>(VersionPropertyName, out storedVersion)
+            && jsonElement.TryGetProperty(PayloadPropertyName, out var payloadProperty)
         )
         {
             payloadNode = JsonSerializer.SerializeToNode(payloadProperty, jsonOptions);
@@ -97,7 +100,7 @@ internal sealed class DefaultPersistedPayloadSerializer : IPersistedPayloadSeria
         {
             // A document written before the schema-versioned envelope existed; read it as-is at version 1.
             storedVersion = DefaultVersion;
-            payloadNode = JsonSerializer.SerializeToNode(document, jsonOptions);
+            payloadNode = JsonSerializer.SerializeToNode(jsonElement, jsonOptions);
         }
 
         var currentVersion = GetCurrentVersion(typeof(TPayload));

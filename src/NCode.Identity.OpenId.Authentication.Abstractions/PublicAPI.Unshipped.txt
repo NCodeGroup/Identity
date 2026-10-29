@@ -1683,7 +1683,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.CibaGrant.ExtensionD
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceCodeGrant.ExtensionData.get -> System.Collections.Generic.IDictionary<string!, System.Text.Json.JsonElement>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.DeviceCodeGrant.ExtensionData.init -> void
 NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer
-NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer.Deserialize<TPayload>(System.Text.Json.JsonElement document, System.Text.Json.JsonSerializerOptions! jsonOptions) -> TPayload
+NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer.Deserialize<TPayload>(System.Text.Json.JsonElement jsonElement, System.Text.Json.JsonSerializerOptions! jsonOptions) -> TPayload
 NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadSerializer.Serialize<TPayload>(TPayload payload, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadUpcaster
 NCode.Identity.OpenId.Authentication.Persistence.IPersistedPayloadUpcaster.FromVersion.get -> int

@@ -72,9 +72,10 @@ tenant that declares nothing is `production`.**
    it) and to `ncode.identity.rate_limiting.requests`. Protocol audit events (`DefaultAuditEventRecorder`) set it;
    management audit events leave it null.
 10. **The hosts declare their own environments.** `appsettings.Development.json`, which the integration-test host also
-    loads, declares `OpenId:Server:Settings:environment_type` as `development`; `appsettings.Conformance.json` declares
-    `testing`, because the developer seed uses `http://localhost` redirect URIs and conformance needs anonymous
-    registration.
+    loads, declares `OpenId:Server:Settings:environment_type` as `development`, so a developer sees the environment
+    banner, can delete a scratch tenant, and a host that lets clients register anonymously keeps that setting;
+    `appsettings.Conformance.json` declares `testing`, because the conformance suite registers its clients
+    anonymously, which the `production` profile forbids.
 
 ## Options considered
 

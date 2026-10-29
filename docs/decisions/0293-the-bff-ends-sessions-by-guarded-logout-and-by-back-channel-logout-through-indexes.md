@@ -31,9 +31,10 @@ indexes, ends them, and only then records the token.**
 2. **The return URL.** `returnUrl` is optional, defaults to `/`, must appear at most once and must be allow-listed in
    `Bff:ReturnUrls`; otherwise logout answers `400`.
 3. **Idempotent.** Without a session, logout redirects to the return URL, so a second click or a stale tab is harmless.
-4. **Ending the session.** The refresh token is revoked (RFC 7009) on a best-effort basis: a failure is logged and never
-   blocks the logout. The session is then removed with `CancellationToken.None`, so a client that disconnects cannot
-   leave it behind, the cookie is deleted, and the end is audited as `bff.session.ended` with `logged_out`.
+4. **Ending the session.** The session is removed with `CancellationToken.None` and the cookie is deleted first, so a
+   client that disconnects cannot leave the session behind. The refresh token is then revoked (RFC 7009) with
+   `CancellationToken.None`, bounded by the client's request timeout, and any failure, a cancellation included, is
+   logged and never fails the logout. The end is audited as `bff.session.ended` with `logged_out`.
 5. **The end-session redirect.** When the provider advertises `end_session_endpoint`, the browser is redirected there
    with `id_token_hint`, `client_id`, `post_logout_redirect_uri` (the absolute return URL) and a random `state`.
    Without the endpoint, or when the provider cannot be reached, the browser is redirected to the return URL; the local

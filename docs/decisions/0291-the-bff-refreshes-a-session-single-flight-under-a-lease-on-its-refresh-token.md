@@ -17,20 +17,23 @@ token. It also settles design §11.2, refresh-token lifetime discovery.
 
 ## Decision
 
-**A refresh token is presented to the provider at most once: inside a replica a striped lock serializes the refreshes of
-a session, and across replicas a lease keyed by the refresh token's fingerprint admits one refresher while the others
-wait for its result.**
+**A refresh token is presented to the provider at most once: inside a replica a lock per session serializes the
+refreshes of that session, and across replicas a lease keyed by the refresh token's fingerprint admits one refresher
+while the others wait for its result.**
 
-1. **The local lock.** 64 striped `SemaphoreSlim`s, indexed by the session's store key, serialize refreshes inside a
-   replica, so a replica never takes its own lease twice.
+1. **The local lock.** A lock per session store key (`BffRefreshLocks`, reference-counted and dropped when its last
+   waiter leaves) serializes a session's refreshes inside a replica, so a replica never takes its own lease twice and a
+   wait on another replica's lease delays only that session.
 2. **The lease.** Across replicas, the lease key is `{storeKey}:{SHA-256 fingerprint of the refresh token}`, so it
    guards the invariant itself: one refresh token, one presentation. The lease is an `IExpiringValueSet` entry held
    through `IBffSessionStore` (`bff:lease:`), not an `IExpiringKeySet` key, because it must be released when the
-   provider does not rotate. It lasts `Tokens:RefreshLeaseDuration` (40 s, at least twice the protocol client's 15 s
-   request timeout). Under the local lock the replica re-reads the session and serves a token that another request has
-   just refreshed; otherwise it takes the lease for the refresh token it read. The winner releases the lease only when
-   it finished more than 5 s before the lease expires, so it never removes a lease that expired and another replica
-   took.
+   provider does not rotate. It lasts `Tokens:RefreshLeaseDuration` (40 s, exactly twice the protocol client's 15 s
+   request timeout plus 10 seconds), and `AddIdentityBff` refuses at startup a `RefreshLeaseDuration` shorter than
+   twice `OpenIdClientOptions.RequestTimeout` plus 10 seconds, because a DPoP nonce retry sends the refresh request
+   twice under one lease. Under the local lock the replica re-reads the session and serves a token that another request
+   has just refreshed; otherwise it takes the lease for the refresh token it read. The winner releases the lease only
+   when it finished more than 5 s before the lease expires, so it never removes a lease that expired and another
+   replica took.
 3. **The losers.** A replica that cannot take the lease polls the session with backoff (50 ms, doubling to 800 ms) until
    a fresh token appears. When the refresh token changes or the lease is gone, it tries to take the lease for the
    refresh token it now reads. It gives up with `503` (`refresh_wait_timeout`) at the lease duration, and never
@@ -66,6 +69,10 @@ wait for its result.**
     at the code exchange or at a refresh, the BFF caps the session's absolute expiry and the cookie's `Max-Age` at it.
     The cap only ever shortens a session, never extends it. Without the member the session still ends at
     `Session:AbsoluteLifetime` or on `invalid_grant`.
+11. **Nothing cancels a won refresh.** Once the lease is won, the token request and the write-back run with
+    `CancellationToken.None`, bounded by the client's request timeout. A caller that aborted after the provider rotated
+    the token would leave the old refresh token in the session, and the next refresh would present it again, which the
+    provider treats as reuse.
 
 ## Options considered
 
@@ -80,6 +87,8 @@ wait for its result.**
   guarantee.
 - **Losers retrying with the old refresh token after a timeout.** Rejected: that is exactly the reuse the design
   prevents.
+- **Striped locks.** Rejected: a stripe held while waiting out another replica's lease blocks every session hashed to
+  it.
 
 ## Consequences
 

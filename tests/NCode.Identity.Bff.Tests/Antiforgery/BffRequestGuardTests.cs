@@ -134,4 +134,38 @@ public class BffRequestGuardTests : BaseTests
     }
 
     #endregion
+
+    #region CheckPage Tests
+
+    [Theory]
+    [InlineData("GET")]
+    [InlineData("HEAD")]
+    public void CheckPage_SafeMethod_ReturnsNull(string method)
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, []);
+        request.Method = method;
+
+        var reason = BffRequestGuard.CheckPage(request);
+
+        Assert.Null(reason);
+    }
+
+    [Theory]
+    [InlineData("POST")]
+    [InlineData("PUT")]
+    [InlineData("PATCH")]
+    [InlineData("DELETE")]
+    public void CheckPage_UnsafeMethod_ReturnsUnsafeMethod(string method)
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, []);
+        request.Method = method;
+
+        var reason = BffRequestGuard.CheckPage(request);
+
+        Assert.Equal(BffRequestGuard.UnsafeMethod, reason);
+    }
+
+    #endregion
 }

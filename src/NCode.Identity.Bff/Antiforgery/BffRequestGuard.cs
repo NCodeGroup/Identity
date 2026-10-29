@@ -36,6 +36,11 @@ internal static class BffRequestGuard
     /// </summary>
     public const string CrossSiteRequest = "cross_site_request";
 
+    /// <summary>
+    /// The reason returned when a request to a page uses a method other than GET or HEAD.
+    /// </summary>
+    public const string UnsafeMethod = "unsafe_method";
+
     private const string SecFetchSiteHeaderName = "Sec-Fetch-Site";
     private const string SameOrigin = "same-origin";
     private const string None = "none";
@@ -95,5 +100,22 @@ internal static class BffRequestGuard
         }
 
         return CrossSiteRequest;
+    }
+
+    /// <summary>
+    /// Checks a request to a BFF page, which accepts only the safe methods GET and HEAD because it carries no
+    /// anti-forgery header.
+    /// </summary>
+    /// <param name="request">The request to check.</param>
+    /// <returns>
+    /// <c>null</c> when the request passes; otherwise the reason it is refused.
+    /// </returns>
+    public static string? CheckPage(HttpRequest request)
+    {
+        var method = request.Method;
+        if (HttpMethods.IsGet(method) || HttpMethods.IsHead(method))
+            return null;
+
+        return UnsafeMethod;
     }
 }

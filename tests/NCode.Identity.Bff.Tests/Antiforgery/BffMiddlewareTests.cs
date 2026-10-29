@@ -186,6 +186,42 @@ public class BffMiddlewareTests : BaseTests
     }
 
     [Fact]
+    public async Task InvokeAsync_PagePost_Returns405AndSkipsNext()
+    {
+        var httpContext = CreateContext(guarded: false);
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.SetEndpoint(
+            new Endpoint(null, new EndpointMetadataCollection(new BffPageAttribute()), "page")
+        );
+        var nextCalled = false;
+        var middleware = CreateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        MockRecorder
+            .Setup(x =>
+                x.AntiforgeryRejectedAsync(
+                    httpContext,
+                    BffRequestGuard.UnsafeMethod,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status405MethodNotAllowed, httpContext.Response.StatusCode);
+        Assert.Equal("GET, HEAD", httpContext.Response.Headers.Allow.ToString());
+        Assert.Equal(
+            BffProblemTypes.UnsafeMethod,
+            ReadProblem(httpContext).GetProperty("type").GetString()
+        );
+    }
+
+    [Fact]
     public async Task InvokeAsync_UnguardedEndpoint_CallsNextWithoutCheckedEndpoint()
     {
         var httpContext = CreateContext(guarded: false);

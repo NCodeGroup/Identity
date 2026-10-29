@@ -36,6 +36,8 @@ internal class BffMiddleware(
     IBffAuditRecorder recorder
 )
 {
+    private const string PageAllowedMethods = "GET, HEAD";
+
     private readonly RequestDelegate _next = next;
     private readonly IOptions<BffOptions> _options = options;
     private readonly IBffAuditRecorder _recorder = recorder;
@@ -60,30 +62,25 @@ internal class BffMiddleware(
         if (BffGuardedEndpoints.IsGuarded(endpoint))
             feature.CheckedEndpoint = endpoint;
 
-        if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
+        var refusal = GetRefusal(context.Request, endpoint);
+        if (refusal is { } refused)
         {
-            var reason = BffRequestGuard.Check(context.Request, _options.Value);
-            if (reason is not null)
-            {
-                await _recorder.AntiforgeryRejectedAsync(context, reason, context.RequestAborted);
+            await _recorder.AntiforgeryRejectedAsync(
+                context,
+                refused.Reason,
+                context.RequestAborted
+            );
 
-                var (type, title) = reason switch
-                {
-                    BffRequestGuard.AntiforgeryHeaderMissing => (
-                        BffProblemTypes.AntiforgeryHeaderMissing,
-                        "The anti-forgery header is missing or invalid."
-                    ),
-                    _ => (BffProblemTypes.CrossSiteRequest, "Cross-site requests are not allowed."),
-                };
+            if (refused.StatusCode == StatusCodes.Status405MethodNotAllowed)
+                context.Response.Headers.Allow = PageAllowedMethods;
 
-                await BffResponses.WriteProblemAsync(
-                    context,
-                    StatusCodes.Status403Forbidden,
-                    type,
-                    title
-                );
-                return;
-            }
+            await BffResponses.WriteProblemAsync(
+                context,
+                refused.StatusCode,
+                refused.Type,
+                refused.Title
+            );
+            return;
         }
 
         try
@@ -113,5 +110,45 @@ internal class BffMiddleware(
                 "An access token is unavailable."
             );
         }
+    }
+
+    private (string Reason, int StatusCode, string Type, string Title)? GetRefusal(
+        HttpRequest request,
+        Endpoint? endpoint
+    )
+    {
+        if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
+        {
+            var reason = BffRequestGuard.Check(request, _options.Value);
+            if (reason is null)
+                return null;
+
+            var (type, title) = reason switch
+            {
+                BffRequestGuard.AntiforgeryHeaderMissing => (
+                    BffProblemTypes.AntiforgeryHeaderMissing,
+                    "The anti-forgery header is missing or invalid."
+                ),
+                _ => (BffProblemTypes.CrossSiteRequest, "Cross-site requests are not allowed."),
+            };
+
+            return (reason, StatusCodes.Status403Forbidden, type, title);
+        }
+
+        if (BffGuardedEndpoints.IsPage(endpoint))
+        {
+            var reason = BffRequestGuard.CheckPage(request);
+            if (reason is null)
+                return null;
+
+            return (
+                reason,
+                StatusCodes.Status405MethodNotAllowed,
+                BffProblemTypes.UnsafeMethod,
+                "A page accepts only GET and HEAD."
+            );
+        }
+
+        return null;
     }
 }

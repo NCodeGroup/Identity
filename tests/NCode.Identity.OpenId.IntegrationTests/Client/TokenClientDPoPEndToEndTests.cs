@@ -359,5 +359,75 @@ public class TokenClientDPoPEndToEndTests
         );
     }
 
+    [Fact]
+    public async Task RequestTokenAsync_RefreshAfterTheKeyRingRotates_KeepsTheKeyTheTokenIsBoundTo()
+    {
+        const string clientId = "it-dpop-e2e-rotation";
+
+        using var keyA = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var keyB = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var factory = new HostApplicationFactory();
+        await SeedClientAsync(factory, clientId);
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var provider = CreateClientProvider(factory, exchanges, keyA, keyB);
+        var registrationA = CreateRegistration(clientId, KeyRingA);
+        var registrationRotated = CreateRegistration(clientId, RotatedKeyRing);
+        var thumbprintA = ComputeThumbprint(keyA);
+        var thumbprintB = ComputeThumbprint(keyB);
+
+        var (_, code) = await AuthorizeAsync(factory, provider, registrationA);
+        var redeemed = await RedeemAsync(provider, registrationA, code);
+
+        Assert.True(redeemed.IsSuccess, redeemed.Error?.ToString());
+        var refreshToken = redeemed.Response.RefreshToken;
+        Assert.False(string.IsNullOrEmpty(refreshToken));
+        Assert.Equal(thumbprintA, redeemed.DPoPJwkThumbprint);
+
+        var tokenClient = provider.GetRequiredService<ITokenClient>();
+
+        var refused = await tokenClient.RequestTokenAsync(
+            registrationRotated,
+            new RefreshTokenRequest(refreshToken) { DPoPJwkThumbprint = thumbprintB },
+            CancellationToken.None
+        );
+
+        Assert.False(refused.IsSuccess);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidDPoPProof, refused.Error?.Error);
+
+        var refreshed = await tokenClient.RequestTokenAsync(
+            registrationRotated,
+            new RefreshTokenRequest(refreshToken)
+            {
+                DPoPJwkThumbprint = redeemed.DPoPJwkThumbprint,
+            },
+            CancellationToken.None
+        );
+
+        Assert.True(refreshed.IsSuccess, refreshed.Error?.ToString());
+        Assert.Equal(
+            OpenIdProtocol.TokenTypes.DPoP,
+            refreshed.Response.TokenType,
+            ignoreCase: true
+        );
+        Assert.Equal(thumbprintA, refreshed.DPoPJwkThumbprint);
+        Assert.Equal(
+            thumbprintA,
+            DecodePayload(refreshed.Response.AccessToken)
+                .GetProperty("cnf")
+                .GetProperty(OpenIdProtocol.ConfirmationMethods.JwkThumbprint)
+                .GetString()
+        );
+
+        var challenges = exchanges
+            .Where(exchange => exchange.Path == TokenPath && exchange.ResponseBody is not null)
+            .Count(exchange =>
+                JsonElement
+                    .Parse(exchange.ResponseBody!)
+                    .TryGetProperty(OpenIdProtocol.Parameters.ErrorCode, out var error)
+                && error.GetString() == OpenIdProtocol.ErrorCodes.UseDPoPNonce
+            );
+        Assert.Equal(1, challenges);
+    }
+
     #endregion
 }

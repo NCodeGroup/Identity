@@ -115,7 +115,10 @@ internal class DefaultAuthorizationRequestClient(
         var response = await Sender.PostFormAsync(
             registration,
             metadata,
-            parEndpoint,
+            new ProviderEndpoint(
+                OpenIdProtocol.MetadataNames.PushedAuthorizationRequestEndpoint,
+                parEndpoint
+            ),
             BuildParameters(request, clientId: null, dpopJkt),
             includeClientId: true,
             cancellationToken

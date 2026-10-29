@@ -29,7 +29,10 @@ namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
 public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 {
-    private const string Endpoint = "https://op.example.test/token";
+    private static readonly ProviderEndpoint Endpoint = new(
+        OpenIdProtocol.MetadataNames.TokenEndpoint,
+        "https://op.example.test/token"
+    );
 
     private DPoPTestContext DPoPContext { get; } = new();
 
@@ -100,7 +103,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         Assert.Equal(200, response.StatusCode);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
-        Assert.Equal(Endpoint, request.RequestUri?.AbsoluteUri);
+        Assert.Equal(Endpoint.Url, request.RequestUri?.AbsoluteUri);
         Assert.Equal("application/json", request.Accept);
         Assert.Equal("a=b&auth=1", request.Body);
     }
@@ -235,7 +238,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
         Assert.NotNull(request.DPoP);
         var payload = DPoPTestContext.DecodePayload(request.DPoP);
         Assert.Equal("POST", payload.GetProperty("htm").GetString());
-        Assert.Equal(Endpoint, payload.GetProperty("htu").GetString());
+        Assert.Equal(Endpoint.Url, payload.GetProperty("htu").GetString());
         Assert.False(payload.TryGetProperty("nonce", out _));
     }
 
@@ -344,7 +347,7 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
 
         await PostWithDPoPAsync(sender, withKey: true);
 
-        Assert.Equal("n-2", DPoPContext.NonceCache.Get(new Uri(Endpoint)));
+        Assert.Equal("n-2", DPoPContext.NonceCache.Get(new Uri(Endpoint.Url)));
     }
 
     [Fact]
@@ -376,7 +379,10 @@ public class ClientRequestSenderTests : BaseTests, IAsyncLifetime
             await sender.PostFormAsync(
                 CreateRegistration(),
                 new OpenIdProviderMetadata(),
-                "http://op.example.test/token",
+                new ProviderEndpoint(
+                    OpenIdProtocol.MetadataNames.TokenEndpoint,
+                    "http://op.example.test/token"
+                ),
                 [],
                 CancellationToken.None
             )

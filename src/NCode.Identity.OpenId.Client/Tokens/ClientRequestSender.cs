@@ -55,7 +55,7 @@ internal class ClientRequestSender(
     public virtual ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        ProviderEndpoint endpoint,
         List<KeyValuePair<string, string>> parameters,
         CancellationToken cancellationToken
     ) =>
@@ -80,7 +80,7 @@ internal class ClientRequestSender(
     public virtual ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        ProviderEndpoint endpoint,
         List<KeyValuePair<string, string>> parameters,
         bool includeClientId,
         CancellationToken cancellationToken
@@ -108,16 +108,16 @@ internal class ClientRequestSender(
     public virtual async ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        ProviderEndpoint endpoint,
         List<KeyValuePair<string, string>> parameters,
         bool includeClientId,
         DPoPProofKey? dpopKey,
         CancellationToken cancellationToken
     )
     {
-        if (!ProviderUri.TryParseEndpoint(endpoint, out var uri))
+        if (!ProviderUri.TryParseEndpoint(endpoint.Url, out var uri))
             throw new OpenIdProviderException(
-                $"The endpoint '{endpoint}' is not an acceptable endpoint (https, or http on loopback)."
+                $"The endpoint '{endpoint.Url}' is not an acceptable endpoint (https, or http on loopback)."
             );
 
         if (!Authenticators.TryGetValue(registration.AuthenticationMethod, out var authenticator))
@@ -129,7 +129,7 @@ internal class ClientRequestSender(
             authenticator,
             registration,
             metadata,
-            endpoint,
+            endpoint.Url,
             uri,
             parameters,
             includeClientId,
@@ -157,7 +157,7 @@ internal class ClientRequestSender(
             authenticator,
             registration,
             metadata,
-            endpoint,
+            endpoint.Url,
             uri,
             parameters,
             includeClientId,
@@ -175,7 +175,7 @@ internal class ClientRequestSender(
         IClientAuthenticator authenticator,
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        string target,
         Uri uri,
         List<KeyValuePair<string, string>> parameters,
         bool includeClientId,
@@ -194,7 +194,7 @@ internal class ClientRequestSender(
             new ClientAuthenticationContext(
                 registration,
                 metadata,
-                endpoint,
+                target,
                 request,
                 formParameters
             ),

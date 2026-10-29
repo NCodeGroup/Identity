@@ -59,9 +59,16 @@ any one host feature.
   release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
   moving a `v*` tag. Only a **major** is gated behind a release candidate; minors and patches ship straight to GA.
 - **Servicing** is upstream-first. A fix merges to `main` first; a backport pull request cherry-picks it
-  (`git cherry-pick -x`) onto a branch `backport/<pr>-vX.Y` cut from `release/vX.Y` and targets that line. A fix that
-  cannot apply to `main` lands directly on the release line by pull request, whose description states why. A patch
-  release is an annotated `vX.Y.Z` tag on the release line; a hotfix follows the same flow, expedited (ADR-0263).
+  (`git cherry-pick -x`) onto a branch `backport/<pr>-vX.Y` cut from `release/vX.Y` and targets that line. Label the
+  fix's pull request `backport vX.Y`, before or after it merges, and the `Backport` workflow
+  (`.github/workflows/backport.yml`, `build/backport.ps1`) opens that pull request, or comments with the commands that
+  finish it by hand when the cherry-pick conflicts; whoever cuts a release line creates its label
+  (`gh label create "backport vX.Y"`). The workflow opens its pull requests as the GitHub App that the variable
+  `BACKPORT_APP_CLIENT_ID` and the secret `BACKPORT_APP_PRIVATE_KEY` name (contents and pull requests: read and write),
+  so their checks run; without the app it uses the workflow token, which starts no checks, and the pull request says
+  to close and reopen it. A fix that cannot apply to `main` lands directly on the release line by pull request, whose
+  description states why. A patch release is an annotated `vX.Y.Z` tag on the release line; a hotfix follows the same
+  flow, expedited (ADR-0263).
 - **Binary compatibility.** `AssemblyVersion` is pinned to `major` precision (all `1.*` share `1.0.0.0`), so patch and
   minor upgrades are drop-in within a major and different majors load side by side; `InformationalVersion` /
   `FileVersion` still carry the exact build.

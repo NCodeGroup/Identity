@@ -1,0 +1,77 @@
+# Backport — opens the cherry-pick pull requests that `backport vX.Y` labels ask for (issue #185).
+#
+# Servicing is upstream-first (GOVERNANCE.md "Releases, branches & tags", ADR-0263): a fix merges to main, and a backport
+# pull request cherry-picks it with `git cherry-pick -x` onto `backport/<pr>-vX.Y`, cut from `release/vX.Y`. When a pull
+# request labeled `backport vX.Y` merges to main, or a merged pull request gets that label, build/backport.ps1 cuts the
+# branch, cherry-picks the commit the pull request merged as, and opens the pull request against the release line; when
+# the cherry-pick conflicts or the line does not exist, it comments on the original pull request instead.
+#
+# pull_request_target runs with a token that can push, in the context of main, so a pull request from a fork can be
+# backported. It never checks out or runs the pull request's code: it cherry-picks the commit already on main.
+#
+# A pull request opened with the workflow's own GITHUB_TOKEN starts no workflows, so its required checks would never
+# report. When the repository variable BACKPORT_APP_CLIENT_ID and the secret BACKPORT_APP_PRIVATE_KEY name a GitHub App
+# (contents and pull requests: read and write), the pull requests are opened as that app and their checks run;
+# without them, the pull request says to close and reopen it to start its checks.
+name: Backport
+
+on:
+  pull_request_target:
+    types: [closed, labeled]
+    branches: [main]
+
+# The job pushes a branch and opens pull requests; nothing else.
+permissions:
+  contents: write
+  pull-requests: write
+
+# One backport run per pull request at a time, so a label added while the merge's run is still going cannot race it.
+concurrency:
+  group: backport-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  backport:
+    name: Backport
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event.pull_request.merged == true
+      && (
+        (github.event.action == 'closed' && contains(join(github.event.pull_request.labels.*.name, '|'), 'backport v'))
+        || (github.event.action == 'labeled' && startsWith(github.event.label.name, 'backport v'))
+      )
+
+    steps:
+      - name: Create the GitHub App token
+        id: app-token
+        if: vars.BACKPORT_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.BACKPORT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.BACKPORT_APP_PRIVATE_KEY }}
+
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          # The cherry-pick needs the merged commit and the release lines' history, not a shallow clone.
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      # The expressions are GitHub's, not PowerShell's, so they are passed through env rather than interpolated into the
+      # script. A merge acts on every backport label; a label added later acts on that label alone.
+      - name: Open the backport pull requests
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          MERGE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
+          LABELS: ${{ github.event.action == 'labeled' && toJSON(github.event.label.name) || toJSON(github.event.pull_request.labels.*.name) }}
+          CHECKS_NOT_TRIGGERED: ${{ steps.app-token.outputs.token == '' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $labels = @($env:LABELS | ConvertFrom-Json)
+          ./build/backport.ps1 -PullRequest $env:PULL_REQUEST -Commit $env:MERGE_COMMIT -Labels $labels `
+            -ChecksNotTriggered:([bool]::Parse($env:CHECKS_NOT_TRIGGERED))

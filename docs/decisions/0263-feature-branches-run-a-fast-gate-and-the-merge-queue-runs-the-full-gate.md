@@ -112,7 +112,9 @@ ADR-0261 stands.
   queue and the release-line pull requests wait for it forever.
 - A new global build input that is not in the trigger pattern of `affected-tests.ps1` is the smell this decision is
   exposed to: a pull request would run too few tests, and only the queue would catch the break. Add it to the pattern.
-- Backports are cherry-picked by hand; issue [#185](https://github.com/NCodeGroup/Identity/issues/185) tracks automating them.
+- Backports are automated: a `backport vX.Y` label on a merged pull request makes the `Backport` workflow cherry-pick
+  it onto `backport/<pr>-vX.Y` and open the pull request against the line, or comment when the cherry-pick conflicts
+  (issue [#185](https://github.com/NCodeGroup/Identity/issues/185), `GOVERNANCE.md` "Releases, branches & tags").
 
 ## References
 

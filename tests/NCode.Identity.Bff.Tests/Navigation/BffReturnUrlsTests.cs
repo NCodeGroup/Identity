@@ -85,6 +85,8 @@ public class BffReturnUrlsTests : BaseTests
     [Theory]
     [InlineData("")]
     [InlineData("/a b")]
+    [InlineData("/\t/evil.example")]
+    [InlineData("/a\u0000")]
     [InlineData("/a%2Fb")]
     [InlineData("/a%5Cb")]
     [InlineData("/a/./b")]

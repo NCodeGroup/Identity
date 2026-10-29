@@ -16,10 +16,13 @@
 
 #endregion
 
+using NCode.Identity.OpenId;
+
 namespace NCode.Identity.Bff.Navigation;
 
 /// <summary>
-/// Provides the rules that decide whether a return URL is a safe, same-origin path the BFF may redirect to.
+/// Provides the rules that decide whether a return URL is a safe, same-origin path the BFF may redirect to. A return
+/// URL must be a local URL and, beyond that, carry no fragment, no encoded separator or dot, and no dot segment.
 /// </summary>
 internal static class BffReturnUrls
 {
@@ -28,22 +31,14 @@ internal static class BffReturnUrls
     /// </summary>
     /// <param name="value">The value to check.</param>
     /// <returns><see langword="true"/> when the value is a safe path; otherwise, <see langword="false"/>.</returns>
-    public static bool IsWellFormedPath(string value)
+    public static bool IsWellFormedPath(ReadOnlySpan<char> value)
     {
-        if (string.IsNullOrEmpty(value) || value[0] != '/')
+        if (!LocalUrl.IsLocal(value))
             return false;
-
-        if (value.Length > 1 && value[1] == '/')
-            return false;
-
-        foreach (var c in value)
-        {
-            if (c is '\\' or '#' || char.IsWhiteSpace(c) || char.IsControl(c))
-                return false;
-        }
 
         if (
-            value.Contains("%2f", StringComparison.OrdinalIgnoreCase)
+            value.Contains('#')
+            || value.Contains("%2f", StringComparison.OrdinalIgnoreCase)
             || value.Contains("%5c", StringComparison.OrdinalIgnoreCase)
             || value.Contains("%2e", StringComparison.OrdinalIgnoreCase)
         )
@@ -51,9 +46,10 @@ internal static class BffReturnUrls
             return false;
         }
 
-        foreach (var segment in GetPath(value).Split('/'))
+        var path = GetPath(value);
+        foreach (var range in path.Split('/'))
         {
-            if (segment is "." or "..")
+            if (path[range] is "." or "..")
                 return false;
         }
 
@@ -83,7 +79,7 @@ internal static class BffReturnUrls
                     return true;
             }
             else if (
-                string.Equals(path, entry, StringComparison.Ordinal)
+                path.Equals(entry, StringComparison.Ordinal)
                 || (
                     path.Length > entry.Length
                     && path[entry.Length] == '/'
@@ -98,9 +94,9 @@ internal static class BffReturnUrls
         return false;
     }
 
-    private static string GetPath(string value)
+    private static ReadOnlySpan<char> GetPath(ReadOnlySpan<char> value)
     {
-        var index = value.IndexOf('?', StringComparison.Ordinal);
-        return index < 0 ? value : value[..index];
+        var index = value.IndexOf('?');
+        return index < 0 ? value : value.Slice(0, index);
     }
 }

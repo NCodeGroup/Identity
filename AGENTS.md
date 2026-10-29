@@ -28,6 +28,9 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
   ([ADR-0270](docs/decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
+- **Backend for frontend** — `NCode.Identity.Bff(.Abstractions)`: makes an ASP.NET Core app the confidential client of
+  its browser frontend, with an opaque `__Host-` cookie over an encrypted server-side session every replica sees
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md))
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
 - **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its

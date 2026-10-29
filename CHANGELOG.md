@@ -10,6 +10,24 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The backend-for-frontend core (`NCode.Identity.Bff`).** The new `NCode.Identity.Bff` and
+  `NCode.Identity.Bff.Abstractions` packages make an ASP.NET Core app the confidential OAuth client of its browser
+  frontend. `AddBffLibrary` (on the protocol client's builder) and `AddBffConfiguration` compose it; `MapBffEndpoints`
+  maps `/bff/login`, `/bff/callback`, `/bff/user`, `/bff/logout` and `/bff/backchannel-logout`; `UseBff` runs the
+  anti-forgery header and Fetch Metadata checks before authentication and fails closed when misordered; and
+  `AsBffApi`/`[BffApi]` let local APIs accept the session cookie. The browser holds only the `__Host-Http-bff` handle:
+  the session is an AES-256-GCM record in the shared store, keyed and encrypted under keys derived from the handle,
+  behind the replaceable `IBffSessionStore`. `IBffTokenAccessor` and `AddBffAccessTokenHandler` attach the user's
+  access token, refreshed single-flight across replicas under a lease on the refresh token, and DPoP-bound when the
+  provider supports it. `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and
+  back-channel logout ends sessions through `sid`/`sub` indexes. The protocol client gains
+  `IdTokenValidationResult.Identity`
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
+  [ADR-0291](docs/decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-0292](docs/decisions/0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-0293](docs/decisions/0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-0294](docs/decisions/0294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
+  issue [#394](https://github.com/NCodeGroup/Identity/issues/394)).
 - **Tenants declare their environment.** The tenant settings `environment_type`, `environment_name` and
   `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
   `staging` and `production` (a package registers more as `ITenantEnvironmentType`), and the name is a display label.

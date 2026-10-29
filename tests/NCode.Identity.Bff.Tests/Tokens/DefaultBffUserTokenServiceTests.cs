@@ -25,6 +25,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -42,6 +43,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private Mock<IBffSessionManager> MockManager { get; }
     private Mock<IBffSessionStore> MockStore { get; }
     private Mock<ITokenClient> MockTokenClient { get; }
+    private Mock<IBffAuditRecorder> MockRecorder { get; }
     private MutableTimeProvider TimeProvider { get; }
     private DefaultBffUserTokenService Service { get; }
 
@@ -64,6 +66,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         MockStore = CreateStrictMock<IBffSessionStore>();
         MockTokenClient = CreateStrictMock<ITokenClient>();
         var mockRecorder = CreateStrictMock<IBffAuditRecorder>();
+        MockRecorder = mockRecorder;
         Service = new DefaultBffUserTokenService(
             resolver,
             MockManager.Object,
@@ -451,6 +454,131 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.False(result.IsSuccess);
         Assert.Equal(503, result.StatusCode);
         Assert.Equal(BffTokenFailureReasons.RefreshWaitTimeout, result.Reason);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_InvalidGrant_EndsSessionAndReturnsRefreshFailed()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupFailedRefresh(state, httpContext, OpenIdProtocol.ErrorCodes.InvalidGrant);
+        MockManager
+            .Setup(x =>
+                x.EndAsync(
+                    httpContext,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.RefreshFailed,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(401, result.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.RefreshFailed, result.Reason);
+        Assert.Contains(
+            httpContext.Response.Headers.SetCookie,
+            x => x is not null && x.Contains(BffDefaults.SessionCookieName)
+        );
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_OtherOAuthError_ReturnsProviderError()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupFailedRefresh(state, httpContext, OpenIdProtocol.ErrorCodes.InvalidScope);
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(502, result.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.ProviderError, result.Reason);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_HttpRequestException_ReturnsProviderUnavailable()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new HttpRequestException("down"))
+            .Verifiable();
+        MockRecorder
+            .Setup(x =>
+                x.TokenRefreshFailedAsync(
+                    httpContext,
+                    "sub-1",
+                    BffTokenFailureReasons.ProviderUnavailable,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(503, result.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.ProviderUnavailable, result.Reason);
+    }
+
+    private void SetupFailedRefresh(BffSessionState state, HttpContext httpContext, string error)
+    {
+        SetupReload(state);
+        SetupLeaseAcquired();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(new TokenResult(new ProtocolError(error, 400)))
+            .Verifiable();
+        MockRecorder
+            .Setup(x =>
+                x.TokenRefreshFailedAsync(httpContext, "sub-1", error, CancellationToken.None)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
     }
 
     private void SetupReload(BffSessionState state) =>

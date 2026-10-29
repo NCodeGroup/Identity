@@ -22,8 +22,10 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using NCode.Json;
 using NCode.Time;
@@ -201,6 +203,7 @@ internal class DefaultBffUserTokenService(
         try
         {
             return await RequestAndStoreAsync(
+                httpContext,
                 current,
                 refreshToken,
                 resource,
@@ -220,6 +223,7 @@ internal class DefaultBffUserTokenService(
     }
 
     private async ValueTask<BffTokenResult> RequestAndStoreAsync(
+        HttpContext httpContext,
         BffSessionState current,
         string refreshToken,
         string? resource,
@@ -234,20 +238,79 @@ internal class DefaultBffUserTokenService(
             Scope = scope,
             DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
         };
-        var result = await _tokenClient.RequestTokenAsync(
-            _registrationProvider.Registration,
-            request,
-            cancellationToken
-        );
+        var subject = current.Metadata.Subject;
 
-        // step 48 maps the failures of the refresh
+        TokenResult result;
+        try
+        {
+            result = await _tokenClient.RequestTokenAsync(
+                _registrationProvider.Registration,
+                request,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (exception is OpenIdProviderException or HttpRequestException
+                || (
+                    exception is OperationCanceledException
+                    && !cancellationToken.IsCancellationRequested
+                )
+            )
+        {
+            _logger.RefreshFailed(BffTokenFailureReasons.ProviderUnavailable, exception);
+            await _auditRecorder.TokenRefreshFailedAsync(
+                httpContext,
+                subject,
+                BffTokenFailureReasons.ProviderUnavailable,
+                CancellationToken.None
+            );
+            return BffTokenResult.Failure(503, BffTokenFailureReasons.ProviderUnavailable);
+        }
+
         if (!result.IsSuccess)
-            return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+        {
+            var error = result.Error.Error;
+            _logger.RefreshFailed(error, null);
+            await _auditRecorder.TokenRefreshFailedAsync(
+                httpContext,
+                subject,
+                error,
+                CancellationToken.None
+            );
+
+            if (
+                !string.Equals(
+                    error,
+                    OpenIdProtocol.ErrorCodes.InvalidGrant,
+                    StringComparison.Ordinal
+                )
+            )
+                return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+
+            await _sessionManager.EndAsync(
+                httpContext,
+                current.StoreKey,
+                current.Metadata,
+                BffSessionEndReasons.RefreshFailed,
+                CancellationToken.None
+            );
+            _cookies.DeleteSession(httpContext.Response);
+            return BffTokenResult.Failure(401, BffTokenFailureReasons.RefreshFailed);
+        }
 
         var response = result.Response;
         var accessToken = response.AccessToken;
         if (string.IsNullOrEmpty(accessToken))
+        {
+            _logger.RefreshFailed(BffTokenFailureReasons.ProviderError, null);
+            await _auditRecorder.TokenRefreshFailedAsync(
+                httpContext,
+                subject,
+                BffTokenFailureReasons.ProviderError,
+                CancellationToken.None
+            );
             return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+        }
 
         var expiresAt = response.ExpiresIn is { } expiresIn
             ? now + TimeSpan.FromSeconds(expiresIn)

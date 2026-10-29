@@ -33,4 +33,15 @@ internal static partial class Log
         Message = "The BFF login failed: {Reason}"
     )]
     internal static partial void LoginFailed(this ILogger logger, string reason);
+
+    [LoggerMessage(
+        EventId = EventIds.RefreshFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF token refresh failed: {Reason}"
+    )]
+    internal static partial void RefreshFailed(
+        this ILogger logger,
+        string reason,
+        Exception? exception
+    );
 }

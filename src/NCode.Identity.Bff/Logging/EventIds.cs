@@ -30,4 +30,5 @@ internal static class EventIds
     private const int Base = 19000;
 
     public const int LoginFailed = Base + 1;
+    public const int RefreshFailed = Base + 2;
 }

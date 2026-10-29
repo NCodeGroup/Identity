@@ -409,6 +409,45 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
         Assert.Null(result.Identity);
     }
 
+    [Fact]
+    public async Task GetUserInfoAsync_WhenTheResponseNamesAnotherIssuer_FailsWithInvalidIssuer()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.OK,
+            """{"sub":"user-1","iss":"https://evil.example.test","email":"ada@example.com"}"""
+        );
+        var client = CreateClient(handler);
+
+        var result = await client.GetUserInfoAsync(
+            CreateRegistration(),
+            new UserInfoRequest(AccessToken, "user-1"),
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(UserInfoFailureCodes.InvalidIssuer, result.FailureCode);
+        Assert.Null(result.Identity);
+    }
+
+    [Fact]
+    public async Task GetUserInfoAsync_WhenTheResponseNamesTheProvider_Succeeds()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.OK,
+            $$"""{"sub":"user-1","iss":"{{Authority}}","email":"ada@example.com"}"""
+        );
+        var client = CreateClient(handler);
+
+        var result = await client.GetUserInfoAsync(
+            CreateRegistration(),
+            new UserInfoRequest(AccessToken, "user-1"),
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("ada@example.com", Assert.Single(result.Identity.FindAll("email")).Value);
+    }
+
     [Theory]
     [InlineData("""{"email":"ada@example.com"}""")]
     [InlineData("""{"sub":42}""")]

@@ -37,6 +37,12 @@ public static class UserInfoFailureCodes
     public const string SubjectMismatch = TokenValidationFailureCodes.SubjectMismatch;
 
     /// <summary>
+    /// The response's <c>iss</c> member names another issuer than the provider's, so its claims would be attributed
+    /// to that issuer.
+    /// </summary>
+    public const string InvalidIssuer = TokenValidationFailureCodes.InvalidIssuer;
+
+    /// <summary>
     /// The response's claims are not a JSON object with a string <c>sub</c>.
     /// </summary>
     public const string InvalidResponse = "invalid_response";

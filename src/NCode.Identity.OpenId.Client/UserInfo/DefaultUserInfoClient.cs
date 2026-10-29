@@ -264,6 +264,19 @@ internal class DefaultUserInfoClient(
                 "The UserInfo response is about another subject than the ID token."
             );
 
+        // A provider must not label UserInfo claims with another issuer, which the claims identity would adopt.
+        if (
+            claimSet.TryGetProperty(JoseClaimNames.Payload.Iss, out var iss)
+            && (
+                iss.ValueKind != JsonValueKind.String
+                || !string.Equals(iss.GetString(), metadata.Issuer, StringComparison.Ordinal)
+            )
+        )
+            return new UserInfoResult(
+                UserInfoFailureCodes.InvalidIssuer,
+                "The UserInfo response names another issuer than the provider."
+            );
+
         var identity = ClaimsIdentityFactory.CreateClaimsIdentity(
             claimSet,
             AuthenticationType,

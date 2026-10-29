@@ -279,6 +279,7 @@ override NCode.Identity.OpenId.Client.RefreshTokenRequest.AddGrantParameters(Sys
 override NCode.Identity.OpenId.Client.RefreshTokenRequest.GrantType.get -> string!
 override NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 override NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.GrantType.get -> string!
+const NCode.Identity.OpenId.Client.UserInfoFailureCodes.InvalidIssuer = "invalid_issuer" -> string!
 const NCode.Identity.OpenId.Client.UserInfoFailureCodes.InvalidResponse = "invalid_response" -> string!
 const NCode.Identity.OpenId.Client.UserInfoFailureCodes.SubjectMismatch = "subject_mismatch" -> string!
 const NCode.Identity.OpenId.Client.UserInfoFailureCodes.UnsupportedResponse = "unsupported_response" -> string!

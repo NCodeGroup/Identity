@@ -3,6 +3,8 @@ NCode.Identity.Bff.BffLibrary
 NCode.Identity.Bff.BffLibrary.BffLibrary() -> void
 NCode.Identity.Bff.BffApiAttribute
 NCode.Identity.Bff.BffApiAttribute.BffApiAttribute() -> void
+NCode.Identity.Bff.BffPageAttribute
+NCode.Identity.Bff.BffPageAttribute.BffPageAttribute() -> void
 NCode.Identity.Bff.BffDefaults
 const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
 const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!
@@ -20,6 +22,7 @@ const NCode.Identity.Bff.BffProblemTypes.Forbidden = "urn:ncode:identity:bff:for
 const NCode.Identity.Bff.BffProblemTypes.StoreUnavailable = "urn:ncode:identity:bff:store_unavailable" -> string!
 const NCode.Identity.Bff.BffProblemTypes.TokenUnavailable = "urn:ncode:identity:bff:token_unavailable" -> string!
 const NCode.Identity.Bff.BffProblemTypes.InvalidRequest = "urn:ncode:identity:bff:invalid_request" -> string!
+const NCode.Identity.Bff.BffProblemTypes.UnsafeMethod = "urn:ncode:identity:bff:unsafe_method" -> string!
 NCode.Identity.Bff.BffSessionEndReasons
 const NCode.Identity.Bff.BffSessionEndReasons.LoggedOut = "logged_out" -> string!
 const NCode.Identity.Bff.BffSessionEndReasons.IdleTimeout = "idle_timeout" -> string!

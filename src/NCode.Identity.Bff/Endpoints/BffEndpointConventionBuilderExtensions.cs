@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Builder;
 namespace NCode.Identity.Bff.Endpoints;
 
 /// <summary>
-/// Provides the ability to mark minimal-API endpoints as local backend-for-frontend (BFF) APIs.
+/// Provides the ability to mark minimal-API endpoints as local backend-for-frontend (BFF) APIs or pages.
 /// </summary>
 [PublicAPI]
 public static class BffEndpointConventionBuilderExtensions
@@ -46,6 +46,23 @@ public static class BffEndpointConventionBuilderExtensions
             ArgumentNullException.ThrowIfNull(builder);
 
             var attribute = new BffApiAttribute();
+            return builder.WithMetadata(attribute);
+        }
+
+        /// <summary>
+        /// Marks the endpoint as a BFF page by adding a <see cref="BffPageAttribute"/> to its metadata.
+        /// </summary>
+        /// <remarks>
+        /// The marking lets a BFF session authenticate the request on <c>GET</c> and <c>HEAD</c> only, requires no
+        /// anti-forgery header, and answers a challenge with a redirect to the BFF login.
+        /// Controllers use the <see cref="BffPageAttribute"/> attribute instead.
+        /// </remarks>
+        /// <returns>The same builder, so that calls can be chained.</returns>
+        public TBuilder AsBffPage()
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+
+            var attribute = new BffPageAttribute();
             return builder.WithMetadata(attribute);
         }
     }

@@ -65,4 +65,9 @@ public static class BffProblemTypes
     /// The request is malformed.
     /// </summary>
     public const string InvalidRequest = "urn:ncode:identity:bff:invalid_request";
+
+    /// <summary>
+    /// The request to a page uses a method other than <c>GET</c> or <c>HEAD</c>.
+    /// </summary>
+    public const string UnsafeMethod = "urn:ncode:identity:bff:unsafe_method";
 }

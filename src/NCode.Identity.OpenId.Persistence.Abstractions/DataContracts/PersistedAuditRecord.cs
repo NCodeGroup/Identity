@@ -18,6 +18,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence;
 
@@ -117,5 +118,5 @@ public sealed class PersistedAuditRecord
     /// <summary>
     /// Gets the whole audit record, the JSON object that <c>AuditRecordWriter</c> writes.
     /// </summary>
-    public required string Record { get; init; }
+    public required JsonElement Record { get; init; }
 }

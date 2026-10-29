@@ -19,6 +19,7 @@
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Json;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Auditing;
@@ -36,7 +37,7 @@ public class AuditRecordQueueTests
             Severity = "info",
             ActorType = "client",
             Resources = [],
-            Record = "{}",
+            Record = JsonElements.EmptyObject,
         };
 
     private static AuditRecordQueue CreateQueue(int capacity) =>

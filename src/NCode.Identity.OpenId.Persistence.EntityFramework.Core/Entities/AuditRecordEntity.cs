@@ -17,6 +17,7 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 using NCode.Identity.Persistence;
@@ -134,7 +135,7 @@ public sealed class AuditRecordEntity
     /// <summary>
     /// Gets the whole audit record's JSON.
     /// </summary>
-    public required string Record { get; init; }
+    public required JsonElement Record { get; init; }
 
     /// <summary>
     /// Gets the entities the audited operation acted on.

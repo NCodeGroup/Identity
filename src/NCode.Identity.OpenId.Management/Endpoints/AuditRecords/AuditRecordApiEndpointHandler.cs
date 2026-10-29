@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -95,7 +94,7 @@ internal class AuditRecordApiEndpointHandler(
                     Id = resource.Id,
                 }),
             ],
-            Record = JsonElement.Parse(record.Record),
+            Record = record.Record,
         };
 
     /// <summary>

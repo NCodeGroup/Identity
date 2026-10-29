@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using Xunit;
@@ -88,9 +87,14 @@ public class AuditRecordMapperTests
             record.Resources.Select(resource => (resource.Type, resource.Id!))
         );
 
-        var json = JsonElement.Parse(record.Record);
-        Assert.Equal(auditEvent.EventId, json.GetProperty(AuditRecordFields.EventId).GetGuid());
-        Assert.Equal("client.updated", json.GetProperty(AuditRecordFields.EventName).GetString());
+        Assert.Equal(
+            auditEvent.EventId,
+            record.Record.GetProperty(AuditRecordFields.EventId).GetGuid()
+        );
+        Assert.Equal(
+            "client.updated",
+            record.Record.GetProperty(AuditRecordFields.EventName).GetString()
+        );
     }
 
     [Fact]
@@ -104,9 +108,11 @@ public class AuditRecordMapperTests
 
         Assert.Equal(longName[..100], record.EventName);
         Assert.Null(record.ClientId);
-        var json = JsonElement.Parse(record.Record);
-        Assert.Equal(longName, json.GetProperty(AuditRecordFields.EventName).GetString());
-        Assert.Equal(longClientId, json.GetProperty(AuditRecordFields.ClientId).GetString());
+        Assert.Equal(longName, record.Record.GetProperty(AuditRecordFields.EventName).GetString());
+        Assert.Equal(
+            longClientId,
+            record.Record.GetProperty(AuditRecordFields.ClientId).GetString()
+        );
     }
 
     [Fact]

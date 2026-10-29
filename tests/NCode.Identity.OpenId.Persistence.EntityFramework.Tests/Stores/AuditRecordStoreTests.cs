@@ -17,12 +17,14 @@
 
 #endregion
 
+using System.Text.Json;
 using IdGen;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -80,7 +82,7 @@ public sealed class AuditRecordStoreTests : IDisposable
             TraceId = "0af7651916cd43dd8448eb211c80319c",
             SourceIp = "203.0.113.7",
             Resources = resources,
-            Record = """{"schema_version":"1.1"}""",
+            Record = JsonElement.Parse("""{"schema_version":"1.1"}"""),
         };
 
     private static ServiceProvider CreateInMemoryProvider()
@@ -160,7 +162,7 @@ public sealed class AuditRecordStoreTests : IDisposable
         Assert.Equal("tenant-1", entity.TenantId);
         Assert.Equal("admin-1", entity.ActorId);
         Assert.Equal("203.0.113.7", entity.SourceIp);
-        Assert.Equal(record.Record, entity.Record);
+        Assert.True(JsonElement.DeepEquals(record.Record, entity.Record));
         Assert.Equal(
             [("client", "client-1", 0), ("tenant", "tenant-1", 1)],
             entity.Resources.OrderBy(r => r.Ordinal).Select(r => (r.Type, r.ResourceId!, r.Ordinal))
@@ -243,7 +245,7 @@ public sealed class AuditRecordStoreTests : IDisposable
             ClientId = match.ClientId,
             ActorType = match.ActorType,
             Resources = [],
-            Record = "{}",
+            Record = JsonElements.EmptyObject,
         };
         var tooOld = Record(eventTime: Now.AddDays(-2));
         await AddAsync(provider, match, otherTenant, tooOld);

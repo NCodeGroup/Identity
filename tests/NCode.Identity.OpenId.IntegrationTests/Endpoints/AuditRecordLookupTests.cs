@@ -66,7 +66,9 @@ public class AuditRecordLookupTests
             ActorType = "administrator",
             ActorId = "admin-1",
             Resources = [new PersistedAuditResource { Type = "client", Id = clientId }],
-            Record = $$"""{"event_name":"{{SeededEventName}}","client_id":"{{clientId}}"}""",
+            Record = JsonElement.Parse(
+                $$"""{"event_name":"{{SeededEventName}}","client_id":"{{clientId}}"}"""
+            ),
         };
 
     private static async Task SeedAsync(

@@ -517,7 +517,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntit
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Outcome.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Outcome.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Record.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Record.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Record.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Resources.get -> System.Collections.Generic.ICollection<NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResourceEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordEntity.Resources.init -> void

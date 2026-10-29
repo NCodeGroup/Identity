@@ -22,6 +22,7 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Json;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -92,7 +93,7 @@ public sealed class AuditRecordFlushServiceTests : IDisposable
                 Severity = "info",
                 ActorType = "client",
                 Resources = [],
-                Record = "{}",
+                Record = JsonElements.EmptyObject,
             })
             .ToList();
         foreach (var record in records)

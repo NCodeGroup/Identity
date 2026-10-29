@@ -458,7 +458,7 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.EventTime.i
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Outcome.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Outcome.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.PersistedAuditRecord() -> void
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Record.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Record.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Record.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditResource!>!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord.Resources.init -> void

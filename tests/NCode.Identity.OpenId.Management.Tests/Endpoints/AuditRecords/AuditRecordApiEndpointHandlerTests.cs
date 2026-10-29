@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -46,7 +47,7 @@ public sealed class AuditRecordApiEndpointHandlerTests : IDisposable
     #region ToAuditRecordResource Tests
 
     [Fact]
-    public void ToAuditRecordResource_CopiesTheEnvelopeAndParsesTheRecord()
+    public void ToAuditRecordResource_CopiesTheEnvelopeAndTheRecord()
     {
         var record = new PersistedAuditRecord
         {
@@ -64,7 +65,9 @@ public sealed class AuditRecordApiEndpointHandlerTests : IDisposable
             TraceId = "trace-1",
             SourceIp = "203.0.113.7",
             Resources = [new PersistedAuditResource { Type = "client", Id = "client-1" }],
-            Record = """{"event_name":"client.updated","request":{"path":"/api"}}""",
+            Record = JsonElement.Parse(
+                """{"event_name":"client.updated","request":{"path":"/api"}}"""
+            ),
         };
 
         var resource = Handler.ToAuditRecordResource(record);

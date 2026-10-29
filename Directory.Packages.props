@@ -143,12 +143,10 @@
   <!-- Aspire local-dev orchestrator (Host.AppHost only; never packed). See ADR-0071. The Aspire.AppHost.Sdk
        MSBuild SDK is pinned in lockstep in global.json ('msbuild-sdks'). -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.1" />
-    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.6.1" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
-    <PackageVersion Include="Aspire.Hosting.Valkey" Version="13.6.1" />
-    <!-- Transitive pin: clears GHSA-qhrr-8q5h-9q3h on MessagePack 2.5.302 (pulled by Aspire.Hosting / StreamJsonRpc). -->
-    <PackageVersion Include="MessagePack" Version="2.5.307" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting.Valkey" Version="13.6.4" />
   </ItemGroup>
 
   <!-- Test stack -->

@@ -119,17 +119,21 @@ var conformanceApi = builder
 // collide (ERR_PNPM_EBUSY).
 builder.AddJavaScriptApp("auth", "../frontend/apps/auth").WithPnpm(install: false);
 
-// The Management console (apps/mgmt) is a STANDALONE Vite dev server. It is pinned to http://localhost:5173 (direct,
+// The Management console (apps/mgmt) is a STANDALONE Vite dev server. It is pinned to https://localhost:5173 (direct,
 // un-proxied, so HMR and the OAuth authorization-code callback work) because the developer seed registers
-// https://localhost:5173/callback as the SPA redirect URI and AddDeveloperCors allowlists localhost:5173. The browser
-// SPA discovers the API from the host-published bootstrap document (ADR-0064); because this bundle is NOT served by the
-// OP host, its Vite dev server proxies /config/bootstrap.json to the api so local dev consumes the real runtime
-// endpoint instead of a static copy. WithReference injects the service-discovery variable that proxy targets AND
-// exposes Aspire service discovery to the Vite process; WaitFor holds startup until the API is healthy so the first
+// https://localhost:5173/callback as the SPA redirect URI and AddDeveloperCors allowlists localhost:5173. Like every
+// standalone surface below, it serves HTTPS with the ASP.NET Core development certificate the OP hosts use
+// (WithHttpsDeveloperCertificate): Aspire runs Vite under a wrapper config that sets `server.https` from that
+// certificate and switches the endpoint's scheme to https, so the browser sees one trusted certificate across the stack.
+// The browser SPA discovers the API from the host-published bootstrap document (ADR-0064); because this bundle is NOT
+// served by the OP host, its Vite dev server proxies /config/bootstrap.json to the api so local dev consumes the real
+// runtime endpoint instead of a static copy. WithReference injects the service-discovery variable that proxy targets
+// AND exposes Aspire service discovery to the Vite process; WaitFor holds startup until the API is healthy so the first
 // discovery/management call cannot race the API.
 builder
     .AddViteApp("mgmt", "../frontend/apps/mgmt")
     .WithPnpm(install: false)
+    .WithHttpsDeveloperCertificate()
     .WithEndpoint(
         "http",
         endpoint =>
@@ -144,14 +148,16 @@ builder
     .WaitFor(api)
     .WithExternalHttpEndpoints();
 
-// The Playground flow explorer (apps/playground) is a STANDALONE Vite dev server pinned to http://localhost:5174 (the
+// The Playground flow explorer (apps/playground) is a STANDALONE Vite dev server pinned to https://localhost:5174 (the
 // port the seeded `playground-spa` redirect URI and AddDeveloperCors allowlist assume). It drives a live
 // authorization-code + PKCE round trip against the OP, so — like `mgmt` — it has its own seeded public client and CORS
 // origin, and proxies /config/bootstrap.json to the api, discovering its `playground` surface coordinates at boot
-// (ADR-0064). The same un-proxied fixed-port rules as `mgmt` apply so the OAuth redirect callback resolves.
+// (ADR-0064). The same un-proxied fixed-port and development-certificate rules as `mgmt` apply so the OAuth redirect
+// callback resolves.
 builder
     .AddViteApp("playground", "../frontend/apps/playground")
     .WithPnpm(install: false)
+    .WithHttpsDeveloperCertificate()
     .WithEndpoint(
         "http",
         endpoint =>
@@ -167,13 +173,15 @@ builder
     .WithExternalHttpEndpoints();
 
 // The conformance posture dashboard (apps/conformance) is a STANDALONE, read-only Vite dev server pinned to
-// http://localhost:5175. It only audits the OP's published discovery metadata, so it needs no OAuth client; it proxies
-// /config/bootstrap.json to the dedicated conformance OP (`conformanceapi`, which advertises the opt-in capabilities)
-// to learn its issuer, then reads that issuer's discovery cross-origin (allowlisted by the Conformance overlay's
-// Cors:AllowedOrigins). WaitFor holds startup until that OP is healthy so the first discovery read cannot race it.
+// https://localhost:5175, served with the same development certificate as `mgmt`. It only audits the OP's published
+// discovery metadata, so it needs no OAuth client; it proxies /config/bootstrap.json to the dedicated conformance OP
+// (`conformanceapi`, which advertises the opt-in capabilities) to learn its issuer, then reads that issuer's discovery
+// cross-origin (allowlisted by the Conformance overlay's Cors:AllowedOrigins). WaitFor holds startup until that OP is
+// healthy so the first discovery read cannot race it.
 builder
     .AddViteApp("conformance", "../frontend/apps/conformance")
     .WithPnpm(install: false)
+    .WithHttpsDeveloperCertificate()
     .WithEndpoint(
         "http",
         endpoint =>

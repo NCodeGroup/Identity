@@ -355,7 +355,7 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Theory]
-    [InlineData("http://localhost:5173")]
+    [InlineData("https://localhost:5173")]
     [InlineData("https://host.docker.internal:5001")]
     [InlineData("https://app.example.com")]
     public void FindViolations_WhenCorsSectionPresent_ReportsViolation(string origin)

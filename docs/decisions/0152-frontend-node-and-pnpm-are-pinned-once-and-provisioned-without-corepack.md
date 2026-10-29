@@ -7,7 +7,9 @@
   [ADR-0153](0153-one-release-age-window-gates-frontend-dependencies.md): pnpm also enforces Dependabot's three-day
   release-age window; and by
   [ADR-0249](0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): the host image names
-  the Node major as a literal that the Host image workflow checks against .node-version)
+  the Node major as a literal that the Host image workflow checks against .node-version; and by
+  [ADR-0287](0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md): the AppHost fails at startup when
+  the pinned Node or the workspace install is missing or stale)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -95,7 +97,8 @@ pin by pnpm's own tooling, not by Corepack.
 - Each developer re-runs `build/frontend-install.ps1` once. It adds Node 26 through NVS and installs pnpm 10. pnpm 10
   then replaces the `node_modules` that pnpm 9 built, without the interactive confirmation it would otherwise ask
   for. The AppHost's NVS lookup remains Windows-only, as before; any other version manager works when `node` on `PATH`
-  is the pinned major.
+  is the pinned major; the AppHost now stops at startup, naming `build/frontend-install.ps1`, when no Node of the
+  pinned major is available.
 - `apps/conformance-runner` types its JWKs as `webcrypto.JsonWebKey`, and `KeyObject.export({ format: 'jwk' })` is
   typed, so the cast on it is gone.
 - A new dependency with an install script fails `pnpm install` until someone records a decision in `allowBuilds`.

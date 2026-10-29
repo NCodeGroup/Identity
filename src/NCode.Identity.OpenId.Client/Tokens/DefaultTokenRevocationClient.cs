@@ -71,7 +71,10 @@ internal class DefaultTokenRevocationClient(
         var response = await Sender.PostFormAsync(
             registration,
             metadata,
-            revocationEndpoint,
+            new ProviderEndpoint(
+                OpenIdProtocol.MetadataNames.RevocationEndpoint,
+                revocationEndpoint
+            ),
             parameters,
             cancellationToken
         );

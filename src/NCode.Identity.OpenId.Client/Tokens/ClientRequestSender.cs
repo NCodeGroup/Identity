@@ -19,6 +19,7 @@
 using System.Collections.Frozen;
 using System.Net.Http.Headers;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
@@ -28,10 +29,13 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// </summary>
 internal class ClientRequestSender(
     ProviderHttpClient providerHttpClient,
-    IEnumerable<IClientAuthenticator> authenticators
+    IEnumerable<IClientAuthenticator> authenticators,
+    ClientCertificateProvider certificateProvider
 )
 {
     private ProviderHttpClient ProviderHttpClient { get; } = providerHttpClient;
+
+    private ClientCertificateProvider CertificateProvider { get; } = certificateProvider;
 
     private FrozenDictionary<string, IClientAuthenticator> Authenticators { get; } =
         BuildAuthenticators(authenticators);
@@ -55,7 +59,7 @@ internal class ClientRequestSender(
     public virtual ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        ProviderEndpoint endpoint,
         List<KeyValuePair<string, string>> parameters,
         CancellationToken cancellationToken
     ) =>
@@ -80,7 +84,7 @@ internal class ClientRequestSender(
     public virtual ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        ProviderEndpoint endpoint,
         List<KeyValuePair<string, string>> parameters,
         bool includeClientId,
         CancellationToken cancellationToken
@@ -108,16 +112,16 @@ internal class ClientRequestSender(
     public virtual async ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        ProviderEndpoint endpoint,
         List<KeyValuePair<string, string>> parameters,
         bool includeClientId,
         DPoPProofKey? dpopKey,
         CancellationToken cancellationToken
     )
     {
-        if (!ProviderUri.TryParseEndpoint(endpoint, out var uri))
+        if (!ProviderUri.TryParseEndpoint(endpoint.Url, out var uri))
             throw new OpenIdProviderException(
-                $"The endpoint '{endpoint}' is not an acceptable endpoint (https, or http on loopback)."
+                $"The endpoint '{endpoint.Url}' is not an acceptable endpoint (https, or http on loopback)."
             );
 
         if (!Authenticators.TryGetValue(registration.AuthenticationMethod, out var authenticator))
@@ -125,15 +129,38 @@ internal class ClientRequestSender(
                 $"No client authenticator is registered for the method '{registration.AuthenticationMethod}' of client '{registration.ClientId}'."
             );
 
+        var target = endpoint.Url;
+        var httpClientName = OpenIdClientDefaults.HttpClientName;
+        if (authenticator.UsesMutualTls)
+        {
+            httpClientName = CertificateProvider.SelectHttpClientName(registration);
+
+            // RFC 8705 §5: a client using mutual TLS sends the request to the endpoint's alias when the provider has one.
+            if (
+                metadata.MtlsEndpointAliases is { } aliases
+                && aliases.TryGetValue(endpoint.MetadataName, out var alias)
+                && !string.IsNullOrEmpty(alias)
+            )
+            {
+                if (!ProviderUri.TryParseEndpoint(alias, out uri))
+                    throw new OpenIdProviderException(
+                        $"The mTLS endpoint alias '{alias}' is not an acceptable endpoint (https, or http on loopback)."
+                    );
+
+                target = alias;
+            }
+        }
+
         var response = await SendOnceAsync(
             authenticator,
             registration,
             metadata,
-            endpoint,
+            target,
             uri,
             parameters,
             includeClientId,
             dpopKey,
+            httpClientName,
             cancellationToken
         );
 
@@ -157,11 +184,12 @@ internal class ClientRequestSender(
             authenticator,
             registration,
             metadata,
-            endpoint,
+            target,
             uri,
             parameters,
             includeClientId,
             dpopKey,
+            httpClientName,
             cancellationToken
         );
 
@@ -175,11 +203,12 @@ internal class ClientRequestSender(
         IClientAuthenticator authenticator,
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
-        string endpoint,
+        string target,
         Uri uri,
         List<KeyValuePair<string, string>> parameters,
         bool includeClientId,
         DPoPProofKey? dpopKey,
+        string httpClientName,
         CancellationToken cancellationToken
     )
     {
@@ -194,7 +223,7 @@ internal class ClientRequestSender(
             new ClientAuthenticationContext(
                 registration,
                 metadata,
-                endpoint,
+                target,
                 request,
                 formParameters
             ),
@@ -220,6 +249,6 @@ internal class ClientRequestSender(
 
         request.Content = new FormUrlEncodedContent(formParameters);
 
-        return await ProviderHttpClient.SendAsync(request, cancellationToken);
+        return await ProviderHttpClient.SendAsync(request, httpClientName, cancellationToken);
     }
 }

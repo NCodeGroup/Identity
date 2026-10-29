@@ -31,6 +31,9 @@ internal class ClientSecretPostClientAuthenticator(IClientKeyRingProvider keyRin
     public string MethodName => OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
 
     /// <inheritdoc />
+    public bool UsesMutualTls => false;
+
+    /// <inheritdoc />
     public ValueTask AuthenticateAsync(
         ClientAuthenticationContext context,
         CancellationToken cancellationToken

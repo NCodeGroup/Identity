@@ -191,10 +191,10 @@ internal sealed class ConformanceSeedHandler(
 
     private IReadOnlyList<PersistedSecret> ImportKeys(string clientId, string jwks)
     {
-        var document = ParseKeySet(clientId, jwks);
+        var jsonElement = ParseKeySet(clientId, jwks);
         if (
             ClientKeyImporter.TryImportRegisteredKeySet(
-                document,
+                jsonElement,
                 TimeProvider.GetUtcNow(),
                 out var keys,
                 out var error

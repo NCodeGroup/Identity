@@ -66,12 +66,12 @@ internal sealed record FrontendPins(int NodeMajor, string PnpmVersion)
                 $"src/frontend/.node-version must start with the Node major number, found '{nodeVersionText.Trim()}'."
             );
 
-        var document = JsonElement.Parse(packageJsonText);
+        var jsonElement = JsonElement.Parse(packageJsonText);
 
         string? packageManager = null;
         if (
-            document.ValueKind == JsonValueKind.Object
-            && document.TryGetProperty("packageManager", out var property)
+            jsonElement.ValueKind == JsonValueKind.Object
+            && jsonElement.TryGetProperty("packageManager", out var property)
             && property.ValueKind == JsonValueKind.String
         )
         {

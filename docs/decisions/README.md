@@ -305,7 +305,7 @@ standards.
 | [0267](./0267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted |
 | [0268](./0268-a-generated-private-key-stores-its-public-key-beside-it.md) | A generated private key stores its public key beside it | Accepted |
 | [0269](./0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md) | A pull request stays a draft until its author reviews it | Accepted |
-| [0270](./0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted (amended by [0285](./0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md)) |
+| [0270](./0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted (amended by [0285](./0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md), [0287](./0287-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md)) |
 | [0271](./0271-a-key-type-registers-its-json-web-key-rules.md) | A key type registers its JSON Web Key rules | Accepted |
 | [0272](./0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [0273](./0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted (amended by [0278](./0278-token-validation-failures-carry-a-machine-readable-code.md), [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)) |
@@ -322,3 +322,4 @@ standards.
 | [0284](./0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md) | A logout token is recorded only after the client handles it | Accepted |
 | [0285](./0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted |
 | [0286](./0286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
+| [0287](./0287-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |

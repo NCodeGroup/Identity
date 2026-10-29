@@ -143,3 +143,14 @@ const NCode.Identity.Bff.BffTokenFailureReasons.ProviderUnavailable = "provider_
 const NCode.Identity.Bff.BffTokenFailureReasons.RefreshFailed = "refresh_failed" -> string!
 const NCode.Identity.Bff.BffTokenFailureReasons.RefreshWaitTimeout = "refresh_wait_timeout" -> string!
 const NCode.Identity.Bff.BffTokenFailureReasons.SessionRequired = "session_required" -> string!
+NCode.Identity.Bff.IBffTokenRequirement
+NCode.Identity.Bff.IBffTokenRequirement.GetAccessTokenAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
+NCode.Identity.Bff.IBffTokenRequirement.Name.get -> string!
+NCode.Identity.Bff.IBffTokenAccessor
+NCode.Identity.Bff.IBffTokenAccessor.GetAccessTokenAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
+NCode.Identity.Bff.BffTokenRequirementNames
+const NCode.Identity.Bff.BffTokenRequirementNames.User = "user" -> string!
+NCode.Identity.Bff.BffTokenUnavailableException
+NCode.Identity.Bff.BffTokenUnavailableException.BffTokenUnavailableException(int statusCode, string! reason) -> void
+NCode.Identity.Bff.BffTokenUnavailableException.Reason.get -> string!
+NCode.Identity.Bff.BffTokenUnavailableException.StatusCode.get -> int

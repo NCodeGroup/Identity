@@ -42,9 +42,6 @@ internal class BffCallbackHandler
 {
     private const string RefreshTokenExpiresInMember = "refresh_token_expires_in";
 
-    // Step 44 replaces this with BffTokenRequirementNames.User.
-    private const string UserRequirementName = "user";
-
     private readonly IOptions<BffOptions> _options;
     private readonly BffClientRegistrationProvider _registrationProvider;
     private readonly BffLoginTransactionService _transactionService;
@@ -274,7 +271,7 @@ internal class BffCallbackHandler
             [
                 new BffStoredAccessToken
                 {
-                    Requirement = UserRequirementName,
+                    Requirement = BffTokenRequirementNames.User,
                     Resource = null,
                     Scope = null,
                     Value = accessToken,

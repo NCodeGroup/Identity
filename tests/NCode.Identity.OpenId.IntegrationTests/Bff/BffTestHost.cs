@@ -98,7 +98,8 @@ internal sealed class BffTestHost : IAsyncDisposable
         IExpiringValueSet valueSet,
         IExpiringIndexSet indexSet,
         IReadOnlyDictionary<string, string?>? extraConfiguration = null,
-        ConcurrentQueue<RecordedHttpExchange>? exchanges = null
+        ConcurrentQueue<RecordedHttpExchange>? exchanges = null,
+        bool authenticateBeforeBff = false
     )
     {
         var builder = WebApplication.CreateBuilder(
@@ -164,6 +165,9 @@ internal sealed class BffTestHost : IAsyncDisposable
             );
 
         var app = builder.Build();
+        // A misordered pipeline, which UseBff() must refuse at request time.
+        if (authenticateBeforeBff)
+            app.UseAuthentication();
         app.UseBff();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -223,6 +227,16 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// Removes every cookie from the jar.
     /// </summary>
     public void ClearCookies() => _cookies.Clear();
+
+    /// <summary>
+    /// Posts a form without the cookies of the jar, as a server-to-server call from the provider.
+    /// </summary>
+    public async Task<HttpResponseMessage> PostFormAsync(string path, HttpContent content)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
+        request.Content = content;
+        return await _client.SendAsync(request);
+    }
 
     /// <summary>
     /// Replaces the cookies of the jar with a copy of the cookies of another host's jar, as a browser that sends its

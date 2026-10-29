@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
+using NCode.Identity.Secrets.Keys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Authorization;
@@ -56,7 +57,8 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
         StubHttpMessageHandler handler,
         OpenIdProviderMetadata metadata,
         bool expectPush = false,
-        Action<ClientAuthenticationContext>? authenticate = null
+        Action<ClientAuthenticationContext>? authenticate = null,
+        params SecretKey[] dpopKeys
     )
     {
         MockMetadataResolver
@@ -99,7 +101,7 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
         return new DefaultAuthorizationRequestClient(
             MockMetadataResolver.Object,
             sender,
-            DPoPContext.CreateResolver()
+            DPoPContext.CreateResolver(dpopKeys)
         );
     }
 
@@ -107,7 +109,8 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
         string? authorizationEndpoint = "https://op.example.test/authorize",
         string? parEndpoint = null,
         bool requirePar = false,
-        List<string>? challengeMethods = null
+        List<string>? challengeMethods = null,
+        List<string>? dpopAlgorithms = null
     ) =>
         new()
         {
@@ -118,10 +121,20 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
             PushedAuthorizationRequestEndpoint = parEndpoint,
             RequirePushedAuthorizationRequests = requirePar,
             CodeChallengeMethodsSupported = challengeMethods,
+            DPoPSigningAlgValuesSupported = dpopAlgorithms,
         };
 
-    private static ClientRegistration CreateRegistration(bool requirePar = false) =>
-        new(Authority, "client-1", "test") { RequirePushedAuthorizationRequests = requirePar };
+    private static ClientRegistration CreateRegistration(
+        bool requirePar = false,
+        string? dpopKeyRing = null,
+        bool dpopBound = false
+    ) =>
+        new(Authority, "client-1", "test")
+        {
+            RequirePushedAuthorizationRequests = requirePar,
+            DPoPKeyRing = dpopKeyRing,
+            DPoPBoundAccessTokens = dpopBound,
+        };
 
     private static Uri GetUri(AuthorizationRequestResult result) =>
         Assert.IsType<Uri>(result.AuthorizationUri);
@@ -585,6 +598,86 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
                 CancellationToken.None
             )
         );
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithDPoP_SendsDPoPJkt()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "");
+        var client = CreateClient(
+            handler,
+            CreateMetadata(dpopAlgorithms: ["ES256"]),
+            dpopKeys: DPoPContext.EcKey
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(dpopKeyRing: DPoPTestContext.KeyRingName),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        var thumbprint = DPoPContext.Thumbprint(DPoPContext.EcKey);
+        Assert.Empty(handler.Requests);
+        Assert.Equal(thumbprint, HttpUtility.ParseQueryString(GetUri(result).Query)["dpop_jkt"]);
+        Assert.Equal(thumbprint, result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithDPoPAndPar_PushesDPoPJkt()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Created, ParSuccessBody);
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint, dpopAlgorithms: ["ES256"]),
+            expectPush: true,
+            dpopKeys: DPoPContext.EcKey
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(dpopKeyRing: DPoPTestContext.KeyRingName),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        var thumbprint = DPoPContext.Thumbprint(DPoPContext.EcKey);
+        var body = HttpUtility.ParseQueryString(Assert.Single(handler.Requests).Body ?? "");
+        Assert.Equal([thumbprint], Assert.IsType<string[]>(body.GetValues("dpop_jkt")));
+        var query = HttpUtility.ParseQueryString(GetUri(result).Query);
+        Assert.Equal(["client_id", "request_uri"], query.AllKeys.Order(StringComparer.Ordinal));
+        Assert.Equal(thumbprint, result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithoutDPoPSupport_SendsNoDPoPJkt()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "");
+        var client = CreateClient(handler, CreateMetadata(), dpopKeys: DPoPContext.EcKey);
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(dpopKeyRing: DPoPTestContext.KeyRingName),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Null(HttpUtility.ParseQueryString(GetUri(result).Query)["dpop_jkt"]);
+        Assert.Null(result.DPoPJwkThumbprint);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WhenDPoPBoundWithoutSupport_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "");
+        var client = CreateClient(handler, CreateMetadata(), dpopKeys: DPoPContext.EcKey);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.CreateAuthorizationUriAsync(
+                CreateRegistration(dpopKeyRing: DPoPTestContext.KeyRingName, dpopBound: true),
+                CreateRequest(),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Empty(handler.Requests);
     }
 
     #endregion

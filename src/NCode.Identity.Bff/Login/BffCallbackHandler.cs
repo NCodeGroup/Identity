@@ -47,6 +47,7 @@ internal class BffCallbackHandler
     private readonly ITokenClient _tokenClient;
     private readonly IIdTokenValidator _idTokenValidator;
     private readonly IEnumerable<IBffLoginGate> _gates;
+    private readonly IEnumerable<IBffSessionClaimContributor> _claimContributors;
     private readonly IBffSessionManager _sessionManager;
     private readonly IBffAuditRecorder _auditRecorder;
     private readonly TimeProvider _timeProvider;
@@ -64,6 +65,7 @@ internal class BffCallbackHandler
         ITokenClient tokenClient,
         IIdTokenValidator idTokenValidator,
         IEnumerable<IBffLoginGate> gates,
+        IEnumerable<IBffSessionClaimContributor> claimContributors,
         IBffSessionManager sessionManager,
         IBffAuditRecorder auditRecorder,
         TimeProvider timeProvider,
@@ -78,6 +80,7 @@ internal class BffCallbackHandler
         _tokenClient = tokenClient;
         _idTokenValidator = idTokenValidator;
         _gates = gates;
+        _claimContributors = claimContributors;
         _sessionManager = sessionManager;
         _auditRecorder = auditRecorder;
         _timeProvider = timeProvider;
@@ -224,7 +227,27 @@ internal class BffCallbackHandler
             return;
         }
 
-        var claims = BffSessionPrincipal.StoreClaims(identity);
+        var subject = identity.FindFirst(JoseClaimNames.Payload.Sub)?.Value;
+        if (string.IsNullOrEmpty(subject))
+        {
+            await FailAsync(httpContext, BffLoginFailureReasons.IdTokenInvalid);
+            return;
+        }
+
+        // The contributors shape the session's claims once, before the gates, so a gate judges the session as it will
+        // be created; none of them can change the claims that anchor it to the provider's authentication.
+        var claimContext = new BffSessionClaimContext(
+            httpContext,
+            transaction.Issuer,
+            subject,
+            BffSessionPrincipal.SelectSessionClaims(identity)
+        );
+        foreach (var contributor in _claimContributors)
+        {
+            await contributor.ContributeAsync(claimContext, cancellationToken);
+        }
+
+        var claims = BffSessionPrincipal.StoreClaims(claimContext.Claims);
         var principal = BffSessionPrincipal.Create(claims, transaction.Issuer);
         var gateContext = new BffLoginGateContext(httpContext, transaction.Issuer, principal);
         foreach (var gate in _gates)
@@ -234,13 +257,6 @@ internal class BffCallbackHandler
                 continue;
 
             await FailAsync(httpContext, BffLoginFailureReasons.RejectedByGate);
-            return;
-        }
-
-        var subject = identity.FindFirst(JoseClaimNames.Payload.Sub)?.Value;
-        if (string.IsNullOrEmpty(subject))
-        {
-            await FailAsync(httpContext, BffLoginFailureReasons.IdTokenInvalid);
             return;
         }
 

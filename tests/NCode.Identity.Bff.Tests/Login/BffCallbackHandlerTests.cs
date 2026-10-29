@@ -54,6 +54,7 @@ public class BffCallbackHandlerTests : BaseTests
         new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)
     );
     private readonly List<IBffLoginGate> _gates = [];
+    private readonly List<IBffSessionClaimContributor> _claimContributors = [];
 
     public BffCallbackHandlerTests()
     {
@@ -80,6 +81,7 @@ public class BffCallbackHandlerTests : BaseTests
             _tokenClient.Object,
             _idTokenValidator.Object,
             _gates,
+            _claimContributors,
             _sessionManager.Object,
             _auditRecorder.Object,
             timeProvider,
@@ -555,11 +557,103 @@ public class BffCallbackHandlerTests : BaseTests
             new Claim(JoseClaimNames.Payload.Email, "user@example.com"),
         ]);
 
-        var result = BffSessionPrincipal.StoreClaims(identity);
+        var result = BffSessionPrincipal.StoreClaims(
+            BffSessionPrincipal.SelectSessionClaims(identity)
+        );
 
         var stored = Assert.Single(result);
         Assert.Equal(JoseClaimNames.Payload.Email, stored.Type);
         Assert.Equal("user@example.com", stored.Value);
+    }
+
+    #endregion
+
+    #region Session Claim Contributor Tests
+
+    [Fact]
+    public async Task HandleAsync_WithClaimContributors_StoresTheShapedClaimsInOrder()
+    {
+        SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
+        var first = CreateStrictMock<IBffSessionClaimContributor>();
+        first
+            .Setup(x =>
+                x.ContributeAsync(It.IsAny<BffSessionClaimContext>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<BffSessionClaimContext, CancellationToken>(
+                (context, _) =>
+                {
+                    Assert.Equal(Issuer, context.Issuer);
+                    Assert.Equal("user-1", context.Subject);
+                    context.AddClaim(new Claim("role", "admin"));
+                    context.AddClaim(new Claim("role", "auditor"));
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var second = CreateStrictMock<IBffSessionClaimContributor>();
+        second
+            .Setup(x =>
+                x.ContributeAsync(It.IsAny<BffSessionClaimContext>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<BffSessionClaimContext, CancellationToken>(
+                (context, _) =>
+                {
+                    // The second contributor sees the first one's claims.
+                    Assert.Equal(2, context.RemoveClaims("role"));
+                    context.AddClaim(new Claim("role", "user"));
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        _claimContributors.Add(first.Object);
+        _claimContributors.Add(second.Object);
+
+        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+
+        var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
+        Assert.Equal(
+            [JoseClaimNames.Payload.Sub, JoseClaimNames.Payload.Sid, "role"],
+            payload.Claims.Select(claim => claim.Type)
+        );
+        Assert.Equal("user", payload.Claims[2].Value);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithClaimContributors_LetsTheGatesJudgeTheShapedClaims()
+    {
+        SetupTransaction(issSupported: false);
+        SetupSuccessfulToken();
+        var identity = new ClaimsIdentity([new Claim(JoseClaimNames.Payload.Sub, "user-1")]);
+        SetupValidation(new IdTokenValidationResult(default(JsonElement)) { Identity = identity });
+        var contributor = CreateStrictMock<IBffSessionClaimContributor>();
+        contributor
+            .Setup(x =>
+                x.ContributeAsync(It.IsAny<BffSessionClaimContext>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<BffSessionClaimContext, CancellationToken>(
+                (context, _) => context.AddClaim(new Claim("account_status", "disabled"))
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        _claimContributors.Add(contributor.Object);
+        var gate = CreateStrictMock<IBffLoginGate>();
+        gate.Setup(x =>
+                x.AllowAsync(
+                    It.Is<BffLoginGateContext>(context =>
+                        context.Principal.HasClaim("account_status", "disabled")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        _gates.Add(gate.Object);
+        SetupAudit(BffLoginFailureReasons.RejectedByGate);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.RejectedByGate
+        );
     }
 
     #endregion

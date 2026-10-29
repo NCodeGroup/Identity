@@ -728,9 +728,9 @@ runs.
 | Token requirements (`IBffTokenRequirement`) | Strategy collection, by name | How a local or remote API obtains its outbound token ([§5.5](#55-token-management)).                                          |
 | Frontend selection                       | Strategy collection, by name  | Which frontend a request belongs to.                                                                                          |
 | Login gates (`IBffLoginGate`)            | Strategy collection           | Reject a validated login before a session exists, for example a disabled account or a missing `acr`. **Reject only.**        |
-| Session claim contributors               | Strategy collection           | Shape the session principal **once**, at login. A good place for an expensive lookup.                                          |
+| Session claim contributors (`IBffSessionClaimContributor`) | Strategy collection | Shape the session principal **once**, at login, before the login gates. A good place for an expensive lookup. `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr` cannot be added or removed. |
 | Session validators (`IBffSessionValidator`) | Strategy collection        | Per-request checks that can only end a session, for example re-checking account status at an interval.                        |
-| `/bff/user` contributors                 | Strategy collection           | Add computed fields to the session probe, never into the reserved keys.                                                       |
+| `/bff/user` contributors (`IBffUserContributor`) | Strategy collection | Add computed fields to the session probe, never into the reserved keys (`sub`, `name`, `claims`, `session`, `logoutUrl`). |
 | Remote-API destination resolver          | Service                       | Dynamic routing. It must return an allow-listed destination.                                                                  |
 | Events                                   | `NCode.Identity.Events`       | Lifecycle events go through the family's `IEventPublisher`, and audit-worthy ones are `IAuditEvent`s.                        |
 

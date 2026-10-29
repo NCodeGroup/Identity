@@ -40,30 +40,33 @@ internal static class BffSessionPrincipal
     };
 
     /// <summary>
-    /// Selects the claims of an ID token that a session stores, dropping the ones that only matter during validation.
+    /// Selects the claims of an ID token that a session keeps, dropping the ones that only matter during validation.
     /// </summary>
     /// <param name="identity">The claims identity of the validated ID token.</param>
-    public static IReadOnlyList<BffStoredClaim> StoreClaims(ClaimsIdentity identity)
+    public static IEnumerable<Claim> SelectSessionClaims(ClaimsIdentity identity)
     {
         ArgumentNullException.ThrowIfNull(identity);
 
-        var result = new List<BffStoredClaim>();
-        foreach (var claim in identity.Claims)
-        {
-            if (DroppedClaimTypes.Contains(claim.Type))
-                continue;
+        return identity.Claims.Where(claim => !DroppedClaimTypes.Contains(claim.Type));
+    }
 
-            result.Add(
-                new BffStoredClaim
-                {
-                    Type = claim.Type,
-                    Value = claim.Value,
-                    ValueType = claim.ValueType,
-                }
-            );
-        }
+    /// <summary>
+    /// Converts the claims of a session into the form the session stores: each claim's type, value and value type.
+    /// </summary>
+    /// <param name="claims">The claims of the session.</param>
+    public static IReadOnlyList<BffStoredClaim> StoreClaims(IEnumerable<Claim> claims)
+    {
+        ArgumentNullException.ThrowIfNull(claims);
 
-        return result;
+        return
+        [
+            .. claims.Select(claim => new BffStoredClaim
+            {
+                Type = claim.Type,
+                Value = claim.Value,
+                ValueType = claim.ValueType,
+            }),
+        ];
     }
 
     /// <summary>

@@ -158,3 +158,24 @@ NCode.Identity.Bff.BffTokenUnavailableException.Reason.get -> string!
 NCode.Identity.Bff.BffTokenUnavailableException.StatusCode.get -> int
 const NCode.Identity.Bff.BffAuditEvent.ReasonMetricAttribute = "ncode.identity.bff.reason" -> string!
 NCode.Identity.Bff.BffAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
+NCode.Identity.Bff.BffSessionClaimContext
+NCode.Identity.Bff.BffSessionClaimContext.AddClaim(System.Security.Claims.Claim! claim) -> void
+NCode.Identity.Bff.BffSessionClaimContext.BffSessionClaimContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! issuer, string! subject, System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>! claims) -> void
+NCode.Identity.Bff.BffSessionClaimContext.Claims.get -> System.Collections.Generic.IReadOnlyList<System.Security.Claims.Claim!>!
+NCode.Identity.Bff.BffSessionClaimContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffSessionClaimContext.Issuer.get -> string!
+NCode.Identity.Bff.BffSessionClaimContext.RemoveClaims(string! claimType) -> int
+NCode.Identity.Bff.BffSessionClaimContext.Subject.get -> string!
+NCode.Identity.Bff.BffUserContext
+NCode.Identity.Bff.BffUserContext.AddField(string! name, System.Text.Json.Nodes.JsonNode? value) -> void
+NCode.Identity.Bff.BffUserContext.BffUserContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Security.Claims.ClaimsPrincipal! principal, NCode.Identity.Bff.BffSessionMetadata! metadata) -> void
+NCode.Identity.Bff.BffUserContext.Fields.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.Nodes.JsonNode?>!
+NCode.Identity.Bff.BffUserContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffUserContext.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.BffUserContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffSessionClaimContributor
+NCode.Identity.Bff.IBffSessionClaimContributor.ContributeAsync(NCode.Identity.Bff.BffSessionClaimContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Bff.IBffUserContributor
+NCode.Identity.Bff.IBffUserContributor.ContributeAsync(NCode.Identity.Bff.BffUserContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+static NCode.Identity.Bff.BffSessionClaimContext.ReservedClaimTypes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static NCode.Identity.Bff.BffUserContext.ReservedFieldNames.get -> System.Collections.Generic.IReadOnlySet<string!>!

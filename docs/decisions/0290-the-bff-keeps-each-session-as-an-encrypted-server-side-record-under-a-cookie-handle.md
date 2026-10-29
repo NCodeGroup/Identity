@@ -80,9 +80,12 @@ without the cookie.**
     type, and rebuilds `ClaimsIdentity(claims, "Bff", "name", "role")` per request. `/bff/user` returns `sub`, `name`,
     the claims that `UserClaims` lists, and the session's expiries and logout URL.
 11. **Seams.** `IBffLoginGate` is a strategy collection that can only reject a login after the ID token validates, and
-    `IBffSessionValidator` one that can only end a session (`ended_by_validator`). Claim and `/bff/user` contributors
-    and UserInfo are later work.
-12. **Audit.** One public record, `BffAuditEvent : AuditEvent, ISupportAuditDetails`, with event source `bff` and the
+    `IBffSessionValidator` one that can only end a session (`ended_by_validator`). `IBffSessionClaimContributor` shapes
+    a session's claims once, at login, after the ID token validates and before the gates, so a gate judges the session
+    as it will be created; its `BffSessionClaimContext` refuses to add or remove `iss`, `sub`, `sid`, `auth_time`, `acr`
+    and `amr`, which anchor the session to the provider's authentication. `IBffUserContributor` adds fields to
+    `/bff/user` on each request through `BffUserContext`, which refuses the reserved `sub`, `name`, `claims`, `session`
+    and `logoutUrl` and a name already added; the contributors run before the response starts. UserInfo is later work.12. **Audit.** One public record, `BffAuditEvent : AuditEvent, ISupportAuditDetails`, with event source `bff` and the
     names in `BffAuditEventNames`, records logins, session ends, refresh failures, back-channel logouts and CSRF
     refusals ([audit records](../audit-records.md)). No token, handle, cookie value, state, code or secret is ever
     logged or audited.

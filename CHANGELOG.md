@@ -39,6 +39,13 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **BFF session claim and `/bff/user` contributors.** `IBffSessionClaimContributor` strategies shape a session's
+  claims once, at login, after the ID token validates and before the login gates, which now judge the shaped claims;
+  `BffSessionClaimContext` refuses to add or remove `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr`.
+  `IBffUserContributor` strategies add computed fields to `/bff/user` through `BffUserContext`, which refuses the
+  reserved `sub`, `name`, `claims`, `session` and `logoutUrl`
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
+  decision 11, issue [#414](https://github.com/NCodeGroup/Identity/issues/414)).
 - **A BFF is composed in one call.** The new `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
   protocol-client and BFF libraries and binds the `Bff` section, and `IIdentityBffBuilder` exposes each library's

@@ -17,7 +17,9 @@
 #endregion
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
+using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
@@ -64,7 +66,11 @@ public class BffUserHandlerTests : BaseTests
             }
         );
 
-    private BffUserHandler CreateHandler(HttpContext httpContext, BffSessionState? session)
+    private BffUserHandler CreateHandler(
+        HttpContext httpContext,
+        BffSessionState? session,
+        params IBffUserContributor[] contributors
+    )
     {
         var options = Microsoft.Extensions.Options.Options.Create(
             new BffOptions { UserClaims = ["email", "role", "phone_number"] }
@@ -76,7 +82,7 @@ public class BffUserHandlerTests : BaseTests
 
         var feature = new BffRequestFeature { IsResolved = true, Session = session };
         httpContext.Features.Set(feature);
-        return new BffUserHandler(resolver, options);
+        return new BffUserHandler(resolver, contributors, options);
     }
 
     private static async Task<string> ReadBodyAsync(HttpContext httpContext)
@@ -141,6 +147,74 @@ public class BffUserHandlerTests : BaseTests
         Assert.DoesNotContain("id-token", body);
         Assert.DoesNotContain("sid-1", body);
         Assert.DoesNotContain("op.example", body);
+    }
+
+    #endregion
+
+    #region User Contributor Tests
+
+    private IBffUserContributor CreateContributor(Action<BffUserContext> contribute)
+    {
+        var contributor = CreateStrictMock<IBffUserContributor>();
+        contributor
+            .Setup(x =>
+                x.ContributeAsync(It.IsAny<BffUserContext>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<BffUserContext, CancellationToken>((context, _) => contribute(context))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        return contributor.Object;
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithUserContributors_WritesTheirFieldsBesideTheReservedOnes()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+        var handler = CreateHandler(
+            httpContext,
+            CreateState(),
+            CreateContributor(context =>
+            {
+                Assert.Equal("sub-1", context.Metadata.Subject);
+                Assert.True(context.Principal.HasClaim("email", "ada@example.com"));
+                context.AddField("tenant", "acme");
+                context.AddField("features", new JsonArray("beta", "reports"));
+            }),
+            CreateContributor(context => context.AddField("unread", null))
+        );
+
+        await handler.HandleAsync(httpContext);
+
+        var body = await ReadBodyAsync(httpContext);
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        Assert.Equal("sub-1", root.GetProperty(JoseClaimNames.Payload.Sub).GetString());
+        Assert.Equal("acme", root.GetProperty("tenant").GetString());
+        Assert.Equal(
+            ["beta", "reports"],
+            root.GetProperty("features").EnumerateArray().Select(x => x.GetString())
+        );
+        Assert.Equal(JsonValueKind.Null, root.GetProperty("unread").ValueKind);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAContributorUsesAReservedField_ThrowsBeforeWriting()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+        var handler = CreateHandler(
+            httpContext,
+            CreateState(),
+            CreateContributor(context => context.AddField("sub", "someone-else"))
+        );
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            handler.HandleAsync(httpContext)
+        );
+
+        Assert.Equal("name", exception.ParamName);
+        Assert.Equal(0, httpContext.Response.Body.Length);
     }
 
     #endregion

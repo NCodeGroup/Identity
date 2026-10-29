@@ -28,14 +28,20 @@ using NCode.Identity.Jose;
 namespace NCode.Identity.Bff.Endpoints;
 
 /// <summary>
-/// Handles <c>GET /bff/user</c>, which tells the frontend who is signed in without exposing any token.
+/// Handles <c>GET /bff/user</c>, which tells the frontend who is signed in without exposing any token. The registered
+/// <see cref="IBffUserContributor"/> strategies add fields beside the reserved ones.
 /// </summary>
-internal class BffUserHandler(BffSessionResolver resolver, IOptions<BffOptions> options)
+internal class BffUserHandler(
+    BffSessionResolver resolver,
+    IEnumerable<IBffUserContributor> contributors,
+    IOptions<BffOptions> options
+)
 {
     private const string JsonContentType = "application/json; charset=utf-8";
     private const string LogoutPath = "/logout";
 
     private readonly BffSessionResolver _resolver = resolver;
+    private readonly IEnumerable<IBffUserContributor> _contributors = contributors;
     private readonly IOptions<BffOptions> _options = options;
 
     /// <summary>
@@ -64,6 +70,13 @@ internal class BffUserHandler(BffSessionResolver resolver, IOptions<BffOptions> 
 
         var bffOptions = _options.Value;
         var principal = BffSessionPrincipal.Create(session.Payload.Claims, session.Metadata.Issuer);
+
+        // The contributors run before the response starts, so a contributor that fails leaves no partial body.
+        var userContext = new BffUserContext(httpContext, principal, session.Metadata);
+        foreach (var contributor in _contributors)
+        {
+            await contributor.ContributeAsync(userContext, cancellationToken);
+        }
 
         response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = JsonContentType;
@@ -111,6 +124,15 @@ internal class BffUserHandler(BffSessionResolver resolver, IOptions<BffOptions> 
         );
         var guard = Uri.EscapeDataString(session.Payload.LogoutGuard);
         writer.WriteString("logoutUrl", $"{logoutPath}?sid={guard}");
+
+        foreach (var (fieldName, value) in userContext.Fields)
+        {
+            writer.WritePropertyName(fieldName);
+            if (value is null)
+                writer.WriteNullValue();
+            else
+                value.WriteTo(writer);
+        }
 
         writer.WriteEndObject();
         await writer.FlushAsync(cancellationToken);

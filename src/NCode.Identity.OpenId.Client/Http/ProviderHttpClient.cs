@@ -60,8 +60,18 @@ internal class ProviderHttpClient(
             await response.Content.LoadIntoBufferAsync(Options.MaxResponseSizeBytes, token);
             var bytes = await response.Content.ReadAsByteArrayAsync(token);
 
+            var dpopNonce = response.Headers.TryGetValues(
+                OpenIdProtocol.DPoP.NonceHeaderName,
+                out var values
+            )
+                ? values.FirstOrDefault()
+                : null;
+
             if (bytes.Length == 0)
-                return new ProviderHttpResponse((int)response.StatusCode, null);
+                return new ProviderHttpResponse((int)response.StatusCode, null)
+                {
+                    DPoPNonce = dpopNonce,
+                };
 
             var mediaType = response.Content.Headers.ContentType?.MediaType;
             if (
@@ -76,10 +86,16 @@ internal class ProviderHttpClient(
                     StringComparison.OrdinalIgnoreCase
                 )
             )
-                return new ProviderHttpResponse((int)response.StatusCode, null);
+                return new ProviderHttpResponse((int)response.StatusCode, null)
+                {
+                    DPoPNonce = dpopNonce,
+                };
 
             using var document = JsonDocument.Parse(bytes);
-            return new ProviderHttpResponse((int)response.StatusCode, document.RootElement.Clone());
+            return new ProviderHttpResponse((int)response.StatusCode, document.RootElement.Clone())
+            {
+                DPoPNonce = dpopNonce,
+            };
         }
         catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested)

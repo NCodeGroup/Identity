@@ -28,6 +28,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
+using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
@@ -82,6 +83,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
             serviceCollection.TryAddSingleton<BffUserHandler>();
+            serviceCollection.TryAddSingleton<BffLogoutService>();
 
             serviceCollection.TryAddSingleton<BffRefreshLocks>();
             serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();

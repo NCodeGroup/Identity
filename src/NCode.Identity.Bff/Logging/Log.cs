@@ -44,4 +44,15 @@ internal static partial class Log
         string reason,
         Exception? exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RefreshTokenRevocationFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not revoke the refresh token at logout: {Reason}"
+    )]
+    internal static partial void RefreshTokenRevocationFailed(
+        this ILogger logger,
+        string reason,
+        Exception? exception
+    );
 }

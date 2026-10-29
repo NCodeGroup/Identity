@@ -19,8 +19,10 @@
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
@@ -37,7 +39,9 @@ internal class BffAuthenticationHandler(
     UrlEncoder encoder,
     BffSessionResolver resolver,
     IOptions<BffOptions> options
-) : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder)
+)
+    : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder),
+        IAuthenticationSignOutHandler
 {
     private const string LoginPath = "/login";
 
@@ -85,6 +89,22 @@ internal class BffAuthenticationHandler(
         var escaped = Uri.EscapeDataString(returnUrl);
         Response.Redirect($"{loginUrl}?returnUrl={escaped}");
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public async Task SignOutAsync(AuthenticationProperties? properties)
+    {
+        var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
+        if (session is null)
+            return;
+
+        var logout = Context.RequestServices.GetRequiredService<BffLogoutService>();
+        await logout.EndSessionAsync(
+            Context,
+            session,
+            BffSessionEndReasons.LoggedOut,
+            Context.RequestAborted
+        );
     }
 
     /// <inheritdoc />

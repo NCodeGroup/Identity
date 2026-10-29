@@ -107,8 +107,8 @@ without the cookie.**
 
 - A store dump, a store operator or a replacement `IBffSessionStore` sees only ciphertext and digests.
 - Losing the cookie loses the session: nothing on the server can recover it, by design.
-- The host composes six libraries (secrets, JOSE, JWT, protocol client, events and shared state) before
-  `AddBffLibrary`; a one-call composition root is later work.
+- A host composes the BFF in one call, `AddIdentityBff(configuration)` from `NCode.Identity.Bff.Server`, or composes
+  the six libraries (secrets, JOSE, JWT, protocol client, events and shared state) itself before `AddBffLibrary`.
 - `IdTokenValidationResult.Identity` is new public surface of the protocol client.
 
 ## References

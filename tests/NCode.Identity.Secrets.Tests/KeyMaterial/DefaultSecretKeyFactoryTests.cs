@@ -282,6 +282,117 @@ public class DefaultSecretKeyFactoryTests : BaseTests
         );
     }
 
+    // A CA, a certificate it issued with its private key, and the CA's public certificate.
+    private static (X509Certificate2 Leaf, X509Certificate2 Issuer) CreateIssuedCertificate(
+        ECDsa leafKey
+    )
+    {
+        using var issuerKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var issuerRequest = new CertificateRequest(
+            "CN=test-ca",
+            issuerKey,
+            HashAlgorithmName.SHA256
+        );
+        issuerRequest.CertificateExtensions.Add(
+            new X509BasicConstraintsExtension(true, false, 0, true)
+        );
+        using var issuer = issuerRequest.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-2),
+            DateTimeOffset.UtcNow.AddDays(2)
+        );
+
+        var leafRequest = new CertificateRequest("CN=test", leafKey, HashAlgorithmName.SHA256);
+        using var leafPublic = leafRequest.Create(
+            issuer,
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(1),
+            [1, 2, 3, 4]
+        );
+
+        return (
+            leafPublic.CopyWithPrivateKey(leafKey),
+            X509CertificateLoader.LoadCertificate(issuer.Export(X509ContentType.Cert))
+        );
+    }
+
+    [Fact]
+    public void Create_FromCertificateCollection_KeepsTheIssuersOfTheCertificateWithAPrivateKey()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var (leaf, issuer) = CreateIssuedCertificate(leafKey);
+        using var _ = leaf;
+        using var __ = issuer;
+        using var leafPublic = X509CertificateLoader.LoadCertificate(leaf.RawData);
+
+        // The leaf's public certificate, as a PKCS#12 file may also carry, is not an issuer.
+        var key = Assert.IsAssignableFrom<EccSecretKey>(
+            factory.Create(new KeyMetadata(), [issuer, leaf, leafPublic])
+        );
+
+        Assert.True(key.HasCertificate);
+        Assert.Equal(leaf.RawData, key.CertificateRawData.Value.ToArray());
+        var issuerRawData = Assert.Single(key.IssuerCertificatesRawData);
+        Assert.Equal(issuer.RawData, issuerRawData.ToArray());
+
+        var exported = key.ExportIssuerCertificates();
+        using var exportedIssuer = Assert.Single(exported);
+        Assert.Equal(issuer.Thumbprint, exportedIssuer.Thumbprint);
+    }
+
+    [Fact]
+    public void Create_FromCertificateCollectionWithoutAPrivateKey_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var (leaf, issuer) = CreateIssuedCertificate(leafKey);
+        using var _ = leaf;
+        using var __ = issuer;
+        using var leafPublic = X509CertificateLoader.LoadCertificate(leaf.RawData);
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            factory.Create(new KeyMetadata(), [leafPublic, issuer])
+        );
+
+        Assert.Equal("certificates", exception.ParamName);
+    }
+
+    [Fact]
+    public void Create_FromCertificateCollectionWithTwoPrivateKeys_Throws()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var firstKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var secondKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var (first, firstIssuer) = CreateIssuedCertificate(firstKey);
+        var (second, secondIssuer) = CreateIssuedCertificate(secondKey);
+        using var _ = first;
+        using var __ = firstIssuer;
+        using var ___ = second;
+        using var ____ = secondIssuer;
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            factory.Create(new KeyMetadata(), [first, second])
+        );
+
+        Assert.Equal("certificates", exception.ParamName);
+    }
+
+    [Fact]
+    public void Create_FromASingleCertificate_HasNoIssuers()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var (leaf, issuer) = CreateIssuedCertificate(leafKey);
+        using var _ = leaf;
+        using var __ = issuer;
+
+        var key = Assert.IsAssignableFrom<AsymmetricSecretKey>(
+            factory.Create(new KeyMetadata(), leaf)
+        );
+
+        Assert.Empty(key.IssuerCertificatesRawData);
+        Assert.Empty(key.ExportIssuerCertificates());
+    }
     #endregion
 
     #region Public Key Tests

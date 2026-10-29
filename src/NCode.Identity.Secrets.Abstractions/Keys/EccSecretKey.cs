@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -29,8 +29,9 @@ namespace NCode.Identity.Secrets.Keys;
 public abstract class EccSecretKey(
     KeyMetadata metadata,
     int curveSizeBits,
-    ReadOnlyMemory<byte>? certificateRawData
-) : AsymmetricSecretKey(metadata, curveSizeBits, certificateRawData)
+    ReadOnlyMemory<byte>? certificateRawData,
+    IReadOnlyList<ReadOnlyMemory<byte>>? issuerCertificatesRawData = null
+) : AsymmetricSecretKey(metadata, curveSizeBits, certificateRawData, issuerCertificatesRawData)
 {
     /// <summary>
     /// OID for <c>Elliptic-Curve</c> public key cryptography.

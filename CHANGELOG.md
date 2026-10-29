@@ -39,6 +39,15 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **A TLS client certificate is presented with its chain.** `AsymmetricSecretKey.IssuerCertificatesRawData` keeps the
+  certificates of the authorities that issued a key's certificate, and `ExportIssuerCertificates()` materializes them.
+  `ISecretKeyFactory.Create(KeyMetadata, X509Certificate2Collection)` builds a key from a collection such as a loaded
+  PKCS#12 file: the one certificate with a private key is the key's, and the others are its issuers. The protocol
+  client's `tls_client_auth` and `self_signed_tls_client_auth` present those issuers in the handshake, so an OP that
+  trusts only the root accepts a certificate issued by an intermediate CA; a custom `ISecretKeyFactory` must implement
+  the new method
+  ([ADR-0300](docs/decisions/0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
+  issue [#407](https://github.com/NCodeGroup/Identity/issues/407)).
 - **UserInfo in the protocol client and at BFF login.** `IUserInfoClient` requests the provider's UserInfo endpoint with
   an access token the way it was issued (bearer, DPoP with a nonce retry, or over mutual TLS to the endpoint's alias),
   refuses a response about another subject than the ID token's, and maps the claims through the new

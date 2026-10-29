@@ -45,6 +45,10 @@ internal class ClientCertificateProvider(
     private ConcurrentDictionary<string, X509Certificate2> Certificates { get; } =
         new(StringComparer.Ordinal);
 
+    // The certificates of the authorities that issued each selected certificate, presented with it. See ADR-0300.
+    private ConcurrentDictionary<string, X509Certificate2Collection> IssuerCertificates { get; } =
+        new(StringComparer.Ordinal);
+
     /// <summary>
     /// Selects the first qualifying certificate of the client's key ring, caches it with its private key, and returns
     /// the name of the <c>IHttpClientFactory</c> client that presents it.
@@ -92,6 +96,10 @@ internal class ClientCertificateProvider(
                     certificate.Dispose();
                     certificate = Certificates[thumbprint];
                 }
+
+                var issuers = key.ExportIssuerCertificates();
+                if (!IssuerCertificates.TryAdd(thumbprint, issuers))
+                    DisposeAll(issuers);
             }
 
             if (
@@ -140,9 +148,17 @@ internal class ClientCertificateProvider(
             UseCookies = false,
             SslOptions = new SslClientAuthenticationOptions
             {
+                // The issuers' certificates travel with the client's, so a server that trusts only the root builds the
+                // chain (RFC 8446 §4.4.2); offline, nothing is downloaded. See ADR-0300.
                 ClientCertificateContext = SslStreamCertificateContext.Create(
                     certificate,
-                    additionalCertificates: null,
+                    additionalCertificates: IssuerCertificates.TryGetValue(
+                        thumbprint,
+                        out var issuers
+                    )
+                    && issuers.Count > 0
+                        ? issuers
+                        : null,
                     offline: true
                 ),
             },
@@ -156,6 +172,29 @@ internal class ClientCertificateProvider(
         {
             if (Certificates.TryRemove(thumbprint, out var certificate))
                 certificate.Dispose();
+        }
+
+        foreach (var thumbprint in IssuerCertificates.Keys)
+        {
+            if (IssuerCertificates.TryRemove(thumbprint, out var issuers))
+                DisposeAll(issuers);
+        }
+    }
+
+    /// <summary>
+    /// Gets the certificates of the authorities that issued the certificate previously selected for the specified
+    /// SHA-256 thumbprint, which the TLS handshake presents with it.
+    /// </summary>
+    /// <param name="thumbprint">The uppercase hexadecimal SHA-256 hash of the certificate's DER encoding.</param>
+    /// <returns>The issuer certificates, empty when there are none or no certificate was selected.</returns>
+    public X509Certificate2Collection GetIssuerCertificates(string thumbprint) =>
+        IssuerCertificates.TryGetValue(thumbprint, out var issuers) ? issuers : [];
+
+    private static void DisposeAll(X509Certificate2Collection certificates)
+    {
+        foreach (var certificate in certificates)
+        {
+            certificate.Dispose();
         }
     }
 

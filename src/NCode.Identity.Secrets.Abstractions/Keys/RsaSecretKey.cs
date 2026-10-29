@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -29,8 +29,9 @@ namespace NCode.Identity.Secrets.Keys;
 public abstract class RsaSecretKey(
     KeyMetadata metadata,
     int modulusSizeBits,
-    ReadOnlyMemory<byte>? certificateRawData
-) : AsymmetricSecretKey(metadata, modulusSizeBits, certificateRawData)
+    ReadOnlyMemory<byte>? certificateRawData,
+    IReadOnlyList<ReadOnlyMemory<byte>>? issuerCertificatesRawData = null
+) : AsymmetricSecretKey(metadata, modulusSizeBits, certificateRawData, issuerCertificatesRawData)
 {
     /// <summary>
     /// OID for <c>RSA</c> public key cryptography.

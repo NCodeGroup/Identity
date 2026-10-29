@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -28,16 +28,47 @@ namespace NCode.Identity.Secrets.Keys;
 
 /// <summary>
 /// Common abstractions for all secret keys using <c>asymmetric</c> cryptographic keys. Holds the shared
-/// <see cref="SecretKey.Metadata"/>, <see cref="SecretKey.KeySizeBits"/>, and optional public certificate, so
-/// concrete keys only supply their key-material export.
+/// <see cref="SecretKey.Metadata"/>, <see cref="SecretKey.KeySizeBits"/>, the optional public certificate, and the
+/// certificates of the authorities that issued it, so concrete keys only supply their key-material export.
 /// </summary>
+/// <param name="metadata">The metadata of the key.</param>
+/// <param name="keySizeBits">The size of the key, in bits.</param>
+/// <param name="certificateRawData">The optional DER-encoded certificate of the key, or <see langword="null"/>.</param>
+/// <param name="issuerCertificatesRawData">The DER-encoded certificates of the authorities that issued the key's
+/// certificate, such as an intermediate CA's, or <see langword="null"/> for none.</param>
 [PublicAPI]
 public abstract class AsymmetricSecretKey(
     KeyMetadata metadata,
     int keySizeBits,
-    ReadOnlyMemory<byte>? certificateRawData
+    ReadOnlyMemory<byte>? certificateRawData,
+    IReadOnlyList<ReadOnlyMemory<byte>>? issuerCertificatesRawData = null
 ) : SecretKey
 {
+    /// <summary>
+    /// Gets the DER-encoded certificates of the authorities that issued <see cref="CertificateRawData"/>, such as an
+    /// intermediate CA's, or an empty list. A TLS client presents them with its certificate, so a server that trusts
+    /// only the root can build the chain (RFC 8446 §4.4.2). They are public; no private key material is included.
+    /// </summary>
+    // See ADR-0300.
+    public IReadOnlyList<ReadOnlyMemory<byte>> IssuerCertificatesRawData { get; } =
+        issuerCertificatesRawData ?? [];
+
+    /// <summary>
+    /// Gets the certificates of the authorities that issued this key's certificate, each with only its public
+    /// portion. The caller owns, and disposes, the returned certificates.
+    /// </summary>
+    /// <returns>The issuer certificates, empty when there are none.</returns>
+    public X509Certificate2Collection ExportIssuerCertificates()
+    {
+        var collection = new X509Certificate2Collection();
+        foreach (var rawData in IssuerCertificatesRawData)
+        {
+            collection.Add(X509CertificateLoader.LoadCertificate(rawData.Span));
+        }
+
+        return collection;
+    }
+
     /// <summary>
     /// Gets the raw DER-encoded bytes of the optional public certificate, or <see langword="null"/> when this
     /// asymmetric key has no associated certificate. Consuming the bytes directly (for example to compute a

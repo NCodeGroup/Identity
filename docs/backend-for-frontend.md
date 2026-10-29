@@ -276,7 +276,9 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
   by a key-management service. The BFF can publish its public keys at an optional `/bff/jwks` endpoint, and a client
   registered with that `jwks_uri` rotates without re-registration (the NCode OP resolves `jwks_uri` at runtime, per
   [ADR-0106](decisions/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
-- `tls_client_auth` and `self_signed_tls_client_auth` use a client certificate from the secrets subsystem.
+- `tls_client_auth` and `self_signed_tls_client_auth` use a client certificate from the secrets subsystem, presented
+  with the certificates of the authorities that issued it, so an OP that trusts only the root accepts it
+  ([ADR-0300](decisions/0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md)).
 - `client_secret_basic` and `client_secret_post` are registered for OPs that support nothing stronger. The secret
   comes from the secrets subsystem, never from `appsettings`.
 

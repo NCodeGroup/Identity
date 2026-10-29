@@ -486,6 +486,103 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
         }
     }
 
+    // A root, an intermediate it issued, and a client certificate the intermediate issued, with its private key.
+    private (X509Certificate2 Leaf, X509Certificate2 Intermediate) CreateIssuedRsaCertificate()
+    {
+        var notBefore = TimeProvider.UtcNow.AddDays(-1);
+        var notAfter = TimeProvider.UtcNow.AddDays(30);
+
+        using var rootKey = RSA.Create(2048);
+        var rootRequest = new CertificateRequest(
+            "CN=test-root",
+            rootKey,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        rootRequest.CertificateExtensions.Add(
+            new X509BasicConstraintsExtension(true, false, 0, true)
+        );
+        rootRequest.CertificateExtensions.Add(
+            new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
+        );
+        using var root = rootRequest.CreateSelfSigned(notBefore.AddDays(-1), notAfter.AddDays(1));
+
+        using var intermediateKey = RSA.Create(2048);
+        var intermediateRequest = new CertificateRequest(
+            "CN=test-intermediate",
+            intermediateKey,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        intermediateRequest.CertificateExtensions.Add(
+            new X509BasicConstraintsExtension(true, false, 0, true)
+        );
+        intermediateRequest.CertificateExtensions.Add(
+            new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
+        );
+        using var intermediatePublic = intermediateRequest.Create(
+            root,
+            notBefore,
+            notAfter,
+            [1, 2, 3, 4]
+        );
+        using var intermediate = intermediatePublic.CopyWithPrivateKey(intermediateKey);
+
+        var leafKey = Track(RSA.Create(2048));
+        var leafRequest = new CertificateRequest(
+            "CN=test-client",
+            leafKey,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        AddUsages(leafRequest, ClientAuthOid, X509KeyUsageFlags.DigitalSignature);
+        using var leafPublic = leafRequest.Create(intermediate, notBefore, notAfter, [5, 6, 7, 8]);
+
+        return (
+            Track(leafPublic.CopyWithPrivateKey(leafKey)),
+            Track(X509CertificateLoader.LoadCertificate(intermediatePublic.RawData))
+        );
+    }
+
+    [Fact]
+    public void CreatePrimaryHandler_WithAnIssuedCertificate_PresentsItsIssuers()
+    {
+        var (leaf, intermediate) = CreateIssuedRsaCertificate();
+        var key = KeyFactory.Create(new KeyMetadata { KeyId = "k1" }, [leaf, intermediate]);
+        var provider = CreateProvider(key);
+        provider.SelectHttpClientName(CreateRegistration());
+        var thumbprint = GetThumbprint(leaf);
+
+        using var handler = provider.CreatePrimaryHandler(thumbprint);
+
+        Assert.Equal(
+            intermediate.RawData,
+            Assert.Single(provider.GetIssuerCertificates(thumbprint)).RawData
+        );
+        var context = handler.SslOptions.ClientCertificateContext;
+        Assert.NotNull(context);
+        Assert.Contains(
+            context.IntermediateCertificates,
+            certificate => certificate.RawData.AsSpan().SequenceEqual(intermediate.RawData)
+        );
+    }
+
+    [Fact]
+    public void CreatePrimaryHandler_WithoutIssuers_PresentsTheCertificateAlone()
+    {
+        var (rsa, certificate) = CreateRsaCertificate();
+        var key = KeyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, rsa, certificate);
+        var provider = CreateProvider(key);
+        provider.SelectHttpClientName(CreateRegistration());
+        var thumbprint = GetThumbprint(certificate);
+
+        using var handler = provider.CreatePrimaryHandler(thumbprint);
+
+        Assert.Empty(provider.GetIssuerCertificates(thumbprint));
+        Assert.NotNull(handler.SslOptions.ClientCertificateContext);
+        Assert.Empty(handler.SslOptions.ClientCertificateContext.IntermediateCertificates);
+    }
+
     private static X509Certificate2 CreateServerCertificate()
     {
         using var rsa = RSA.Create(2048);

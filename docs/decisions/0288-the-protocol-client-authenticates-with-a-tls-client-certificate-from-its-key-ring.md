@@ -42,8 +42,9 @@ to the provider's `mtls_endpoint_aliases` when it has them.**
    (`"NCode.Identity.OpenId.Client.MutualTls:"`, public so a host can configure those clients) followed by the uppercase
    hex SHA-256 of the certificate's DER. An internal `IConfigureNamedOptions<HttpClientFactoryOptions>` gives every name
    with that prefix a `SocketsHttpHandler` with redirects and cookies off, whose
-   `SslOptions.ClientCertificateContext` is `SslStreamCertificateContext.Create(certificate, null, offline: true)`, so
-   the certificate is always presented, whatever CA list the server sends. Rotation needs no code: a new certificate
+   `SslOptions.ClientCertificateContext` is `SslStreamCertificateContext.Create(certificate, issuers, offline: true)`,
+   so the certificate is always presented, whatever CA list the server sends, with the certificates of the authorities
+   that issued it ([ADR-0300](0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md)). Rotation needs no code: a new certificate
    gets a new name, and the factory's two-minute handler lifetime retires idle clients.
 4. **The certificate is selected before the factory is asked for a client.** `IHttpClientFactory` caches an exception
    thrown while it builds a handler for a name, so selection, the private-key check and materialization run in
@@ -87,8 +88,8 @@ to the provider's `mtls_endpoint_aliases` when it has them.**
 - A custom `IClientAuthenticator` must implement `UsesMutualTls`, a breaking addition accepted under the pre-release
   posture ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)).
 - A host can configure the per-certificate clients by name prefix, for example to set a proxy.
-- A client certificate issued by an intermediate CA reaches the OP without its chain, because `AsymmetricSecretKey`
-  carries one certificate. Presenting intermediates needs chain storage in the secrets key model and is a follow-up.
+- A client certificate issued by an intermediate CA reaches the OP with its chain: the key carries its issuers'
+  certificates ([ADR-0300](0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md)).
 - Certificate-bound access tokens (RFC 8705 §3) and mutual TLS to resource servers are not covered.
 
 ## References

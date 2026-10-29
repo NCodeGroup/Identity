@@ -268,4 +268,42 @@ describe('parseBrandingConfig', () => {
       expect(parseBrandingConfig(raw)).toBeUndefined();
     },
   );
+
+  describe('environment', () => {
+    it('parses the type and the name', () => {
+      expect(
+        parseBrandingConfig({ environment: { type: 'development', name: 'sandbox' } }),
+      ).toEqual({ environment: { type: 'development', name: 'sandbox' } });
+    });
+
+    it('drops a blank name', () => {
+      expect(parseBrandingConfig({ environment: { type: 'development', name: '  ' } })).toEqual({
+        environment: { type: 'development' },
+      });
+    });
+
+    it.each([{}, { name: 'sandbox' }, { type: ' ', name: 'sandbox' }, { type: 7 }])(
+      'ignores %j, which has no usable type',
+      (environment) => {
+        expect(parseBrandingConfig({ displayName: 'Acme', environment })).toEqual({
+          displayName: 'Acme',
+        });
+      },
+    );
+
+    it.each([null, 'development', 42, ['development']])(
+      'ignores the non-object %j',
+      (environment) => {
+        expect(parseBrandingConfig({ displayName: 'Acme', environment })).toEqual({
+          displayName: 'Acme',
+        });
+      },
+    );
+
+    it('yields a defined branding from an environment alone', () => {
+      expect(parseBrandingConfig({ environment: { type: 'test' } })).toEqual({
+        environment: { type: 'test' },
+      });
+    });
+  });
 });

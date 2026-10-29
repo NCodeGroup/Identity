@@ -91,11 +91,16 @@ foreach ($line in $lines) {
         continue
     }
 
-    git fetch --no-tags origin "refs/heads/${base}:refs/remotes/origin/$base" *> $null
-    if ($LASTEXITCODE -ne 0) {
+    git ls-remote --exit-code --heads origin $base *> $null
+    if ($LASTEXITCODE -eq 2) {
         Add-Comment "The ``backport v$line`` label names the release line ``$base``, which does not exist, so nothing was backported to it."
         continue
     }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not list the release line $base on origin (git exit code $LASTEXITCODE)."
+    }
+
+    Invoke-Git fetch --no-tags origin "refs/heads/${base}:refs/remotes/origin/$base"
 
     Invoke-Git switch --quiet --create $branch "origin/$base"
     git cherry-pick -x @mainline $Commit
@@ -112,7 +117,7 @@ foreach ($line in $lines) {
             "git cherry-pick -x $($mainline -join ' ') $Commit".Replace('  ', ' '),
             '# resolve the conflicts, then: git cherry-pick --continue',
             "git push origin $branch",
-            "gh pr create --base $base --head $branch --title `"$title (backport v$line)`"",
+            "gh pr create --base $base --head $branch --fill",
             '```'
         ) -join "`n"
         Add-Comment $manual

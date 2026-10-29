@@ -24,11 +24,12 @@ namespace NCode.Identity.Bff.Server;
 
 /// <summary>
 /// Validates that <see cref="BffTokenOptions.RefreshLeaseDuration"/> outlasts the protocol client's
-/// <see cref="OpenIdClientOptions.RequestTimeout"/>. This is the cross-library check the composition root makes because
-/// only it knows both the BFF and the protocol client (ADR-0291): a DPoP nonce retry sends the refresh request twice
-/// under one lease, so a shorter lease could expire while the rotated refresh token is still in flight.
+/// <see cref="OpenIdClientOptions.RequestTimeout"/>. The composition root makes this check because only it knows both
+/// the BFF and the protocol client: a DPoP nonce retry sends the refresh request twice under one lease, so a shorter
+/// lease could expire while the rotated refresh token is still in flight.
 /// </summary>
 /// <param name="clientOptions">The options of the protocol client that sends the refresh request.</param>
+// See ADR-0291.
 internal sealed class BffRefreshLeaseValidator(IOptions<OpenIdClientOptions> clientOptions)
     : IValidateOptions<BffOptions>
 {

@@ -306,5 +306,58 @@ public class TokenClientDPoPEndToEndTests
         );
     }
 
+    [Fact]
+    public async Task RequestTokenAsync_WithAProofFromAnotherKey_IsRefusedForACodeBoundByDPoPJkt()
+    {
+        const string clientId = "it-dpop-e2e-code-binding";
+
+        using var keyA = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var keyB = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var factory = new HostApplicationFactory();
+        await SeedClientAsync(factory, clientId);
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var provider = CreateClientProvider(factory, exchanges, keyA, keyB);
+        var registrationA = CreateRegistration(clientId, KeyRingA);
+        var registrationB = CreateRegistration(clientId, KeyRingB);
+
+        var (result, code) = await AuthorizeAsync(factory, provider, registrationA);
+        Assert.Equal(ComputeThumbprint(keyA), result.DPoPJwkThumbprint);
+
+        var tokenResult = await RedeemAsync(provider, registrationB, code);
+
+        Assert.False(tokenResult.IsSuccess);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidDPoPProof, tokenResult.Error?.Error);
+
+        var tokenExchanges = exchanges.Where(exchange => exchange.Path == TokenPath).ToList();
+        Assert.Equal(2, tokenExchanges.Count);
+        var challenge = tokenExchanges[0];
+        var refusal = tokenExchanges[1];
+
+        Assert.Equal(HttpStatusCode.BadRequest, challenge.StatusCode);
+        Assert.NotNull(challenge.ResponseBody);
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.UseDPoPNonce,
+            JsonElement
+                .Parse(challenge.ResponseBody)
+                .GetProperty(OpenIdProtocol.Parameters.ErrorCode)
+                .GetString()
+        );
+        Assert.False(string.IsNullOrEmpty(challenge.DPoPNonce));
+
+        Assert.Equal(HttpStatusCode.BadRequest, refusal.StatusCode);
+        Assert.NotNull(refusal.ResponseBody);
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.InvalidDPoPProof,
+            JsonElement
+                .Parse(refusal.ResponseBody)
+                .GetProperty(OpenIdProtocol.Parameters.ErrorCode)
+                .GetString()
+        );
+        Assert.Equal(
+            challenge.DPoPNonce,
+            DecodePayload(refusal.DPoPProof).GetProperty("nonce").GetString()
+        );
+    }
+
     #endregion
 }

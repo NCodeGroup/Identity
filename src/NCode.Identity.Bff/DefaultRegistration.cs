@@ -84,6 +84,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
             serviceCollection.TryAddSingleton<BffUserHandler>();
             serviceCollection.TryAddSingleton<BffLogoutService>();
+            serviceCollection.TryAddSingleton<BffLogoutHandler>();
 
             serviceCollection.TryAddSingleton<BffRefreshLocks>();
             serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();

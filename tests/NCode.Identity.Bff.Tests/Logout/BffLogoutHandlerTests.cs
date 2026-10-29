@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.Bff.Client;
@@ -24,6 +25,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -157,12 +159,7 @@ public class BffLogoutHandlerTests : BaseTests
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
 
-    [Fact]
-    public async Task HandleAsync_MatchingSid_EndsSessionAndRedirects()
-    {
-        var state = CreateState();
-        SetupResolve(state);
-        var httpContext = CreateHttpContext("?sid=guard-value");
+    private void SetupEnd(DefaultHttpContext httpContext, BffSessionState state) =>
         _logoutService
             .Setup(x =>
                 x.EndSessionAsync(
@@ -173,6 +170,71 @@ public class BffLogoutHandlerTests : BaseTests
                 )
             )
             .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    [Fact]
+    public async Task HandleAsync_MatchingSid_RedirectsToEndSessionEndpoint()
+    {
+        var state = CreateState();
+        SetupResolve(state);
+        var httpContext = CreateHttpContext("?sid=guard-value&returnUrl=%2Fhome");
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new HostString("app.example");
+        SetupEnd(httpContext, state);
+        _metadataResolver
+            .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
+            .Returns(
+                ValueTask.FromResult(
+                    new OpenIdProviderMetadata { EndSessionEndpoint = "https://op.example/logout" }
+                )
+            )
+            .Verifiable();
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        var location = new Uri(httpContext.Response.Headers.Location.ToString());
+        Assert.Equal("https://op.example/logout", location.GetLeftPart(UriPartial.Path));
+        var query = QueryHelpers.ParseQuery(location.Query);
+        Assert.Equal("id-token", query[OpenIdProtocol.Parameters.IdTokenHint]);
+        Assert.Equal("bff", query[OpenIdProtocol.Parameters.ClientId]);
+        Assert.Equal(
+            "https://app.example/home",
+            query[OpenIdProtocol.Parameters.PostLogoutRedirectUri]
+        );
+        Assert.False(string.IsNullOrEmpty(query[OpenIdProtocol.Parameters.State]));
+    }
+
+    [Fact]
+    public async Task HandleAsync_NoEndSessionEndpoint_RedirectsToReturnUrl()
+    {
+        var state = CreateState();
+        SetupResolve(state);
+        var httpContext = CreateHttpContext("?sid=guard-value");
+        SetupEnd(httpContext, state);
+        _metadataResolver
+            .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new OpenIdProviderMetadata()))
+            .Verifiable();
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal("/", httpContext.Response.Headers.Location.ToString());
+    }
+
+    [Fact]
+    public async Task HandleAsync_ProviderException_RedirectsToReturnUrl()
+    {
+        var state = CreateState();
+        SetupResolve(state);
+        var httpContext = CreateHttpContext("?sid=guard-value");
+        SetupEnd(httpContext, state);
+        _metadataResolver
+            .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
+            .Throws(new OpenIdProviderException("unavailable"))
             .Verifiable();
         var handler = CreateHandler();
 

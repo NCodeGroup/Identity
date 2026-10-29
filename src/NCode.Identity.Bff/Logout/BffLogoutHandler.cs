@@ -18,6 +18,7 @@
 
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.Bff.Client;
@@ -25,6 +26,7 @@ using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 
 namespace NCode.Identity.Bff.Logout;
@@ -108,13 +110,49 @@ internal class BffLogoutHandler
             return;
         }
 
+        var idToken = session.Payload.IdToken;
+
         await _logoutService.EndSessionAsync(
             httpContext,
             session,
             BffSessionEndReasons.LoggedOut,
             cancellationToken
         );
-        httpContext.Response.Redirect(BffNavigation.LocalUrl(request, returnUrl));
+
+        var registration = _registrationProvider.Registration;
+
+        OpenIdProviderMetadata metadata;
+        try
+        {
+            metadata = await _metadataResolver.GetMetadataAsync(
+                registration.Authority,
+                cancellationToken
+            );
+        }
+        catch (OpenIdProviderException)
+        {
+            httpContext.Response.Redirect(BffNavigation.LocalUrl(request, returnUrl));
+            return;
+        }
+
+        var endpoint = metadata.EndSessionEndpoint;
+        if (endpoint is null)
+        {
+            httpContext.Response.Redirect(BffNavigation.LocalUrl(request, returnUrl));
+            return;
+        }
+
+        var postLogoutRedirectUri = BffNavigation.AbsoluteUrl(request, returnUrl);
+        var state = BffKeyDerivation.CreateSecret();
+        var parameters = new Dictionary<string, string?>
+        {
+            [OpenIdProtocol.Parameters.IdTokenHint] = idToken,
+            [OpenIdProtocol.Parameters.ClientId] = registration.ClientId,
+            [OpenIdProtocol.Parameters.PostLogoutRedirectUri] = postLogoutRedirectUri,
+            [OpenIdProtocol.Parameters.State] = state,
+        };
+        var location = QueryHelpers.AddQueryString(endpoint, parameters);
+        httpContext.Response.Redirect(location);
     }
 
     private static bool IsGuardMatch(string sid, string guard)

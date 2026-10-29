@@ -99,9 +99,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 columns: new[] { "SubjectId", "EventTime" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuditRecords_TenantId_EventTime",
+                name: "IX_AuditRecords_TenantId_EventTime_Id",
                 table: "AuditRecords",
-                columns: new[] { "TenantId", "EventTime" });
+                columns: new[] { "TenantId", "EventTime", "Id" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditRecords_TraceId",

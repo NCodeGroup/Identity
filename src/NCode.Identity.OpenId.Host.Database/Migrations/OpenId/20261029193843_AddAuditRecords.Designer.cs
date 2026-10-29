@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261029105723_AddAuditRecords")]
+    [Migration("20261029193843_AddAuditRecords")]
     partial class AddAuditRecords
     {
         /// <inheritdoc />
@@ -234,7 +234,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasIndex("SubjectId", "EventTime");
 
-                    b.HasIndex("TenantId", "EventTime");
+                    b.HasIndex("TenantId", "EventTime", "Id");
 
                     b.ToTable("AuditRecords", (string)null);
                 });

@@ -231,7 +231,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasIndex("SubjectId", "EventTime");
 
-                    b.HasIndex("TenantId", "EventTime");
+                    b.HasIndex("TenantId", "EventTime", "Id");
 
                     b.ToTable("AuditRecords", (string)null);
                 });

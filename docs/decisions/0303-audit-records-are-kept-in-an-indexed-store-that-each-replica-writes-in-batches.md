@@ -24,19 +24,21 @@ batches; the store keeps a record for 90 days by default.**
 1. **The store keeps the envelope and the whole record.** `IAuditRecordStore` (`NCode.Identity.OpenId.Persistence`)
    persists `PersistedAuditRecord`: the envelope fields ADR-0283 names as indexed (event id and time, name, category,
    outcome, severity, tenant, subject, client, actor type and id, trace id and source IP), the resources in a child
-   table, and the record's JSON as `AuditRecordWriter` writes it. Each index leads with the field a lookup filters on and
-   then the event time. An envelope value longer than its column is not indexed: an optional field is `null` and a
-   required one keeps its leading characters, while the JSON keeps it whole. Records are not tenant-scoped data: they are
-   kept after their tenant is deleted, until their retention ends, as the usage ledger is
+   table, and the whole record as `AuditRecordWriter` writes it, kept as a `JsonElement` in a `text` column like every
+   other JSON column of the context. Each index leads with the field a lookup filters on and then the event time. An
+   envelope value longer than its column is not indexed: an optional field is `null` and a required one keeps its
+   leading characters, while the JSON keeps it whole. Records are not tenant-scoped data: they are kept after their
+   tenant is deleted, until their retention ends, as the usage ledger is
    ([ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
 2. **Queued inline, written in the background.** `AuditRecordHandler` maps each audit event and adds it to a bounded
    in-memory queue (`QueueCapacity`, 10,000 by default), so the audited operation never waits on the database. A record
    that arrives when the queue is full is dropped and counted, and the count is logged once per flush: the log, which
    every audit event reaches whatever the store does, stays the complete record.
 3. **Batches, written once.** `AuditRecordFlushService` writes the queue every `FlushInterval` (five seconds) and once
-   more when the host stops, in batches of 256, each its own unit of work. A batch that fails is held and written first
-   next time. The store skips an event identifier it already holds, under a unique index, so a batch whose save committed
-   but reported a failure adds nothing twice.
+   more when the host stops, in batches of 256, each its own unit of work. A stop writes the held records once, even when
+   the host stops the service twice: concurrent stops share one final flush. A batch that fails is held and written
+   first next time. The store skips an event identifier it already holds, under a unique index, so a batch whose save
+   committed but reported a failure adds nothing twice.
 4. **Retention.** The same service removes the records older than `Retention` (90 days, CloudTrail's event history) in
    batches, at most once an hour.
 5. **Configuration.** `OpenId:AuditRecords` binds `AuditRecordOptions` strictly and validates it when the host starts
@@ -46,9 +48,10 @@ batches; the store keeps a record for 90 days by default.**
    addressed tenant's records, newest first, filtered by a time range (`startTime` inclusive, `endTime` exclusive),
    `eventName`, `eventCategory`, `outcome`, `subjectId`, `clientId`, `actorId`, `traceId`, and a resource by
    `resourceType` and `resourceId`, which matches the target or any owner it names, as CloudTrail's `LookupEvents` does.
-   It pages with the opaque cursor of the other management lists, over the time-ordered surrogate identifier. Records
-   are not tenant-scoped data, so the tenant is a criterion of every lookup, and a record without a tenant is not listed.
-   Each item carries the envelope and the whole `record`.
+   It pages newest first by event time, with the surrogate identifier breaking ties between records of the same instant,
+   over the index (`TenantId`, `EventTime`, `Id`); the opaque cursor of the other management lists carries the last
+   item's event time and identifier. Records are not tenant-scoped data, so the tenant is a criterion of every lookup,
+   and a record without a tenant is not listed. Each item carries the envelope and the whole `record`.
 
 ## Options considered
 

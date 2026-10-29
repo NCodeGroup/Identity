@@ -32,7 +32,10 @@ sound only when the value is a fixed horizon that never moves later within a fam
    however often its tokens are used, rotated or retried. `RefreshTokenGrant.LineageCreatedWhen` records when the
    family began: a fresh issuance sets it to its own issuance time, and a rotation or a retry carries the presented
    token's value forward through `CreateSecurityTokenRequest.RefreshTokenLineageCreatedWhen`. It lives in the payload
-   rather than on the grant envelope because nothing queries it; it is read only when the token is presented.
+   rather than on the grant envelope because nothing queries it; it is read only when the token is presented. A refresh
+   token issued by token exchange starts its family at the subject token's `auth_time`, not at the exchange, and the
+   exchange is refused with `invalid_grant` when the subject token carries no `auth_time` or the horizon counted from it
+   has passed, so exchange cannot renew a family.
 2. **The policies say how a token expires within its family.** Under `absolute`, every token of the family expires at
    the family's horizon. Under `sliding`, a token expires `refresh_token_sliding_lifetime` (new, default 15 days,
    a ceiling like the other lifetimes) after it was issued or last used, never later than the family's horizon; a
@@ -52,6 +55,8 @@ sound only when the value is a fixed horizon that never moves later within a fam
 5. **The protocol client reads it leniently.** `TokenResponse.RefreshTokenExpiresIn` reads the member from the
    extension data and ignores a value that is not a positive whole number, because the member is advisory and a
    provider's odd value must not fail a token response; the BFF reads it there.
+6. **Introspection honors the horizon.** Introspection reports a refresh token whose family has passed its horizon as
+   inactive, as the refresh grant refuses it with `invalid_grant`, even if the store still holds the token as active.
 
 ## Options considered
 

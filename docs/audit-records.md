@@ -400,24 +400,27 @@ Every audit event of one request, oldest first:
 filter Category = "NCode.Identity.Audit" and State.audit.request.trace_id = "<trace id>" | sort @timestamp asc
 ```
 
-### PostgreSQL (jsonb)
+### The audit store
 
-The library ships no audit store yet. A host that stores the `AuditRecordWriter` JSON in its own table, with the record
-in a `record jsonb` column, queries the record's own member names, with no `audit.` prefix. A GIN `jsonb_path_ops` index
-serves the containment (`@>`) test on `resources`:
+The server keeps each audit record in the `AuditRecords` table and its `AuditRecordResources` child table
+([ADR-0303](decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)),
+configured by `OpenId:AuditRecords` and read through `GET api/tenants/{tenantId}/audit-records`. `Record` holds the
+whole record as JSON text, so in PostgreSQL `"Record"::jsonb` reads it, with the record's own member names and no
+`audit.` prefix. A host that sends records to its own store through a [custom sink](#custom-sinks) queries that store
+instead.
+
+Every audit event of one session within a tenant, oldest first, found through the session's `AuditRecordResources` item:
 
 ```sql
-CREATE INDEX audit_records_record_idx ON audit_records USING GIN (record jsonb_path_ops);
-```
-
-Every audit event of one session within a tenant, oldest first:
-
-```sql
-SELECT record
-FROM audit_records
-WHERE record->>'tenant_id' = $1
-  AND record->'resources' @> '[{"type":"session","id":"<sid>"}]'
-ORDER BY (record->>'event_time')::timestamptz;
+SELECT r."Record"::jsonb
+FROM "AuditRecords" r
+WHERE r."TenantId" = $1
+  AND EXISTS (
+    SELECT 1
+    FROM "AuditRecordResources" x
+    WHERE x."AuditRecordId" = r."Id" AND x."Type" = 'session' AND x."ResourceId" = '<sid>'
+  )
+ORDER BY r."EventTime";
 ```
 
 ## Incident runbook
@@ -484,11 +487,15 @@ resources : { type : "session" and id : "<sid>" }
 ```
 
 The log entry carries `audit.resources` as raw JSON text, so look a session up in a store that holds the record. The
-PostgreSQL containment query in the [lookups](#postgresql-jsonb) does the same:
+query over [the audit store](#the-audit-store) does the same, without its tenant filter:
 
 ```sql
-SELECT record
-FROM audit_records
-WHERE record->'resources' @> '[{"type":"session","id":"<sid>"}]'
-ORDER BY (record->>'event_time')::timestamptz;
+SELECT r."Record"::jsonb
+FROM "AuditRecords" r
+WHERE EXISTS (
+  SELECT 1
+  FROM "AuditRecordResources" x
+  WHERE x."AuditRecordId" = r."Id" AND x."Type" = 'session' AND x."ResourceId" = '<sid>'
+)
+ORDER BY r."EventTime";
 ```

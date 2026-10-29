@@ -51,8 +51,9 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
     > definitions; the ceiling settings are now contributed by each profile's `ApplyCeilingSettings`, and the catalog still
     > exposes the same `Expand(…)` entry points. The mechanism and guarantees described here are unchanged.
 
-- **The FAPI 2.0 ceiling.** Signing algorithms → `PS256` / `ES256` / `EdDSA` (`Intersect`; `EdDSA` is listed
-  forward-compatibly and only takes effect once EdDSA signing is implemented, issue [#68](https://github.com/NCodeGroup/Identity/issues/68)); strong client
+- **The FAPI 2.0 ceiling.** Signing algorithms → `PS256` / `ES256` / `Ed25519` (`Intersect`; `Ed25519` takes effect
+  only where the opt-in EdDSA package is registered, and the polymorphic `EdDSA` is excluded
+  ([ADR-0272](0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md))); strong client
   authentication only — `private_key_jwt` / `tls_client_auth` / `self_signed_tls_client_auth` (`Intersect` on
   `token_endpoint_auth_methods_supported`); `response_type=code` only and PKCE `S256` only (`Intersect`); require PKCE
   and require PAR (`Or` floors); a 60-second authorization-code ceiling and a 90-second PAR `request_uri` ceiling

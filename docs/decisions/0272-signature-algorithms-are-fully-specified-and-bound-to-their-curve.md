@@ -40,8 +40,9 @@ algorithm.
   derives the hash from `HashAlgorithmName`. `Ed25519` uses SHA-512 (64 bytes) and `Ed448` uses SHAKE256 with 114 bytes
   of output (OpenID Connect issue #1125); polymorphic `EdDSA` picks by the key's curve. `HashAlgorithmName` stays
   SHA-512 for every EdDSA variant. `DefaultGetIdTokenPayloadClaimsHandler` consumes it.
-- The FAPI 2.0 signing ceiling is `PS256`, `ES256`, `EdDSA` and `Ed25519`. FAPI 2.0 §5.4 permits "EdDSA (Ed25519
-  variant)", which `Ed25519` states exactly. `Ed448` is not in the ceiling.
+- The FAPI 2.0 signing ceiling is `PS256`, `ES256` and `Ed25519`, for every JWT the profile governs, DPoP proofs
+  included. FAPI 2.0 §5.4 permits "EdDSA (Ed25519 variant)", which `Ed25519` states exactly; the polymorphic `EdDSA`
+  is not in the ceiling, because it also accepts an `Ed448` key, and neither is `Ed448` (issue #333).
 
 ## Options considered
 
@@ -59,8 +60,9 @@ algorithm.
 - ES256K (RFC 8812), X25519/X448 ECDH-ES (RFC 8037 §3.2) and HPKE become possible as packages: the curve binding makes
   a safe ES256K package possible, and none of them is added here.
 - A 256-bit key on a curve other than P-256 no longer signs as `ES256`.
-- The FAPI ceiling lists `EdDSA` as well as `Ed25519`, and `EdDSA` is not yet constrained to Ed25519 keys under FAPI. An
-  `EdDSA` plus Ed448 combination therefore remains a gap.
+- The FAPI 2.0 ceiling lists `Ed25519` and not the polymorphic `EdDSA`, so a FAPI 2.0 party signs with the
+  fully-specified identifier, and an `EdDSA` plus Ed448 combination cannot reach a FAPI 2.0 tenant. The repository's
+  conformance runner can sign with `Ed25519` or `Ed448` explicitly.
 - Ed448 signing and token hashing need `Shake256.IsSupported`.
 
 ## References

@@ -26,14 +26,14 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 internal sealed class Fapi2SecurityProfile : ISecurityProfile
 {
-    // FAPI 2.0 §5.4 permits PS256, ES256 and EdDSA with Ed25519. Ed25519 is the fully-specified identifier (RFC 9864);
-    // EdDSA stays for clients and the conformance suite that still send it. Both are intersected with the registered
-    // algorithms, so they apply only when the EdDSA package is registered.
+    // FAPI 2.0 §5.4 permits PS256, ES256 and "EdDSA (using the Ed25519 variant)" for every JWT the parties create or
+    // process. Ed25519 is the fully-specified identifier for exactly that variant (RFC 9864); the polymorphic EdDSA is
+    // excluded, because it also accepts an Ed448 key. Intersected with the registered algorithms, Ed25519 applies only
+    // when the EdDSA package is registered (ADR-0272).
     private static readonly string[] SigningAlgorithms =
     [
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
         AlgorithmCodes.DigitalSignature.EcdsaSha256,
-        AlgorithmCodes.DigitalSignature.EdDsa,
         AlgorithmCodes.DigitalSignature.Ed25519,
     ];
 
@@ -68,13 +68,15 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         // issuance together with every targeted resource server's requirement (ADR-0158).
         ceiling.Set(OpenIdSettingKeys.AccessTokenSenderConstraintRequired, true);
 
-        // Signing algorithms → PS256 / ES256 / EdDSA / Ed25519 (Intersect ceilings narrow the advertised/accepted set).
+        // Signing algorithms → PS256 / ES256 / Ed25519 for every JWT, DPoP proofs included (Intersect ceilings narrow
+        // the advertised/accepted set).
         ceiling.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported, SigningAlgorithms);
+        ceiling.Set(OpenIdSettingKeys.DPoPSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(
             OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
             SigningAlgorithms
@@ -134,7 +136,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     {
         // The protocol default for both signed responses is RS256, which the signing ceilings above exclude, so a client
         // that registers no algorithm would fail at issuance; PS256 is the compliant default, and a client may still
-        // register ES256, EdDSA or Ed25519 (ADR-0148, ADR-0155).
+        // register ES256 or Ed25519 (ADR-0148, ADR-0155).
         defaults.Set(
             OpenIdSettingKeys.IdTokenSignedResponseAlg,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256

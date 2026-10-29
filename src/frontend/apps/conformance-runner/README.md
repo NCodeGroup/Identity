@@ -40,7 +40,8 @@ The asymmetric legs (`private_key_jwt`, DPoP) are driven by a real Node-`crypto`
 private key via `--private-key` (the `private_key_jwt` client assertion, with `--public-client-id`) and/or `--dpop-key`
 (the DPoP proof). The signing algorithm is inferred from the key — the curve for EC keys (`ES256`/`ES384`/`ES512`),
 `EdDSA` for Ed25519/Ed448, and `PS256` for RSA — and can be overridden with `--private-key-alg` / `--dpop-key-alg`
-(e.g. `RS256`). RSA keys must be ordinary `rsaEncryption` keys: an RSA-PSS-restricted (`id-RSASSA-PSS`) key is rejected
+(e.g. `RS256`, or the fully-specified `Ed25519` / `Ed448` of RFC 9864 for a key on that curve, which a FAPI 2.0 server
+requires in place of `EdDSA`). RSA keys must be ordinary `rsaEncryption` keys: an RSA-PSS-restricted (`id-RSASSA-PSS`) key is rejected
 up front because its public key cannot be published as a JWK — `PS256`/`PS384`/`PS512` already sign an ordinary RSA key
 with PSS padding. The DPoP proof embeds the key's public JWK in its header (RFC 9449 §4). These legs still `skip` until
 the backend advertises the capability (`private_key_jwt`: [#54](https://github.com/NCodeGroup/Identity/issues/54) / [#161](https://github.com/NCodeGroup/Identity/issues/161); DPoP: [#45](https://github.com/NCodeGroup/Identity/issues/45)).

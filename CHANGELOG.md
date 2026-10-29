@@ -877,6 +877,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
+  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
+  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
+  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
+  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
+  [#334](https://github.com/NCodeGroup/Identity/issues/334).
 - **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
   algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
   unsupported algorithm, and every policy keeps refusing `none` by name
@@ -3360,6 +3367,13 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
+  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
+  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
+  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
+  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
+  [#334](https://github.com/NCodeGroup/Identity/issues/334).
 - **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
   algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
   unsupported algorithm, and every policy keeps refusing `none` by name
@@ -3817,6 +3831,13 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
+- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
+  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
+  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
+  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
+  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
+  [#334](https://github.com/NCodeGroup/Identity/issues/334).
 - **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
   algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
   unsupported algorithm, and every policy keeps refusing `none` by name
@@ -4795,6 +4816,13 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
+- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
+  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
+  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
+  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
+  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
+  [#334](https://github.com/NCodeGroup/Identity/issues/334).
 - **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
   algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
   unsupported algorithm, and every policy keeps refusing `none` by name
@@ -5176,6 +5204,13 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
+  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
+  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
+  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
+  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
+  [#334](https://github.com/NCodeGroup/Identity/issues/334).
 - **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
   algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
   unsupported algorithm, and every policy keeps refusing `none` by name

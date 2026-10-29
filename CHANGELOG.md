@@ -39,6 +39,13 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **A BFF is composed in one call.** The new `NCode.Identity.Bff.Server` package is the BFF's composition root:
+  `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
+  protocol-client and BFF libraries and binds the `Bff` section, and `IIdentityBffBuilder` exposes each library's
+  builder, such as `SharedStateLibraryBuilder.AddValkey(configuration)` for several replicas, as `AddIdentityServer()`
+  does for the OP. The host still registers the key rings its configuration names
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
+  issue [#413](https://github.com/NCodeGroup/Identity/issues/413)).
 - **The BFF measures and traces its refreshes and its session store.** The `NCode.Identity.Bff` meter records
   `ncode.identity.bff.token.refresh.duration` (with the result `refreshed`, `joined` or `failed`, lock and lease waits
   included) and `ncode.identity.bff.session_store.operation.duration` (for whichever `IBffSessionStore` is registered),

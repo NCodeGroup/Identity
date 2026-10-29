@@ -25,12 +25,9 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Endpoints;
-using NCode.Identity.Events;
-using NCode.Identity.Jose;
-using NCode.Identity.Jwt;
+using NCode.Identity.Bff.Server;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -146,14 +143,8 @@ internal sealed class BffTestHost : IAsyncDisposable
                     ])
         );
 
-        var eventsBuilder = services.AddEventServices();
-        services
-            .AddSecretsLibrary()
-            .AddJoseLibrary()
-            .AddJwtLibrary()
-            .AddOpenIdClientLibrary()
-            .AddBffLibrary(eventsBuilder)
-            .AddBffConfiguration(builder.Configuration);
+        // The replicas share the state registered above; the turnkey composes everything else.
+        services.AddIdentityBff(builder.Configuration);
 
         // Registered after the library, which configures its own primary handler for the named client.
         var httpClientBuilder = services

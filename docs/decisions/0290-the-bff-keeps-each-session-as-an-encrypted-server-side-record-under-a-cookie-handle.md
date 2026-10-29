@@ -32,7 +32,9 @@ without the cookie.**
    `AuthorizeAttribute`. `NCode.Identity.Bff` references only abstractions of the family
    ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md)): the host registers the protocol client, the events
    pipeline and the shared-state adapters. `AddBffLibrary(events)` extends `IServiceBuilder<OpenIdClientLibrary>` and
-   mints `IServiceBuilder<BffLibrary>`; `AddBffConfiguration(configuration)` binds the `Bff` section strictly.
+   mints `IServiceBuilder<BffLibrary>`; `AddBffConfiguration(configuration)` binds the `Bff` section strictly. The
+   `NCode.Identity.Bff.Server` composition root, the one package that references the implementations, composes all of it
+   with `AddIdentityBff(configuration)`, as `AddIdentityServer()` composes the OP.
 2. **The handle.** 32 random bytes in unpadded base64url (43 characters), minted afresh at every login. A cookie value of
    any other length is ignored.
 3. **The store key** is base64url(HKDF-SHA-256(handle, info `ncode.bff.session.id`, 32 bytes)). The store never sees the

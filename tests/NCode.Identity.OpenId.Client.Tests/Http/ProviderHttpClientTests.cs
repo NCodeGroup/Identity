@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using System.Net.Http.Headers;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Client.Http;
@@ -261,6 +262,28 @@ public class ProviderHttpClientTests : BaseTests
         Assert.Equal(200, response.StatusCode);
         Assert.Null(response.Json);
         Assert.Equal("a.b.c", response.Jwt);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenAJwtResponseIsNotUtf8_ThrowsOpenIdProviderException()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) =>
+            {
+                var content = new ByteArrayContent([0x61, 0xFF, 0x62]);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/jwt");
+                return Task.FromResult(
+                    new HttpResponseMessage(HttpStatusCode.OK) { Content = content }
+                );
+            }
+        );
+        var client = CreateClient(handler);
+
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(() =>
+            client.SendAsync(CreateRequest(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Contains("not valid UTF-8", exception.Message);
     }
 
     [Fact]

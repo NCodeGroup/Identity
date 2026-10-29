@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
@@ -149,6 +150,13 @@ internal class ProviderHttpClient(
         {
             throw new OpenIdProviderException(
                 $"The response from '{request.RequestUri}' is not valid JSON.",
+                exception
+            );
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new OpenIdProviderException(
+                $"The response from '{request.RequestUri}' is not valid UTF-8.",
                 exception
             );
         }

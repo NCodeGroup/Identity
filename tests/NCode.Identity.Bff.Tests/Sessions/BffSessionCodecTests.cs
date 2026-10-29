@@ -23,12 +23,15 @@ namespace NCode.Identity.Bff.Tests.Sessions;
 
 public class BffSessionCodecTests : BaseTests
 {
-    private static BffSessionMetadata CreateMetadata(DateTimeOffset? idleExpiresAt = null) =>
+    private static BffSessionMetadata CreateMetadata(
+        DateTimeOffset? idleExpiresAt = null,
+        string subject = "sub-1"
+    ) =>
         new()
         {
             Frontend = "default",
             Issuer = "https://op.example",
-            Subject = "sub-1",
+            Subject = subject,
             SessionId = "sid-1",
             CreatedAt = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero),
             LastAccessedAt = new DateTimeOffset(2026, 1, 2, 3, 4, 6, TimeSpan.Zero),
@@ -133,6 +136,23 @@ public class BffSessionCodecTests : BaseTests
             record.StoreKey,
             record.Version,
             metadata,
+            record.ProtectedPayload
+        );
+
+        var result = BffSessionCodec.TryDecode(handle, changed, out _);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void TryDecode_MetadataChanged_ReturnsFalse()
+    {
+        var handle = BffKeyDerivation.CreateSecret();
+        var record = BffSessionCodec.Encode(handle, 3, CreateMetadata(), CreatePayload());
+        var changed = new BffSessionRecord(
+            record.StoreKey,
+            record.Version,
+            CreateMetadata(subject: "sub-2"),
             record.ProtectedPayload
         );
 

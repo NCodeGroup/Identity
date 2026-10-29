@@ -16,8 +16,10 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Bff.Serialization;
@@ -61,15 +63,18 @@ internal static class BffSessionCodec
             writer.Flush();
         }
 
-        var associatedData = CreateAssociatedData(storeKey, version, metadata);
+        using var associatedData = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        WriteAssociatedData(storeKey, version, metadata, associatedData);
+
         using var lease = buffer.GetSpanLease(isSensitive: true);
+        using var associatedDataLease = associatedData.GetSpanLease(isSensitive: false);
         // The record owns its protected payload beyond this call, so it is an exactly sized array.
         var protectedPayload = new byte[BffPayloadProtector.GetProtectedLength(lease.Span.Length)];
         BffPayloadProtector.Protect(
             handle,
             BffKeyDerivation.SessionPayloadPurpose,
             lease.Span,
-            associatedData,
+            associatedDataLease.Span,
             protectedPayload
         );
 
@@ -87,15 +92,17 @@ internal static class BffSessionCodec
     {
         payload = null;
 
-        var associatedData = CreateAssociatedData(record.StoreKey, record.Version, record.Metadata);
+        using var associatedData = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        WriteAssociatedData(record.StoreKey, record.Version, record.Metadata, associatedData);
 
+        using var associatedDataLease = associatedData.GetSpanLease(isSensitive: false);
         using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
         if (
             !BffPayloadProtector.TryUnprotect(
                 handle,
                 BffKeyDerivation.SessionPayloadPurpose,
                 record.ProtectedPayload.Span,
-                associatedData,
+                associatedDataLease.Span,
                 buffer
             )
         )
@@ -117,19 +124,26 @@ internal static class BffSessionCodec
         return payload is not null;
     }
 
-    private static byte[] CreateAssociatedData(
+    /// <summary>
+    /// Writes the associated data, which binds the payload to the store key, the version and the plaintext metadata.
+    /// </summary>
+    /// <param name="storeKey">The store key of the session.</param>
+    /// <param name="version">The version of the record.</param>
+    /// <param name="metadata">The plaintext metadata of the record.</param>
+    /// <param name="destination">The buffer that receives the associated data.</param>
+    private static void WriteAssociatedData<TWriter>(
         string storeKey,
         long version,
-        BffSessionMetadata metadata
+        BffSessionMetadata metadata,
+        TWriter destination
     )
+        where TWriter : IBufferWriter<byte>
     {
-        var keyBytes = SecureEncoding.UTF8.GetBytes(storeKey);
-        var metadataBytes = BffSessionRecordSerializer.SerializeMetadata(metadata);
+        _ = SecureEncoding.UTF8.GetBytes(storeKey, destination);
 
-        var result = new byte[keyBytes.Length + sizeof(long) + metadataBytes.Length];
-        keyBytes.CopyTo(result, 0);
-        BinaryPrimitives.WriteInt64BigEndian(result.AsSpan(keyBytes.Length, sizeof(long)), version);
-        metadataBytes.CopyTo(result, keyBytes.Length + sizeof(long));
-        return result;
+        BinaryPrimitives.WriteInt64BigEndian(destination.GetSpan(sizeof(long)), version);
+        destination.Advance(sizeof(long));
+
+        BffSessionRecordSerializer.WriteMetadata(metadata, destination);
     }
 }

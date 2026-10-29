@@ -36,12 +36,6 @@ internal static class BffSessionRecordSerializer
     private const int HeaderLength = sizeof(byte) + sizeof(int);
 
     /// <summary>
-    /// Serializes the metadata to the JSON bytes that the payload's associated data covers.
-    /// </summary>
-    public static byte[] SerializeMetadata(BffSessionMetadata metadata) =>
-        JsonSerializer.SerializeToUtf8Bytes(metadata, BffJsonContext.Default.BffSessionMetadata);
-
-    /// <summary>
     /// Writes the metadata as the JSON bytes that the envelope holds in plaintext.
     /// </summary>
     /// <param name="metadata">The metadata to write.</param>

@@ -34,6 +34,15 @@ public class DefaultBffTokenAccessorTests : BaseTests
         return mock;
     }
 
+    private static DefaultHttpContext CreateGuardedHttpContext()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetEndpoint(
+            new Endpoint(null, new EndpointMetadataCollection(new BffApiAttribute()), "test")
+        );
+        return httpContext;
+    }
+
     #region GetAccessTokenAsync Tests
 
     [Fact]
@@ -41,7 +50,7 @@ public class DefaultBffTokenAccessorTests : BaseTests
     {
         var user = CreateRequirement(BffTokenRequirementNames.User);
         var other = CreateRequirement(OtherName);
-        var httpContext = new DefaultHttpContext();
+        var httpContext = CreateGuardedHttpContext();
         var request = new BffTokenRequest(OtherName);
         var expected = BffTokenResult.Success(null);
         other
@@ -68,13 +77,31 @@ public class DefaultBffTokenAccessorTests : BaseTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await accessor.GetAccessTokenAsync(
-                new DefaultHttpContext(),
+                CreateGuardedHttpContext(),
                 request,
                 CancellationToken.None
             )
         );
 
         Assert.Contains(OtherName, exception.Message);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_UnguardedEndpoint_Throws()
+    {
+        var user = CreateRequirement(BffTokenRequirementNames.User);
+        var accessor = new DefaultBffTokenAccessor([user.Object]);
+        var request = new BffTokenRequest(BffTokenRequirementNames.User);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await accessor.GetAccessTokenAsync(
+                new DefaultHttpContext(),
+                request,
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("AsBffApi()", exception.Message);
     }
 
     #endregion

@@ -18,6 +18,7 @@
 
 using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Bff.Endpoints;
 
 namespace NCode.Identity.Bff.Tokens;
 
@@ -58,6 +59,11 @@ internal class DefaultBffTokenAccessor : IBffTokenAccessor
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(request);
+
+        if (!BffGuardedEndpoints.IsGuarded(httpContext.GetEndpoint()))
+            throw new InvalidOperationException(
+                "A BFF access token is available only to an endpoint the BFF guards. Mark an API AsBffApi() or [BffApi], or a page AsBffPage() or [BffPage]."
+            );
 
         if (!_requirements.TryGetValue(request.Requirement, out var requirement))
             throw new InvalidOperationException(

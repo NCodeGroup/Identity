@@ -115,6 +115,7 @@ public class AuthorizationRequestTests
     [InlineData("code_challenge_method")]
     [InlineData("response_type")]
     [InlineData("client_assertion")]
+    [InlineData("dpop_jkt")]
     public void AdditionalParameters_WhenReserved_Throws(string name)
     {
         var source = new Dictionary<string, string> { [name] = "value" };

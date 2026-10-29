@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Bff.Serialization;
@@ -67,19 +66,7 @@ internal class BffLoginTransactionService(BffInstrumentedSessionStore store)
         )
             throw new InvalidOperationException("The login state is not valid.");
 
-        var json = JsonSerializer.SerializeToUtf8Bytes(
-            transaction,
-            BffJsonContext.Default.BffLoginTransaction
-        );
-        var keyBytes = SecureEncoding.UTF8.GetBytes(key);
-        var protectedTransaction = new byte[BffPayloadProtector.GetProtectedLength(json.Length)];
-        BffPayloadProtector.Protect(
-            initiatorSecret,
-            BffKeyDerivation.LoginPayloadPurpose,
-            json,
-            keyBytes,
-            protectedTransaction
-        );
+        using var lease = Protect(initiatorSecret, key, transaction, out var protectedTransaction);
 
         var added = await store.TryAddTransactionAsync(
             key,
@@ -122,33 +109,105 @@ internal class BffLoginTransactionService(BffInstrumentedSessionStore store)
         if (initiatorSecret is null)
             return new BffLoginTransactionResult(null, BffLoginFailureReasons.InitiatorMismatch);
 
-        var keyBytes = SecureEncoding.UTF8.GetBytes(key);
-        var writer = new ArrayBufferWriter<byte>();
+        var transaction = Unprotect(initiatorSecret, key, protectedTransaction.Span);
+        return transaction is null
+            ? new BffLoginTransactionResult(null, BffLoginFailureReasons.InitiatorMismatch)
+            : new BffLoginTransactionResult(transaction, null);
+    }
+
+    /// <summary>
+    /// Encrypts a transaction into pooled memory, bound to its store key.
+    /// </summary>
+    /// <param name="initiatorSecret">The secret that the key is derived from.</param>
+    /// <param name="key">The store key of the transaction.</param>
+    /// <param name="transaction">The transaction to encrypt.</param>
+    /// <param name="protectedTransaction">The encrypted transaction, which is valid until the returned rental is disposed.</param>
+    /// <returns>The rental that owns <paramref name="protectedTransaction"/>; dispose it after the store has taken the value.</returns>
+    private static IDisposable Protect(
+        string initiatorSecret,
+        string key,
+        BffLoginTransaction transaction,
+        out ReadOnlyMemory<byte> protectedTransaction
+    )
+    {
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            JsonSerializer.Serialize(
+                writer,
+                transaction,
+                BffJsonContext.Default.BffLoginTransaction
+            );
+            writer.Flush();
+        }
+
+        Span<byte> keyBytes = stackalloc byte[BffKeyDerivation.SecretLength];
+        var keyLength = SecureEncoding.UTF8.GetBytes(key, keyBytes);
+
+        using var lease = buffer.GetSpanLease(isSensitive: true);
+        var rental = BufferFactory.Rent(
+            BffPayloadProtector.GetProtectedLength(lease.Span.Length),
+            isSensitive: false,
+            out Memory<byte> memory
+        );
+
+        try
+        {
+            BffPayloadProtector.Protect(
+                initiatorSecret,
+                BffKeyDerivation.LoginPayloadPurpose,
+                lease.Span,
+                keyBytes[..keyLength],
+                memory.Span
+            );
+        }
+        catch
+        {
+            rental.Dispose();
+            throw;
+        }
+
+        protectedTransaction = memory;
+        return rental;
+    }
+
+    /// <summary>
+    /// Decrypts a transaction, returning <see langword="null"/> when it does not authenticate or is malformed.
+    /// </summary>
+    /// <param name="initiatorSecret">The secret that the key is derived from.</param>
+    /// <param name="key">The store key of the transaction.</param>
+    /// <param name="protectedTransaction">The encrypted transaction.</param>
+    private static BffLoginTransaction? Unprotect(
+        string initiatorSecret,
+        string key,
+        ReadOnlySpan<byte> protectedTransaction
+    )
+    {
+        Span<byte> keyBytes = stackalloc byte[BffKeyDerivation.SecretLength];
+        var keyLength = SecureEncoding.UTF8.GetBytes(key, keyBytes);
+
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
         var unprotected = BffPayloadProtector.TryUnprotect(
             initiatorSecret,
             BffKeyDerivation.LoginPayloadPurpose,
-            protectedTransaction.Span,
-            keyBytes,
-            writer
+            protectedTransaction,
+            keyBytes[..keyLength],
+            buffer
         );
         if (!unprotected)
-            return new BffLoginTransactionResult(null, BffLoginFailureReasons.InitiatorMismatch);
+            return null;
 
-        BffLoginTransaction? transaction;
+        using var lease = buffer.GetSpanLease(isSensitive: true);
         try
         {
-            transaction = JsonSerializer.Deserialize(
-                writer.WrittenSpan,
+            return JsonSerializer.Deserialize(
+                lease.Span,
                 BffJsonContext.Default.BffLoginTransaction
             );
         }
         catch (JsonException)
         {
-            return new BffLoginTransactionResult(null, BffLoginFailureReasons.InitiatorMismatch);
+            return null;
         }
-
-        return transaction is null
-            ? new BffLoginTransactionResult(null, BffLoginFailureReasons.InitiatorMismatch)
-            : new BffLoginTransactionResult(transaction, null);
     }
 }

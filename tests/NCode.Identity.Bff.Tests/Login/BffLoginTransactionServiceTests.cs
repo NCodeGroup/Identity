@@ -132,6 +132,47 @@ public class BffLoginTransactionServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task TakeAsync_TamperedTransaction_IsInitiatorMismatch()
+    {
+        var state = BffKeyDerivation.CreateSecret();
+        var initiator = BffKeyDerivation.CreateSecret();
+        await Service.StoreAsync(
+            state,
+            initiator,
+            CreateTransaction(),
+            ExpiresWhen,
+            CancellationToken.None
+        );
+
+        Assert.True(
+            BffKeyDerivation.TryDeriveIdentifier(
+                state,
+                BffKeyDerivation.LoginIdPurpose,
+                out var key
+            )
+        );
+        var storeKey = BffStoreKeys.Transaction(key);
+        var values = Provider.GetRequiredService<IExpiringValueSet>();
+        var stored = await values.GetAsync(storeKey, CancellationToken.None);
+        Assert.NotNull(stored);
+        var tampered = stored.Value.Value.ToArray();
+        tampered[^1] ^= 0xFF;
+        var replaced = await values.TryReplaceAsync(
+            storeKey,
+            stored.Value.Version,
+            tampered,
+            ExpiresWhen,
+            CancellationToken.None
+        );
+        Assert.True(replaced);
+
+        var result = await Service.TakeAsync(state, initiator, CancellationToken.None);
+
+        Assert.Null(result.Transaction);
+        Assert.Equal(BffLoginFailureReasons.InitiatorMismatch, result.FailureReason);
+    }
+
+    [Fact]
     public async Task TakeAsync_MissingInitiator_IsInitiatorMismatch()
     {
         var state = BffKeyDerivation.CreateSecret();

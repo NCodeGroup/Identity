@@ -36,14 +36,23 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
     private static readonly string Handle = new('a', 43);
 
+    private static readonly string LeaseKey =
+        "store-key:" + BffKeyDerivation.Fingerprint("refresh-token");
+
     private Mock<IBffSessionManager> MockManager { get; }
+    private Mock<IBffSessionStore> MockStore { get; }
+    private Mock<ITokenClient> MockTokenClient { get; }
+    private MutableTimeProvider TimeProvider { get; }
     private DefaultBffUserTokenService Service { get; }
 
     public DefaultBffUserTokenServiceTests()
     {
         MockManager = CreateStrictMock<IBffSessionManager>();
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
+        var options = Microsoft.Extensions.Options.Options.Create(
+            new BffOptions { Authority = "https://op.example", ClientId = "bff" }
+        );
         var timeProvider = new MutableTimeProvider(Now);
+        TimeProvider = timeProvider;
         var cookies = new BffCookies(options, timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,
@@ -52,14 +61,14 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             options,
             timeProvider
         );
-        var mockStore = CreateStrictMock<IBffSessionStore>();
-        var mockTokenClient = CreateStrictMock<ITokenClient>();
+        MockStore = CreateStrictMock<IBffSessionStore>();
+        MockTokenClient = CreateStrictMock<ITokenClient>();
         var mockRecorder = CreateStrictMock<IBffAuditRecorder>();
         Service = new DefaultBffUserTokenService(
             resolver,
             MockManager.Object,
-            mockStore.Object,
-            mockTokenClient.Object,
+            MockStore.Object,
+            MockTokenClient.Object,
             new BffClientRegistrationProvider(options),
             new BffRefreshLocks(),
             cookies,
@@ -101,6 +110,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 IdToken = "id-token",
                 LogoutGuard = "guard",
                 RefreshToken = refreshToken,
+                DPoPJwkThumbprint = "jkt-1",
                 AccessTokens = [.. accessTokens],
                 Claims = [new BffStoredClaim { Type = "sub", Value = "sub-1" }],
             }
@@ -188,14 +198,274 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task GetAccessTokenAsync_StaleTokenWithRefreshToken_RefreshIsNotImplemented()
+    public async Task GetAccessTokenAsync_WonLease_RefreshesAndWritesRotatedTokens()
     {
-        var httpContext = CreateHttpContext(CreateState("refresh-token"));
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        const string resource = "https://api.example";
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.Is<TokenRequest>(r =>
+                        r is RefreshTokenRequest
+                        && ((RefreshTokenRequest)r).RefreshToken == "refresh-token"
+                        && r.Resources.SequenceEqual(new[] { resource })
+                        && r.Scope == "read"
+                        && r.DPoPJwkThumbprint == "jkt-1"
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(
+                new TokenResult(
+                    new TokenResponse
+                    {
+                        AccessToken = "new-access",
+                        TokenType = "DPoP",
+                        RefreshToken = "rotated-refresh",
+                        ExpiresIn = 300,
+                    }
+                )
+                {
+                    DPoPJwkThumbprint = "jkt-2",
+                }
+            )
+            .Verifiable();
+        BffSessionState? written = null;
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) =>
+                {
+                    written = update(current);
+                    return ValueTask.FromResult(written);
+                }
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
-        await Assert.ThrowsAsync<NotImplementedException>(async () =>
-            await Service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            resource,
+            "read",
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsSuccess);
+        var token = Assert.IsType<BffAccessToken>(result.Token);
+        Assert.Equal("new-access", token.Value);
+        Assert.Equal("DPoP", token.TokenType);
+        Assert.Equal(Now.AddSeconds(300), token.ExpiresAt);
+        Assert.Equal("jkt-2", token.DPoPJwkThumbprint);
+        Assert.NotNull(written);
+        Assert.Equal("rotated-refresh", written.Payload.RefreshToken);
+        var entry = Assert.Single(written.Payload.AccessTokens);
+        Assert.Equal(BffTokenRequirementNames.User, entry.Requirement);
+        Assert.Equal(resource, entry.Resource);
+        Assert.Equal("read", entry.Scope);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_WriteMergedOntoNewerVersion_KeepsNewerRefreshToken()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<RefreshTokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(
+                new TokenResult(
+                    new TokenResponse
+                    {
+                        AccessToken = "new-access",
+                        TokenType = "Bearer",
+                        RefreshToken = "rotated-refresh",
+                        ExpiresIn = 300,
+                    }
+                )
+            )
+            .Verifiable();
+        var newer = CreateState("newer-refresh") with { Version = 2 };
+        BffSessionState? written = null;
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    BffSessionState _,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) =>
+                {
+                    written = update(newer);
+                    return ValueTask.FromResult(written);
+                }
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(written);
+        Assert.Equal("newer-refresh", written.Payload.RefreshToken);
+        Assert.Single(written.Payload.AccessTokens);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_RefreshSlowerThanMargin_KeepsLease()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<RefreshTokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(() =>
+            {
+                TimeProvider.UtcNow = Now.AddSeconds(36);
+                var response = new TokenResponse
+                {
+                    AccessToken = "new-access",
+                    TokenType = "Bearer",
+                    ExpiresIn = 300,
+                };
+                return ValueTask.FromResult(new TokenResult(response));
+            })
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => ValueTask.FromResult(update(current))
+            )
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsSuccess);
+        MockStore.Verify(
+            x => x.ReleaseRefreshLeaseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
         );
     }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_SessionGoneOnReload_ReturnsSessionRequired()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, CancellationToken.None))
+            .ReturnsAsync((BffSessionState?)null)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(401, result.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.SessionRequired, result.Reason);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_LeaseHeldElsewhere_ReturnsRefreshWaitTimeout()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        MockStore
+            .Setup(x =>
+                x.TryAcquireRefreshLeaseAsync(LeaseKey, Now.AddSeconds(40), CancellationToken.None)
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(503, result.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.RefreshWaitTimeout, result.Reason);
+    }
+
+    private void SetupReload(BffSessionState state) =>
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, CancellationToken.None))
+            .ReturnsAsync(state)
+            .Verifiable();
+
+    private void SetupLeaseAcquired() =>
+        MockStore
+            .Setup(x =>
+                x.TryAcquireRefreshLeaseAsync(LeaseKey, Now.AddSeconds(40), CancellationToken.None)
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
 
     #endregion
 }

@@ -25,6 +25,8 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId.Client;
+using NCode.Json;
+using NCode.Time;
 
 namespace NCode.Identity.Bff.Tokens;
 
@@ -45,6 +47,8 @@ internal class DefaultBffUserTokenService(
     ILogger<DefaultBffUserTokenService> logger
 ) : IBffUserTokenService
 {
+    private const string RefreshTokenExpiresInMember = "refresh_token_expires_in";
+
     private readonly BffSessionResolver _sessionResolver = sessionResolver;
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly IBffSessionStore _sessionStore = sessionStore;
@@ -93,27 +97,236 @@ internal class DefaultBffUserTokenService(
         }
 
         if (state.Payload.RefreshToken is null)
-        {
-            await _sessionManager.EndAsync(
-                httpContext,
-                state.StoreKey,
-                state.Metadata,
-                BffSessionEndReasons.RefreshFailed,
-                CancellationToken.None
-            );
-            _cookies.DeleteSession(httpContext.Response);
-            return BffTokenResult.Failure(401, BffTokenFailureReasons.RefreshFailed);
-        }
+            return await EndRefreshFailedAsync(httpContext, state);
 
         return await RefreshAsync(httpContext, state, resource, scope, cancellationToken);
     }
 
-    // step 47 implements the refresh under the cluster-wide lease
-    private ValueTask<BffTokenResult> RefreshAsync(
+    private async ValueTask<BffTokenResult> EndRefreshFailedAsync(
+        HttpContext httpContext,
+        BffSessionState state
+    )
+    {
+        await _sessionManager.EndAsync(
+            httpContext,
+            state.StoreKey,
+            state.Metadata,
+            BffSessionEndReasons.RefreshFailed,
+            CancellationToken.None
+        );
+        _cookies.DeleteSession(httpContext.Response);
+        return BffTokenResult.Failure(401, BffTokenFailureReasons.RefreshFailed);
+    }
+
+    private async ValueTask<BffTokenResult> RefreshAsync(
         HttpContext httpContext,
         BffSessionState state,
         string? resource,
         string? scope,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        var tokenOptions = _options.Value.Tokens;
+
+        // inside a replica, refreshes of one session are serialized by a striped lock
+        var gate = _refreshLocks.For(state.StoreKey);
+        var entered = await gate.WaitAsync(tokenOptions.RefreshLeaseDuration, cancellationToken);
+        if (!entered)
+            return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
+
+        try
+        {
+            return await RefreshLockedAsync(httpContext, state, resource, scope, cancellationToken);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async ValueTask<BffTokenResult> RefreshLockedAsync(
+        HttpContext httpContext,
+        BffSessionState state,
+        string? resource,
+        string? scope,
+        CancellationToken cancellationToken
+    )
+    {
+        var tokenOptions = _options.Value.Tokens;
+
+        var current = await _sessionManager.LoadAsync(state.Handle, cancellationToken);
+        if (current is null)
+            return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
+
+        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+        if (
+            BffTokenCache.TryGetFresh(
+                current.Payload,
+                BffTokenRequirementNames.User,
+                resource,
+                scope,
+                now,
+                tokenOptions.RefreshBeforeExpiry,
+                out var cached
+            )
+        )
+        {
+            var cachedToken = new BffAccessToken(cached.Value, cached.TokenType, cached.ExpiresAt)
+            {
+                DPoPJwkThumbprint = cached.DPoPJwkThumbprint,
+            };
+            return BffTokenResult.Success(cachedToken);
+        }
+
+        var refreshToken = current.Payload.RefreshToken;
+        if (refreshToken is null)
+            return await EndRefreshFailedAsync(httpContext, current);
+
+        // the lease guards the invariant itself: a refresh token is never presented twice
+        var fingerprint = BffKeyDerivation.Fingerprint(refreshToken);
+        var leaseKey = $"{current.StoreKey}:{fingerprint}";
+        var acquiredAt = now;
+        var leaseExpiresAt = acquiredAt + tokenOptions.RefreshLeaseDuration;
+        var acquired = await _sessionStore.TryAcquireRefreshLeaseAsync(
+            leaseKey,
+            leaseExpiresAt,
+            cancellationToken
+        );
+        if (!acquired)
+        {
+            // step 49 waits for the winner of the lease to write the refreshed tokens
+            return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
+        }
+
+        try
+        {
+            return await RequestAndStoreAsync(
+                current,
+                refreshToken,
+                resource,
+                scope,
+                now,
+                cancellationToken
+            );
+        }
+        finally
+        {
+            // never remove a lease that has expired and that another replica may have taken
+            var finishedAt = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+            var safetyMargin = TimeSpan.FromSeconds(5);
+            if (finishedAt - acquiredAt < tokenOptions.RefreshLeaseDuration - safetyMargin)
+                await _sessionStore.ReleaseRefreshLeaseAsync(leaseKey, CancellationToken.None);
+        }
+    }
+
+    private async ValueTask<BffTokenResult> RequestAndStoreAsync(
+        BffSessionState current,
+        string refreshToken,
+        string? resource,
+        string? scope,
+        DateTimeOffset now,
+        CancellationToken cancellationToken
+    )
+    {
+        var request = new RefreshTokenRequest(refreshToken)
+        {
+            Resources = resource is null ? [] : [resource],
+            Scope = scope,
+            DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
+        };
+        var result = await _tokenClient.RequestTokenAsync(
+            _registrationProvider.Registration,
+            request,
+            cancellationToken
+        );
+
+        // step 48 maps the failures of the refresh
+        if (!result.IsSuccess)
+            return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+
+        var response = result.Response;
+        var accessToken = response.AccessToken;
+        if (string.IsNullOrEmpty(accessToken))
+            return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+
+        var expiresAt = response.ExpiresIn is { } expiresIn
+            ? now + TimeSpan.FromSeconds(expiresIn)
+            : now;
+        var entry = new BffStoredAccessToken
+        {
+            Requirement = BffTokenRequirementNames.User,
+            Resource = resource,
+            Scope = scope,
+            Value = accessToken,
+            TokenType = response.TokenType ?? string.Empty,
+            ExpiresAt = expiresAt,
+            DPoPJwkThumbprint = result.DPoPJwkThumbprint,
+        };
+
+        DateTimeOffset? refreshExpiresAt = null;
+        if (
+            response.ExtensionData is { } extensionData
+            && extensionData.TryGetValue(RefreshTokenExpiresInMember, out var refreshExpiry)
+            && refreshExpiry.TryGetWholeInt32(out var refreshSeconds)
+            && refreshSeconds > 0
+        )
+        {
+            refreshExpiresAt = now + TimeSpan.FromSeconds(refreshSeconds);
+        }
+
+        // a lost write is merged onto the newer version and never dropped
+        var updated = await _sessionManager.UpdateAsync(
+            current,
+            s => ApplyRefresh(s, entry, refreshToken, response.RefreshToken, refreshExpiresAt),
+            cancellationToken
+        );
+        if (updated is null)
+            return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
+
+        var token = new BffAccessToken(entry.Value, entry.TokenType, entry.ExpiresAt)
+        {
+            DPoPJwkThumbprint = entry.DPoPJwkThumbprint,
+        };
+        return BffTokenResult.Success(token);
+    }
+
+    private static BffSessionState ApplyRefresh(
+        BffSessionState session,
+        BffStoredAccessToken entry,
+        string presentedRefreshToken,
+        string? issuedRefreshToken,
+        DateTimeOffset? refreshExpiresAt
+    )
+    {
+        var payload = BffTokenCache.WithToken(session.Payload, entry);
+        if (
+            string.Equals(
+                session.Payload.RefreshToken,
+                presentedRefreshToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            payload = payload with { RefreshToken = issuedRefreshToken ?? presentedRefreshToken };
+        }
+
+        var metadata = session.Metadata;
+        if (refreshExpiresAt is not { } cap || cap >= metadata.AbsoluteExpiresAt)
+            return session with { Payload = payload };
+
+        var idleExpiresAt = metadata.IdleExpiresAt < cap ? metadata.IdleExpiresAt : cap;
+        var capped = new BffSessionMetadata
+        {
+            Frontend = metadata.Frontend,
+            Issuer = metadata.Issuer,
+            Subject = metadata.Subject,
+            SessionId = metadata.SessionId,
+            CreatedAt = metadata.CreatedAt,
+            LastAccessedAt = metadata.LastAccessedAt,
+            AbsoluteExpiresAt = cap,
+            IdleExpiresAt = idleExpiresAt,
+            ExtensionData = metadata.ExtensionData,
+        };
+        return session with { Metadata = capped, Payload = payload };
+    }
 }

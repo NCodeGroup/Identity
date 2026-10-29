@@ -28,6 +28,7 @@ using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -47,6 +48,10 @@ public class BffCallbackHandlerTests : BaseTests
     private readonly Mock<IBffAuditRecorder> _auditRecorder;
     private readonly Mock<ITokenClient> _tokenClient;
     private readonly Mock<IIdTokenValidator> _idTokenValidator;
+    private readonly Mock<IBffSessionManager> _sessionManager;
+    private readonly MutableTimeProvider _timeProvider = new(
+        new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)
+    );
     private readonly List<IBffLoginGate> _gates = [];
 
     public BffCallbackHandlerTests()
@@ -58,12 +63,13 @@ public class BffCallbackHandlerTests : BaseTests
         _auditRecorder = CreateStrictMock<IBffAuditRecorder>();
         _tokenClient = CreateStrictMock<ITokenClient>();
         _idTokenValidator = CreateStrictMock<IIdTokenValidator>();
+        _sessionManager = CreateStrictMock<IBffSessionManager>();
     }
 
     private BffCallbackHandler CreateHandler()
     {
         var options = Microsoft.Extensions.Options.Options.Create(CreateOptions());
-        var timeProvider = new MutableTimeProvider(DateTimeOffset.UtcNow);
+        var timeProvider = _timeProvider;
         return new BffCallbackHandler(
             options,
             new BffClientRegistrationProvider(options),
@@ -73,7 +79,7 @@ public class BffCallbackHandlerTests : BaseTests
             _tokenClient.Object,
             _idTokenValidator.Object,
             _gates,
-            CreateStrictMock<IBffSessionManager>().Object,
+            _sessionManager.Object,
             _auditRecorder.Object,
             timeProvider,
             CreateLooseMock<ILogger<BffCallbackHandler>>().Object
@@ -82,13 +88,16 @@ public class BffCallbackHandlerTests : BaseTests
 
     private static BffOptions CreateOptions() => new() { Authority = Issuer, ClientId = "bff" };
 
-    private static DefaultHttpContext CreateHttpContext(string query)
+    private static DefaultHttpContext CreateHttpContext(string query, string? oldHandle = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
         httpContext.Request.Host = new HostString("app.example.com");
         httpContext.Request.QueryString = new QueryString(query);
-        httpContext.Request.Headers.Cookie = $"{BffDefaults.LoginCookieName}={LoginSecret}";
+        var cookie = $"{BffDefaults.LoginCookieName}={LoginSecret}";
+        if (oldHandle is not null)
+            cookie += $"; {BffDefaults.SessionCookieName}={oldHandle}";
+        httpContext.Request.Headers.Cookie = cookie;
         httpContext.Response.Body = new MemoryStream();
         return httpContext;
     }
@@ -107,6 +116,7 @@ public class BffCallbackHandlerTests : BaseTests
             RedirectUri = "https://app.example.com/bff/callback",
             CodeVerifier = "verifier",
             Nonce = Nonce,
+            ReturnUrl = "/home",
         };
         SetupTake(State, new BffLoginTransactionResult(transaction, null));
         var metadata = new OpenIdProviderMetadata
@@ -328,6 +338,146 @@ public class BffCallbackHandlerTests : BaseTests
             CreateHttpContext($"?state={State}&code=abc"),
             BffLoginFailureReasons.RejectedByGate
         );
+    }
+
+    private BffSessionMetadata? _createdMetadata;
+    private BffSessionPayload? _createdPayload;
+
+    private void SetupSuccess(TokenResponse response)
+    {
+        SetupTransaction(issSupported: false);
+        SetupToken(new TokenResult(response) { DPoPJwkThumbprint = "jkt" });
+        var identity = new ClaimsIdentity([
+            new Claim(JoseClaimNames.Payload.Sub, "user-1"),
+            new Claim(JoseClaimNames.Payload.Sid, "sid-1"),
+        ]);
+        SetupValidation(new IdTokenValidationResult(default(JsonElement)) { Identity = identity });
+        _sessionManager
+            .Setup(x =>
+                x.CreateAsync(
+                    It.IsAny<BffSessionMetadata>(),
+                    It.IsAny<BffSessionPayload>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<BffSessionMetadata, BffSessionPayload, CancellationToken>(
+                (metadata, payload, _) =>
+                {
+                    _createdMetadata = metadata;
+                    _createdPayload = payload;
+                }
+            )
+            .ReturnsAsync(
+                new BffSessionState(
+                    new string('h', 43),
+                    "key",
+                    1,
+                    new BffSessionMetadata(),
+                    new BffSessionPayload()
+                )
+            )
+            .Verifiable();
+        _auditRecorder
+            .Setup(x =>
+                x.LoginSucceededAsync(
+                    It.IsAny<HttpContext>(),
+                    "user-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
+
+    [Fact]
+    public async Task HandleAsync_Success_CreatesSessionSetsCookieAndRedirects()
+    {
+        var response = new TokenResponse
+        {
+            AccessToken = "at",
+            IdToken = "idt",
+            RefreshToken = "rt",
+            ExpiresIn = 300,
+        };
+        SetupSuccess(response);
+        var httpContext = CreateHttpContext($"?state={State}&code=abc");
+
+        await CreateHandler().HandleAsync(httpContext);
+
+        var now = _timeProvider.GetUtcNow();
+        var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
+        Assert.Equal(BffDefaults.FrontendName, metadata.Frontend);
+        Assert.Equal(Issuer, metadata.Issuer);
+        Assert.Equal("user-1", metadata.Subject);
+        Assert.Equal("sid-1", metadata.SessionId);
+        Assert.Equal(now, metadata.CreatedAt);
+        Assert.Equal(now + CreateOptions().Session.AbsoluteLifetime, metadata.AbsoluteExpiresAt);
+        Assert.Equal(now + CreateOptions().Session.IdleTimeout, metadata.IdleExpiresAt);
+        var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
+        Assert.Equal("idt", payload.IdToken);
+        Assert.Equal("rt", payload.RefreshToken);
+        Assert.Equal("jkt", payload.DPoPJwkThumbprint);
+        Assert.NotEmpty(payload.LogoutGuard);
+        var token = Assert.Single(payload.AccessTokens);
+        Assert.Equal("at", token.Value);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, token.TokenType);
+        Assert.Equal(now + TimeSpan.FromSeconds(300), token.ExpiresAt);
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal("/home", httpContext.Response.Headers.Location.ToString());
+        Assert.Contains(
+            BffDefaults.SessionCookieName,
+            httpContext.Response.Headers.SetCookie.ToString()
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_RefreshTokenExpiresIn_CapsAbsoluteExpiry()
+    {
+        var response = new TokenResponse
+        {
+            AccessToken = "at",
+            IdToken = "idt",
+            ExtensionData = new Dictionary<string, JsonElement>
+            {
+                ["refresh_token_expires_in"] = JsonSerializer.SerializeToElement(600),
+            },
+        };
+        SetupSuccess(response);
+
+        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+
+        var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
+        var expected = _timeProvider.GetUtcNow() + TimeSpan.FromSeconds(600);
+        Assert.Equal(expected, metadata.AbsoluteExpiresAt);
+        Assert.Equal(expected, metadata.IdleExpiresAt);
+    }
+
+    [Fact]
+    public async Task HandleAsync_OldSession_EndsItAsReplaced()
+    {
+        SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
+        var oldHandle = new string('o', 43);
+        var oldMetadata = new BffSessionMetadata { Subject = "old" };
+        _sessionManager
+            .Setup(x => x.LoadAsync(oldHandle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new BffSessionState(oldHandle, "old-key", 1, oldMetadata, new BffSessionPayload())
+            )
+            .Verifiable();
+        _sessionManager
+            .Setup(x =>
+                x.EndAsync(
+                    It.IsAny<HttpContext?>(),
+                    "old-key",
+                    oldMetadata,
+                    BffSessionEndReasons.Replaced,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc", oldHandle));
     }
 
     #endregion

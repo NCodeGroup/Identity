@@ -27,8 +27,11 @@ using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
+using NCode.Json;
+using NCode.Time;
 
 namespace NCode.Identity.Bff.Login;
 
@@ -37,6 +40,11 @@ namespace NCode.Identity.Bff.Login;
 /// </summary>
 internal class BffCallbackHandler
 {
+    private const string RefreshTokenExpiresInMember = "refresh_token_expires_in";
+
+    // Step 44 replaces this with BffTokenRequirementNames.User.
+    private const string UserRequirementName = "user";
+
     private readonly IOptions<BffOptions> _options;
     private readonly BffClientRegistrationProvider _registrationProvider;
     private readonly BffLoginTransactionService _transactionService;
@@ -212,8 +220,97 @@ internal class BffCallbackHandler
             return;
         }
 
-        // The session creation follows in the next step.
-        throw new NotImplementedException();
+        var subject = identity.FindFirst(JoseClaimNames.Payload.Sub)?.Value;
+        if (string.IsNullOrEmpty(subject))
+        {
+            await FailAsync(httpContext, BffLoginFailureReasons.IdTokenInvalid);
+            return;
+        }
+
+        var response = tokenResult.Response;
+        var bffOptions = _options.Value;
+        var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        var absolute = now + bffOptions.Session.AbsoluteLifetime;
+        if (
+            response.ExtensionData is { } extensionData
+            && extensionData.TryGetValue(RefreshTokenExpiresInMember, out var refreshExpiry)
+            && refreshExpiry.TryGetWholeInt32(out var refreshSeconds)
+            && refreshSeconds > 0
+        )
+        {
+            var refreshExpiresAt = now + TimeSpan.FromSeconds(refreshSeconds);
+            if (refreshExpiresAt < absolute)
+                absolute = refreshExpiresAt;
+        }
+
+        var idle = now + bffOptions.Session.IdleTimeout;
+        if (absolute < idle)
+            idle = absolute;
+
+        var sessionMetadata = new BffSessionMetadata
+        {
+            Frontend = BffDefaults.FrontendName,
+            Issuer = transaction.Issuer,
+            Subject = subject,
+            SessionId = identity.FindFirst(JoseClaimNames.Payload.Sid)?.Value,
+            CreatedAt = now,
+            LastAccessedAt = now,
+            AbsoluteExpiresAt = absolute,
+            IdleExpiresAt = idle,
+        };
+
+        var expiresAt = response.ExpiresIn is { } expiresIn
+            ? now + TimeSpan.FromSeconds(expiresIn)
+            : now;
+        var payload = new BffSessionPayload
+        {
+            Claims = [.. claims],
+            IdToken = idToken,
+            RefreshToken = response.RefreshToken,
+            DPoPJwkThumbprint = tokenResult.DPoPJwkThumbprint,
+            LogoutGuard = BffKeyDerivation.CreateSecret(),
+            AccessTokens =
+            [
+                new BffStoredAccessToken
+                {
+                    Requirement = UserRequirementName,
+                    Resource = null,
+                    Scope = null,
+                    Value = accessToken,
+                    TokenType = response.TokenType ?? OpenIdProtocol.TokenTypes.Bearer,
+                    ExpiresAt = expiresAt,
+                    DPoPJwkThumbprint = tokenResult.DPoPJwkThumbprint,
+                },
+            ],
+        };
+
+        var oldHandle = _cookies.ReadSessionHandle(request);
+        if (oldHandle is not null)
+        {
+            var old = await _sessionManager.LoadAsync(oldHandle, cancellationToken);
+            if (old is not null)
+            {
+                await _sessionManager.EndAsync(
+                    httpContext,
+                    old.StoreKey,
+                    old.Metadata,
+                    BffSessionEndReasons.Replaced,
+                    cancellationToken
+                );
+            }
+        }
+
+        var created = await _sessionManager.CreateAsync(
+            sessionMetadata,
+            payload,
+            cancellationToken
+        );
+        _cookies.SetSession(httpContext.Response, created.Handle, absolute);
+        await _auditRecorder.LoginSucceededAsync(httpContext, subject, cancellationToken);
+
+        var returnUrl = BffNavigation.LocalUrl(request, transaction.ReturnUrl);
+        httpContext.Response.Redirect(returnUrl);
     }
 
     private async ValueTask FailAsync(HttpContext httpContext, string reason)

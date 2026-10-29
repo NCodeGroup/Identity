@@ -74,6 +74,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffClientRegistrationProvider>();
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
+            serviceCollection.TryAddSingleton<BffCallbackHandler>();
 
             return newBuilder;
         }

@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <see cref="ITenantEnvironmentCatalog"/>. The vocabulary is open, so a consumer or sibling package adds a type by
 /// registering one rather than by editing the library.
 /// </remarks>
-// See ADR-0287 and ADR-0150.
+// See ADR-0289 and ADR-0150.
 [PublicAPI]
 public interface ITenantEnvironmentType
 {

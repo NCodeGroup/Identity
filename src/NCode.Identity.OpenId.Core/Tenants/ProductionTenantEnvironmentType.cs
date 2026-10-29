@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides the <c>production</c> tenant environment type: it selects the <c>production</c> security profile and does
 /// not show the non-production banner.
 /// </summary>
-// See ADR-0287.
+// See ADR-0289.
 internal sealed class ProductionTenantEnvironmentType : ITenantEnvironmentType
 {
     /// <inheritdoc />

@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// The registry of the <see cref="ITenantEnvironmentType"/> implementations known to the OP. It resolves the
 /// environment type a tenant's settings select and turns that type into the <c>security_profiles</c> the tenant gets.
 /// </summary>
-// See ADR-0287.
+// See ADR-0289.
 [PublicAPI]
 public interface ITenantEnvironmentCatalog
 {

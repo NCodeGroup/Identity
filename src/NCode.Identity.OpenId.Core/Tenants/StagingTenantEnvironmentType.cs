@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides the <c>staging</c> tenant environment type: it mirrors production's rules by selecting the
 /// <c>production</c> security profile, while still showing the non-production banner.
 /// </summary>
-// See ADR-0287.
+// See ADR-0289.
 internal sealed class StagingTenantEnvironmentType : ITenantEnvironmentType
 {
     /// <inheritdoc />

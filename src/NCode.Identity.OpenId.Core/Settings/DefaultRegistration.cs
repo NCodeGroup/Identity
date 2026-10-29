@@ -92,7 +92,7 @@ internal static class DefaultRegistration
             );
 
             // Each built-in type is its own class: TryAddEnumerable keeps one registration per implementation type
-            // (ADR-0287).
+            // (ADR-0289).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ITenantEnvironmentType,

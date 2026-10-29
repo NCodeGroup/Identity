@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 /// <param name="Type">The name of the tenant's effective environment type, such as <c>staging</c>.</param>
 /// <param name="Name">The tenant's own name for its environment, or <see langword="null"/> when it has none.</param>
-// See ADR-0287.
+// See ADR-0289.
 internal sealed record InteractiveEnvironment(
     string Type,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Name

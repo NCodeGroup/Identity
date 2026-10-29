@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides the <c>development</c> tenant environment type: a non-production environment that selects no additional
 /// security profiles.
 /// </summary>
-// See ADR-0287.
+// See ADR-0289.
 internal sealed class DevelopmentTenantEnvironmentType : ITenantEnvironmentType
 {
     /// <inheritdoc />

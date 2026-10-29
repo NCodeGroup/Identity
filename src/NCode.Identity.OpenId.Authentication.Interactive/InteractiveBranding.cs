@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// The tenant's environment when its effective environment type is not a production one, or
 /// <see langword="null"/>.
 /// </param>
-// See ADR-0194, ADR-0253 and ADR-0287.
+// See ADR-0194, ADR-0253 and ADR-0289.
 internal sealed record InteractiveBranding(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DisplayName,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? LogoUrl,

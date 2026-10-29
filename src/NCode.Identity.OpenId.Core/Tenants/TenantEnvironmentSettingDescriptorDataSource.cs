@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <c>environment_type</c> is the registered <see cref="ITenantEnvironmentType"/> names, so a value that names no
 /// registered type is rejected rather than stored. Each is a tenant setting that is not advertised in discovery.
 /// </summary>
-// See ADR-0287.
+// See ADR-0289.
 internal class TenantEnvironmentSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IEnumerable<ITenantEnvironmentType> types

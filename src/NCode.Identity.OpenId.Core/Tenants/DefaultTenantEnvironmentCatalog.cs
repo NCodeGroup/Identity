@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// or a type that selects a security profile that is not registered is an error, never ignored. A scope that selects a
 /// type that is not registered is an error too, never treated as if it had selected another type.
 /// </remarks>
-// See ADR-0287.
+// See ADR-0289.
 internal sealed class DefaultTenantEnvironmentCatalog(
     IEnumerable<ITenantEnvironmentType> types,
     ISecurityProfileCatalog securityProfileCatalog,

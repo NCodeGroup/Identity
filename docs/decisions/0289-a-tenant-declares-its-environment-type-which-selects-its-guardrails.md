@@ -1,4 +1,4 @@
-# 287. A tenant declares its environment type, which selects its guardrails
+# 289. A tenant declares its environment type, which selects its guardrails
 
 - **Status:** Accepted
 - **Date:** 2026-10-28

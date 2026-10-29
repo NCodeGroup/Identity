@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
@@ -752,6 +753,229 @@ public sealed class DefaultRegistrationTests
             )
         );
         Assert.True(supported);
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenATenantDeclaresNoEnvironmentType_ItTakesTheProductionProfile()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        var document = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.True(effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles));
+        Assert.Contains(OpenIdConstants.SecurityProfiles.Production, profiles);
+        Assert.True(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+        Assert.True(
+            effective.TryGetValue(OpenIdSettingKeys.RedirectUriKindsSupported, out var kinds)
+        );
+        Assert.DoesNotContain(OpenIdConstants.RedirectUriKinds.Http, kinds);
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenATenantIsADevelopmentEnvironment_ItTakesNoProductionProfile()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        var document = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object?>
+            {
+                [OpenIdSettingNames.EnvironmentType] = OpenIdConstants
+                    .TenantEnvironmentTypes
+                    .Development,
+            }
+        );
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.False(
+            effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
+                && profiles.Contains(OpenIdConstants.SecurityProfiles.Production)
+        );
+        Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenTheServerDeclaresADevelopmentEnvironment_ATenantInheritsIt()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        parentSettings.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Development
+        );
+        var document = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.False(
+            effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
+                && profiles.Contains(OpenIdConstants.SecurityProfiles.Production)
+        );
+        Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenAProductionTenantSetsDeletionProtectionOff_ItStaysOff()
+    {
+        using var host = BuildHost([]);
+        var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = settingCollectionFactory.Create();
+        var document = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object?> { [OpenIdSettingNames.DeletionProtection] = false }
+        );
+
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+
+        Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
+    }
+
+    [Fact]
+    public void AddIdentityServer_SelectImpliedProfiles_WhenTheScopeIsNotATenant_ReturnsTheScopeSettingsUnchanged()
+    {
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ITenantEnvironmentCatalog>();
+        var factory = host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = factory.Create();
+        var scopeSettings = factory.Create();
+
+        var result = catalog.SelectImpliedProfiles(
+            parentSettings,
+            OpenIdSettingScopes.Client,
+            scopeSettings
+        );
+
+        Assert.Same(scopeSettings, result);
+    }
+
+    [Fact]
+    public void AddIdentityServer_SelectImpliedProfiles_WhenTheTypeSelectsNoProfile_ReturnsTheScopeSettingsUnchanged()
+    {
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ITenantEnvironmentCatalog>();
+        var factory = host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = factory.Create();
+        var scopeSettings = factory.Create();
+        scopeSettings.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Development
+        );
+
+        var result = catalog.SelectImpliedProfiles(
+            parentSettings,
+            OpenIdSettingScopes.Tenant,
+            scopeSettings
+        );
+
+        Assert.Same(scopeSettings, result);
+    }
+
+    [Fact]
+    public void AddIdentityServer_SelectImpliedProfiles_WhenTheScopeAlreadySelectsProfiles_UnionsTheTypesProfilesInOrder()
+    {
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ITenantEnvironmentCatalog>();
+        var factory = host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = factory.Create();
+        var scopeSettings = factory.Create();
+        scopeSettings.Set(
+            OpenIdSettingKeys.SecurityProfiles,
+            [OpenIdConstants.SecurityProfiles.Fapi2]
+        );
+
+        var result = catalog.SelectImpliedProfiles(
+            parentSettings,
+            OpenIdSettingScopes.Tenant,
+            scopeSettings
+        );
+
+        var resultSettings = factory.Create(result);
+        Assert.True(
+            resultSettings.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
+        );
+        Assert.Equal(
+            [OpenIdConstants.SecurityProfiles.Fapi2, OpenIdConstants.SecurityProfiles.Production],
+            profiles
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_SelectImpliedProfiles_WhenTheScopeDeclaresItsOwnType_ItOverridesTheParents()
+    {
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ITenantEnvironmentCatalog>();
+        var factory = host.Services.GetRequiredService<ISettingCollectionFactory>();
+
+        var developmentParent = factory.Create();
+        developmentParent.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Development
+        );
+        var stagingScope = factory.Create();
+        stagingScope.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Staging
+        );
+
+        var stagingResult = catalog.SelectImpliedProfiles(
+            developmentParent,
+            OpenIdSettingScopes.Tenant,
+            stagingScope
+        );
+
+        var stagingSettings = factory.Create(stagingResult);
+        Assert.True(
+            stagingSettings.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
+        );
+        Assert.Contains(OpenIdConstants.SecurityProfiles.Production, profiles);
+
+        var productionParent = factory.Create();
+        productionParent.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Production
+        );
+        var developmentScope = factory.Create();
+        developmentScope.Set(
+            OpenIdSettingKeys.EnvironmentType,
+            OpenIdConstants.TenantEnvironmentTypes.Development
+        );
+
+        var developmentResult = catalog.SelectImpliedProfiles(
+            productionParent,
+            OpenIdSettingScopes.Tenant,
+            developmentScope
+        );
+
+        Assert.Same(developmentScope, developmentResult);
+    }
+
+    [Fact]
+    public void AddIdentityServer_SelectImpliedProfiles_WhenTheParentSelectsAnUnregisteredType_Throws()
+    {
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ITenantEnvironmentCatalog>();
+        var factory = host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var parentSettings = factory.Create();
+        parentSettings.Set(OpenIdSettingKeys.EnvironmentType, "custom");
+        var scopeSettings = factory.Create();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            catalog.SelectImpliedProfiles(parentSettings, OpenIdSettingScopes.Tenant, scopeSettings)
+        );
+
+        Assert.Contains("'custom'", exception.Message, StringComparison.Ordinal);
     }
 
     [Theory]

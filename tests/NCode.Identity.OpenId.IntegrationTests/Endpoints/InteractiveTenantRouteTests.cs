@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -385,13 +386,15 @@ public class InteractiveTenantRouteTests
             Assert.True(acmeResponse.Headers.CacheControl?.NoCache);
             Assert.Contains(
                 "<script type=\"application/json\" id=\"branding\">"
-                    + "{\"displayName\":\"Acme\",\"primaryColor\":\"#1565c0\",\"mode\":\"dark\"}</script>",
+                    + "{\"displayName\":\"Acme\",\"primaryColor\":\"#1565c0\",\"mode\":\"dark\","
+                    + "\"environment\":{\"type\":\"development\"}}</script>",
                 await acmeResponse.Content.ReadAsStringAsync(),
                 StringComparison.Ordinal
             );
             Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
             Assert.Contains(
-                "<script type=\"application/json\" id=\"branding\">{}</script>",
+                "<script type=\"application/json\" id=\"branding\">"
+                    + "{\"environment\":{\"type\":\"development\"}}</script>",
                 await betaResponse.Content.ReadAsStringAsync(),
                 StringComparison.Ordinal
             );
@@ -430,13 +433,66 @@ public class InteractiveTenantRouteTests
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Contains(
                 "<base href=\"/acme/account/\" /><script type=\"application/json\" id=\"branding\">"
-                    + "{\"displayName\":\"Acme\"}</script>",
+                    + "{\"displayName\":\"Acme\",\"environment\":{\"type\":\"development\"}}</script>",
                 html,
                 StringComparison.Ordinal
             );
             Assert.Contains(
                 $"data-error-code=\"{OpenIdProtocol.ErrorCodes.InvalidClient}\"",
                 html,
+                StringComparison.Ordinal
+            );
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GetLogin_WhenTheTenantDeclaresItsEnvironment_EmbedsTheEnvironmentOnlyWhenNotProduction()
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            await using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(
+                factory,
+                "acme",
+                new Dictionary<string, object>
+                {
+                    [OpenIdSettingNames.EnvironmentType] = OpenIdConstants
+                        .TenantEnvironmentTypes
+                        .Staging,
+                    [OpenIdSettingNames.EnvironmentName] = "sandbox",
+                }
+            );
+            await SeedTenantAsync(
+                factory,
+                "beta",
+                new Dictionary<string, object>
+                {
+                    [OpenIdSettingNames.EnvironmentType] = OpenIdConstants
+                        .TenantEnvironmentTypes
+                        .Production,
+                }
+            );
+            using var client = CreateClient(factory);
+
+            using var acmeResponse = await client.GetAsync("/acme/account/login");
+            using var betaResponse = await client.GetAsync("/beta/account/login");
+
+            Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
+            Assert.Contains(
+                "<script type=\"application/json\" id=\"branding\">"
+                    + "{\"environment\":{\"type\":\"staging\",\"name\":\"sandbox\"}}</script>",
+                await acmeResponse.Content.ReadAsStringAsync(),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
+            Assert.Contains(
+                "<script type=\"application/json\" id=\"branding\">{}</script>",
+                await betaResponse.Content.ReadAsStringAsync(),
                 StringComparison.Ordinal
             );
         }

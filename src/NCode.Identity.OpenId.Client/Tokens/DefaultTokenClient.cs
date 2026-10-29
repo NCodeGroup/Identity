@@ -80,7 +80,7 @@ internal class DefaultTokenClient(
         var response = await Sender.PostFormAsync(
             registration,
             metadata,
-            tokenEndpoint,
+            new ProviderEndpoint(OpenIdProtocol.MetadataNames.TokenEndpoint, tokenEndpoint),
             parameters,
             includeClientId: false,
             dpopKey,

@@ -1,4 +1,10 @@
-import type { BootstrapDocument, BrandingConfig, OpenIdDiscovery, RuntimeConfig } from './types.js';
+import type {
+  BootstrapDocument,
+  BrandingConfig,
+  EnvironmentConfig,
+  OpenIdDiscovery,
+  RuntimeConfig,
+} from './types.js';
 
 /** Thrown when runtime configuration cannot be discovered or is invalid. */
 export class RuntimeConfigError extends Error {
@@ -24,6 +30,26 @@ function requireNonEmpty(value: unknown, field: string): string {
 export const DEFAULT_SCOPES: readonly string[] = ['openid', 'read:clients'];
 
 /**
+ * Reads a tenant's non-production environment from an untrusted value. Returns `undefined` unless the value is an
+ * object with a non-blank string `type`; the `name` is kept only when it is a non-blank string.
+ */
+function parseEnvironmentConfig(raw: unknown): EnvironmentConfig | undefined {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  const source = raw as Record<string, unknown>;
+  const text = (value: unknown): string | undefined =>
+    typeof value === 'string' && value.trim() ? value : undefined;
+
+  const type = text(source.type);
+  if (!type) {
+    return undefined;
+  }
+  const name = text(source.name);
+  return { type, ...(name ? { name } : {}) };
+}
+
+/**
  * Reads the brandable theme tokens from an untrusted value, keeping each token only when it has the expected shape.
  * Returns `undefined` when the value is not an object or sets no usable token, so the default theme applies.
  */
@@ -40,6 +66,7 @@ export function parseBrandingConfig(raw: unknown): BrandingConfig | undefined {
   const primaryColor = text(source.primaryColor);
   const secondaryColor = text(source.secondaryColor);
   const mode = source.mode === 'light' || source.mode === 'dark' ? source.mode : undefined;
+  const environment = parseEnvironmentConfig(source.environment);
 
   const branding: BrandingConfig = {
     ...(displayName ? { displayName } : {}),
@@ -47,6 +74,7 @@ export function parseBrandingConfig(raw: unknown): BrandingConfig | undefined {
     ...(primaryColor ? { primaryColor } : {}),
     ...(secondaryColor ? { secondaryColor } : {}),
     ...(mode ? { mode } : {}),
+    ...(environment ? { environment } : {}),
   };
   return Object.keys(branding).length > 0 ? branding : undefined;
 }

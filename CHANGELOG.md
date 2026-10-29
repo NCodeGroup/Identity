@@ -10,6 +10,31 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Tenants declare their environment.** The tenant settings `environment_type`, `environment_name` and
+  `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
+  `staging` and `production` (a package registers more as `ITenantEnvironmentType`), and the name is a display label.
+  The `production` security profile drops plain `http` redirect URIs, forbids anonymous client registration and turns
+  `deletion_protection` on, which makes `DELETE /api/tenants/{tenantId}` answer `409`; `production` and `staging`
+  select it. A tenant that declares nothing is now `production`, and the Development and Conformance host settings
+  declare `development` and `testing`. A non-production tenant's login pages show an environment banner. The audit
+  record gains `tenant_environment_type` (schema 1.1), and the metric attribute `ncode.identity.tenant.environment_type`
+  tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
+  `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
+  ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
+  `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
+  EC key with a currently valid client-authentication certificate and a private key, never an `enc` key. Each request
+  goes over a connection per certificate, to the provider's `mtls_endpoint_aliases` entry when it has one, and sends
+  `client_id`. `IClientAuthenticator.UsesMutualTls` declares the transport (a breaking addition for custom
+  authenticators), `OpenIdProviderMetadata.MtlsEndpointAliases` carries the aliases, and
+  `OpenIdClientDefaults.MutualTlsHttpClientNamePrefix` names the per-certificate HTTP clients
+  ([ADR-0288](docs/decisions/0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md),
+  issue [#392](https://github.com/NCodeGroup/Identity/issues/392)).
+- **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of
+  the major pinned in `src/frontend/.node-version` and a `node_modules` that matches the pinned pnpm and
+  `pnpm-lock.yaml`, and otherwise stops with one message that names `./build/frontend-install.ps1`
+  ([ADR-0287](docs/decisions/0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md),
+  issue [#401](https://github.com/NCodeGroup/Identity/issues/401)).
 - **Dynamic client registration accepts back-channel logout metadata.** `RegisterClientRequest` and
   `RegisterClientResponse` carry `BackchannelLogoutUri` and `BackchannelLogoutSessionRequired`, stored as the
   `backchannel_logout_uri` and `backchannel_logout_session_required` client settings, so a self-registered client
@@ -833,6 +858,11 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` now exports the
+  ASP.NET Core development certificate as PEM, and the `ncode:serve-over-https` preset plugin serves it when `pnpm dev`
+  runs `mgmt`, `playground` or `conformance` directly, so the `http://` redirect URIs and developer CORS origins for
+  ports 5173–5175 are removed, issue [#402](https://github.com/NCodeGroup/Identity/issues/402).
 
 - **The local stack serves every browser surface over HTTPS with the .NET development certificate.** Under the
   Aspire AppHost, the standalone Vite surfaces `mgmt`, `playground` and `conformance` serve

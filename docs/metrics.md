@@ -62,20 +62,22 @@ them ([ADR-0200](decisions/0200-a-tier-admits-a-bounded-overage-past-its-quota-a
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ncode.identity.rate_limiting.partition` | the `Name` of a registered `RateLimitDescriptor`: `address`, `tenant`, `client`, `daily_requests`, `daily_token_requests`, or one a package registers |
 | `ncode.identity.rate_limiting.result`    | `admitted`, `overage`, `rejected`, `store_unavailable` (fail open)                                                                                    |
+| `ncode.identity.tenant.environment_type` | The tenant's registered environment type, such as `production` or `development` (a bounded value, never the tenant's free-form `environment_name`)    |
 
 ### `ncode.identity.events.published`
 
 Counter, unit `{event}`, meter `NCode.Identity.Events`. Recorded once for each event published through the event seam
 ([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)).
 
-| Attribute                                     | Present on                             | Values                                                                                                                                               |
-| --------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ncode.identity.event.type`                   | Every event                            | The event's CLR type name, such as `TokenIssuedAuditEvent`                                                                                           |
-| `ncode.identity.audit.event_name`             | Audit events                           | The catalogued `event_name`, such as `token.issued`                                                                                                  |
-| `ncode.identity.audit.event_category`         | Audit events                           | The audit event's category: `authentication`, `authorization`, `token`, `session`, `protocol` or `management`; see [audit records](audit-records.md) |
-| `ncode.identity.audit.outcome`                | Audit events                           | `success`, `failure`, `denied`                                                                                                                       |
-| `ncode.identity.token.type`                   | `TokenIssuedAuditEvent`                | The issued token's server-set type, such as `id_token` or `refresh_token`                                                                            |
-| `ncode.identity.client_authentication.method` | `ClientAuthenticationFailedAuditEvent` | The attempted registered method, such as `private_key_jwt` or `none`                                                                                 |
+| Attribute                                     | Present on                                        | Values                                                                                                                                                                                    |
+| --------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ncode.identity.event.type`                   | Every event                                       | The event's CLR type name, such as `TokenIssuedAuditEvent`                                                                                                                                |
+| `ncode.identity.audit.event_name`             | Audit events                                      | The catalogued `event_name`, such as `token.issued`                                                                                                                                       |
+| `ncode.identity.audit.event_category`         | Audit events                                      | The audit event's category: `authentication`, `authorization`, `token`, `session`, `protocol` or `management`; see [audit records](audit-records.md)                                      |
+| `ncode.identity.tenant.environment_type`      | Audit events that carry a tenant environment type | The tenant's registered environment type, such as `production` or `development` (a bounded value, never the tenant's free-form `environment_name`); see [audit records](audit-records.md) |
+| `ncode.identity.audit.outcome`                | Audit events                                      | `success`, `failure`, `denied`                                                                                                                                                            |
+| `ncode.identity.token.type`                   | `TokenIssuedAuditEvent`                           | The issued token's server-set type, such as `id_token` or `refresh_token`                                                                                                                 |
+| `ncode.identity.client_authentication.method` | `ClientAuthenticationFailedAuditEvent`            | The attempted registered method, such as `private_key_jwt` or `none`                                                                                                                      |
 
 An event type adds bounded attributes of its own by implementing `ISupportMetricAttributes`; each one is listed here.
 

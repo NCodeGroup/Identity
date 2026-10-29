@@ -60,6 +60,9 @@ public abstract record AuditEvent : IAuditEvent
     public string? TenantId { get; init; }
 
     /// <inheritdoc />
+    public string? TenantEnvironmentType { get; init; }
+
+    /// <inheritdoc />
     public string? SubjectId { get; init; }
 
     /// <inheritdoc />

@@ -71,6 +71,9 @@ internal class PrivateKeyJwtClientAuthenticator(
     public string MethodName => OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt;
 
     /// <inheritdoc />
+    public bool UsesMutualTls => false;
+
+    /// <inheritdoc />
     public ValueTask AuthenticateAsync(
         ClientAuthenticationContext context,
         CancellationToken cancellationToken

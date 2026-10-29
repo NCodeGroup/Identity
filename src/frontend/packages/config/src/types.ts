@@ -32,6 +32,17 @@ export type BootstrapDocument = {
   readonly branding?: BrandingConfig;
 };
 
+/**
+ * The tenant's non-production environment. Present only when the host embeds it in the branding; a production tenant
+ * has none.
+ */
+export type EnvironmentConfig = {
+  /** The environment's type, such as `development`. */
+  readonly type: string;
+  /** The environment's display name, when it has one. */
+  readonly name?: string;
+};
+
 /** Brandable theme tokens injected at runtime (see docs/decisions/0064 branding seam). */
 export type BrandingConfig = {
   readonly displayName?: string;
@@ -39,6 +50,8 @@ export type BrandingConfig = {
   readonly primaryColor?: string;
   readonly secondaryColor?: string;
   readonly mode?: 'light' | 'dark';
+  /** The tenant's non-production environment; absent for a production tenant. */
+  readonly environment?: EnvironmentConfig;
 };
 
 /** The subset of OpenID discovery metadata the frontend relies on. */

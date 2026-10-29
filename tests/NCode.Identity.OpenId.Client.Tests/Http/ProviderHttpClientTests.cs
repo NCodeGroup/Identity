@@ -69,6 +69,25 @@ public class ProviderHttpClientTests : BaseTests
     }
 
     [Fact]
+    public async Task SendAsync_WithHttpClientName_UsesThatClient()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, """{"issuer":"x"}""");
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient("custom"))
+            .Returns(new HttpClient(handler, disposeHandler: false))
+            .Verifiable();
+        var client = new ProviderHttpClient(
+            MockHttpClientFactory.Object,
+            Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions())
+        );
+
+        var response = await client.SendAsync(CreateRequest(), "custom", CancellationToken.None);
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.NotNull(response.Json);
+    }
+
+    [Fact]
     public async Task SendAsync_WithHtmlBody_ReturnsNullJson()
     {
         var handler = StubHttpMessageHandler.Respond(

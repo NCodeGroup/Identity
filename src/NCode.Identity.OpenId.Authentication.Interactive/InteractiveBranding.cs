@@ -17,6 +17,8 @@
 #endregion
 
 using System.Text.Json.Serialization;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
@@ -31,26 +33,48 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <param name="PrimaryColor">The primary color, or <see langword="null"/>.</param>
 /// <param name="SecondaryColor">The secondary color, or <see langword="null"/>.</param>
 /// <param name="Mode">The color mode, <c>light</c> or <c>dark</c>, or <see langword="null"/>.</param>
-// See ADR-0194 and ADR-0253.
+/// <param name="Environment">
+/// The tenant's environment when its effective environment type is not a production one, or
+/// <see langword="null"/>.
+/// </param>
+// See ADR-0194, ADR-0253 and ADR-0289.
 internal sealed record InteractiveBranding(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? DisplayName,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? LogoUrl,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? PrimaryColor,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SecondaryColor,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Mode
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Mode,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        InteractiveEnvironment? Environment
 )
 {
     /// <summary>
-    /// Reads the branding tokens from a tenant's effective <paramref name="settings"/>.
+    /// Reads the branding tokens from a tenant's effective <paramref name="settings"/>, and the environment when the
+    /// tenant's effective environment type, resolved through <paramref name="tenantEnvironmentCatalog"/>, is not a
+    /// production one.
     /// </summary>
-    public static InteractiveBranding FromSettings(IReadOnlySettingCollection settings) =>
-        new(
+    public static InteractiveBranding FromSettings(
+        IReadOnlySettingCollection settings,
+        ITenantEnvironmentCatalog tenantEnvironmentCatalog
+    )
+    {
+        var type = tenantEnvironmentCatalog.GetEffectiveType(settings);
+        var environment = type.IsProduction
+            ? null
+            : new InteractiveEnvironment(
+                type.TypeName,
+                NullIfEmpty(settings.GetValue(OpenIdSettingKeys.EnvironmentName))
+            );
+
+        return new InteractiveBranding(
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingDisplayName)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingLogoUri)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingPrimaryColor)),
             NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingSecondaryColor)),
-            NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingColorMode))
+            NullIfEmpty(settings.GetValue(InteractiveSettingKeys.BrandingColorMode)),
+            environment
         );
+    }
 
     private static string? NullIfEmpty(string value) => string.IsNullOrEmpty(value) ? null : value;
 }

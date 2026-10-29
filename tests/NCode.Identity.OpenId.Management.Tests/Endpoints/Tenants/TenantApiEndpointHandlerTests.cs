@@ -1574,6 +1574,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        SetupEffectiveSettingsResolver(CreateSettingCollection());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1581,6 +1582,44 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         Assert.IsType<NoContent>(result);
         VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
+    public async Task DeleteTenantAsync_WhenDeletionProtectionIsOn_ReturnsConflictAndKeepsTheTenant()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        MockTenantValidator
+            .Setup(x =>
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        var protectedSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
+        protectedSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.DeletionProtection))
+            .Returns(true)
+            .Verifiable();
+        SetupEffectiveSettingsResolver(protectedSettings.Object);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        MockTenantStore.Verify(
+            x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 
     [Fact]

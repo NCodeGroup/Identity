@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -37,6 +38,8 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<ITenantEnvironmentCatalog> MockTenantEnvironmentCatalog { get; }
     private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private DefaultEffectiveSettingsResolver Resolver { get; }
 
@@ -46,12 +49,16 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
         MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        MockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        MockTenantEnvironmentCatalog = CreateStrictMock<ITenantEnvironmentCatalog>();
         MockSecurityProfileCatalog = CreateStrictMock<ISecurityProfileCatalog>();
 
         Resolver = new DefaultEffectiveSettingsResolver(
             MockEnvironmentProvider.Object,
             MockServerProvider.Object,
             MockStoreManagerFactory.Object,
+            MockSettingSerializer.Object,
+            MockTenantEnvironmentCatalog.Object,
             MockSecurityProfileCatalog.Object
         );
     }
@@ -66,7 +73,31 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         IReadOnlyCollection<Setting> expanded = new List<Setting>();
         SetupExpand(OpenIdSettingScopes.Client, "foo", jsonOptions, expanded);
 
-        var result = Resolver.ReadScopeSettings(OpenIdSettingScopes.Client, CreateDocument("foo"));
+        var parent = CreateStrictMock<IReadOnlySettingCollection>().Object;
+
+        var result = Resolver.ReadScopeSettings(
+            parent,
+            OpenIdSettingScopes.Client,
+            CreateDocument("foo")
+        );
+
+        Assert.Same(expanded, result);
+    }
+
+    [Fact]
+    public void ReadScopeSettings_PassesTheParentToTheEnvironmentCatalog()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> expanded = new List<Setting>();
+        var parent = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupExpand(OpenIdSettingScopes.Client, "foo", jsonOptions, expanded, parent);
+
+        var result = Resolver.ReadScopeSettings(
+            parent,
+            OpenIdSettingScopes.Client,
+            CreateDocument("foo")
+        );
 
         Assert.Same(expanded, result);
     }
@@ -291,18 +322,42 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         string scopeName,
         string propertyName,
         JsonSerializerOptions jsonOptions,
-        IReadOnlyCollection<Setting> expanded
-    ) =>
-        MockSecurityProfileCatalog
+        IReadOnlyCollection<Setting> expanded,
+        IReadOnlySettingCollection? parentSettings = null
+    )
+    {
+        IReadOnlyCollection<Setting> deserialized = new List<Setting>();
+        IReadOnlyCollection<Setting> selected = new List<Setting>();
+
+        MockSettingSerializer
             .Setup(x =>
-                x.Expand(
+                x.DeserializeSettings(
                     It.Is<JsonElement>(e => HasProperty(e, propertyName)),
                     scopeName,
                     jsonOptions
                 )
             )
+            .Returns(deserialized)
+            .Verifiable();
+
+        MockTenantEnvironmentCatalog
+            .Setup(x =>
+                x.SelectImpliedProfiles(
+                    It.Is<IReadOnlySettingCollection>(p =>
+                        parentSettings == null || ReferenceEquals(p, parentSettings)
+                    ),
+                    scopeName,
+                    deserialized
+                )
+            )
+            .Returns(selected)
+            .Verifiable();
+
+        MockSecurityProfileCatalog
+            .Setup(x => x.Expand(selected, scopeName))
             .Returns(expanded)
             .Verifiable();
+    }
 
     private void SetupExpandThrows(
         string scopeName,
@@ -310,9 +365,9 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         JsonSerializerOptions jsonOptions,
         JsonException exception
     ) =>
-        MockSecurityProfileCatalog
+        MockSettingSerializer
             .Setup(x =>
-                x.Expand(
+                x.DeserializeSettings(
                     It.Is<JsonElement>(e => HasProperty(e, propertyName)),
                     scopeName,
                     jsonOptions

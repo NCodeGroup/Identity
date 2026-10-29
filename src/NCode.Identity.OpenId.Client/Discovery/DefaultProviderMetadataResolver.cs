@@ -155,6 +155,18 @@ internal class DefaultProviderMetadataResolver(
                 );
         }
 
+        if (metadata.MtlsEndpointAliases is not null)
+        {
+            foreach (var (name, value) in metadata.MtlsEndpointAliases)
+            {
+                if (!ProviderUri.TryParseEndpoint(value, out _))
+                    throw Fail(
+                        authority,
+                        $"The {OpenIdProtocol.MetadataNames.MtlsEndpointAliases} entry '{name}' of the discovery document is not an https URL (or http on a loopback host)."
+                    );
+            }
+        }
+
         return metadata;
     }
 

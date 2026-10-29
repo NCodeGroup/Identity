@@ -41,7 +41,7 @@ public class AuditRecordAttributesTests
     #region Create Tests
 
     [Theory]
-    [InlineData("audit.schema_version", "1.0")]
+    [InlineData("audit.schema_version", "1.1")]
     [InlineData("audit.event_name", "test.detailed")]
     [InlineData("audit.actor.type", "client")]
     [InlineData("audit.request.source_ip", "203.0.113.5")]

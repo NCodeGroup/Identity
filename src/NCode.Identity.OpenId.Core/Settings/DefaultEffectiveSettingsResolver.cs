@@ -20,15 +20,17 @@ using System.Text.Json;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IEffectiveSettingsResolver"/>. A scope's document is deserialized
-/// and expanded by the <see cref="ISecurityProfileCatalog"/> with the environment's JSON options, then merged onto its
-/// parent's effective settings. The server's committed document is read from the store at call time, so the result
+/// Provides the default implementation of <see cref="IEffectiveSettingsResolver"/>. A scope's document is read
+/// with the environment's JSON options, given the security profiles its environment type implies by the
+/// <see cref="ITenantEnvironmentCatalog"/>, and expanded by the <see cref="ISecurityProfileCatalog"/>, then merged onto
+/// its parent's effective settings. The server's committed document is read from the store at call time, so the result
 /// never depends on this replica's last poll.
 /// </summary>
 /// <remarks>
@@ -40,6 +42,8 @@ internal sealed class DefaultEffectiveSettingsResolver(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
     IOpenIdServerProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
+    ISettingSerializer settingSerializer,
+    ITenantEnvironmentCatalog tenantEnvironmentCatalog,
     ISecurityProfileCatalog securityProfileCatalog
 ) : IEffectiveSettingsResolver
 {
@@ -47,18 +51,32 @@ internal sealed class DefaultEffectiveSettingsResolver(
         openIdEnvironmentProvider;
     private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> ReadScopeSettings(string scopeName, JsonElement settings)
+    public IReadOnlyCollection<Setting> ReadScopeSettings(
+        IReadOnlySettingCollection parentSettings,
+        string scopeName,
+        JsonElement settings
+    )
     {
+        ArgumentNullException.ThrowIfNull(parentSettings);
         ArgumentNullException.ThrowIfNull(scopeName);
 
-        return SecurityProfileCatalog.Expand(
+        var scopeSettings = SettingSerializer.DeserializeSettings(
             settings,
             scopeName,
             OpenIdEnvironmentProvider.Get().JsonSerializerOptions
         );
+        var impliedSettings = TenantEnvironmentCatalog.SelectImpliedProfiles(
+            parentSettings,
+            scopeName,
+            scopeSettings
+        );
+
+        return SecurityProfileCatalog.Expand(impliedSettings, scopeName);
     }
 
     /// <inheritdoc />
@@ -71,7 +89,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
         ArgumentNullException.ThrowIfNull(parentSettings);
         ArgumentNullException.ThrowIfNull(scopeName);
 
-        return parentSettings.Merge(ReadScopeSettings(scopeName, settings));
+        return parentSettings.Merge(ReadScopeSettings(parentSettings, scopeName, settings));
     }
 
     /// <inheritdoc />

@@ -34,6 +34,8 @@ internal sealed class AuthenticationMetrics
 
     internal const string RateLimitingResultAttribute = "ncode.identity.rate_limiting.result";
 
+    internal const string TenantEnvironmentTypeAttribute = "ncode.identity.tenant.environment_type";
+
     internal const string AdmittedResult = "admitted";
 
     internal const string RejectedResult = "rejected";
@@ -61,10 +63,12 @@ internal sealed class AuthenticationMetrics
     /// <param name="partition">The name of the registered rate-limit descriptor.</param>
     /// <param name="result">The bounded result: <c>admitted</c>, <c>overage</c>, <c>rejected</c>, or
     /// <c>store_unavailable</c>.</param>
-    public void RateLimitJudged(string partition, string result) =>
+    /// <param name="environmentType">The tenant's registered environment type, a bounded value.</param>
+    public void RateLimitJudged(string partition, string result, string environmentType) =>
         RateLimitingRequests.Add(
             1,
             new KeyValuePair<string, object?>(RateLimitingPartitionAttribute, partition),
-            new KeyValuePair<string, object?>(RateLimitingResultAttribute, result)
+            new KeyValuePair<string, object?>(RateLimitingResultAttribute, result),
+            new KeyValuePair<string, object?>(TenantEnvironmentTypeAttribute, environmentType)
         );
 }

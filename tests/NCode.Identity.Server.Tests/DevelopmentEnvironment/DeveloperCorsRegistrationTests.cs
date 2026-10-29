@@ -38,8 +38,12 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
     {
         var policy = ResolvePolicy("Development", configuredOrigins: null);
 
-        Assert.Contains("http://localhost:5173", policy.Origins);
         Assert.Contains("https://localhost:5173", policy.Origins);
+        Assert.Contains("https://localhost:5174", policy.Origins);
+        Assert.Contains("https://localhost:5175", policy.Origins);
+        Assert.DoesNotContain("http://localhost:5173", policy.Origins);
+        Assert.DoesNotContain("http://localhost:5174", policy.Origins);
+        Assert.DoesNotContain("http://localhost:5175", policy.Origins);
     }
 
     [Fact]
@@ -157,7 +161,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         httpContext.Features.Set<IHttpResponseFeature>(responseFeature);
         httpContext.Request.Method = HttpMethods.Get;
-        httpContext.Request.Headers.Origin = "http://localhost:5173";
+        httpContext.Request.Headers.Origin = "https://localhost:5173";
 
         await pipeline(httpContext);
         await responseFeature.StartAsync();
@@ -191,7 +195,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         httpContext.Features.Set<IHttpResponseFeature>(responseFeature);
         httpContext.Request.Method = isPreflight ? HttpMethods.Options : HttpMethods.Get;
-        httpContext.Request.Headers.Origin = "http://localhost:5173";
+        httpContext.Request.Headers.Origin = "https://localhost:5173";
         if (isPreflight)
         {
             httpContext.Request.Headers.AccessControlRequestMethod = HttpMethods.Put;

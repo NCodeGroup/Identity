@@ -23,7 +23,9 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Web;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
@@ -156,6 +158,53 @@ public class ClientRegistrationEndpointTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Unauthorized, body);
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheTenantIsProduction_RefusesAnonymousRegistrationEvenWhenTheServerAllowsIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        using var productionFactory = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration(configurationBuilder =>
+                configurationBuilder.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["OpenId:Server:Settings:environment_type"] = OpenIdConstants
+                            .TenantEnvironmentTypes
+                            .Production,
+                    }
+                )
+            )
+        );
+        var developmentClient = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var productionClient = productionFactory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var metadata = new Dictionary<string, object>
+        {
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = OpenIdProtocol
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+        };
+
+        // The control: the Development host's tenant allows anonymous registration, so the same request is accepted.
+        using var developmentResponse = await developmentClient.PostAsJsonAsync(
+            "/oauth2/register",
+            metadata
+        );
+        var developmentBody = await developmentResponse.Content.ReadAsStringAsync();
+        Assert.True(developmentResponse.StatusCode == HttpStatusCode.Created, developmentBody);
+
+        // The production profile's ceiling turns anonymous registration off for the tenant, whatever the server says.
+        using var productionResponse = await productionClient.PostAsJsonAsync(
+            "/oauth2/register",
+            metadata
+        );
+        var productionBody = await productionResponse.Content.ReadAsStringAsync();
+        Assert.True(productionResponse.StatusCode == HttpStatusCode.Unauthorized, productionBody);
     }
 
     [Theory]

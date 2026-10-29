@@ -271,7 +271,11 @@ run [`build/frontend-install.ps1`](../../build/frontend-install.ps1). It adds th
 [`.node-version`](.node-version) through NVS when it is missing, installs the pinned pnpm beside it, and installs the
 pnpm workspace. The AppHost does **not** auto-install (concurrent per-app installs collide on a pnpm workspace), so
 this script is the single installer. The AppHost automatically puts that **NVS-managed Node** (and the pnpm beside it)
-first on `PATH` for the frontend resources — no global `nvs link` required.
+first on `PATH` for the frontend resources — no global `nvs link` required. Before it starts any resource, the AppHost
+also checks the toolchain and **stops at startup** (naming `build/frontend-install.ps1`) when no Node of the pinned
+major is available, or when `node_modules` was installed by another pnpm than the `packageManager` pin or before the
+last `pnpm-lock.yaml` change
+([ADR-0287](../../docs/decisions/0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md)).
 
 > **Self-healing / repair.** If a surface fails at dev time with Vite `Failed to resolve import "react-redux"` (or any
 > workspace dependency) — the symptom of `node_modules` symlinks lost out-of-band to a branch switch, antivirus, or an
@@ -284,8 +288,11 @@ Each app keeps its own `dev` script per its serving model (see "The `dev` script
 model" above): the interactive login surface (`apps/auth`) build-watches into its `dist`, which the Playground
 serves under `/account/*` — on a cold start give its first build a moment, then refresh `/account/login` if you
 beat it there; `apps/mgmt` is a standalone HMR dev server pinned to `https://localhost:5173`, served with the ASP.NET
-Core development certificate (`dotnet dev-certs https --trust`). Adding a surface is
-one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
+Core development certificate (`dotnet dev-certs https --trust`). Run directly with `pnpm dev`, every standalone
+surface (`mgmt`, `playground`, `conformance`) serves HTTPS from the certificate `./build/frontend-install.ps1` exports
+as PEM to `~/.ncode/identity/dev-cert` (override the directory with `NCODE_DEV_CERT_DIR`), and the dev server stops
+with an error naming that script when the files are missing; under Aspire the AppHost's certificate
+(`TLS_CONFIG_PFX`) is used instead. Adding a surface is one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 
 > Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`https://localhost:5173`) can read
 > discovery and call the management API cross-origin. Without a seeded public SPA client the UI renders in **open

@@ -16,6 +16,9 @@
 
 #endregion
 
+using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
@@ -370,6 +373,145 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
 
         Assert.Throws<InvalidOperationException>(() =>
             provider.SelectHttpClientName(CreateRegistration())
+        );
+    }
+
+    #endregion
+
+    #region CreatePrimaryHandler Tests
+
+    [Fact]
+    public void CreatePrimaryHandler_WithUnknownThumbprint_Throws()
+    {
+        var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
+        var provider = Track(
+            new ClientCertificateProvider(mockKeyRingProvider.Object, TimeProvider)
+        );
+
+        Assert.Throws<InvalidOperationException>(() => provider.CreatePrimaryHandler("UNKNOWN"));
+    }
+
+    [Fact]
+    public void CreatePrimaryHandler_WithSelectedCertificate_DisablesRedirectsAndCookies()
+    {
+        var (rsa, certificate) = CreateRsaCertificate();
+        var key = KeyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, rsa, certificate);
+        var provider = CreateProvider(key);
+        provider.SelectHttpClientName(CreateRegistration());
+
+        using var handler = provider.CreatePrimaryHandler(GetThumbprint(certificate));
+
+        Assert.False(handler.AllowAutoRedirect);
+        Assert.False(handler.UseCookies);
+        Assert.NotNull(handler.SslOptions.ClientCertificateContext);
+    }
+
+    [Fact]
+    public async Task CreatePrimaryHandler_WithSelectedCertificate_PresentsItInTheTlsHandshake()
+    {
+        var (rsa, certificate) = CreateRsaCertificate();
+        var key = KeyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, rsa, certificate);
+        var provider = CreateProvider(key);
+        provider.SelectHttpClientName(CreateRegistration());
+        Assert.True(
+            provider.TryGetCertificate(GetThumbprint(certificate), out var clientCertificate)
+        );
+
+        var serverCertificate = Track(CreateServerCertificate());
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var serverTask = Task.Run(
+                async () =>
+                {
+                    using var tcpClient = await listener.AcceptTcpClientAsync(cts.Token);
+                    await using var sslStream = new SslStream(tcpClient.GetStream());
+                    await sslStream.AuthenticateAsServerAsync(
+                        new SslServerAuthenticationOptions
+                        {
+                            ServerCertificate = serverCertificate,
+                            ClientCertificateRequired = true,
+#pragma warning disable CA5359 // hermetic loopback server with a throwaway self-signed certificate
+                            RemoteCertificateValidationCallback = (_, _, _, _) => true,
+#pragma warning restore CA5359
+                        },
+                        cts.Token
+                    );
+
+                    var captured = sslStream.RemoteCertificate?.GetRawCertData();
+
+                    var buffer = new byte[1024];
+                    var total = 0;
+                    while (total < buffer.Length)
+                    {
+                        var read = await sslStream.ReadAsync(buffer.AsMemory(total), cts.Token);
+                        if (read == 0)
+                            break;
+                        total += read;
+                        if (buffer.AsSpan(0, total).IndexOf("\r\n\r\n"u8) >= 0)
+                            break;
+                    }
+
+                    await sslStream.WriteAsync(
+                        "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"u8.ToArray(),
+                        cts.Token
+                    );
+                    await sslStream.FlushAsync(cts.Token);
+
+                    return captured;
+                },
+                cts.Token
+            );
+
+            using var handler = provider.CreatePrimaryHandler(GetThumbprint(certificate));
+#pragma warning disable CA5359 // hermetic loopback server with a throwaway self-signed certificate
+            handler.SslOptions.RemoteCertificateValidationCallback = static (_, _, _, _) => true;
+#pragma warning restore CA5359
+            using var httpClient = new HttpClient(handler);
+
+            using var response = await httpClient.GetAsync($"https://127.0.0.1:{port}/", cts.Token);
+            var captured = await serverTask;
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.NotNull(captured);
+            Assert.Equal(clientCertificate.RawData, captured);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    private static X509Certificate2 CreateServerCertificate()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=localhost",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        using var selfSigned = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(30)
+        );
+
+        if (!OperatingSystem.IsWindows())
+            return X509CertificateLoader.LoadPkcs12(
+                selfSigned.Export(X509ContentType.Pkcs12),
+                null
+            );
+
+        // SChannel cannot use an ephemeral private key for TLS.
+        const string password = "test-password";
+        return X509CertificateLoader.LoadPkcs12(
+            selfSigned.Export(X509ContentType.Pkcs12, password),
+            password,
+            X509KeyStorageFlags.DefaultKeySet
         );
     }
 

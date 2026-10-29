@@ -18,6 +18,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using NCode.Identity.Secrets.Keys;
@@ -118,6 +119,35 @@ internal class ClientCertificateProvider(
         string thumbprint,
         [NotNullWhen(true)] out X509Certificate2? certificate
     ) => Certificates.TryGetValue(thumbprint, out certificate);
+
+    /// <summary>
+    /// Creates the primary HTTP handler that presents the previously selected certificate in the TLS handshake.
+    /// </summary>
+    /// <param name="thumbprint">The uppercase hexadecimal SHA-256 hash of the certificate's DER encoding.</param>
+    /// <exception cref="InvalidOperationException">No certificate has been selected for the thumbprint.</exception>
+    public virtual SocketsHttpHandler CreatePrimaryHandler(string thumbprint)
+    {
+        if (!TryGetCertificate(thumbprint, out var certificate))
+        {
+            throw new InvalidOperationException(
+                $"No client certificate with the SHA-256 thumbprint '{thumbprint}' has been selected."
+            );
+        }
+
+        return new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false,
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                ClientCertificateContext = SslStreamCertificateContext.Create(
+                    certificate,
+                    additionalCertificates: null,
+                    offline: true
+                ),
+            },
+        };
+    }
 
     /// <inheritdoc />
     public void Dispose()

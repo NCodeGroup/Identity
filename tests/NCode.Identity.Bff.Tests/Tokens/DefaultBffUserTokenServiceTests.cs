@@ -16,12 +16,17 @@
 
 #endregion
 
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
@@ -46,11 +51,46 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private Mock<ITokenClient> MockTokenClient { get; }
     private Mock<IBffAuditRecorder> MockRecorder { get; }
     private MutableTimeProvider TimeProvider { get; }
+    private ServiceProvider MetricsProvider { get; }
+    private BffMetrics Metrics { get; }
+    private MetricCollector<double> RefreshCollector { get; }
+    private ActivityListener Listener { get; }
+    private List<Activity> StoppedRefreshes { get; } = [];
+    private Activity Parent { get; }
     private DefaultBffUserTokenService Service { get; }
 
     public DefaultBffUserTokenServiceTests()
     {
         MockManager = CreateStrictMock<IBffSessionManager>();
+        MetricsProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
+        var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
+        Metrics = new BffMetrics(meterFactory);
+        RefreshCollector = new MetricCollector<double>(
+            meterFactory,
+            BffTelemetry.MeterName,
+            BffMetrics.TokenRefreshDurationName
+        );
+        // The activity source is shared by every test, so only the refresh spans under this test's parent are kept.
+        Parent = new Activity(nameof(DefaultBffUserTokenServiceTests)).Start();
+        var parentSpanId = Parent.SpanId;
+        Listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == BffTelemetry.ActivitySourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) =>
+                ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity =>
+            {
+                if (
+                    activity.ParentSpanId != parentSpanId
+                    || activity.OperationName != BffActivities.TokenRefresh
+                )
+                    return;
+
+                lock (StoppedRefreshes)
+                    StoppedRefreshes.Add(activity);
+            },
+        };
+        ActivitySource.AddActivityListener(Listener);
         var options = Microsoft.Extensions.Options.Options.Create(
             new BffOptions { Authority = "https://op.example", ClientId = "bff" }
         );
@@ -71,15 +111,49 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Service = new DefaultBffUserTokenService(
             resolver,
             MockManager.Object,
-            MockStore.Object,
+            new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
             new BffClientRegistrationProvider(options),
             new BffRefreshLocks(),
+            Metrics,
             cookies,
             mockRecorder.Object,
             options,
             timeProvider,
             CreateLooseMock<ILogger<DefaultBffUserTokenService>>().Object
+        );
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Listener.Dispose();
+            Parent.Dispose();
+            RefreshCollector.Dispose();
+            MetricsProvider.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    private void AssertRefreshRecorded(string result, string? errorType)
+    {
+        var measurement = Assert.Single(RefreshCollector.GetMeasurementSnapshot());
+        Assert.Equal("s", RefreshCollector.Instrument?.Unit);
+        Assert.True(measurement.Value >= 0);
+        Assert.Equal(result, measurement.Tags[BffMetrics.RefreshResultAttribute]);
+        if (errorType is null)
+            Assert.False(measurement.Tags.ContainsKey(BffMetrics.ErrorTypeAttribute));
+        else
+            Assert.Equal(errorType, measurement.Tags[BffMetrics.ErrorTypeAttribute]);
+
+        var activity = Assert.Single(StoppedRefreshes);
+        Assert.Equal(result, activity.GetTagItem(BffMetrics.RefreshResultAttribute));
+        Assert.Equal(errorType, activity.GetTagItem(BffMetrics.ErrorTypeAttribute));
+        Assert.Equal(
+            errorType is null ? ActivityStatusCode.Unset : ActivityStatusCode.Error,
+            activity.Status
         );
     }
 
@@ -168,6 +242,9 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal("DPoP", token.TokenType);
         Assert.Equal(cached.ExpiresAt, token.ExpiresAt);
         Assert.Equal("jkt-1", token.DPoPJwkThumbprint);
+        // A fresh cached token is not a refresh, so nothing is measured or traced.
+        Assert.Empty(RefreshCollector.GetMeasurementSnapshot());
+        Assert.Empty(StoppedRefreshes);
     }
 
     [Fact]
@@ -286,6 +363,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal(BffTokenRequirementNames.User, entry.Requirement);
         Assert.Equal(resource, entry.Resource);
         Assert.Equal("read", entry.Scope);
+        AssertRefreshRecorded(BffMetrics.RefreshedResult, errorType: null);
     }
 
     [Fact]
@@ -477,6 +555,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 ),
             Times.Never
         );
+        AssertRefreshRecorded(BffMetrics.JoinedResult, errorType: null);
     }
 
     [Fact]
@@ -588,6 +667,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 ),
             Times.Never
         );
+        AssertRefreshRecorded(BffMetrics.FailedResult, BffTokenFailureReasons.RefreshWaitTimeout);
     }
 
     [Fact]
@@ -623,6 +703,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             httpContext.Response.Headers.SetCookie,
             x => x is not null && x.Contains(BffDefaults.SessionCookieName)
         );
+        AssertRefreshRecorded(BffMetrics.FailedResult, BffTokenFailureReasons.RefreshFailed);
     }
 
     [Fact]
@@ -805,10 +886,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         return new DefaultBffUserTokenService(
             resolver,
             MockManager.Object,
-            MockStore.Object,
+            new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
             new BffClientRegistrationProvider(options),
             new BffRefreshLocks(),
+            Metrics,
             cookies,
             MockRecorder.Object,
             options,

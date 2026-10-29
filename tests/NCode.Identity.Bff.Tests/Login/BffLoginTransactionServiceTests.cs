@@ -19,6 +19,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Diagnostics;
 using NCode.Identity.SharedState;
 using Xunit;
 
@@ -43,7 +44,9 @@ public class BffLoginTransactionServiceTests : IAsyncLifetime
 
         var values = Provider.GetRequiredService<IExpiringValueSet>();
         var indexes = Provider.GetRequiredService<IExpiringIndexSet>();
-        Service = new BffLoginTransactionService(new DefaultBffSessionStore(values, indexes));
+        Service = new BffLoginTransactionService(
+            BffTestTelemetry.Instrument(new DefaultBffSessionStore(values, indexes))
+        );
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

@@ -335,3 +335,4 @@ standards.
 | [0295](./0295-the-jose-library-does-not-implement-the-none-algorithm.md) | The JOSE library does not implement the none algorithm | Accepted |
 | [0296](./0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md) | A failed JWE key unwrap is indistinguishable from a failed authentication tag | Accepted |
 | [0297](./0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
+| [0298](./0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md) | A package traces its own mechanisms through one activity source named like its meter | Accepted |

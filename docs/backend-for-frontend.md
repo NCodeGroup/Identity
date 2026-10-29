@@ -815,10 +815,22 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 
 Reason names are open string constants, so a new reason never breaks a consumer.
 
-**Metrics and traces** use one meter and one `ActivitySource` named `NCode.Identity.Bff`. Duration histograms and spans
-cover token-endpoint calls, store operations, lease waits, and forwarding. Counters track logins, session ends,
-refreshes, and rejections. Tags are low-cardinality constants: operation, outcome, reason, and frontend name. They
-never carry subjects, handles, tokens, client ids, or paths.
+**Metrics and traces** use one meter and one `ActivitySource`, both named `NCode.Identity.Bff`
+(`BffTelemetry.MeterName`, `BffTelemetry.ActivitySourceName`), and each signal has one owner
+([ADR-0197](decisions/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md),
+[ADR-0298](decisions/0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)):
+
+- Logins, session ends, refresh failures and rejections are audit events, so `ncode.identity.events.published` counts
+  them, by event name and by the event's reason (`ncode.identity.bff.reason`).
+- `ncode.identity.bff.token.refresh.duration` and its span time a refresh as the request experiences it, lock and lease
+  waits included, with the result `refreshed`, `joined` or `failed`.
+- `ncode.identity.bff.session_store.operation.duration` and its span time every operation against the registered
+  `IBffSessionStore`.
+- The token endpoint calls are `System.Net.Http`'s client spans and `http.client.request.duration`, and the endpoints
+  are ASP.NET Core's request spans and `http.server.request.duration`. Forwarding arrives with phase 3.
+
+Tags are low-cardinality constants: operation, result, reason, and error type. They never carry subjects, handles,
+tokens, client ids, or paths. [`docs/metrics.md`](metrics.md) catalogs every instrument and span.
 
 **Logs** use source-generated `LoggerMessage`, and never write a token, handle, or cookie value.
 

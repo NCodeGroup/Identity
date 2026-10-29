@@ -24,13 +24,15 @@ namespace NCode.Identity.Bff.Sessions;
 /// <summary>
 /// The default implementation of <see cref="IBffSessionManager"/>.
 /// </summary>
-internal class DefaultBffSessionManager(IBffSessionStore store, IBffAuditRecorder recorder)
-    : IBffSessionManager
+internal class DefaultBffSessionManager(
+    BffInstrumentedSessionStore store,
+    IBffAuditRecorder recorder
+) : IBffSessionManager
 {
     private const int CreateAttempts = 2;
     private const int UpdateAttempts = 5;
 
-    private IBffSessionStore Store { get; } = store;
+    private BffInstrumentedSessionStore Store { get; } = store;
 
     private IBffAuditRecorder Recorder { get; } = recorder;
 

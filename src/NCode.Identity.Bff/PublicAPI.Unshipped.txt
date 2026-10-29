@@ -88,3 +88,6 @@ NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.set -> void
 NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions
 NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!)
 NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!).AddBffAccessTokenHandler(NCode.Identity.Bff.BffTokenRequest! request) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
+const NCode.Identity.Bff.BffTelemetry.ActivitySourceName = "NCode.Identity.Bff" -> string!
+const NCode.Identity.Bff.BffTelemetry.MeterName = "NCode.Identity.Bff" -> string!
+NCode.Identity.Bff.BffTelemetry

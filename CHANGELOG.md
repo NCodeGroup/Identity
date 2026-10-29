@@ -39,6 +39,15 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **The BFF measures and traces its refreshes and its session store.** The `NCode.Identity.Bff` meter records
+  `ncode.identity.bff.token.refresh.duration` (with the result `refreshed`, `joined` or `failed`, lock and lease waits
+  included) and `ncode.identity.bff.session_store.operation.duration` (for whichever `IBffSessionStore` is registered),
+  and the `NCode.Identity.Bff` activity source traces both. `BffAuditEvent` adds its reason as
+  `ncode.identity.bff.reason` to `ncode.identity.events.published`, which counts logins, session ends, refresh failures
+  and rejections. `BffTelemetry` names the meter and the source; the family's first activity source sets the tracing
+  convention
+  ([ADR-0298](docs/decisions/0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md),
+  issue [#416](https://github.com/NCodeGroup/Identity/issues/416)).
 - **The management console shows and filters tenants by environment.** `TenantResource` gains `environment`
   (`TenantEnvironmentResource`: `type`, `name`, `isProduction`), the tenant's effective environment, on the tenant
   list, read and create responses; it is omitted when the tenant's or the server's stored settings cannot be honored,

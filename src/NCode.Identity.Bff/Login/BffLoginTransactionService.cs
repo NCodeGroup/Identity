@@ -37,7 +37,7 @@ internal readonly record struct BffLoginTransactionResult(
 /// <summary>
 /// Stores login transactions encrypted under the initiator secret, and takes them back exactly once.
 /// </summary>
-internal class BffLoginTransactionService(IBffSessionStore store)
+internal class BffLoginTransactionService(BffInstrumentedSessionStore store)
 {
     /// <summary>
     /// Stores a login transaction.

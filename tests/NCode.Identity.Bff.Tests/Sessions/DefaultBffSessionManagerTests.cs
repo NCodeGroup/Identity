@@ -19,6 +19,7 @@
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Diagnostics;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Sessions;
@@ -33,7 +34,10 @@ public class DefaultBffSessionManagerTests : BaseTests
     {
         MockStore = CreateStrictMock<IBffSessionStore>();
         MockRecorder = CreateStrictMock<IBffAuditRecorder>();
-        Manager = new DefaultBffSessionManager(MockStore.Object, MockRecorder.Object);
+        Manager = new DefaultBffSessionManager(
+            BffTestTelemetry.Instrument(MockStore.Object),
+            MockRecorder.Object
+        );
     }
 
     private static BffSessionMetadata CreateMetadata() =>

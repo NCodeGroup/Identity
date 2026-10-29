@@ -26,6 +26,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Diagnostics;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.SharedState;
@@ -59,7 +60,8 @@ public class BffLoginHandlerTests : BaseTests
             options,
             new BffClientRegistrationProvider(options),
             _client.Object,
-            transactionService ?? new BffLoginTransactionService(_store.Object),
+            transactionService
+                ?? new BffLoginTransactionService(BffTestTelemetry.Instrument(_store.Object)),
             new BffCookies(options, timeProvider),
             _auditRecorder.Object,
             CreateLooseMock<IHostEnvironment>().Object,
@@ -225,7 +227,7 @@ public class BffLoginHandlerTests : BaseTests
         var values = provider.GetRequiredService<IExpiringValueSet>();
         var indexes = provider.GetRequiredService<IExpiringIndexSet>();
         var transactionService = new BffLoginTransactionService(
-            new DefaultBffSessionStore(values, indexes)
+            BffTestTelemetry.Instrument(new DefaultBffSessionStore(values, indexes))
         );
 
         var httpContext = CreateHttpContext("?returnUrl=/app");

@@ -16,12 +16,14 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
@@ -37,10 +39,11 @@ namespace NCode.Identity.Bff.Tokens;
 internal class DefaultBffUserTokenService(
     BffSessionResolver sessionResolver,
     IBffSessionManager sessionManager,
-    IBffSessionStore sessionStore,
+    BffInstrumentedSessionStore sessionStore,
     ITokenClient tokenClient,
     BffClientRegistrationProvider registrationProvider,
     BffRefreshLocks refreshLocks,
+    BffMetrics metrics,
     BffCookies cookies,
     IBffAuditRecorder auditRecorder,
     IOptions<BffOptions> options,
@@ -50,10 +53,11 @@ internal class DefaultBffUserTokenService(
 {
     private readonly BffSessionResolver _sessionResolver = sessionResolver;
     private readonly IBffSessionManager _sessionManager = sessionManager;
-    private readonly IBffSessionStore _sessionStore = sessionStore;
+    private readonly BffInstrumentedSessionStore _sessionStore = sessionStore;
     private readonly ITokenClient _tokenClient = tokenClient;
     private readonly BffClientRegistrationProvider _registrationProvider = registrationProvider;
     private readonly BffRefreshLocks _refreshLocks = refreshLocks;
+    private readonly BffMetrics _metrics = metrics;
     private readonly BffCookies _cookies = cookies;
     private readonly IBffAuditRecorder _auditRecorder = auditRecorder;
     private readonly IOptions<BffOptions> _options = options;
@@ -125,6 +129,64 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
+        using var activity = BffActivities.Source.StartActivity(BffActivities.TokenRefresh);
+        var startTimestamp = Stopwatch.GetTimestamp();
+        var attempt = new RefreshAttempt();
+        try
+        {
+            var result = await RefreshGatedAsync(
+                httpContext,
+                state,
+                resource,
+                scope,
+                attempt,
+                cancellationToken
+            );
+            RefreshCompleted(activity, startTimestamp, attempt, result.Reason);
+            return result;
+        }
+        catch (Exception exception)
+        {
+            RefreshCompleted(activity, startTimestamp, attempt, exception.GetType().FullName);
+            throw;
+        }
+    }
+
+    // The refresh is measured as the request experienced it: refreshed when it presented the refresh token, joined when
+    // another request or replica refreshed the session for it, failed otherwise. See ADR-0197 and ADR-0298.
+    private void RefreshCompleted(
+        Activity? activity,
+        long startTimestamp,
+        RefreshAttempt attempt,
+        string? failure
+    )
+    {
+        var result =
+            failure is not null ? BffMetrics.FailedResult
+            : attempt.Presented ? BffMetrics.RefreshedResult
+            : BffMetrics.JoinedResult;
+        _metrics.TokenRefreshCompleted(startTimestamp, result, failure);
+
+        if (activity is null)
+            return;
+
+        activity.SetTag(BffMetrics.RefreshResultAttribute, result);
+        if (failure is null)
+            return;
+
+        activity.SetStatus(ActivityStatusCode.Error);
+        activity.SetTag(BffMetrics.ErrorTypeAttribute, failure);
+    }
+
+    private async ValueTask<BffTokenResult> RefreshGatedAsync(
+        HttpContext httpContext,
+        BffSessionState state,
+        string? resource,
+        string? scope,
+        RefreshAttempt attempt,
+        CancellationToken cancellationToken
+    )
+    {
         var tokenOptions = _options.Value.Tokens;
 
         // inside a replica, refreshes of one session are serialized by a striped lock
@@ -135,7 +197,14 @@ internal class DefaultBffUserTokenService(
 
         try
         {
-            return await RefreshLockedAsync(httpContext, state, resource, scope, cancellationToken);
+            return await RefreshLockedAsync(
+                httpContext,
+                state,
+                resource,
+                scope,
+                attempt,
+                cancellationToken
+            );
         }
         finally
         {
@@ -148,6 +217,7 @@ internal class DefaultBffUserTokenService(
         BffSessionState state,
         string? resource,
         string? scope,
+        RefreshAttempt attempt,
         CancellationToken cancellationToken
     )
     {
@@ -160,12 +230,20 @@ internal class DefaultBffUserTokenService(
             current,
             resource,
             scope,
+            attempt,
             cancellationToken
         );
         if (result is not null)
             return result;
 
-        return await WaitForRefreshAsync(httpContext, current, resource, scope, cancellationToken);
+        return await WaitForRefreshAsync(
+            httpContext,
+            current,
+            resource,
+            scope,
+            attempt,
+            cancellationToken
+        );
     }
 
     private BffTokenResult? TryGetFresh(
@@ -211,6 +289,7 @@ internal class DefaultBffUserTokenService(
         BffSessionState current,
         string? resource,
         string? scope,
+        RefreshAttempt attempt,
         CancellationToken cancellationToken
     )
     {
@@ -236,6 +315,7 @@ internal class DefaultBffUserTokenService(
         if (!acquired)
             return null;
 
+        attempt.Presented = true;
         try
         {
             return await RequestAndStoreAsync(
@@ -263,6 +343,7 @@ internal class DefaultBffUserTokenService(
         BffSessionState seen,
         string? resource,
         string? scope,
+        RefreshAttempt attempt,
         CancellationToken cancellationToken
     )
     {
@@ -298,6 +379,7 @@ internal class DefaultBffUserTokenService(
                     loaded,
                     resource,
                     scope,
+                    attempt,
                     cancellationToken
                 );
                 if (result is not null)
@@ -472,5 +554,11 @@ internal class DefaultBffUserTokenService(
             ExtensionData = metadata.ExtensionData,
         };
         return session with { Metadata = capped, Payload = payload };
+    }
+
+    // Whether this request presented the refresh token, so a refresh it got without presenting it counts as joined.
+    private sealed class RefreshAttempt
+    {
+        public bool Presented { get; set; }
     }
 }

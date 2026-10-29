@@ -1352,6 +1352,14 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 - 👁 **A new or renamed instrument or attribute updates [`docs/metrics.md`](../../docs/metrics.md)** in the same
   change; the catalog is the contract dashboards and alerts are built against.
 
+### Traces
+
+- 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter**
+  ([ADR-0298](../../docs/decisions/0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)):
+  a public name constant beside the meter's, a static source, and no span for what ASP.NET Core or `System.Net.Http`
+  already traces. A span mirrors one of the package's duration histograms — its name without `.duration`, the same
+  bounded attributes, `Error` status and `error.type` on failure — and never carries a token, handle, cookie, key,
+  subject, client id or path. Test it with an `ActivityListener` filtered to a parent activity the test started.
 ## 12. Configuration & options
 
 - 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with

@@ -25,6 +25,7 @@ using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Authentication;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
@@ -73,7 +74,12 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffOptionsValidator>()
             );
 
+            // The BFF's instruments are created through the IMeterFactory (ADR-0197).
+            serviceCollection.AddMetrics();
+            serviceCollection.TryAddSingleton<BffMetrics>();
+
             serviceCollection.TryAddSingleton<IBffSessionStore, DefaultBffSessionStore>();
+            serviceCollection.TryAddSingleton<BffInstrumentedSessionStore>();
             serviceCollection.TryAddSingleton<IBffSessionManager, DefaultBffSessionManager>();
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();

@@ -27,6 +27,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Diagnostics;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -57,7 +58,7 @@ public class BffCallbackHandlerTests : BaseTests
     public BffCallbackHandlerTests()
     {
         _transactionService = CreateStrictMock<BffLoginTransactionService>(
-            CreateStrictMock<IBffSessionStore>().Object
+            BffTestTelemetry.Instrument(CreateStrictMock<IBffSessionStore>().Object)
         );
         _metadataResolver = CreateStrictMock<IProviderMetadataResolver>();
         _auditRecorder = CreateStrictMock<IBffAuditRecorder>();

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Text.Json;
 using NCode.Buffers;
 using Xunit;
@@ -107,6 +108,34 @@ public class BffAuditEventTests : BaseTests
         var auditEvent = CreateEvent(null);
 
         Assert.False(auditEvent.HasAuditDetails);
+    }
+
+    #endregion
+
+    #region AddMetricAttributes Tests
+
+    [Fact]
+    public void AddMetricAttributes_WithReason_AddsTheReason()
+    {
+        var auditEvent = CreateEvent(BffLoginFailureReasons.IssuerMismatch);
+        var tags = new TagList();
+
+        auditEvent.AddMetricAttributes(ref tags);
+
+        var tag = Assert.Single(tags);
+        Assert.Equal(BffAuditEvent.ReasonMetricAttribute, tag.Key);
+        Assert.Equal(BffLoginFailureReasons.IssuerMismatch, tag.Value);
+    }
+
+    [Fact]
+    public void AddMetricAttributes_WithoutReason_AddsNothing()
+    {
+        var auditEvent = CreateEvent(null);
+        var tags = new TagList();
+
+        auditEvent.AddMetricAttributes(ref tags);
+
+        Assert.Empty(tags);
     }
 
     #endregion

@@ -25,6 +25,7 @@ using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Diagnostics;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -66,7 +67,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         new(
             _registrationProvider,
             _validator.Object,
-            _store.Object,
+            BffTestTelemetry.Instrument(_store.Object),
             _manager.Object,
             _audit.Object
         );

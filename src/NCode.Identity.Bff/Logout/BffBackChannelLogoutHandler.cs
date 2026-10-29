@@ -32,7 +32,7 @@ namespace NCode.Identity.Bff.Logout;
 internal class BffBackChannelLogoutHandler(
     BffClientRegistrationProvider registrationProvider,
     ILogoutTokenValidator logoutTokenValidator,
-    IBffSessionStore sessionStore,
+    BffInstrumentedSessionStore sessionStore,
     IBffSessionManager sessionManager,
     IBffAuditRecorder auditRecorder
 )

@@ -156,3 +156,5 @@ NCode.Identity.Bff.BffTokenUnavailableException
 NCode.Identity.Bff.BffTokenUnavailableException.BffTokenUnavailableException(int statusCode, string! reason) -> void
 NCode.Identity.Bff.BffTokenUnavailableException.Reason.get -> string!
 NCode.Identity.Bff.BffTokenUnavailableException.StatusCode.get -> int
+const NCode.Identity.Bff.BffAuditEvent.ReasonMetricAttribute = "ncode.identity.bff.reason" -> string!
+NCode.Identity.Bff.BffAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void

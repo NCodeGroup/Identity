@@ -1126,4 +1126,84 @@ public class ClientRegistrationEndpointTests
     }
 
     #endregion
+
+    #region Back-Channel Logout Metadata
+
+    [Fact]
+    public async Task PostRegister_WithBackChannelLogoutMetadata_StoresAndReportsIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["backchannel_logout_uri"] = "https://client.example/logout",
+                ["backchannel_logout_session_required"] = true,
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+
+        foreach (var document in new[] { root, read.RootElement })
+        {
+            Assert.Equal(
+                "https://client.example/logout",
+                document.GetProperty("backchannel_logout_uri").GetString()
+            );
+            Assert.True(document.GetProperty("backchannel_logout_session_required").GetBoolean());
+        }
+    }
+
+    [Theory]
+    [InlineData("http://client.example/logout")]
+    [InlineData("https://client.example/logout#fragment")]
+    public async Task PostRegister_WhenTheBackChannelLogoutUriIsNotHttps_ReturnsInvalidClientMetadata(
+        string logoutUri
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["backchannel_logout_uri"] = logoutUri,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.BackChannelLogoutUri
+        );
+    }
+
+    #endregion
 }

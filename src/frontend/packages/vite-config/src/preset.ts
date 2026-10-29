@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import type { ViteUserConfig } from 'vitest/config';
@@ -219,6 +222,54 @@ export function resolveServiceOrigin(
   );
 }
 
+/** The environment variable that overrides the directory holding the exported development certificate. */
+export const DEV_CERTIFICATE_DIRECTORY_VARIABLE = 'NCODE_DEV_CERT_DIR';
+
+/** The directory that holds `localhost.pem` and `localhost.key`, as exported by `build/frontend-install.ps1`. */
+export function devCertificateDirectory(env: ServiceEnvironment): string {
+  return (
+    env[DEV_CERTIFICATE_DIRECTORY_VARIABLE] ?? join(homedir(), '.ncode', 'identity', 'dev-cert')
+  );
+}
+
+/** The PEM-encoded development certificate and its private key. */
+export type DevCertificate = { readonly cert: string; readonly key: string };
+
+/** Reads the exported development certificate, failing with the way to export it when it is missing. */
+export function readDevCertificate(env: ServiceEnvironment): DevCertificate {
+  const directory = devCertificateDirectory(env);
+  try {
+    return {
+      cert: readFileSync(join(directory, 'localhost.pem'), 'utf8'),
+      key: readFileSync(join(directory, 'localhost.key'), 'utf8'),
+    };
+  } catch (cause) {
+    throw new Error(
+      `The development certificate was not found in '${directory}'. Run ./build/frontend-install.ps1 to export it, or set ${DEV_CERTIFICATE_DIRECTORY_VARIABLE} to the directory that holds localhost.pem and localhost.key.`,
+      { cause },
+    );
+  }
+}
+
+/**
+ * Serves the dev server over HTTPS with the exported ASP.NET Core development certificate, so a standalone surface
+ * matches its HTTPS-only redirect URIs and CORS origin outside Aspire (ADR-0071). Aspire's wrapper config supplies the
+ * certificate (`TLS_CONFIG_PFX`) for the AppHost, so the plugin adds nothing then; tests and previews never need one;
+ * otherwise the installer exports the certificate and a missing one fails the dev server at start.
+ */
+export function serveOverHttps(env: ServiceEnvironment): Plugin {
+  return {
+    name: 'ncode:serve-over-https',
+    apply: 'serve',
+    config(_config, { mode, isPreview }) {
+      if (mode === 'test' || isPreview || env.TLS_CONFIG_PFX) {
+        return;
+      }
+      return { server: { https: readDevCertificate(env) } };
+    },
+  };
+}
+
 /**
  * The configuration of a standalone surface: a single-page app served by its own Vite dev server. That server is the
  * bundle's serving host, so it must publish the bootstrap document; rather than ship a static copy that drifts, it
@@ -233,7 +284,7 @@ export function defineStandaloneSurfaceConfig({
   assertPort(port);
   return {
     base: '/',
-    plugins: [react(), failOnOversizedChunks()],
+    plugins: [react(), failOnOversizedChunks(), serveOverHttps(env)],
     server: {
       port,
       strictPort: true,

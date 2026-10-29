@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Plugin, PluginOption } from 'vite';
 import { ASYNC_UTIL_TIMEOUT_MS } from '@ncode/test-support';
@@ -8,9 +11,12 @@ import {
   defineBackendServedSurfaceConfig,
   defineStandaloneSurfaceConfig,
   defineTestConfig,
+  devCertificateDirectory,
   failOnOversizedChunks,
   oversizedChunks,
+  readDevCertificate,
   resolveServiceOrigin,
+  serveOverHttps,
   testGates,
   VENDOR_CHUNKS,
   type BundleOutput,
@@ -233,6 +239,102 @@ describe('resolveServiceOrigin', () => {
   );
 });
 
+describe('devCertificateDirectory', () => {
+  it('defaults to the .ncode directory of the home directory', () => {
+    expect(devCertificateDirectory({})).toBe(join(homedir(), '.ncode', 'identity', 'dev-cert'));
+  });
+
+  it('is overridden by NCODE_DEV_CERT_DIR', () => {
+    expect(devCertificateDirectory({ NCODE_DEV_CERT_DIR: 'x' })).toBe('x');
+  });
+});
+
+describe('development certificate', () => {
+  type ConfigHook = (config: unknown, env: { mode: string; isPreview?: boolean }) => unknown;
+
+  let directory = '';
+
+  function exportCertificate(): string {
+    directory = mkdtempSync(join(tmpdir(), 'ncode-dev-cert-'));
+    writeFileSync(join(directory, 'localhost.pem'), 'CERT');
+    writeFileSync(join(directory, 'localhost.key'), 'KEY');
+    return directory;
+  }
+
+  afterEach(() => {
+    if (directory) {
+      rmSync(directory, { recursive: true, force: true });
+      directory = '';
+    }
+  });
+
+  describe('readDevCertificate', () => {
+    it('reads the exported certificate and key', () => {
+      expect(readDevCertificate({ NCODE_DEV_CERT_DIR: exportCertificate() })).toStrictEqual({
+        cert: 'CERT',
+        key: 'KEY',
+      });
+    });
+
+    it('fails with the way to export a missing certificate', () => {
+      const missing = join(tmpdir(), 'ncode-dev-cert-missing');
+
+      let error: unknown;
+      try {
+        readDevCertificate({ NCODE_DEV_CERT_DIR: missing });
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toMatch(/frontend-install\.ps1/);
+      expect((error as Error).cause).toBeDefined();
+    });
+  });
+
+  describe('serveOverHttps', () => {
+    function configOf(
+      env: Record<string, string | undefined>,
+      hookEnv: { mode: string; isPreview?: boolean },
+    ): unknown {
+      return (serveOverHttps(env).config as unknown as ConfigHook)({}, hookEnv);
+    }
+
+    it('runs only in the dev server', () => {
+      const plugin = serveOverHttps({});
+
+      expect(plugin.name).toBe('ncode:serve-over-https');
+      expect(plugin.apply).toBe('serve');
+    });
+
+    it('serves the dev server over HTTPS with the exported certificate', () => {
+      const env = { NCODE_DEV_CERT_DIR: exportCertificate() };
+
+      expect(configOf(env, { mode: 'development' })).toStrictEqual({
+        server: { https: { cert: 'CERT', key: 'KEY' } },
+      });
+    });
+
+    it.each([
+      ['tests', { mode: 'test' }],
+      ['a preview', { mode: 'development', isPreview: true }],
+    ])('adds nothing for %s, which need no certificate', (_case, hookEnv) => {
+      const env = { NCODE_DEV_CERT_DIR: join(tmpdir(), 'ncode-dev-cert-missing') };
+
+      expect(configOf(env, hookEnv)).toBeUndefined();
+    });
+
+    it('defers to the certificate Aspire supplies', () => {
+      const env = {
+        NCODE_DEV_CERT_DIR: join(tmpdir(), 'ncode-dev-cert-missing'),
+        TLS_CONFIG_PFX: 'x.pfx',
+      };
+
+      expect(configOf(env, { mode: 'development' })).toBeUndefined();
+    });
+  });
+});
+
 describe('defineStandaloneSurfaceConfig', () => {
   it('serves the surface on its pinned port and proxies the bootstrap document to the host', () => {
     const config = defineStandaloneSurfaceConfig({
@@ -259,6 +361,7 @@ describe('defineStandaloneSurfaceConfig', () => {
     expect(config.test).toStrictEqual(testGates({ environment: 'jsdom', coverage: floors }));
     expect(pluginNames(config.plugins ?? [])).toContain('vite:react-babel');
     expect(pluginNames(config.plugins ?? [])).toContain('ncode:fail-on-oversized-chunks');
+    expect(pluginNames(config.plugins ?? [])).toContain('ncode:serve-over-https');
   });
 
   it('reads the service-discovery variables from the process environment by default', () => {

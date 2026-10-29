@@ -283,10 +283,11 @@ first on `PATH` for the frontend resources — no global `nvs link` required.
 Each app keeps its own `dev` script per its serving model (see "The `dev` script encodes each app's serving
 model" above): the interactive login surface (`apps/auth`) build-watches into its `dist`, which the Playground
 serves under `/account/*` — on a cold start give its first build a moment, then refresh `/account/login` if you
-beat it there; `apps/mgmt` is a standalone HMR dev server pinned to `http://localhost:5173`. Adding a surface is
+beat it there; `apps/mgmt` is a standalone HMR dev server pinned to `https://localhost:5173`, served with the ASP.NET
+Core development certificate (`dotnet dev-certs https --trust`). Adding a surface is
 one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 
-> Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`http://localhost:5173`) can read
+> Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`https://localhost:5173`) can read
 > discovery and call the management API cross-origin. Without a seeded public SPA client the UI renders in **open
 > mode** and management calls return `401`; the development seeder (`AddDeveloperInteractiveSeed`) and the interactive
 > login surface ([#125](https://github.com/NCodeGroup/Identity/issues/125), done) close that gap for local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).

@@ -47,10 +47,15 @@ Rules:
   `HealthCheckTags.Readiness`); `mgmt` declares `.WaitFor(api)`, so Aspire holds the UI until `/health/ready`
   returns `200`. This deterministically removes the UI-before-API race — the root symptom that motivated this ADR.
 - **Ports stay pinned to preserve the dev contract.** `api` keeps the host launch profile's
-  `https://localhost:5001` / `http://localhost:5000`; `mgmt` is pinned to `http://localhost:5173`, direct and
+  `https://localhost:5001` / `http://localhost:5000`; `mgmt` is pinned to `https://localhost:5173`, direct and
   un-proxied (`IsProxied = false`) so Vite HMR and the OAuth authorization-code callback work and the seed/CORS
   origins stay valid. Determinism is chosen over Aspire's default dynamic port allocation precisely because the
   seed, CORS, and bootstrap document assume those ports.
+- **Every browser surface is served over HTTPS with the ASP.NET Core development certificate.** The standalone Vite
+  surfaces opt into `WithHttpsDeveloperCertificate`: Aspire runs Vite under a wrapper config that sets `server.https`
+  from the same development certificate the OP hosts use, and switches the endpoint's scheme to `https`. The browser
+  therefore trusts one certificate across the stack (`dotnet dev-certs https --trust`), and the AppHost has only an
+  `https` launch profile.
 - **`apps/auth` is a build-watcher, not a dev server.** Its `dev` script is `vite build --watch`; it is modeled
   with `AddJavaScriptApp` (no HTTP endpoint) so Aspire runs the watcher and the host serves the resulting
   `dist`. Only `apps/mgmt` (a true dev server) uses `AddViteApp`.

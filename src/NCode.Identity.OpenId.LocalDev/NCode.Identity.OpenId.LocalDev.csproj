@@ -17,8 +17,11 @@
         <UserSecretsId>7d2a4c1e-9b63-4f0a-8e5b-1c2d3e4f5a6b</UserSecretsId>
         <!-- This AppHost is launched via `dotnet run` / F5, not the standalone `aspire` CLI, so it deliberately runs
              without the Aspire CLI bundle (AspireUseCliBundle=false). ASPIRE010 only flags CLI-bundle-exclusive
-             features we do not use; suppress its noise rather than taking a hard dependency on the external CLI. -->
-        <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+             features we do not use; suppress its noise rather than taking a hard dependency on the external CLI.
+             ASPIRECERTIFICATES001 marks WithHttpsDeveloperCertificate as an evaluation API; the standalone Vite
+             surfaces opt into it to serve HTTPS with the ASP.NET Core development certificate, and this project is
+             local-dev only (never packed or published), so an upstream change to it can only break local runs. -->
+        <NoWarn>$(NoWarn);ASPIRE010;ASPIRECERTIFICATES001</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

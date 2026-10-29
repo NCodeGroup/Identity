@@ -834,6 +834,20 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The local stack serves every browser surface over HTTPS with the .NET development certificate.** Under the
+  Aspire AppHost, the standalone Vite surfaces `mgmt`, `playground` and `conformance` serve
+  `https://localhost:5173`, `5174` and `5175` with the ASP.NET Core development certificate the OP hosts already use
+  (`WithHttpsDeveloperCertificate`), so the browser trusts one certificate across the stack and signs in through the
+  seeded `https://…/callback` redirect URIs. The AppHost's `http` launch profile, which could not start without
+  `ASPIRE_ALLOW_UNSECURED_TRANSPORT`, is removed
+  ([ADR-0071](docs/decisions/0071-aspire-local-dev-orchestrator.md)).
+
+- **The Aspire local-dev orchestrator moves to 13.6.4.** The `Aspire.AppHost.Sdk` (in `global.json`) and the
+  `Aspire.Hosting.AppHost`, `.JavaScript`, `.PostgreSQL` and `.Valkey` pins move from 13.6.1 to 13.6.4, which retries
+  a timed-out resource creation instead of failing it and keeps a slow resource watch from stalling startup. Aspire
+  13.6.2 and later pull `MessagePack` 2.5.307 themselves, so the transitive pin that cleared GHSA-qhrr-8q5h-9q3h is
+  removed.
+
 - **The OpenID protocol client needs no ASP.NET Core runtime.** `NCode.Identity.OpenId.Client` no longer references
   the `Microsoft.AspNetCore.App` shared framework and references
   `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Http`,

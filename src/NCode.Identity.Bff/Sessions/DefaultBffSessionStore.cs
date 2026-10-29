@@ -163,51 +163,139 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     }
 
     /// <inheritdoc />
-    public ValueTask<IReadOnlyList<string>> FindBySessionIdAsync(
+    public async ValueTask<IReadOnlyList<string>> FindBySessionIdAsync(
         string issuer,
         string sessionId,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var indexKey = BffStoreKeys.SessionIdIndex(issuer, sessionId);
+            return await indexes.GetMembersAsync(indexKey, cancellationToken);
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     /// <inheritdoc />
-    public ValueTask<IReadOnlyList<string>> FindBySubjectAsync(
+    public async ValueTask<IReadOnlyList<string>> FindBySubjectAsync(
         string issuer,
         string subject,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var indexKey = BffStoreKeys.SubjectIndex(issuer, subject);
+            return await indexes.GetMembersAsync(indexKey, cancellationToken);
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     /// <inheritdoc />
-    public ValueTask<bool> TryAddTransactionAsync(
+    public async ValueTask<bool> TryAddTransactionAsync(
         string transactionKey,
         ReadOnlyMemory<byte> protectedTransaction,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var key = BffStoreKeys.Transaction(transactionKey);
+            return await values.TryAddAsync(
+                key,
+                protectedTransaction,
+                expiresWhen,
+                cancellationToken
+            );
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     /// <inheritdoc />
-    public ValueTask<ReadOnlyMemory<byte>?> TryTakeTransactionAsync(
+    public async ValueTask<ReadOnlyMemory<byte>?> TryTakeTransactionAsync(
         string transactionKey,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var key = BffStoreKeys.Transaction(transactionKey);
+            var taken = await values.TryTakeAsync(key, cancellationToken);
+            if (taken is not { } found)
+                return null;
+
+            return found.Value;
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     /// <inheritdoc />
-    public ValueTask<bool> TryAcquireRefreshLeaseAsync(
+    public async ValueTask<bool> TryAcquireRefreshLeaseAsync(
         string leaseKey,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var key = BffStoreKeys.Lease(leaseKey);
+            var marker = "1"u8.ToArray();
+            return await values.TryAddAsync(key, marker, expiresWhen, cancellationToken);
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     /// <inheritdoc />
-    public ValueTask<bool> IsRefreshLeaseHeldAsync(
+    public async ValueTask<bool> IsRefreshLeaseHeldAsync(
         string leaseKey,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var key = BffStoreKeys.Lease(leaseKey);
+            var stored = await values.GetAsync(key, cancellationToken);
+            return stored is not null;
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     /// <inheritdoc />
-    public ValueTask ReleaseRefreshLeaseAsync(
+    public async ValueTask ReleaseRefreshLeaseAsync(
         string leaseKey,
         CancellationToken cancellationToken
-    ) => throw new NotImplementedException();
+    )
+    {
+        try
+        {
+            var key = BffStoreKeys.Lease(leaseKey);
+            await values.RemoveAsync(key, cancellationToken);
+        }
+        catch (Exception exception) when (IsStoreFailure(exception))
+        {
+            throw Unavailable(exception);
+        }
+    }
 
     private static DateTimeOffset GetExpiresWhen(BffSessionMetadata metadata) =>
         metadata.IdleExpiresAt < metadata.AbsoluteExpiresAt

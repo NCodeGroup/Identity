@@ -316,6 +316,168 @@ public class DefaultBffSessionStoreTests : BaseTests
 
     #endregion
 
+    #region Lookup Tests
+
+    [Fact]
+    public async Task FindBySessionIdAsync_Called_ReturnsTheIndexMembers()
+    {
+        var indexKey = BffStoreKeys.SessionIdIndex("iss", "sid-1");
+        IReadOnlyList<string> members = ["a", "b"];
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(indexKey, CancellationToken.None))
+            .ReturnsAsync(members)
+            .Verifiable();
+
+        var result = await Store.FindBySessionIdAsync("iss", "sid-1", CancellationToken.None);
+
+        Assert.Equal(members, result);
+    }
+
+    [Fact]
+    public async Task FindBySubjectAsync_Called_ReturnsTheIndexMembers()
+    {
+        var indexKey = BffStoreKeys.SubjectIndex("iss", "sub-1");
+        IReadOnlyList<string> members = ["a"];
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(indexKey, CancellationToken.None))
+            .ReturnsAsync(members)
+            .Verifiable();
+
+        var result = await Store.FindBySubjectAsync("iss", "sub-1", CancellationToken.None);
+
+        Assert.Equal(members, result);
+    }
+
+    [Fact]
+    public async Task FindBySubjectAsync_AdapterThrows_ThrowsStoreUnavailable()
+    {
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(It.IsAny<string>(), CancellationToken.None))
+            .ThrowsAsync(new InvalidOperationException("boom"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
+            await Store.FindBySubjectAsync("iss", "sub-1", CancellationToken.None)
+        );
+    }
+
+    #endregion
+
+    #region Transaction Tests
+
+    [Fact]
+    public async Task TryAddTransactionAsync_Called_AddsUnderTheTransactionKey()
+    {
+        var bytes = new byte[] { 1, 2 };
+        MockValues
+            .Setup(x =>
+                x.TryAddAsync(
+                    "bff:txn:t1",
+                    It.Is<ReadOnlyMemory<byte>>(v => v.ToArray().SequenceEqual(bytes)),
+                    Idle,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await Store.TryAddTransactionAsync("t1", bytes, Idle, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task TryTakeTransactionAsync_Present_ReturnsTheValue()
+    {
+        MockValues
+            .Setup(x => x.TryTakeAsync("bff:txn:t1", CancellationToken.None))
+            .ReturnsAsync(new ExpiringValue(new byte[] { 5, 6 }, 1))
+            .Verifiable();
+
+        var result = await Store.TryTakeTransactionAsync("t1", CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(new byte[] { 5, 6 }, result.Value.ToArray());
+    }
+
+    [Fact]
+    public async Task TryTakeTransactionAsync_Absent_ReturnsNull()
+    {
+        MockValues
+            .Setup(x => x.TryTakeAsync("bff:txn:t1", CancellationToken.None))
+            .ReturnsAsync((ExpiringValue?)null)
+            .Verifiable();
+
+        var result = await Store.TryTakeTransactionAsync("t1", CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    #endregion
+
+    #region Lease Tests
+
+    [Fact]
+    public async Task TryAcquireRefreshLeaseAsync_Called_AddsTheMarker()
+    {
+        MockValues
+            .Setup(x =>
+                x.TryAddAsync(
+                    "bff:lease:l1",
+                    It.Is<ReadOnlyMemory<byte>>(v =>
+                        v.ToArray().SequenceEqual(new byte[] { 0x31 })
+                    ),
+                    Idle,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await Store.TryAcquireRefreshLeaseAsync("l1", Idle, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsRefreshLeaseHeldAsync_Present_ReturnsTrue()
+    {
+        MockValues
+            .Setup(x => x.GetAsync("bff:lease:l1", CancellationToken.None))
+            .ReturnsAsync(new ExpiringValue(new byte[] { 0x31 }, 1))
+            .Verifiable();
+
+        var result = await Store.IsRefreshLeaseHeldAsync("l1", CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsRefreshLeaseHeldAsync_Absent_ReturnsFalse()
+    {
+        MockValues
+            .Setup(x => x.GetAsync("bff:lease:l1", CancellationToken.None))
+            .ReturnsAsync((ExpiringValue?)null)
+            .Verifiable();
+
+        var result = await Store.IsRefreshLeaseHeldAsync("l1", CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ReleaseRefreshLeaseAsync_Called_RemovesTheLease()
+    {
+        MockValues
+            .Setup(x => x.RemoveAsync("bff:lease:l1", CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Store.ReleaseRefreshLeaseAsync("l1", CancellationToken.None);
+    }
+
+    #endregion
+
     #region BffStoreKeys Tests
 
     [Fact]

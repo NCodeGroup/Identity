@@ -10,6 +10,11 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of
+  the major pinned in `src/frontend/.node-version` and a `node_modules` that matches the pinned pnpm and
+  `pnpm-lock.yaml`, and otherwise stops with one message that names `./build/frontend-install.ps1`
+  ([ADR-0287](docs/decisions/0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md),
+  issue [#401](https://github.com/NCodeGroup/Identity/issues/401)).
 - **Dynamic client registration accepts back-channel logout metadata.** `RegisterClientRequest` and
   `RegisterClientResponse` carry `BackchannelLogoutUri` and `BackchannelLogoutSessionRequired`, stored as the
   `backchannel_logout_uri` and `backchannel_logout_session_required` client settings, so a self-registered client

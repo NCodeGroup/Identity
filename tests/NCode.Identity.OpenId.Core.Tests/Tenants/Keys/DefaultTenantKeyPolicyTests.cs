@@ -16,11 +16,16 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using Xunit;
@@ -45,6 +50,12 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICollectionDataSource<Algorithm>,
+                UntypedKeyAlgorithmDataSource
+            >()
+        );
         _serviceProvider = serviceCollection.BuildServiceProvider();
 
         Policy = new DefaultTenantKeyPolicy(
@@ -58,6 +69,42 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     public Task InitializeAsync() => Task.CompletedTask;
 
     public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+
+    // A registered signature algorithm keyed by the abstract SecretKey, which no secret key type describes.
+    private sealed class UntypedKeySignatureAlgorithm : SignatureAlgorithm
+    {
+        public const string AlgorithmCode = "X-UNTYPED";
+
+        public override string Code => AlgorithmCode;
+
+        public override Type KeyType => typeof(SecretKey);
+
+        public override IEnumerable<KeySizes> KeyBitSizes => [];
+
+        public override HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
+
+        public override int GetSignatureSizeBytes(int keySizeBits) => 0;
+
+        public override bool TrySign(
+            SecretKey secretKey,
+            ReadOnlySpan<byte> inputData,
+            Span<byte> signature,
+            out int bytesWritten
+        ) => throw new NotSupportedException();
+
+        public override bool Verify(
+            SecretKey secretKey,
+            ReadOnlySpan<byte> inputData,
+            ReadOnlySpan<byte> signature
+        ) => throw new NotSupportedException();
+    }
+
+    private sealed class UntypedKeyAlgorithmDataSource : ICollectionDataSource<Algorithm>
+    {
+        public IEnumerable<Algorithm> Collection { get; } = [new UntypedKeySignatureAlgorithm()];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    }
 
     #region ResolveSpecifications Tests
 
@@ -168,7 +215,10 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Theory]
     [InlineData("XX999", "is not a registered signature or key-management algorithm")]
     [InlineData("HS256", "uses a symmetric key")]
-    [InlineData("none", "uses a key type that has no registered secret key type")]
+    [InlineData(
+        UntypedKeySignatureAlgorithm.AlgorithmCode,
+        "uses a key type that has no registered secret key type"
+    )]
     [InlineData("", "does not name an algorithm")]
     public void ResolveSpecifications_WhenAlgorithmCannotBeProvisioned_ReportsIt(
         string algorithm,

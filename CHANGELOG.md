@@ -877,6 +877,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
+  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
+  unsupported algorithm, and every policy keeps refusing `none` by name
+  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
+  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
+  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
+  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
+  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
+  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
+  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
 - **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
   back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
   `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
@@ -3349,6 +3360,17 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
+  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
+  unsupported algorithm, and every policy keeps refusing `none` by name
+  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
+  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
+  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
+  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
+  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
+  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
+  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
 - **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
   back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
   `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
@@ -3795,6 +3817,17 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
+- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
+  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
+  unsupported algorithm, and every policy keeps refusing `none` by name
+  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
+  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
+  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
+  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
+  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
+  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
+  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
 - **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
   back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
   `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
@@ -4762,6 +4795,17 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
+- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
+  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
+  unsupported algorithm, and every policy keeps refusing `none` by name
+  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
+  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
+  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
+  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
+  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
+  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
+  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
 - **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
   back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
   `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
@@ -5132,6 +5176,17 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
+  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
+  unsupported algorithm, and every policy keeps refusing `none` by name
+  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
+  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
+  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
+  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
+  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
+  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
+  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
 - **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
   back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
   `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while

@@ -46,9 +46,7 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
         {
             #region Signature Algorithms
 
-            // None
-            // https://datatracker.ietf.org/doc/html/rfc7518#section-3.6
-            yield return NoneSignatureAlgorithm.Singleton;
+            // The unsecured `none` algorithm (RFC 7518 §3.6) is not implemented: it proves nothing (ADR-0295).
 
             // HMAC using SHA-2 Functions
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.2

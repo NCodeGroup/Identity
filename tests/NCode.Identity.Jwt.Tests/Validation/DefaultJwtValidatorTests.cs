@@ -19,7 +19,10 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
+using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -46,6 +49,13 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         serviceCollection.AddLogging();
         serviceCollection.AddSingleton<TimeProvider>(new TestTimeProvider(_utcNow));
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
+        // A viable unsecured algorithm, so the validator's refusal of "none" is proven by its name rule alone.
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICollectionDataSource<Algorithm>,
+                UnsecuredAlgorithmDataSource
+            >()
+        );
         _serviceProvider = serviceCollection.BuildServiceProvider();
 
         SigningKey = CreateRsaKey("client-sig", _clientRsa, use: null, algorithm: null);
@@ -187,6 +197,44 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var parameters = new JwtValidationParameters();
         configure(parameters);
         return await Validator.ValidateAsync(token, parameters, CancellationToken.None);
+    }
+
+    private sealed class PermissiveNoneSignatureAlgorithm : SignatureAlgorithm
+    {
+        public override string Code => AlgorithmCodes.DigitalSignature.None;
+
+        public override Type KeyType => typeof(SecretKey);
+
+        public override IEnumerable<KeySizes> KeyBitSizes => [];
+
+        public override HashAlgorithmName HashAlgorithmName => default;
+
+        public override int GetSignatureSizeBytes(int keySizeBits) => 0;
+
+        public override bool TrySign(
+            SecretKey secretKey,
+            ReadOnlySpan<byte> inputData,
+            Span<byte> signature,
+            out int bytesWritten
+        )
+        {
+            bytesWritten = 0;
+            return true;
+        }
+
+        public override bool Verify(
+            SecretKey secretKey,
+            ReadOnlySpan<byte> inputData,
+            ReadOnlySpan<byte> signature
+        ) => signature.Length == 0;
+    }
+
+    private sealed class UnsecuredAlgorithmDataSource : ICollectionDataSource<Algorithm>
+    {
+        public IEnumerable<Algorithm> Collection { get; } =
+        [new PermissiveNoneSignatureAlgorithm()];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
     }
 
     #region ValidateAsync Tests

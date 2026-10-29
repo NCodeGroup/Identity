@@ -147,9 +147,6 @@ public class JoseSerializerTests : BaseTests
     {
         switch (jwsAlgorithm)
         {
-            case JwsAlgorithm.none:
-                return (null, EmptySecretKey.Singleton);
-
             case JwsAlgorithm.HS256:
                 return CreateRandomSymmetricKey(keyId, 256);
 
@@ -477,9 +474,32 @@ public class JoseSerializerTests : BaseTests
         );
     }
 
+    [Fact]
+    public void Deserialize_WhenTheJwsIsUnsecured_ThrowsInvalidAlgorithm()
+    {
+        var token = JWT.Encode(
+            new Dictionary<string, object> { ["key1"] = "value" },
+            null,
+            JwsAlgorithm.none
+        );
+        var parsedToken = JoseSerializer.Parse(token);
+        var (_, secretKey) = CreateRandomSymmetricKey("key-1", 256);
+
+        var exception = Assert.Throws<JoseInvalidAlgorithmException>(() =>
+            JoseSerializer.Deserialize<Dictionary<string, object>>(parsedToken, secretKey)
+        );
+
+        Assert.Equal(
+            "The `none` algorithm is not supported for digital signatures.",
+            exception.Message
+        );
+    }
+
     public static IEnumerable<object[]> GetEncodeDecodeJwsTestData()
     {
-        var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>();
+        // The library implements no `none` algorithm (ADR-0295).
+        var jwsAlgorithms = Enum.GetValues<JwsAlgorithm>()
+            .Where(algorithm => algorithm != JwsAlgorithm.none);
         foreach (var jwsAlgorithm in jwsAlgorithms)
         {
             yield return [jwsAlgorithm, true, false];

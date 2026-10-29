@@ -332,3 +332,5 @@ standards.
 | [0292](./0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) | The BFF accepts its cookie only with a static header and Fetch Metadata | Accepted |
 | [0293](./0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted |
 | [0294](./0294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md) | A BFF client is registered with explicit metadata, not a bff security profile | Accepted |
+| [0295](./0295-the-jose-library-does-not-implement-the-none-algorithm.md) | The JOSE library does not implement the none algorithm | Accepted |
+| [0296](./0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md) | A failed JWE key unwrap is indistinguishable from a failed authentication tag | Accepted |

@@ -497,21 +497,13 @@ partial class JoseSerializer
             out Span<byte> contentKey
         );
 
-        var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
+        UnwrapContentKeyOrSubstitute(
+            keyManagementAlgorithm,
             secretKey,
             header,
             encryptedKeyBytes,
-            contentKey,
-            out var unwrapBytesWritten
+            contentKey
         );
-
-        if (!unwrapResult || unwrapBytesWritten == 0)
-            throw new JoseEncryptionException(
-                "Failed to decrypt the encrypted content encryption key (CEK)."
-            );
-
-        if (unwrapBytesWritten < cekSizeBytes)
-            contentKey = contentKey[..unwrapBytesWritten];
 
         using var associatedDataLease = BuildJsonJweAssociatedData(
             encodedProtected,
@@ -528,18 +520,15 @@ partial class JoseSerializer
             out Span<byte> plainTextBytes
         );
 
-        var decryptResult = authenticatedEncryptionAlgorithm.TryDecrypt(
+        var decryptBytesWritten = DecryptContentOrThrow(
+            authenticatedEncryptionAlgorithm,
             contentKey,
             ivBytes,
             cipherTextBytes,
             associatedDataBytes,
             tagBytes,
-            plainTextBytes,
-            out var decryptBytesWritten
+            plainTextBytes
         );
-
-        if (!decryptResult || decryptBytesWritten == 0)
-            throw new JoseEncryptionException("Failed to decrypt the JWE Ciphertext.");
 
         if (decryptBytesWritten < plainTextSizeBytes)
             plainTextBytes = plainTextBytes[..decryptBytesWritten];

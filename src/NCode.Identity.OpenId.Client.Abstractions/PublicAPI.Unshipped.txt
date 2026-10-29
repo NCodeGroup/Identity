@@ -162,6 +162,8 @@ NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupporte
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DPoPSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.MtlsEndpointAliases.get -> System.Collections.Generic.Dictionary<string!, string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.MtlsEndpointAliases.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.get -> string?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?

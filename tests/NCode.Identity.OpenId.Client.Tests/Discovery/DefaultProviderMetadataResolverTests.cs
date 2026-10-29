@@ -80,6 +80,16 @@ public class DefaultProviderMetadataResolverTests : BaseTests
             }
             """;
 
+    private static string CreateDocumentWithMtlsAlias(string tokenEndpointAlias) =>
+        $$"""
+            {
+              "issuer": "{{Authority}}",
+              "token_endpoint": "{{Authority}}/token",
+              "jwks_uri": "{{Authority}}/jwks",
+              "mtls_endpoint_aliases": { "token_endpoint": "{{tokenEndpointAlias}}" }
+            }
+            """;
+
     #region GetMetadataAsync Tests
 
     [Fact]
@@ -155,6 +165,38 @@ public class DefaultProviderMetadataResolverTests : BaseTests
         var handler = StubHttpMessageHandler.Respond(
             HttpStatusCode.OK,
             CreateDocument(revocationEndpoint: "http://evil.test/r")
+        );
+        var resolver = CreateResolver(handler);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetMetadataAsync(Authority, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_WithMtlsEndpointAliases_ReturnsAliases()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.OK,
+            CreateDocumentWithMtlsAlias("https://mtls.op.example.test/token")
+        );
+        var resolver = CreateResolver(handler);
+
+        var metadata = await resolver.GetMetadataAsync(Authority, CancellationToken.None);
+
+        Assert.NotNull(metadata.MtlsEndpointAliases);
+        Assert.Equal(
+            "https://mtls.op.example.test/token",
+            metadata.MtlsEndpointAliases["token_endpoint"]
+        );
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_WithInsecureMtlsEndpointAlias_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.OK,
+            CreateDocumentWithMtlsAlias("http://mtls.op.example.test/token")
         );
         var resolver = CreateResolver(handler);
 

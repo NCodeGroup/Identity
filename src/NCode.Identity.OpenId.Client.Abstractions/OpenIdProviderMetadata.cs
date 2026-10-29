@@ -166,6 +166,13 @@ public sealed class OpenIdProviderMetadata
     public List<string>? DPoPSigningAlgValuesSupported { get; init; }
 
     /// <summary>
+    /// Gets the alternative endpoints a client using mutual TLS sends requests to, keyed by endpoint metadata name (RFC 8705 §5).
+    /// </summary>
+    [JsonPropertyName(OpenIdProtocol.MetadataNames.MtlsEndpointAliases)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string>? MtlsEndpointAliases { get; init; }
+
+    /// <summary>
     /// Gets or sets the metadata members that have no dedicated property.
     /// </summary>
     [JsonExtensionData]

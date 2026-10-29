@@ -18,6 +18,8 @@
 
 using System.Text.Json;
 using Moq;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -29,7 +31,16 @@ public sealed class InteractiveBrandingTests
 
     #region Helpers
 
-    private IReadOnlySettingCollection CreateSettings(IReadOnlyDictionary<string, string> values)
+    private sealed record FakeTenantEnvironmentType(string TypeName, bool IsProduction)
+        : ITenantEnvironmentType
+    {
+        public IReadOnlyCollection<string> SecurityProfiles { get; } = [];
+    }
+
+    private IReadOnlySettingCollection CreateSettings(
+        IReadOnlyDictionary<string, string> values,
+        int expectedReads = 5
+    )
     {
         var mockSettings = MockRepository.Create<IReadOnlySettingCollection>();
         mockSettings
@@ -37,8 +48,22 @@ public sealed class InteractiveBrandingTests
             .Returns(
                 (SettingKey<string> key) => values.GetValueOrDefault(key.SettingName, string.Empty)
             )
-            .Verifiable(Times.Exactly(5));
+            .Verifiable(Times.Exactly(expectedReads));
         return mockSettings.Object;
+    }
+
+    private ITenantEnvironmentCatalog CreateCatalog(
+        IReadOnlySettingCollection settings,
+        string typeName,
+        bool isProduction
+    )
+    {
+        var mockCatalog = MockRepository.Create<ITenantEnvironmentCatalog>();
+        mockCatalog
+            .Setup(x => x.GetEffectiveType(settings))
+            .Returns(new FakeTenantEnvironmentType(typeName, isProduction))
+            .Verifiable(Times.Once);
+        return mockCatalog.Object;
     }
 
     #endregion
@@ -59,7 +84,9 @@ public sealed class InteractiveBrandingTests
             }
         );
 
-        var branding = InteractiveBranding.FromSettings(settings);
+        var catalog = CreateCatalog(settings, "production", isProduction: true);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
 
         Assert.Equal(
             new InteractiveBranding(
@@ -67,7 +94,8 @@ public sealed class InteractiveBrandingTests
                 "https://cdn.acme.example/logo.svg",
                 "#1565c0",
                 "#9c27b0",
-                "dark"
+                "dark",
+                null
             ),
             branding
         );
@@ -78,8 +106,9 @@ public sealed class InteractiveBrandingTests
     public void FromSettings_WhenNoTokenIsSet_SerializesAnEmptyObject()
     {
         var settings = CreateSettings(new Dictionary<string, string>());
+        var catalog = CreateCatalog(settings, "production", isProduction: true);
 
-        var branding = InteractiveBranding.FromSettings(settings);
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
 
         Assert.Equal("{}", JsonSerializer.Serialize(branding, JsonSerializerOptions.Web));
         MockRepository.Verify();
@@ -96,12 +125,63 @@ public sealed class InteractiveBrandingTests
             }
         );
 
-        var branding = InteractiveBranding.FromSettings(settings);
+        var catalog = CreateCatalog(settings, "production", isProduction: true);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
 
         Assert.Equal(
             "{\"logoUrl\":\"https://cdn.acme.example/logo.svg\",\"mode\":\"light\"}",
             JsonSerializer.Serialize(branding, JsonSerializerOptions.Web)
         );
+        MockRepository.Verify();
+    }
+
+    [Fact]
+    public void FromSettings_WhenTheTenantIsNotProduction_EmbedsItsTypeAndName()
+    {
+        var settings = CreateSettings(
+            new Dictionary<string, string> { [OpenIdSettingNames.EnvironmentName] = "sandbox" },
+            expectedReads: 6
+        );
+        var catalog = CreateCatalog(settings, "development", isProduction: false);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
+
+        Assert.Equal(
+            "{\"environment\":{\"type\":\"development\",\"name\":\"sandbox\"}}",
+            JsonSerializer.Serialize(branding, JsonSerializerOptions.Web)
+        );
+        MockRepository.Verify();
+    }
+
+    [Fact]
+    public void FromSettings_WhenANonProductionTenantHasNoName_OmitsTheName()
+    {
+        var settings = CreateSettings(new Dictionary<string, string>(), expectedReads: 6);
+        var catalog = CreateCatalog(settings, "testing", isProduction: false);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
+
+        Assert.Equal(
+            "{\"environment\":{\"type\":\"testing\"}}",
+            JsonSerializer.Serialize(branding, JsonSerializerOptions.Web)
+        );
+        MockRepository.Verify();
+    }
+
+    [Fact]
+    public void FromSettings_WhenTheTenantIsProduction_OmitsTheEnvironment()
+    {
+        var settings = CreateSettings(
+            new Dictionary<string, string> { [OpenIdSettingNames.EnvironmentName] = "sandbox" }
+        );
+        var catalog = CreateCatalog(settings, "production", isProduction: true);
+
+        var branding = InteractiveBranding.FromSettings(settings, catalog);
+
+        var json = JsonSerializer.Serialize(branding, JsonSerializerOptions.Web);
+        Assert.Equal("{}", json);
+        Assert.DoesNotContain("environment", json);
         MockRepository.Verify();
     }
 

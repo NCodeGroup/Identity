@@ -491,6 +491,12 @@ NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi1Advanced = "fapi1-advanced" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Production = "production" -> string!
+NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Development = "development" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Production = "production" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Staging = "staging" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.TenantEnvironmentTypes.Testing = "testing" -> string!
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
 NCode.Identity.OpenId.OpenIdConstants.EndpointPaths
 NCode.Identity.OpenId.OpenIdConstants.EndpointTags

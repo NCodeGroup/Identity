@@ -958,3 +958,11 @@ NCode.Identity.OpenId.OpenIdConstants.InternalParameters
 const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.AuthorizationSourceType = "$authorization_source_type" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.CreatedWhen = "$created_when" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.RequestObjectSource = "$request_object_source" -> string!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog.GetEffectiveType(NCode.Identity.Settings.IReadOnlySettingCollection! settings) -> NCode.Identity.OpenId.Tenants.ITenantEnvironmentType!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog.SelectImpliedProfiles(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentCatalog.TryGetType(string! typeName, out NCode.Identity.OpenId.Tenants.ITenantEnvironmentType! type) -> bool
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.IsProduction.get -> bool
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.SecurityProfiles.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.TypeName.get -> string!

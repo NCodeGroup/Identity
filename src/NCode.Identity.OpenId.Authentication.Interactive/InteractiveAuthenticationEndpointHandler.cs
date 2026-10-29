@@ -38,6 +38,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Json;
 using NCode.Registration.AspNetCore;
 
@@ -61,7 +62,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
     InteractiveBundleReader bundleReader,
-    InteractiveSurfacePaths surfacePaths
+    InteractiveSurfacePaths surfacePaths,
+    ITenantEnvironmentCatalog tenantEnvironmentCatalog
 ) : IEndpointProvider
 {
     // The `scope` form value that selects "sign out everywhere else" (retain the current session); any other value is
@@ -83,6 +85,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private IAntiforgery Antiforgery { get; } = antiforgery;
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
+    private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -1098,9 +1101,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     }
 
     // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-0253).
-    private static InteractiveBranding ReadBranding(HttpContext httpContext) =>
+    private InteractiveBranding ReadBranding(HttpContext httpContext) =>
         InteractiveBranding.FromSettings(
-            httpContext.GetOpenIdContext().Tenant.SettingsProvider.Collection
+            httpContext.GetOpenIdContext().Tenant.SettingsProvider.Collection,
+            TenantEnvironmentCatalog
         );
 
     // Mirrors the apps/auth describeLoginError mapping so the no-JS login form shows the same messages.

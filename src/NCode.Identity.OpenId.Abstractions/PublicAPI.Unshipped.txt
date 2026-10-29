@@ -594,7 +594,7 @@ NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.Settings.init -> void
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver
-NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(string! scopeName, System.Text.Json.JsonElement settings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.Resolve(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>

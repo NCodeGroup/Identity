@@ -56,3 +56,32 @@ NCode.Identity.Bff.BffAuditEvent.Reason.init -> void
 NCode.Identity.Bff.BffAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 override NCode.Identity.Bff.BffAuditEvent.EventCategory.get -> string!
 override NCode.Identity.Bff.BffAuditEvent.EventName.get -> string!
+NCode.Identity.Bff.BffSessionMetadata
+NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.BffSessionMetadata() -> void
+NCode.Identity.Bff.BffSessionMetadata.CreatedAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.CreatedAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.Bff.BffSessionMetadata.ExtensionData.set -> void
+NCode.Identity.Bff.BffSessionMetadata.Frontend.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Frontend.init -> void
+NCode.Identity.Bff.BffSessionMetadata.IdleExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.IdleExpiresAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.Issuer.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Issuer.init -> void
+NCode.Identity.Bff.BffSessionMetadata.LastAccessedAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.LastAccessedAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.SessionId.get -> string?
+NCode.Identity.Bff.BffSessionMetadata.SessionId.init -> void
+NCode.Identity.Bff.BffSessionMetadata.Subject.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Subject.init -> void
+NCode.Identity.Bff.BffSessionRecord
+NCode.Identity.Bff.BffSessionRecord.BffSessionRecord(string! storeKey, long version, NCode.Identity.Bff.BffSessionMetadata! metadata, System.ReadOnlyMemory<byte> protectedPayload) -> void
+NCode.Identity.Bff.BffSessionRecord.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.BffSessionRecord.ProtectedPayload.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Bff.BffSessionRecord.StoreKey.get -> string!
+NCode.Identity.Bff.BffSessionRecord.Version.get -> long
+NCode.Identity.Bff.BffStoreUnavailableException
+NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(string! message) -> void
+NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(string! message, System.Exception! innerException) -> void

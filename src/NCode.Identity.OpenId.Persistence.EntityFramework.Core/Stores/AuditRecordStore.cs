@@ -135,22 +135,32 @@ internal sealed class AuditRecordStore(
             .AuditRecords.Include(entity => entity.Resources)
             .Where(entity => entity.TenantId == tenantId);
 
-        // Newest first: the surrogate identifiers are time-ordered, so a page continues below the last one returned.
-        if (DecodeCursor(page.Cursor) is { } beforeId)
-            query = query.Where(entity => entity.Id < beforeId);
+        // Newest first by event time; the surrogate identifier orders records of the same instant.
+        if (DecodeCursor(page.Cursor) is { } before)
+        {
+            var beforeTime = before.EventTime;
+            var beforeId = before.Id;
+            query = query.Where(entity =>
+                entity.EventTime < beforeTime
+                || (entity.EventTime == beforeTime && entity.Id < beforeId)
+            );
+        }
 
         query = ApplyFilter(query, filter);
 
         // Fetch one extra row so a full page signals that another page exists.
         var entities = await query
-            .OrderByDescending(entity => entity.Id)
+            .OrderByDescending(entity => entity.EventTime)
+            .ThenByDescending(entity => entity.Id)
             .Take(page.Limit + 1)
             .ToListAsync(cancellationToken);
 
         var hasMore = entities.Count > page.Limit;
         var count = hasMore ? page.Limit : entities.Count;
         var items = entities.Take(count).Select(MapFromEntity).ToList();
-        var nextCursor = hasMore ? EncodeCursor(entities[count - 1].Id) : null;
+        var nextCursor = hasMore
+            ? EncodeCursor(entities[count - 1].EventTime, entities[count - 1].Id)
+            : null;
 
         return new PagedResult<PersistedAuditRecord> { Items = items, NextCursor = nextCursor };
     }
@@ -237,28 +247,35 @@ internal sealed class AuditRecordStore(
             Record = entity.Record,
         };
 
-    // The cursor encoding of the keyset-paginated stores: the base64url of the big-endian surrogate identifier.
-    private static string EncodeCursor(long key)
+    // The cursor encoding of the keyset-paginated stores: the base64url of the big-endian UTC ticks of the event time
+    // and then of the surrogate identifier.
+    private static string EncodeCursor(DateTimeOffset eventTime, long id)
     {
-        Span<byte> bytes = stackalloc byte[sizeof(long)];
-        BinaryPrimitives.WriteInt64BigEndian(bytes, key);
+        Span<byte> bytes = stackalloc byte[2 * sizeof(long)];
+        BinaryPrimitives.WriteInt64BigEndian(bytes, eventTime.UtcTicks);
+        BinaryPrimitives.WriteInt64BigEndian(bytes[sizeof(long)..], id);
         return Base64Url.EncodeToString(bytes);
     }
 
-    private static long? DecodeCursor(string? cursor)
+    private static (DateTimeOffset EventTime, long Id)? DecodeCursor(string? cursor)
     {
         if (string.IsNullOrEmpty(cursor))
             return null;
 
         // A malformed cursor is treated as the start of the collection rather than a hard error.
-        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        Span<byte> bytes = stackalloc byte[2 * sizeof(long)];
         if (
             !Base64Url.TryDecodeFromChars(cursor, bytes, out var written)
-            || written != sizeof(long)
+            || written != 2 * sizeof(long)
         )
             return null;
 
-        return BinaryPrimitives.ReadInt64BigEndian(bytes);
+        var ticks = BinaryPrimitives.ReadInt64BigEndian(bytes);
+        if (ticks < DateTime.MinValue.Ticks || ticks > DateTime.MaxValue.Ticks)
+            return null;
+
+        var id = BinaryPrimitives.ReadInt64BigEndian(bytes[sizeof(long)..]);
+        return (new DateTimeOffset(ticks, TimeSpan.Zero), id);
     }
 
     /// <inheritdoc />

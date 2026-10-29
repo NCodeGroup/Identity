@@ -327,6 +327,26 @@ public sealed class AuditRecordStoreTests : IDisposable
         Assert.Null(second.NextCursor);
     }
 
+    [Fact]
+    public async Task GetPageAsync_PagesByEventTimeNotWriteOrder()
+    {
+        await using var provider = CreateInMemoryProvider();
+        var older = Record(eventTime: Now.AddMinutes(-1));
+        var newest = Record(eventTime: Now);
+        var oldest = Record(eventTime: Now.AddMinutes(-2));
+        foreach (var record in new[] { older, newest, oldest })
+            await AddAsync(provider, record);
+        var filter = new AuditRecordFilter { TenantId = "tenant-1" };
+
+        var first = await GetPageAsync(provider, filter, limit: 2);
+        var second = await GetPageAsync(provider, filter, first.NextCursor, limit: 2);
+
+        Assert.Equal([newest.EventId, older.EventId], first.Items.Select(item => item.EventId));
+        Assert.NotNull(first.NextCursor);
+        Assert.Equal(oldest.EventId, Assert.Single(second.Items).EventId);
+        Assert.Null(second.NextCursor);
+    }
+
     #endregion
     #region RemoveBeforeAsync Tests
 

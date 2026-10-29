@@ -1,0 +1,14 @@
+#nullable enable
+NCode.Identity.Bff.Server.DefaultRegistration
+NCode.Identity.Bff.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Bff.Server.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddIdentityBff(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.Bff.Server.IIdentityBffBuilder!
+NCode.Identity.Bff.Server.IdentityBff
+NCode.Identity.Bff.Server.IdentityBff.IdentityBff() -> void
+NCode.Identity.Bff.Server.IIdentityBffBuilder
+NCode.Identity.Bff.Server.IIdentityBffBuilder.BffLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
+NCode.Identity.Bff.Server.IIdentityBffBuilder.EventsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
+NCode.Identity.Bff.Server.IIdentityBffBuilder.JoseLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
+NCode.Identity.Bff.Server.IIdentityBffBuilder.JwtLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Bff.Server.IIdentityBffBuilder.OpenIdClientLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
+NCode.Identity.Bff.Server.IIdentityBffBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Bff.Server.IIdentityBffBuilder.SharedStateLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!

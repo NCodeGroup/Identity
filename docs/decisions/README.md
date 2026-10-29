@@ -25,7 +25,9 @@ standards.
 - Files are named `NNNN-title-in-kebab-case.md`, where `NNNN` is a zero-padded, monotonically
   increasing number. Take the next number above the highest ADR on a freshly fetched `origin/main` and any a change
   in flight elsewhere has claimed; re-check it when you rebase, and renumber yours (file name, title, index row, and
-  links) if it was taken in the meantime.
+  links) if it was taken in the meantime. The `adr index` stage of `./build/dod.ps1` (`build/adr-index.ps1`) fails
+  when two files share a number, when the index misses a file or links a missing one, or when a row's number is not
+  its file's, so a collision that slips past a textual merge still fails the merge queue.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
 - **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`.
 - Keep ADRs short, concrete, and link to real code so future readers can verify the decision
@@ -325,3 +327,17 @@ standards.
 | [0287](./0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md) | The AppHost fails fast when the frontend toolchain is stale | Accepted (amends [0152](./0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)) |
 | [0288](./0288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |
 | [0289](./0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |
+| [0290](./0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |
+| [0291](./0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) | The BFF refreshes a session single-flight under a lease on its refresh token | Accepted |
+| [0292](./0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) | The BFF accepts its cookie only with a static header and Fetch Metadata | Accepted |
+| [0293](./0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted |
+| [0294](./0294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md) | A BFF client is registered with explicit metadata, not a bff security profile | Accepted |
+| [0295](./0295-the-jose-library-does-not-implement-the-none-algorithm.md) | The JOSE library does not implement the none algorithm | Accepted |
+| [0296](./0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md) | A failed JWE key unwrap is indistinguishable from a failed authentication tag | Accepted |
+| [0297](./0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
+| [0298](./0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md) | A package traces its own mechanisms through one activity source named like its meter | Accepted |
+| [0299](./0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |
+| [0300](./0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md) | An asymmetric key carries its issuers' certificates, and a TLS client presents them | Accepted |
+| [0301](./0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) | A signed UserInfo response is validated like an ID token under the client's registered algorithms | Accepted |
+| [0302](./0302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |
+| [0303](./0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |

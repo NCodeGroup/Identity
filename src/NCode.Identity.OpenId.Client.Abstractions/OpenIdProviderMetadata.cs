@@ -159,6 +159,13 @@ public sealed class OpenIdProviderMetadata
     public List<string>? IdTokenSigningAlgValuesSupported { get; init; }
 
     /// <summary>
+    /// Gets the JWS algorithms the provider supports for signing UserInfo responses (OpenID Connect Discovery 1.0 §3).
+    /// </summary>
+    [JsonPropertyName(OpenIdProtocol.MetadataNames.UserInfoSigningAlgValuesSupported)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? UserInfoSigningAlgValuesSupported { get; init; }
+
+    /// <summary>
     /// Gets the JWS algorithms the provider supports for DPoP proofs (RFC 9449).
     /// </summary>
     [JsonPropertyName(OpenIdProtocol.MetadataNames.DPoPSigningAlgValuesSupported)]

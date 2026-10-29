@@ -16,8 +16,10 @@
 
 #endregion
 
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Client.Options;
 
 namespace NCode.Identity.OpenId.Client.Http;
@@ -73,13 +75,35 @@ internal class ProviderHttpClient(
                 ? values.FirstOrDefault()
                 : null;
 
+            var wwwAuthenticate =
+                response.Headers.WwwAuthenticate.Count > 0
+                    ? response.Headers.WwwAuthenticate.ToString()
+                    : null;
+            var mediaType = response.Content.Headers.ContentType?.MediaType;
+
             if (bytes.Length == 0)
                 return new ProviderHttpResponse((int)response.StatusCode, null)
                 {
                     DPoPNonce = dpopNonce,
+                    MediaType = mediaType,
+                    WwwAuthenticate = wwwAuthenticate,
                 };
 
-            var mediaType = response.Content.Headers.ContentType?.MediaType;
+            if (
+                string.Equals(
+                    mediaType,
+                    OpenIdProtocol.MediaTypes.Jwt,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+                return new ProviderHttpResponse((int)response.StatusCode, null)
+                {
+                    DPoPNonce = dpopNonce,
+                    MediaType = mediaType,
+                    WwwAuthenticate = wwwAuthenticate,
+                    Jwt = SecureEncoding.UTF8.GetString(bytes).Trim(),
+                };
+
             if (
                 !string.Equals(
                     mediaType,
@@ -95,12 +119,16 @@ internal class ProviderHttpClient(
                 return new ProviderHttpResponse((int)response.StatusCode, null)
                 {
                     DPoPNonce = dpopNonce,
+                    MediaType = mediaType,
+                    WwwAuthenticate = wwwAuthenticate,
                 };
 
-            using var document = JsonDocument.Parse(bytes);
-            return new ProviderHttpResponse((int)response.StatusCode, document.RootElement.Clone())
+            var jsonElement = JsonElement.Parse(bytes);
+            return new ProviderHttpResponse((int)response.StatusCode, jsonElement)
             {
                 DPoPNonce = dpopNonce,
+                MediaType = mediaType,
+                WwwAuthenticate = wwwAuthenticate,
             };
         }
         catch (OperationCanceledException exception)
@@ -122,6 +150,13 @@ internal class ProviderHttpClient(
         {
             throw new OpenIdProviderException(
                 $"The response from '{request.RequestUri}' is not valid JSON.",
+                exception
+            );
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new OpenIdProviderException(
+                $"The response from '{request.RequestUri}' is not valid UTF-8.",
                 exception
             );
         }

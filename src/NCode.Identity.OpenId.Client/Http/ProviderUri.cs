@@ -43,7 +43,7 @@ internal static class ProviderUri
         )
             return false;
 
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed))
+        if (!AbsoluteUri.TryParse(value, out var parsed))
             return false;
 
         var isAllowed =

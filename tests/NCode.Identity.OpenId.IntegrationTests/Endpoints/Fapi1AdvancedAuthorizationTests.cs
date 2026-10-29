@@ -74,8 +74,8 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     private static async Task<string> GetIssuerAsync(HttpClient client)
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.GetProperty("issuer").GetString()!;
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return jsonElement.GetProperty("issuer").GetString()!;
     }
 
     private async Task SeedFapiClientAsync(

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
@@ -174,7 +173,7 @@ internal static class OpenIdSettingRules
             "a grant type such as 'authorization_code', or an absolute URI that names an extension grant type",
             value =>
                 GrantTypeNames.Contains(value, StringComparer.Ordinal)
-                || TryParseAbsoluteUri(value, out _)
+                || NCode.Identity.OpenId.AbsoluteUri.TryParse(value, out _)
         );
 
     /// <summary>
@@ -210,7 +209,8 @@ internal static class OpenIdSettingRules
     public static SettingRule<string> WebUri() =>
         SettingRules.Must<string>(
             "an absolute http or https URI",
-            value => TryParseAbsoluteUri(value, out var uri) && IsHttpScheme(uri)
+            value =>
+                NCode.Identity.OpenId.AbsoluteUri.TryParse(value, out var uri) && IsHttpScheme(uri)
         );
 
     /// <summary>
@@ -220,14 +220,18 @@ internal static class OpenIdSettingRules
     public static SettingRule<string> HttpsUri() =>
         SettingRules.Must<string>(
             "an absolute https URI",
-            value => TryParseAbsoluteUri(value, out var uri) && IsHttpsScheme(uri)
+            value =>
+                NCode.Identity.OpenId.AbsoluteUri.TryParse(value, out var uri) && IsHttpsScheme(uri)
         );
 
     /// <summary>
     /// Gets the rule for a value compared verbatim with a URI the server receives: an absolute URI of any scheme.
     /// </summary>
     public static SettingRule<string> AbsoluteUri() =>
-        SettingRules.Must<string>("an absolute URI", value => TryParseAbsoluteUri(value, out _));
+        SettingRules.Must<string>(
+            "an absolute URI",
+            value => NCode.Identity.OpenId.AbsoluteUri.TryParse(value, out _)
+        );
 
     /// <summary>
     /// Gets the rule for a redirection URI (RFC 6749 §3.1.2): an absolute URI of any scheme, so a native application
@@ -236,7 +240,7 @@ internal static class OpenIdSettingRules
     public static SettingRule<string> RedirectUri() =>
         SettingRules.Must<string>(
             "an absolute URI without a fragment",
-            value => TryParseAbsoluteUri(value, out _) && !HasFragment(value)
+            value => NCode.Identity.OpenId.AbsoluteUri.TryParse(value, out _) && !HasFragment(value)
         );
 
     /// <summary>
@@ -247,7 +251,9 @@ internal static class OpenIdSettingRules
         SettingRules.Must<string>(
             "an absolute http or https URI without a fragment",
             value =>
-                TryParseAbsoluteUri(value, out var uri) && IsHttpScheme(uri) && !HasFragment(value)
+                NCode.Identity.OpenId.AbsoluteUri.TryParse(value, out var uri)
+                && IsHttpScheme(uri)
+                && !HasFragment(value)
         );
 
     /// <summary>
@@ -259,7 +265,7 @@ internal static class OpenIdSettingRules
             "a host name such as 'keys.example.com'",
             value =>
                 !value.Any(char.IsWhiteSpace)
-                && Uri.TryCreate($"https://{value}/", UriKind.Absolute, out var uri)
+                && NCode.Identity.OpenId.AbsoluteUri.TryParse($"https://{value}/", out var uri)
                 && string.Equals(uri.Host, value, StringComparison.OrdinalIgnoreCase)
         );
 
@@ -371,24 +377,6 @@ internal static class OpenIdSettingRules
         string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal);
 
     private static bool HasFragment(string value) => value.Contains('#', StringComparison.Ordinal);
-
-    // Uri.TryCreate also accepts an implicit file path ("/path", "C:\path") as an absolute URI and trims surrounding
-    // whitespace, so a value is an absolute URI only when it is written with its scheme and contains no whitespace.
-    private static bool TryParseAbsoluteUri(string value, [NotNullWhen(true)] out Uri? uri)
-    {
-        if (
-            !value.Any(char.IsWhiteSpace)
-            && Uri.TryCreate(value, UriKind.Absolute, out var parsed)
-            && value.StartsWith($"{parsed.Scheme}:", StringComparison.OrdinalIgnoreCase)
-        )
-        {
-            uri = parsed;
-            return true;
-        }
-
-        uri = null;
-        return false;
-    }
 
     private static bool IsDnsName(string value)
     {

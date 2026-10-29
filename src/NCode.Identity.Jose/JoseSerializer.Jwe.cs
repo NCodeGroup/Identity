@@ -293,21 +293,13 @@ partial class JoseSerializer
             out Span<byte> contentKey
         );
 
-        var unwrapResult = keyManagementAlgorithm.TryUnwrapKey(
+        UnwrapContentKeyOrSubstitute(
+            keyManagementAlgorithm,
             secretKey,
             header,
             encryptedKeyBytes,
-            contentKey,
-            out var unwrapBytesWritten
+            contentKey
         );
-
-        if (!unwrapResult || unwrapBytesWritten == 0)
-            throw new JoseEncryptionException(
-                "Failed to decrypt the encrypted content encryption key (CEK)."
-            );
-
-        if (unwrapBytesWritten < cekSizeBytes)
-            contentKey = contentKey[..unwrapBytesWritten];
 
         /*
            14.  Compute the Encoded Protected Header value BASE64URL(UTF8(JWE
@@ -350,18 +342,15 @@ partial class JoseSerializer
                 JWE Authentication Tag is incorrect.
         */
 
-        var decryptResult = authenticatedEncryptionAlgorithm.TryDecrypt(
+        var decryptBytesWritten = DecryptContentOrThrow(
+            authenticatedEncryptionAlgorithm,
             contentKey,
             initializationVectorBytes,
             cipherTextBytes,
             associatedDataBytes,
             authenticationTagBytes,
-            plainTextBytes,
-            out var decryptBytesWritten
+            plainTextBytes
         );
-
-        if (!decryptResult || decryptBytesWritten == 0)
-            throw new JoseEncryptionException("Failed to decrypt the JWE Ciphertext.");
 
         if (decryptBytesWritten < plainTextSizeBytes)
             plainTextBytes = plainTextBytes[..decryptBytesWritten];

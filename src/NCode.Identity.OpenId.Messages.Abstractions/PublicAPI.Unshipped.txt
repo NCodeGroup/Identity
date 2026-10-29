@@ -157,6 +157,7 @@ static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorDescription -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ErrorUri -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.Uri!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.ExpiresIn -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
+static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.RefreshTokenExpiresIn -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<System.TimeSpan?>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.GrantType -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdToken -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!
 static readonly NCode.Identity.OpenId.Messages.Parameters.OpenIdCommonParameters.IdTokenHint -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<string!>!

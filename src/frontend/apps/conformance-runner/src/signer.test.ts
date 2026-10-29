@@ -114,8 +114,30 @@ describe('loadSigningKey — algorithm resolution', () => {
 
   it('rejects a non-EdDSA override for an Edwards-curve key', () => {
     expect(() => loadSigningKey(pem(edPair.privateKey), { alg: 'ES256' })).toThrow(
-      "Algorithm 'ES256' does not match an Edwards-curve key (EdDSA).",
+      "Algorithm 'ES256' does not match an Edwards-curve key (EdDSA or Ed25519).",
     );
+  });
+
+  it('accepts the fully-specified Ed25519 override for an Ed25519 key', () => {
+    expect(loadSigningKey(pem(edPair.privateKey), { alg: 'Ed25519' }).alg).toBe('Ed25519');
+  });
+
+  it('accepts the fully-specified Ed448 override for an Ed448 key', () => {
+    const ed448 = generateKeyPairSync('ed448').privateKey;
+    expect(loadSigningKey(pem(ed448), { alg: 'Ed448' }).alg).toBe('Ed448');
+  });
+
+  it('rejects a fully-specified override for the other Edwards curve', () => {
+    expect(() => loadSigningKey(pem(edPair.privateKey), { alg: 'Ed448' })).toThrow(
+      "Algorithm 'Ed448' does not match an Edwards-curve key (EdDSA or Ed25519).",
+    );
+  });
+
+  it('signs an Ed25519 client assertion that verifies under the alg it names', async () => {
+    const key = loadSigningKey(pem(edPair.privateKey), { alg: 'Ed25519' });
+    const jws = await createClientAssertionSigner(key)({ iss: 'client', sub: 'client' });
+    expect(decodeSegment(jws.split('.')[0] ?? '')).toMatchObject({ alg: 'Ed25519' });
+    expect(verifyJws(jws, edPair.publicKey, 'Ed25519')).toBe(true);
   });
 
   it.each<[string, LoadSigningKeyOptions]>([

@@ -29,9 +29,10 @@ namespace NCode.Identity.OpenId.Client.MutualTls;
 /// Selects the TLS client certificate of a client from its key ring and materializes it with its private key.
 /// </summary>
 /// <remarks>
-/// Each materialized certificate is cached by its SHA-256 thumbprint for the life of the provider, because a live
-/// handler may still use it. The selection runs before <c>IHttpClientFactory</c> is asked for a client, because the
-/// factory caches an exception thrown while it builds a handler.
+/// Each materialized certificate is cached by its SHA-256 thumbprint, with its issuers' certificates and its TLS
+/// context, for the life of the provider, because a live handler may still use it. The selection runs before
+/// <c>IHttpClientFactory</c> is asked for a client, because the factory caches an exception thrown while it builds a
+/// handler.
 /// </remarks>
 internal class ClientCertificateProvider(
     IClientKeyRingProvider keyRingProvider,
@@ -42,7 +43,7 @@ internal class ClientCertificateProvider(
 
     private IClientKeyRingProvider KeyRingProvider { get; } = keyRingProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ConcurrentDictionary<string, X509Certificate2> Certificates { get; } =
+    private ConcurrentDictionary<string, SelectedCertificate> Certificates { get; } =
         new(StringComparer.Ordinal);
 
     /// <summary>
@@ -77,7 +78,7 @@ internal class ClientCertificateProvider(
                 SHA256.HashData(key.CertificateRawData.Value.Span)
             );
 
-            if (!Certificates.TryGetValue(thumbprint, out var certificate))
+            if (!Certificates.TryGetValue(thumbprint, out var entry))
             {
                 using var publicCertificate = X509CertificateLoader.LoadCertificate(
                     key.CertificateRawData.Value.Span
@@ -86,17 +87,31 @@ internal class ClientCertificateProvider(
                 if (!AllowsClientAuthentication(publicCertificate) || !HasPrivateKey(key))
                     continue;
 
-                certificate = Materialize(key, publicCertificate, clientId, keyRing);
-                if (!Certificates.TryAdd(thumbprint, certificate))
+                var certificate = Materialize(key, publicCertificate, clientId, keyRing);
+                X509Certificate2Collection? issuers = null;
+                try
+                {
+                    issuers = key.ExportIssuerCertificates();
+                    entry = new SelectedCertificate(certificate, issuers);
+                }
+                catch
                 {
                     certificate.Dispose();
-                    certificate = Certificates[thumbprint];
+                    if (issuers is not null)
+                        DisposeCertificates(issuers);
+                    throw;
+                }
+
+                if (!Certificates.TryAdd(thumbprint, entry))
+                {
+                    entry.Dispose();
+                    entry = Certificates[thumbprint];
                 }
             }
 
             if (
-                now < new DateTimeOffset(certificate.NotBefore)
-                || now > new DateTimeOffset(certificate.NotAfter)
+                now < new DateTimeOffset(entry.Certificate.NotBefore)
+                || now > new DateTimeOffset(entry.Certificate.NotAfter)
             )
             {
                 continue;
@@ -118,7 +133,17 @@ internal class ClientCertificateProvider(
     public bool TryGetCertificate(
         string thumbprint,
         [NotNullWhen(true)] out X509Certificate2? certificate
-    ) => Certificates.TryGetValue(thumbprint, out certificate);
+    )
+    {
+        if (Certificates.TryGetValue(thumbprint, out var entry))
+        {
+            certificate = entry.Certificate;
+            return true;
+        }
+
+        certificate = null;
+        return false;
+    }
 
     /// <summary>
     /// Creates the primary HTTP handler that presents the previously selected certificate in the TLS handshake.
@@ -127,7 +152,7 @@ internal class ClientCertificateProvider(
     /// <exception cref="InvalidOperationException">No certificate has been selected for the thumbprint.</exception>
     public virtual SocketsHttpHandler CreatePrimaryHandler(string thumbprint)
     {
-        if (!TryGetCertificate(thumbprint, out var certificate))
+        if (!Certificates.TryGetValue(thumbprint, out var entry))
         {
             throw new InvalidOperationException(
                 $"No client certificate with the SHA-256 thumbprint '{thumbprint}' has been selected."
@@ -140,11 +165,7 @@ internal class ClientCertificateProvider(
             UseCookies = false,
             SslOptions = new SslClientAuthenticationOptions
             {
-                ClientCertificateContext = SslStreamCertificateContext.Create(
-                    certificate,
-                    additionalCertificates: null,
-                    offline: true
-                ),
+                ClientCertificateContext = entry.Context,
             },
         };
     }
@@ -154,8 +175,8 @@ internal class ClientCertificateProvider(
     {
         foreach (var thumbprint in Certificates.Keys)
         {
-            if (Certificates.TryRemove(thumbprint, out var certificate))
-                certificate.Dispose();
+            if (Certificates.TryRemove(thumbprint, out var entry))
+                entry.Dispose();
         }
     }
 
@@ -234,6 +255,14 @@ internal class ClientCertificateProvider(
         }
     }
 
+    private static void DisposeCertificates(X509Certificate2Collection certificates)
+    {
+        foreach (var certificate in certificates)
+        {
+            certificate.Dispose();
+        }
+    }
+
     private static void ZeroMemory(params byte[]?[] buffers)
     {
         foreach (var buffer in buffers)
@@ -299,6 +328,31 @@ internal class ClientCertificateProvider(
             {
                 CryptographicOperations.ZeroMemory(pfx);
             }
+        }
+    }
+
+    // The certificates of the authorities that issued the client's certificate travel with it in the TLS handshake, so a
+    // server that trusts only the root builds the chain (RFC 8446 §4.4.2); offline, nothing is downloaded. See ADR-0300.
+    private sealed class SelectedCertificate(
+        X509Certificate2 certificate,
+        X509Certificate2Collection issuers
+    ) : IDisposable
+    {
+        public X509Certificate2 Certificate { get; } = certificate;
+
+        public X509Certificate2Collection Issuers { get; } = issuers;
+
+        public SslStreamCertificateContext Context { get; } =
+            SslStreamCertificateContext.Create(
+                certificate,
+                additionalCertificates: issuers.Count > 0 ? issuers : null,
+                offline: true
+            );
+
+        public void Dispose()
+        {
+            Certificate.Dispose();
+            DisposeCertificates(Issuers);
         }
     }
 }

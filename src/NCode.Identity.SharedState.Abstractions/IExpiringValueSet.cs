@@ -38,7 +38,10 @@ public interface IExpiringValueSet
     /// number of concurrent calls for the same key, across every replica that shares the set, at most one succeeds.
     /// </summary>
     /// <param name="key">The name of the value. Keys are compared ordinally.</param>
-    /// <param name="value">The bytes to store.</param>
+    /// <param name="value">
+    /// The bytes to store. The set copies the bytes before the returned task completes, so the caller may reuse or
+    /// return the memory afterward.
+    /// </param>
     /// <param name="expiresWhen">The instant after which the value is no longer present.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>
@@ -68,7 +71,10 @@ public interface IExpiringValueSet
     /// </summary>
     /// <param name="key">The name of the value. Keys are compared ordinally.</param>
     /// <param name="expectedVersion">The version the caller read, which must still be current.</param>
-    /// <param name="value">The bytes to store.</param>
+    /// <param name="value">
+    /// The bytes to store. The set copies the bytes before the returned task completes, so the caller may reuse or
+    /// return the memory afterward.
+    /// </param>
     /// <param name="expiresWhen">The instant after which the replacement is no longer present.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>

@@ -79,10 +79,10 @@ public class CertificateBoundAccessTokenTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.TokenTypes.Bearer,
-            document.RootElement.GetProperty("token_type").GetString()
+            jsonElement.GetProperty("token_type").GetString()
         );
     }
 
@@ -95,8 +95,8 @@ public class CertificateBoundAccessTokenTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(document.RootElement.GetProperty(DiscoveryMember).GetBoolean());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(jsonElement.GetProperty(DiscoveryMember).GetBoolean());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class CertificateBoundAccessTokenTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.False(document.RootElement.GetProperty(DiscoveryMember).GetBoolean());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.False(jsonElement.GetProperty(DiscoveryMember).GetBoolean());
     }
 }

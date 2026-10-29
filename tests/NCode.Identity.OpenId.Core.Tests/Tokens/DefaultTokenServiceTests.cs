@@ -89,6 +89,7 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         MockResourceServerSecrets = CreateStrictMock<ISecretKeyCollectionProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
+        MockRefreshTokenSettings = CreateLooseMock<IReadOnlySettingCollection>();
 
         Service = new DefaultTokenService(
             MockCryptoService.Object,
@@ -112,6 +113,7 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
     private Mock<ISecretKeyCollectionProvider> MockResourceServerSecrets { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
+    private Mock<IReadOnlySettingCollection> MockRefreshTokenSettings { get; }
     private DefaultTokenService Service { get; }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -227,15 +229,28 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
 
         MockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
 
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
-        mockSettings
+        MockRefreshTokenSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenLifetime))
             .Returns(TimeSpan.FromDays(30))
             .Verifiable();
-        MockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        MockClient.SetupGet(x => x.Settings).Returns(MockRefreshTokenSettings.Object).Verifiable();
     }
 
-    private static CreateSecurityTokenRequest CreateRotationRequest() =>
+    private void SetupSlidingExpiration(TimeSpan slidingLifetime)
+    {
+        MockRefreshTokenSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy))
+            .Returns(OpenIdConstants.RefreshTokenExpirationPolicy.Sliding)
+            .Verifiable();
+        MockRefreshTokenSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenSlidingLifetime))
+            .Returns(slidingLifetime)
+            .Verifiable();
+    }
+
+    private static CreateSecurityTokenRequest CreateRotationRequest(
+        DateTimeOffset? lineageCreatedWhen = null
+    ) =>
         new()
         {
             CreatedWhen = CreatedWhen,
@@ -243,6 +258,7 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
             OriginalScopes = ["offline_access"],
             EffectiveScopes = ["offline_access"],
             RefreshTokenLineageId = "lineage-1",
+            RefreshTokenLineageCreatedWhen = lineageCreatedWhen,
         };
 
     private static PersistedGrantId CreateRefreshTokenGrantId(string grantKey) =>
@@ -278,10 +294,14 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         return successorId;
     }
 
+    // The successor joins the lineage, which began at lineageCreatedWhen (CreatedWhen when omitted), and is stored for
+    // the lifetime it is given (30 days when omitted).
     private void SetupReplace(
         PersistedGrantId presentedId,
         PersistedGrantId successorId,
-        string? replacementGrantKey
+        string? replacementGrantKey,
+        TimeSpan? lifetime = null,
+        DateTimeOffset? lineageCreatedWhen = null
     ) =>
         MockPersistedGrantService
             .Setup(x =>
@@ -290,14 +310,30 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
                     presentedId,
                     successorId,
                     It.Is<PersistedGrant<RefreshTokenGrant>>(grant =>
-                        grant.RefreshTokenLineageId == "lineage-1" && grant.ClientId == "client-1"
+                        grant.RefreshTokenLineageId == "lineage-1"
+                        && grant.ClientId == "client-1"
+                        && grant.Payload.LineageCreatedWhen == (lineageCreatedWhen ?? CreatedWhen)
                     ),
                     CreatedWhen,
-                    TimeSpan.FromDays(30),
+                    lifetime ?? TimeSpan.FromDays(30),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(new ValueTask<string?>(replacementGrantKey))
+            .Verifiable();
+
+    private void SetupIssuedAudit() =>
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordTokenIssuedAsync(
+                    MockContext.Object,
+                    MockClient.Object,
+                    null,
+                    It.IsAny<SecurityToken>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
     private void SetupAddToLineage(PersistedGrantId successorId, string? grantKey) =>
@@ -451,7 +487,8 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         );
 
         Assert.NotNull(securityToken);
-        Assert.Equal("successor", securityToken.Value.TokenValue);
+        Assert.Equal("successor", securityToken.Value.Token.TokenValue);
+        Assert.Equal(CreatedWhen + TimeSpan.FromDays(30), securityToken.Value.LineageExpiresWhen);
     }
 
     [Fact]
@@ -470,6 +507,158 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         );
 
         Assert.Null(securityToken);
+    }
+
+    [Fact]
+    public async Task RotateRefreshTokenAsync_WhenTheLineageBeganEarlier_ExpiresTheSuccessorWithItsLineage()
+    {
+        // An absolute family keeps its horizon across rotations: the successor gets what is left, not a new lifetime.
+        var lineageCreatedWhen = CreatedWhen - TimeSpan.FromDays(10);
+        var presentedId = CreateRefreshTokenGrantId("presented");
+        var successorId = SetupSuccessor();
+        SetupReplace(
+            presentedId,
+            successorId,
+            "grant-2",
+            TimeSpan.FromDays(20),
+            lineageCreatedWhen
+        );
+        SetupIssuedAudit();
+
+        var issued = await Service.RotateRefreshTokenAsync(
+            MockContext.Object,
+            MockClient.Object,
+            presentedId,
+            CreateRotationRequest(lineageCreatedWhen),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(issued);
+        Assert.Equal(CreatedWhen + TimeSpan.FromDays(20), issued.Value.LineageExpiresWhen);
+        Assert.Equal(issued.Value.LineageExpiresWhen, issued.Value.Token.TokenLifetime.EndTime);
+    }
+
+    [Fact]
+    public async Task RotateRefreshTokenAsync_WhenSliding_ExpiresTheSuccessorAfterTheSlidingLifetime()
+    {
+        var lineageCreatedWhen = CreatedWhen - TimeSpan.FromDays(10);
+        var presentedId = CreateRefreshTokenGrantId("presented");
+        var successorId = SetupSuccessor();
+        SetupSlidingExpiration(TimeSpan.FromDays(7));
+        SetupReplace(presentedId, successorId, "grant-2", TimeSpan.FromDays(7), lineageCreatedWhen);
+        SetupIssuedAudit();
+
+        var issued = await Service.RotateRefreshTokenAsync(
+            MockContext.Object,
+            MockClient.Object,
+            presentedId,
+            CreateRotationRequest(lineageCreatedWhen),
+            CancellationToken.None
+        );
+
+        // The token slides, but the family's horizon, which the response announces, does not.
+        Assert.NotNull(issued);
+        Assert.Equal(CreatedWhen + TimeSpan.FromDays(7), issued.Value.Token.TokenLifetime.EndTime);
+        Assert.Equal(CreatedWhen + TimeSpan.FromDays(20), issued.Value.LineageExpiresWhen);
+    }
+
+    [Fact]
+    public async Task RotateRefreshTokenAsync_WhenSlidingNearTheLineageEnd_CapsTheSuccessorAtTheLineage()
+    {
+        var lineageCreatedWhen = CreatedWhen - TimeSpan.FromDays(27);
+        var presentedId = CreateRefreshTokenGrantId("presented");
+        var successorId = SetupSuccessor();
+        SetupSlidingExpiration(TimeSpan.FromDays(7));
+        SetupReplace(presentedId, successorId, "grant-2", TimeSpan.FromDays(3), lineageCreatedWhen);
+        SetupIssuedAudit();
+
+        var issued = await Service.RotateRefreshTokenAsync(
+            MockContext.Object,
+            MockClient.Object,
+            presentedId,
+            CreateRotationRequest(lineageCreatedWhen),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(issued);
+        Assert.Equal(issued.Value.LineageExpiresWhen, issued.Value.Token.TokenLifetime.EndTime);
+    }
+
+    [Fact]
+    public async Task RotateRefreshTokenAsync_WhenTheLineageHasExpired_Throws()
+    {
+        // Nothing is stored or audited: the strict mocks set up no replacement.
+        var presentedId = CreateRefreshTokenGrantId("presented");
+        SetupSuccessor();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Service.RotateRefreshTokenAsync(
+                MockContext.Object,
+                MockClient.Object,
+                presentedId,
+                CreateRotationRequest(CreatedWhen - TimeSpan.FromDays(30)),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal("tokenRequest", exception.ParamName);
+    }
+
+    #endregion
+
+    #region CreateRefreshTokenAsync Tests
+
+    [Fact]
+    public async Task CreateRefreshTokenAsync_WhenIssued_BeginsALineageThatExpiresAfterTheLifetime()
+    {
+        SetupRefreshTokenContext();
+        MockCryptoService
+            .SetupSequence(x => x.GenerateKey(It.IsAny<int>(), BinaryEncodings.Base64Url))
+            .Returns("fresh")
+            .Returns("lineage-new");
+        var grantId = CreateRefreshTokenGrantId("fresh");
+        MockPersistedGrantService
+            .Setup(x =>
+                x.CreateGrantId(
+                    "tenant-1",
+                    OpenIdConstants.PersistedGrantTypes.RefreshToken,
+                    "fresh"
+                )
+            )
+            .Returns(grantId)
+            .Verifiable();
+        MockPersistedGrantService
+            .Setup(x =>
+                x.AddAsync(
+                    MockContext.Object,
+                    grantId,
+                    It.Is<PersistedGrant<RefreshTokenGrant>>(grant =>
+                        grant.RefreshTokenLineageId == "lineage-new"
+                        && grant.Payload.LineageCreatedWhen == CreatedWhen
+                    ),
+                    CreatedWhen,
+                    TimeSpan.FromDays(30),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<string>("grant-1"))
+            .Verifiable();
+        SetupIssuedAudit();
+
+        var issued = await Service.CreateRefreshTokenAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CreateRotationRequest() with
+            {
+                GrantType = OpenIdProtocol.GrantTypes.AuthorizationCode,
+                RefreshTokenLineageId = null,
+            },
+            CancellationToken.None
+        );
+
+        Assert.Equal("fresh", issued.Token.TokenValue);
+        Assert.Equal(CreatedWhen + TimeSpan.FromDays(30), issued.LineageExpiresWhen);
+        Assert.Equal(issued.LineageExpiresWhen, issued.Token.TokenLifetime.EndTime);
     }
 
     #endregion
@@ -502,7 +691,7 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         );
 
         Assert.NotNull(securityToken);
-        Assert.Equal("successor", securityToken.Value.TokenValue);
+        Assert.Equal("successor", securityToken.Value.Token.TokenValue);
     }
 
     [Fact]

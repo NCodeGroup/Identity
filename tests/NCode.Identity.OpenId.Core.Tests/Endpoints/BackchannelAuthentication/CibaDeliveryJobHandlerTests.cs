@@ -98,8 +98,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         Assert.Equal(new Uri(Endpoint), Handler.RequestUri);
         Assert.Equal($"Bearer {NotificationToken}", Handler.Authorization);
 
-        using var document = JsonDocument.Parse(Handler.RequestBody!);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.AccessToken, out _));
     }
@@ -125,8 +125,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         await Subject.HandleAsync(job, Context(), CancellationToken.None);
 
-        using var document = JsonDocument.Parse(Handler.RequestBody!);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.Equal(
             "access-token-value",
@@ -139,6 +139,40 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         );
         Assert.Equal("openid api", root.GetProperty(OpenIdProtocol.Parameters.Scope).GetString());
         Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.RefreshToken, out _));
+        Assert.False(root.TryGetProperty(OpenIdProtocol.Parameters.RefreshTokenExpiresIn, out _));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPushWithRefreshToken_PostsTheRefreshTokenAndItsLineageLifetime()
+    {
+        SetupHttpClient();
+
+        var job = new CibaDeliveryJob
+        {
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
+            ClientId = "client-1",
+            EndpointUrl = Endpoint,
+            ClientNotificationToken = NotificationToken,
+            AuthReqId = AuthReqId,
+            AccessToken = "access-token-value",
+            TokenType = OpenIdProtocol.TokenTypes.Bearer,
+            ExpiresInSeconds = 3600,
+            RefreshToken = "refresh-token-value",
+            RefreshTokenExpiresInSeconds = 2_592_000,
+        };
+
+        await Subject.HandleAsync(job, Context(), CancellationToken.None);
+
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
+        Assert.Equal(
+            "refresh-token-value",
+            root.GetProperty(OpenIdProtocol.Parameters.RefreshToken).GetString()
+        );
+        Assert.Equal(
+            2_592_000,
+            root.GetProperty(OpenIdProtocol.Parameters.RefreshTokenExpiresIn).GetInt64()
+        );
     }
 
     [Fact]
@@ -158,8 +192,8 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
         await Subject.HandleAsync(job, Context(), CancellationToken.None);
 
-        using var document = JsonDocument.Parse(Handler.RequestBody!);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(Handler.RequestBody!);
+        var root = jsonElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdProtocol.Parameters.AuthReqId).GetString());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.AccessDenied,

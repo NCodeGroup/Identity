@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2026 NCode Group
@@ -201,7 +201,7 @@ internal static class AuthorizationResponseWriter
     private static HtmlPageSecurityPolicy CreateFormPostPolicy(string redirectUri)
     {
         ImmutableArray<string> frameAncestors =
-            Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri)
+            AbsoluteUri.TryParse(redirectUri, out var uri)
             && uri.Scheme is "http" or "https"
             && uri.HostNameType is UriHostNameType.Dns or UriHostNameType.IPv4
                 ? [ContentSecurityPolicySources.Origin(uri)]

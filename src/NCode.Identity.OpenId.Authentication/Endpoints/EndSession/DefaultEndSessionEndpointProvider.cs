@@ -167,7 +167,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
     {
         var frameSources = frontChannelLogoutUris
             .Select(uri =>
-                Uri.TryCreate(uri, UriKind.Absolute, out var parsed)
+                AbsoluteUri.TryParse(uri, out var parsed)
                     ? ContentSecurityPolicySources.Origin(parsed)
                     : null
             )

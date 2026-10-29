@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -104,7 +105,7 @@ internal sealed class DefaultClientKeyResolver(
         var settings = openIdClient.Settings;
 
         if (
-            !Uri.TryCreate(jwksUri, UriKind.Absolute, out var uri)
+            !AbsoluteUri.TryParse(jwksUri, out var uri)
             || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
         )
         {
@@ -233,8 +234,7 @@ internal sealed class DefaultClientKeyResolver(
         JsonElement keySet;
         try
         {
-            using var document = JsonDocument.Parse(content);
-            keySet = document.RootElement.Clone();
+            keySet = JsonElement.Parse(content);
         }
         catch (JsonException exception)
         {

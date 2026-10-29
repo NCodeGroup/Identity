@@ -100,6 +100,7 @@ const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.DPoPSigningAlgValuesSup
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.EndSessionEndpoint = "end_session_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.GrantTypesSupported = "grant_types_supported" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.UserInfoSigningAlgValuesSupported = "userinfo_signing_alg_values_supported" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.IntrospectionEndpoint = "introspection_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.Issuer = "issuer" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.JwksUri = "jwks_uri" -> string!
@@ -164,6 +165,7 @@ const NCode.Identity.OpenId.OpenIdProtocol.Parameters.PostLogoutRedirectUri = "p
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.Prompt = "prompt" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.RedirectUri = "redirect_uri" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.Parameters.RefreshTokenExpiresIn = "refresh_token_expires_in" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.Registration = "registration" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.Request = "request" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.RequestedExpiry = "requested_expiry" -> string!
@@ -261,3 +263,9 @@ NCode.Identity.OpenId.OpenIdProtocol.TokenTypeHints
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypes
 NCode.Identity.OpenId.OpenIdProtocol.WellKnownPaths
+const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.Jwt = "application/jwt" -> string!
+NCode.Identity.OpenId.AbsoluteUri
+static NCode.Identity.OpenId.AbsoluteUri.TryParse(string? value, out System.Uri? uri) -> bool
+NCode.Identity.OpenId.LocalUrl
+static NCode.Identity.OpenId.LocalUrl.IsLocal(string? value) -> bool
+static NCode.Identity.OpenId.LocalUrl.IsLocal(System.ReadOnlySpan<char> value) -> bool

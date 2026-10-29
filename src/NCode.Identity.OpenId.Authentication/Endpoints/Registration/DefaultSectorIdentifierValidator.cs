@@ -67,7 +67,7 @@ internal class DefaultSectorIdentifierValidator(
 
         // §8.1: the sector_identifier_uri must be an https URL.
         if (
-            !Uri.TryCreate(sectorIdentifierUri, UriKind.Absolute, out var uri)
+            !AbsoluteUri.TryParse(sectorIdentifierUri, out var uri)
             || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
         )
         {
@@ -171,11 +171,11 @@ internal class DefaultSectorIdentifierValidator(
 
         try
         {
-            using var document = JsonDocument.Parse(content);
-            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            var jsonElement = JsonElement.Parse(content);
+            if (jsonElement.ValueKind != JsonValueKind.Array)
                 return false;
 
-            foreach (var element in document.RootElement.EnumerateArray())
+            foreach (var element in jsonElement.EnumerateArray())
             {
                 if (!element.TryGetValue<string>(out var value))
                     return false;

@@ -112,7 +112,7 @@ public class DefaultDPoPProofServiceTests : BaseTests
         };
 
     private static JsonElement DecodeSegment(string proof, int index) =>
-        JsonDocument.Parse(Base64Url.Decode(proof.Split('.')[index])).RootElement.Clone();
+        JsonElement.Parse(Base64Url.Decode(proof.Split('.')[index]));
 
     // Hand-builds an ES256-signed proof so a test can emit headers the service itself never produces.
     private static string BuildEs256Proof(ECDsa ecdsa, object header, object payload)

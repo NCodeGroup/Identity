@@ -53,7 +53,9 @@ rationale.
 - ✅ **Use `const` for compile-time literal values** of any type instead of `var`/`readonly` locals:
   `const string Expected = "hello";`, `const int Count = 5;`, `const char Separator = ',';`.
 - ✅ **Use UTF-8 string literals (`u8`)** when building `byte[]`/`ReadOnlySpan<byte>` from valid UTF-8 text:
-  `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests.
+  `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests. A fixed
+  protocol label — an HKDF `info`, a hash prefix — is a `static ReadOnlySpan<byte> Name => "…"u8` property, never a
+  `const string` encoded on each call.
 - ✅ Nullable reference types are **on** and nullable warnings are **errors**. 🚫 The **null-forgiving operator (`!`)
   is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
   `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
@@ -477,8 +479,10 @@ rationale.
   cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
   a different value instead of an error (`IPAddress.TryParse("10.0.0")` is `10.0.0.0`; `IPNetwork.TryParse` masks
   `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
-  Unix, `C:\path` on Windows — and trims surrounding whitespace, so an absolute URI must also start with its own
-  `scheme:` and contain no whitespace), and a value compared verbatim (a CORS origin) must be in the form it is compared
+  Unix, `C:\path` on Windows — and trims surrounding whitespace, so parse an absolute URI with
+  `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
+  `Uri.TryCreate` alone; a test that passes on Windows can fail on the Linux CI runner otherwise), and a value compared
+  verbatim (a CORS origin) must be in the form it is compared
   in — reject anything that parses to something other than what was written. The binder reads an enum option from a
   number as well as from a name and accepts a number that names no member (`"7"`), so the options validator refuses a
   value `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
@@ -742,8 +746,17 @@ rationale.
   ([ADR-0228](../../docs/decisions/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)).
 - 👁 **A security effect that follows a committed change — ending the sessions after a password change or reset, an
   account disable or a principal block — runs with `CancellationToken.None`.** A client disconnect must not leave the
-  change committed without its effect; a step that precedes its commit keeps the request token. See
-  [ADR-0226](../../docs/decisions/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md).
+  change committed without its effect; a step that precedes its commit keeps the request token. Likewise, once a
+  request wins a single-use lease (the BFF refresh lease), the guarded operation and its write-back run with
+  `CancellationToken.None`, bounded by the client's own timeout, and a logout removes the session before any outbound
+  call it makes. See
+  [ADR-0226](../../docs/decisions/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  [ADR-0291](../../docs/decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) and
+  [ADR-0293](../../docs/decisions/0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md).
+- 👁 **A cookie authentication handler authenticates only the endpoints its guard checked.** The BFF's handler
+  authenticates the cookie on a guarded endpoint (an API, `/bff/user`, a page) and returns no result everywhere else, so
+  a cookie the browser attaches to an unguarded endpoint is never a credential there. See
+  [ADR-0292](../../docs/decisions/0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md).
 - 👁 **The interactive surface serves a cookie only while the session it names is active.** An interactive endpoint
   authenticates its cookie through the handler's `AuthenticateSessionAsync`, never `AuthenticateAsync` directly, and a
   refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the
@@ -980,12 +993,14 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   named, debuggable, and readable.
 - **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
   (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
-  Never leave a `HttpResponseMessage`, `Stream`, `JsonDocument`, or `IHttpClientFactory`-created client undisposed.
-  **Prefer `JsonElement.Parse` when you only need a detached `JsonElement`** — its `string` and UTF-8
-  `ReadOnlySpan<byte>` overloads own no `JsonDocument` to dispose and replace
-  `JsonDocument.Parse(json).RootElement.Clone()` and `JsonSerializer.Deserialize<JsonElement>(json)`, so a token
-  segment decoded into a rented buffer parses straight from the span; keep `JsonDocument` only when you genuinely
-  enumerate within a scoped `using`.
+  Never leave a `HttpResponseMessage`, `Stream`, or `IHttpClientFactory`-created client undisposed.
+  **Parse JSON into a detached `JsonElement`, never a `JsonDocument`.** `JsonElement.Parse` (a `string`, a UTF-8
+  `ReadOnlySpan<byte>`, or, through `NCode.Json`, a `ReadOnlySequence<byte>`) and `JsonElement.ParseValue` own nothing
+  to dispose, so a token segment decoded into a rented buffer parses straight from the span; a `Stream` is read with
+  `JsonSerializer.Deserialize<JsonElement>` / `DeserializeAsync<JsonElement>`. `JsonDocument.Parse`, `ParseAsync`,
+  `ParseValue` and `TryParseValue` are banned (`BannedSymbols.txt`, RS0030) in production and test code alike: a
+  `JsonDocument` rents pooled buffers that leak when it is not disposed, and an element read from it fails once it is.
+  Name a parsed `JsonElement` for what it holds, or `jsonElement`, never `document`, which names a `JsonDocument`.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare
@@ -1048,6 +1063,11 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   compress a JWT the server produces (RFC 8725 §3.6). Add a new kind of client-addressed JWT as a new
   `ClientJwtProtectionSettings` profile. See
   [ADR-0155](../../docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
+- 👁 **A key in a JOSE header carries only its public members.** An `epk` (RFC 7518 §4.6.1.1) or a DPoP `jwk`
+  (RFC 9449 §4.2) is written without any member its `JsonWebKeyTypeDescriptor.PrivateMembers` lists, and a received
+  one that carries such a member is refused: a header is readable by anyone holding the token, so an ephemeral private
+  key there discloses the content encryption key. A test that reads a private member back out of a produced token is
+  asserting the defect, not the behavior.
 - 👁 **Bring a client's key in through `IClientKeyImporter`, and read a client's keys through `IClientKeyResolver`.**
   A client's public keys come from one source — the keys stored for it or the keys it publishes at its `jwks_uri`,
   never both — and every entry point (dynamic registration, the `jwks_uri` fetch, the management API) imports a key
@@ -1329,6 +1349,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `16000`–`16999` | `NCode.Identity.SharedState`                        |
     | `17000`–`17999` | `NCode.Identity.SharedState.Valkey`                 |
     | `18000`–`18999` | `NCode.Identity.OpenId.Client`                      |
+    | `19000`–`19999` | `NCode.Identity.Bff`                                |
 
 ### Metrics
 
@@ -1351,6 +1372,14 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 - 👁 **A new or renamed instrument or attribute updates [`docs/metrics.md`](../../docs/metrics.md)** in the same
   change; the catalog is the contract dashboards and alerts are built against.
 
+### Traces
+
+- 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter**
+  ([ADR-0298](../../docs/decisions/0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)):
+  a public name constant beside the meter's, a static source, and no span for what ASP.NET Core or `System.Net.Http`
+  already traces. A span mirrors one of the package's duration histograms — its name without `.duration`, the same
+  bounded attributes, `Error` status and `error.type` on failure — and never carries a token, handle, cookie, key,
+  subject, client id or path. Test it with an `ActivityListener` filtered to a parent activity the test started.
 ## 12. Configuration & options
 
 - 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with

@@ -1,0 +1,185 @@
+#nullable enable
+NCode.Identity.Bff.BffLibrary
+NCode.Identity.Bff.BffLibrary.BffLibrary() -> void
+NCode.Identity.Bff.BffApiAttribute
+NCode.Identity.Bff.BffApiAttribute.BffApiAttribute() -> void
+NCode.Identity.Bff.BffPageAttribute
+NCode.Identity.Bff.BffPageAttribute.BffPageAttribute() -> void
+NCode.Identity.Bff.BffDefaults
+const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
+const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!
+const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> string!
+const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
+const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
+const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
+const NCode.Identity.Bff.BffDefaults.FrontendName = "default" -> string!
+const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
+NCode.Identity.Bff.BffProblemTypes
+const NCode.Identity.Bff.BffProblemTypes.SessionRequired = "urn:ncode:identity:bff:session_required" -> string!
+const NCode.Identity.Bff.BffProblemTypes.AntiforgeryHeaderMissing = "urn:ncode:identity:bff:antiforgery_header_missing" -> string!
+const NCode.Identity.Bff.BffProblemTypes.CrossSiteRequest = "urn:ncode:identity:bff:cross_site_request" -> string!
+const NCode.Identity.Bff.BffProblemTypes.Forbidden = "urn:ncode:identity:bff:forbidden" -> string!
+const NCode.Identity.Bff.BffProblemTypes.StoreUnavailable = "urn:ncode:identity:bff:store_unavailable" -> string!
+const NCode.Identity.Bff.BffProblemTypes.TokenUnavailable = "urn:ncode:identity:bff:token_unavailable" -> string!
+const NCode.Identity.Bff.BffProblemTypes.InvalidRequest = "urn:ncode:identity:bff:invalid_request" -> string!
+const NCode.Identity.Bff.BffProblemTypes.UnsafeMethod = "urn:ncode:identity:bff:unsafe_method" -> string!
+NCode.Identity.Bff.BffSessionEndReasons
+const NCode.Identity.Bff.BffSessionEndReasons.LoggedOut = "logged_out" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.IdleTimeout = "idle_timeout" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.AbsoluteExpiry = "absolute_expiry" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.RefreshFailed = "refresh_failed" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.BackchannelLogout = "backchannel_logout" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.Replaced = "replaced" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.EndedByValidator = "ended_by_validator" -> string!
+NCode.Identity.Bff.BffLoginFailureReasons
+const NCode.Identity.Bff.BffLoginFailureReasons.UnknownState = "unknown_state" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.InitiatorMismatch = "initiator_mismatch" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.IssuerMismatch = "issuer_mismatch" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.AuthorizationError = "authorization_error" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.AuthorizationRequestFailed = "authorization_request_failed" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.ProviderUnavailable = "provider_unavailable" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.InvalidResponse = "invalid_response" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.TokenError = "token_error" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.IdTokenInvalid = "id_token_invalid" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.NonceMismatch = "nonce_mismatch" -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.RejectedByGate = "rejected_by_gate" -> string!
+NCode.Identity.Bff.BffAuditEventNames
+const NCode.Identity.Bff.BffAuditEventNames.Source = "bff" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.LoginSucceeded = "bff.login.succeeded" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.LoginFailed = "bff.login.failed" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.SessionEnded = "bff.session.ended" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.TokenRefreshFailed = "bff.token.refresh_failed" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.BackchannelLogoutReceived = "bff.backchannel_logout.received" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.BackchannelLogoutRejected = "bff.backchannel_logout.rejected" -> string!
+const NCode.Identity.Bff.BffAuditEventNames.AntiforgeryRejected = "bff.antiforgery.rejected" -> string!
+NCode.Identity.Bff.BffAuditEvent
+NCode.Identity.Bff.BffAuditEvent.Category.get -> string!
+NCode.Identity.Bff.BffAuditEvent.Category.init -> void
+NCode.Identity.Bff.BffAuditEvent.HasAuditDetails.get -> bool
+NCode.Identity.Bff.BffAuditEvent.Name.get -> string!
+NCode.Identity.Bff.BffAuditEvent.Name.init -> void
+NCode.Identity.Bff.BffAuditEvent.Reason.get -> string?
+NCode.Identity.Bff.BffAuditEvent.Reason.init -> void
+NCode.Identity.Bff.BffAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+override NCode.Identity.Bff.BffAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Bff.BffAuditEvent.EventName.get -> string!
+NCode.Identity.Bff.BffLoginGateContext
+NCode.Identity.Bff.BffLoginGateContext.BffLoginGateContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! issuer, System.Security.Claims.ClaimsPrincipal! principal) -> void
+NCode.Identity.Bff.BffLoginGateContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffLoginGateContext.Issuer.get -> string!
+NCode.Identity.Bff.BffLoginGateContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffLoginGate
+NCode.Identity.Bff.IBffLoginGate.AllowAsync(NCode.Identity.Bff.BffLoginGateContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.BffSessionMetadata
+NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.BffSessionMetadata() -> void
+NCode.Identity.Bff.BffSessionMetadata.CreatedAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.CreatedAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.Bff.BffSessionMetadata.ExtensionData.set -> void
+NCode.Identity.Bff.BffSessionMetadata.Frontend.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Frontend.init -> void
+NCode.Identity.Bff.BffSessionMetadata.IdleExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.IdleExpiresAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.Issuer.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Issuer.init -> void
+NCode.Identity.Bff.BffSessionMetadata.LastAccessedAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffSessionMetadata.LastAccessedAt.init -> void
+NCode.Identity.Bff.BffSessionMetadata.SessionId.get -> string?
+NCode.Identity.Bff.BffSessionMetadata.SessionId.init -> void
+NCode.Identity.Bff.BffSessionMetadata.Subject.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Subject.init -> void
+NCode.Identity.Bff.BffSessionRecord
+NCode.Identity.Bff.BffSessionRecord.BffSessionRecord(string! storeKey, long version, NCode.Identity.Bff.BffSessionMetadata! metadata, System.ReadOnlyMemory<byte> protectedPayload) -> void
+NCode.Identity.Bff.BffSessionRecord.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.BffSessionRecord.ProtectedPayload.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Bff.BffSessionRecord.StoreKey.get -> string!
+NCode.Identity.Bff.BffSessionRecord.Version.get -> long
+NCode.Identity.Bff.BffStoreUnavailableException
+NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(string! message) -> void
+NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(string! message, System.Exception! innerException) -> void
+NCode.Identity.Bff.IBffSessionFeature
+NCode.Identity.Bff.IBffSessionFeature.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.IBffSessionFeature.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.BffSessionValidationContext
+NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
+NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffSessionValidationContext.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.BffSessionValidationContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffSessionValidator
+NCode.Identity.Bff.IBffSessionValidator.ValidateAsync(NCode.Identity.Bff.BffSessionValidationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore
+NCode.Identity.Bff.IBffSessionStore.FindBySessionIdAsync(string! issuer, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+NCode.Identity.Bff.IBffSessionStore.FindBySubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+NCode.Identity.Bff.IBffSessionStore.GetAsync(string! storeKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffSessionRecord?>
+NCode.Identity.Bff.IBffSessionStore.IsRefreshLeaseHeldAsync(string! leaseKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore.ReleaseRefreshLeaseAsync(string! leaseKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Bff.IBffSessionStore.RemoveAsync(string! storeKey, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Bff.IBffSessionStore.TryAcquireRefreshLeaseAsync(string! leaseKey, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore.TryAddTransactionAsync(string! transactionKey, System.ReadOnlyMemory<byte> protectedTransaction, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore.TryCreateAsync(NCode.Identity.Bff.BffSessionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore.TryReplaceAsync(NCode.Identity.Bff.BffSessionRecord! record, long expectedVersion, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore.TryTakeTransactionAsync(string! transactionKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.ReadOnlyMemory<byte>?>
+NCode.Identity.Bff.BffTokenRequest
+NCode.Identity.Bff.BffTokenRequest.BffTokenRequest(string! requirement) -> void
+NCode.Identity.Bff.BffTokenRequest.Requirement.get -> string!
+NCode.Identity.Bff.BffTokenRequest.Resource.get -> string?
+NCode.Identity.Bff.BffTokenRequest.Resource.init -> void
+NCode.Identity.Bff.BffTokenRequest.Scope.get -> string?
+NCode.Identity.Bff.BffTokenRequest.Scope.init -> void
+NCode.Identity.Bff.BffAccessToken
+NCode.Identity.Bff.BffAccessToken.BffAccessToken(string! value, string! tokenType, System.DateTimeOffset expiresAt) -> void
+NCode.Identity.Bff.BffAccessToken.DPoPJwkThumbprint.get -> string?
+NCode.Identity.Bff.BffAccessToken.DPoPJwkThumbprint.init -> void
+NCode.Identity.Bff.BffAccessToken.ExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.Bff.BffAccessToken.TokenType.get -> string!
+NCode.Identity.Bff.BffAccessToken.Value.get -> string!
+NCode.Identity.Bff.BffTokenResult
+NCode.Identity.Bff.BffTokenResult.IsSuccess.get -> bool
+NCode.Identity.Bff.BffTokenResult.Reason.get -> string?
+NCode.Identity.Bff.BffTokenResult.StatusCode.get -> int
+NCode.Identity.Bff.BffTokenResult.Token.get -> NCode.Identity.Bff.BffAccessToken?
+static NCode.Identity.Bff.BffTokenResult.Failure(int statusCode, string! reason) -> NCode.Identity.Bff.BffTokenResult!
+static NCode.Identity.Bff.BffTokenResult.Success(NCode.Identity.Bff.BffAccessToken? token) -> NCode.Identity.Bff.BffTokenResult!
+NCode.Identity.Bff.BffTokenFailureReasons
+const NCode.Identity.Bff.BffTokenFailureReasons.ProviderError = "provider_error" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.ProviderUnavailable = "provider_unavailable" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.RefreshFailed = "refresh_failed" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.RefreshWaitTimeout = "refresh_wait_timeout" -> string!
+const NCode.Identity.Bff.BffTokenFailureReasons.SessionRequired = "session_required" -> string!
+NCode.Identity.Bff.IBffTokenRequirement
+NCode.Identity.Bff.IBffTokenRequirement.GetAccessTokenAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
+NCode.Identity.Bff.IBffTokenRequirement.Name.get -> string!
+NCode.Identity.Bff.IBffTokenAccessor
+NCode.Identity.Bff.IBffTokenAccessor.GetAccessTokenAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
+NCode.Identity.Bff.BffTokenRequirementNames
+const NCode.Identity.Bff.BffTokenRequirementNames.User = "user" -> string!
+NCode.Identity.Bff.BffTokenUnavailableException
+NCode.Identity.Bff.BffTokenUnavailableException.BffTokenUnavailableException(int statusCode, string! reason) -> void
+NCode.Identity.Bff.BffTokenUnavailableException.Reason.get -> string!
+NCode.Identity.Bff.BffTokenUnavailableException.StatusCode.get -> int
+const NCode.Identity.Bff.BffAuditEvent.ReasonMetricAttribute = "ncode.identity.bff.reason" -> string!
+NCode.Identity.Bff.BffAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
+NCode.Identity.Bff.BffSessionClaimContext
+NCode.Identity.Bff.BffSessionClaimContext.AddClaim(System.Security.Claims.Claim! claim) -> void
+NCode.Identity.Bff.BffSessionClaimContext.BffSessionClaimContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! issuer, string! subject, System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>! claims) -> void
+NCode.Identity.Bff.BffSessionClaimContext.Claims.get -> System.Collections.Generic.IReadOnlyList<System.Security.Claims.Claim!>!
+NCode.Identity.Bff.BffSessionClaimContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffSessionClaimContext.Issuer.get -> string!
+NCode.Identity.Bff.BffSessionClaimContext.RemoveClaims(string! claimType) -> int
+NCode.Identity.Bff.BffSessionClaimContext.Subject.get -> string!
+NCode.Identity.Bff.BffUserContext
+NCode.Identity.Bff.BffUserContext.AddField(string! name, System.Text.Json.Nodes.JsonNode? value) -> void
+NCode.Identity.Bff.BffUserContext.BffUserContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Security.Claims.ClaimsPrincipal! principal, NCode.Identity.Bff.BffSessionMetadata! metadata) -> void
+NCode.Identity.Bff.BffUserContext.Fields.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.Nodes.JsonNode?>!
+NCode.Identity.Bff.BffUserContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffUserContext.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
+NCode.Identity.Bff.BffUserContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffSessionClaimContributor
+NCode.Identity.Bff.IBffSessionClaimContributor.ContributeAsync(NCode.Identity.Bff.BffSessionClaimContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Bff.IBffUserContributor
+NCode.Identity.Bff.IBffUserContributor.ContributeAsync(NCode.Identity.Bff.BffUserContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+static NCode.Identity.Bff.BffSessionClaimContext.ReservedClaimTypes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static NCode.Identity.Bff.BffUserContext.ReservedFieldNames.get -> System.Collections.Generic.IReadOnlySet<string!>!
+const NCode.Identity.Bff.BffLoginFailureReasons.UserInfoFailed = "userinfo_failed" -> string!

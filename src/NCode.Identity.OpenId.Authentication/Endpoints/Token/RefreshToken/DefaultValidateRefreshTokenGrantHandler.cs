@@ -45,7 +45,7 @@ internal class DefaultValidateRefreshTokenGrantHandler(IClientScopeService clien
     )
     {
         var (openIdContext, openIdClient, tokenRequest, refreshTokenGrant) = command;
-        var (clientId, originalScopes, _, subjectAuthentication, _) = refreshTokenGrant;
+        var (clientId, originalScopes, _, subjectAuthentication, _, _) = refreshTokenGrant;
 
         var errorFactory = openIdContext.ErrorFactory;
 

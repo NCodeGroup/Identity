@@ -68,6 +68,7 @@ internal class DefaultTokenService(
         PersistedGrant<RefreshTokenGrant> Grant,
         DateTimeOffset CreatedWhen,
         TimeSpan Lifetime,
+        DateTimeOffset LineageExpiresWhen,
         string? SubjectId
     );
 
@@ -471,7 +472,7 @@ internal class DefaultTokenService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<SecurityToken> CreateRefreshTokenAsync(
+    public async ValueTask<IssuedRefreshToken> CreateRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
@@ -498,7 +499,7 @@ internal class DefaultTokenService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<SecurityToken?> RotateRefreshTokenAsync(
+    public async ValueTask<IssuedRefreshToken?> RotateRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         PersistedGrantId presentedGrantId,
@@ -530,7 +531,7 @@ internal class DefaultTokenService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<SecurityToken?> ReissueRefreshTokenAsync(
+    public async ValueTask<IssuedRefreshToken?> ReissueRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,
@@ -591,12 +592,32 @@ internal class DefaultTokenService(
             refreshToken
         );
 
+        // A rotation or a retry joins the family it inherits, which expires when it always would; a fresh issuance
+        // begins a family now. See ADR-0297.
+        var createdWhen = tokenRequest.CreatedWhen;
+        var lineageCreatedWhen = tokenRequest.RefreshTokenLineageCreatedWhen ?? createdWhen;
+        var lineageExpiresWhen = RefreshTokenExpiration.GetLineageExpiresWhen(
+            settings,
+            lineageCreatedWhen
+        );
+        var expiresWhen = RefreshTokenExpiration.GetTokenExpiresWhen(
+            settings,
+            lineageExpiresWhen,
+            createdWhen
+        );
+        if (expiresWhen <= createdWhen)
+            throw new ArgumentException(
+                "The refresh-token rotation family has expired.",
+                nameof(tokenRequest)
+            );
+
         var refreshTokenGrant = new RefreshTokenGrant(
             clientId,
             tokenRequest.OriginalScopes,
             tokenRequest.EffectiveScopes,
             subjectAuthentication,
-            tokenRequest.Confirmation
+            tokenRequest.Confirmation,
+            lineageCreatedWhen
         );
 
         var persistedGrant = new PersistedGrant<RefreshTokenGrant>
@@ -609,20 +630,18 @@ internal class DefaultTokenService(
             Payload = refreshTokenGrant,
         };
 
-        var createdWhen = tokenRequest.CreatedWhen;
-        var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
-
         return new PreparedRefreshToken(
             refreshToken,
             persistedGrantId,
             persistedGrant,
             createdWhen,
-            lifetime,
+            expiresWhen - createdWhen,
+            lineageExpiresWhen,
             subjectId
         );
     }
 
-    private async ValueTask<SecurityToken> AuditIssuedRefreshTokenAsync(
+    private async ValueTask<IssuedRefreshToken> AuditIssuedRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         PreparedRefreshToken prepared,
@@ -650,7 +669,11 @@ internal class DefaultTokenService(
             cancellationToken
         );
 
-        return securityToken;
+        return new IssuedRefreshToken
+        {
+            Token = securityToken,
+            LineageExpiresWhen = prepared.LineageExpiresWhen,
+        };
     }
 
     private static Dictionary<string, object> CreatePayloadClaims(

@@ -10,6 +10,13 @@ import Tooltip from '@mui/material/Tooltip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 
+/** A tenant's effective environment. Production is told by `isProduction`, never by the open `type` name. */
+export type TenantEnvironmentRow = {
+  readonly type: string;
+  readonly name: string | null;
+  readonly isProduction: boolean;
+};
+
 /** The minimal tenant shape this presentational table needs (decoupled from the API contract). */
 export type TenantRow = {
   readonly tenantId: string;
@@ -17,6 +24,8 @@ export type TenantRow = {
   readonly issuer: string | null;
   readonly mtlsEndpointAliasAuthority: string | null;
   readonly isDisabled: boolean;
+  /** Absent when the environment cannot be determined. */
+  readonly environment?: TenantEnvironmentRow;
 };
 
 export type TenantTableProps = {
@@ -29,7 +38,8 @@ export type TenantTableProps = {
 /**
  * Stateless tenant table. Receives rows and callbacks as props; holds no state and does no fetching,
  * so it renders directly in Storybook and under RTL. The row-level edit/delete controls appear only
- * when their callbacks are supplied, and stop propagation so they never trigger row selection.
+ * when their callbacks are supplied, and stop propagation so they never trigger row selection. A
+ * non-production environment is highlighted, so a sandbox tenant is never mistaken for production.
  */
 export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTableProps) {
   const showActions = Boolean(onEdit || onDelete);
@@ -41,6 +51,7 @@ export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTable
           <TableCell>Tenant ID</TableCell>
           <TableCell>Issuer</TableCell>
           <TableCell>mTLS endpoint alias</TableCell>
+          <TableCell>Environment</TableCell>
           <TableCell>Status</TableCell>
           {showActions && <TableCell align="right">Actions</TableCell>}
         </TableRow>
@@ -59,6 +70,9 @@ export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTable
             <TableCell>{tenant.tenantId}</TableCell>
             <TableCell>{tenant.issuer ?? '—'}</TableCell>
             <TableCell>{tenant.mtlsEndpointAliasAuthority ?? '—'}</TableCell>
+            <TableCell>
+              <TenantEnvironmentChip tenantId={tenant.tenantId} environment={tenant.environment} />
+            </TableCell>
             <TableCell>
               <Chip
                 size="small"
@@ -106,5 +120,29 @@ export function TenantTable({ tenants, onSelect, onEdit, onDelete }: TenantTable
         ))}
       </TableBody>
     </Table>
+  );
+}
+
+function TenantEnvironmentChip({
+  tenantId,
+  environment,
+}: {
+  readonly tenantId: string;
+  readonly environment: TenantEnvironmentRow | undefined;
+}) {
+  if (!environment) {
+    return <>—</>;
+  }
+  const label = environment.name ? `${environment.name} (${environment.type})` : environment.type;
+  return (
+    <Chip
+      size="small"
+      variant={environment.isProduction ? 'outlined' : 'filled'}
+      color={environment.isProduction ? 'default' : 'warning'}
+      label={label}
+      title={environment.isProduction ? 'Production environment' : 'Non-production environment'}
+      data-testid={`tenant-environment-${tenantId}`}
+      data-production={environment.isProduction}
+    />
   );
 }

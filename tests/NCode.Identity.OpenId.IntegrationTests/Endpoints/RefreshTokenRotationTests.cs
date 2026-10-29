@@ -186,6 +186,29 @@ public class RefreshTokenRotationTests
         AssertInvalidGrant(successorStatus, successorBody);
     }
 
+    [Fact]
+    public async Task Refresh_ForARotatedFamily_AnnouncesTheFamilysFixedHorizon()
+    {
+        const string clientId = "it-rotation-horizon";
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var client = CreateClient(factory);
+
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var code = await GetCodeAsync(client, sessionCookie, clientId);
+        var (redeemStatus, redeemBody) = await RedeemAsync(client, clientId, code);
+        var first = GetRefreshToken(redeemStatus, redeemBody);
+        var firstHorizon = redeemBody.GetProperty("refresh_token_expires_in").GetInt64();
+        Assert.Equal((long)TimeSpan.FromDays(30).TotalSeconds, firstHorizon);
+
+        // A rotation does not renew the family: its successor expires when the family does (ADR-0297).
+        var (rotatedStatus, rotatedBody) = await RefreshAsync(client, clientId, first);
+        GetRefreshToken(rotatedStatus, rotatedBody);
+        var rotatedHorizon = rotatedBody.GetProperty("refresh_token_expires_in").GetInt64();
+        Assert.InRange(rotatedHorizon, 1, firstHorizon);
+    }
+
     #endregion
 
     #region Reuse Interval Tests

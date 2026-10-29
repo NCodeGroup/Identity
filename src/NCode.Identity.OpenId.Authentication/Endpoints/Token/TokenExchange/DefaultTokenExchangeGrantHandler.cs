@@ -150,6 +150,45 @@ internal class DefaultTokenExchangeGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
+        // A refresh token issued by exchange joins the horizon of the authentication it carries, so exchange cannot
+        // renew a family. See ADR-0297.
+        DateTimeOffset? lineageCreatedWhen = null;
+        if (
+            string.Equals(
+                requestedTokenType,
+                OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            var authTime = ReadAuthTime(subjectResult.Payload);
+            if (authTime is null)
+            {
+                return errorFactory
+                    .InvalidGrant(
+                        "The subject_token carries no auth_time, so a refresh token issued for it could outlive the authentication."
+                    )
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
+
+            if (
+                RefreshTokenExpiration.HasLineageExpired(
+                    openIdClient.Settings,
+                    authTime.Value,
+                    TimeProvider.GetUtcNowWithPrecisionInSeconds()
+                )
+            )
+            {
+                return errorFactory
+                    .InvalidGrant(
+                        "The subject_token's authentication is older than the refresh token lifetime."
+                    )
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
+
+            lineageCreatedWhen = authTime;
+        }
+
         // actor_token present => delegation; otherwise impersonation.
         SubjectAuthentication? actorAuthentication = null;
         IReadOnlyDictionary<string, object>? actClaim = null;
@@ -187,9 +226,11 @@ internal class DefaultTokenExchangeGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 
-        var createdWhen =
-            ReadAuthTime(subjectResult.Payload) ?? TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        var authenticationProperties = new AuthenticationProperties { IssuedUtc = createdWhen };
+        var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+        var authenticationProperties = new AuthenticationProperties
+        {
+            IssuedUtc = ReadAuthTime(subjectResult.Payload) ?? createdWhen,
+        };
 
         // The subject token was validated as one this tenant issued, so the subject belongs to this tenant; an ID token
         // carries no tid claim. See ADR-0225.
@@ -240,6 +281,7 @@ internal class DefaultTokenExchangeGrantHandler(
             effectiveScopes,
             actClaim,
             createdWhen,
+            lineageCreatedWhen,
             proofOfPossessionBinding,
             cancellationToken
         );
@@ -483,6 +525,7 @@ internal class DefaultTokenExchangeGrantHandler(
         IReadOnlyList<string> effectiveScopes,
         IReadOnlyDictionary<string, object>? actClaim,
         DateTimeOffset createdWhen,
+        DateTimeOffset? lineageCreatedWhen,
         ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
@@ -498,6 +541,7 @@ internal class DefaultTokenExchangeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = createdWhen,
+            RefreshTokenLineageCreatedWhen = lineageCreatedWhen,
             GrantType = OpenIdProtocol.GrantTypes.TokenExchange,
             OriginalScopes = effectiveScopes,
             EffectiveScopes = effectiveScopes,
@@ -568,7 +612,7 @@ internal class DefaultTokenExchangeGrantHandler(
                 cancellationToken
             );
 
-            tokenResponse.RefreshToken = refreshToken.TokenValue;
+            tokenResponse.SetRefreshToken(refreshToken);
             tokenResponse.IssuedTokenType = OpenIdProtocol.TokenTypeIdentifiers.RefreshToken;
         }
 

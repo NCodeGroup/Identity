@@ -1171,9 +1171,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 + $"?{queryName}={Uri.EscapeDataString(queryValue)}"
         );
 
-    // Guards against an open redirect: a local path (single leading slash, not a protocol-relative or
-    // backslash-escaped authority), or an absolute URL that targets this same origin (the OP's own continue
-    // endpoint), is honored; anything else falls back to the application root.
+    // Guards against an open redirect: a local URL as LocalUrl defines it, or an absolute URL that targets this
+    // same origin (the OP's own continue endpoint), is honored; anything else falls back to the application root.
     internal static string ResolveSafeReturnUrl(HttpContext httpContext, string? returnUrl)
     {
         var request = httpContext.Request;
@@ -1188,18 +1187,14 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return "/";
         }
 
-        var isLocalPath =
-            returnUrl.StartsWith('/')
-            && !returnUrl.StartsWith("//", StringComparison.Ordinal)
-            && !returnUrl.StartsWith("/\\", StringComparison.Ordinal);
-        if (isLocalPath)
+        if (LocalUrl.IsLocal(returnUrl))
         {
             return returnUrl;
         }
 
         if (
-            Uri.TryCreate(returnUrl, UriKind.Absolute, out var target)
-            && Uri.TryCreate(requestOrigin, UriKind.Absolute, out var origin)
+            AbsoluteUri.TryParse(returnUrl, out var target)
+            && AbsoluteUri.TryParse(requestOrigin, out var origin)
             && string.Equals(target.Scheme, origin.Scheme, StringComparison.OrdinalIgnoreCase)
             && string.Equals(target.Authority, origin.Authority, StringComparison.OrdinalIgnoreCase)
         )

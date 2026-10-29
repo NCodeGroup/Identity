@@ -853,8 +853,11 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         );
     }
 
-    private static IEnumerable<string?> GetStrings(JsonElement document, string propertyName) =>
-        document.GetProperty(propertyName).EnumerateArray().Select(element => element.GetString());
+    private static IEnumerable<string?> GetStrings(JsonElement jsonElement, string propertyName) =>
+        jsonElement
+            .GetProperty(propertyName)
+            .EnumerateArray()
+            .Select(element => element.GetString());
 
     #endregion
 }

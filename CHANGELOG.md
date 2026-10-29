@@ -10,6 +10,28 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The backend-for-frontend core (`NCode.Identity.Bff`).** The new `NCode.Identity.Bff` and
+  `NCode.Identity.Bff.Abstractions` packages make an ASP.NET Core app the confidential OAuth client of its browser
+  frontend. `AddBffLibrary` (on the protocol client's builder) and `AddBffConfiguration` compose it; `MapBffEndpoints`
+  maps `/bff/login`, `/bff/callback`, `/bff/user`, `/bff/logout` and `/bff/backchannel-logout`; `UseBff` runs the
+  anti-forgery header and Fetch Metadata checks before authentication and fails closed when misordered; and
+  `AsBffApi`/`[BffApi]` let local APIs accept the session cookie. The browser holds only the `__Host-Http-bff` handle:
+  the session is an AES-256-GCM record in the shared store, keyed and encrypted under keys derived from the handle,
+  behind the replaceable `IBffSessionStore`. `IBffTokenAccessor` and `AddBffAccessTokenHandler` attach the user's
+  access token, refreshed single-flight across replicas under a lease on the refresh token, and DPoP-bound when the
+  provider supports it. `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and
+  back-channel logout ends sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET
+  and HEAD only, and the session cookie authenticates, and the token accessor serves, only `AsBffApi`/`AsBffPage`
+  endpoints and `/bff/user`. A won refresh and a logout are never cancelled by the browser, so a rotated refresh token
+  is kept and a session always ends. `AddIdentityBff` validates the refresh lease against the client's request
+  timeout. The protocol client gains
+  `IdTokenValidationResult.Identity`
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
+  [ADR-0291](docs/decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-0292](docs/decisions/0292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-0293](docs/decisions/0293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-0294](docs/decisions/0294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
+  issue [#394](https://github.com/NCodeGroup/Identity/issues/394)).
 - **Tenants declare their environment.** The tenant settings `environment_type`, `environment_name` and
   `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
   `staging` and `production` (a package registers more as `ITenantEnvironmentType`), and the name is a display label.
@@ -21,6 +43,85 @@ change to the public API is a **major** version bump.
   tags `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`.
   `IEffectiveSettingsResolver.ReadScopeSettings` now takes the parent settings
   ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+- **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
+  from the audit store, newest first, filtered by `startTime`/`endTime`, `eventName`, `eventCategory`, `outcome`,
+  `subjectId`, `clientId`, `actorId`, `traceId` and a resource (`resourceType`, `resourceId`), with cursor pagination;
+  each `AuditRecordResource` carries the envelope and the whole `record`. Records page newest first by event time, with
+  ties broken by id. `IAuditRecordStore.GetPageAsync` takes an
+  `AuditRecordFilter`
+  ([ADR-0303](docs/decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)
+  decision 6, issue [#384](https://github.com/NCodeGroup/Identity/issues/384)).
+- **Audit records are kept in an indexed store.** Every audit event's record is queued in memory and written in batches
+  to the new `AuditRecords` table, with its resources in `AuditRecordResources`, through `IAuditRecordStore`
+  (`PersistedAuditRecord`, `PersistedAuditResource`). The table indexes the envelope an operator filters on (event id
+  and time, name, category, outcome, severity, tenant, subject, client, actor, trace and source IP) and keeps the whole
+  CloudTrail-shaped JSON, which `PersistedAuditRecord.Record` holds as a `JsonElement`. `OpenId:AuditRecords`
+  (`AuditRecordOptions`) sets `Enabled`, `FlushInterval` (five seconds),
+  `QueueCapacity` (10,000) and `Retention` (90 days). A full queue drops and counts records, which the log still
+  carries; a failed batch is retried without duplicating records; and records past the retention are removed hourly
+  ([ADR-0303](docs/decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md),
+  issue [#383](https://github.com/NCodeGroup/Identity/issues/383)).
+- **A TLS client certificate is presented with its chain.** `AsymmetricSecretKey.IssuerCertificatesRawData` keeps the
+  certificates of the authorities that issued a key's certificate, and `ExportIssuerCertificates()` materializes them.
+  `ISecretKeyFactory.Create(KeyMetadata, X509Certificate2Collection)` builds a key from a collection such as a loaded
+  PKCS#12 file: the one certificate with a private key is the key's, and the others are its issuers. The protocol
+  client's `tls_client_auth` and `self_signed_tls_client_auth` present those issuers in the handshake, so an OP that
+  trusts only the root accepts a certificate issued by an intermediate CA; a custom `ISecretKeyFactory` must implement
+  the new method
+  ([ADR-0300](docs/decisions/0300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md),
+  issue [#407](https://github.com/NCodeGroup/Identity/issues/407)).
+- **Signed and encrypted UserInfo responses.** `ClientRegistration.UserInfoSigningAlgorithms`,
+  `UserInfoKeyManagementAlgorithms` and `UserInfoContentEncryptionAlgorithms` record the client's
+  `userinfo_signed_response_alg` and `userinfo_encrypted_response_alg`/`enc`. A client that registered signing asks for
+  `application/jwt` and validates the response as it validates an ID token: the provider's keys under its registered
+  algorithms and the provider's `userinfo_signing_alg_values_supported`, decryption of a Nested JWT with its key ring,
+  `iss`, `aud`, `typ` and any lifetime claims, then the ID token's `sub`; it refuses JSON, and a client that registered
+  no signing refuses a JWT. A response encrypted without a signature is never accepted, so UserInfo encryption without
+  UserInfo signing throws before the request. The ID-token, logout-token and UserInfo validations now share one
+  validation core. The BFF names what it registered in `Bff:IdToken` and `Bff:UserInfo` (`SigningAlgorithms`,
+  `KeyManagementAlgorithms`, `ContentEncryptionAlgorithms`), validated at startup
+  ([ADR-0301](docs/decisions/0301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md),
+  issue [#421](https://github.com/NCodeGroup/Identity/issues/421)).
+- **UserInfo in the protocol client and at BFF login.** `IUserInfoClient` requests the provider's UserInfo endpoint with
+  an access token the way it was issued (bearer, DPoP with a nonce retry, or over mutual TLS to the endpoint's alias),
+  refuses a response about another subject than the ID token's, and maps the claims through the new
+  `IClaimsIdentityFactory`, the JWT stack's one claim mapping, which `DefaultJwtValidator` now uses too. A JSON
+  response whose `iss` names another issuer fails with `UserInfoFailureCodes.InvalidIssuer`.
+  `Bff:UserInfo:Load` merges UserInfo into a session at login, before the claim contributors and the login gates; a
+  failure ends the login with `userinfo_failed`
+  ([ADR-0299](docs/decisions/0299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md),
+  issue [#415](https://github.com/NCodeGroup/Identity/issues/415)).
+- **BFF session claim and `/bff/user` contributors.** `IBffSessionClaimContributor` strategies shape a session's
+  claims once, at login, after the ID token validates and before the login gates, which now judge the shaped claims;
+  `BffSessionClaimContext` refuses to add or remove `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr`.
+  `IBffUserContributor` strategies add computed fields to `/bff/user` through `BffUserContext`, which refuses the
+  reserved `sub`, `name`, `claims`, `session` and `logoutUrl`
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
+  decision 11, issue [#414](https://github.com/NCodeGroup/Identity/issues/414)).
+- **A BFF is composed in one call.** The new `NCode.Identity.Bff.Server` package is the BFF's composition root:
+  `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
+  protocol-client and BFF libraries and binds the `Bff` section, and `IIdentityBffBuilder` exposes each library's
+  builder, such as `SharedStateLibraryBuilder.AddValkey(configuration)` for several replicas, as `AddIdentityServer()`
+  does for the OP. The host still registers the key rings its configuration names
+  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
+  issue [#413](https://github.com/NCodeGroup/Identity/issues/413)).
+- **The BFF measures and traces its refreshes and its session store.** The `NCode.Identity.Bff` meter records
+  `ncode.identity.bff.token.refresh.duration` (with the result `refreshed`, `joined` or `failed`, lock and lease waits
+  included) and `ncode.identity.bff.session_store.operation.duration` (for whichever `IBffSessionStore` is registered),
+  and the `NCode.Identity.Bff` activity source traces both. `BffAuditEvent` adds its reason as
+  `ncode.identity.bff.reason` to `ncode.identity.events.published`, which counts logins, session ends, refresh failures
+  and rejections. `BffTelemetry` names the meter and the source; the family's first activity source sets the tracing
+  convention
+  ([ADR-0298](docs/decisions/0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md),
+  issue [#416](https://github.com/NCodeGroup/Identity/issues/416)).
+- **The management console shows and filters tenants by environment.** `TenantResource` gains `environment`
+  (`TenantEnvironmentResource`: `type`, `name`, `isProduction`), the tenant's effective environment, on the tenant
+  list, read and create responses; it is omitted when the tenant's or the server's stored settings cannot be honored,
+  so such a tenant is still listed. `isProduction` comes from the registered type, so a contributed type is told
+  apart without knowing its name. The `apps/mgmt` tenant list shows each environment, highlights every non-production
+  one, and filters by environment type
+  ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) decision 13,
+  issue [#412](https://github.com/NCodeGroup/Identity/issues/412)).
 - **The OpenID protocol client authenticates with mutual TLS.** The methods `tls_client_auth` and
   `self_signed_tls_client_auth` present the TLS client certificate from `ClientRegistration.KeyRing`: the first RSA or
   EC key with a currently valid client-authentication certificate and a private key, never an `enc` key. Each request
@@ -858,6 +959,80 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
+  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
+  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
+  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
+  which reads one value from a segmented buffer, honors every `JsonDocumentOptions` member and refuses trailing
+  content. A parsed value is named `jsonElement`, never `document`, and the parameter of
+  `IPersistedPayloadSerializer.Deserialize` is `jsonElement`
+  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
+- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
+  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
+  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
+  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
+  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
+  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
+  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
+  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
+  are refused at their next use. Token exchange starts the family of a refresh token it issues at the subject token's
+  `auth_time` and refuses a subject token without one with `invalid_grant`, and introspection reports a token past its
+  horizon as inactive. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  `RefreshTokenGrant` gains `LineageCreatedWhen`
+  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
+  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
+- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
+  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
+  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
+  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
+  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
+  [#334](https://github.com/NCodeGroup/Identity/issues/334).
+- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
+  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
+  unsupported algorithm, and every policy keeps refusing `none` by name
+  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
+  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
+  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
+  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
+  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
+  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
+  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
+- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
+  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
+  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
+  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
+  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
+  a tenant write that would strand such clients is refused too, issue
+  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
+  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
+  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
+  [#399](https://github.com/NCodeGroup/Identity/issues/399).
+- **Tenant environments: production hosts refuse a non-production server default, cached tenants follow server
+  changes, and management audit records carry the tenant's type.** In the Production host environment
+  `AddProductionSafety` refuses to start when `OpenId:Server:Settings:environment_type` names a registered type whose
+  `IsProduction` is false, issue [#410](https://github.com/NCodeGroup/Identity/issues/410). The server provider evicts
+  every cached tenant whenever the server's settings change, so a changed server-wide `environment_type` reaches
+  tenants at once instead of after `TenantCacheLifetime`, issue
+  [#409](https://github.com/NCodeGroup/Identity/issues/409). Management audit events that name a tenant now carry
+  `tenant_environment_type`, resolved from the tenant's effective settings once per request, issue
+  [#411](https://github.com/NCodeGroup/Identity/issues/411)
+  ([ADR-0289](docs/decisions/0289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md)).
+
+- **A failed sign-in records the attempted user name as a detail, not as the subject.** `subject.authentication`
+  failures write the user name a password grant presented as `details.attempted_username` and leave `subject_id`
+  absent, so `subject_id` only ever holds a verified subject id. `IAuditEventRecorder.RecordSubjectAuthenticationFailedAsync`
+  takes `attemptedUsername`, and `SubjectAuthenticationAuditEvent` gains `AttemptedUsername`. `ISupportAuditDetails`
+  gains `HasAuditDetails` (default `true`), so an event with nothing to write omits `details` instead of writing `{}`;
+  `BffAuditEvent` and `SubjectAuthenticationAuditEvent` use it, issue
+  [#385](https://github.com/NCodeGroup/Identity/issues/385).
+
+- **The ADR index gate refuses two ADRs with one number.** The `adr index` stage of `./build/dod.ps1` moves into
+  `build/adr-index.ps1` with fixture tests, and also fails when two files in `docs/decisions/` share a four-digit
+  number, when an index row's number is not its file's, or when a file is listed twice, issue
+  [#371](https://github.com/NCodeGroup/Identity/issues/371).
 
 - **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` now exports the
   ASP.NET Core development certificate as PEM, and the `ncode:serve-over-https` preset plugin serves it when `pnpm dev`
@@ -2052,6 +2227,14 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
+  (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
+  it, so `/\t/evil.example` no longer redirects off-site after sign-in.
+- **ECDH-ES no longer discloses its ephemeral private key.** The `ECDH-ES` and `ECDH-ES+A*KW` key management algorithms
+  wrote the ephemeral key's private `d` into the JWE's `epk` header, so anyone holding the token could derive its
+  content encryption key from it and the recipient's public key and read every token encrypted to an EC key. The `epk`
+  now carries only `kty`, `crv`, `x` and `y` (RFC 7518 §4.6.1.1), and a received `epk` that carries a private member is
+  refused, because its content is no longer confidential.
 - **`RSA1_5` is not a registered JOSE algorithm.** RSAES-PKCS1-v1_5 key encryption is open to padding-oracle attacks
   (RFC 8725 §3.2), and a JWE that named it decrypted through `IJoseSerializer` and through an `IJwtValidator` call
   that sets no `ValidKeyManagementAlgorithms`. `AddJoseLibrary()` registers RSA key management only as `RSA-OAEP`,
@@ -2485,6 +2668,13 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A token issued by token exchange is issued now.** It started its lifetime at the subject's `auth_time`, so a token
+  exchanged after a long session was already expired; `auth_time` still carries the original authentication.
+- **An absolute URI means the same on every platform.** The new `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts
+  only text that names its own scheme and contains no whitespace, where `Uri.TryCreate(…, UriKind.Absolute, …)` also
+  read `/path` as `file:///path` on Linux and trimmed whitespace. Dynamic client registration therefore accepted a
+  relative `post_logout_redirect_uris` or `redirect_uris` value on Linux; it, the redirect URI kinds, the URI message
+  parameters, the URI setting rules and every other OpenID URI check now parse with it.
 - **A JSON Web Key Set skips a key with an empty `kty`.** `JsonWebKeySet(JsonElement)` and `JsonWebKeySet.Parse`
   failed the whole set with `ArgumentException` when one key's `kty` was the empty string; such a key is skipped like
   one with a missing or non-string `kty` (issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).

@@ -92,7 +92,7 @@ public static class AuditRecordWriter
             WriteError(writer, error);
         }
 
-        if (auditEvent is ISupportAuditDetails supportAuditDetails)
+        if (auditEvent is ISupportAuditDetails { HasAuditDetails: true } supportAuditDetails)
         {
             writer.WriteStartObject(AuditRecordFields.Details);
             supportAuditDetails.WriteAuditDetails(writer);

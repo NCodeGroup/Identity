@@ -84,8 +84,8 @@ public class RetiredSettingTests
         using var response = await administrator.GetAsync($"{TenantApiPath}/settings");
         var settingsBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, settingsBody);
-        using var document = JsonDocument.Parse(settingsBody);
-        var settings = document.RootElement.GetProperty("settings");
+        var jsonElement = JsonElement.Parse(settingsBody);
+        var settings = jsonElement.GetProperty("settings");
         Assert.Equal(RetiredValue, settings.GetProperty(RetiredSetting).GetString());
     }
 
@@ -131,8 +131,8 @@ public class RetiredSettingTests
         using var response = await administrator.GetAsync($"{TenantApiPath}/settings");
         var settingsBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, settingsBody);
-        using var document = JsonDocument.Parse(settingsBody);
-        var settings = document.RootElement.GetProperty("settings");
+        var jsonElement = JsonElement.Parse(settingsBody);
+        var settings = jsonElement.GetProperty("settings");
         Assert.False(settings.TryGetProperty(RetiredSetting, out _), settingsBody);
     }
 

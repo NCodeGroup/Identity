@@ -272,13 +272,10 @@ public class LogoutTokenValidatorEndToEndTests
 
         Assert.True(result.IsValid, result.FailureReason);
         Assert.Equal(HostApplicationFactory.TestServerIssuer, result.Issuer);
-        using var logoutTokenPayload = JsonDocument.Parse(
+        var logoutTokenPayload = JsonElement.Parse(
             Base64Url.DecodeFromChars(logoutToken.Split('.')[1])
         );
-        Assert.Equal(
-            GetString(logoutTokenPayload.RootElement, JoseClaimNames.Payload.Jti),
-            result.TokenId
-        );
+        Assert.Equal(GetString(logoutTokenPayload, JoseClaimNames.Payload.Jti), result.TokenId);
         Assert.Equal(GetString(idTokenPayload, JoseClaimNames.Payload.Sub), result.Subject);
         Assert.Equal(GetString(idTokenPayload, JoseClaimNames.Payload.Sid), result.SessionId);
     }

@@ -93,4 +93,8 @@ internal static class EventIds
     public const int RevocationRetrievalSuppressed = Base + 61;
     public const int ClientCertificateRevocationUnknownAccepted = Base + 62;
     public const int GrantPayloadUnreadable = Base + 63;
+    public const int AuditRecordFlushFailed = Base + 64;
+    public const int AuditRecordsDropped = Base + 65;
+    public const int AuditRecordsDiscardedOnStop = Base + 66;
+    public const int AuditRecordPruneFailed = Base + 67;
 }

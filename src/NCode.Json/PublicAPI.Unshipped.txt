@@ -66,3 +66,4 @@ NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).TryGetWholeInt32
 NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!)
 NCode.Json.ObjectGraphExtensions.extension(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object!>>!).TryGetValue<T>(string! key, out T value) -> bool
 static NCode.Json.JsonElements.EmptyObject.get -> System.Text.Json.JsonElement
+static NCode.Json.JsonElements.extension(System.Text.Json.JsonElement).Parse(System.Buffers.ReadOnlySequence<byte> utf8Json, System.Text.Json.JsonDocumentOptions options = default(System.Text.Json.JsonDocumentOptions)) -> System.Text.Json.JsonElement

@@ -18,6 +18,7 @@
 
 using Moq;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Settings;
@@ -60,13 +61,59 @@ public class Fapi2SecurityProfileTests : BaseTests
                 x.Set(
                     OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
                     It.Is<IReadOnlyCollection<string>>(algs =>
-                        algs.SequenceEqual(new[] { "PS256", "ES256", "EdDSA", "Ed25519" })
+                        algs.SequenceEqual(new[] { "PS256", "ES256", "Ed25519" })
                     )
                 )
             )
             .Verifiable();
 
         new Fapi2SecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
+    }
+
+    [Fact]
+    public void ApplyCeilingSettings_LimitsDPoPProofSigningToFapiAlgorithms()
+    {
+        var mockCeiling = CreateLooseMock<ISecurityProfileCeilingBuilder>();
+        mockCeiling
+            .Setup(x =>
+                x.Set(
+                    OpenIdSettingKeys.DPoPSigningAlgValuesSupported,
+                    It.Is<IReadOnlyCollection<string>>(algs =>
+                        algs.SequenceEqual(new[] { "PS256", "ES256", "Ed25519" })
+                    )
+                )
+            )
+            .Verifiable();
+
+        new Fapi2SecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
+    }
+
+    [Fact]
+    public void ApplyCeilingSettings_ExcludesThePolymorphicEdDsaFromEverySigningCeiling()
+    {
+        var mockCeiling = CreateLooseMock<ISecurityProfileCeilingBuilder>();
+        var ceilings = new List<IReadOnlyCollection<string>>();
+        mockCeiling
+            .Setup(x =>
+                x.Set(
+                    It.Is<SettingKey<IReadOnlyCollection<string>>>(key =>
+                        key.SettingName.EndsWith(
+                            "_signing_alg_values_supported",
+                            StringComparison.Ordinal
+                        )
+                    ),
+                    It.IsAny<IReadOnlyCollection<string>>()
+                )
+            )
+            .Callback<SettingKey<IReadOnlyCollection<string>>, IReadOnlyCollection<string>>(
+                (_, algs) => ceilings.Add(algs)
+            )
+            .Verifiable();
+
+        new Fapi2SecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
+
+        Assert.Equal(8, ceilings.Count);
+        Assert.All(ceilings, algs => Assert.DoesNotContain("EdDSA", algs));
     }
 
     [Fact]

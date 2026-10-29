@@ -92,10 +92,10 @@ public class LocalAccountLifecycleTests
         using var response = await client.SendAsync(tokenRequest);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        using var document = JsonDocument.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            document.RootElement.GetProperty("access_token").GetString()
+            jsonElement.GetProperty("access_token").GetString()
         );
         return client;
     }
@@ -288,9 +288,9 @@ public class LocalAccountLifecycleTests
         var responseBody = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, responseBody);
 
-        using var document = JsonDocument.Parse(responseBody);
-        var deviceCode = document.RootElement.GetProperty("device_code").GetString();
-        var userCode = document.RootElement.GetProperty("user_code").GetString();
+        var jsonElement = JsonElement.Parse(responseBody);
+        var deviceCode = jsonElement.GetProperty("device_code").GetString();
+        var userCode = jsonElement.GetProperty("user_code").GetString();
         Assert.False(string.IsNullOrEmpty(deviceCode), responseBody);
         Assert.False(string.IsNullOrEmpty(userCode), responseBody);
         return (deviceCode, userCode);
@@ -552,8 +552,8 @@ public class LocalAccountLifecycleTests
         );
         var getBody = await getResponse.Content.ReadAsStringAsync();
         Assert.True(getResponse.StatusCode == HttpStatusCode.OK, getBody);
-        using var document = JsonDocument.Parse(getBody);
-        Assert.True(document.RootElement.GetProperty("isBlocked").GetBoolean(), getBody);
+        var jsonElement = JsonElement.Parse(getBody);
+        Assert.True(jsonElement.GetProperty("isBlocked").GetBoolean(), getBody);
 
         var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
         AssertRefused(statusCode, body, "invalid_grant");

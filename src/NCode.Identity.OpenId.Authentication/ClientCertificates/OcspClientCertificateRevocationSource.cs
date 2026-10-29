@@ -154,7 +154,7 @@ internal sealed class OcspClientCertificateRevocationSource(
     }
 
     private static bool IsHttp(string value) =>
-        Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        AbsoluteUri.TryParse(value, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     // A delegated responder that lacks id-pkix-ocsp-nocheck is checked by the CRL source only, so the check cannot

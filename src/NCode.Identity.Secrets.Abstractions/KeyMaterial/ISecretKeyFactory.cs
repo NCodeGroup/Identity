@@ -68,6 +68,19 @@ public interface ISecretKeyFactory
     AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate);
 
     /// <summary>
+    /// Factory method to create an <see cref="AsymmetricSecretKey"/> from a certificate collection, such as one loaded
+    /// from a PKCS#12 file: the one certificate with a private key is the key's own certificate, and the others are
+    /// the certificates of the authorities that issued it (<see cref="AsymmetricSecretKey.IssuerCertificatesRawData"/>).
+    /// </summary>
+    /// <param name="metadata">The <see cref="KeyMetadata"/> for the secret key.</param>
+    /// <param name="certificates">The key's certificate, with its private key, and its issuers' certificates.</param>
+    /// <returns>The newly created <see cref="AsymmetricSecretKey"/> instance.</returns>
+    /// <exception cref="ArgumentException">The collection does not hold exactly one certificate with a private
+    /// key.</exception>
+    // See ADR-0300.
+    AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2Collection certificates);
+
+    /// <summary>
     /// Factory method to create a verify-only <see cref="RsaSecretKey"/> from the <b>public</b> half of an
     /// <c>RSA</c> key. The resulting key can verify signatures but not produce them, and holds no private material.
     /// </summary>

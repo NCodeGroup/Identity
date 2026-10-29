@@ -90,5 +90,20 @@ public class AuditRecordWriterTests
         Assert.Contains(expected, StrictUtf8.GetString(output.WrittenSpan));
     }
 
+    [Fact]
+    public void Write_WhenTheEventHasNoDetails_OmitsTheDetailsObject()
+    {
+        var output = new ArrayBufferWriter<byte>();
+        AuditRecordWriter.Write(
+            TestDetailedAuditEvent.CreateSample() with
+            {
+                HasDetails = false,
+            },
+            ref output
+        );
+
+        Assert.DoesNotContain("\"details\"", StrictUtf8.GetString(output.WrittenSpan));
+    }
+
     #endregion
 }

@@ -105,11 +105,11 @@ internal static class WorkspaceInstall
 
     private static string? ReadPackageManager(string modulesText)
     {
-        using var document = JsonDocument.Parse(modulesText);
+        var jsonElement = JsonElement.Parse(modulesText);
 
         if (
-            document.RootElement.ValueKind == JsonValueKind.Object
-            && document.RootElement.TryGetProperty("packageManager", out var property)
+            jsonElement.ValueKind == JsonValueKind.Object
+            && jsonElement.TryGetProperty("packageManager", out var property)
             && property.ValueKind == JsonValueKind.String
         )
         {

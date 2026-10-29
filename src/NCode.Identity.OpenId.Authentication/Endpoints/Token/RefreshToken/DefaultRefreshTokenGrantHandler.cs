@@ -126,6 +126,20 @@ internal class DefaultRefreshTokenGrantHandler(
 
         var refreshTokenGrant = persistedGrant.Payload;
 
+        // A rotation family expires refresh_token_lifetime after the grant that began it, however often its tokens were
+        // used or rotated, so a token that outlived its family — for example after the lifetime was shortened — is
+        // refused. See ADR-0297.
+        var lineageExpiresWhen = RefreshTokenExpiration.GetLineageExpiresWhen(
+            settings,
+            refreshTokenGrant.LineageCreatedWhen
+        );
+        if (lineageExpiresWhen <= utcNow)
+        {
+            return errorFactory
+                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+        }
+
         // DPoP/mTLS binding continuity (RFC 9449 §5, RFC 8705 §7.1): a sender-constrained grant stays bound to its
         // original key across every rotation, and the presented proof must match that key.
         var storedConfirmation = refreshTokenGrant.Confirmation;
@@ -188,6 +202,7 @@ internal class DefaultRefreshTokenGrantHandler(
             Resources = tokenRequest.Resources,
             RefreshToken = refreshToken,
             RefreshTokenLineageId = persistedGrant.RefreshTokenLineageId,
+            RefreshTokenLineageCreatedWhen = refreshTokenGrant.LineageCreatedWhen,
             SubjectAuthentication = refreshTokenGrant.SubjectAuthentication,
             Confirmation = effectiveBinding.Confirmation,
         };
@@ -233,7 +248,7 @@ internal class DefaultRefreshTokenGrantHandler(
 
             if (successor is { } rotated)
             {
-                responseRefreshToken = rotated.TokenValue;
+                responseRefreshToken = rotated.Token.TokenValue;
             }
             else if (
                 await WasRotatedByConcurrentRequestAsync(
@@ -305,23 +320,28 @@ internal class DefaultRefreshTokenGrantHandler(
             securityTokenRequest,
             effectiveBinding.TokenType,
             responseRefreshToken,
+            lineageExpiresWhen,
             cancellationToken
         );
 
-        var expirationPolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy);
-        var useSlidingExpiration =
-            expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
-        if (useSlidingExpiration && !rotates)
+        // A token that is not rotated stays in use, so it expires as the policy says from now: a sliding token slides,
+        // and an absolute one follows its family's lifetime should that have changed. See ADR-0297.
+        if (!rotates)
         {
-            var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
-            var expiresWhen = utcNow + lifetime;
-
-            await PersistedGrantService.UpdateExpirationAsync(
-                openIdContext,
-                persistedGrantId,
-                expiresWhen,
-                cancellationToken
+            var expiresWhen = RefreshTokenExpiration.GetTokenExpiresWhen(
+                settings,
+                lineageExpiresWhen,
+                utcNow
             );
+            if (persistedGrant.ExpiresWhen != expiresWhen)
+            {
+                await PersistedGrantService.UpdateExpirationAsync(
+                    openIdContext,
+                    persistedGrantId,
+                    expiresWhen,
+                    cancellationToken
+                );
+            }
         }
 
         return tokenResponse;
@@ -379,7 +399,7 @@ internal class DefaultRefreshTokenGrantHandler(
             cancellationToken
         );
 
-        return successor.TokenValue;
+        return successor.Token.TokenValue;
     }
 
     // A rotation that lost its spend was won by a concurrent rotation when the grant, read again, is a rotated grant
@@ -457,6 +477,7 @@ internal class DefaultRefreshTokenGrantHandler(
         CreateSecurityTokenRequest securityTokenRequest,
         string tokenType,
         string? refreshToken,
+        DateTimeOffset lineageExpiresWhen,
         CancellationToken cancellationToken
     )
     {
@@ -493,7 +514,14 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        tokenResponse.RefreshToken = refreshToken;
+        if (refreshToken is not null)
+        {
+            tokenResponse.SetRefreshToken(
+                refreshToken,
+                lineageExpiresWhen,
+                securityTokenRequest.CreatedWhen
+            );
+        }
 
         return tokenResponse;
     }

@@ -106,7 +106,7 @@ internal static partial class TenantAddressRules
             || issuer.Length > OpenIdMaxLengths.Issuer
             || issuer.AsSpan().IndexOfAny('?', '#') >= 0
             || issuer.Any(char.IsWhiteSpace)
-            || !Uri.TryCreate(issuer, UriKind.Absolute, out var uri)
+            || !AbsoluteUri.TryParse(issuer, out var uri)
         )
         {
             return false;

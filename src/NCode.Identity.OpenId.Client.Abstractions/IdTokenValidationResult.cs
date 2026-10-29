@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Claims;
 using System.Text.Json;
 using JetBrains.Annotations;
 
@@ -54,6 +55,11 @@ public sealed class IdTokenValidationResult
     /// Gets the verified payload when the ID token is valid; otherwise, <see langword="default"/>.
     /// </summary>
     public JsonElement Payload { get; }
+
+    /// <summary>
+    /// Gets the claims of the valid ID token, mapped by the JWT stack; otherwise, <see langword="null"/>.
+    /// </summary>
+    public ClaimsIdentity? Identity { get; init; }
 
     /// <summary>
     /// Gets the machine-readable code of the reason the ID token is invalid, a <see cref="TokenValidationFailureCodes"/>

@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -85,6 +85,15 @@ public readonly record struct CreateSecurityTokenRequest
     /// token's lineage id so the whole family shares one identifier for reuse-detection revocation.
     /// </summary>
     public string? RefreshTokenLineageId { get; init; }
+
+    /// <summary>
+    /// Gets when the refresh-token rotation family named by <see cref="RefreshTokenLineageId"/> began, or
+    /// <see langword="null"/> when this request begins a new family at <see cref="CreatedWhen"/>. A rotation or a retry
+    /// passes the presented token's value, so every token of the family expires no later than the family does,
+    /// <c>refresh_token_lifetime</c> after it began.
+    /// </summary>
+    // See ADR-0297.
+    public DateTimeOffset? RefreshTokenLineageCreatedWhen { get; init; }
 
     /// <summary>
     /// Gets the claims requested via the OpenID Connect <c>claims</c> request parameter, or <see langword="null"/>

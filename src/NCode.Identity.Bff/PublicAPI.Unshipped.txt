@@ -1,0 +1,116 @@
+#nullable enable
+const NCode.Identity.Bff.Options.BffDPoPModes.Required = "required" -> string!
+const NCode.Identity.Bff.Options.BffDPoPModes.WhenSupported = "when_supported" -> string!
+NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions
+NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseBff() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.Bff.BffLibraryRegistration
+NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
+NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
+NCode.Identity.Bff.DefaultRegistration
+NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
+NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddBffLibrary(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>! events) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffApi() -> TBuilder
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffPage() -> TBuilder
+NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions
+NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffEndpoints() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
+NCode.Identity.Bff.Options.BffAntiforgeryOptions
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.BffAntiforgeryOptions() -> void
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderName.get -> string!
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderName.set -> void
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderValue.get -> string!
+NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderValue.set -> void
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.BffClientAuthenticationOptions() -> void
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.KeyRing.get -> string?
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.KeyRing.set -> void
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.Method.get -> string!
+NCode.Identity.Bff.Options.BffClientAuthenticationOptions.Method.set -> void
+NCode.Identity.Bff.Options.BffDPoPModes
+NCode.Identity.Bff.Options.BffIdTokenOptions
+NCode.Identity.Bff.Options.BffIdTokenOptions.BffIdTokenOptions() -> void
+NCode.Identity.Bff.Options.BffIdTokenOptions.ContentEncryptionAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffIdTokenOptions.ContentEncryptionAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffIdTokenOptions.KeyManagementAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffIdTokenOptions.KeyManagementAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffIdTokenOptions.SigningAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffIdTokenOptions.SigningAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions
+NCode.Identity.Bff.Options.BffUserInfoOptions.BffUserInfoOptions() -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.ContentEncryptionAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffUserInfoOptions.ContentEncryptionAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.KeyManagementAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffUserInfoOptions.KeyManagementAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.Load.get -> bool
+NCode.Identity.Bff.Options.BffUserInfoOptions.Load.set -> void
+NCode.Identity.Bff.Options.BffUserInfoOptions.SigningAlgorithms.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffUserInfoOptions.SigningAlgorithms.set -> void
+NCode.Identity.Bff.Options.BffDPoPOptions
+NCode.Identity.Bff.Options.BffDPoPOptions.BffDPoPOptions() -> void
+NCode.Identity.Bff.Options.BffDPoPOptions.KeyRing.get -> string?
+NCode.Identity.Bff.Options.BffDPoPOptions.KeyRing.set -> void
+NCode.Identity.Bff.Options.BffDPoPOptions.Mode.get -> string!
+NCode.Identity.Bff.Options.BffDPoPOptions.Mode.set -> void
+NCode.Identity.Bff.Options.BffOptions
+NCode.Identity.Bff.Options.BffOptions.Antiforgery.get -> NCode.Identity.Bff.Options.BffAntiforgeryOptions!
+NCode.Identity.Bff.Options.BffOptions.Antiforgery.set -> void
+NCode.Identity.Bff.Options.BffOptions.Authority.get -> string!
+NCode.Identity.Bff.Options.BffOptions.Authority.set -> void
+NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.get -> bool
+NCode.Identity.Bff.Options.BffOptions.BackchannelLogoutSessionRequired.set -> void
+NCode.Identity.Bff.Options.BffOptions.IdToken.get -> NCode.Identity.Bff.Options.BffIdTokenOptions!
+NCode.Identity.Bff.Options.BffOptions.IdToken.set -> void
+NCode.Identity.Bff.Options.BffOptions.UserInfo.get -> NCode.Identity.Bff.Options.BffUserInfoOptions!
+NCode.Identity.Bff.Options.BffOptions.UserInfo.set -> void
+NCode.Identity.Bff.Options.BffOptions.BffOptions() -> void
+NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.get -> NCode.Identity.Bff.Options.BffClientAuthenticationOptions!
+NCode.Identity.Bff.Options.BffOptions.ClientAuthentication.set -> void
+NCode.Identity.Bff.Options.BffOptions.ClientId.get -> string!
+NCode.Identity.Bff.Options.BffOptions.ClientId.set -> void
+NCode.Identity.Bff.Options.BffOptions.DPoP.get -> NCode.Identity.Bff.Options.BffDPoPOptions!
+NCode.Identity.Bff.Options.BffOptions.DPoP.set -> void
+NCode.Identity.Bff.Options.BffOptions.ErrorPath.get -> string!
+NCode.Identity.Bff.Options.BffOptions.ErrorPath.set -> void
+NCode.Identity.Bff.Options.BffOptions.LoginParameters.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.LoginParameters.set -> void
+NCode.Identity.Bff.Options.BffOptions.PathPrefix.get -> string!
+NCode.Identity.Bff.Options.BffOptions.PathPrefix.set -> void
+NCode.Identity.Bff.Options.BffOptions.Resources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.Resources.set -> void
+NCode.Identity.Bff.Options.BffOptions.ReturnUrls.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.ReturnUrls.set -> void
+NCode.Identity.Bff.Options.BffOptions.Scopes.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.Scopes.set -> void
+NCode.Identity.Bff.Options.BffOptions.Session.get -> NCode.Identity.Bff.Options.BffSessionOptions!
+NCode.Identity.Bff.Options.BffOptions.Session.set -> void
+NCode.Identity.Bff.Options.BffOptions.Tokens.get -> NCode.Identity.Bff.Options.BffTokenOptions!
+NCode.Identity.Bff.Options.BffOptions.Tokens.set -> void
+NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.set -> void
+NCode.Identity.Bff.Options.BffOptions.UserClaims.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffOptions.UserClaims.set -> void
+NCode.Identity.Bff.Options.BffSessionOptions
+NCode.Identity.Bff.Options.BffSessionOptions.AbsoluteLifetime.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffSessionOptions.AbsoluteLifetime.set -> void
+NCode.Identity.Bff.Options.BffSessionOptions.BffSessionOptions() -> void
+NCode.Identity.Bff.Options.BffSessionOptions.IdleTimeout.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffSessionOptions.IdleTimeout.set -> void
+NCode.Identity.Bff.Options.BffSessionOptions.LoginLifetime.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffSessionOptions.LoginLifetime.set -> void
+NCode.Identity.Bff.Options.BffSessionOptions.SameSite.get -> Microsoft.AspNetCore.Http.SameSiteMode
+NCode.Identity.Bff.Options.BffSessionOptions.SameSite.set -> void
+NCode.Identity.Bff.Options.BffTokenOptions
+NCode.Identity.Bff.Options.BffTokenOptions.BffTokenOptions() -> void
+NCode.Identity.Bff.Options.BffTokenOptions.RefreshBeforeExpiry.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffTokenOptions.RefreshBeforeExpiry.set -> void
+NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.set -> void
+NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions
+NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!)
+NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!).AddBffAccessTokenHandler(NCode.Identity.Bff.BffTokenRequest! request) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
+const NCode.Identity.Bff.BffTelemetry.ActivitySourceName = "NCode.Identity.Bff" -> string!
+const NCode.Identity.Bff.BffTelemetry.MeterName = "NCode.Identity.Bff" -> string!
+NCode.Identity.Bff.BffTelemetry

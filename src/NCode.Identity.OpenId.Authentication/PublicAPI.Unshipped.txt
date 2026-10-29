@@ -281,6 +281,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IdTo
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IdToken.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshToken.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshTokenExpiresIn.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshTokenExpiresIn.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scopes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenResponse() -> void
@@ -343,3 +345,14 @@ NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.FlushInterval.set 
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.Retention.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.Retention.set -> void
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.TenantUsageOptions() -> void
+const NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.SectionName = "AuditRecords" -> string!
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.AuditRecordOptions() -> void
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Enabled.get -> bool
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Enabled.set -> void
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.FlushInterval.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.FlushInterval.set -> void
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.QueueCapacity.get -> int
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.QueueCapacity.set -> void
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Retention.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Retention.set -> void

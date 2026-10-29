@@ -52,26 +52,33 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     private IAlgorithmCollection Algorithms =>
         ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
 
-    private static ClientRegistration CreateRegistration(
+    private static ProviderJwtProfile CreateProfile(
         IReadOnlyList<string>? keyManagement = null,
         IReadOnlyList<string>? contentEncryption = null,
         string? keyRing = null
     ) =>
-        new(Issuer, ClientId, OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt)
-        {
-            IdTokenKeyManagementAlgorithms = keyManagement,
-            IdTokenContentEncryptionAlgorithms = contentEncryption,
-            KeyRing = keyRing,
-        };
+        ProviderJwtProfile.ForIdToken(
+            new ClientRegistration(
+                Issuer,
+                ClientId,
+                OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
+            )
+            {
+                IdTokenKeyManagementAlgorithms = keyManagement,
+                IdTokenContentEncryptionAlgorithms = contentEncryption,
+                KeyRing = keyRing,
+            },
+            new OpenIdProviderMetadata()
+        );
 
     #region IsEncryptionRegistered Tests
 
     [Fact]
     public void IsEncryptionRegistered_WhenNotSet_ReturnsFalse()
     {
-        var registration = CreateRegistration();
+        var profile = CreateProfile();
 
-        var result = ClientDecryptionPolicy.IsEncryptionRegistered(registration);
+        var result = ClientDecryptionPolicy.IsEncryptionRegistered(profile);
 
         Assert.False(result);
     }
@@ -79,9 +86,9 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void IsEncryptionRegistered_WhenEmpty_ReturnsFalse()
     {
-        var registration = CreateRegistration(keyManagement: []);
+        var profile = CreateProfile(keyManagement: []);
 
-        var result = ClientDecryptionPolicy.IsEncryptionRegistered(registration);
+        var result = ClientDecryptionPolicy.IsEncryptionRegistered(profile);
 
         Assert.False(result);
     }
@@ -89,9 +96,9 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void IsEncryptionRegistered_WhenSet_ReturnsTrue()
     {
-        var registration = CreateRegistration(keyManagement: ["RSA-OAEP-256"]);
+        var profile = CreateProfile(keyManagement: ["RSA-OAEP-256"]);
 
-        var result = ClientDecryptionPolicy.IsEncryptionRegistered(registration);
+        var result = ClientDecryptionPolicy.IsEncryptionRegistered(profile);
 
         Assert.True(result);
     }
@@ -103,11 +110,11 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedKeyManagementAlgorithms_WhenNotRegistered_ReturnsEmpty()
     {
-        var registration = CreateRegistration();
+        var profile = CreateProfile();
 
         var result = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
             Algorithms,
-            registration
+            profile
         );
 
         Assert.Empty(result);
@@ -116,11 +123,11 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedKeyManagementAlgorithms_WhenAsymmetric_ReturnsThemInOrder()
     {
-        var registration = CreateRegistration(keyManagement: ["ECDH-ES+A128KW", "RSA-OAEP-256"]);
+        var profile = CreateProfile(keyManagement: ["ECDH-ES+A128KW", "RSA-OAEP-256"]);
 
         var result = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
             Algorithms,
-            registration
+            profile
         );
 
         Assert.Equal(["ECDH-ES+A128KW", "RSA-OAEP-256"], result);
@@ -129,13 +136,13 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedKeyManagementAlgorithms_WhenSymmetricOrUnknown_ExcludesThem()
     {
-        var registration = CreateRegistration(
+        var profile = CreateProfile(
             keyManagement: ["A128KW", "dir", "PBES2-HS256+A128KW", "X-UNKNOWN", "RSA-OAEP"]
         );
 
         var result = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
             Algorithms,
-            registration
+            profile
         );
 
         Assert.Equal(["RSA-OAEP"], result);
@@ -163,11 +170,11 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
             .Returns(true)
             .Verifiable();
 
-        var registration = CreateRegistration(keyManagement: ["RSA1_5", "RSA-OAEP-256"]);
+        var profile = CreateProfile(keyManagement: ["RSA1_5", "RSA-OAEP-256"]);
 
         var result = ClientDecryptionPolicy.GetPermittedKeyManagementAlgorithms(
             mockAlgorithms.Object,
-            registration
+            profile
         );
 
         Assert.Equal(["RSA-OAEP-256"], result);
@@ -180,11 +187,11 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedContentEncryptionAlgorithms_WhenNotRegistered_ReturnsEmpty()
     {
-        var registration = CreateRegistration();
+        var profile = CreateProfile();
 
         var result = ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(
             Algorithms,
-            registration
+            profile
         );
 
         Assert.Empty(result);
@@ -193,10 +200,10 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedContentEncryptionAlgorithms_WhenOnlyContentRegistered_Throws()
     {
-        var registration = CreateRegistration(contentEncryption: ["A256GCM"]);
+        var profile = CreateProfile(contentEncryption: ["A256GCM"]);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(Algorithms, registration)
+            ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(Algorithms, profile)
         );
 
         Assert.Contains(ClientId, exception.Message);
@@ -205,11 +212,11 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedContentEncryptionAlgorithms_WhenNotListed_ReturnsRegistrationDefault()
     {
-        var registration = CreateRegistration(keyManagement: ["RSA-OAEP-256"]);
+        var profile = CreateProfile(keyManagement: ["RSA-OAEP-256"]);
 
         var result = ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(
             Algorithms,
-            registration
+            profile
         );
 
         Assert.Equal(["A128CBC-HS256"], result);
@@ -218,14 +225,14 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     [Fact]
     public void GetPermittedContentEncryptionAlgorithms_WhenListed_ReturnsKnownOnes()
     {
-        var registration = CreateRegistration(
+        var profile = CreateProfile(
             keyManagement: ["RSA-OAEP-256"],
             contentEncryption: ["A256GCM", "X-UNKNOWN", "A128CBC-HS256"]
         );
 
         var result = ClientDecryptionPolicy.GetPermittedContentEncryptionAlgorithms(
             Algorithms,
-            registration
+            profile
         );
 
         Assert.Equal(["A256GCM", "A128CBC-HS256"], result);
@@ -239,10 +246,10 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     public void GetDecryptionKeys_WhenNoKeyRing_Throws()
     {
         var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
-        var registration = CreateRegistration(keyManagement: ["RSA-OAEP-256"]);
+        var profile = CreateProfile(keyManagement: ["RSA-OAEP-256"]);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ClientDecryptionPolicy.GetDecryptionKeys(mockKeyRingProvider.Object, registration)
+            ClientDecryptionPolicy.GetDecryptionKeys(mockKeyRingProvider.Object, profile)
         );
 
         Assert.Contains(ClientId, exception.Message);
@@ -267,12 +274,9 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
             .Create([rsaKey, symmetricKey]);
         var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
         mockKeyRingProvider.Setup(x => x.GetKeyRing(keyRing)).Returns(keys).Verifiable();
-        var registration = CreateRegistration(keyManagement: ["RSA-OAEP-256"], keyRing: keyRing);
+        var profile = CreateProfile(keyManagement: ["RSA-OAEP-256"], keyRing: keyRing);
 
-        var result = ClientDecryptionPolicy.GetDecryptionKeys(
-            mockKeyRingProvider.Object,
-            registration
-        );
+        var result = ClientDecryptionPolicy.GetDecryptionKeys(mockKeyRingProvider.Object, profile);
 
         var key = Assert.Single(result);
         Assert.Same(rsaKey, key);

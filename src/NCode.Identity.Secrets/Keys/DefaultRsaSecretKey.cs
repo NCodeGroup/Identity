@@ -32,8 +32,9 @@ internal class DefaultRsaSecretKey(
     KeyMetadata metadata,
     int modulusSizeBits,
     ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
-    ReadOnlyMemory<byte>? certificateRawData
-) : RsaSecretKey(metadata, modulusSizeBits, certificateRawData)
+    ReadOnlyMemory<byte>? certificateRawData,
+    IReadOnlyList<ReadOnlyMemory<byte>>? issuerCertificatesRawData = null
+) : RsaSecretKey(metadata, modulusSizeBits, certificateRawData, issuerCertificatesRawData)
 {
     private IDataProtector DataProtector { get; } = dataProtector;
     private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;

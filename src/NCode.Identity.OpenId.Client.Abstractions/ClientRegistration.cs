@@ -52,8 +52,8 @@ public sealed class ClientRegistration(
 
     /// <summary>
     /// Gets the name of the keyed <see cref="NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider"/>
-    /// holding the client's credentials and the private keys that decrypt the ID tokens and logout tokens encrypted
-    /// to it.
+    /// holding the client's credentials and the private keys that decrypt the ID tokens, logout tokens and UserInfo
+    /// responses encrypted to it.
     /// </summary>
     public string? KeyRing { get; init; }
 
@@ -108,6 +108,65 @@ public sealed class ClientRegistration(
             _idTokenContentEncryptionAlgorithms = ValidateAlgorithms(
                 value,
                 "ID-token content encryption algorithms"
+            );
+    }
+
+    private IReadOnlyList<string>? _userInfoSigningAlgorithms;
+
+    /// <summary>
+    /// Gets the JOSE <c>alg</c> names that UserInfo responses to this client are signed with, which is the
+    /// <c>userinfo_signed_response_alg</c> the client registered at the provider. <see langword="null"/> or empty
+    /// (the default) means the client registered no UserInfo signing, so the response must be JSON. When set, the
+    /// response must be a JWT signed with one of these algorithms by the provider's keys, carrying the provider's
+    /// <c>iss</c> and an <c>aud</c> naming the client (OpenID Connect Core 1.0 §5.3.2); a JSON response is refused.
+    /// <c>none</c> and symmetric algorithms are never accepted.
+    /// </summary>
+    // See ADR-0301.
+    public IReadOnlyList<string>? UserInfoSigningAlgorithms
+    {
+        get => _userInfoSigningAlgorithms;
+        init =>
+            _userInfoSigningAlgorithms = ValidateAlgorithms(value, "UserInfo signing algorithms");
+    }
+
+    private IReadOnlyList<string>? _userInfoKeyManagementAlgorithms;
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> names that UserInfo responses to this client are encrypted with, which is the
+    /// <c>userinfo_encrypted_response_alg</c> the client registered at the provider. <see langword="null"/> or empty
+    /// (the default) means the client registered no UserInfo encryption, so an encrypted response is refused. When
+    /// set, the response must be a Nested JWT, signed and then encrypted with one of these algorithms, which is
+    /// decrypted with the asymmetric keys of <see cref="KeyRing"/>; it applies only together with
+    /// <see cref="UserInfoSigningAlgorithms"/>, because a response that is encrypted but not signed is never accepted.
+    /// Only RSA-OAEP and ECDH-ES algorithms are accepted, never <c>RSA1_5</c>, <c>dir</c> or a shared-key algorithm.
+    /// </summary>
+    // See ADR-0301.
+    public IReadOnlyList<string>? UserInfoKeyManagementAlgorithms
+    {
+        get => _userInfoKeyManagementAlgorithms;
+        init =>
+            _userInfoKeyManagementAlgorithms = ValidateAlgorithms(
+                value,
+                "UserInfo key management algorithms"
+            );
+    }
+
+    private IReadOnlyList<string>? _userInfoContentEncryptionAlgorithms;
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> names that UserInfo responses to this client are encrypted with, which is the
+    /// <c>userinfo_encrypted_response_enc</c> the client registered at the provider. <see langword="null"/> or empty
+    /// means <c>A128CBC-HS256</c>, the registration default. It applies only together with
+    /// <see cref="UserInfoKeyManagementAlgorithms"/>.
+    /// </summary>
+    // See ADR-0301.
+    public IReadOnlyList<string>? UserInfoContentEncryptionAlgorithms
+    {
+        get => _userInfoContentEncryptionAlgorithms;
+        init =>
+            _userInfoContentEncryptionAlgorithms = ValidateAlgorithms(
+                value,
+                "UserInfo content encryption algorithms"
             );
     }
 

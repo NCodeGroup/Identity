@@ -75,7 +75,55 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
     #region Asymmetric
 
     /// <inheritdoc />
-    public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate)
+    public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2 certificate) =>
+        Create(metadata, certificate, issuerCertificatesRawData: []);
+
+    /// <inheritdoc />
+    public AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2Collection certificates)
+    {
+        ArgumentNullException.ThrowIfNull(certificates);
+
+        X509Certificate2? leaf = null;
+        foreach (var certificate in certificates)
+        {
+            if (!certificate.HasPrivateKey)
+                continue;
+
+            if (leaf is not null)
+                throw new ArgumentException(
+                    "The certificate collection holds more than one certificate with a private key.",
+                    nameof(certificates)
+                );
+
+            leaf = certificate;
+        }
+
+        if (leaf is null)
+            throw new ArgumentException(
+                "The certificate collection holds no certificate with a private key.",
+                nameof(certificates)
+            );
+
+        var issuers = new List<ReadOnlyMemory<byte>>();
+        foreach (var certificate in certificates)
+        {
+            if (
+                ReferenceEquals(certificate, leaf)
+                || certificate.RawDataMemory.Span.SequenceEqual(leaf.RawDataMemory.Span)
+            )
+                continue;
+
+            issuers.Add(certificate.Export(X509ContentType.Cert));
+        }
+
+        return Create(metadata, leaf, issuers);
+    }
+
+    private AsymmetricSecretKey Create(
+        KeyMetadata metadata,
+        X509Certificate2 certificate,
+        IReadOnlyList<ReadOnlyMemory<byte>> issuerCertificatesRawData
+    )
     {
         var newMetadata = metadata with
         {
@@ -90,15 +138,15 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
 
         using var ecDiffieHellman = certificate.GetECDiffieHellmanPrivateKey();
         if (ecDiffieHellman != null)
-            return CreateEcc(newMetadata, ecDiffieHellman, certificate);
+            return CreateEcc(newMetadata, ecDiffieHellman, certificate, issuerCertificatesRawData);
 
         using var ecDsa = certificate.GetECDsaPrivateKey();
         if (ecDsa != null)
-            return CreateEcc(newMetadata, ecDsa, certificate);
+            return CreateEcc(newMetadata, ecDsa, certificate, issuerCertificatesRawData);
 
         using var rsa = certificate.GetRSAPrivateKey();
         if (rsa != null)
-            return CreateRsa(newMetadata, rsa, certificate);
+            return CreateRsa(newMetadata, rsa, certificate, issuerCertificatesRawData);
 
         var algorithm = certificate.GetKeyAlgorithm();
         throw new NotSupportedException(
@@ -213,21 +261,42 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         KeyMetadata metadata,
         int modulusSizeBits,
         ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
-        ReadOnlyMemory<byte>? certificateRawData
+        ReadOnlyMemory<byte>? certificateRawData,
+        IReadOnlyList<ReadOnlyMemory<byte>> issuerCertificatesRawData
     ) =>
-        new(DataProtector, metadata, modulusSizeBits, protectedPkcs8PrivateKey, certificateRawData);
+        new(
+            DataProtector,
+            metadata,
+            modulusSizeBits,
+            protectedPkcs8PrivateKey,
+            certificateRawData,
+            issuerCertificatesRawData
+        );
 
     /// <inheritdoc />
     public RsaSecretKey CreateRsa(
         KeyMetadata metadata,
         RSA key,
         X509Certificate2? certificate = null
+    ) => CreateRsa(metadata, key, certificate, issuerCertificatesRawData: []);
+
+    private RsaSecretKey CreateRsa(
+        KeyMetadata metadata,
+        RSA key,
+        X509Certificate2? certificate,
+        IReadOnlyList<ReadOnlyMemory<byte>> issuerCertificatesRawData
     ) =>
         CreateAsymmetric<RsaSecretKey>(
             key,
             certificate,
             (keyBytes, certificateBytes) =>
-                CreateRsa(metadata, key.KeySize, keyBytes, certificateBytes)
+                CreateRsa(
+                    metadata,
+                    key.KeySize,
+                    keyBytes,
+                    certificateBytes,
+                    issuerCertificatesRawData
+                )
         );
 
     /// <inheritdoc />
@@ -276,20 +345,42 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         KeyMetadata metadata,
         int curveSizeBits,
         ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
-        ReadOnlyMemory<byte>? certificateRawData
-    ) => new(DataProtector, metadata, curveSizeBits, protectedPkcs8PrivateKey, certificateRawData);
+        ReadOnlyMemory<byte>? certificateRawData,
+        IReadOnlyList<ReadOnlyMemory<byte>> issuerCertificatesRawData
+    ) =>
+        new(
+            DataProtector,
+            metadata,
+            curveSizeBits,
+            protectedPkcs8PrivateKey,
+            certificateRawData,
+            issuerCertificatesRawData
+        );
 
     /// <inheritdoc />
     public EccSecretKey CreateEcc(
         KeyMetadata metadata,
         ECAlgorithm key,
         X509Certificate2? certificate = null
+    ) => CreateEcc(metadata, key, certificate, issuerCertificatesRawData: []);
+
+    private EccSecretKey CreateEcc(
+        KeyMetadata metadata,
+        ECAlgorithm key,
+        X509Certificate2? certificate,
+        IReadOnlyList<ReadOnlyMemory<byte>> issuerCertificatesRawData
     ) =>
         CreateAsymmetric<EccSecretKey>(
             key,
             certificate,
             (keyBytes, certificateBytes) =>
-                CreateEcc(metadata, key.KeySize, keyBytes, certificateBytes)
+                CreateEcc(
+                    metadata,
+                    key.KeySize,
+                    keyBytes,
+                    certificateBytes,
+                    issuerCertificatesRawData
+                )
         );
 
     /// <inheritdoc />

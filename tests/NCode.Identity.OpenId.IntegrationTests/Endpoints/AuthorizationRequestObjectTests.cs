@@ -111,8 +111,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     private static async Task<string> GetIssuerAsync(HttpClient client)
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.GetProperty("issuer").GetString()!;
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return jsonElement.GetProperty("issuer").GetString()!;
     }
 
     private string CreateRequestObject(
@@ -413,12 +413,12 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.Null(parameters["state"]);
         var jwt = parameters["response"];
         Assert.False(string.IsNullOrEmpty(jwt), location.ToString());
-        using var payload = JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
+        var payload = JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
-            payload.RootElement.GetProperty("error").GetString()
+            payload.GetProperty("error").GetString()
         );
-        Assert.Equal(State, payload.RootElement.GetProperty("state").GetString());
+        Assert.Equal(State, payload.GetProperty("state").GetString());
     }
 
     [Fact]

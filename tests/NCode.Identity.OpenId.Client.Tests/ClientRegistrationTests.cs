@@ -192,6 +192,84 @@ public class ClientRegistrationTests
 
     #endregion
 
+    #region UserInfo Algorithm Tests
+
+    private static ClientRegistration CreateUserInfoRegistration(
+        IReadOnlyList<string>? signing = null,
+        IReadOnlyList<string>? keyManagement = null,
+        IReadOnlyList<string>? contentEncryption = null
+    ) =>
+        new(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            UserInfoSigningAlgorithms = signing,
+            UserInfoKeyManagementAlgorithms = keyManagement,
+            UserInfoContentEncryptionAlgorithms = contentEncryption,
+        };
+
+    [Fact]
+    public void UserInfoAlgorithms_WhenNotSet_ThenNull()
+    {
+        var registration = CreateUserInfoRegistration();
+
+        Assert.Null(registration.UserInfoSigningAlgorithms);
+        Assert.Null(registration.UserInfoKeyManagementAlgorithms);
+        Assert.Null(registration.UserInfoContentEncryptionAlgorithms);
+    }
+
+    [Fact]
+    public void UserInfoAlgorithms_WhenValid_ThenRoundTripInOrder()
+    {
+        var registration = CreateUserInfoRegistration(
+            signing: ["PS256", "ES256"],
+            keyManagement: ["RSA-OAEP-256", "ECDH-ES"],
+            contentEncryption: ["A256GCM", "A128CBC-HS256"]
+        );
+
+        Assert.Equal(["PS256", "ES256"], registration.UserInfoSigningAlgorithms);
+        Assert.Equal(["RSA-OAEP-256", "ECDH-ES"], registration.UserInfoKeyManagementAlgorithms);
+        Assert.Equal(
+            ["A256GCM", "A128CBC-HS256"],
+            registration.UserInfoContentEncryptionAlgorithms
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("none")]
+    [InlineData("PS256")]
+    public void UserInfoSigningAlgorithms_WhenBlankNoneOrDuplicate_ThenThrows(string entry)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateUserInfoRegistration(signing: ["PS256", entry])
+        );
+    }
+
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("RSA-OAEP-256")]
+    public void UserInfoKeyManagementAlgorithms_WhenBlankOrDuplicate_ThenThrows(string entry)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateUserInfoRegistration(keyManagement: ["RSA-OAEP-256", entry])
+        );
+    }
+
+    [Theory]
+    [InlineData(" ")]
+    [InlineData("A256GCM")]
+    public void UserInfoContentEncryptionAlgorithms_WhenBlankOrDuplicate_ThenThrows(string entry)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateUserInfoRegistration(contentEncryption: ["A256GCM", entry])
+        );
+    }
+
+    #endregion
+
     #region BackchannelLogoutSessionRequired Tests
 
     [Fact]

@@ -81,7 +81,10 @@ Concretely:
   (carrying `iss`, `aud`, `iat`, `jti`, `sid`/`sub`, and the `events` claim) and `POST`s it to each client's
   `backchannel_logout_uri` through an injectable `IBackChannelLogoutNotifier` (default implementation uses a named
   `HttpClient`). The transport is an abstraction because delivery policy (retries, fan-out, out-of-band queuing) is
-  deployment-specific.
+  deployment-specific. The notifier follows the tenant's discovery: it sends nothing when `backchannel_logout_supported`
+  is false and omits `sid` when `backchannel_logout_session_supported` is false, and a client cannot register a logout
+  channel, or a session requirement, that its tenant does not support (`LogoutChannelCoherenceRule`,
+  [ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
 - **The iframe mechanisms are declined, not stubbed.** Front-Channel Logout and Session Management are **not**
   implemented because they depend on third-party cookies the browser platform is removing. The session model and the
   logout pipeline leave the seam open (a session knows its participating clients; the logout command is a mediator

@@ -266,7 +266,7 @@ internal class DefaultTenantResolver(
             return false;
 
         var rootIssuer = await Selected.GetDefaultIssuerAsync(rootTenantId, cancellationToken);
-        return Uri.TryCreate(rootIssuer, UriKind.Absolute, out var rootIssuerUri)
+        return AbsoluteUri.TryParse(rootIssuer, out var rootIssuerUri)
             && Uri.Compare(
                 issuer,
                 rootIssuerUri,

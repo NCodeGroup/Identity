@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>NCode.Identity.Bff.Server</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Bff\NCode.Identity.Bff.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Events\NCode.Identity.Events.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jwt\NCode.Identity.Jwt.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Client\NCode.Identity.OpenId.Client.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
+        <ProjectReference Include="..\NCode.Identity.SharedState\NCode.Identity.SharedState.csproj" />
+        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+    </ItemGroup>
+</Project>

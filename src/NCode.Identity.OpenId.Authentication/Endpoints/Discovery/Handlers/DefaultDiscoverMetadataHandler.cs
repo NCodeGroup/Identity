@@ -162,8 +162,8 @@ internal class DefaultDiscoverMetadataHandler(
     private static string? TryRewriteAuthority(string endpointUrl, string authority)
     {
         if (
-            !Uri.TryCreate(endpointUrl, UriKind.Absolute, out var endpointUri)
-            || !Uri.TryCreate(authority, UriKind.Absolute, out var authorityUri)
+            !AbsoluteUri.TryParse(endpointUrl, out var endpointUri)
+            || !AbsoluteUri.TryParse(authority, out var authorityUri)
         )
             return null;
 

@@ -639,18 +639,18 @@ public sealed class DefaultRegistrationTests
             }
         );
         var serializer = host.Services.GetRequiredService<ISettingSerializer>();
-        var document = JsonElement.Parse("""{"organization_mfa_required":true}""");
+        var jsonElement = JsonElement.Parse("""{"organization_mfa_required":true}""");
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         Assert.Empty(
-            serializer.ValidateSettings(document, OpenIdSettingScopes.Server, jsonOptions)
+            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Server, jsonOptions)
         );
         Assert.Empty(
-            serializer.ValidateSettings(document, OpenIdSettingScopes.Tenant, jsonOptions)
+            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Tenant, jsonOptions)
         );
-        Assert.Empty(serializer.ValidateSettings(document, Organization, jsonOptions));
+        Assert.Empty(serializer.ValidateSettings(jsonElement, Organization, jsonOptions));
         var error = Assert.Single(
-            serializer.ValidateSettings(document, OpenIdSettingScopes.Client, jsonOptions)
+            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Client, jsonOptions)
         );
         Assert.Equal("organization_mfa_required", error.SettingName);
     }
@@ -763,9 +763,9 @@ public sealed class DefaultRegistrationTests
         var settingCollectionFactory =
             host.Services.GetRequiredService<ISettingCollectionFactory>();
         var parentSettings = settingCollectionFactory.Create();
-        var document = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
+        var jsonElement = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
 
-        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, jsonElement);
 
         Assert.True(effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles));
         Assert.Contains(OpenIdConstants.SecurityProfiles.Production, profiles);
@@ -784,7 +784,7 @@ public sealed class DefaultRegistrationTests
         var settingCollectionFactory =
             host.Services.GetRequiredService<ISettingCollectionFactory>();
         var parentSettings = settingCollectionFactory.Create();
-        var document = JsonSerializer.SerializeToElement(
+        var jsonElement = JsonSerializer.SerializeToElement(
             new Dictionary<string, object?>
             {
                 [OpenIdSettingNames.EnvironmentType] = OpenIdConstants
@@ -793,7 +793,7 @@ public sealed class DefaultRegistrationTests
             }
         );
 
-        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, jsonElement);
 
         Assert.False(
             effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
@@ -814,9 +814,9 @@ public sealed class DefaultRegistrationTests
             OpenIdSettingKeys.EnvironmentType,
             OpenIdConstants.TenantEnvironmentTypes.Development
         );
-        var document = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
+        var jsonElement = JsonSerializer.SerializeToElement(new Dictionary<string, object?>());
 
-        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, jsonElement);
 
         Assert.False(
             effective.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var profiles)
@@ -833,11 +833,11 @@ public sealed class DefaultRegistrationTests
         var settingCollectionFactory =
             host.Services.GetRequiredService<ISettingCollectionFactory>();
         var parentSettings = settingCollectionFactory.Create();
-        var document = JsonSerializer.SerializeToElement(
+        var jsonElement = JsonSerializer.SerializeToElement(
             new Dictionary<string, object?> { [OpenIdSettingNames.DeletionProtection] = false }
         );
 
-        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, document);
+        var effective = resolver.Resolve(parentSettings, OpenIdSettingScopes.Tenant, jsonElement);
 
         Assert.False(effective.GetValue(OpenIdSettingKeys.DeletionProtection));
     }

@@ -50,6 +50,8 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
+    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
+
     private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ITokenService> MockTokenService { get; }
@@ -92,6 +94,13 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             },
         };
 
+    private static IssuedRefreshToken CreateIssuedRefreshToken(string tokenValue) =>
+        new()
+        {
+            Token = CreateSecurityToken(tokenValue),
+            LineageExpiresWhen = CreatedWhen + RefreshTokenLifetime,
+        };
+
     private static PersistedGrant<RefreshTokenGrant> CreateActiveGrant(
         IReadOnlyList<string> scopes
     ) =>
@@ -102,7 +111,8 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
-            Payload = new RefreshTokenGrant("client-1", scopes, scopes, null, default),
+            ExpiresWhen = CreatedWhen + RefreshTokenLifetime,
+            Payload = new RefreshTokenGrant("client-1", scopes, scopes, null, default, CreatedWhen),
         };
 
     private static PersistedGrant<RefreshTokenGrant> CreateActiveGrantInLineage(
@@ -155,6 +165,11 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+
+        // Every grant's rotation family began at CreatedWhen, so it lasts the lifetime from then.
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenLifetime))
+            .Returns(RefreshTokenLifetime);
 
         return (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, mockError);
     }
@@ -327,7 +342,8 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                 ["api"],
                 ["api"],
                 null,
-                new TokenConfirmation { JwkThumbprint = "jkt-1" }
+                new TokenConfirmation { JwkThumbprint = "jkt-1" },
+                CreatedWhen
             ),
         };
         SetupLookup(mockTokenRequest, boundGrant);
@@ -355,7 +371,14 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
+            Payload = new RefreshTokenGrant(
+                "client-1",
+                ["api"],
+                ["api"],
+                null,
+                default,
+                CreatedWhen
+            ),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 
@@ -395,7 +418,14 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             ClientId = "client-1",
             SubjectId = "subject-1",
             SessionId = null,
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
+            Payload = new RefreshTokenGrant(
+                "client-1",
+                ["api"],
+                ["api"],
+                null,
+                default,
+                CreatedWhen
+            ),
         };
         SetupLookup(mockTokenRequest, expiredGrant);
 
@@ -456,7 +486,14 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             SubjectId = "subject-1",
             SessionId = null,
             RefreshTokenLineageId = "lineage-1",
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
+            Payload = new RefreshTokenGrant(
+                "client-1",
+                ["api"],
+                ["api"],
+                null,
+                default,
+                CreatedWhen
+            ),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 
@@ -514,7 +551,14 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             SubjectId = "subject-1",
             SessionId = null,
             RefreshTokenLineageId = "lineage-1",
-            Payload = new RefreshTokenGrant("client-1", ["api"], ["api"], null, default),
+            Payload = new RefreshTokenGrant(
+                "client-1",
+                ["api"],
+                ["api"],
+                null,
+                default,
+                CreatedWhen
+            ),
         };
         SetupLookup(mockTokenRequest, revokedGrant);
 
@@ -576,11 +620,16 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     CreateGrantId(),
                     It.Is<CreateSecurityTokenRequest>(request =>
                         request.RefreshTokenLineageId == "lineage-1"
+                        && request.RefreshTokenLineageCreatedWhen == CreatedWhen
                     ),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("successor-refresh-token")))
+            .Returns(
+                new ValueTask<IssuedRefreshToken?>(
+                    CreateIssuedRefreshToken("successor-refresh-token")
+                )
+            )
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -593,6 +642,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("successor-refresh-token", response.RefreshToken);
+        Assert.Equal(RefreshTokenLifetime, response.RefreshTokenExpiresIn);
     }
 
     [Fact]
@@ -627,7 +677,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>((SecurityToken?)null))
+            .Returns(new ValueTask<IssuedRefreshToken?>((IssuedRefreshToken?)null))
             .Verifiable();
 
         SetupReuseAnswer(mockContext, mockClient, mockSettings);
@@ -767,7 +817,11 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("successor-refresh-token")))
+            .Returns(
+                new ValueTask<IssuedRefreshToken?>(
+                    CreateIssuedRefreshToken("successor-refresh-token")
+                )
+            )
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -797,7 +851,8 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                 scopes,
                 scopes,
                 null,
-                new TokenConfirmation { JwkThumbprint = "jkt-1" }
+                new TokenConfirmation { JwkThumbprint = "jkt-1" },
+                CreatedWhen
             ),
         };
         SetupLookup(mockTokenRequest, boundGrant);
@@ -867,6 +922,207 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal(RefreshTokenValue, response.RefreshToken);
+        Assert.Equal(RefreshTokenLifetime, response.RefreshTokenExpiresIn);
+    }
+
+    // A confidential client's unbound token is kept, so these tests reach the response without a rotation.
+    private (
+        Mock<OpenIdContext> context,
+        Mock<OpenIdClient> client,
+        Mock<ITokenRequest> tokenRequest,
+        Mock<IReadOnlySettingCollection> settings
+    ) CreateKeptTokenScaffold(PersistedGrant<RefreshTokenGrant> grant)
+    {
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, _) =
+            CreateScaffold();
+
+        SetupLookup(mockTokenRequest, grant);
+        SetupTokenResponse(mockContext, mockClient, mockMediator);
+        mockClient.SetupGet(x => x.IsConfidential).Returns(true).Verifiable();
+
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest
+            .SetupGet(x => x.GrantType)
+            .Returns(OpenIdProtocol.GrantTypes.RefreshToken)
+            .Verifiable();
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenRotationPolicy))
+            .Returns(OpenIdConstants.RefreshTokenRotationPolicy.Unbound)
+            .Verifiable();
+
+        return (mockContext, mockClient, mockTokenRequest, mockSettings);
+    }
+
+    private static PersistedGrant<RefreshTokenGrant> CreateGrantInLineageBegunAt(
+        DateTimeOffset lineageCreatedWhen,
+        DateTimeOffset expiresWhen
+    )
+    {
+        var grant = CreateActiveGrantInLineage(["api", "offline_access"]);
+        return grant with
+        {
+            ExpiresWhen = expiresWhen,
+            Payload = grant.Payload with { LineageCreatedWhen = lineageCreatedWhen },
+        };
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheLineageHasExpired_ReturnsInvalidGrantWithoutIssuing()
+    {
+        // Nothing is validated or minted: the strict mocks set up neither. The family began a lifetime ago, so a token
+        // the store still holds as active has outlived it (for example after the lifetime was shortened).
+        var (mockContext, mockClient, _, mockTokenRequest, _, mockError) = CreateScaffold();
+        SetupLookup(
+            mockTokenRequest,
+            CreateGrantInLineageBegunAt(
+                CreatedWhen - RefreshTokenLifetime,
+                CreatedWhen + TimeSpan.FromDays(1)
+            )
+        );
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAKeptTokensLineageBeganEarlier_AnnouncesWhatIsLeftOfIt()
+    {
+        var lineageCreatedWhen = CreatedWhen - TimeSpan.FromDays(10);
+        var (mockContext, mockClient, mockTokenRequest, _) = CreateKeptTokenScaffold(
+            CreateGrantInLineageBegunAt(
+                lineageCreatedWhen,
+                lineageCreatedWhen + RefreshTokenLifetime
+            )
+        );
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        var response = Assert.IsType<TokenResponse>(result);
+        Assert.Equal(TimeSpan.FromDays(20), response.RefreshTokenExpiresIn);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSlidingAndTheTokenIsKept_SlidesItWithinItsLineage()
+    {
+        var lineageCreatedWhen = CreatedWhen - TimeSpan.FromDays(10);
+        var (mockContext, mockClient, mockTokenRequest, mockSettings) = CreateKeptTokenScaffold(
+            CreateGrantInLineageBegunAt(lineageCreatedWhen, CreatedWhen + TimeSpan.FromDays(1))
+        );
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy))
+            .Returns(OpenIdConstants.RefreshTokenExpirationPolicy.Sliding)
+            .Verifiable();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenSlidingLifetime))
+            .Returns(TimeSpan.FromDays(7))
+            .Verifiable();
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdateExpirationAsync(
+                    mockContext.Object,
+                    CreateGrantId(),
+                    CreatedWhen + TimeSpan.FromDays(7),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        // The token slides; the family's horizon, which the response announces, does not.
+        var response = Assert.IsType<TokenResponse>(result);
+        Assert.Equal(TimeSpan.FromDays(20), response.RefreshTokenExpiresIn);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSlidingNearTheLineageEnd_SlidesTheTokenOnlyToTheLineageEnd()
+    {
+        var lineageCreatedWhen = CreatedWhen - TimeSpan.FromDays(27);
+        var (mockContext, mockClient, mockTokenRequest, mockSettings) = CreateKeptTokenScaffold(
+            CreateGrantInLineageBegunAt(lineageCreatedWhen, CreatedWhen + TimeSpan.FromDays(1))
+        );
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy))
+            .Returns(OpenIdConstants.RefreshTokenExpirationPolicy.Sliding)
+            .Verifiable();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenSlidingLifetime))
+            .Returns(TimeSpan.FromDays(7))
+            .Verifiable();
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdateExpirationAsync(
+                    mockContext.Object,
+                    CreateGrantId(),
+                    lineageCreatedWhen + RefreshTokenLifetime,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        var response = Assert.IsType<TokenResponse>(result);
+        Assert.Equal(TimeSpan.FromDays(3), response.RefreshTokenExpiresIn);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAbsoluteAndTheLifetimeChanged_MovesTheKeptTokenToItsLineageEnd()
+    {
+        // The token was stored under a shorter lifetime; its family now lasts the full lifetime from when it began.
+        var (mockContext, mockClient, mockTokenRequest, _) = CreateKeptTokenScaffold(
+            CreateGrantInLineageBegunAt(CreatedWhen, CreatedWhen + TimeSpan.FromDays(1))
+        );
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdateExpirationAsync(
+                    mockContext.Object,
+                    CreateGrantId(),
+                    CreatedWhen + RefreshTokenLifetime,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.IsType<TokenResponse>(result);
     }
 
     [Fact]
@@ -898,11 +1154,16 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     mockClient.Object,
                     It.Is<CreateSecurityTokenRequest>(request =>
                         request.RefreshTokenLineageId == "lineage-1"
+                        && request.RefreshTokenLineageCreatedWhen == CreatedWhen
                     ),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("another-refresh-token")))
+            .Returns(
+                new ValueTask<IssuedRefreshToken?>(
+                    CreateIssuedRefreshToken("another-refresh-token")
+                )
+            )
             .Verifiable();
 
         MockAuditEventRecorder
@@ -984,7 +1245,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>((SecurityToken?)null))
+            .Returns(new ValueTask<IssuedRefreshToken?>((IssuedRefreshToken?)null))
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -1081,7 +1342,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>((SecurityToken?)null))
+            .Returns(new ValueTask<IssuedRefreshToken?>((IssuedRefreshToken?)null))
             .Verifiable();
 
         MockTokenService
@@ -1091,11 +1352,16 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     mockClient.Object,
                     It.Is<CreateSecurityTokenRequest>(request =>
                         request.RefreshTokenLineageId == "lineage-1"
+                        && request.RefreshTokenLineageCreatedWhen == CreatedWhen
                     ),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("another-refresh-token")))
+            .Returns(
+                new ValueTask<IssuedRefreshToken?>(
+                    CreateIssuedRefreshToken("another-refresh-token")
+                )
+            )
             .Verifiable();
 
         MockAuditEventRecorder
@@ -1178,7 +1444,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken?>((SecurityToken?)null))
+            .Returns(new ValueTask<IssuedRefreshToken?>((IssuedRefreshToken?)null))
             .Verifiable();
 
         SetupReuseAnswer(mockContext, mockClient, mockSettings);

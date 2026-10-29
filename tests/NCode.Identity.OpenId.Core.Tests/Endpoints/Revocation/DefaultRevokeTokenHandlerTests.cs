@@ -118,7 +118,7 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
             ClientId = clientId,
             SubjectId = null,
             SessionId = null,
-            Payload = new RefreshTokenGrant(clientId, [], [], null, default),
+            Payload = new RefreshTokenGrant(clientId, [], [], null, default, default),
         };
 
     #endregion

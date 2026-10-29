@@ -79,8 +79,8 @@ public class TokenEndpointPasswordTests
         var (status, body) = await RequestTokenAsync();
         Assert.True(status == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
 
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
@@ -88,8 +88,8 @@ public class TokenEndpointPasswordTests
 
         // The access token's subject is the stable, server-owned principal id resolved for the authenticated account —
         // never the raw local-account id or username (ADR-0035).
-        using var payload = DecodeJwtPayload(accessToken.GetString()!);
-        var subject = payload.RootElement.GetProperty("sub").GetString();
+        var payload = DecodeJwtPayload(accessToken.GetString()!);
+        var subject = payload.GetProperty("sub").GetString();
         Assert.False(string.IsNullOrEmpty(subject));
         Assert.NotEqual(localAccountId, subject);
         Assert.NotEqual(UserName, subject);
@@ -97,11 +97,11 @@ public class TokenEndpointPasswordTests
         // Re-authenticating the same account resolves to the same principal, so the subject is stable across grants.
         var (secondStatus, secondBody) = await RequestTokenAsync();
         Assert.True(secondStatus == HttpStatusCode.OK, secondBody);
-        using var secondDocument = JsonDocument.Parse(secondBody);
-        using var secondPayload = DecodeJwtPayload(
-            secondDocument.RootElement.GetProperty("access_token").GetString()!
+        var secondDocument = JsonElement.Parse(secondBody);
+        var secondPayload = DecodeJwtPayload(
+            secondDocument.GetProperty("access_token").GetString()!
         );
-        Assert.Equal(subject, secondPayload.RootElement.GetProperty("sub").GetString());
+        Assert.Equal(subject, secondPayload.GetProperty("sub").GetString());
     }
 
     [Fact]
@@ -141,8 +141,8 @@ public class TokenEndpointPasswordTests
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(document.RootElement.TryGetProperty("error", out _));
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(jsonElement.TryGetProperty("error", out _));
     }
 
     [Fact]
@@ -185,9 +185,9 @@ public class TokenEndpointPasswordTests
         );
         var registerBody = await registerResponse.Content.ReadAsStringAsync();
         Assert.True(registerResponse.StatusCode == HttpStatusCode.Created, registerBody);
-        using var registration = JsonDocument.Parse(registerBody);
-        var clientId = registration.RootElement.GetProperty("client_id").GetString()!;
-        var clientSecret = registration.RootElement.GetProperty("client_secret").GetString()!;
+        var registration = JsonElement.Parse(registerBody);
+        var clientId = registration.GetProperty("client_id").GetString()!;
+        var clientSecret = registration.GetProperty("client_secret").GetString()!;
 
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
@@ -203,8 +203,8 @@ public class TokenEndpointPasswordTests
         using var response = await client.PostAsync("/oauth2/token", content);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        using var document = JsonDocument.Parse(body);
-        var idToken = document.RootElement.GetProperty("id_token").GetString()!;
+        var jsonElement = JsonElement.Parse(body);
+        var idToken = jsonElement.GetProperty("id_token").GetString()!;
 
         // Signed by the tenant, then encrypted (a Nested JWT) to the client's key: only the client's private key opens it.
         var joseSerializer = factory.Services.GetRequiredService<IJoseSerializer>();
@@ -222,16 +222,16 @@ public class TokenEndpointPasswordTests
         var signed = joseSerializer.Decode(encrypted, clientKey);
         var segments = signed.Split('.');
         Assert.Equal(3, segments.Length);
-        using var signedHeader = JsonDocument.Parse(Base64Url.DecodeFromChars(segments[0]));
-        Assert.Equal("RS256", signedHeader.RootElement.GetProperty("alg").GetString());
-        using var payload = DecodeJwtPayload(signed);
-        Assert.Equal(clientId, payload.RootElement.GetProperty("aud").GetString());
+        var signedHeader = JsonElement.Parse(Base64Url.DecodeFromChars(segments[0]));
+        Assert.Equal("RS256", signedHeader.GetProperty("alg").GetString());
+        var payload = DecodeJwtPayload(signed);
+        Assert.Equal(clientId, payload.GetProperty("aud").GetString());
     }
 
-    private static JsonDocument DecodeJwtPayload(string jwt)
+    private static JsonElement DecodeJwtPayload(string jwt)
     {
         var payloadSegment = jwt.Split('.')[1];
         var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
-        return JsonDocument.Parse(payloadBytes);
+        return JsonElement.Parse(payloadBytes);
     }
 }

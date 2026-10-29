@@ -89,6 +89,7 @@ internal class TenantApiEndpointHandler(
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
+    ITenantEnvironmentCatalog tenantEnvironmentCatalog,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
@@ -111,6 +112,7 @@ internal class TenantApiEndpointHandler(
         settingScopeCollectionProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
+    private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
@@ -196,13 +198,26 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Maps a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> representation.
+    /// Maps a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> representation, without its environment:
+    /// the tenant's own state, as an audit record carries it.
     /// </summary>
     /// <param name="tenant">The <see cref="PersistedTenant"/> to map.</param>
     /// <returns>The mapped <see cref="TenantResource"/>.</returns>
-    internal virtual TenantResource ToTenantResource(PersistedTenant tenant)
-    {
-        return new TenantResource
+    internal virtual TenantResource ToTenantResource(PersistedTenant tenant) =>
+        ToTenantResource(tenant, environment: null);
+
+    /// <summary>
+    /// Maps a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> representation with its environment.
+    /// </summary>
+    /// <param name="tenant">The <see cref="PersistedTenant"/> to map.</param>
+    /// <param name="environment">The tenant's effective environment, or <see langword="null"/> when it cannot be
+    /// determined.</param>
+    /// <returns>The mapped <see cref="TenantResource"/>.</returns>
+    internal virtual TenantResource ToTenantResource(
+        PersistedTenant tenant,
+        TenantEnvironmentResource? environment
+    ) =>
+        new()
         {
             TenantId = tenant.TenantId,
             ConcurrencyToken = tenant.ConcurrencyToken,
@@ -210,8 +225,85 @@ internal class TenantApiEndpointHandler(
             MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
+            Environment = environment,
+        };
+
+    /// <summary>
+    /// Creates a mapper from a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> that resolves each
+    /// tenant's effective environment under the server's effective settings, which it reads once. When the server's
+    /// stored settings cannot be honored, the mapper leaves every environment unset rather than failing the request.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The mapper.</returns>
+    // See ADR-0289.
+    internal virtual async ValueTask<
+        Func<PersistedTenant, TenantResource>
+    > CreateTenantResourceMapperAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlySettingCollection serverSettings;
+        try
+        {
+            serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        }
+        catch (UnreadableSettingsException exception)
+        {
+            LogEnvironmentUnresolved(exception);
+            return ToTenantResource;
+        }
+
+        return tenant => ToTenantResource(tenant, ResolveEnvironment(serverSettings, tenant));
+    }
+
+    /// <summary>
+    /// Resolves a tenant's effective environment from its stored settings under the server's effective settings.
+    /// </summary>
+    /// <param name="serverSettings">The server's effective settings.</param>
+    /// <param name="tenant">The tenant whose environment to resolve.</param>
+    /// <returns>The tenant's environment, or <see langword="null"/> when its stored settings cannot be honored or name a
+    /// type that is not registered.</returns>
+    // A tenant whose settings need repair is still listed, so its environment is best-effort (ADR-0245, ADR-0289).
+    internal virtual TenantEnvironmentResource? ResolveEnvironment(
+        IReadOnlySettingCollection serverSettings,
+        PersistedTenant tenant
+    )
+    {
+        IReadOnlySettingCollection tenantSettings;
+        try
+        {
+            tenantSettings = EffectiveSettingsResolver.ResolveStored(
+                serverSettings,
+                OpenIdSettingScopes.Tenant,
+                tenant.TenantId,
+                tenant.Settings.Value
+            );
+        }
+        catch (UnreadableSettingsException exception)
+        {
+            LogEnvironmentUnresolved(exception);
+            return null;
+        }
+
+        var typeName = tenantSettings.GetValue(OpenIdSettingKeys.EnvironmentType);
+        if (!TenantEnvironmentCatalog.TryGetType(typeName, out var type))
+        {
+            return null;
+        }
+
+        var name = tenantSettings.GetValue(OpenIdSettingKeys.EnvironmentName);
+        return new TenantEnvironmentResource
+        {
+            Type = type.TypeName,
+            Name = string.IsNullOrEmpty(name) ? null : name,
+            IsProduction = type.IsProduction,
         };
     }
+
+    private void LogEnvironmentUnresolved(UnreadableSettingsException exception) =>
+        Logger.TenantEnvironmentUnresolved(
+            exception.ScopeName,
+            exception.OwnerId,
+            exception.DocumentError
+        );
 
     /// <summary>
     /// Maps a <see cref="PersistedTenantSettings"/> to its <see cref="TenantSettingsResource"/> representation.
@@ -287,12 +379,17 @@ internal class TenantApiEndpointHandler(
     {
         var effectiveLimit = NormalizeLimit(limit);
 
+        // The page is fetched only after authorization, so the server's settings are read with it, never for a caller
+        // who may not list tenants.
+        Func<PersistedTenant, TenantResource> toTenantResource = ToTenantResource;
+
         // Tenant administration is central-admin; a null authorization resource restricts this to global admins.
         return await ProcessListAsync(
             httpContext,
             authorizationResource: null,
             async () =>
             {
+                toTenantResource = await CreateTenantResourceMapperAsync(cancellationToken);
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
                     cancellationToken
                 );
@@ -302,7 +399,7 @@ internal class TenantApiEndpointHandler(
                     cancellationToken
                 );
             },
-            ToTenantResource
+            tenant => toTenantResource(tenant)
         );
     }
 
@@ -326,7 +423,20 @@ internal class TenantApiEndpointHandler(
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
-        return await ProcessGetAsync(httpContext, tenant, node, Operations.Read, ToTenantResource);
+
+        // The environment is resolved only after authorization (ADR-0245).
+        return await ProcessGetAsync(
+            httpContext,
+            tenant,
+            node,
+            Operations.Read,
+            async (persistedTenant, token) =>
+            {
+                var toTenantResource = await CreateTenantResourceMapperAsync(token);
+                return toTenantResource(persistedTenant);
+            },
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -439,15 +549,18 @@ internal class TenantApiEndpointHandler(
         // concurrency token, so the response reflects the tenant as it now stands.
         tenant = await ReloadTenantAsync(tenant, cancellationToken);
 
-        var resource = ToTenantResource(tenant);
-
+        // The audit record carries the tenant's own state, as an update's and a deletion's do; the environment is
+        // derived from its settings and stamps the audit event itself (ADR-0289).
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
             tenant.TenantId,
             ResourceChangeTypes.Created,
-            ToResourceValues(resource),
+            ToResourceValues(ToTenantResource(tenant)),
             cancellationToken
         );
+
+        var toTenantResource = await CreateTenantResourceMapperAsync(cancellationToken);
+        var resource = toTenantResource(tenant);
 
         httpContext.Response.Headers.ETag = tenant.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenant.TenantId}", resource);
@@ -694,6 +807,13 @@ internal class TenantApiEndpointHandler(
         }
 
         var resourceValues = ToResourceValues(ToTenantResource(tenant));
+
+        // The tenant's row is gone when the deletion is audited, so its environment type is recorded now (ADR-0289).
+        ManagementTenantEnvironment.Remember(
+            httpContext,
+            tenant.TenantId,
+            effectiveSettings.GetValue(OpenIdSettingKeys.EnvironmentType)
+        );
 
         await store.RemoveAsync(tenantId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);

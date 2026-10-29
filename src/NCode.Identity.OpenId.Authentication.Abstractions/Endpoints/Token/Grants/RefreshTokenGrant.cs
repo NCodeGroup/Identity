@@ -25,11 +25,21 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 /// <summary>
 /// Represents a refresh token grant.
 /// </summary>
+/// <param name="ClientId">The identifier of the client the refresh token was issued to.</param>
+/// <param name="OriginalScopes">The scopes of the grant that began the token's rotation family.</param>
+/// <param name="EffectiveScopes">The scopes the refresh token grants.</param>
+/// <param name="SubjectAuthentication">The end-user's authentication, or <see langword="null"/> when there is no
+/// end-user.</param>
+/// <param name="Confirmation">The proof-of-possession key the refresh token is bound to, if any.</param>
+/// <param name="LineageCreatedWhen">When the token's rotation family began: the issuance of its first token, which
+/// every rotation and retry inherits. The family expires <c>refresh_token_lifetime</c> after it.</param>
 [PublicAPI]
 public readonly record struct RefreshTokenGrant(
     string ClientId,
     IReadOnlyList<string> OriginalScopes,
     IReadOnlyList<string> EffectiveScopes,
     SubjectAuthentication? SubjectAuthentication,
-    TokenConfirmation Confirmation
+    TokenConfirmation Confirmation,
+    // See ADR-0297.
+    DateTimeOffset LineageCreatedWhen
 );

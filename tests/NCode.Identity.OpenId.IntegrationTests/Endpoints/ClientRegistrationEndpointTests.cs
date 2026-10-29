@@ -64,8 +64,8 @@ public class ClientRegistrationEndpointTests
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
 
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
         var clientId = root.GetProperty("client_id").GetString();
         var clientSecret = root.GetProperty("client_secret").GetString();
         Assert.NotNull(clientId);
@@ -281,10 +281,10 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        using var document = JsonDocument.Parse(body);
+        var jsonElement = JsonElement.Parse(body);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
-            document.RootElement.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -313,8 +313,8 @@ public class ClientRegistrationEndpointTests
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
 
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
         var clientId = root.GetProperty("client_id").GetString();
         Assert.NotNull(clientId);
 
@@ -485,8 +485,8 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
 
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         Assert.Equal(expectedError, root.GetProperty("error").GetString());
         Assert.Contains(
             $"'{expectedQuotedName}'",
@@ -597,8 +597,8 @@ public class ClientRegistrationEndpointTests
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
         Assert.Equal(["client-key"], GetKeyIds(root));
 
         using var readRequest = new HttpRequestMessage(
@@ -613,8 +613,8 @@ public class ClientRegistrationEndpointTests
 
         var readBody = await readResponse.Content.ReadAsStringAsync();
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
-        using var read = JsonDocument.Parse(readBody);
-        Assert.Equal(["client-key"], GetKeyIds(read.RootElement));
+        var read = JsonElement.Parse(readBody);
+        Assert.Equal(["client-key"], GetKeyIds(read));
     }
 
     [Fact]
@@ -657,8 +657,8 @@ public class ClientRegistrationEndpointTests
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
 
         using var updateRequest = new HttpRequestMessage(
             HttpMethod.Put,
@@ -686,12 +686,9 @@ public class ClientRegistrationEndpointTests
         // A client's keys come from one source, so publishing them at a jwks_uri replaces the registered ones.
         var updateBody = await updateResponse.Content.ReadAsStringAsync();
         Assert.True(updateResponse.StatusCode == HttpStatusCode.OK, updateBody);
-        using var update = JsonDocument.Parse(updateBody);
-        Assert.Equal(
-            "https://client.example/jwks",
-            update.RootElement.GetProperty("jwks_uri").GetString()
-        );
-        Assert.False(update.RootElement.TryGetProperty("jwks", out _));
+        var update = JsonElement.Parse(updateBody);
+        Assert.Equal("https://client.example/jwks", update.GetProperty("jwks_uri").GetString());
+        Assert.False(update.TryGetProperty("jwks", out _));
     }
 
     [Fact]
@@ -709,8 +706,8 @@ public class ClientRegistrationEndpointTests
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
         var registrationClientUri = root.GetProperty("registration_client_uri").GetString();
         var registrationAccessToken = root.GetProperty("registration_access_token").GetString();
 
@@ -786,8 +783,8 @@ public class ClientRegistrationEndpointTests
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registered = JsonDocument.Parse(registrationBody);
-        var root = registered.RootElement;
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
         Assert.Equal(
             OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
             root.GetProperty("token_endpoint_auth_method").GetString()
@@ -796,10 +793,10 @@ public class ClientRegistrationEndpointTests
         Assert.False(root.TryGetProperty("client_secret", out _));
 
         var clientId = root.GetProperty("client_id").GetString() ?? string.Empty;
-        using var discovery = JsonDocument.Parse(
+        var discovery = JsonElement.Parse(
             await client.GetStringAsync("/.well-known/openid-configuration")
         );
-        var issuer = discovery.RootElement.GetProperty("issuer").GetString() ?? string.Empty;
+        var issuer = discovery.GetProperty("issuer").GetString() ?? string.Empty;
         using var tokenResponse = await client.PostAsync(
             "/oauth2/token",
             new FormUrlEncodedContent(
@@ -813,9 +810,9 @@ public class ClientRegistrationEndpointTests
         );
 
         var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
-        using var token = JsonDocument.Parse(tokenBody);
+        var token = JsonElement.Parse(tokenBody);
         Assert.False(
-            token.RootElement.TryGetProperty("error", out var error)
+            token.TryGetProperty("error", out var error)
                 && error.GetString() == OpenIdProtocol.ErrorCodes.InvalidClient,
             tokenBody
         );
@@ -869,8 +866,8 @@ public class ClientRegistrationEndpointTests
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registered = JsonDocument.Parse(registrationBody);
-        var root = registered.RootElement;
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
         Assert.False(root.TryGetProperty("client_secret", out _));
         Assert.Equal("client.example.com", root.GetProperty("tls_client_auth_san_dns").GetString());
 
@@ -886,11 +883,8 @@ public class ClientRegistrationEndpointTests
 
         var readBody = await readResponse.Content.ReadAsStringAsync();
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
-        using var read = JsonDocument.Parse(readBody);
-        Assert.Equal(
-            "client.example.com",
-            read.RootElement.GetProperty("tls_client_auth_san_dns").GetString()
-        );
+        var read = JsonElement.Parse(readBody);
+        Assert.Equal("client.example.com", read.GetProperty("tls_client_auth_san_dns").GetString());
     }
 
     [Fact]
@@ -950,8 +944,8 @@ public class ClientRegistrationEndpointTests
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
 
         // Reading the registration back loads the stored client, so the metadata round-trips through its settings.
         using var readRequest = new HttpRequestMessage(
@@ -965,27 +959,29 @@ public class ClientRegistrationEndpointTests
         using var readResponse = await client.SendAsync(readRequest);
         var readBody = await readResponse.Content.ReadAsStringAsync();
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
-        using var read = JsonDocument.Parse(readBody);
+        var read = JsonElement.Parse(readBody);
 
-        foreach (var document in new[] { root, read.RootElement })
+        foreach (var jsonElement in new[] { root, read })
         {
             Assert.Equal(
                 "ES256",
-                document.GetProperty("token_endpoint_auth_signing_alg").GetString()
+                jsonElement.GetProperty("token_endpoint_auth_signing_alg").GetString()
             );
             Assert.Equal(
                 OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
-                document.GetProperty("backchannel_token_delivery_mode").GetString()
+                jsonElement.GetProperty("backchannel_token_delivery_mode").GetString()
             );
             Assert.Equal(
                 "https://client.example/ciba",
-                document.GetProperty("backchannel_client_notification_endpoint").GetString()
+                jsonElement.GetProperty("backchannel_client_notification_endpoint").GetString()
             );
             Assert.Equal(
                 "PS256",
-                document.GetProperty("backchannel_authentication_request_signing_alg").GetString()
+                jsonElement
+                    .GetProperty("backchannel_authentication_request_signing_alg")
+                    .GetString()
             );
-            Assert.False(document.GetProperty("backchannel_user_code_parameter").GetBoolean());
+            Assert.False(jsonElement.GetProperty("backchannel_user_code_parameter").GetBoolean());
         }
     }
 
@@ -1087,8 +1083,8 @@ public class ClientRegistrationEndpointTests
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registered = JsonDocument.Parse(registrationBody);
-        var root = registered.RootElement;
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
         Assert.True(root.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean());
 
         using var readRequest = new HttpRequestMessage(
@@ -1103,10 +1099,8 @@ public class ClientRegistrationEndpointTests
 
         var readBody = await readResponse.Content.ReadAsStringAsync();
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
-        using var read = JsonDocument.Parse(readBody);
-        Assert.True(
-            read.RootElement.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean()
-        );
+        var read = JsonElement.Parse(readBody);
+        Assert.True(read.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean());
     }
 
     #endregion
@@ -1135,8 +1129,8 @@ public class ClientRegistrationEndpointTests
 
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registered = JsonDocument.Parse(registrationBody);
-        var root = registered.RootElement;
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
         Assert.True(root.GetProperty("dpop_bound_access_tokens").GetBoolean());
 
         using var readRequest = new HttpRequestMessage(
@@ -1151,8 +1145,8 @@ public class ClientRegistrationEndpointTests
 
         var readBody = await readResponse.Content.ReadAsStringAsync();
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
-        using var read = JsonDocument.Parse(readBody);
-        Assert.True(read.RootElement.GetProperty("dpop_bound_access_tokens").GetBoolean());
+        var read = JsonElement.Parse(readBody);
+        Assert.True(read.GetProperty("dpop_bound_access_tokens").GetBoolean());
 
         // The stored requirement is the client's own: a token request without a DPoP proof is refused.
         using var tokenContent = new FormUrlEncodedContent(
@@ -1167,10 +1161,10 @@ public class ClientRegistrationEndpointTests
 
         var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.BadRequest, tokenBody);
-        using var token = JsonDocument.Parse(tokenBody);
+        var token = JsonElement.Parse(tokenBody);
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidDPoPProof,
-            token.RootElement.GetProperty("error").GetString()
+            token.GetProperty("error").GetString()
         );
     }
 
@@ -1200,8 +1194,8 @@ public class ClientRegistrationEndpointTests
         );
         var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
         Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
-        using var registration = JsonDocument.Parse(registrationBody);
-        var root = registration.RootElement;
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
 
         using var readRequest = new HttpRequestMessage(
             HttpMethod.Get,
@@ -1214,15 +1208,17 @@ public class ClientRegistrationEndpointTests
         using var readResponse = await client.SendAsync(readRequest);
         var readBody = await readResponse.Content.ReadAsStringAsync();
         Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
-        using var read = JsonDocument.Parse(readBody);
+        var read = JsonElement.Parse(readBody);
 
-        foreach (var document in new[] { root, read.RootElement })
+        foreach (var jsonElement in new[] { root, read })
         {
             Assert.Equal(
                 "https://client.example/logout",
-                document.GetProperty("backchannel_logout_uri").GetString()
+                jsonElement.GetProperty("backchannel_logout_uri").GetString()
             );
-            Assert.True(document.GetProperty("backchannel_logout_session_required").GetBoolean());
+            Assert.True(
+                jsonElement.GetProperty("backchannel_logout_session_required").GetBoolean()
+            );
         }
     }
 
@@ -1251,6 +1247,74 @@ public class ClientRegistrationEndpointTests
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             OpenIdSettingNames.BackChannelLogoutUri
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithPostLogoutRedirectUris_StoresAndReportsThem()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                ["post_logout_redirect_uris"] = new[] { "https://client.example/signed-out" },
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+
+        foreach (var jsonElement in new[] { root, read })
+        {
+            var uris = jsonElement.GetProperty("post_logout_redirect_uris");
+            Assert.Equal(
+                "https://client.example/signed-out",
+                Assert.Single(uris.EnumerateArray()).GetString()
+            );
+        }
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheTenantDoesNotSupportFrontChannelLogout_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                ["frontchannel_logout_uri"] = "https://client.example/frontchannel-logout",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.FrontChannelLogoutUri
         );
     }
 

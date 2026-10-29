@@ -1204,12 +1204,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         using var response = await client.SendAsync(tokenRequest);
         response.EnsureSuccessStatusCode();
-        using var document = System.Text.Json.JsonDocument.Parse(
+        var jsonElement = System.Text.Json.JsonElement.Parse(
             await response.Content.ReadAsStringAsync()
         );
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
-            document.RootElement.GetProperty("access_token").GetString()
+            jsonElement.GetProperty("access_token").GetString()
         );
         return client;
     }

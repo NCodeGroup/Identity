@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -67,6 +67,13 @@ public sealed class TokenResponse : OpenIdMessage<TokenResponse>, ITokenResponse
     {
         get => GetKnownParameter(OpenIdCommonParameters.RefreshToken);
         set => SetKnownParameter(OpenIdCommonParameters.RefreshToken, value);
+    }
+
+    /// <inheritdoc />
+    public TimeSpan? RefreshTokenExpiresIn
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.RefreshTokenExpiresIn);
+        set => SetKnownParameter(OpenIdCommonParameters.RefreshTokenExpiresIn, value);
     }
 
     /// <inheritdoc />

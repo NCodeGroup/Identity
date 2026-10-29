@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -71,7 +72,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 
     #region Helpers
 
-    private static JsonElement Payload(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Payload(string json) => JsonElement.Parse(json);
 
     private (Mock<OpenIdContext> Context, Mock<IOpenIdError> Error) SetupContextWithErrorFactory()
     {
@@ -312,6 +313,76 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRefreshTokenRequestedAndSubjectHasNoAuthTime_ReturnsError()
+    {
+        var (mockContext, mockError) = SetupContextWithErrorFactory();
+        var mockClient = SetupConfidentialClient();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings.Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>())).Returns(true);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+
+        var mockTokenRequest = SetupTokenRequest(
+            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken
+        );
+
+        // The subject token carries no auth_time, so there is no authentication to bound the refresh token by.
+        SetupSubjectValidatorSuccess(
+            "subject.jwt",
+            $$"""{"sub":"alice","client_id":"{{RequesterClientId}}"}"""
+        );
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRefreshTokenRequestedAndAuthenticationIsPastTheHorizon_ReturnsError()
+    {
+        var utcNow = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+        var authTime = utcNow - TimeSpan.FromDays(31);
+
+        var (mockContext, mockError) = SetupContextWithErrorFactory();
+        var mockClient = SetupConfidentialClient();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings.Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>())).Returns(true);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenLifetime))
+            .Returns(TimeSpan.FromDays(30))
+            .Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+
+        var mockTokenRequest = SetupTokenRequest(
+            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken
+        );
+
+        // The authentication is 31 days old and a refresh family lasts 30 days, so exchange cannot start a new one.
+        SetupSubjectValidatorSuccess(
+            "subject.jwt",
+            $$"""{"sub":"alice","client_id":"{{RequesterClientId}}","auth_time":{{authTime.ToUnixTimeSeconds()}}}"""
+        );
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(utcNow).Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        MockTimeProvider.Verify();
+        mockSettings.Verify();
     }
 
     #endregion

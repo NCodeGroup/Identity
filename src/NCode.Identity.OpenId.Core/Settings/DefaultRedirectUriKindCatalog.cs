@@ -81,7 +81,7 @@ internal sealed class DefaultRedirectUriKindCatalog : IRedirectUriKindCatalog
     /// <inheritdoc />
     public bool IsPermitted(IReadOnlySettingCollection settings, string redirectUri)
     {
-        if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
+        if (!AbsoluteUri.TryParse(redirectUri, out var uri))
             return false;
 
         if (!settings.TryGetValue(OpenIdSettingKeys.RedirectUriKindsSupported, out var kindNames))

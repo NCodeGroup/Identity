@@ -9,6 +9,15 @@ const tenants: TenantRow[] = [
     issuer: 'https://id.example',
     mtlsEndpointAliasAuthority: 'https://mtls.id.example',
     isDisabled: false,
+    environment: { type: 'production', name: null, isProduction: true },
+  },
+  {
+    tenantId: 'sandbox',
+    displayName: 'Sandbox',
+    issuer: 'https://sandbox.id.example',
+    mtlsEndpointAliasAuthority: 'https://mtls.sandbox.id.example',
+    isDisabled: false,
+    environment: { type: 'development', name: 'Dev EU', isProduction: false },
   },
   {
     tenantId: 'old',
@@ -31,7 +40,20 @@ describe('TenantTable', () => {
     expect(screen.getByText('https://id.example')).toBeInTheDocument();
     expect(screen.getByText('https://mtls.id.example')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'mTLS endpoint alias' })).toBeInTheDocument();
-    expect(screen.getAllByText('—')).toHaveLength(2);
+    // The legacy tenant has no issuer, no alias, and no environment that can be determined.
+    expect(screen.getAllByText('—')).toHaveLength(3);
+  });
+
+  it('shows each environment, highlighting every one that is not production', () => {
+    render(<TenantTable tenants={tenants} />);
+    expect(screen.getByRole('columnheader', { name: 'Environment' })).toBeInTheDocument();
+    const production = screen.getByTestId('tenant-environment-root');
+    expect(production).toHaveTextContent('production');
+    expect(production).toHaveAttribute('data-production', 'true');
+    const sandbox = screen.getByTestId('tenant-environment-sandbox');
+    expect(sandbox).toHaveTextContent('Dev EU (development)');
+    expect(sandbox).toHaveAttribute('data-production', 'false');
+    expect(screen.queryByTestId('tenant-environment-old')).not.toBeInTheDocument();
   });
 
   it('invokes onSelect with the tenant id when a row is clicked', () => {

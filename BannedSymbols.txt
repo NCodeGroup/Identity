@@ -31,3 +31,10 @@ T:System.IdentityModel.Tokens.Jwt.JwtSecurityToken;Use Microsoft.IdentityModel.J
 # Unix-time factories throw on out-of-range input, so a wire-supplied NumericDate could fault the caller (ADR-0123).
 M:System.DateTimeOffset.FromUnixTimeSeconds(System.Int64);Throws on out-of-range input. Use NCode.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
 M:System.DateTimeOffset.FromUnixTimeMilliseconds(System.Int64);Throws on out-of-range input. Use NCode.Json.DateCoercion.TryFromNumericDate / TryParseNumericDate or JsonElement.TryGetNumericDate.
+
+# JsonElement.Parse returns a detached element with nothing to dispose; a JsonDocument rents pooled buffers that leak
+# when it is not disposed, and an element read from it fails once it is. See issue #386.
+M:System.Text.Json.JsonDocument.Parse;Use JsonElement.Parse, which returns a detached element with nothing to dispose.
+M:System.Text.Json.JsonDocument.ParseAsync;Use JsonSerializer.DeserializeAsync<JsonElement>, which returns a detached element with nothing to dispose.
+M:System.Text.Json.JsonDocument.ParseValue;Use JsonElement.ParseValue, which returns a detached element with nothing to dispose.
+M:System.Text.Json.JsonDocument.TryParseValue;Use JsonElement.TryParseValue, which returns a detached element with nothing to dispose.

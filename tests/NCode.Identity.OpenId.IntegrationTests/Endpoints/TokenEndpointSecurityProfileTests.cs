@@ -86,8 +86,8 @@ public class TokenEndpointSecurityProfileTests
 
     private static async Task<string?> GetErrorDescriptionAsync(HttpResponseMessage response)
     {
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return document.RootElement.TryGetProperty("error_description", out var description)
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return jsonElement.TryGetProperty("error_description", out var description)
             ? description.GetString()
             : null;
     }
@@ -124,10 +124,10 @@ public class TokenEndpointSecurityProfileTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -148,10 +148,10 @@ public class TokenEndpointSecurityProfileTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            document.RootElement.GetProperty("error").GetString()
+            jsonElement.GetProperty("error").GetString()
         );
     }
 
@@ -228,8 +228,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var metadata = document.RootElement;
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var metadata = jsonElement;
         Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
         var authMethods = metadata
             .GetProperty("token_endpoint_auth_methods_supported")
@@ -251,8 +251,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var metadata = document.RootElement;
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var metadata = jsonElement;
         Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
         Assert.True(
             metadata.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean()
@@ -289,10 +289,8 @@ public class TokenEndpointSecurityProfileTests
         using var response = await client.GetAsync(DiscoveryPath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(
-            document.RootElement.GetProperty("require_pushed_authorization_requests").GetBoolean()
-        );
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(jsonElement.GetProperty("require_pushed_authorization_requests").GetBoolean());
     }
 
     #region Scaffolding

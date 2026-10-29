@@ -25,17 +25,17 @@ using NCode.Json;
 namespace NCode.Identity.OpenId.Client.Tokens;
 
 /// <summary>
-/// Provides the decryption policy shared by ID-token and logout-token validation: the encryption algorithms the
-/// client registered and the keys that decrypt with them.
+/// Provides the decryption policy shared by the validation of the JWTs the provider issues to the client: the encryption
+/// algorithms the client registered for a kind of token and the keys that decrypt with them.
 /// </summary>
 internal static class ClientDecryptionPolicy
 {
     /// <summary>
-    /// Gets a value indicating whether the client registered ID-token encryption, which is the case when it
-    /// registered at least one key management algorithm.
+    /// Gets a value indicating whether the client registered encryption for the kind of token, which is the case when
+    /// it registered at least one key management algorithm for it.
     /// </summary>
-    public static bool IsEncryptionRegistered(ClientRegistration registration) =>
-        registration.IdTokenKeyManagementAlgorithms is { Count: > 0 };
+    public static bool IsEncryptionRegistered(ProviderJwtProfile profile) =>
+        profile.KeyManagementAlgorithms is { Count: > 0 };
 
     /// <summary>
     /// Gets the key management algorithms the client registered that it may decrypt with, in the order of the
@@ -44,10 +44,10 @@ internal static class ClientDecryptionPolicy
     /// </summary>
     public static List<string> GetPermittedKeyManagementAlgorithms(
         IAlgorithmCollection algorithms,
-        ClientRegistration registration
+        ProviderJwtProfile profile
     )
     {
-        if (registration.IdTokenKeyManagementAlgorithms is not { Count: > 0 } registered)
+        if (profile.KeyManagementAlgorithms is not { Count: > 0 } registered)
             return [];
 
         var result = new List<string>();
@@ -83,20 +83,20 @@ internal static class ClientDecryptionPolicy
     /// </exception>
     public static List<string> GetPermittedContentEncryptionAlgorithms(
         IAlgorithmCollection algorithms,
-        ClientRegistration registration
+        ProviderJwtProfile profile
     )
     {
-        if (!IsEncryptionRegistered(registration))
+        if (!IsEncryptionRegistered(profile))
         {
-            if (registration.IdTokenContentEncryptionAlgorithms is { Count: > 0 })
+            if (profile.ContentEncryptionAlgorithms is { Count: > 0 })
                 throw new InvalidOperationException(
-                    $"The client '{registration.ClientId}' lists ID-token content encryption algorithms but no key management algorithm."
+                    $"The client '{profile.Registration.ClientId}' lists {profile.EncryptionName} content encryption algorithms but no key management algorithm."
                 );
 
             return [];
         }
 
-        var configured = registration.IdTokenContentEncryptionAlgorithms;
+        var configured = profile.ContentEncryptionAlgorithms;
         if (configured is not { Count: > 0 })
             configured = [AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256];
 
@@ -119,13 +119,13 @@ internal static class ClientDecryptionPolicy
     /// </exception>
     public static List<SecretKey> GetDecryptionKeys(
         IClientKeyRingProvider keyRingProvider,
-        ClientRegistration registration
+        ProviderJwtProfile profile
     )
     {
-        var keyRing = registration.KeyRing;
+        var keyRing = profile.Registration.KeyRing;
         if (string.IsNullOrEmpty(keyRing))
             throw new InvalidOperationException(
-                $"The client '{registration.ClientId}' registers ID-token encryption but has no key ring."
+                $"The client '{profile.Registration.ClientId}' registers {profile.EncryptionName} encryption but has no key ring."
             );
 
         var keys = keyRingProvider.GetKeyRing(keyRing);

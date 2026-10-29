@@ -27,6 +27,7 @@ opts in with `AddOpenTelemetryMetrics(configuration)` from `NCode.Identity.Serve
 | `NCode.Identity.OpenId.Authentication` | `NCode.Identity.OpenId.Authentication` | `OpenIdAuthenticationMetrics.MeterName` |
 | `NCode.Identity.Events`                | `NCode.Identity.Events`                | `EventMetrics.MeterName`                |
 | `NCode.Identity.SharedState.Valkey`    | `NCode.Identity.SharedState.Valkey`    | `ValkeyMetrics.MeterName`               |
+| `NCode.Identity.Bff`                   | `NCode.Identity.Bff`                   | `BffTelemetry.MeterName`                |
 
 ## Protocol requests: `http.server.request.duration`
 
@@ -78,16 +79,54 @@ Counter, unit `{event}`, meter `NCode.Identity.Events`. Recorded once for each e
 | `ncode.identity.audit.outcome`                | Audit events                                      | `success`, `failure`, `denied`                                                                                                                                                            |
 | `ncode.identity.token.type`                   | `TokenIssuedAuditEvent`                           | The issued token's server-set type, such as `id_token` or `refresh_token`                                                                                                                 |
 | `ncode.identity.client_authentication.method` | `ClientAuthenticationFailedAuditEvent`            | The attempted registered method, such as `private_key_jwt` or `none`                                                                                                                      |
+| `ncode.identity.bff.reason`                   | `BffAuditEvent` with a reason                     | The BFF's reason constant, such as a `BffLoginFailureReasons`, `BffSessionEndReasons` or `BffTokenFailureReasons` value; never a value a caller supplies                                  |
 
 An event type adds bounded attributes of its own by implementing `ISupportMetricAttributes`; each one is listed here.
+
+The BFF's logins, session ends, refresh failures and rejections are audit events (`bff.login.succeeded`, `bff.session.ended`, …), so this counter is the one that counts them, by `ncode.identity.audit.event_name` and `ncode.identity.bff.reason`.
 
 ### `ncode.identity.shared_state.operation.duration`
 
 Histogram, unit `s`, meter `NCode.Identity.SharedState.Valkey`. Recorded for each round trip to the shared-state
 server. The in-process adapter records nothing: a dictionary operation in memory has no latency or failure to watch.
 
-| Attribute                               | Values                                                                                                                                               |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Attribute                               | Values                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ncode.identity.shared_state.operation` | `counter.increment`, `counter.increment_until_exceeded`, `counter.get`, `counter.remove`, `key_set.try_add`, `key_set.contains`, `broadcast.publish`, `value_set.try_add`, `value_set.get`, `value_set.try_replace`, `value_set.try_take`, `value_set.remove`, `index_set.add_member`, `index_set.get_members`, `index_set.remove_member`, `index_set.remove` |
-| `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                                                                                             |
-| `error.type`                            | On failure only: the full type name of the exception                                                                                                 |
+| `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                                                                                                                                                                                                                                                                                                      |
+| `error.type`                            | On failure only: the full type name of the exception                                                                                                                                                                                                                                                                                                          |
+
+### `ncode.identity.bff.token.refresh.duration`
+
+Histogram, unit `s`, meter `NCode.Identity.Bff`. Recorded once for each request that needed a refreshed user access
+token, from the moment its cached token was found stale until it got a token or a refusal: the wait for the session's
+lock inside the replica, the wait for another replica's refresh, and the token endpoint round trip included. A request
+served from the cache records nothing. The token endpoint call itself is also `System.Net.Http`'s
+`http.client.request.duration`.
+
+| Attribute                           | Values                                                                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ncode.identity.bff.refresh.result` | `refreshed` (this request presented the refresh token), `joined` (another request or replica refreshed the session and this request used its token), `failed`                             |
+| `error.type`                        | On `failed` only: the `BffTokenFailureReasons` value, such as `refresh_failed`, `provider_error`, `provider_unavailable` or `refresh_wait_timeout`, or the full type name of an exception |
+
+### `ncode.identity.bff.session_store.operation.duration`
+
+Histogram, unit `s`, meter `NCode.Identity.Bff`. Recorded for each operation the BFF performs against its
+`IBffSessionStore`, whichever store is registered. The default store is built on shared state, whose networked adapters
+also time each round trip (`ncode.identity.shared_state.operation.duration`); one session store operation may be
+several round trips.
+
+| Attribute                                    | Values                                                                                                                                                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ncode.identity.bff.session_store.operation` | `create`, `get`, `replace`, `remove`, `find_by_session_id`, `find_by_subject`, `add_transaction`, `take_transaction`, `acquire_refresh_lease`, `is_refresh_lease_held`, `release_refresh_lease` |
+| `error.type`                                 | On failure only: the full type name of the exception                                                                                                                                            |
+
+## Traces
+
+A package that traces its own mechanisms does it through one `ActivitySource` named like its meter
+([ADR-0298](decisions/0298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)). A
+host adds them to its tracing pipeline, for example with OpenTelemetry's `AddSource("NCode.Identity.*")`.
+
+| Activity source      | Spans                                                                                                                     | Public name constant              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `NCode.Identity.Bff` | `ncode.identity.bff.token.refresh`, `ncode.identity.bff.session_store.operation`, with the attributes of their histograms | `BffTelemetry.ActivitySourceName` |

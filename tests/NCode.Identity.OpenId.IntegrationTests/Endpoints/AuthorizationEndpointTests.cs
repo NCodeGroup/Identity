@@ -37,8 +37,8 @@ public class AuthorizationEndpointTests(HostApplicationFactory factory)
     private static async Task<string> GetErrorCodeAsync(HttpResponseMessage response)
     {
         var json = await response.Content.ReadAsStringAsync();
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.GetProperty("error").GetString() ?? string.Empty;
+        var jsonElement = JsonElement.Parse(json);
+        return jsonElement.GetProperty("error").GetString() ?? string.Empty;
     }
 
     [Fact]

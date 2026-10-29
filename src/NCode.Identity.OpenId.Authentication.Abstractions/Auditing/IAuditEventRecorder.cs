@@ -164,9 +164,10 @@ public interface IAuditEventRecorder
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="errorCode">The machine-readable error code.</param>
     /// <param name="errorMessage">A human-readable description; never secret material.</param>
-    /// <param name="attemptedSubjectId">The unverified identifier the caller attempted to authenticate as (such as a
-    /// username), when known, so a failed attempt is attributable for security monitoring. This is never a credential
-    /// or password; it is <c>null</c> when no identifier was presented.</param>
+    /// <param name="attemptedUsername">The unverified user name the caller attempted to authenticate as, when known, so
+    /// a failed attempt is attributable for security monitoring. It is recorded as <c>details.attempted_username</c>,
+    /// never as the subject id, and is never a credential or password; it is <c>null</c> when no user name was
+    /// presented.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -177,7 +178,7 @@ public interface IAuditEventRecorder
         OpenIdContext openIdContext,
         string errorCode,
         string? errorMessage,
-        string? attemptedSubjectId,
+        string? attemptedUsername,
         CancellationToken cancellationToken
     );
 

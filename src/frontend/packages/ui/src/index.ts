@@ -3,7 +3,19 @@ export { AppThemeProvider, type AppThemeProviderProps } from './theme/AppThemePr
 export { ScopeBadge, type ScopeBadgeProps, type ScopeKind } from './components/ScopeBadge.js';
 export { DataStateBoundary, type DataStateBoundaryProps } from './components/DataStateBoundary.js';
 export { BootstrapScreen, type BootstrapScreenProps } from './components/BootstrapScreen.js';
-export { TenantTable, type TenantRow, type TenantTableProps } from './components/TenantTable.js';
+export {
+  TenantTable,
+  type TenantEnvironmentRow,
+  type TenantRow,
+  type TenantTableProps,
+} from './components/TenantTable.js';
+export {
+  TenantEnvironmentFilter,
+  allTenantEnvironments,
+  matchesTenantEnvironment,
+  tenantEnvironmentTypes,
+  type TenantEnvironmentFilterProps,
+} from './components/TenantEnvironmentFilter.js';
 export { ClientTable, type ClientRow, type ClientTableProps } from './components/ClientTable.js';
 export { ServerTable, type ServerRow, type ServerTableProps } from './components/ServerTable.js';
 export { GrantTable, type GrantRow, type GrantTableProps } from './components/GrantTable.js';

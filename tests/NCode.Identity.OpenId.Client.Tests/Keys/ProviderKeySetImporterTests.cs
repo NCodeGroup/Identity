@@ -44,7 +44,7 @@ public class ProviderKeySetImporterTests : BaseTests, IAsyncLifetime
     private ProviderKeySetImporter CreateImporter() =>
         new(ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>());
 
-    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
+    private static JsonElement Parse(string json) => JsonElement.Parse(json);
 
     public Task InitializeAsync() => Task.CompletedTask;
 

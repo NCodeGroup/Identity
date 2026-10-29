@@ -45,8 +45,9 @@ and checks every header against them before any cryptographic operation.**
 1. **Signed only.** A token is a compact JWS whose `alg` is not `none`, or a compact JWE whose `cty` is `JWT` (compared
    as a media type, RFC 7515 §4.1.10) enclosing such a JWS — a Nested JWT. One level of nesting is supported. An
    unsecured JWS is rejected at every level, with no parameter that opts into it; a JWE that encloses anything but a
-   JWS is rejected. Independently, the `none` signature algorithm verifies only with an empty key, so a real key never
-   verifies an unsecured token anywhere the JOSE library is used.
+   JWS is rejected. Independently, the JOSE library implements no `none` signature algorithm, so an unsecured token
+   never verifies anywhere the JOSE library is used
+   ([ADR-0295](0295-the-jose-library-does-not-implement-the-none-algorithm.md)).
 2. **Compact serialization only.** RFC 7519 §1 represents a JWT in the compact serializations; the JSON
    serializations are rejected.
 3. **Key roles are explicit.** `SecretKeys` (`UseValidationKeys`) verify signatures; `DecryptionKeys`
@@ -107,4 +108,4 @@ permit and names its decryption keys ([ADR-0155](0155-jwts-exchanged-with-a-clie
   evaluates.
 - Code: `NCode.Identity.Jwt.Validation.DefaultJwtValidator`, `JwtValidationParameters`,
   `JwtValidationParametersExtensions.UseDecryptionKeys`, `NCode.Identity.Jwt.DecodedJwt`,
-  `NCode.Identity.Jwt.Encoding.DefaultJwtEncoder`, `NCode.Identity.Jose.Algorithms.Signature.NoneSignatureAlgorithm`.
+  `NCode.Identity.Jwt.Encoding.DefaultJwtEncoder`.

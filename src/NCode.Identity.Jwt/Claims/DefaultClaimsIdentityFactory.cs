@@ -25,27 +25,24 @@ using NCode.Json;
 namespace NCode.Identity.Jwt.Claims;
 
 /// <summary>
-/// Factory class that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a JSON Web Token (JWT) payload.
+/// Provides the default implementation of <see cref="IClaimsIdentityFactory"/>, which types each claim by its JSON
+/// value through <see cref="ClaimValueMapper"/>.
 /// </summary>
-internal static class DefaultClaimsIdentityFactory
+// See ADR-0122.
+internal sealed class DefaultClaimsIdentityFactory : IClaimsIdentityFactory
 {
-    /// <summary>
-    /// Factory method that provides the ability to create a <see cref="ClaimsIdentity"/> instance from a JSON Web Token (JWT) payload.
-    /// </summary>
-    /// <param name="authenticationType">A <see cref="string"/> for the <c>AuthenticationType</c> that is used when creating a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="nameClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Name</c>
-    /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="roleClaimType">A <see cref="string"/> that specifies which <see cref="Claim.Type"/> is used to store the <c>Role</c>
-    /// claim for a <see cref="ClaimsIdentity"/> instance.</param>
-    /// <param name="payload">A <see cref="JsonElement"/> that contains the JSON Web Token (JWT) payload.</param>
-    /// <returns>The newly created <see cref="ClaimsIdentity"/> instance.</returns>
-    public static ClaimsIdentity CreateClaimsIdentity(
+    /// <inheritdoc />
+    public ClaimsIdentity CreateClaimsIdentity(
+        JsonElement claimSet,
         string authenticationType,
-        string nameClaimType,
-        string roleClaimType,
-        JsonElement payload
+        string? nameClaimType = null,
+        string? roleClaimType = null,
+        string? issuer = null
     )
     {
+        if (claimSet.ValueKind != JsonValueKind.Object)
+            throw new ArgumentException("The claim set must be a JSON object.", nameof(claimSet));
+
         var effectiveNameClaimType = string.IsNullOrEmpty(nameClaimType)
             ? ClaimsIdentity.DefaultNameClaimType
             : nameClaimType;
@@ -61,14 +58,16 @@ internal static class DefaultClaimsIdentityFactory
         );
 
         if (
-            !payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var issuer)
-            || string.IsNullOrEmpty(issuer)
+            !claimSet.TryGetPropertyValue<string>(
+                JoseClaimNames.Payload.Iss,
+                out var effectiveIssuer
+            ) || string.IsNullOrEmpty(effectiveIssuer)
         )
         {
-            issuer = ClaimsIdentity.DefaultIssuer;
+            effectiveIssuer = string.IsNullOrEmpty(issuer) ? ClaimsIdentity.DefaultIssuer : issuer;
         }
 
-        foreach (var property in payload.EnumerateObject())
+        foreach (var property in claimSet.EnumerateObject())
         {
             var name = property.Name;
             var value = property.Value;
@@ -78,12 +77,14 @@ internal static class DefaultClaimsIdentityFactory
                 subject.AddClaims(
                     value
                         .EnumerateArray()
-                        .Select(item => ClaimValueMapper.ToClaim(name, item, issuer, subject))
+                        .Select(item =>
+                            ClaimValueMapper.ToClaim(name, item, effectiveIssuer, subject)
+                        )
                 );
             }
             else
             {
-                var claim = ClaimValueMapper.ToClaim(name, value, issuer, subject);
+                var claim = ClaimValueMapper.ToClaim(name, value, effectiveIssuer, subject);
                 subject.AddClaim(claim);
             }
         }

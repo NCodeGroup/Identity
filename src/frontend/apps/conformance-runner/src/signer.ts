@@ -29,6 +29,8 @@ export const SUPPORTED_SIGNATURE_ALGS = [
   'RS384',
   'RS512',
   'EdDSA',
+  'Ed25519',
+  'Ed448',
 ] as const;
 
 /** A JWA signature algorithm value (`alg` header) the signer can produce. */
@@ -145,10 +147,14 @@ function resolveAlg(privateKey: KeyObject, override?: JwaSignatureAlg): JwaSigna
     return 'PS256';
   }
   if (type === 'ed25519' || type === 'ed448') {
-    if (override !== undefined && override !== 'EdDSA') {
-      throw new Error(`Algorithm '${override}' does not match an Edwards-curve key (EdDSA).`);
+    // The fully-specified identifier names the key's own curve (RFC 9864); EdDSA stays the inferred default.
+    const fullySpecified: JwaSignatureAlg = type === 'ed25519' ? 'Ed25519' : 'Ed448';
+    if (override !== undefined && override !== 'EdDSA' && override !== fullySpecified) {
+      throw new Error(
+        `Algorithm '${override}' does not match an Edwards-curve key (EdDSA or ${fullySpecified}).`,
+      );
     }
-    return 'EdDSA';
+    return override ?? 'EdDSA';
   }
   throw new Error(`Unsupported key type '${type ?? 'unknown'}'.`);
 }
@@ -210,6 +216,8 @@ function signData(key: SigningKey, data: Buffer): Buffer {
     case 'RS512':
       return sign('sha512', data, key.privateKey);
     case 'EdDSA':
+    case 'Ed25519':
+    case 'Ed448':
       return sign(null, data, key.privateKey);
   }
 }

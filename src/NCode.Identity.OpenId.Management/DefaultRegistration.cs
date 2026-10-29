@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2025 NCode Group
 //
@@ -66,6 +66,11 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<
                 IResourceOwnershipService,
                 DefaultResourceOwnershipService
+            >();
+
+            serviceCollection.TryAddSingleton<
+                IManagementTenantEnvironmentResolver,
+                DefaultManagementTenantEnvironmentResolver
             >();
 
             serviceCollection.TryAddSingleton<

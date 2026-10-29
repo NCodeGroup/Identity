@@ -25,24 +25,25 @@ using NCode.Identity.Secrets.Keys;
 namespace NCode.Identity.OpenId.Client.Tokens;
 
 /// <summary>
-/// Provides the signature policy and the signing-key resolution shared by ID-token and logout-token validation
-/// (ADR-0273, ADR-0274).
+/// Provides the signature policy and the signing-key resolution shared by the validation of the JWTs the provider issues
+/// to the client.
 /// </summary>
+// See ADR-0273, ADR-0274 and ADR-0301.
 internal static class ProviderSignaturePolicy
 {
     /// <summary>
-    /// Gets the asymmetric signature algorithms that are permitted by the client registration and advertised by the
-    /// provider, excluding <c>none</c>.
+    /// Gets the registered asymmetric signature algorithms that the client permits and the provider advertises,
+    /// excluding <c>none</c>. An empty or <see langword="null"/> list adds no restriction from its side.
     /// </summary>
+    /// <param name="algorithms">The registered algorithms.</param>
+    /// <param name="configured">The algorithms the client registered for the token.</param>
+    /// <param name="advertised">The algorithms the provider advertises for the token.</param>
     public static List<string> GetPermittedAlgorithms(
         IAlgorithmCollection algorithms,
-        ClientRegistration registration,
-        OpenIdProviderMetadata metadata
+        IReadOnlyList<string>? configured,
+        IReadOnlyList<string>? advertised
     )
     {
-        var configured = registration.IdTokenSigningAlgorithms;
-        var advertised = metadata.IdTokenSigningAlgValuesSupported;
-
         var result = new List<string>();
         foreach (var algorithm in algorithms)
         {

@@ -100,6 +100,8 @@ Production projects are under `src/`, tests under `tests/`.
 | Management API       | `NCode.Identity.OpenId.Management(.Abstractions)`                                                                                  |
 | Accounts             | `NCode.Identity.OpenId.Accounts*` (local-account store, ASP.NET Core Identity adapter, management)                                 |
 | Persistence          | `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`, `NCode.Identity.OpenId.Persistence*(.EntityFramework)` |
+| Protocol client      | `NCode.Identity.OpenId.Client(.Abstractions)`, `NCode.Identity.OpenId.Protocol.Abstractions`                                     |
+| Backend for frontend | `NCode.Identity.Bff(.Abstractions)`, `.Bff.Server` (the turnkey `AddIdentityBff`)                                              |
 | Composition and host | `NCode.Registration(.AspNetCore)`, `NCode.Identity`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Host*`                   |
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is

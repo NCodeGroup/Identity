@@ -38,11 +38,13 @@ const NCode.Identity.Secrets.SecretKeyTypes.Symmetric = "symmetric" -> string!
 const NCode.Identity.Secrets.SecretKeyUses.Encryption = "enc" -> string!
 const NCode.Identity.Secrets.SecretKeyUses.Signature = "sig" -> string!
 NCode.Identity.Secrets.Keys.AsymmetricSecretKey
-NCode.Identity.Secrets.Keys.AsymmetricSecretKey.AsymmetricSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int keySizeBits, System.ReadOnlyMemory<byte>? certificateRawData) -> void
+NCode.Identity.Secrets.Keys.AsymmetricSecretKey.AsymmetricSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int keySizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
+NCode.Identity.Secrets.Keys.AsymmetricSecretKey.ExportIssuerCertificates() -> System.Security.Cryptography.X509Certificates.X509Certificate2Collection!
+NCode.Identity.Secrets.Keys.AsymmetricSecretKey.IssuerCertificatesRawData.get -> System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>!
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.KeySizeBits.get -> int
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.EccSecretKey
-NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData) -> void
+NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
 override NCode.Identity.Secrets.Keys.EccSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.KeyMetadata.Algorithm.get -> string?
@@ -55,7 +57,7 @@ NCode.Identity.Secrets.Keys.KeyMetadata.KeyMetadata() -> void
 NCode.Identity.Secrets.Keys.KeyMetadata.Use.get -> string?
 NCode.Identity.Secrets.Keys.KeyMetadata.Use.init -> void
 NCode.Identity.Secrets.Keys.RsaSecretKey
-NCode.Identity.Secrets.Keys.RsaSecretKey.RsaSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int modulusSizeBits, System.ReadOnlyMemory<byte>? certificateRawData) -> void
+NCode.Identity.Secrets.Keys.RsaSecretKey.RsaSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int modulusSizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
 override NCode.Identity.Secrets.Keys.RsaSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.SecretKey
 NCode.Identity.Secrets.Keys.SecretKey.SecretKey() -> void
@@ -202,3 +204,4 @@ const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.AzureKeyVault = "azure-
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Ephemeral = "ephemeral" -> string!
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.GoogleCloudKms = "google-cloud-kms" -> string!
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Local = "local" -> string!
+NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2Collection! certificates) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!

@@ -72,12 +72,26 @@ internal class DefaultBackChannelLogoutNotifier(
     {
         var settings = openIdClient.Settings;
 
+        // A tenant that does not advertise Back-Channel Logout sends no logout tokens, so its behavior matches its
+        // discovery document (OpenID Connect Back-Channel Logout 1.0 §2.1).
+        var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
+        if (!tenantSettings.GetValue(OpenIdSettingKeys.BackChannelLogoutSupported))
+        {
+            return;
+        }
+
         if (
             !settings.TryGetValue(OpenIdSettingKeys.BackChannelLogoutUri, out var logoutUri)
             || string.IsNullOrEmpty(logoutUri)
         )
         {
             return;
+        }
+
+        // The session identifier is sent only when the tenant advertises that its logout tokens carry one.
+        if (!tenantSettings.GetValue(OpenIdSettingKeys.BackChannelLogoutSessionSupported))
+        {
+            sessionId = null;
         }
 
         // A logout_token must identify the subject, the session, or both.

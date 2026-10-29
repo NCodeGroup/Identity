@@ -66,7 +66,8 @@ Jose or Jwt packages directly, without an allow-list, is the one at risk.
   consumer's explicit risk, and the provider's algorithm settings and the protocol client still refuse `RSA1_5` by
   name.
 - `RsaOaepKeyManagementAlgorithm` cannot express PKCS#1 v1.5 padding.
-- `none`, which the same draft deprecates, is a separate decision.
+- `none`, which the same draft deprecates, is not implemented either
+  ([ADR-0295](0295-the-jose-library-does-not-implement-the-none-algorithm.md)).
 
 ## References
 

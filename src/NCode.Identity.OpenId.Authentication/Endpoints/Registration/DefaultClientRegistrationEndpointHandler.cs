@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
@@ -869,7 +870,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         foreach (var redirectUri in redirectUris)
         {
             if (
-                !Uri.TryCreate(redirectUri, UriKind.Absolute, out _)
+                !AbsoluteUri.TryParse(redirectUri, out _)
                 || redirectUri.Contains('#', StringComparison.Ordinal)
             )
             {
@@ -1190,11 +1191,13 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that a registered <c>backchannel_logout_uri</c> is an absolute <c>https</c> URI without a fragment.
-    /// Back-Channel Logout 1.0 §2.2 allows <c>http</c> only for a confidential client that the OP allows it for, and
-    /// this OP never sends a self-registered client's <c>logout_token</c> in clear; operator-configured clients are
-    /// governed by the setting's own rule. Returns an <c>invalid_client_metadata</c> error, or
-    /// <see langword="null"/> when no URI is registered or the URI is acceptable.
+    /// Verifies the logout metadata a client registers. A <c>backchannel_logout_uri</c> is an absolute <c>https</c> URI
+    /// without a fragment: Back-Channel Logout 1.0 §2.2 allows <c>http</c> only for a confidential client that the OP
+    /// allows it for, and this OP never sends a self-registered client's <c>logout_token</c> in clear; operator-configured
+    /// clients are governed by the setting's own rule. Each <c>post_logout_redirect_uris</c> value is an absolute URI
+    /// without a fragment (RP-Initiated Logout 1.0 §3.1). A <c>frontchannel_logout_uri</c> is an absolute URI without a
+    /// fragment whose scheme, host and port are those of a registered redirect URI (Front-Channel Logout 1.0 §2).
+    /// Returns an <c>invalid_client_metadata</c> error, or <see langword="null"/> when the metadata is acceptable.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
     /// <param name="request">The registration request.</param>
@@ -1204,22 +1207,60 @@ internal class DefaultClientRegistrationEndpointHandler(
         RegisterClientRequest request
     )
     {
-        var value = request.BackchannelLogoutUri;
-        if (string.IsNullOrEmpty(value))
+        var backChannelUri = request.BackchannelLogoutUri;
+        if (
+            !string.IsNullOrEmpty(backChannelUri)
+            && !(
+                TryParseWithoutFragment(backChannelUri, out var uri)
+                && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+            )
+        )
+        {
+            return InvalidClientMetadata(
+                errorFactory,
+                "The 'backchannel_logout_uri' value must be an absolute https URI without a fragment."
+            );
+        }
+
+        foreach (var postLogoutRedirectUri in request.PostLogoutRedirectUris ?? [])
+        {
+            if (!TryParseWithoutFragment(postLogoutRedirectUri, out _))
+            {
+                return InvalidClientMetadata(
+                    errorFactory,
+                    $"The 'post_logout_redirect_uris' value '{postLogoutRedirectUri}' is not a valid absolute URI without a fragment."
+                );
+            }
+        }
+
+        var frontChannelUri = request.FrontchannelLogoutUri;
+        if (string.IsNullOrEmpty(frontChannelUri))
         {
             return null;
         }
 
-        return
-            Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
-            && !value.Contains('#', StringComparison.Ordinal)
+        var sharesRedirectOrigin =
+            TryParseWithoutFragment(frontChannelUri, out var frontChannel)
+            && (request.RedirectUris ?? []).Any(redirectUri =>
+                AbsoluteUri.TryParse(redirectUri, out var redirect)
+                && Uri.Compare(
+                    frontChannel,
+                    redirect,
+                    UriComponents.SchemeAndServer,
+                    UriFormat.Unescaped,
+                    StringComparison.OrdinalIgnoreCase
+                ) == 0
+            );
+        return sharesRedirectOrigin
             ? null
             : InvalidClientMetadata(
                 errorFactory,
-                "The 'backchannel_logout_uri' value must be an absolute https URI without a fragment."
+                "The 'frontchannel_logout_uri' value must be an absolute URI without a fragment whose scheme, host and port are those of a registered redirect URI."
             );
     }
+
+    private static bool TryParseWithoutFragment(string value, [NotNullWhen(true)] out Uri? uri) =>
+        AbsoluteUri.TryParse(value, out uri) && !value.Contains('#', StringComparison.Ordinal);
 
     private static bool HasCertificate(JsonElement jwks) =>
         jwks.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keys)
@@ -1254,7 +1295,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         string? firstHost = null;
         foreach (var redirectUri in redirectUris)
         {
-            if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
+            if (!AbsoluteUri.TryParse(redirectUri, out var uri))
                 continue;
 
             if (firstHost is null)
@@ -1603,6 +1644,23 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (request.BackchannelLogoutSessionRequired is { } sessionRequired)
             settings[OpenIdSettingNames.BackChannelLogoutSessionRequired] = sessionRequired;
 
+        // The RP-Initiated Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 members are the settings the end-session
+        // endpoint and the front-channel logout service read.
+        if (request.PostLogoutRedirectUris is { Count: > 0 } postLogoutRedirectUris)
+            settings[OpenIdSettingNames.PostLogoutRedirectUris] = ToJsonArray(
+                postLogoutRedirectUris
+            );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.FrontChannelLogoutUri,
+            request.FrontchannelLogoutUri
+        );
+        if (request.FrontchannelLogoutSessionRequired is { } frontChannelSessionRequired)
+        {
+            settings[OpenIdSettingNames.FrontChannelLogoutSessionRequired] =
+                frontChannelSessionRequired;
+        }
+
         return settings;
     }
 
@@ -1768,6 +1826,15 @@ internal class DefaultClientRegistrationEndpointHandler(
             BackchannelLogoutSessionRequired = ReadBoolean(
                 settings,
                 OpenIdSettingNames.BackChannelLogoutSessionRequired
+            ),
+            PostLogoutRedirectUris = ReadStringArray(
+                settings,
+                OpenIdSettingNames.PostLogoutRedirectUris
+            ),
+            FrontchannelLogoutUri = ReadString(settings, OpenIdSettingNames.FrontChannelLogoutUri),
+            FrontchannelLogoutSessionRequired = ReadBoolean(
+                settings,
+                OpenIdSettingNames.FrontChannelLogoutSessionRequired
             ),
         };
     }

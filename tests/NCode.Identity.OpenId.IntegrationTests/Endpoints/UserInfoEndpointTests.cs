@@ -68,8 +68,8 @@ public class UserInfoEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
 
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         return (
             root.GetProperty("client_id").GetString() ?? string.Empty,
             root.GetProperty("client_secret").GetString() ?? string.Empty
@@ -98,8 +98,8 @@ public class UserInfoEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        return document.RootElement.GetProperty("access_token").GetString() ?? string.Empty;
+        var jsonElement = JsonElement.Parse(body);
+        return jsonElement.GetProperty("access_token").GetString() ?? string.Empty;
     }
 
     private static async Task<HttpResponseMessage> GetUserInfoAsync(
@@ -360,11 +360,8 @@ public class UserInfoEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.True(
-            document.RootElement.TryGetProperty("userinfo_endpoint", out var endpoint),
-            body
-        );
+        var jsonElement = JsonElement.Parse(body);
+        Assert.True(jsonElement.TryGetProperty("userinfo_endpoint", out var endpoint), body);
         Assert.EndsWith(UserInfoPath, endpoint.GetString());
     }
 

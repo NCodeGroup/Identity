@@ -35,6 +35,12 @@ namespace NCode.Identity.Events.Audit;
 public interface ISupportAuditDetails
 {
     /// <summary>
+    /// Gets a value indicating whether this event has fields to write. When <see langword="false"/>, the record has no
+    /// <c>details</c> object at all, rather than an empty one.
+    /// </summary>
+    bool HasAuditDetails => true;
+
+    /// <summary>
     /// Writes this event's fields as properties of the record's <c>details</c> object.
     /// </summary>
     /// <param name="writer">The writer positioned inside the <c>details</c> object.</param>

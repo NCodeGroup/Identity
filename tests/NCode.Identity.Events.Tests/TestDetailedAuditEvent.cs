@@ -34,6 +34,10 @@ internal sealed record TestDetailedAuditEvent : AuditEvent, ISupportAuditDetails
     public override IReadOnlyList<AuditResource> Resources =>
         [new AuditResource(AuditResourceTypes.Session, "sid-1")];
 
+    public bool HasDetails { get; init; } = true;
+
+    public bool HasAuditDetails => HasDetails;
+
     public void WriteAuditDetails(Utf8JsonWriter writer)
     {
         writer.WriteString("token_type", "access_token");

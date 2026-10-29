@@ -106,6 +106,29 @@ describe('TenantsPage (list states)', () => {
     expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load tenants.');
   });
 
+  it('filters the tenants by environment type', async () => {
+    installFetch(() =>
+      jsonResponse({
+        items: [
+          { ...acme, environment: { type: 'production', name: null, isProduction: true } },
+          { ...globex, environment: { type: 'development', name: 'Dev', isProduction: false } },
+        ],
+      }),
+    );
+
+    renderPage();
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-row-globex')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('tenant-environment-filter'), {
+      target: { value: 'development' },
+    });
+
+    expect(screen.queryByTestId('tenant-row-acme')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tenant-row-globex')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-environment-globex')).toHaveTextContent('Dev (development)');
+  });
+
   it('crosses into a tenant when its row is selected', async () => {
     installFetch(() => jsonResponse({ items: [acme] }));
 

@@ -48,5 +48,11 @@ public static partial class OpenIdProtocol
         /// (<see href="https://datatracker.ietf.org/doc/html/rfc7517#section-8.5.1">RFC 7517 §8.5.1</see>).
         /// </summary>
         public const string JwkSet = "application/jwk-set+json";
+
+        /// <summary>
+        /// Contains the <c>application/jwt</c> media type of a signed or encrypted JWT response, such as a UserInfo
+        /// response (OpenID Connect Core 1.0 §5.3.2).
+        /// </summary>
+        public const string Jwt = "application/jwt";
     }
 }

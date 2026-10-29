@@ -6,10 +6,14 @@ import Typography from '@mui/material/Typography';
 import {
   ConfirmDialog,
   DataStateBoundary,
+  TenantEnvironmentFilter,
   TenantFormDialog,
   TenantTable,
+  allTenantEnvironments,
   emptyTenantFormValues,
   isValidTenantId,
+  matchesTenantEnvironment,
+  tenantEnvironmentTypes,
   type TenantAddressInput,
   type TenantFormValues,
 } from '@ncode/ui';
@@ -55,8 +59,8 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 /**
  * Container: the global-scope tenant browser and CRUD surface. Wires the RTK Query tenant list and
- * mutations to the stateless {@link TenantTable}, {@link TenantFormDialog}, and {@link ConfirmDialog}.
- * Owns only dialog/error state; all persistence, cache invalidation, and error shaping come from the
+ * mutations to the stateless {@link TenantTable}, {@link TenantEnvironmentFilter}, {@link TenantFormDialog},
+ * and {@link ConfirmDialog}. Owns only dialog, filter, and error state; all persistence, cache invalidation, and error shaping come from the
  * store layer. Selecting a tenant crosses into that tenant's security boundary.
  */
 export function TenantsPage({
@@ -65,6 +69,16 @@ export function TenantsPage({
 }: TenantsPageProps) {
   const { data, isLoading, error } = useListTenantsQuery();
   const tenants = data?.items ?? [];
+
+  const [environmentFilter, setEnvironmentFilter] = useState(allTenantEnvironments);
+  const environmentTypes = tenantEnvironmentTypes(tenants);
+  // A filter whose type no listed tenant has any longer (its last tenant was deleted) shows every tenant.
+  const activeEnvironment = environmentTypes.includes(environmentFilter)
+    ? environmentFilter
+    : allTenantEnvironments;
+  const visibleTenants = tenants.filter((tenant) =>
+    matchesTenantEnvironment(tenant, activeEnvironment),
+  );
 
   const [createTenant, { isLoading: isCreating }] = useCreateTenantMutation();
   const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation();
@@ -200,14 +214,21 @@ export function TenantsPage({
         <Typography variant="h5" component="h2">
           Tenants
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={openCreate}
-          data-testid="create-tenant"
-        >
-          Create tenant
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <TenantEnvironmentFilter
+            types={environmentTypes}
+            value={activeEnvironment}
+            onChange={setEnvironmentFilter}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openCreate}
+            data-testid="create-tenant"
+          >
+            Create tenant
+          </Button>
+        </Box>
       </Box>
       <DataStateBoundary
         isLoading={isLoading}
@@ -216,7 +237,7 @@ export function TenantsPage({
         emptyMessage="No tenants exist yet."
       >
         <TenantTable
-          tenants={tenants}
+          tenants={visibleTenants}
           onSelect={onOpenTenant}
           onEdit={openEdit}
           onDelete={openDelete}

@@ -73,6 +73,12 @@ NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.get -> string?
 NCode.Identity.OpenId.Client.ClientRegistration.DPoPKeyRing.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenContentEncryptionAlgorithms.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoContentEncryptionAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoContentEncryptionAlgorithms.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoKeyManagementAlgorithms.init -> void
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoSigningAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.UserInfoSigningAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenKeyManagementAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenKeyManagementAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
@@ -125,6 +131,8 @@ NCode.Identity.OpenId.Client.IdTokenValidationRequest.Subject.init -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult
 NCode.Identity.OpenId.Client.IdTokenValidationResult.FailureCode.get -> string?
 NCode.Identity.OpenId.Client.IdTokenValidationResult.FailureReason.get -> string?
+NCode.Identity.OpenId.Client.IdTokenValidationResult.Identity.get -> System.Security.Claims.ClaimsIdentity?
+NCode.Identity.OpenId.Client.IdTokenValidationResult.Identity.init -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult.IdTokenValidationResult(string! failureCode, string! failureReason) -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult.IdTokenValidationResult(System.Text.Json.JsonElement payload) -> void
 NCode.Identity.OpenId.Client.IdTokenValidationResult.IsValid.get -> bool
@@ -174,6 +182,8 @@ NCode.Identity.OpenId.Client.OpenIdProviderMetadata.GrantTypesSupported.get -> S
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.GrantTypesSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.IdTokenSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.IdTokenSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.UserInfoSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.UserInfoSigningAlgValuesSupported.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.Issuer.get -> string?
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.Issuer.init -> void
 NCode.Identity.OpenId.Client.OpenIdProviderMetadata.JwksUri.get -> string?
@@ -235,6 +245,7 @@ NCode.Identity.OpenId.Client.TokenResponse.ExpiresIn.get -> int?
 NCode.Identity.OpenId.Client.TokenResponse.ExpiresIn.init -> void
 NCode.Identity.OpenId.Client.TokenResponse.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
 NCode.Identity.OpenId.Client.TokenResponse.ExtensionData.set -> void
+NCode.Identity.OpenId.Client.TokenResponse.RefreshTokenExpiresIn.get -> int?
 NCode.Identity.OpenId.Client.TokenResponse.IdToken.get -> string?
 NCode.Identity.OpenId.Client.TokenResponse.IdToken.init -> void
 NCode.Identity.OpenId.Client.TokenResponse.IssuedTokenType.get -> string?
@@ -268,3 +279,26 @@ override NCode.Identity.OpenId.Client.RefreshTokenRequest.AddGrantParameters(Sys
 override NCode.Identity.OpenId.Client.RefreshTokenRequest.GrantType.get -> string!
 override NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 override NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.GrantType.get -> string!
+const NCode.Identity.OpenId.Client.UserInfoFailureCodes.InvalidIssuer = "invalid_issuer" -> string!
+const NCode.Identity.OpenId.Client.UserInfoFailureCodes.InvalidResponse = "invalid_response" -> string!
+const NCode.Identity.OpenId.Client.UserInfoFailureCodes.SubjectMismatch = "subject_mismatch" -> string!
+const NCode.Identity.OpenId.Client.UserInfoFailureCodes.UnsupportedResponse = "unsupported_response" -> string!
+NCode.Identity.OpenId.Client.IUserInfoClient
+NCode.Identity.OpenId.Client.IUserInfoClient.GetUserInfoAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.UserInfoRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.UserInfoResult!>
+NCode.Identity.OpenId.Client.UserInfoFailureCodes
+NCode.Identity.OpenId.Client.UserInfoRequest
+NCode.Identity.OpenId.Client.UserInfoRequest.AccessToken.get -> string!
+NCode.Identity.OpenId.Client.UserInfoRequest.DPoPJwkThumbprint.get -> string?
+NCode.Identity.OpenId.Client.UserInfoRequest.DPoPJwkThumbprint.init -> void
+NCode.Identity.OpenId.Client.UserInfoRequest.ExpectedSubject.get -> string!
+NCode.Identity.OpenId.Client.UserInfoRequest.UserInfoRequest(string! accessToken, string! expectedSubject) -> void
+NCode.Identity.OpenId.Client.UserInfoResult
+NCode.Identity.OpenId.Client.UserInfoResult.Claims.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Client.UserInfoResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
+NCode.Identity.OpenId.Client.UserInfoResult.FailureCode.get -> string?
+NCode.Identity.OpenId.Client.UserInfoResult.FailureReason.get -> string?
+NCode.Identity.OpenId.Client.UserInfoResult.Identity.get -> System.Security.Claims.ClaimsIdentity?
+NCode.Identity.OpenId.Client.UserInfoResult.IsSuccess.get -> bool
+NCode.Identity.OpenId.Client.UserInfoResult.UserInfoResult(NCode.Identity.OpenId.Client.ProtocolError! error) -> void
+NCode.Identity.OpenId.Client.UserInfoResult.UserInfoResult(string! failureCode, string! failureReason) -> void
+NCode.Identity.OpenId.Client.UserInfoResult.UserInfoResult(System.Text.Json.JsonElement claims, System.Security.Claims.ClaimsIdentity! identity) -> void

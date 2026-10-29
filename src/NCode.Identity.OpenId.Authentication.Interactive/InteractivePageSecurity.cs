@@ -40,7 +40,7 @@ internal readonly record struct InteractivePageSecurity(string Nonce, HtmlPageSe
         var nonce = ContentSecurityPolicySources.CreateNonce();
 
         List<string> imageSources = [ContentSecurityPolicySources.Self];
-        if (Uri.TryCreate(branding?.LogoUrl, UriKind.Absolute, out var logoUri))
+        if (AbsoluteUri.TryParse(branding?.LogoUrl, out var logoUri))
         {
             imageSources.Add(ContentSecurityPolicySources.Origin(logoUri));
         }

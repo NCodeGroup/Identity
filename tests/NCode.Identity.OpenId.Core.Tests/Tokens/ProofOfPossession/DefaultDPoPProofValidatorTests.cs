@@ -88,7 +88,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         {
             Algorithm = "ES256",
             PublicKey = new JsonWebKey(
-                JsonDocument.Parse("""{"kty":"EC","crv":"P-256","x":"x","y":"y"}""").RootElement
+                JsonElement.Parse("""{"kty":"EC","crv":"P-256","x":"x","y":"y"}""")
             ),
             JwkThumbprint = Thumbprint,
             Jti = Jti,

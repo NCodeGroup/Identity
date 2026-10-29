@@ -35,8 +35,9 @@ internal class DefaultEccSecretKey(
     KeyMetadata metadata,
     int curveSizeBits,
     ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
-    ReadOnlyMemory<byte>? certificateRawData
-) : EccSecretKey(metadata, curveSizeBits, certificateRawData)
+    ReadOnlyMemory<byte>? certificateRawData,
+    IReadOnlyList<ReadOnlyMemory<byte>>? issuerCertificatesRawData = null
+) : EccSecretKey(metadata, curveSizeBits, certificateRawData, issuerCertificatesRawData)
 {
     private IDataProtector DataProtector { get; } = dataProtector;
     private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;

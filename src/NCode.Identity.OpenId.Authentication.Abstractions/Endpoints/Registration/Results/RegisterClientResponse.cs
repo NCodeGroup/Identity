@@ -414,4 +414,25 @@ public sealed record RegisterClientResponse
     [JsonPropertyName("backchannel_logout_session_required")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? BackchannelLogoutSessionRequired { get; init; }
+
+    /// <summary>
+    /// Gets the URLs the end-session endpoint may redirect the user agent to after logout (OpenID Connect RP-Initiated Logout 1.0 §3.1). No post-logout redirect is permitted when omitted.
+    /// </summary>
+    [JsonPropertyName("post_logout_redirect_uris")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? PostLogoutRedirectUris { get; init; }
+
+    /// <summary>
+    /// Gets the URL the server renders in an iframe to log the client out (OpenID Connect Front-Channel Logout 1.0 §2). The client is not notified through the front channel when omitted.
+    /// </summary>
+    [JsonPropertyName("frontchannel_logout_uri")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? FrontchannelLogoutUri { get; init; }
+
+    /// <summary>
+    /// Gets whether the client requires the <c>iss</c> and <c>sid</c> query parameters on its <c>frontchannel_logout_uri</c> (OpenID Connect Front-Channel Logout 1.0 §2); <see langword="false"/> when omitted.
+    /// </summary>
+    [JsonPropertyName("frontchannel_logout_session_required")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? FrontchannelLogoutSessionRequired { get; init; }
 }

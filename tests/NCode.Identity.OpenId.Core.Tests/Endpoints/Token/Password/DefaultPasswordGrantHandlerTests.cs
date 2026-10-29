@@ -327,7 +327,15 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken>(CreateSecurityToken("refresh-token-value")))
+            .Returns(
+                new ValueTask<IssuedRefreshToken>(
+                    new IssuedRefreshToken
+                    {
+                        Token = CreateSecurityToken("refresh-token-value"),
+                        LineageExpiresWhen = CreatedWhen.AddDays(30),
+                    }
+                )
+            )
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -340,6 +348,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
 
         var response = Assert.IsType<TokenResponse>(result);
         Assert.Equal("refresh-token-value", response.RefreshToken);
+        Assert.Equal(TimeSpan.FromDays(30), response.RefreshTokenExpiresIn);
     }
 
     [Fact]

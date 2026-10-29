@@ -73,13 +73,13 @@ public class TokenEndpointBootstrapAdminTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
         Assert.True(root.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
 
-        using var payload = DecodeJwtPayload(accessToken.GetString()!);
-        var payloadRoot = payload.RootElement;
+        var payload = DecodeJwtPayload(accessToken.GetString()!);
+        var payloadRoot = payload;
 
         // The bootstrap client's management token is stamped with the GlobalAdmin role at issuance (ADR-0044).
         Assert.Equal("GlobalAdmin", payloadRoot.GetProperty("role").GetString());
@@ -195,12 +195,12 @@ public class TokenEndpointBootstrapAdminTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
-        using var document = JsonDocument.Parse(body);
-        Assert.True(document.RootElement.TryGetProperty("access_token", out var accessToken));
+        var jsonElement = JsonElement.Parse(body);
+        Assert.True(jsonElement.TryGetProperty("access_token", out var accessToken));
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
 
-        using var payload = DecodeJwtPayload(accessToken.GetString()!);
-        Assert.Equal("GlobalAdmin", payload.RootElement.GetProperty("role").GetString());
+        var payload = DecodeJwtPayload(accessToken.GetString()!);
+        Assert.Equal("GlobalAdmin", payload.GetProperty("role").GetString());
     }
 
     // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
@@ -228,11 +228,11 @@ public class TokenEndpointBootstrapAdminTests
         };
     }
 
-    private static JsonDocument DecodeJwtPayload(string jwt)
+    private static JsonElement DecodeJwtPayload(string jwt)
     {
         var payloadSegment = jwt.Split('.')[1];
         var payloadBytes = Base64Url.DecodeFromChars(payloadSegment);
-        return JsonDocument.Parse(payloadBytes);
+        return JsonElement.Parse(payloadBytes);
     }
 
     /// <summary>

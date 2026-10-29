@@ -314,7 +314,7 @@ internal class DefaultDeviceCodeGrantHandler(
                 cancellationToken
             );
 
-            tokenResponse.RefreshToken = securityToken.TokenValue;
+            tokenResponse.SetRefreshToken(securityToken);
         }
 
         return tokenResponse;

@@ -623,6 +623,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RefreshTokenLifetime);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_sliding_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> RefreshTokenSlidingLifetime =>
+        new(OpenIdSettingNames.RefreshTokenSlidingLifetime);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_alg_values_supported' setting.
     /// </summary>
     public static SettingKey<

@@ -21,16 +21,23 @@ using System.Web;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Tokens;
 
-public class DefaultTokenClientTests : BaseTests
+public class DefaultTokenClientTests : BaseTests, IAsyncLifetime
 {
     private const string Authority = "https://op.example.test";
     private const string SuccessBody =
         """{"access_token":"at","token_type":"Bearer","expires_in":300,"refresh_token":"rt","id_token":"it","scope":"api"}""";
+
+    private DPoPTestContext DPoPContext { get; } = new();
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync() => await DPoPContext.DisposeAsync();
 
     private Mock<IProviderMetadataResolver> MockMetadataResolver { get; }
 
@@ -80,7 +87,11 @@ public class DefaultTokenClientTests : BaseTests
             [mockAuthenticator.Object]
         );
 
-        return new DefaultTokenClient(MockMetadataResolver.Object, sender);
+        return new DefaultTokenClient(
+            MockMetadataResolver.Object,
+            sender,
+            DPoPContext.CreateResolver()
+        );
     }
 
     private static ClientRegistration CreateRegistration() => new(Authority, "client-1", "test");

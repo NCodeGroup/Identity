@@ -22,6 +22,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
 using NCode.Json;
 
@@ -30,16 +31,20 @@ namespace NCode.Identity.OpenId.Client.Authorization;
 /// <summary>
 /// Provides a default implementation of <see cref="IAuthorizationRequestClient"/> that pushes the request when the
 /// provider advertises a pushed authorization request endpoint (RFC 9126) and always uses PKCE <c>S256</c> (RFC 7636).
-/// See ADR-0275.
+/// See ADR-0275. When the client uses DPoP, it also sends the <c>dpop_jkt</c> parameter (RFC 9449 §10) so the
+/// authorization code is bound to the DPoP key.
 /// </summary>
 internal class DefaultAuthorizationRequestClient(
     IProviderMetadataResolver metadataResolver,
-    ClientRequestSender sender
+    ClientRequestSender sender,
+    DPoPKeyResolver dpopKeyResolver
 ) : IAuthorizationRequestClient
 {
     private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
 
     private ClientRequestSender Sender { get; } = sender;
+
+    private DPoPKeyResolver DPoPKeyResolver { get; } = dpopKeyResolver;
 
     /// <inheritdoc />
     public async ValueTask<AuthorizationRequestResult> CreateAuthorizationUriAsync(
@@ -77,6 +82,10 @@ internal class DefaultAuthorizationRequestClient(
             );
         }
 
+        var dpopJkt = DPoPKeyResolver
+            .Resolve(registration, metadata, jwkThumbprint: null)
+            ?.JwkThumbprint;
+
         var parEndpoint = metadata.PushedAuthorizationRequestEndpoint;
         if (string.IsNullOrEmpty(parEndpoint))
         {
@@ -92,16 +101,22 @@ internal class DefaultAuthorizationRequestClient(
 
             return new AuthorizationRequestResult(
                 new Uri(
-                    AddQuery(authorizationEndpoint, BuildParameters(request, registration.ClientId))
+                    AddQuery(
+                        authorizationEndpoint,
+                        BuildParameters(request, registration.ClientId, dpopJkt)
+                    )
                 )
-            );
+            )
+            {
+                DPoPJwkThumbprint = dpopJkt,
+            };
         }
 
         var response = await Sender.PostFormAsync(
             registration,
             metadata,
             parEndpoint,
-            BuildParameters(request, clientId: null),
+            BuildParameters(request, clientId: null, dpopJkt),
             includeClientId: true,
             cancellationToken
         );
@@ -144,7 +159,10 @@ internal class DefaultAuthorizationRequestClient(
                 ]
             );
 
-            return new AuthorizationRequestResult(new Uri(authorizationUri), requestUri, expiresIn);
+            return new AuthorizationRequestResult(new Uri(authorizationUri), requestUri, expiresIn)
+            {
+                DPoPJwkThumbprint = dpopJkt,
+            };
         }
 
         if (ProtocolErrorReader.TryRead(response, out var error))
@@ -157,7 +175,8 @@ internal class DefaultAuthorizationRequestClient(
 
     private static List<KeyValuePair<string, string>> BuildParameters(
         AuthorizationRequest request,
-        string? clientId
+        string? clientId,
+        string? dpopJkt
     )
     {
         var parameters = new List<KeyValuePair<string, string>>
@@ -213,6 +232,14 @@ internal class DefaultAuthorizationRequestClient(
         foreach (var resource in request.Resources)
             parameters.Add(
                 new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Resource, resource)
+            );
+
+        if (dpopJkt is not null)
+            parameters.Add(
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.DPoPJwkThumbprint,
+                    dpopJkt
+                )
             );
 
         if (request.AdditionalParameters is { } additionalParameters)

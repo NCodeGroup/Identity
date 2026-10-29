@@ -22,12 +22,13 @@ using Moq;
 using NCode.Identity.OpenId.Client.Authorization;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Identity.OpenId.Client.Tests.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Authorization;
 
-public class DefaultAuthorizationRequestClientTests : BaseTests
+public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
 {
     private const string Authority = "https://op.example.test";
 
@@ -38,6 +39,12 @@ public class DefaultAuthorizationRequestClientTests : BaseTests
     private Mock<IProviderMetadataResolver> MockMetadataResolver { get; }
 
     private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
+
+    private DPoPTestContext DPoPContext { get; } = new();
+
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync() => await DPoPContext.DisposeAsync();
 
     public DefaultAuthorizationRequestClientTests()
     {
@@ -89,7 +96,11 @@ public class DefaultAuthorizationRequestClientTests : BaseTests
             [mockAuthenticator.Object]
         );
 
-        return new DefaultAuthorizationRequestClient(MockMetadataResolver.Object, sender);
+        return new DefaultAuthorizationRequestClient(
+            MockMetadataResolver.Object,
+            sender,
+            DPoPContext.CreateResolver()
+        );
     }
 
     private static OpenIdProviderMetadata CreateMetadata(

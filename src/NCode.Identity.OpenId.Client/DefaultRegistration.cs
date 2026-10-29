@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client.Authentication;
@@ -26,6 +27,7 @@ using NCode.Identity.OpenId.Client.Authorization;
 using NCode.Identity.OpenId.Client.Discovery;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Keys;
+using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
 using NCode.Identity.OpenId.Client.Tokens;
@@ -73,6 +75,14 @@ public static class DefaultRegistration
                 .ConfigurePrimaryHttpMessageHandler(static () =>
                     new SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false }
                 );
+
+            serviceCollection.TryAddSingleton<ClientCertificateProvider>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IConfigureOptions<HttpClientFactoryOptions>,
+                    MutualTlsHttpClientOptionsSetup
+                >()
+            );
 
             serviceCollection.TryAddSingleton<ProviderHttpClient>();
             serviceCollection.TryAddSingleton<ProviderKeySetImporter>();

@@ -83,12 +83,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     [InlineData(256)]
     [InlineData(384)]
     [InlineData(521)]
-    public void ExportKey_WhenGivenValidCurve_ExportsKeyToHeader(int curveSizeBits)
+    public void ExportKey_WhenGivenValidCurve_ExportsOnlyThePublicKeyToHeader(int curveSizeBits)
     {
         var curve = GetCurve(curveSizeBits);
 
         using var key = ECDiffieHellman.Create(curve);
-        var parameters = key.ExportParameters(includePrivateParameters: true);
+        var parameters = key.ExportParameters(includePrivateParameters: false);
 
         var header = new Dictionary<string, object>();
         EcdhKeyManagementAlgorithm.ExportKey(curveSizeBits, key, header);
@@ -98,13 +98,54 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var crv = Assert.IsType<string>(Assert.Contains("crv", epk));
         var x = Assert.IsType<string>(Assert.Contains("x", epk));
         var y = Assert.IsType<string>(Assert.Contains("y", epk));
-        var d = Assert.IsType<string>(Assert.Contains("d", epk));
 
         Assert.Equal("EC", kty);
         Assert.Equal($"P-{curveSizeBits}", crv);
         Assert.Equal(Base64Url.Encode(parameters.Q.X), x);
         Assert.Equal(Base64Url.Encode(parameters.Q.Y), y);
-        Assert.Equal(Base64Url.Encode(parameters.D), d);
+
+        // RFC 7518 §4.6.1.1: the ephemeral private key never leaves the sender.
+        Assert.Equal(["crv", "kty", "x", "y"], epk.Keys.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ValidateHeaderForUnwrap_WhenTheEphemeralKeyCarriesItsPrivateKey_Throws()
+    {
+        const int curveSizeBits = 256;
+
+        var curve = GetCurve(curveSizeBits);
+        using var ephemeralKey = ECDiffieHellman.Create(curve);
+        var parameters = ephemeralKey.ExportParameters(includePrivateParameters: true);
+
+        var header = new JsonObject
+        {
+            ["enc"] = "A128GCM",
+            ["epk"] = new JsonObject
+            {
+                ["kty"] = "EC",
+                ["crv"] = $"P-{curveSizeBits}",
+                ["x"] = Base64Url.Encode(parameters.Q.X),
+                ["y"] = Base64Url.Encode(parameters.Q.Y),
+                ["d"] = Base64Url.Encode(parameters.D),
+            },
+        };
+        var headerForUnwrap = header.Deserialize<JsonElement>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            Algorithm.ValidateHeaderForUnwrap(
+                curve,
+                curveSizeBits,
+                headerForUnwrap,
+                out _,
+                out _,
+                out _
+            )
+        );
+
+        Assert.Equal(
+            "The 'epk' header must contain only public key parameters, but it contains 'd'.",
+            exception.Message
+        );
     }
 
     [Fact]
@@ -533,7 +574,6 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     {
         const string keyId = nameof(keyId);
         const string enc = "dir";
-        const string kty = "EC";
 
         var apu = new byte[16];
         RandomNumberGenerator.Fill(apu);
@@ -543,13 +583,12 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         var metadata = new KeyMetadata { KeyId = keyId };
 
-        // party 1
+        // the sender agrees on a key from the recipient's public key and an ephemeral key of its own
 
-        using var key1 = ECDiffieHellman.Create(curve);
-        var secretKey1 = SecretKeyFactory.CreateEcc(metadata, key1);
-        var parameters1 = key1.ExportParameters(includePrivateParameters: false);
+        using var recipientKey = ECDiffieHellman.Create(curve);
+        var recipientSecretKey = SecretKeyFactory.CreateEcc(metadata, recipientKey);
 
-        var header1 = new Dictionary<string, object>
+        var header = new Dictionary<string, object>
         {
             ["enc"] = enc,
             ["apu"] = Base64Url.Encode(apu),
@@ -557,44 +596,18 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         };
 
         var cek1 = new byte[keySizeBytes];
-        Algorithm.NewKey(secretKey1, header1, cek1);
+        Algorithm.NewKey(recipientSecretKey, header, cek1);
 
-        // party 2
+        // RFC 7518 §4.6.1.1: the header carries only the ephemeral public key.
+        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
+        Assert.Equal(["crv", "kty", "x", "y"], epk.Keys.Order(StringComparer.Ordinal));
 
-        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header1));
-        var parameters2 = new ECParameters
-        {
-            Curve = curve,
-            Q = new ECPoint
-            {
-                X = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("x", epk))),
-                Y = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("y", epk))),
-            },
-            D = Base64Url.Decode(Assert.IsType<string>(Assert.Contains("d", epk))),
-        };
-        using var key2 = ECDiffieHellman.Create(parameters2);
-        var secretKey2 = SecretKeyFactory.CreateEcc(metadata, key2);
-
-        var crv = $"P-{secretKey2.KeySizeBits}";
-        var header2 = new Dictionary<string, object>
-        {
-            ["enc"] = enc,
-            ["apu"] = Base64Url.Encode(apu),
-            ["apv"] = Base64Url.Encode(apv),
-            ["epk"] = new Dictionary<string, object>
-            {
-                ["kty"] = kty,
-                ["crv"] = crv,
-                ["x"] = Base64Url.Encode(parameters1.Q.X),
-                ["y"] = Base64Url.Encode(parameters1.Q.Y),
-            },
-        };
-        var header2ForUnwrap = JsonSerializer.SerializeToElement(header2);
+        // the recipient agrees on the same key from its private key and the ephemeral public key
 
         var cek2 = new byte[keySizeBytes];
         var result = Algorithm.TryUnwrapKey(
-            secretKey2,
-            header2ForUnwrap,
+            recipientSecretKey,
+            JsonSerializer.SerializeToElement(header),
             Array.Empty<byte>(),
             cek2,
             out var bytesWritten
@@ -613,7 +626,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         var keySizeBits = keySizeBytes << 3;
         var controlAlgorithm = new EcdhKeyManagementUnix(true);
-        var controlResult = controlAlgorithm.Unwrap([], key2, keySizeBits, header2);
+        var controlResult = controlAlgorithm.Unwrap([], recipientKey, keySizeBits, header);
         Assert.Equal(controlResult, cek1);
     }
 }

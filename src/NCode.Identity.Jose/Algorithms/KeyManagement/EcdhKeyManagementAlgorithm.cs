@@ -88,34 +88,23 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
     }
 
-    internal static unsafe void ExportKey(
+    internal static void ExportKey(
         int curveSizeBits,
         ECDiffieHellman key,
         IDictionary<string, object> header
     )
     {
-        var parameters = key.ExportParameters(includePrivateParameters: true);
+        // RFC 7518 §4.6.1.1: the ephemeral public key carries only public parameters. Its private key never leaves the
+        // sender: with it and the recipient's public key, anyone could derive the content encryption key.
+        var parameters = key.ExportParameters(includePrivateParameters: false);
 
-        // Hmm. What's the point when the header has this value unprotected?
-        // ReSharper disable once UnusedVariable
-        fixed (byte* pinned = parameters.D)
+        header[JoseClaimNames.Header.Epk] = new Dictionary<string, object>
         {
-            try
-            {
-                header[JoseClaimNames.Header.Epk] = new Dictionary<string, object>
-                {
-                    [JoseClaimNames.Header.Kty] = JsonWebKeyTypes.Ec,
-                    [JoseClaimNames.Header.Crv] = $"P-{curveSizeBits}",
-                    [JoseClaimNames.Header.X] = Base64Url.Encode(parameters.Q.X),
-                    [JoseClaimNames.Header.Y] = Base64Url.Encode(parameters.Q.Y),
-                    [JoseClaimNames.Header.D] = Base64Url.Encode(parameters.D),
-                };
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(parameters.D);
-            }
-        }
+            [JoseClaimNames.Header.Kty] = JsonWebKeyTypes.Ec,
+            [JoseClaimNames.Header.Crv] = $"P-{curveSizeBits}",
+            [JoseClaimNames.Header.X] = Base64Url.Encode(parameters.Q.X),
+            [JoseClaimNames.Header.Y] = Base64Url.Encode(parameters.Q.Y),
+        };
     }
 
     internal ECDiffieHellman ValidateHeaderForUnwrap(
@@ -145,6 +134,18 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         if (!string.Equals(kty, JsonWebKeyTypes.Ec, StringComparison.Ordinal))
         {
             throw new JoseException($"The 'kty' field was expected to be '{JsonWebKeyTypes.Ec}'.");
+        }
+
+        // RFC 7518 §4.6.1.1: an ephemeral key that carries its private key has disclosed the content encryption key to
+        // anyone holding the token, so the content is no longer confidential.
+        foreach (var privateMember in JsonWebKeyTypeDescriptors.Ec.PrivateMembers)
+        {
+            if (epk.TryGetProperty(privateMember, out _))
+            {
+                throw new JoseException(
+                    $"The 'epk' header must contain only public key parameters, but it contains '{privateMember}'."
+                );
+            }
         }
 
         if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Crv, out var crv))

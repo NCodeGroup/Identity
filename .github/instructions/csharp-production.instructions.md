@@ -1048,6 +1048,11 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   compress a JWT the server produces (RFC 8725 §3.6). Add a new kind of client-addressed JWT as a new
   `ClientJwtProtectionSettings` profile. See
   [ADR-0155](../../docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
+- 👁 **A key in a JOSE header carries only its public members.** An `epk` (RFC 7518 §4.6.1.1) or a DPoP `jwk`
+  (RFC 9449 §4.2) is written without any member its `JsonWebKeyTypeDescriptor.PrivateMembers` lists, and a received
+  one that carries such a member is refused: a header is readable by anyone holding the token, so an ephemeral private
+  key there discloses the content encryption key. A test that reads a private member back out of a produced token is
+  asserting the defect, not the behavior.
 - 👁 **Bring a client's key in through `IClientKeyImporter`, and read a client's keys through `IClientKeyResolver`.**
   A client's public keys come from one source — the keys stored for it or the keys it publishes at its `jwks_uri`,
   never both — and every entry point (dynamic registration, the `jwks_uri` fetch, the management API) imports a key

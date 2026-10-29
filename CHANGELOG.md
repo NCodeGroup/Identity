@@ -2194,6 +2194,11 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **ECDH-ES no longer discloses its ephemeral private key.** The `ECDH-ES` and `ECDH-ES+A*KW` key management algorithms
+  wrote the ephemeral key's private `d` into the JWE's `epk` header, so anyone holding the token could derive its
+  content encryption key from it and the recipient's public key and read every token encrypted to an EC key. The `epk`
+  now carries only `kty`, `crv`, `x` and `y` (RFC 7518 §4.6.1.1), and a received `epk` that carries a private member is
+  refused, because its content is no longer confidential.
 - **`RSA1_5` is not a registered JOSE algorithm.** RSAES-PKCS1-v1_5 key encryption is open to padding-oracle attacks
   (RFC 8725 §3.2), and a JWE that named it decrypted through `IJoseSerializer` and through an `IJwtValidator` call
   that sets no `ValidKeyManagementAlgorithms`. `AddJoseLibrary()` registers RSA key management only as `RSA-OAEP`,

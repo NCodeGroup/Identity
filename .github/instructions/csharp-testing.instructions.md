@@ -410,9 +410,15 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Drive the protocol client against the host, and record what it sends.** Route
   `OpenIdClientDefaults.HttpClientName` to `factory.Server.CreateHandler()` with `ConfigurePrimaryHttpMessageHandler`,
   and add `RecordingHttpMessageHandler` with `AddHttpMessageHandler` over one `ConcurrentQueue<RecordedHttpExchange>`.
-  Each exchange keeps the request's path, `Authorization` scheme and body with the response's status code, so a test
-  proves the wire — a `201` push that carries `client_id` once and no `request_uri` — as well as the client's result
-  (`AuthorizationRequestClientEndToEndTests`).
+  Each exchange keeps the request's path, `Authorization` scheme, `DPoP` header and body with the response's status
+  code, `DPoP-Nonce` header and body, so a test proves the wire — a `201` push that carries `client_id` once and no
+  `request_uri` — as well as the client's result (`AuthorizationRequestClientEndToEndTests`).
+- 👁 **Run DPoP end to end with a nonce, and model a key rotation with a ring per state.** Set `dpop_nonce_required`
+  in the seeded client's settings so the first token request gets the `use_dpop_nonce` challenge; register static
+  `DPoPKeyRing`s — the old key, a stranger key, and the rotated ring with both — and switch registrations of the same
+  client between them, because the client resolves the ring on every call; compare `cnf.jkt` with an RFC 7638
+  thumbprint computed in the test; and authorize again for each code a test expects to be refused, because the OP
+  consumes a code before it checks `dpop_jkt` (`TokenClientDPoPEndToEndTests`).
 - 👁 **Read the logout token the server delivers from the back-channel logout client.** Set
   `HostApplicationFactory.BackChannelLogoutExchanges` to a `ConcurrentQueue<RecordedHttpExchange>` before the first
   request, which replaces the SSRF-guarded `NCode.Identity.OpenId.BackChannelLogout` client's handler with

@@ -22,7 +22,8 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// A <see cref="DelegatingHandler"/> that forwards every request and adds a <see cref="RecordedHttpExchange"/> for it
-/// to a shared queue, so a test can assert what a client sent over the wire and what the server answered. Register it
+/// to a shared queue, so a test can assert what a client sent over the wire (body, <c>DPoP</c> proof) and what the server answered (status,
+/// <c>DPoP-Nonce</c>, body). Register it
 /// with <c>AddHttpMessageHandler</c>: the client factory builds a new instance for each handler pipeline, and every
 /// instance records into the same queue.
 /// </summary>
@@ -43,12 +44,30 @@ internal sealed class RecordingHttpMessageHandler(ConcurrentQueue<RecordedHttpEx
 
         var response = await base.SendAsync(request, cancellationToken);
 
+        var responseBody = response.Content is null
+            ? null
+            : await response.Content.ReadAsStringAsync(cancellationToken);
+
+        var proof = request.Headers.TryGetValues(OpenIdProtocol.DPoP.HeaderName, out var proofs)
+            ? proofs.FirstOrDefault()
+            : null;
+
+        var nonce = response.Headers.TryGetValues(
+            OpenIdProtocol.DPoP.NonceHeaderName,
+            out var nonces
+        )
+            ? nonces.FirstOrDefault()
+            : null;
+
         Exchanges.Enqueue(
             new RecordedHttpExchange(
                 request.RequestUri?.AbsolutePath ?? string.Empty,
                 request.Headers.Authorization?.Scheme,
                 body,
-                response.StatusCode
+                response.StatusCode,
+                DPoPProof: proof,
+                DPoPNonce: nonce,
+                ResponseBody: responseBody
             )
         );
 

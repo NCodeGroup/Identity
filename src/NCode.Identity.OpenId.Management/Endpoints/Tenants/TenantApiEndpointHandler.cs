@@ -647,7 +647,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was deleted.</response>
-    /// <response code="409">The tenant still has clients or resource servers and cannot be deleted.</response>
+    /// <response code="409">The tenant still has clients or resource servers, or has deletion protection enabled, and cannot be deleted.</response>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
@@ -674,6 +674,23 @@ internal class TenantApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        var effectiveSettings = await MergeTenantSettingsAsync(
+            tenant.TenantId,
+            tenant.Settings.Value,
+            cancellationToken
+        );
+        if (effectiveSettings.GetValue(OpenIdSettingKeys.DeletionProtection))
+        {
+            return ToErrorResult(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail =
+                        "The tenant has deletion protection enabled. Set its 'deletion_protection' setting to false, then delete it.",
+                }
+            );
         }
 
         var resourceValues = ToResourceValues(ToTenantResource(tenant));

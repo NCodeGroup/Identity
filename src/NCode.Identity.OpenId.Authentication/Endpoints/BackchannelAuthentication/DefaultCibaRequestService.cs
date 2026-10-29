@@ -159,6 +159,10 @@ internal sealed class DefaultCibaRequestService(
                     ? (long)expiresIn.TotalSeconds
                     : null,
                 RefreshToken = tokenResponse.RefreshToken,
+                RefreshTokenExpiresInSeconds = tokenResponse.RefreshTokenExpiresIn
+                    is { } refreshExpiresIn
+                    ? (long)refreshExpiresIn.TotalSeconds
+                    : null,
                 IdToken = tokenResponse.IdToken,
                 Scope = tokenResponse.Scopes is { Count: > 0 } scopes
                     ? string.Join(' ', scopes)

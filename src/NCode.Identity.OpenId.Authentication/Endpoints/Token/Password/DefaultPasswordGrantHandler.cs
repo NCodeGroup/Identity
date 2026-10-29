@@ -188,7 +188,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
                 cancellationToken
             );
 
-            tokenResponse.RefreshToken = securityToken.TokenValue;
+            tokenResponse.SetRefreshToken(securityToken);
         }
 
         return tokenResponse;

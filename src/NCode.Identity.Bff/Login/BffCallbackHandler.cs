@@ -30,7 +30,6 @@ using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
-using NCode.Json;
 using NCode.Time;
 
 namespace NCode.Identity.Bff.Login;
@@ -40,8 +39,6 @@ namespace NCode.Identity.Bff.Login;
 /// </summary>
 internal class BffCallbackHandler
 {
-    private const string RefreshTokenExpiresInMember = "refresh_token_expires_in";
-
     private readonly IOptions<BffOptions> _options;
     private readonly BffClientRegistrationProvider _registrationProvider;
     private readonly BffLoginTransactionService _transactionService;
@@ -252,12 +249,7 @@ internal class BffCallbackHandler
         var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
 
         var absolute = now + bffOptions.Session.AbsoluteLifetime;
-        if (
-            response.ExtensionData is { } extensionData
-            && extensionData.TryGetValue(RefreshTokenExpiresInMember, out var refreshExpiry)
-            && refreshExpiry.TryGetWholeInt32(out var refreshSeconds)
-            && refreshSeconds > 0
-        )
+        if (response.RefreshTokenExpiresIn is { } refreshSeconds)
         {
             var refreshExpiresAt = now + TimeSpan.FromSeconds(refreshSeconds);
             if (refreshExpiresAt < absolute)

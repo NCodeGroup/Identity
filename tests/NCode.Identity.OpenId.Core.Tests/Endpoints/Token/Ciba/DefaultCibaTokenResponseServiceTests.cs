@@ -150,7 +150,15 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<SecurityToken>(CreateSecurityToken("refresh-token-value")))
+            .Returns(
+                new ValueTask<IssuedRefreshToken>(
+                    new IssuedRefreshToken
+                    {
+                        Token = CreateSecurityToken("refresh-token-value"),
+                        LineageExpiresWhen = UtcNow.AddDays(30),
+                    }
+                )
+            )
             .Verifiable();
 
         var result = await Service.CreateTokenResponseAsync(
@@ -164,6 +172,7 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         Assert.Equal("access-token-value", result.AccessToken);
         Assert.Equal("id-token-value", result.IdToken);
         Assert.Equal("refresh-token-value", result.RefreshToken);
+        Assert.Equal(TimeSpan.FromDays(30), result.RefreshTokenExpiresIn);
         MockTokenService.Verify();
     }
 }

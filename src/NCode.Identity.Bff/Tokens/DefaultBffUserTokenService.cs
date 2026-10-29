@@ -27,7 +27,6 @@ using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
-using NCode.Json;
 using NCode.Time;
 
 namespace NCode.Identity.Bff.Tokens;
@@ -49,8 +48,6 @@ internal class DefaultBffUserTokenService(
     ILogger<DefaultBffUserTokenService> logger
 ) : IBffUserTokenService
 {
-    private const string RefreshTokenExpiresInMember = "refresh_token_expires_in";
-
     private readonly BffSessionResolver _sessionResolver = sessionResolver;
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly IBffSessionStore _sessionStore = sessionStore;
@@ -416,12 +413,7 @@ internal class DefaultBffUserTokenService(
         };
 
         DateTimeOffset? refreshExpiresAt = null;
-        if (
-            response.ExtensionData is { } extensionData
-            && extensionData.TryGetValue(RefreshTokenExpiresInMember, out var refreshExpiry)
-            && refreshExpiry.TryGetWholeInt32(out var refreshSeconds)
-            && refreshSeconds > 0
-        )
+        if (response.RefreshTokenExpiresIn is { } refreshSeconds)
         {
             refreshExpiresAt = now + TimeSpan.FromSeconds(refreshSeconds);
         }

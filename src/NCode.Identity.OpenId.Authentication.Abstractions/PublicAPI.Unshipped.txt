@@ -1000,7 +1000,9 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.Ef
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.OriginalScopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.OriginalScopes.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.RefreshTokenGrant() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.RefreshTokenGrant(string! ClientId, System.Collections.Generic.IReadOnlyList<string!>! OriginalScopes, System.Collections.Generic.IReadOnlyList<string!>! EffectiveScopes, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication? SubjectAuthentication, NCode.Identity.OpenId.Authentication.Tokens.Models.TokenConfirmation Confirmation) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.RefreshTokenGrant(string! ClientId, System.Collections.Generic.IReadOnlyList<string!>! OriginalScopes, System.Collections.Generic.IReadOnlyList<string!>! EffectiveScopes, NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication? SubjectAuthentication, NCode.Identity.OpenId.Authentication.Tokens.Models.TokenConfirmation Confirmation, System.DateTimeOffset LineageCreatedWhen) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.LineageCreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.LineageCreatedWhen.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.SubjectAuthentication.get -> NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants.RefreshTokenGrant.SubjectAuthentication.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.ITokenGrantHandler
@@ -1110,6 +1112,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.IdT
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.IdToken.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.RefreshToken.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.RefreshToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.RefreshTokenExpiresIn.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.RefreshTokenExpiresIn.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.Scopes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenResponse.TokenType.get -> string?
@@ -1563,9 +1567,9 @@ NCode.Identity.OpenId.Authentication.Tokens.Commands.GetIdTokenSubjectClaimsComm
 NCode.Identity.OpenId.Authentication.Tokens.ITokenService
 NCode.Identity.OpenId.Authentication.Tokens.ITokenService.CreateAccessTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken>
 NCode.Identity.OpenId.Authentication.Tokens.ITokenService.CreateIdTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken>
-NCode.Identity.OpenId.Authentication.Tokens.ITokenService.CreateRefreshTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken>
-NCode.Identity.OpenId.Authentication.Tokens.ITokenService.RotateRefreshTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Persistence.PersistedGrantId presentedGrantId, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken?>
-NCode.Identity.OpenId.Authentication.Tokens.ITokenService.ReissueRefreshTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken?>
+NCode.Identity.OpenId.Authentication.Tokens.ITokenService.CreateRefreshTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken>
+NCode.Identity.OpenId.Authentication.Tokens.ITokenService.RotateRefreshTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Persistence.PersistedGrantId presentedGrantId, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken?>
+NCode.Identity.OpenId.Authentication.Tokens.ITokenService.ReissueRefreshTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest tokenRequest, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken?>
 NCode.Identity.OpenId.Authentication.Tokens.Models.AccessTokenPolicy
 NCode.Identity.OpenId.Authentication.Tokens.Models.AccessTokenPolicy.AccessTokenPolicy() -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.AccessTokenPolicy.EncryptionCredentials.get -> NCode.Identity.Jose.Credentials.JoseEncryptionCredentials?
@@ -1604,6 +1608,8 @@ NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.Re
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshToken.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshTokenLineageId.get -> string?
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshTokenLineageId.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshTokenLineageCreatedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RefreshTokenLineageCreatedWhen.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RequestClaims.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims?
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.RequestClaims.init -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.CreateSecurityTokenRequest.State.get -> string?
@@ -1834,3 +1840,9 @@ NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.ToContentS
 NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions
 NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
 NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetHtmlPageSecurity(NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy! policy) -> void
+NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken
+NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.IssuedRefreshToken() -> void
+NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.LineageExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.LineageExpiresWhen.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.Token.get -> NCode.Identity.OpenId.Authentication.Tokens.Models.SecurityToken
+NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.Token.init -> void

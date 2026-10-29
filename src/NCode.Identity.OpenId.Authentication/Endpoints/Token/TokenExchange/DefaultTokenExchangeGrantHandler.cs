@@ -568,7 +568,7 @@ internal class DefaultTokenExchangeGrantHandler(
                 cancellationToken
             );
 
-            tokenResponse.RefreshToken = refreshToken.TokenValue;
+            tokenResponse.SetRefreshToken(refreshToken);
             tokenResponse.IssuedTokenType = OpenIdProtocol.TokenTypeIdentifiers.RefreshToken;
         }
 

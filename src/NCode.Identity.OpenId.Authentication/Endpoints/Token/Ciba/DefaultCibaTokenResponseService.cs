@@ -103,7 +103,7 @@ internal sealed class DefaultCibaTokenResponseService(
                 cancellationToken
             );
 
-            tokenResponse.RefreshToken = securityToken.TokenValue;
+            tokenResponse.SetRefreshToken(securityToken);
         }
 
         return tokenResponse;

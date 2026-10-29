@@ -85,4 +85,22 @@ public sealed class TokenResponse
     /// </summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? ExtensionData { get; set; }
+
+    /// <summary>
+    /// Gets the seconds until the refresh token's rotation family expires, from the de-facto
+    /// <c>refresh_token_expires_in</c> member, or <see langword="null"/> when the provider sends none. The member is
+    /// advisory, so a value that is not a positive whole number is ignored rather than failing the response. It is read
+    /// from <see cref="ExtensionData"/>.
+    /// </summary>
+    [JsonIgnore]
+    public int? RefreshTokenExpiresIn =>
+        ExtensionData is { } extensionData
+        && extensionData.TryGetValue(
+            OpenIdProtocol.Parameters.RefreshTokenExpiresIn,
+            out var refreshTokenExpiresIn
+        )
+        && refreshTokenExpiresIn.TryGetWholeInt32(out var seconds)
+        && seconds > 0
+            ? seconds
+            : null;
 }

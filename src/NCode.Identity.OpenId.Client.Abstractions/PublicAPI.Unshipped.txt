@@ -237,6 +237,7 @@ NCode.Identity.OpenId.Client.TokenResponse.ExpiresIn.get -> int?
 NCode.Identity.OpenId.Client.TokenResponse.ExpiresIn.init -> void
 NCode.Identity.OpenId.Client.TokenResponse.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
 NCode.Identity.OpenId.Client.TokenResponse.ExtensionData.set -> void
+NCode.Identity.OpenId.Client.TokenResponse.RefreshTokenExpiresIn.get -> int?
 NCode.Identity.OpenId.Client.TokenResponse.IdToken.get -> string?
 NCode.Identity.OpenId.Client.TokenResponse.IdToken.init -> void
 NCode.Identity.OpenId.Client.TokenResponse.IssuedTokenType.get -> string?

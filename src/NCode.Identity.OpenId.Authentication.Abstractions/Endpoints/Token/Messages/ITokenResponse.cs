@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 // Copyright @ 2024 NCode Group
 //
@@ -46,6 +46,13 @@ public interface ITokenResponse : IOpenIdResponse
     /// Gets or sets the <c>refresh_token</c> parameter.
     /// </summary>
     string? RefreshToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets the de-facto <c>refresh_token_expires_in</c> parameter: the time until the refresh token's rotation
+    /// family expires, however often its tokens are used or rotated. It never grows within a family, so a client may
+    /// bound a session by it (ADR-0297).
+    /// </summary>
+    TimeSpan? RefreshTokenExpiresIn { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>scope</c> parameter.

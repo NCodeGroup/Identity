@@ -241,6 +241,18 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
+    /// Gets the <see cref="KnownParameter"/> for the de-facto <c>refresh_token_expires_in</c> token response member,
+    /// carried as an integer number of seconds like <c>expires_in</c>.
+    /// </summary>
+    public static readonly KnownParameter<TimeSpan?> RefreshTokenExpiresIn = new(
+        OpenIdProtocol.Parameters.RefreshTokenExpiresIn,
+        CommonParameterParsers.DurationSeconds
+    )
+    {
+        AllowMissingStringValues = true,
+    };
+
+    /// <summary>
     /// Gets the <see cref="KnownParameter"/> for the <c>login_hint</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="String"/> result.
     /// </summary>
     public static readonly KnownParameter<string> LoginHint = new(

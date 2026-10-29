@@ -414,12 +414,15 @@ public static partial class OpenIdConstants
     public static class RefreshTokenExpirationPolicy
     {
         /// <summary>
-        /// Indicates that refresh tokens expire at a fixed point in time regardless of use.
+        /// Indicates that every refresh token of a rotation family expires when the family does,
+        /// <c>refresh_token_lifetime</c> after the grant that began it, however often its tokens are used or rotated.
         /// </summary>
         public const string Absolute = "absolute";
 
         /// <summary>
-        /// Indicates that the refresh token expiration is extended each time it is used, up to an absolute maximum.
+        /// Indicates that a refresh token expires <c>refresh_token_sliding_lifetime</c> after it was issued or last used,
+        /// so an idle family expires early, but never later than the family does, <c>refresh_token_lifetime</c> after
+        /// the grant that began it.
         /// </summary>
         public const string Sliding = "sliding";
     }

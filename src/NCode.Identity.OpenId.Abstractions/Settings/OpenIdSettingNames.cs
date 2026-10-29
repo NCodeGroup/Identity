@@ -639,6 +639,11 @@ public static class OpenIdSettingNames
     public const string RefreshTokenLifetime = "refresh_token_lifetime";
 
     /// <summary>
+    /// Contains the name of <c>refresh_token_sliding_lifetime</c> setting.
+    /// </summary>
+    public const string RefreshTokenSlidingLifetime = "refresh_token_sliding_lifetime";
+
+    /// <summary>
     /// Contains the name of <c>request_object_encryption_alg_values_supported</c> setting.
     /// </summary>
     public const string RequestObjectEncryptionAlgValuesSupported =

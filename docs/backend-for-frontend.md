@@ -1033,8 +1033,9 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
    only from `invalid_grant`. Should the NCode OP return a (non-standard) `refresh_token_expires_in`, so the BFF can cap
    the session up front?
    Decided: the BFF honors `refresh_token_expires_in` from any OP that sends it, only to shorten a session
-   ([ADR-0291](decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)); making
-   the NCode OP send it is a separate OP change.
+   ([ADR-0291](decisions/0291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)), and the
+   NCode OP sends it as its rotation family's fixed horizon
+   ([ADR-0297](decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md)).
 3. **Telling other tabs that the session ended.** Should a back-channel logout reach open tabs immediately (for
    example through a server-sent-events endpoint), or is the next API `401` soon enough?
 4. **Server-rendered and Blazor hosts.** Is an authentication-state provider for Blazor, or guidance for Razor Pages,

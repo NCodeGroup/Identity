@@ -86,8 +86,9 @@ wait for its result.**
 - Concurrent refreshes from two replicas never trip reuse detection; an end-to-end test drives eight parallel calls
   across two replicas against the NCode OP and asserts it.
 - A refresh blocked by a dead winner costs the losers at most one lease duration, then `503`.
-- The NCode OP does not yet send `refresh_token_expires_in`; until it does, the cap applies only to providers that send
-  it.
+- The NCode OP sends `refresh_token_expires_in` as its rotation family's fixed horizon
+  ([ADR-0297](0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md)), so a
+  session in front of it is capped from its first token response; other providers are capped only when they send it.
 - The `client`, `user_or_client`, `exchange` and `none` requirements arrive with remote APIs in phase 3.
 
 ## References

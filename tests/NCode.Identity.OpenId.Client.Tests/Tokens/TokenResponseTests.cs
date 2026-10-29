@@ -74,4 +74,51 @@ public class TokenResponseTests : BaseTests
     }
 
     #endregion
+
+    #region RefreshTokenExpiresIn Tests
+
+    [Theory]
+    [InlineData("2592000", 2_592_000)]
+    [InlineData("2592000.0", 2_592_000)]
+    public void RefreshTokenExpiresIn_WhenAPositiveWholeNumber_ReadsIt(string value, int expected)
+    {
+        var json =
+            $$"""{"access_token":"at","token_type":"Bearer","refresh_token_expires_in":{{value}}}""";
+
+        var response = JsonSerializer.Deserialize<TokenResponse>(json);
+
+        Assert.NotNull(response);
+        Assert.Equal(expected, response.RefreshTokenExpiresIn);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-5")]
+    [InlineData("60.5")]
+    [InlineData("\"3600\"")]
+    [InlineData("null")]
+    public void RefreshTokenExpiresIn_WhenNotAPositiveWholeNumber_IgnoresItWithoutFailing(
+        string value
+    )
+    {
+        // The member is advisory, so a provider's malformed value never fails the token response.
+        var json =
+            $$"""{"access_token":"at","token_type":"Bearer","refresh_token_expires_in":{{value}}}""";
+
+        var response = JsonSerializer.Deserialize<TokenResponse>(json);
+
+        Assert.NotNull(response);
+        Assert.Null(response.RefreshTokenExpiresIn);
+    }
+
+    [Fact]
+    public void RefreshTokenExpiresIn_WhenAbsent_IsNull()
+    {
+        var response = JsonSerializer.Deserialize<TokenResponse>(Document);
+
+        Assert.NotNull(response);
+        Assert.Null(response.RefreshTokenExpiresIn);
+    }
+
+    #endregion
 }

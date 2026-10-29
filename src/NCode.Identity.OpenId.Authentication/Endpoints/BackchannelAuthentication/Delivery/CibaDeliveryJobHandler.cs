@@ -68,6 +68,9 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
         if (!string.IsNullOrEmpty(job.RefreshToken))
             body[OpenIdProtocol.Parameters.RefreshToken] = job.RefreshToken;
 
+        if (job.RefreshTokenExpiresInSeconds is { } refreshExpiresIn)
+            body[OpenIdProtocol.Parameters.RefreshTokenExpiresIn] = refreshExpiresIn;
+
         if (!string.IsNullOrEmpty(job.IdToken))
             body[OpenIdProtocol.Parameters.IdToken] = job.IdToken;
 

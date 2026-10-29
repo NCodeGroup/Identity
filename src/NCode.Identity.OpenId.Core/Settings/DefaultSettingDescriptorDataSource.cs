@@ -1002,8 +1002,10 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = And,
             };
 
-            // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute or sliding (default
-            // absolute). Either way the token expires; a never-expiring refresh token is not offered (RFC 9700 §4.14.2).
+            // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute (at its family's
+            // refresh_token_lifetime) or sliding (refresh_token_sliding_lifetime after its last use, capped at the family's
+            // lifetime); default absolute. Either way the token expires; a never-expiring refresh token is not offered
+            // (RFC 9700 §4.14.2). (ADR-0297)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -1079,7 +1081,9 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // refresh_token_lifetime: validity window for issued refresh tokens (default 30 days).
+            // refresh_token_lifetime: the absolute lifetime of a refresh token's rotation family, from the grant that
+            // began it, however often its tokens are used or rotated (default 30 days). The token response announces
+            // the time left as refresh_token_expires_in. (ADR-0297)
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -1087,6 +1091,21 @@ internal class DefaultSettingDescriptorDataSource(
                 AppliesTo = Clients,
                 Rule = OpenIdSettingRules.Lifetime(),
                 Default = TimeSpan.FromDays(30.0),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // refresh_token_sliding_lifetime: under the sliding refresh_token_expiration_policy, how long a refresh token
+            // stays valid after it was issued or last used, never past its family's refresh_token_lifetime (default 15
+            // days); the absolute policy ignores it. (ADR-0297)
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.RefreshTokenSlidingLifetime,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.Lifetime(),
+                Default = TimeSpan.FromDays(15.0),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Min,

@@ -281,6 +281,12 @@ public static partial class OpenIdProtocol
         public const string RefreshToken = "refresh_token";
 
         /// <summary>
+        /// Contains the name of the de-facto <c>refresh_token_expires_in</c> token response member: the number of seconds
+        /// until the refresh token's rotation family expires, however often its tokens are used or rotated.
+        /// </summary>
+        public const string RefreshTokenExpiresIn = "refresh_token_expires_in";
+
+        /// <summary>
         /// Contains the name of <c>registration</c> parameter.
         /// </summary>
         public const string Registration = "registration";

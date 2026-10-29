@@ -81,7 +81,14 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
             mockContext.Object,
             mockClient.Object,
             mockTokenRequest.Object,
-            new RefreshTokenGrant(grantClientId, originalScopes, originalScopes, null, default)
+            new RefreshTokenGrant(
+                grantClientId,
+                originalScopes,
+                originalScopes,
+                null,
+                default,
+                default
+            )
         );
 
         return (command, mockTokenRequest);

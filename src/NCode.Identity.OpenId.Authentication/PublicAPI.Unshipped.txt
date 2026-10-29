@@ -281,6 +281,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IdTo
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IdToken.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshToken.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshToken.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshTokenExpiresIn.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.RefreshTokenExpiresIn.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scopes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Scopes.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.TokenResponse() -> void

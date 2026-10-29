@@ -180,7 +180,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             ClientId = clientId,
             SubjectId = subjectId,
             SessionId = null,
-            Payload = new RefreshTokenGrant(clientId, [], effectiveScopes, null, default),
+            Payload = new RefreshTokenGrant(clientId, [], effectiveScopes, null, default, default),
         };
 
     private static string? ClaimString(IntrospectionResult result, string name) =>

@@ -885,6 +885,18 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
+  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
+  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
+  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
+  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
+  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
+  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
+  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
+  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  `RefreshTokenGrant` gains `LineageCreatedWhen`
+  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
+  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
   profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
   Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
@@ -3375,6 +3387,18 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
+- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
+  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
+  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
+  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
+  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
+  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
+  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
+  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
+  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  `RefreshTokenGrant` gains `LineageCreatedWhen`
+  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
+  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
   profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
   Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
@@ -3839,6 +3863,18 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
+- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
+  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
+  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
+  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
+  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
+  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
+  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
+  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
+  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  `RefreshTokenGrant` gains `LineageCreatedWhen`
+  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
+  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
   profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
   Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
@@ -4824,6 +4860,18 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
+- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
+  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
+  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
+  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
+  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
+  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
+  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
+  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
+  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  `RefreshTokenGrant` gains `LineageCreatedWhen`
+  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
+  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
   profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
   Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
@@ -5212,6 +5260,18 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
+  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
+  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
+  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
+  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
+  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
+  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
+  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
+  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
+  `RefreshTokenGrant` gains `LineageCreatedWhen`
+  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
+  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
   profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
   Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling

@@ -250,7 +250,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
                 cancellationToken
             );
 
-            tokenResponse.RefreshToken = securityToken.TokenValue;
+            tokenResponse.SetRefreshToken(securityToken);
         }
 
         return tokenResponse;

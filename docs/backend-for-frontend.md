@@ -435,10 +435,10 @@ The consequences:
   typical approach.
 
 **Lifetimes.** The `AbsoluteLifetime` defaults to 8 hours and the `IdleTimeout` to 1 hour. The idle window slides on
-API calls. It does **not** slide on a plain `/bff/user` probe, so a background poll cannot keep an abandoned session
-alive. Last-access writes are throttled: the BFF writes only once a set fraction of the idle window has passed. When a
-refresh comes back `invalid_grant`, the session ends ([§5.5](#55-token-management)). RFC 10017 §6.1.2.2 recommends
-ending the session when its refresh token dies.
+API and page requests. It does **not** slide on a plain `/bff/user` probe, so a background poll cannot keep an
+abandoned session alive. Last-access writes are throttled: the BFF writes only once a set fraction of the idle window
+has passed. When a refresh comes back `invalid_grant`, the session ends ([§5.5](#55-token-management)). RFC 10017
+§6.1.2.2 recommends ending the session when its refresh token dies.
 
 **`HttpContext.User`.** For a cookie request, `HttpContext.User` is the session principal under the BFF scheme name.
 `[Authorize]`, authorization policies, and `IAuthorizationService` therefore work unchanged.
@@ -446,8 +446,10 @@ ending the session when its refresh token dies.
 ### 5.4 State every replica sees
 
 `IExpiringKeySet` ([ADR-0164](decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)) records
-only whether a key is present. That is enough for the logout-token `jti` replay check and the refresh lease. It cannot
-hold a session or a login transaction. SharedState therefore gains a second primitive next to it:
+only whether a key is present. That is enough for the logout-token `jti` replay check. It cannot hold a session or a
+login transaction, and the refresh lease is not a key in it either: the lease is an `IExpiringValueSet` entry held
+through `IBffSessionStore`, so the winner can release it when the provider does not rotate the refresh token.
+SharedState therefore gains a second primitive next to it:
 
 - **Versioned expiring values** (`IExpiringValueSet`). `TryAddAsync` succeeds only when the key is absent. `GetAsync`
   returns the value and its version. `TryReplaceAsync` succeeds only when the version still matches. `TryTakeAsync`
@@ -479,11 +481,15 @@ theft. The NCode OP's default `refresh_token_reuse_policy=revoke_all` then **rev
 ([ADR-0087](decisions/0087-refresh-token-reuse-detection-and-family-revocation.md)). Two browser tabs, or two parallel
 `fetch` calls landing on different replicas, would log the user out. The BFF prevents that:
 
-1. Within one replica, an async lock per session collapses concurrent refreshes into one.
-2. Across replicas, the replica that refreshes must first win a **lease**: `IExpiringKeySet.TryAddAsync` on a
-   session-scoped key, with an expiry just past the token request's timeout.
+1. Within one replica, a lock per session collapses concurrent refreshes into one, and a wait on another replica's lease
+   delays only that session.
+2. Across replicas, the replica that refreshes must first win a **lease**: `IBffSessionStore.TryAcquireRefreshLeaseAsync`
+   on `{storeKey}:{refresh-token fingerprint}`, an `IExpiringValueSet` entry that lasts `Tokens:RefreshLeaseDuration`
+   (startup refuses a duration shorter than twice the protocol client's request timeout plus 10 seconds).
 3. The winner refreshes, then writes the rotated refresh token and the new access token with a version-checked
-   `TryReplace`.
+   `TryReplace`. The browser cannot cancel either step: once the lease is won, the token request and the write-back run
+   to completion, bounded by the client's request timeout, because dropping the rotated refresh token would make the
+   next refresh a reuse.
 4. The losers wait (with bounded backoff) for the session version to change, reload, and use the new token. If the
    wait times out, they answer `503`. They **never** retry the refresh with the old refresh token.
 
@@ -502,7 +508,7 @@ sequenceDiagram
     alt access token for this resource is fresh
         F->>R: GET /orders with DPoP-bound token and proof
     else expired or about to expire
-        F->>L: TryAdd the refresh lease for this session
+        F->>L: TryAdd the refresh lease, keyed by the refresh token
         alt lease won
             F->>O: refresh_token grant with resource and DPoP proof
             O-->>F: new access token and rotated refresh token
@@ -537,8 +543,8 @@ remote API:
 
 - **When.** The `DPoP` mode is `when_supported` by default: the BFF uses DPoP whenever the OP advertises
   `dpop_signing_alg_values_supported` and that list includes the BFF key's algorithm. The other value is `required`,
-  which fails at startup if the OP does not support DPoP. There is no mode that turns DPoP off where the OP supports
-  it.
+  which fails the token request, the login or the refresh, when the OP does not support DPoP; it does not fail startup.
+  There is no mode that turns DPoP off where the OP supports it.
 - **Which key.** The key is a **BFF-wide key ring** from `NCode.Identity.Secrets`, not a key per session. The
   separation is the point: tokens live in the store and the key lives elsewhere, possibly as a non-exportable key in a
   key-management service.
@@ -558,7 +564,7 @@ never placed in `HttpContext.Items` beyond the request, and never returned by an
 ### 5.6 Accepting the BFF cookie on APIs
 
 This is where the BFF **accepts its own cookie** and turns it into an outbound access token. There are two kinds of
-API.
+API, and a page is the one other endpoint the cookie authenticates.
 
 **Local APIs** are endpoints the BFF host serves itself. Marking an endpoint with `.AsBffApi()` (or `[BffApi]` on a
 controller) adds metadata that the cookie-acceptance middleware enforces:
@@ -571,6 +577,21 @@ controller) adds metadata that the cookie-acceptance middleware enforces:
   `AddBffAccessTokenHandler(requirement, resource)` delegating handler. The handler attaches the token and DPoP proof
   and handles DPoP nonce retries. Code that needs the raw token value can ask `IBffTokenAccessor` for it, but should
   not need to.
+
+**Pages** are endpoints the BFF host serves to a browser that reaches them by navigation, such as a server-rendered
+account page. Marking an endpoint with `.AsBffPage()` (or `[BffPage]` on a controller or a Razor Page) lets the BFF
+cookie authenticate it:
+
+- A page accepts only **`GET` and `HEAD`**. It carries no anti-forgery header, so any other method is refused with
+  `405` and `Allow: GET, HEAD` as `application/problem+json` (`unsafe_method`), and audited as
+  `bff.antiforgery.rejected`.
+- A challenge redirects to `/bff/login?returnUrl=<path and query>`, with the return URL replaced by `/` unless it is
+  allow-listed. A page never gets a `401` problem.
+- The page uses `HttpContext.User`, and `IBffTokenAccessor` hands out its tokens as it does on an API. A page request
+  slides the idle window, as an API request does.
+- An endpoint with **neither marker** never sees the session: the cookie authenticates nothing there, `IBffTokenAccessor`
+  throws, and a challenge on the BFF scheme throws `InvalidOperationException` that names the markers, because a
+  redirect to login would loop. `SignOutAsync` on the BFF scheme requires an API endpoint.
 
 **Remote APIs** are forwarded to an allow-listed destination. `MapBffRemoteApi("/api/orders", destination, options)`
 binds a local path prefix to **one** destination base URL. The forwarder:

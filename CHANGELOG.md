@@ -3471,52 +3471,6 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
-- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
-  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
-  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
-  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
-  which reads one value from a segmented buffer and refuses trailing content
-  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
-- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
-  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
-  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
-  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
-  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
-  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
-  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
-  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
-  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
-  `RefreshTokenGrant` gains `LineageCreatedWhen`
-  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
-  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
-- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
-  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
-  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
-  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
-  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
-  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
-  [#334](https://github.com/NCodeGroup/Identity/issues/334).
-- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
-  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
-  unsupported algorithm, and every policy keeps refusing `none` by name
-  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
-  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
-  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
-  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
-  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
-  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
-  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
-  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
-- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
-  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
-  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
-  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
-  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
-  a tenant write that would strand such clients is refused too, issue
-  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
-  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
-  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
-  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **Every remaining `Logic` grab-bag namespace is split into purpose-based namespaces (issue [#27](https://github.com/NCodeGroup/Identity/issues/27)).** No `Logic`
   namespace or folder remains in the family. A contract, its DTOs, and its default implementation now share one purpose
   namespace across each `.Abstractions`/implementation pair: `NCode.Identity.Cryptography` (`ICryptoService`,
@@ -3953,52 +3907,6 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
-- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
-  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
-  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
-  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
-  which reads one value from a segmented buffer and refuses trailing content
-  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
-- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
-  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
-  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
-  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
-  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
-  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
-  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
-  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
-  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
-  `RefreshTokenGrant` gains `LineageCreatedWhen`
-  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
-  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
-- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
-  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
-  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
-  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
-  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
-  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
-  [#334](https://github.com/NCodeGroup/Identity/issues/334).
-- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
-  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
-  unsupported algorithm, and every policy keeps refusing `none` by name
-  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
-  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
-  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
-  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
-  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
-  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
-  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
-  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
-- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
-  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
-  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
-  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
-  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
-  a tenant write that would strand such clients is refused too, issue
-  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
-  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
-  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
-  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **An unsigned (`alg:none`) JWT-secured authorization request now returns `request_not_supported` (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).**
   Per OpenID Connect Core 1.0 §6.1, an OP that does not support unsigned request objects must answer exactly
   `request_not_supported`. `DefaultLoadAuthorizationRequestHandler` previously surfaced a generic
@@ -4956,52 +4864,6 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
 
 ### Changed
 
-- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
-  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
-  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
-  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
-  which reads one value from a segmented buffer and refuses trailing content
-  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
-- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
-  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
-  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
-  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
-  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
-  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
-  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
-  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
-  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
-  `RefreshTokenGrant` gains `LineageCreatedWhen`
-  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
-  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
-- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
-  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
-  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
-  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
-  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
-  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
-  [#334](https://github.com/NCodeGroup/Identity/issues/334).
-- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
-  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
-  unsupported algorithm, and every policy keeps refusing `none` by name
-  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
-  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
-  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
-  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
-  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
-  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
-  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
-  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
-- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
-  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
-  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
-  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
-  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
-  a tenant write that would strand such clients is refused too, issue
-  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
-  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
-  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
-  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - **Comprehensive XML-documentation quality pass across the published packages.** The `///` doc comments that reach
   consumers through IntelliSense and the generated OpenAPI descriptions were swept for correctness and consistency:
   property summaries follow the Microsoft convention (an `init`-only property opens with "Gets", not "Gets or sets");
@@ -5362,52 +5224,6 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
-- **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
-  are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
-  read a stream with `JsonSerializer.Deserialize<JsonElement>`, so no code owns a `JsonDocument` that leaks its pooled
-  buffers when it is not disposed. `NCode.Json` adds the static extension `JsonElement.Parse(ReadOnlySequence<byte>)`,
-  which reads one value from a segmented buffer and refuses trailing content
-  (issue [#386](https://github.com/NCodeGroup/Identity/issues/386)).
-- **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family now
-  expires `refresh_token_lifetime` after the grant that began it, however often its tokens are used, rotated or
-  retried: a rotation no longer renews the lifetime, so `absolute` is absolute. Under `sliding`, a token expires the new
-  `refresh_token_sliding_lifetime` (default 15 days) after it was issued or last used, never after its family. Every
-  token response that carries a refresh token, CIBA push delivery included, carries the de-facto
-  `refresh_token_expires_in` member, the seconds left until the family's horizon, and the protocol client reads it as
-  `TokenResponse.RefreshTokenExpiresIn`, which the BFF uses to cap a session. A token whose family has passed its
-  horizon is refused, so shortening the lifetime ends existing families, and refresh tokens stored before this change
-  are refused at their next use. `ITokenService` returns `IssuedRefreshToken` for refresh tokens, and
-  `RefreshTokenGrant` gains `LineageCreatedWhen`
-  ([ADR-0297](docs/decisions/0297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
-  issue [#417](https://github.com/NCodeGroup/Identity/issues/417)).
-- **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security
-  profile's signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party can no longer sign with an
-  Ed448 key through `EdDSA`, and `dpop_signing_alg_values_supported` is now under the same ceiling
-  ([ADR-0272](docs/decisions/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
-  [#333](https://github.com/NCodeGroup/Identity/issues/333)). The conformance runner's signer accepts `Ed25519` and
-  `Ed448` as overrides for a key on the matching curve and keeps inferring `EdDSA`, issue
-  [#334](https://github.com/NCodeGroup/Identity/issues/334).
-- **The JOSE library drops `none`, opens its hash names, and makes JWE decryption failures uniform.** The default
-  algorithm registry no longer contains the unsecured `none` signature algorithm; a JWS that names it fails as an
-  unsupported algorithm, and every policy keeps refusing `none` by name
-  ([ADR-0295](docs/decisions/0295-the-jose-library-does-not-implement-the-none-algorithm.md), issue
-  [#379](https://github.com/NCodeGroup/Identity/issues/379)). `HashAlgorithmName.GetHashSizeBits` and
-  `GetHashFunction` serve every hash the platform supports, SHA-3 included, instead of a fixed SHA-1/SHA-2 switch, and
-  refuse `MD5` by name, issue [#377](https://github.com/NCodeGroup/Identity/issues/377). A failed key unwrap now
-  substitutes a random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with
-  one `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
-  ([ADR-0296](docs/decisions/0296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
-  issue [#380](https://github.com/NCodeGroup/Identity/issues/380)).
-- **Logout follows what the tenant advertises, and dynamic registration accepts every logout member.** The
-  back-channel logout notifier sends nothing while `backchannel_logout_supported` is false and omits `sid` while
-  `backchannel_logout_session_supported` is false; the front-channel logout service appends `iss`/`sid` only while
-  `frontchannel_logout_session_supported` is true. A new client coherence rule refuses a `backchannel_logout_uri` or
-  `frontchannel_logout_uri` the tenant does not support, and a `*_logout_session_required` the tenant cannot honor, so
-  a tenant write that would strand such clients is refused too, issue
-  [#398](https://github.com/NCodeGroup/Identity/issues/398). `RegisterClientRequest` and `RegisterClientResponse` carry
-  `PostLogoutRedirectUris`, `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated
-  Logout 1.0 §3.1 and Front-Channel Logout 1.0 §2 require, issue
-  [#399](https://github.com/NCodeGroup/Identity/issues/399).
 - Setting merge is now a first-class policy expressed through a public `SettingMerge` vocabulary of lattice dual pairs
   (`Min`/`Max`, `And`/`Or`, `Intersect`/`Union`, `Keep`/`Replace`) in `NCode.Identity.Abstractions`, so host-authored
   descriptors reuse it. Each built-in setting is mapped to a **ceiling** (a parent caps the child), a **floor** (a

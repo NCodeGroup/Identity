@@ -56,7 +56,7 @@ jobs:
           persist-credentials: false
 
       - name: Review
-        uses: NCodeGroup/code-review@1666dfd9312f20da4660e7ea3498ca3c0ddde135
+        uses: NCodeGroup/code-review@c01dd944ea9a1d443465d2a4873361c409a35fce
         with:
           app-private-key: ${{ secrets.NCODE_REVIEW_APP_PRIVATE_KEY }}
           bedrock-api-key: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}

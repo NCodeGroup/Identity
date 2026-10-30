@@ -82,8 +82,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # Version updates paused (issue #36); 5 when resumed.
-    open-pull-requests-limit: 0
+    # Version updates are paused (issue #36) for every action but NCodeGroup/code-review, which is pinned to an exact
+    # release tag so each bump arrives as a pull request. Resuming the others means removing `allow`.
+    open-pull-requests-limit: 5
+    allow:
+      - dependency-name: NCodeGroup/code-review
     groups:
       github-actions:
         patterns: ['*']

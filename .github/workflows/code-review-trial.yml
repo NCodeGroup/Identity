@@ -1,7 +1,7 @@
 name: Code review (trial)
 
-# Phase 1 of the NCode Review agent (NCodeGroup/code-review): shadow mode, so it posts only a neutral "Code review"
-# check run with annotations, never review comments, and nothing requires it. It reviews a pull request once when it
+# Phase 1 of the NCode Review agent (NCodeGroup/code-review): as ncode-review[bot] it posts a neutral "Code review"
+# check run, a summary comment and inline threads, and nothing requires it. It reviews a pull request once when it
 # opens (drafts included, since that's when its author reviews it) and again when it's marked ready; pushes in between
 # start nothing. A top-level `/review` comment from someone with write access reviews the latest commit on demand. A
 # `skip-review` label skips the automatic reviews.
@@ -39,6 +39,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      # The issues a pull request closes are context for its intent.
+      issues: read
       pull-requests: read
     steps:
       - name: Check out main for the conventions
@@ -56,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Review
-        uses: NCodeGroup/code-review@20836e2083686f89808b9277e13d91c72cf06d69
+        uses: NCodeGroup/code-review@7c76b1bd2237280a24bfbc21f1d18ae4ca4350fa
         with:
           app-private-key: ${{ secrets.NCODE_REVIEW_APP_PRIVATE_KEY }}
           bedrock-api-key: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}

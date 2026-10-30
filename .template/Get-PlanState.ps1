@@ -4,19 +4,23 @@
 
 .DESCRIPTION
     Reads the Git repository that contains the folder and prints one "key: value" line per fact, in a fixed order:
-    folder, worktree, branch, default, host, plan, issue, release, steps, reviewed, landing, protected, ahead, behind, landed,
-    pr, merge, tag, renumber, published, issue-state, issue-states, dirty, plans and next. A fact that does not apply prints
+    folder, worktree, branch, default, host, plan, issue, refs, release, steps, reviewed, landing, protected, ahead, behind, landed,
+    pr, merge, tag, renumber, conflicts, changelog-format, changelog-version, changelog-backfill, published, issue-state, issue-states, unfiled, dirty, plans and next. A fact that does not apply prints
     "-". With an origin remote, the script first fetches it, ignoring a failure, unless -NoFetch is given. landed is
     yes when HEAD is on the default branch, or when any of the branch's merged pull requests or merge requests has its
     merge commit there and its head holds HEAD or has HEAD's tree. pr names that request, or else the newest one.
     merge is the commit that request merged as, when it merged. issue is the plan's Issue: line, which names one
     issue or up to three separated by spaces; issue-states gives each one's state as <reference>=<state>, and
-    issue-state is OPEN while any of them is open, CLOSED when all are closed, and unknown otherwise.
+    issue-state is OPEN while any of them is open, CLOSED when all are closed, and unknown otherwise. refs is the plan's Refs: line, the issues it relates to without resolving them; the script reads no state for them.
     landing gives each key of AGENTS.md's Landing section that the workflow reads as key=value, with its default when
     the section leaves it out; a value may be written in backticks, and a value with a space is printed in double quotes.
     gate is the command /ship-plan runs before it pushes, or none.
     pr-format is <file>#<heading>, the section that sets a pull request's title and description, or none.
-    renumber is the version the plan moves to when another plan has landed its Release: version, or a later one, first: the newest version tag or first ## <version> heading of the changelog on origin's default branch, raised as the plan's version was raised (patch, else minor, else major). It is - when that version is older, release is none, or the plan has landed. next is ship-plan rather than wait while a pull request is open and renumber isn't -, so /ship-plan renumbers the plan.
+    renumber is the version the plan moves to when another plan has landed its Release: version, or a later one, first: the newest version tag on origin (the clone's tags when origin's can't be read) or newest release heading of the changelog, ## [<version>] - <date> or ## <version>, on origin's default branch, raised as the plan's version was raised (patch, else minor, else major). It is - when that version is older, release is none, or the plan has landed. next is ship-plan rather than wait while a pull request is open and renumber isn't -, so /ship-plan renumbers the plan.
+    tag is present when origin has the plan's Release: version tag, local when only this clone has it, such as one a failed push left, absent when neither has it, and unknown when git ls-remote can't read origin's tags. Without an origin remote, it reads the clone's tags: present or absent.
+    conflicts names the files that conflict when origin's default branch merges into HEAD, joined by ", ", from git merge-tree --write-tree, which changes neither the index nor the working tree; none when the merge is clean, unknown when Git can't say, such as Git older than 2.38, and - on the default branch or once the plan has landed. next is ship-plan rather than wait while a pull request is open and conflicts names files, so /ship-plan adds a step that merges the default branch in.
+    changelog-format is keep-a-changelog when the changelog has a ## [Unreleased] or ## [<version>] heading, other when it has neither, and missing without the file; changelog-version is its newest release, with a leading v when the plan's Release: version has one, or -. changelog-backfill names the version tags merged into HEAD, shaped like v1.2.3 or 1.2.3, that have no release heading in the changelog, as <oldest>..<newest>, the tag alone when there is one, or - when there is none.
+    unfiled counts the lines of PLAN.md's ## Follow-ups section, up to the next ## heading, that start with "- " or "* " and don't end with a mark /ship-plan appends: an em dash, then "filed as #<number>" or "already tracked as #<number>", either with <owner/repo> before the #, or "dropped". A line that says only None or Nothing doesn't count. It is 0 without the section and - without a plan. next is ship-plan rather than finish-plan for a landed plan while unfiled is above 0 and the Landing section's follow-ups isn't none, so /ship-plan files them.
     protected is hook when protect is hook and Git runs .githooks/pre-push, host when GitHub or GitLab requires pull
     requests into the default branch, no when it does not, unknown when the host or its CLI cannot say, and - without
     a default branch.
@@ -52,6 +56,47 @@ function Get-LandingValue([string]$Text, [switch]$Spaced) {
 function ConvertTo-PlanVersion([string]$Text) {
     if ($Text -match '^v?(\d+)\.(\d+)\.(\d+)$') { return [version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3]) }
     $null
+}
+
+# The version of the first release heading in a changelog, as ## [1.2.3] - 2026-01-31 or ## 1.2.3, or $null.
+function Get-ChangelogVersion([string[]]$Lines) {
+    foreach ($line in $Lines) {
+        if ("$line" -match '^## \[?(v?\d+\.\d+\.\d+)\]?(?: - \d{4}-\d{2}-\d{2})?(?: \[YANKED\])?\s*$') { return ConvertTo-PlanVersion $Matches[1] }
+    }
+    $null
+}
+
+# keep-a-changelog when a changelog has a ## [Unreleased] or ## [<version>] heading, else other.
+function Get-ChangelogFormat([string[]]$Lines) {
+    foreach ($line in $Lines) {
+        if ("$line" -match '^## \[(Unreleased|v?\d+\.\d+\.\d+)\]') { return 'keep-a-changelog' }
+    }
+    'other'
+}
+
+# The version tags merged into HEAD that have no release heading in a changelog: <oldest>..<newest>, the tag alone, or -.
+function Get-ChangelogBackfill([string[]]$Lines) {
+    $listed = @(foreach ($line in $Lines) { if ("$line" -match '^## \[?(v?\d+\.\d+\.\d+)\]?(?: - \d{4}-\d{2}-\d{2})?(?: \[YANKED\])?\s*$') { ConvertTo-PlanVersion $Matches[1] } })
+    $missing = @(foreach ($t in @(& git tag --list --merged HEAD 2>$null)) { $v = ConvertTo-PlanVersion "$t"; if ($null -ne $v -and $v -notin $listed) { [pscustomobject]@{ Tag = "$t"; Version = $v } } })
+    $missing = @($missing | Sort-Object Version)
+    if ($missing.Count -eq 0) { '-' } elseif ($missing.Count -eq 1) { $missing[0].Tag } else { "$($missing[0].Tag)..$($missing[-1].Tag)" }
+}
+
+# The number of follow-ups in a plan's ## Follow-ups section that /ship-plan has not filed, tracked or dropped.
+function Get-UnfiledFollowUps([string[]]$Lines) {
+    $count = 0; $inSection = $false
+    foreach ($line in $Lines) {
+        if ("$line" -match '^## ') { $inSection = ("$line" -match '^## Follow-ups\s*$'); continue }
+        if ($inSection -and "$line" -match '^[-*] \S' -and "$line" -notmatch '^[-*] (?:none|nothing)\.?\s*$' -and "$line" -notmatch '\s\u2014\s(?:(?:filed as|already tracked as)\s+\S*#\d+|dropped)\s*$') { $count++ }
+    }
+    $count
+}
+
+# The tag names origin has, from git ls-remote, or $null when origin can't be read.
+function Get-OriginTags {
+    $out = @(& git ls-remote --tags --refs origin 2>$null)
+    if ($LASTEXITCODE) { return $null }
+    , [string[]]@(foreach ($line in $out) { if ("$line" -match '\trefs/tags/(.+)$') { $Matches[1] } })
 }
 
 function Get-IssueState([string]$Ref, [string]$HostName) {
@@ -123,6 +168,19 @@ function Get-Protected([string]$HostName, [string]$Default, [string]$Protect) {
     'no'
 }
 
+# The files that conflict when origin/<Default> merges into HEAD, from git merge-tree, which changes no file: their
+# paths joined by ', ', none when the merge is clean, or unknown when Git can't say (such as Git older than 2.38).
+function Get-Conflicts([string]$Default) {
+    $out = @(& git -c core.quotePath=false merge-tree --write-tree --name-only --no-messages "origin/$Default" HEAD 2>$null)
+    $code = $LASTEXITCODE
+    if ($code -eq 0) { return 'none' }
+    if ($code -eq 1 -and $out.Count -gt 1 -and "$($out[0])" -match '^[0-9a-f]{40,64}$') {
+        $files = @($out | Select-Object -Skip 1 | ForEach-Object { "$_" } | Where-Object { $_ })
+        if ($files.Count) { return ($files -join ', ') }
+    }
+    'unknown'
+}
+
 Push-Location -LiteralPath $Path
 try {
     $folder = (& git rev-parse --show-toplevel 2>$null | Out-String).Trim()
@@ -150,14 +208,16 @@ try {
     }
 
     # PLAN.md
-    $plan = '-'; $issue = '-'; $release = '-'; $steps = '-'; $reviewed = '-'
+    $plan = '-'; $issue = '-'; $related = '-'; $release = '-'; $steps = '-'; $reviewed = '-'; $unfiled = '-'
     $done = 0; $total = 0; $open = 0; $escalated = @(); $failed = @()
     $planFile = Join-Path $folder 'PLAN.md'
     if (Test-Path -LiteralPath $planFile) {
         $lines = Read-Lines $planFile
         foreach ($line in $lines) { if ($line -match '^# Plan:\s*(.+)$') { $plan = $Matches[1].Trim(); break } }
         foreach ($line in $lines) { if ($line -match '^Issue:\s*(\S.*)$') { $issue = $Matches[1].Trim(); break } }
+        foreach ($line in $lines) { if ($line -match '^Refs:\s*(\S.*)$') { $related = $Matches[1].Trim(); break } }
         foreach ($line in $lines) { if ($line -match '^Release:\s*(\S+)') { $release = $Matches[1]; break } }
+        $unfiled = Get-UnfiledFollowUps $lines
 
         $done = 0; $total = 0; $open = 0; $escalated = @(); $failed = @()
         foreach ($line in $lines) {
@@ -218,9 +278,16 @@ try {
     }
 
     $tag = '-'
+    $originTags = $null
+    if ($hostName -ne 'none' -and $release -ne '-') { $originTags = Get-OriginTags }
     if ($release -ne '-') {
         & git rev-parse -q --verify "refs/tags/$release" 2>$null | Out-Null
-        $tag = if ($LASTEXITCODE -eq 0) { 'present' } else { 'absent' }
+        $localTag = ($LASTEXITCODE -eq 0)
+        if ($hostName -eq 'none') { $tag = if ($localTag) { 'present' } else { 'absent' } }
+        elseif ($null -eq $originTags) { $tag = 'unknown' }
+        elseif ($originTags -ccontains $release) { $tag = 'present' }
+        elseif ($localTag) { $tag = 'local' }
+        else { $tag = 'absent' }
     }
 
     # Pull request or merge request
@@ -271,23 +338,35 @@ try {
     }
     $merge = if ($prState -eq 'MERGED' -and $prMerge) { $prMerge } else { '-' }
 
+    # Changelog in this checkout
+    $changelogFormat = 'missing'; $changelogVersion = '-'
+    $changelogFile = Join-Path $folder $policy['changelog']
+    $changelogLines = @()
+    if (Test-Path -LiteralPath $changelogFile -PathType Leaf) {
+        $changelogLines = Read-Lines $changelogFile
+        $changelogFormat = Get-ChangelogFormat $changelogLines
+        $v = Get-ChangelogVersion $changelogLines
+        if ($null -ne $v) {
+            $prefix = if ("$release".StartsWith('v')) { 'v' } else { '' }
+            $changelogVersion = "$prefix$($v.Major).$($v.Minor).$($v.Build)"
+        }
+    }
+    $changelogBackfill = Get-ChangelogBackfill $changelogLines
+
     # Version still free for the plan
     $renumber = '-'
     $planVersion = ConvertTo-PlanVersion $release
     if ($releasePolicy -ne 'none' -and $default -ne '-' -and $landed -ne 'yes' -and $null -ne $planVersion) {
         $found = @()
-        foreach ($tagName in (& git tag --list 2>$null)) {
+        $tagNames = if ($null -ne $originTags) { $originTags } else { @(& git tag --list 2>$null) }
+        foreach ($tagName in $tagNames) {
             $v = ConvertTo-PlanVersion "$tagName"
             if ($null -ne $v) { $found += $v }
         }
         $headLines = @(& git show "origin/${default}:$($policy['changelog'])" 2>$null)
         if ($LASTEXITCODE -eq 0) {
-            foreach ($headLine in $headLines) {
-                if ("$headLine" -match '^## (\S+)\s*$') {
-                    $v = ConvertTo-PlanVersion $Matches[1]
-                    if ($null -ne $v) { $found += $v; break }
-                }
-            }
+            $v = Get-ChangelogVersion $headLines
+            if ($null -ne $v) { $found += $v }
         }
         if ($found.Count -gt 0) {
             $newest = $found | Sort-Object | Select-Object -Last 1
@@ -300,6 +379,10 @@ try {
             }
         }
     }
+
+    # Files that conflict with the default branch
+    $conflicts = '-'
+    if ($default -ne '-' -and $branch -ne $default -and $landed -eq 'no') { $conflicts = if ($behind -eq '0') { 'none' } else { Get-Conflicts $default } }
 
     # Release published on the host
     $published = '-'
@@ -358,14 +441,14 @@ try {
         elseif ($reviewed -ne 'current') { $next = 'review-plan-diff' }
         elseif ($landed -ne 'yes') {
             if ($hostName -eq 'none') { $next = 'none no origin remote to land on' }
-            elseif ($prState -eq 'OPEN' -and $renumber -ne '-') { $next = 'ship-plan' }
+            elseif ($prState -eq 'OPEN' -and ($renumber -ne '-' -or $conflicts -notin '-', 'none', 'unknown')) { $next = 'ship-plan' }
             elseif ($prState -eq 'OPEN') { $next = "wait pull request #$prNumber is open: run ship-plan again once it merges" }
             elseif ($prState -eq 'MERGED' -and $integrate -eq 'direct') { $next = 'ship-plan' }
             elseif ($prState -eq 'MERGED' -and $prBase -and $prBase -ne $default) { $next = "none pull request #$prNumber merged into $prBase, not ${default}: this branch lands once $prBase reaches $default; run ship-plan again then" }
             elseif ($prState -eq 'MERGED') { $next = "none pull request #$prNumber merged without this branch's HEAD: land the commits after it from a new branch" }
             else { $next = 'ship-plan' }
         }
-        elseif (($releasePolicy -ne 'none' -and $tag -eq 'absent') -or $published -eq 'no' -or $issueState -eq 'OPEN') { $next = 'ship-plan' }
+        elseif (($releasePolicy -ne 'none' -and $tag -ne 'present') -or $published -eq 'no' -or $issueState -eq 'OPEN' -or ($policy['follow-ups'] -ne 'none' -and $unfiled -gt 0)) { $next = 'ship-plan' }
         else { $next = 'finish-plan' }
     }
     else {
@@ -384,6 +467,7 @@ try {
     Write-Output "host: $hostName"
     Write-Output "plan: $plan"
     Write-Output "issue: $issue"
+    Write-Output "refs: $related"
     Write-Output "release: $release"
     Write-Output "steps: $steps"
     Write-Output "reviewed: $reviewed"
@@ -396,9 +480,14 @@ try {
     Write-Output "merge: $merge"
     Write-Output "tag: $tag"
     Write-Output "renumber: $renumber"
+    Write-Output "conflicts: $conflicts"
+    Write-Output "changelog-format: $changelogFormat"
+    Write-Output "changelog-version: $changelogVersion"
+    Write-Output "changelog-backfill: $changelogBackfill"
     Write-Output "published: $published"
     Write-Output "issue-state: $issueState"
     Write-Output "issue-states: $issueStates"
+    Write-Output "unfiled: $unfiled"
     Write-Output "dirty: $dirty"
     Write-Output "plans: $plans"
     Write-Output "next: $next"

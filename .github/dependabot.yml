@@ -82,8 +82,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # Version updates are paused (issue #36) for every action but NCodeGroup/code-review, which is pinned to an exact
-    # release tag so each bump arrives as a pull request. Resuming the others means removing `allow`.
+    # Version updates are paused (issue #36) for every action but NCodeGroup/code-review, which is pinned to a release's
+    # commit SHA with its tag in a comment, so each bump arrives as a pull request that updates both. Resuming the others
+    # means removing `allow`.
     open-pull-requests-limit: 5
     allow:
       - dependency-name: NCodeGroup/code-review

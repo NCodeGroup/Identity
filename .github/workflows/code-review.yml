@@ -51,9 +51,9 @@ jobs:
           persist-credentials: false
 
       - name: Review
-        # An exact release tag, never a branch or a floating major: the action receives the app key and the Bedrock key,
-        # and code-review's tag ruleset forbids moving or deleting a tag. Dependabot opens each bump.
-        uses: NCodeGroup/code-review@v0.3.0
+        # A release's full commit SHA, with its tag in the comment: the action receives the app key and the Bedrock key,
+        # and a SHA is the one pin nobody can move. Dependabot opens each bump and updates both.
+        uses: NCodeGroup/code-review@eaa9846049fdda1ce724fc34107391ba5f6d8708 # v0.3.1
         with:
           app-private-key: ${{ secrets.NCODE_REVIEW_APP_PRIVATE_KEY }}
           bedrock-api-key: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}

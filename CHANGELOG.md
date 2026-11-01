@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Project template v0.49.0.** The repository moves from project-template v0.41.1 to v0.49.0. It gains the
+  `/address-feedback` command; the weekly `template-update` workflow, which keeps an issue open while a newer template
+  version is out; `code-review-auto-merge.yml` for NCode Review pin bumps (it fails here until
+  [NCodeGroup/project-template#195](https://github.com/NCodeGroup/project-template/issues/195), since `main` takes only
+  squash and rebase merges); the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`;
+  and the template's 48 general decision records in `docs/decisions/project-template/`, now the source of truth for
+  the rules they cover.
+
 - **The backend-for-frontend core (`NCode.Identity.Bff`).** The new `NCode.Identity.Bff` and
   `NCode.Identity.Bff.Abstractions` packages make an ASP.NET Core app the confidential OAuth client of its browser
   frontend. `AddBffLibrary` (on the protocol client's builder) and `AddBffConfiguration` compose it; `MapBffEndpoints`
@@ -959,6 +967,23 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **The build takes the template's analyzer settings.** `build/BannedSymbols.txt`, from the template, bans
+  sync-over-async, every `JsonDocument.Parse` overload and Newtonsoft.Json in every project, test projects included,
+  through `Microsoft.CodeAnalysis.BannedApiAnalyzers` 5.6.0; the root `BannedSymbols.txt` keeps only this family's own
+  bans. The null-forgiving operator fails the build in every project whose name doesn't end in `.Tests`, not only in
+  packable ones.
+- **The integration test project is `NCode.Identity.OpenId.Integration.Tests`** (it was
+  `NCode.Identity.OpenId.IntegrationTests`), so the template's test settings and conventions reach it.
+- **Decision records name the template records they build on.** 45 records carry a `**Refines:**` line naming the
+  template record whose general rule they add to, and 22 a `**Conflicts with:**` line naming the one they contradict,
+  with the issue that tracks bringing them into line
+  ([#439](https://github.com/NCodeGroup/Identity/issues/439) to [#445](https://github.com/NCodeGroup/Identity/issues/445),
+  [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200)).
+  `/audit-conventions` is the template's command; this repository's own sweeps for it are in
+  `.github/instructions/convention-audit.instructions.md`.
+- **Dependabot waits three days before it offers a new NuGet package, action or base image**, and gives NCode Review's
+  pin bump a group of its own.
 
 - **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
   are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
@@ -2214,6 +2239,9 @@ change to the public API is a **major** version bump.
   ([ADR-0158](docs/decisions/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
 ### Removed
+
+- **ADR-0004, ADR-0006, ADR-0008 and ADR-0210**, which said nothing that project-template ADR-0104, ADR-0105,
+  ADR-0001 and ADR-0115 don't; their citations point at the template records.
 
 - `OpenIdConstants.SecurityTokenTypes.LogoutToken` is removed. Breaking: use `JoseTokenTypes.LogoutJwt`
   (`logout+jwt`), the single definition of the back-channel logout token's `typ`, which the OP now stamps on its

@@ -30,9 +30,10 @@ one commit whose subject is the pull request's title and whose body is its descr
 
 ## Options considered
 
-- A merge commit or a rebase (project-template ADR-0013). Rejected: a merge commit breaks the linear history `main`
-  requires, and a rebase lands each `Plan step N` checkpoint, which only its own step's check verified, as a commit of
-  `main`.
+- A merge commit (project-template ADR-0013). Rejected: it breaks the linear history `main` requires, and
+  [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) disables it.
+- A rebase, which ADR-1261 still allows because it keeps history linear. Not the method: it lands each `Plan step N`
+  checkpoint, which only its own step's check verified, as a commit of `main`, and the merge queue squashes.
 - Squash through the merge queue (chosen): a linear `main` with one commit per pull request, each one the merged result
   the full gate passed, under a conventional commit subject.
 

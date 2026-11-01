@@ -14,6 +14,7 @@
     Outputs one string per problem, and nothing when the index is consistent:
     - a table row whose column count is not 3;
     - two ADR files that share a four-digit number, naming both;
+    - an ADR file numbered below 1000, the range the project template's records use (project-template ADR-0012);
     - an ADR file that the index does not list, or an index link to a file that does not exist;
     - an index row whose link text number is not the number of the file it links;
     - a file listed by more than one index row.
@@ -61,6 +62,12 @@ $onDisk |
     ForEach-Object {
         $problems.Add("ADR number $($_.Name) is used by more than one file: $(($_.Group | ForEach-Object { "docs/decisions/$_" }) -join ', ').")
     }
+
+# Numbers below 1000 are the project template's (project-template ADR-0012), so a record numbered there would share
+# its citation with a template record.
+foreach ($file in $onDisk | Where-Object { [int]$_.Substring(0, 4) -lt 1000 }) {
+    $problems.Add("docs/decisions/$file is numbered below 1000, the project template's range; number it from 1000.")
+}
 
 $rows = @($indexLines |
         Select-String -Pattern '^\| \[(\d{4})\]\(\./([^)]+)\)' |

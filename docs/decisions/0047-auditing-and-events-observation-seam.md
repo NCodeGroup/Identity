@@ -5,6 +5,7 @@
   audit log entry follow the CloudTrail-shaped audit record)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0103](project-template/0103-behavior-is-a-service-a-strategy-collection-or-a-mediator.md)
 
 ## Context
 

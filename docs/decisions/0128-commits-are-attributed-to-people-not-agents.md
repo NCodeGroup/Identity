@@ -3,6 +3,7 @@
 - **Status:** Accepted (amended 2026-10-24)
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0002](project-template/0002-commits-are-attributed-to-people-not-agents.md)
 
 ## Amendment (2026-10-24): agent-authored commits and a server-side check
 

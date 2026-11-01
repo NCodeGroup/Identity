@@ -3,6 +3,7 @@
 - **Status:** Accepted (amended 2026-10-25)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0003](project-template/0003-agent-work-is-planned-on-a-frontier-model-and-executed-on-a-cheaper-one.md)
 
 ## Amendment (2026-10-25): the project template, Claude Sonnet 5.5 and Claude Code
 

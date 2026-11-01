@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
 
 ## Context
 

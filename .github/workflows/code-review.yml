@@ -12,7 +12,9 @@ name: Code review
 # installed.
 #
 # When a pull request closes, merged or not, the outcomes job records what became of each finding (fixed, dismissed,
-# acknowledged or ignored) in the summary comment, by rules alone: no review and no model call.
+# acknowledged or ignored) in the summary comment, by rules alone: no review and no model call. It needs no environment:
+# the app's key is an organization secret, and the code-review environment holds none; it only lets Anthropic's
+# federation rule trust the review job.
 
 on:
   pull_request_target:
@@ -24,14 +26,17 @@ permissions: {}
 
 jobs:
   review:
-    # The engine checks a comment again (exactly `/review`, from a writer, on a pull request that isn't from a fork) and
-    # stops before any model call when it isn't one.
+    # The engine checks a comment again (`/review`, `/review explain` or `/review teach`, from a writer, on a pull request
+    # that isn't from a fork) and stops before any model call when it isn't one. A plain `/review` on a closed pull
+    # request doesn't run, so it can't cancel or displace the outcomes job, which shares its concurrency group.
     if: >-
       (github.event_name == 'pull_request_target' && github.event.action != 'closed' &&
         github.event.pull_request.head.repo.full_name == github.repository &&
         github.event.sender.type != 'Bot' && !contains(github.event.pull_request.labels.*.name, 'skip-review')) ||
       (github.event_name == 'issue_comment' && github.event.sender.type != 'Bot' && github.event.issue.pull_request &&
         startsWith(github.event.comment.body, '/review') &&
+        (github.event.issue.state == 'open' || startsWith(github.event.comment.body, '/review explain') ||
+          startsWith(github.event.comment.body, '/review teach')) &&
         contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     # Anthropic's federation rule trusts only jobs in this environment, which only the default branch can deploy to.
@@ -55,6 +60,8 @@ jobs:
           persist-credentials: false
 
       - name: Review
+        # A release's full commit SHA, with its tag in the comment: the action receives the app key and the Bedrock key,
+        # and a SHA is the one pin nobody can move. Dependabot opens each bump and updates both.
         uses: NCodeGroup/code-review@d14405f82771819586a5ccbff636929dc894b780 # v1.0.0
         with:
           app-private-key: ${{ secrets.NCODE_REVIEW_APP_PRIVATE_KEY }}

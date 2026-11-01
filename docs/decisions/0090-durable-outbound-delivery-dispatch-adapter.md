@@ -7,6 +7,7 @@
   jobs concurrently up to a limit, and a handler's own cancellation fails the attempt)
 - **Date:** 2026-10-13
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md); tracked in [#443](https://github.com/NCodeGroup/Identity/issues/443)
 
 ## Context
 

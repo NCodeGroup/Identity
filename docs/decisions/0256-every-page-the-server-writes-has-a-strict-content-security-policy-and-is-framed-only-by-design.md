@@ -5,6 +5,7 @@
   Strict-Transport-Security)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0121](project-template/0121-html-pages-have-a-strict-content-security-policy.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

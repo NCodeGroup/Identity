@@ -5,6 +5,7 @@
   keys and its `jwks_uri` keys are never merged, and a published key set is imported under the client-key policy)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md); tracked in [#444](https://github.com/NCodeGroup/Identity/issues/444)
 
 ## Context
 

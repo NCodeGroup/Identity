@@ -7,6 +7,7 @@
   disabled by default.
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

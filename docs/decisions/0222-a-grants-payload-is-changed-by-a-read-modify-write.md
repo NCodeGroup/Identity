@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0110](project-template/0110-shared-state-is-changed-by-read-modify-write.md)
 
 ## Context
 

@@ -94,7 +94,7 @@ non-conforming behavior into the assertions.
   correction a clean cutover.
 - [ADR-0125](0125-trunk-based-development-on-main.md) — the continuous-integration gate whose Linux runner surfaced the
   platform-specific target framework.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — why the oracle-selection rule is recorded here
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why the oracle-selection rule is recorded here
   rather than left as a review habit.
 - `src/NCode.Identity.Jose/Algorithms/KeyManagement/EcdhKeyManagementAlgorithm.cs` — the derivation.
 - `tests/NCode.Identity.Jose.Tests/Algorithms/KeyManagement/EcdhKeyManagementAlgorithmTests.cs`,

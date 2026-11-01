@@ -9,7 +9,7 @@
     The index is maintained by hand, and hand-maintenance demonstrably fails: ten ADRs once sat unindexed, a malformed
     delimiter row (which silently degrades the whole table to a paragraph) survived dozens of commits, and plans run in
     parallel worktrees can each take "the next free number" and merge two ADRs with one number (issue #371). An
-    unindexed or ambiguous ADR is one nobody finds, which defeats the point of writing it (ADR-0008).
+    unindexed or ambiguous ADR is one nobody finds, which defeats the point of writing it (project-template ADR-0001).
 
     Outputs one string per problem, and nothing when the index is consistent:
     - a table row whose column count is not 3;

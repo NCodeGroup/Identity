@@ -82,9 +82,9 @@ marked tool-enforced or review-only. The highlights:
   ([ADR-0150](docs/decisions/0150-vocabularies-are-open-unless-provably-closed.md)).
 - No behavior-selecting flag arguments; split into intention-revealing methods instead.
 - **No cross-assembly `InternalsVisibleTo`** in production — packages compose through public contracts
-  ([ADR-0004](docs/decisions/0004-no-cross-assembly-internalsvisibleto.md)).
+  ([project-template ADR-0104](docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md)).
 - One type per file; the single canonical implementation of `IFoo` is `DefaultFoo`
-  ([ADR-0006](docs/decisions/0006-single-canonical-impl-is-defaultfoo.md)); C# 14 `extension` syntax.
+  ([project-template ADR-0105](docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)); C# 14 `extension` syntax.
 
 ## Making a change
 

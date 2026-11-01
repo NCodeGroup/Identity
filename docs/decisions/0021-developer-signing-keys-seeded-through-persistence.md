@@ -7,6 +7,7 @@
   [ADR-0169](0169-every-tenant-is-provisioned-with-persisted-keys.md))
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 

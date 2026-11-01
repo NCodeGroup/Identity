@@ -61,13 +61,13 @@ The _reasoning_ behind a non-obvious decision lives in an ADR under [`docs/decis
 Durable knowledge — conventions, reasoning, and recurring gotchas — is captured in these versioned
 files, **never** left only in an agent's volatile memory or chat history: promote any lesson learned
 during a task into the instruction files or an ADR as part of the same change. See
-[ADR-0008](../../docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md).
+[project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md).
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
 ([ADR-0264](../../docs/decisions/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue
 labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
-([ADR-0008](../../docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
+([project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
 issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as
 `[#123](https://github.com/NCodeGroup/Identity/issues/123)` in Markdown and as `issue #123` elsewhere.
 
@@ -139,5 +139,5 @@ commit succeeds. Remediate any failure in the same change, and name every issue 
 so the merge closes it. Once it merges, retire the plan's branch and worktree with `/finish-plan`
 ([`AGENTS.md`](../../AGENTS.md#plan-and-execute-workflow)).
 
-This upholds [ADR-0008](../../docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning,
+This upholds [project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning,
 and recurring gotchas live in the repository.

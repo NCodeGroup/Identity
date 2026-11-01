@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0123](project-template/0123-resource-ids-are-server-generated-and-opaque.md)
 
 ## Context
 

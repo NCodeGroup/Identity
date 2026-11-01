@@ -7,6 +7,7 @@
   reconciliation records the settings it reconciled against and reaches only the tenants a change affects)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md); tracked in [#443](https://github.com/NCodeGroup/Identity/issues/443)
 
 ## Context
 

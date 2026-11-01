@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)
 
 ## Context
 

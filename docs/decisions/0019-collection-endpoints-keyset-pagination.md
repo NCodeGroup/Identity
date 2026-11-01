@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0124](project-template/0124-collection-endpoints-use-keyset-pagination.md)
 
 ## Context
 

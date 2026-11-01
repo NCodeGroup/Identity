@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-12
 - **Deciders:** NCode.Identity maintainers
+- **Refines:** [project-template ADR-0107](project-template/0107-filtered-reads-push-filtering-to-the-database.md)
 
 ## Context
 

@@ -43,7 +43,7 @@ full orchestration script that also brings the suite up/down is [#124](https://g
 ## Current state (verified)
 
 - **The integration-test host is in-process only.**
-  [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
+  [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/HostApplicationFactory.cs)
   boots the host through `WebApplicationFactory`/`TestServer` — not a socket the suite's containers
   can reach. The `Conformance` launch profile is the reachable-host answer to that gap.
 - **Issuer is always the tenant's own.** In

@@ -16,6 +16,9 @@
 # Updates are GROUPED per ecosystem. Ungrouped, a repository this size opens a pull request per package and buries the
 # trunk in noise; grouped, a week's updates arrive as one reviewable change that CI verifies as a unit. Security updates
 # have a group of their own in each ecosystem (`applies-to: security-updates`), so one advisory run is one pull request.
+#
+# Every entry waits three days (cooldown) before it offers a new version, so one that is withdrawn or found compromised
+# soon after its release never reaches the repository.
 version: 2
 
 updates:
@@ -27,6 +30,8 @@ updates:
       interval: weekly
     # Version updates paused (issue #36); 5 when resumed.
     open-pull-requests-limit: 0
+    cooldown:
+      default-days: 3
     groups:
       # Patch/minor servicing moves together — this is the stream that clears NuGet advisories, which the full
       # Definition of Done treats as build errors (NU1901-1904), so leaving it to rot eventually breaks CI outright.
@@ -88,7 +93,13 @@ updates:
     open-pull-requests-limit: 5
     allow:
       - dependency-name: NCodeGroup/code-review
+    cooldown:
+      default-days: 3
     groups:
+      # Dependabot puts an update in the first group that matches it, so this one comes before the catch-all group:
+      # .github/workflows/code-review-auto-merge.yml merges only a pull request whose one change is the NCode Review pin.
+      ncode-review:
+        patterns: ['NCodeGroup/code-review']
       github-actions:
         patterns: ['*']
       github-actions-security:
@@ -103,6 +114,8 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']

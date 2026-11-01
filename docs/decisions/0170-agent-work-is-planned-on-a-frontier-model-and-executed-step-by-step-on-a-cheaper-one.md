@@ -3,6 +3,7 @@
 - **Status:** Accepted (amended 2026-10-25)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0003](project-template/0003-agent-work-is-planned-on-a-frontier-model-and-executed-on-a-cheaper-one.md)
 
 ## Amendment (2026-10-25): the project template, Claude Sonnet 5.5 and Claude Code
 
@@ -249,6 +250,6 @@ individual review.
   [`copilot-reviewer.agent.md`](../../.github/agents/copilot-reviewer.agent.md),
   [`plan-executor.agent.md`](../../.github/agents/plan-executor.agent.md)
 - [`AGENTS.md` — Plan-and-execute workflow](../../AGENTS.md#plan-and-execute-workflow)
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — conventions and lessons live in the repository
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — conventions and lessons live in the repository
 - [ADR-0125](0125-trunk-based-development-on-main.md) — trunk-based development on `main`
 - [ADR-0128](0128-commits-are-attributed-to-people-not-agents.md) — commits are attributed to people, not agents

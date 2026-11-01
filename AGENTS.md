@@ -52,16 +52,24 @@ closed ([ADR-0150](docs/decisions/0150-vocabularies-are-open-unless-provably-clo
 The coding-convention instruction files are the single source of truth, auto-applied by scope:
 [`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md) and
 [`csharp-testing.instructions.md`](.github/instructions/csharp-testing.instructions.md). The _reasoning_ behind
-non-obvious decisions lives in [`docs/decisions/`](docs/decisions/).
+non-obvious decisions lives in [`docs/decisions/`](docs/decisions/): the project template's general decisions in
+[`docs/decisions/project-template/`](docs/decisions/project-template/README.md), the source of truth for every rule
+they cover, and this family's own beside them. A family record never restates a template record: one that builds on
+it names it on a `**Refines:**` line, and one that still contradicts it on a `**Conflicts with:**` line with the issue
+that tracks the alignment. Cite a template record as `project-template ADR-NNNN`.
+[`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
+own sweeps for `/audit-conventions`.
 
 The repository-wide agent rules — design posture, orientation, commit attribution and the push protocol — are in:
 
 - @.github/instructions/repository.instructions.md — Copilot applies it to every file, and Claude Code loads it through this line.
 
 The project template's generic [`csharp.instructions.md`](.github/instructions/csharp.instructions.md) also applies to
-every `.cs` file; where it and `csharp-production.instructions.md` or `csharp-testing.instructions.md` differ, those two
-files win. Claude Code ignores `applyTo`, so [`.claude/rules/csharp-production.md`](.claude/rules/csharp-production.md)
-and [`.claude/rules/csharp-testing.md`](.claude/rules/csharp-testing.md) point it at them by path.
+every `.cs` file, and its [`csharp-tests.instructions.md`](.github/instructions/csharp-tests.instructions.md) to every
+`*.Tests` project; where they and `csharp-production.instructions.md` or `csharp-testing.instructions.md` differ,
+those two files win. Claude Code ignores `applyTo`, so
+[`.claude/rules/csharp-production.md`](.claude/rules/csharp-production.md) and
+[`.claude/rules/csharp-testing.md`](.claude/rules/csharp-testing.md) point it at them by path.
 
 ## Known pending work
 
@@ -69,7 +77,7 @@ Pending work — deferred decisions, feature gaps, follow-ups and review finding
 [GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
 ([ADR-0264](docs/decisions/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue labeled by
 its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
-([ADR-0008](docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
+([project-template ADR-0001](docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
 closes it with `Closes #<number>`.
 
 ## Plan-and-execute workflow
@@ -145,13 +153,16 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   Without `gh`, or without such a pull request, it stops to ask.
 - The agents, prompts and skills under `.github/`, the commands under `.claude/commands/`,
   `.claude/agents/plan-executor.md` and `CLAUDE.md` **come from the project template**
-  ([`polewskm/project-template`](https://github.com/polewskm/project-template); the version is in
+  ([`NCodeGroup/project-template`](https://github.com/NCodeGroup/project-template); the version is in
   [`.copier-answers.yml`](.copier-answers.yml)), which owns them: never hand-edit them. Change the workflow in
   project-template, then pull the new version in with `/plan-template-update`, which plans the update from a trial
   run of `./.template/Update-Project.ps1` and files each gap it finds. Report a gap in the template's
   workflow as an issue in project-template, where it is fixed and tagged. Repository rules belong in the instruction
-  files, which every agent in the loop already loads. The hand-written `audit-conventions` prompt and skill are the
-  exception; edit both together.
+  files, which every agent in the loop already loads; this repository's own `/audit-conventions` sweeps are in
+  [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md). `build/dod.ps1` is this
+  repository's own Definition of Done, although the template renders a simpler one at that path: when an update
+  conflicts on it or replaces it, keep this repository's version (`git checkout HEAD -- build/dod.ps1`) until
+  [NCodeGroup/project-template#198](https://github.com/NCodeGroup/project-template/issues/198) lets a project own it.
 
 ### Local and Copilot customizations
 
@@ -167,9 +178,9 @@ workflow bodies, allowing only the argument syntax and relative-link depth diffe
 rejects prompt-only settings and invocation-control flags in skills. Its
 [fixture tests](build/tests/agent-customizations.tests.ps1) run as the first Definition-of-Done stage, including checks
 against the real repository. Run them directly with `pwsh -NoProfile -File .\build\tests\agent-customizations.tests.ps1`.
-After `./.template/Update-Project.ps1` brings in a new template version, run this check; for `audit-conventions`,
-update both copies and run it. Skills may be selected automatically by the model; their descriptions and workflow
-instructions guide their use. Manual-only selection is not a requirement of this design.
+After `./.template/Update-Project.ps1` brings in a new template version, run this check. Skills may be selected
+automatically by the model; their descriptions and workflow instructions guide their use. Manual-only selection is not
+a requirement of this design.
 
 **Do not bulk-migrate these repository prompts.** Copilot's **Review Migrations** banner detects prompt files it
 cannot read, but this repository already provides their skill equivalents. Use **Ignore** for the workspace
@@ -190,15 +201,20 @@ this repository, `<owner/repo>` in that repository, and `none` files none. `foll
 get. `gate`: `none`; a command that `/ship-plan` and `/run-issues` run from the repository root before each push,
 stopping when it exits non-zero or changes a file. `protect`: `none`; `hook` makes `.githooks/pre-push` refuse any
 push to the default branch, for a host that can't require pull requests. `pr-format`: `none`; `<file>#<heading>`
-names the section that sets the title and description of the pull requests `/ship-plan` opens. Here the `main`
+names the section that sets the title and description of the pull requests `/ship-plan` opens. `review-bots`: the review
+bots whose findings `/run-issues` and `/address-feedback` may fix, or `none`. `max-review-rounds`: after that many
+rounds of review feedback, `/run-issues` recommends the merge. `prelude`: `none`; one PowerShell command that sets up
+the shell the workflow's commands run in. Here the `main`
 ruleset already requires pull requests through the merge queue
 ([ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
 ([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; a pull request stays a draft until
 its author reviews it ([ADR-0269](docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
-([ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); and a
-plan's title is already the conventional commit subject the squash merge takes, so `pr-format` is `none`.
+([ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
+Review reviews every pull request (`.github/workflows/code-review.yml`), so `review-bots` is `ncode-review`; nothing
+needs a shell set up, so `prelude` is `none`; and a plan's title is already the conventional commit subject the squash
+merge takes, so `pr-format` is `none`.
 
 - integrate: pull-request
 - release: none
@@ -209,6 +225,9 @@ plan's title is already the conventional commit subject the squash merge takes, 
 - gate: ./build/dod.ps1 -Fast -Affected
 - protect: none
 - pr-format: none
+- review-bots: ncode-review
+- max-review-rounds: 3
+- prelude: none
 
 ## Build, test & contributing
 

@@ -5,6 +5,7 @@
   messages it may have missed, and a server settings change is announced too)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)
 
 ## Context
 

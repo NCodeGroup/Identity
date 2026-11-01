@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0100](project-template/0100-warnings-are-errors-in-every-project.md), [project-template ADR-0102](project-template/0102-disallowed-apis-are-banned-at-build-time.md), [project-template ADR-0118](project-template/0118-the-null-forgiving-operator-is-banned-outside-tests.md)
 
 ## Context
 

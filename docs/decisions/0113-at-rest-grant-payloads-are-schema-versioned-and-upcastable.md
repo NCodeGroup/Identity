@@ -5,6 +5,7 @@
   protected)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md)
 
 ## Context
 

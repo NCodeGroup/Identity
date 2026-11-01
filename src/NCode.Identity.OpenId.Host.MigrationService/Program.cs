@@ -29,7 +29,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // Logs go to standard output on every platform: the console provider writes them, and the EventSource provider hands
 // them to a diagnostics tool that attaches (dotnet-monitor, dotnet-trace). The default builder's Windows Event Log and
-// debugger providers are left out. See ADR-0210.
+// debugger providers are left out. See project-template ADR-0115.
 builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
 
 builder.Services.AddSingleton<IIdGenerator<long>>(new IdGenerator(0));

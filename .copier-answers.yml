@@ -1,15 +1,19 @@
 # Written by Copier; never edit by hand. Change an answer with .template\Update-Project.ps1 -Data.
-_commit: v0.41.1
+_commit: v0.49.0
 _src_path: https://github.com/NCodeGroup/project-template.git
 author_name: NCode Group
 build_command: ./build/dod.ps1 -Fast -SkipTests
 code_review: false
 git_host: github
+license: Apache-2.0
 nuget_package: false
 project_description: ''
 project_name: NCode.Identity
 project_owned_files:
 - .github/dependabot.yml
+- .github/workflows/ci.yml
+- Directory.Packages.props
+- global.json
 stack: dotnet
 test_command: ./build/dod.ps1 -Fast
 workflow_tools:

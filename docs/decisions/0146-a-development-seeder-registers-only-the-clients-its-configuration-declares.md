@@ -3,6 +3,7 @@
 - **Status:** Accepted (amends [ADR-0082](0082-playground-and-conformance-surfaces.md))
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 
@@ -81,4 +82,4 @@ library has no default; the host's environment overlay declares the entries.
 - Code: `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions`,
   `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedHandler`,
   `src/NCode.Identity.OpenId.Host/appsettings.Development.json`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/DeveloperSpaClientSeedingTests.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/DeveloperSpaClientSeedingTests.cs`.

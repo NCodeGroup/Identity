@@ -5,6 +5,7 @@
   data changes are classified, and a constraint added to an existing table contracts)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
 
 ## Context
 

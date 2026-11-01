@@ -28,7 +28,8 @@ rationale.
   returns `Task`.
 - ✅ **No sync-over-async.** Blocking on a `Task`/`ValueTask` — `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`,
   `Task.WaitAll` / `Task.WaitAny` — is banned by `BannedApiAnalyzers` (`RS0030`, see
-  [`BannedSymbols.txt`](../../BannedSymbols.txt)). Always `await`.
+  [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt), from the project template, which bans it in every project,
+  tests included). Always `await`.
 - 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate.** `StartNew`
   over an `async` lambda returns an unobserved `Task<Task>` and drops the inner task's exceptions; `Task.Run` unwraps it.
   Prefer not offloading at all — offload only when the work must leave the calling thread (e.g. disposing an evicted
@@ -229,7 +230,7 @@ rationale.
   property-add** on `T`, not a new callback parameter that breaks every caller.
 - 👁 **No cross-assembly `InternalsVisibleTo` in production.** It is for **test projects only** (plus
   `DynamicProxyGenAssembly2` for mocking). Packages collaborate through **public** contracts, never internals. See
-  [ADR-0004](../../docs/decisions/0004-no-cross-assembly-internalsvisibleto.md).
+  [project-template ADR-0104](../../docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md).
 - 👁 **An implementation package references only `*.Abstractions` packages — never another implementation package.**
   Cross-implementation collaboration flows through an interface owned by an `*.Abstractions` package, resolved from DI;
   the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
@@ -294,7 +295,7 @@ rationale.
   **framework** interface follows that framework's own pattern name; (c) a **public, developer-facing
   data / message / model / result type a consumer constructs and names directly** keeps the bare concept name
   (`AuthorizationTicket`, `TokenRequest`, `ResourceNode` — never `Default*`), even when it implements an `IFoo` seam.
-  See [ADR-0006](../../docs/decisions/0006-single-canonical-impl-is-defaultfoo.md).
+  See [project-template ADR-0105](../../docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md).
 - 👁 **No nested types**, with two exceptions: (a) a private nested type that must **close over the enclosing type's
   generic type parameter**; (b) a nested `static` class that groups a related **constant vocabulary** (only `const`
   fields — no behavior, no state). Everything else is its own top-level file.
@@ -899,9 +900,11 @@ rationale.
   `AnalysisLevel` `latest-recommended`, and Roslyn only evaluates it when `GenerateDocumentationFile` is `true`
   (dotnet/roslyn#41640). Clean violations with `dotnet format style --diagnostics IDE0005`, then re-run CSharpier.
 - ✅ **Banned APIs** (`Microsoft.CodeAnalysis.BannedApiAnalyzers`, `RS0030`) from
-  [`BannedSymbols.txt`](../../BannedSymbols.txt) — no `Newtonsoft.Json` (use `System.Text.Json`), no legacy
-  `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`), and no
-  sync-over-async. Add house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
+  [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt), from the project template, in every project, tests
+  included — no `Newtonsoft.Json` (use `System.Text.Json`), no sync-over-async, no `JsonDocument.Parse` — and from
+  [`BannedSymbols.txt`](../../BannedSymbols.txt), this repository's own list for shipping code: no legacy
+  `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`) and no throwing Unix-time factories. Add
+  house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
   encodings in every project, tests included
   ([ADR-0266](../../docs/decisions/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
 - ⏳ **Warnings-as-errors in _every_ project — including tests and the host projects** — and **NuGet vulnerability
@@ -998,7 +1001,7 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   `ReadOnlySpan<byte>`, or, through `NCode.Json`, a `ReadOnlySequence<byte>`) and `JsonElement.ParseValue` own nothing
   to dispose, so a token segment decoded into a rented buffer parses straight from the span; a `Stream` is read with
   `JsonSerializer.Deserialize<JsonElement>` / `DeserializeAsync<JsonElement>`. `JsonDocument.Parse`, `ParseAsync`,
-  `ParseValue` and `TryParseValue` are banned (`BannedSymbols.txt`, RS0030) in production and test code alike: a
+  `ParseValue` and `TryParseValue` are banned (`build/BannedSymbols.txt`, RS0030) in production and test code alike: a
   `JsonDocument` rents pooled buffers that leak when it is not disposed, and an element read from it fails once it is.
   Name a parsed `JsonElement` for what it holds, or `jsonElement`, never `document`, which names a `JsonDocument`.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
@@ -1307,7 +1310,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 - 👁 **A library never registers or removes a logging provider; the host's composition root chooses its sinks.** The
   reference hosts log to standard output on every platform, with
   `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`, and never to the Windows Event Log
-  ([ADR-0210](../../docs/decisions/0210-the-reference-hosts-log-to-standard-output.md)).
+  ([project-template ADR-0115](../../docs/decisions/project-template/0115-a-host-logs-to-standard-output.md)).
 - 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
   message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
   package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**

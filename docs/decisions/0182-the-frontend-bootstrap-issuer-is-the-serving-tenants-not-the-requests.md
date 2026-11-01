@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

@@ -63,6 +63,6 @@ The rule applied to a shared capability `Foo` used by two implementations:
 
 - [`csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md) §2, §4.
 - [ADR-0001](./0001-mediator-vs-dependency-injection-logic-classes.md) — the DI shapes an abstraction seam is wired as.
-- [ADR-0004](./0004-no-cross-assembly-internalsvisibleto.md) — the sibling rule that packages collaborate only through
+- [project-template ADR-0104](./project-template/0104-no-cross-assembly-internalsvisibleto.md) — the sibling rule that packages collaborate only through
   deliberately-designed public contracts.
-- [ADR-0006](./0006-single-canonical-impl-is-defaultfoo.md) — the `DefaultFoo` naming for the concrete type behind a seam.
+- [project-template ADR-0105](./project-template/0105-the-canonical-implementation-is-named-defaultfoo.md) — the `DefaultFoo` naming for the concrete type behind a seam.

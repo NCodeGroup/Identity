@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-16
 - **Deciders:** NCode.Identity maintainers
+- **Conflicts with:** [project-template ADR-0112](project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md); tracked in [#440](https://github.com/NCodeGroup/Identity/issues/440)
 
 ## Context
 

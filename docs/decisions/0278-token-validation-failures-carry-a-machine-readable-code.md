@@ -5,6 +5,7 @@
   `decryption_failed`)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0111](project-template/0111-failures-carry-a-machine-readable-code.md)
 
 ## Context
 

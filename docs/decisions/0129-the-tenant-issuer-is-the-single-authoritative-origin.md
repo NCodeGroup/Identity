@@ -8,6 +8,7 @@
   alias as a derived, routed second host for the endpoints only, while the issuer stays the published origin)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md)
 
 ## Context
 

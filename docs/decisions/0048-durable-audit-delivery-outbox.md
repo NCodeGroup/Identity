@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md)
 
 ## Context
 

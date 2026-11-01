@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)
 
 ## Context
 
@@ -87,4 +88,4 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
   `NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions`,
   `NCode.Identity.Server.SecretProtection.SecretProtectionRegistration`,
   `NCode.Identity.Server.SecretProtection.ServerSecretProtectorWarmup`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/HostApplicationFactory.cs`.

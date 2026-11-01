@@ -111,7 +111,7 @@ classification to active probing without re-architecture.** Concretely:
   future headless probe runner (Phase 3) and the external-suite wiring (Phase 4, [#124](https://github.com/NCodeGroup/Identity/issues/124)) without a model change.
 - The catalog is the durable, versioned home for "the published spec surface we measure against"; extending coverage to
   a newly published spec is a catalog row plus a classifier, keeping the knowledge in the repository
-  ([ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md)).
+  ([project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md)).
 - This complements, and does not replace, the external OpenID Foundation Conformance Suite ([#124](https://github.com/NCodeGroup/Identity/issues/124)); that suite remains
   the authoritative oracle and this matrix the fast, local pre-flight.
 

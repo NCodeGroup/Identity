@@ -29,7 +29,9 @@ standards.
   when two files share a number, when the index misses a file or links a missing one, or when a row's number is not
   its file's, so a collision that slips past a textual merge still fails the merge queue.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
-- **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`.
+- **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`. A record that builds on
+  one of the project template's decisions says so on a metadata line under `**Deciders:**` (see
+  [The template's decisions](#the-templates-decisions)).
 - Keep ADRs short, concrete, and link to real code so future readers can verify the decision
   against the current source.
 - Write each ADR as a **timeless, present-tense record** of the decision and its rationale — never a
@@ -38,6 +40,16 @@ standards.
   decision **is** and why, so the record reads the same a year later. A superseded ADR keeps its
   original decision text and only gains a status change plus a forward pointer to its successor.
 
+## The template's decisions
+
+The project template's general decisions are in [`project-template/`](./project-template/README.md); template updates
+replace that folder. They are the source of truth for every rule they cover: cite one as `project-template ADR-NNNN`,
+linking `project-template/NNNN-<slug>.md`. A record here never restates one. When it adds NCode.Identity-specific
+decisions to one, it says `- **Refines:** project-template ADR-NNNN`, and where the two differ the template's holds.
+When it contradicts one, it says `- **Conflicts with:** project-template ADR-NNNN` with the issue that tracks bringing
+the two into line; until then the record describes what the code does. To decide otherwise for good, write a record
+that says `- **Supersedes:** project-template ADR-NNNN` and list the override in [`AGENTS.md`](../../AGENTS.md).
+
 ## Index
 
 | ADR                                                                                       | Title                                                                                                                      | Status                                                                                                                               |
@@ -45,11 +57,8 @@ standards.
 | [0001](./0001-mediator-vs-dependency-injection-logic-classes.md)                          | Mediator (commands & handlers) vs. dependency-injected logic classes                                                       | Accepted                                                                                                                             |
 | [0002](./0002-ephemeral-development-keys.md)                                              | Ephemeral development keys are an explicit opt-in, never a silent default                                                  | Accepted (persisted tenant keys provisioned by default by [0169](./0169-every-tenant-is-provisioned-with-persisted-keys.md)) |
 | [0003](./0003-central-package-management-and-lockstep-versioning.md)                      | Central Package Management and lockstep versioning                                                                         | Accepted                                                                                                                             |
-| [0004](./0004-no-cross-assembly-internalsvisibleto.md)                                    | No cross-assembly InternalsVisibleTo in production                                                                         | Accepted                                                                                                                             |
 | [0005](./0005-public-api-surface-is-tracked-and-evolves-compatibly.md)                    | The public API surface is tracked and evolves backward-compatibly                                                          | Accepted                                                                                                                             |
-| [0006](./0006-single-canonical-impl-is-defaultfoo.md)                                     | The single canonical implementation of an interface is named DefaultFoo                                                    | Accepted                                                                                                                             |
 | [0007](./0007-provenance-sourcelink-and-symbols.md)                                       | Provenance — SourceLink to GitHub and a portable symbol package                                                            | Accepted                                                                                                                             |
-| [0008](./0008-conventions-and-lessons-live-in-the-repository.md)                          | Conventions and lessons live in the repository, not in volatile memory                                                     | Accepted                                                                                                                             |
 | [0009](./0009-endpoint-families-own-their-route-group.md)                                 | Endpoint families own their route group and cross-cutting endpoint filters                                                 | Accepted (mechanism superseded by [0042](./0042-management-api-route-driven-tenant-scope.md))                                        |
 | [0010](./0010-supported-settings-unset-means-unrestricted.md)                             | `*_supported` settings: unset means unrestricted; a replaceable baseline supplies defaults                                 | Accepted (amended by [0155](./0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))                                  |
 | [0011](./0011-secret-management-api.md)                                                   | Secret management: server-side key generation, no material on the surface                                                  | Accepted (amended by [0235](./0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md))                  |
@@ -247,7 +256,6 @@ standards.
 | [0207](./0207-client-authentication-methods-are-named-by-registered-descriptors.md) | Client-authentication methods are named by registered descriptors | Accepted |
 | [0208](./0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) | A lost concurrency race surfaces as a store-neutral exception | Accepted |
 | [0209](./0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) | A replica adds each usage batch to the ledger once | Accepted |
-| [0210](./0210-the-reference-hosts-log-to-standard-output.md) | The reference hosts log to standard output | Accepted (amended by [0248](./0248-the-host-image-writes-one-line-json-logs.md)) |
 | [0211](./0211-a-rotated-refresh-token-is-spent-with-its-successor.md) | A rotated refresh token is spent with its successor, and a lost spend is a reuse | Accepted |
 | [0212](./0212-deleting-an-owner-removes-what-it-owns.md) | Deleting a client or a tenant removes what it owns, its end users' data included | Accepted (amended by [0224](./0224-deleting-or-disabling-an-account-ends-its-sessions.md)) |
 | [0213](./0213-the-usage-ledger-is-pruned-in-bounded-batches.md) | The usage ledger is pruned in bounded batches that every provider supports | Accepted |

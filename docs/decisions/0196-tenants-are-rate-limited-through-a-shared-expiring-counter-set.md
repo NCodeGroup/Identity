@@ -7,6 +7,7 @@
   descriptor, and a stage's limits are counted in one round trip)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md)
 
 ## Context
 

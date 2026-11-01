@@ -11,6 +11,7 @@
   provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)
 
 ## Context
 

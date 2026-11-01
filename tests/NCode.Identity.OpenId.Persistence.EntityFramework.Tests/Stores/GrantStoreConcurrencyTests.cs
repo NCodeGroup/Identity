@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 // Validates the native EF [ConcurrencyCheck] the stores rely on after ADR-0012. Uses SQLite because the
 // EF InMemory provider does not enforce concurrency tokens in the UPDATE ... WHERE clause.
-public sealed class GrantStoreConcurrencyTests : IDisposable
+public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
 {
     private const string GrantType = "authorization_code";
     private const string HashedKey = "hashed-key-1";
@@ -46,19 +46,24 @@ public sealed class GrantStoreConcurrencyTests : IDisposable
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
         _provider = serviceCollection.BuildServiceProvider();
+    }
 
+    public async Task InitializeAsync()
+    {
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        context.Database.EnsureCreated();
+        await context.Database.EnsureCreatedAsync();
 
         var tenantStore = new TenantStore(
             Mock.Of<IStoreProvider>(),
             _provider.GetRequiredService<IIdGenerator<long>>(),
             context
         );
-        tenantStore.AddAsync(CreateTenant(), CancellationToken.None).GetAwaiter().GetResult();
-        context.SaveChanges();
+        await tenantStore.AddAsync(CreateTenant(), CancellationToken.None);
+        await context.SaveChangesAsync();
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     public void Dispose()
     {

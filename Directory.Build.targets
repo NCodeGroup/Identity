@@ -36,26 +36,12 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- Bans disallowed APIs (RS0030): BannedSymbols.Encoding.txt in every project (ADR-0266), BannedSymbols.txt on shipping code only (ADR-0127). -->
+  <!-- Bans disallowed APIs (RS0030) on top of build/BannedSymbols.txt, which build/ProjectTemplate.props adds to every project: BannedSymbols.Encoding.txt in every project (ADR-0266), BannedSymbols.txt on shipping code only (ADR-0127). -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Encoding.txt" />
   </ItemGroup>
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
-  </ItemGroup>
-
-  <!-- Bans the null-forgiving operator (!) on shipping code: NX0001-NX0004 flag every '!'. The analyzer accepts a
-       '// !' justification comment, but project policy is stricter: DO NOT use that escape hatch — eliminate the '!'
-       by restructuring (?? throw, [MemberNotNullWhen], 'is { } local', early-out narrowing). Not on test projects. -->
-  <ItemGroup Condition="'$(IsPackable)' != 'false'">
-    <PackageReference Include="Nullable.Extended.Analyzer">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <!-- Tracks the public API surface (RS0016/RS0017/RS0024): each packable project lists its surface in the sibling

@@ -4,6 +4,7 @@
   race)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0125](project-template/0125-a-write-that-loses-a-race-is-answered-412.md)
 
 ## Context
 

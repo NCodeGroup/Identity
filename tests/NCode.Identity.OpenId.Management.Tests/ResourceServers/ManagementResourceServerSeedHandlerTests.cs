@@ -48,7 +48,7 @@ public sealed class ManagementResourceServerSeedHandlerTests
             }
         );
 
-    private static PersistedResourceServer? Seed(TenantPlane plane)
+    private static async Task<PersistedResourceServer?> SeedAsync(TenantPlane plane)
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var manager = mocks.Create<IStoreManager>();
@@ -77,20 +77,16 @@ public sealed class ManagementResourceServerSeedHandlerTests
             .Verifiable();
 
         var handler = new ManagementResourceServerSeedHandler(crypto.Object);
-        handler
-            .HandleAsync(CreateCommand(manager.Object, plane), CancellationToken.None)
-            .AsTask()
-            .GetAwaiter()
-            .GetResult();
+        await handler.HandleAsync(CreateCommand(manager.Object, plane), CancellationToken.None);
 
         mocks.Verify();
         return captured;
     }
 
     [Fact]
-    public void HandleAsync_WhenWorkloadPlane_SeedsTenantScopesOnly()
+    public async Task HandleAsync_WhenWorkloadPlane_SeedsTenantScopesOnly()
     {
-        var captured = Seed(TenantPlane.Workload);
+        var captured = await SeedAsync(TenantPlane.Workload);
 
         Assert.NotNull(captured);
         var values = captured.Scopes.Select(scope => scope.Value).ToList();
@@ -100,9 +96,9 @@ public sealed class ManagementResourceServerSeedHandlerTests
     }
 
     [Fact]
-    public void HandleAsync_WhenRootPlane_SeedsTenantAndControlScopes()
+    public async Task HandleAsync_WhenRootPlane_SeedsTenantAndControlScopes()
     {
-        var captured = Seed(TenantPlane.Root);
+        var captured = await SeedAsync(TenantPlane.Root);
 
         Assert.NotNull(captured);
         var values = captured.Scopes.Select(scope => scope.Value).ToList();

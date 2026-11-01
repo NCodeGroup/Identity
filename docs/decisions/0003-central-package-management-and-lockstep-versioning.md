@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-27
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0101](project-template/0101-central-package-management.md)
 
 ## Context
 

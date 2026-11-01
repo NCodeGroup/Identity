@@ -4,6 +4,7 @@
   provisioned with persisted keys by default; ephemeral keys remain the explicit development opt-in decided here)
 - **Date:** 2026-09-27
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 
@@ -79,4 +80,4 @@ opt-in conveniences, never defaults.
 - `NCode.Identity.Server/DevelopmentEnvironment/DeveloperKeysRegistration.cs`
 - `NCode.Identity.OpenId.Host/Program.cs` (opt-in wired in by the EXE host)
 - `NCode.Identity.OpenId.Authentication/Tokens/DefaultTokenService.cs` (signing key source = tenant secrets)
-- `NCode.Identity.OpenId.IntegrationTests/` (asserts JWKS publishes the ephemeral signing key over HTTP)
+- `NCode.Identity.OpenId.Integration.Tests/` (asserts JWKS publishes the ephemeral signing key over HTTP)

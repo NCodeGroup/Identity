@@ -1,105 +1,17 @@
 ---
-description: "Audit the NCode.Identity codebase against its coding-convention instructions — sweep for violations, run the Definition of Done, verify tested-or-excluded coverage, and produce a ranked findings report. Use for a full conventions/compliance review."
-name: "Audit conventions"
-agent: "agent"
+description: "Audit the codebase against its instruction files and decision records, and rank the findings"
+argument-hint: "Optional - a folder, project or rule set to limit the audit to"
+agent: agent
+model: "Claude Opus 5.5 (copilot)"
 ---
+Audit this repository against its own conventions and decisions, and report what doesn't follow them:
 
-Run a full **convention audit** of this repository against its authoritative rules — the scoped instruction files
-[`csharp-production.instructions.md`](../instructions/csharp-production.instructions.md) and
-[`csharp-testing.instructions.md`](../instructions/csharp-testing.instructions.md), mirrored for orientation in
-[AGENTS.md](../../AGENTS.md). Produce a **ranked findings report**. Do **not** change code unless I explicitly ask —
-audit first, offer fixes second.
+${input:details:Optional - a folder, project or rule set to limit the audit to}
 
-## 1. Load the rules
+1. Load the rules: `AGENTS.md` and every instruction file it lists, in full, and the decision records in `docs/decisions/` (the project's own, and the template's in `docs/decisions/project-template/`) that the code in scope touches. They are authoritative; where a project file overrides a template rule, the project's wins. Limit the audit to what the request names, when it names something.
+2. Confirm the machine-checked part is green: run the project's gate (the Definition of Done or the build and test commands in `AGENTS.md`). A rule the build already enforces, such as an analyzer or a banned API, needs no manual sweep once it passes; spend the effort on the rules only a review can check.
+3. Sweep for each review-only rule with a deterministic search: a script or grep that lists every candidate with its file and line, then read each candidate to judge it. A claim that a whole kind of defect is absent comes from such a listing, never from sampling or memory. In PowerShell, `-match` ignores case; use `-cmatch` when case matters.
+4. Check the decision records too: code that contradicts an accepted decision, a decision the code has moved past without a record that supersedes it, and an index in `docs/decisions/README.md` that misses a record.
+5. Report the findings ranked — violation, worth fixing, minor or a conscious trade-off — each with its file and line, the rule or decision it touches, and a one-line fix. Say plainly what is clean; when the code follows its conventions, say so and don't invent nits. Note a rule that no longer fits the code as a candidate for an instruction or decision change, not as a code defect.
 
-Read the [production](../instructions/csharp-production.instructions.md) and
-[testing](../instructions/csharp-testing.instructions.md) instruction files in full. They are authoritative. Every
-rule is tagged ✅ tool-enforced / 👁 review-only / ⏳ rolling out. The ✅ subset is validated by the build, so spend
-your manual effort on the 👁 rules.
-
-## 2. Confirm the machine-enforced subset is green
-
-Run the Definition of Done — it covers CSharpier, the analyzers, banned APIs + sync-over-async, and `CA1708`:
-
-```pwsh
-./build/dod.ps1
-```
-
-Then verify **tested-or-excluded** (§7): every non-`[ExcludeFromCodeCoverage]` type should be exercised by tests.
-
-```pwsh
-Remove-Item -Recurse -Force ./TestResults -ErrorAction SilentlyContinue
-dotnet test NCode.Identity.slnx -c Debug --collect:"XPlat Code Coverage" --results-directory ./TestResults --nologo | Out-Null
-$seen = @{}
-Get-ChildItem ./TestResults -Recurse -Filter coverage.cobertura.xml | ForEach-Object {
-    [xml]$x = Get-Content $_.FullName
-    foreach ($c in $x.coverage.packages.package.classes.class) {
-        $n = $c.name; $lr = [double]$c.'line-rate'
-        if (-not $seen.ContainsKey($n) -or $lr -gt $seen[$n]) { $seen[$n] = $lr }
-    }
-}
-$under = $seen.GetEnumerator() | Where-Object { $_.Value -lt 1.0 }
-"classes: $($seen.Count); below 100%: $(@($under).Count)"
-$under | Sort-Object Value, Name | ForEach-Object { "{0,6:P0}  {1}" -f $_.Value, $_.Key }
-```
-
-Any class that is **neither** tested **nor** annotated `[ExcludeFromCodeCoverage]` is a violation. (Coverlet reports
-async bodies as separate `<...>d__N` entries, and only assemblies referenced by a test project appear — a package with
-no `.Tests` project is invisible, which is itself a finding.)
-
-## 3. Sweep production `.cs` for the review-only rules
-
-Scan production code only (test projects are exempt from several rules). Check each rule set:
-
-- **§1 language/async** — every _own_ async method returns `ValueTask`/`ValueTask<T>`, has an `Async` suffix, and takes
-  `CancellationToken` **last**. `Task` is allowed only at framework boundaries (middleware `InvokeAsync`, minimal-API
-  handlers, mediator handlers). Collection expressions, `const` for literals, and `u8` for UTF-8 bytes. Fields only for
-  `ref`/`Interlocked`/`fixed`/`stackalloc`; everything else an auto-property. Constants/statics at the top.
-- **§2 public API** — vocabularies are **open by default** (ADR-0150): every `enum` must pass the three-part closed test
-  (members fixed outside the package's control or by its own operation contract; no other package could need a member;
-  a new member would need a library change anyway), and an open vocabulary is `public const string` names plus
-  registered descriptors/strategies — never `[Flags]`, never a `switch`/mask encoding relationships among members; no
-  secret material on the surface; no behavior-selecting `bool`/`enum` flag arguments; data/options/event types are
-  `sealed` with concrete collections; **no cross-assembly `InternalsVisibleTo`** (only `*Tests` + `DynamicProxyGenAssembly2`).
-- **§3 organization** — one type per file; **no nested types** except a private type closing over the enclosing generic
-  parameter or a nested `static` constant-vocabulary class; the single canonical impl of `IFoo` is `DefaultFoo`;
-  namespaces flat per package.
-- **§6 clean code** — small single-purpose methods, ≤3 params, Command-Query Separation, no empty `catch`, no
-  `async void`, intention-revealing names, no commented-out code, no repeated magic strings.
-- **§7 testability** — **no captured request/ambient context in stored state** (a read-over-ambient type is a live view
-  over `IHttpContextAccessor`); service-location only in the sanctioned singleton→scoped case; privates covered
-  transitively; tested-or-excluded.
-
-Fast mechanical checks (grep production `.cs`, adapt as needed):
-
-- **Nested types**: a `class`/`struct`/`interface`/`enum`/`record` declaration indented inside another type.
-- `enum ` on a public surface (apply the ADR-0150 closed test to each) · `[Flags]` · a `switch` over a vocabulary's
-  members that encodes their relationships · `IList<` returns · `bool ` parameters that switch behavior · `async void` · empty
-  `catch` · `.Result` / `.Wait()` / `.GetAwaiter().GetResult()` (banned) · `Newtonsoft` (banned).
-- **Primary-constructor candidates** (§1): grep `^\s+(public|internal|protected)\s+[A-Z]\w*\(` — one identifier
-  immediately before `(` is a **constructor** (a method has `type name(`). Any type whose single ctor body is only
-  `X = x;` assignments (or param-derived initializers) should be a primary constructor — **including** an `abstract`
-  class with a `protected` pure-assignment ctor. Non-candidates: multiple ctors / `this()` delegation, a body with a
-  guard/loop/branch or side-effecting call, a shared intermediate local used by ≥2 members, exceptions, records.
-- **Unbuffered stored collections** (§2): a ctor/method that assigns a collection parameter (or DI `IEnumerable<T>`)
-  straight to a field/property with no `.ToArray()` / `.ToFrozenSet()` / `.ToFrozenDictionary()` / `[.. x]`.
-- **Before sealing, confirm it's a leaf** (§2): grep `:\s*TypeName\b` for real inheritance — a `TypeName? Bar { get; }`
-  **property** is composition (has-a), not a base class, and is still sealable.
-- `RequestServices` / `GetService` / `GetServices` — confirm each site is the sanctioned singleton service-location
-  exception or `[ExcludeFromCodeCoverage]` framework glue.
-
-**Exhaustive sweeps are deterministic.** A claim that a whole class of defect is absent (for example "no get-only
-property's summary says _Gets or sets_") comes from a script or grep that lists every candidate with `file:line`, never
-from an exploration subagent — those under-report and will answer "0 / clean". PowerShell `-match` is case-insensitive;
-use `-cmatch` for casing checks (a summary that starts lower-case, "a id" vs "an ID"). The documentation defects the
-compiler reports as errors — `CS1570` (malformed XML), `CS1572` / `CS1573` (a wrong or missing `<param>`), `CS1574` (a
-bad `cref`) — are absent once the Definition of Done passes, so spend manual effort on the review-only classes: a
-_Gets or sets_ summary that disagrees with its accessor, terse or copy-pasted summaries, and grammar. To compare a
-summary with its accessor, read past the `///` and attribute lines to the declaration, and classify `{ get; }`,
-`{ get; init; }`, and `=>` as read-only and `set;` as mutable.
-
-## 4. Report
-
-Deliver a **ranked** report — 🔴 violation / 🟡 worth fixing / 🟢 minor or conscious trade-off — each with the file,
-the rule it touches, and a one-line fix. Affirm what is clean; if the codebase is compliant, say so plainly and don't
-manufacture nitpicks. **Offer** to implement fixes; only edit code if I say yes.
+Change no files. If I ask for fixes afterwards, use the handoff-plan template to turn the violations and the findings worth fixing into `PLAN.md` steps.

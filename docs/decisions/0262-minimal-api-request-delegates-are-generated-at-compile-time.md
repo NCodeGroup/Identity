@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-25
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0120](project-template/0120-request-delegates-are-generated-at-compile-time.md)
 
 ## Context
 
@@ -76,7 +77,7 @@ endpoints, which binds at runtime until the generated form binding honors antifo
 - [`Directory.Build.props`](../../Directory.Build.props) — the family-wide switch.
 - [`NCode.Identity.OpenId.Authentication.Interactive.csproj`](../../src/NCode.Identity.OpenId.Authentication.Interactive/NCode.Identity.OpenId.Authentication.Interactive.csproj)
   — the opt-out.
-- [`LocalAccountLifecycleTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/LocalAccountLifecycleTests.cs)
+- [`LocalAccountLifecycleTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/LocalAccountLifecycleTests.cs)
   — the guard test `ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing`.
 - Issue [#186](https://github.com/NCodeGroup/Identity/issues/186).
 - [ADR-0043](0043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) — the endpoint-group mechanism that maps the endpoints.

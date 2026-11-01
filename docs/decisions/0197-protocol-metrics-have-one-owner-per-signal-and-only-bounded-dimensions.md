@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0113](project-template/0113-metrics-have-one-owner-per-signal-and-bounded-dimensions.md)
 
 ## Context
 

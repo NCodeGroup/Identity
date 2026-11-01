@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0009](project-template/0009-new-dependency-versions-wait-a-cooldown.md)
 
 ## Context
 

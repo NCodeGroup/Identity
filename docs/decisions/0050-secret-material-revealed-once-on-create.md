@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-05
 - **Deciders:** NCode.Identity maintainers
+- **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)
 
 ## Context
 

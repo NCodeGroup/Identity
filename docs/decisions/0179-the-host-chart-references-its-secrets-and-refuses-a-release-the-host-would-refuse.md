@@ -7,6 +7,7 @@
   decision)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0128](project-template/0128-liveness-never-checks-dependencies-readiness-does.md)
 
 ## Context
 

@@ -72,7 +72,7 @@ the counts, and a failed batch is retried under its number.**
   Framework deployment applies the `AddTenantUsageCheckpoints` migration, which creates the `TenantUsageCheckpoints`
   table.
 - This implements issue [#216](https://github.com/NCodeGroup/Identity/issues/216) and the final-flush part of [#245](https://github.com/NCodeGroup/Identity/issues/245); the logging part of [#245](https://github.com/NCodeGroup/Identity/issues/245) is
-  [ADR-0210](0210-the-reference-hosts-log-to-standard-output.md).
+  [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md).
 
 ## References
 
@@ -81,10 +81,10 @@ the counts, and a failed batch is retried under its number.**
 - [ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger that this decision amends.
 - [ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a store-neutral
   exception.
-- [ADR-0210](0210-the-reference-hosts-log-to-standard-output.md) — the reference hosts log to standard output, the
+- [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md) — the reference hosts log to standard output, the
   other part of [#245](https://github.com/NCodeGroup/Identity/issues/245).
 - Code: `NCode.Identity.OpenId.Authentication.Usage.TenantUsageFlushService`,
   `NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.TenantUsageStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/ApplicationRunLoopHost.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/ApplicationRunLoopHost.cs`.

@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md); tracked in [#443](https://github.com/NCodeGroup/Identity/issues/443)
 
 ## Context
 

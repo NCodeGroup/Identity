@@ -111,7 +111,9 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
         );
     }
 
-    private List<string> CaptureCopiedClaimTypes(GetIdTokenSubjectClaimsCommand command)
+    private async Task<List<string>> CaptureCopiedClaimTypesAsync(
+        GetIdTokenSubjectClaimsCommand command
+    )
     {
         List<string>? capturedClaimTypes = null;
         MockClaimsService
@@ -139,7 +141,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             )
             .Verifiable();
 
-        Handler.HandleAsync(command, CancellationToken.None).AsTask().GetAwaiter().GetResult();
+        await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.NotNull(capturedClaimTypes);
         return capturedClaimTypes;
@@ -251,17 +253,17 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     }
 
     [Fact]
-    public void HandleAsync_AlwaysCopiesAcrClaimType()
+    public async Task HandleAsync_AlwaysCopiesAcrClaimType()
     {
         var command = CreateCommand(CreateSubjectAuthentication(), ["openid"]);
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.Contains(JoseClaimNames.Payload.Acr, claimTypes);
     }
 
     [Fact]
-    public void HandleAsync_WhenAlwaysIncludeAuthTime_CopiesAuthTimeClaimType()
+    public async Task HandleAsync_WhenAlwaysIncludeAuthTime_CopiesAuthTimeClaimType()
     {
         var command = CreateCommand(
             CreateSubjectAuthentication(),
@@ -269,13 +271,13 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: true
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
 
     [Fact]
-    public void HandleAsync_WhenNotAlwaysIncludeAndNotRequired_OmitsAuthTimeClaimType()
+    public async Task HandleAsync_WhenNotAlwaysIncludeAndNotRequired_OmitsAuthTimeClaimType()
     {
         var command = CreateCommand(
             CreateSubjectAuthentication(),
@@ -283,13 +285,13 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: false
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.DoesNotContain(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
 
     [Fact]
-    public void HandleAsync_WhenAuthTimeRequired_CopiesAuthTimeClaimType()
+    public async Task HandleAsync_WhenAuthTimeRequired_CopiesAuthTimeClaimType()
     {
         var command = CreateCommand(
             CreateSubjectAuthentication(),
@@ -298,13 +300,13 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             authTimeRequired: true
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
 
     [Fact]
-    public void HandleAsync_WhenEssentialAuthTimeRequested_CopiesAuthTimeClaimType()
+    public async Task HandleAsync_WhenEssentialAuthTimeRequested_CopiesAuthTimeClaimType()
     {
         var requestClaims = new RequestClaims
         {
@@ -320,7 +322,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: false
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.Contains(JoseClaimNames.Payload.AuthTime, claimTypes);
     }
@@ -355,7 +357,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             alwaysIncludeAuthTime: false
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.DoesNotContain(JoseClaimNames.Payload.Sub, claimTypes);
         var subClaim = Assert.Single(
@@ -366,7 +368,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     }
 
     [Fact]
-    public void HandleAsync_WhenNoAccessTokenIssued_IncludesScopeClaimTypes()
+    public async Task HandleAsync_WhenNoAccessTokenIssued_IncludesScopeClaimTypes()
     {
         // OpenID Connect Core 1.0 §5.4: with no access token issued the scope-driven claims belong in the ID token.
         var command = CreateCommand(
@@ -375,14 +377,14 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             accessToken: null
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.Contains(JoseClaimNames.Payload.Name, claimTypes);
         Assert.Contains(JoseClaimNames.Payload.Email, claimTypes);
     }
 
     [Fact]
-    public void HandleAsync_WhenAccessTokenIssued_OmitsScopeClaimTypes()
+    public async Task HandleAsync_WhenAccessTokenIssued_OmitsScopeClaimTypes()
     {
         // OpenID Connect Core 1.0 §5.4: when an access token is issued (the code flow) the scope-driven claims are
         // returned from the UserInfo endpoint, not the ID token; the account-sourced UserInfo enricher supplies them.
@@ -392,7 +394,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             accessToken: "the-access-token"
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.DoesNotContain(JoseClaimNames.Payload.Name, claimTypes);
         Assert.DoesNotContain(JoseClaimNames.Payload.Email, claimTypes);
@@ -400,7 +402,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     }
 
     [Fact]
-    public void HandleAsync_WhenAccessTokenIssued_StillIncludesRequestedIdTokenClaims()
+    public async Task HandleAsync_WhenAccessTokenIssued_StillIncludesRequestedIdTokenClaims()
     {
         // Claims explicitly requested via the 'claims.id_token' parameter are additive to the scope gate and still
         // belong in the ID token even when an access token is issued.
@@ -418,7 +420,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             accessToken: "the-access-token"
         );
 
-        var claimTypes = CaptureCopiedClaimTypes(command);
+        var claimTypes = await CaptureCopiedClaimTypesAsync(command);
 
         Assert.Contains("custom_claim", claimTypes);
         Assert.DoesNotContain(JoseClaimNames.Payload.Name, claimTypes);

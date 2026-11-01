@@ -38,7 +38,7 @@ whole value in `int` range is accepted, and everything else is refused.**
   in an `OpenIdProviderException`. It is public in `NCode.Json` rather than internal in
   `NCode.Identity.OpenId.Client.Abstractions`: an `*.Abstractions` package holds no helper logic
   ([ADR-0188](0188-general-time-helpers-live-in-a-dependency-free-package.md)), and production assemblies never use
-  cross-assembly `InternalsVisibleTo` ([ADR-0004](0004-no-cross-assembly-internalsvisibleto.md)).
+  cross-assembly `InternalsVisibleTo` ([project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md)).
 - **Call sites.** The pushed authorization response's `expires_in` is read with `TryGetPropertyWholeInt32` and must
   still be positive
   ([ADR-0275](0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)).
@@ -78,7 +78,7 @@ whole value in `int` range is accepted, and everything else is refused.**
 - [RFC 8259 §6 — Numbers](https://datatracker.ietf.org/doc/html/rfc8259#section-6)
 - [RFC 9126 §2.2 — Successful Response](https://datatracker.ietf.org/doc/html/rfc9126#section-2.2)
 - [RFC 6749 §5.1 — Successful Response](https://datatracker.ietf.org/doc/html/rfc6749#section-5.1)
-- [ADR-0004](0004-no-cross-assembly-internalsvisibleto.md) — no cross-assembly `InternalsVisibleTo`
+- [project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md) — no cross-assembly `InternalsVisibleTo`
 - [ADR-0123](0123-numeric-date-is-read-strictly-and-range-guarded.md) — the `NumericDate` readers this mirrors
 - [ADR-0188](0188-general-time-helpers-live-in-a-dependency-free-package.md) — an `*.Abstractions` package holds no
   logic

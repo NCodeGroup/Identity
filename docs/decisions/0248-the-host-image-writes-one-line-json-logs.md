@@ -3,12 +3,13 @@
 - **Status:** Accepted
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md)
 
 ## Context
 
 The reference hosts write their logs to standard output, and the console provider formats an entry as `simple` unless
 the configuration names another formatter
-([ADR-0210](0210-the-reference-hosts-log-to-standard-output.md)). The `simple` format spreads one entry over several
+([project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md)). The `simple` format spreads one entry over several
 lines: a line for the level and the category, a line for the message, and the lines of an exception and its stack
 trace. A container log collector reads standard output a line at a time, so it splits one entry into several records,
 and the exception that explains an error is in another record than the one that reports it (issue [#265](https://github.com/NCodeGroup/Identity/issues/265)).
@@ -26,7 +27,7 @@ so every log entry is one JSON object on one line.**
 1. **Three environment variables select it.** The `final` stage sets `Logging__Console__FormatterName=json`,
    `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and
    `Logging__Console__FormatterOptions__TimestampFormat=O`. The console provider reads them as the `Logging:Console`
-   configuration that ADR-0210 leaves to the host.
+   configuration that project-template ADR-0115 leaves to the host.
 2. **One object holds one entry.** The object holds the timestamp, the level, the category, the event ID, the message,
    the state and the exception, whose stack trace is an escaped string, so a line break inside an exception is never a
    line break of the output. The timestamp is in UTC with the `+00:00` offset, so entries of replicas in different time
@@ -46,8 +47,8 @@ so every log entry is one JSON object on one line.**
   orchestrator, would write text, and the artifact that is shipped would differ from the one that is run
   ([ADR-0133](0133-we-ship-and-run-the-same-deployment-artifacts.md)).
 - **A package extension that chooses the format.** Rejected: a library never chooses the sinks of its host
-  ([ADR-0210](0210-the-reference-hosts-log-to-standard-output.md)), and the format is part of the sink.
-- **OTLP log export.** Not decided here: the OpenTelemetry pipeline exports metrics, as ADR-0210 records.
+  ([project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md)), and the format is part of the sink.
+- **OTLP log export.** Not decided here: the OpenTelemetry pipeline exports metrics, as project-template ADR-0115 records.
 
 ## Consequences
 
@@ -64,7 +65,7 @@ so every log entry is one JSON object on one line.**
 
 - [ADR-0133](0133-we-ship-and-run-the-same-deployment-artifacts.md) — the shipped artifact is the one that is run.
 - [ADR-0178](0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) — the host image.
-- [ADR-0210](0210-the-reference-hosts-log-to-standard-output.md) — logs go to standard output, and their format is
+- [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md) — logs go to standard output, and their format is
   configuration.
 - Code: `src/NCode.Identity.OpenId.Host/Dockerfile`, `.github/workflows/host-image.yml`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/ProgramTests.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/ProgramTests.cs`.

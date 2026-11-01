@@ -19,7 +19,7 @@ calls `httpContext.ChallengeAsync(scheme)`, where `scheme` resolves from the
 The reference [`Host`](../../src/NCode.Identity.OpenId.Host/Program.cs) calls
 `UseAuthentication()` / `UseAuthorization()` but registers **no** authentication scheme, so a challenge
 today has nowhere to redirect. Integration tests sidestep this entirely with
-[`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/TestSubjectAuthenticationHandler.cs),
+[`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/TestSubjectAuthenticationHandler.cs),
 which fabricates a subject from an `X-Test-Subject` header.
 
 Independent conformance validation against the OpenID Foundation Conformance Suite (issue [#124](https://github.com/NCodeGroup/Identity/issues/124),

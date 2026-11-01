@@ -1,14 +1,17 @@
 # An allow-list: the build context carries only what the host image is built from (ADR-0178). Everything else — .git,
 # tests, docs, local settings, and build outputs — never reaches the Docker daemon.
 #
-# A file that a root build file imports must be re-admitted here too, as build/ProjectTemplate.props is. The Definition
-# of Done does not build the image; only the Host image check finds a missing one.
+# A file that a root build file imports must be re-admitted here too, as build/ProjectTemplate.props and the files it
+# imports are. The Definition of Done does not build the image; only the Host image check finds a missing one.
 *
 
 !.editorconfig
 !BannedSymbols.txt
 !BannedSymbols.Encoding.txt
 !build/ProjectTemplate.props
+!build/ProjectTemplate.globalconfig
+!build/ProjectTemplate.Tests.globalconfig
+!build/BannedSymbols.txt
 !Directory.Build.props
 !Directory.Build.targets
 !Directory.Packages.props

@@ -47,7 +47,7 @@ The two hashes EdDSA needs — **SHA-512** (Ed25519) and **SHAKE256** (Ed448) �
    extension point consistent with the sibling key bases (`RsaSecretKey`, `EccSecretKey`): a public constructor over
    public primitives (the JWK `crv` name, the key size, the raw public key, an optional certificate), with the two
    concrete implementations (`internal` has-private and public-only) reached through DI per the `DefaultFoo` convention
-   ([ADR-0006](0006-single-canonical-impl-is-defaultfoo.md)). Its public material is produced as `SubjectPublicKeyInfo`
+   ([project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)). Its public material is produced as `SubjectPublicKeyInfo`
    DER (RFC 8410) through the buffer-writer primitive ([ADR-0115](0115-asymmetric-keys-model-der-material-via-buffer-writers.md)),
    and the private seed is held data-protected in memory, exported only through `ExportPrivateKey`. The descriptor
    generates (random seed → PKCS#8), imports public JWK/PEM, exports the public JWK + SPKI PEM, and deserializes stored

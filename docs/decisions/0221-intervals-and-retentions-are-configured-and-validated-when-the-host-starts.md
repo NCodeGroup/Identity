@@ -6,6 +6,7 @@
   `OpenId:InProcessJobDispatcher`)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md), [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md)
 
 ## Context
 

@@ -19,7 +19,7 @@ Only `public` was implemented: every issuance path emitted the raw, stable princ
 Two facts about the existing architecture shaped the design:
 
 - **The stable identifier is server-owned and internal.** The value emitted as `sub` is a `PrincipalId` — a
-  server-generated opaque id ([ADR-1035](0035-federated-principal-and-connection-identity.md)) — that also keys grants,
+  server-generated opaque id ([ADR-1035](1035-federated-principals-and-identity-resolution.md)) — that also keys grants,
   consent, sessions, and revocation. Those joins are deliberately **cross-client**: "revoke everything for this user"
   must find every client's grants. If the pairwise value replaced the internal identifier, those operations would break
   — which is precisely the correlation pairwise is designed to prevent.

@@ -17,7 +17,7 @@ validator and wire contracts, and their audit event live inside the general mana
 implementation depends on the account abstractions — every management host carries the local-accounts capability whether
 or not it wants it, and the management audit abstraction knows the shape of an event that is not part of its slice.
 
-[ADR-1042](0042-endpoint-groups.md) establishes the keyed endpoint-group model this design relies on, and
+[ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) establishes the keyed endpoint-group model this design relies on, and
 [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) establishes the same
 dependency-inversion principle for the authentication slice: the local-account-specific resource-owner password grant is
 an opt-in package that depends on the account abstractions, so the base authentication slice does not. The family is
@@ -45,7 +45,7 @@ account abstractions.
 ### Endpoints attach to a route group by its well-known key
 
 Endpoints register as **keyed** `IEndpointProvider` services under the owning route group's name
-([ADR-1042](0042-endpoint-groups.md)); the route tree resolves the keyed providers for a group when it maps that group.
+([ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md)); the route tree resolves the keyed providers for a group when it maps that group.
 A capability package therefore attaches an endpoint to a group it does not own by registering its provider keyed under
 that group's published name, with no change to the group. `ManagementEndpointGroups.Tenant` publishes the tenant-plane
 group's name, and `AddLocalAccountManagement()` registers the local-account endpoint handler keyed under it, nesting it

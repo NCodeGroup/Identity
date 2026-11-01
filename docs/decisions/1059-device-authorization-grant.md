@@ -87,7 +87,7 @@ Concretely:
 
 - **A dedicated pending-authorization store (new data contract, store interface, EF entity, configuration, migration).**
   Rejected. It is the textbook model for "a request with a mutable state machine read by two keys," and a future CIBA
-  grant ([ADR-1060](0060-ciba-grant.md)) shares that shape — but `IPersistedGrantService` already exists precisely to
+  grant ([ADR-1085](1085-ciba-grant.md)) shares that shape — but `IPersistedGrantService` already exists precisely to
   "persist any type of grant and their payloads," and the device request _is_ a grant payload. A parallel store would
   duplicate the tenant-scoping, hash-keying, concurrency, and EF plumbing the grant store already provides, and force an
   out-of-band migration ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)) for a record the

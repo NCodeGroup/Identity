@@ -56,7 +56,12 @@ non-obvious decisions lives in [`docs/decisions/`](docs/decisions/): the project
 [`docs/decisions/project-template/`](docs/decisions/project-template/README.md), the source of truth for every rule
 they cover, and this family's own beside them. A family record never restates a template record: one that builds on
 it names it on a `**Refines:**` line, and one that still contradicts it on a `**Conflicts with:**` line with the issue
-that tracks the alignment. Cite a template record as `project-template ADR-NNNN`.
+that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
+1000 and the template below 1000
+([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
+so a bare ADR number names one record. One family record overrides a template record:
+[ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
 
@@ -160,9 +165,9 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   workflow as an issue in project-template, where it is fixed and tagged. Repository rules belong in the instruction
   files, which every agent in the loop already loads; this repository's own `/audit-conventions` sweeps are in
   [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md). `build/dod.ps1` is this
-  repository's own Definition of Done, although the template renders a simpler one at that path: when an update
-  conflicts on it or replaces it, keep this repository's version (`git checkout HEAD -- build/dod.ps1`) until
-  [NCodeGroup/project-template#198](https://github.com/NCodeGroup/project-template/issues/198) lets a project own it.
+  repository's own Definition of Done, although the template renders a simpler one at that path: the
+  `project_owned_files` answer in [`.copier-answers.yml`](.copier-answers.yml) names it, so an update leaves it alone
+  and only shows the template's changes to it.
 
 ### Local and Copilot customizations
 

@@ -27,7 +27,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-public sealed class GrantStoreTests : IDisposable
+public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
 {
     private const string GrantType = "authorization_code";
     private const string SessionGrantType = "session";
@@ -51,9 +51,11 @@ public sealed class GrantStoreTests : IDisposable
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-
-        SeedTenantAsync().GetAwaiter().GetResult();
     }
+
+    public Task InitializeAsync() => SeedTenantAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     public void Dispose()
     {

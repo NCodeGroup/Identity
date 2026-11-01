@@ -1,0 +1,16 @@
+# NCode Review settings (https://github.com/NCodeGroup/code-review#repository-settings), read from the default branch.
+#
+# A pull request that changes a file these globs match gets a deep review: correctness and security on Opus, and
+# verification of those files' findings on Opus. These are the projects whose defects are security defects: tokens,
+# keys and secrets, and the code that authenticates users and clients and serves the protocol. NCodeGroup/project-template#141
+# weighs this set against a narrower one.
+sensitive:
+  - "src/NCode.Identity.Jose*/**"
+  - "src/NCode.Identity.Jwt*/**"
+  - "src/NCode.Identity.Jwk/**"
+  - "src/NCode.Identity.Secrets*/**"
+  - "src/NCode.Identity.OpenId.Authentication*/**"
+  - "src/NCode.Identity.OpenId.Accounts.Authentication/**"
+  - "src/NCode.Identity.OpenId.Client*/**"
+  - "src/NCode.Identity.Server/**"
+  - "src/NCode.Identity.Bff.Server/**"

@@ -4,6 +4,7 @@
   provisioned with persisted keys by default; ephemeral keys remain the explicit development opt-in decided here)
 - **Date:** 2026-09-27
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 

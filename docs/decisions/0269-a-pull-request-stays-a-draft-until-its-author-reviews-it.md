@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0006](project-template/0006-a-person-merges-every-pull-request.md); tracked in [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200)
 
 ## Context
 

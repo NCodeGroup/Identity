@@ -3,6 +3,7 @@
 - **Status:** Accepted (amends [ADR-0082](0082-playground-and-conformance-surfaces.md))
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 

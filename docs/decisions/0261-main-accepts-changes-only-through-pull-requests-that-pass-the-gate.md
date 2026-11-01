@@ -3,6 +3,7 @@
 - **Status:** Accepted (strict up-to-date superseded by [ADR-0263](0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md))
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); tracked in [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200)
 
 ## Context
 

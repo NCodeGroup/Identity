@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-25
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); tracked in [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200)
 
 ## Context
 

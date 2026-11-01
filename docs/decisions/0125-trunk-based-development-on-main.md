@@ -3,6 +3,7 @@
 - **Status:** Accepted (protection superseded by [ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md))
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0004](project-template/0004-trunk-based-development-on-the-default-branch.md); tracked in [#439](https://github.com/NCodeGroup/Identity/issues/439)
 
 ## Context
 

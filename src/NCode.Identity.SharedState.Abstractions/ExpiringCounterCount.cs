@@ -27,6 +27,6 @@ namespace NCode.Identity.SharedState;
 /// <param name="Count">The count of the incremented counter after the increment, or zero when its expiry was not in
 /// the future.</param>
 /// <param name="ReferenceCount">The count of the reference counter, or zero when it was not read.</param>
-// See ADR-0246.
+// See ADR-1246.
 [PublicAPI]
 public readonly record struct ExpiringCounterCount(long Count, long ReferenceCount);

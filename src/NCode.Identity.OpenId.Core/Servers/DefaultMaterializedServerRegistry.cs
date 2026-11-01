@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// Provides a default implementation of the <see cref="IMaterializedServerRegistry"/> abstraction. The first
 /// registration wins and completes every wait for the server.
 /// </summary>
-// See ADR-0219.
+// See ADR-1219.
 internal sealed class DefaultMaterializedServerRegistry : IMaterializedServerRegistry
 {
     private TaskCompletionSource<OpenIdServer> Registered { get; } =

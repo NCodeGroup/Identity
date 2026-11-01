@@ -162,8 +162,8 @@ internal class DefaultTokenService(
         var mediator = openIdContext.Mediator;
         var openIdTenant = openIdContext.Tenant;
 
-        // Resolve the resource servers this token targets: they bind its audience (ADR-0027), and their settings bound
-        // the token together with the client's (ADR-0158). Disposed after issuance so their transient secret-key
+        // Resolve the resource servers this token targets: they bind its audience (ADR-1027), and their settings bound
+        // the token together with the client's (ADR-1158). Disposed after issuance so their transient secret-key
         // providers are released.
         await using var resolution = await ResourceServerCredentialResolver.ResolveAsync(
             openIdContext,
@@ -173,7 +173,7 @@ internal class DefaultTokenService(
         );
 
         // Every access-token setting is read from the combined settings, and the token's credentials are chosen within
-        // every bound — or the request is refused (ADR-0158).
+        // every bound — or the request is refused (ADR-1158).
         var policy = AccessTokenPolicyService.Evaluate(
             openIdContext,
             openIdClient,
@@ -252,7 +252,7 @@ internal class DefaultTokenService(
         // when available); it is not synthesized here.
         var effectiveClaims = FilterClaims(settings, subjectClaims);
 
-        // Bind the access token audience to the resource servers resolved above (ADR-0027); fall back to the client
+        // Bind the access token audience to the resource servers resolved above (ADR-1027); fall back to the client
         // when no resource-server audience applies (for example, a scopeless token).
         StringValues audience =
             resolution.Audiences.Count > 0
@@ -311,7 +311,7 @@ internal class DefaultTokenService(
     )
     {
         // Persist the UserInfo claims requested via the 'claims' parameter so the UserInfo endpoint can honor them,
-        // keyed by the access token's jti and bounded by its lifetime (ADR-0039). Nothing is stored when none were
+        // keyed by the access token's jti and bounded by its lifetime (ADR-1039). Nothing is stored when none were
         // requested, so the common case adds no write.
         var requestClaims = tokenRequest.RequestClaims;
         var userInfoClaims = requestClaims?.UserInfo;
@@ -369,7 +369,7 @@ internal class DefaultTokenService(
 
         // An ID token is addressed to the client: signed with the tenant's key using the client's registered
         // id_token_signed_response_alg and, when the client registers an encryption algorithm, encrypted to the client's
-        // public key (ADR-0155).
+        // public key (ADR-1155).
         var credentials = await ClientJwtCredentialSelector.SelectCredentialsAsync(
             openIdContext,
             openIdClient,
@@ -593,7 +593,7 @@ internal class DefaultTokenService(
         );
 
         // A rotation or a retry joins the family it inherits, which expires when it always would; a fresh issuance
-        // begins a family now. See ADR-0297.
+        // begins a family now. See ADR-1297.
         var createdWhen = tokenRequest.CreatedWhen;
         var lineageCreatedWhen = tokenRequest.RefreshTokenLineageCreatedWhen ?? createdWhen;
         var lineageExpiresWhen = RefreshTokenExpiration.GetLineageExpiresWhen(

@@ -81,11 +81,11 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
 
         // Secure-by-default: only the authorization-code flow is advertised. The setting lists whole response_type
         // values, so an operator re-enables a front-channel-token flow that modern guidance (RFC 9700 / OAuth 2.1)
-        // removes only by listing it — for example 'code id_token' — and enables exactly that flow (ADR-0141).
+        // removes only by listing it — for example 'code id_token' — and enables exactly that flow (ADR-1141).
         settings.Set(OpenIdSettingKeys.ResponseTypesSupported, [OpenIdProtocol.ResponseTypes.Code]);
 
         // claims_supported is advisory by default; it only becomes an enforcement allow-list when
-        // claims_supported_is_strict is enabled, so the baseline is kept host-extendable (ADR-0010).
+        // claims_supported_is_strict is enabled, so the baseline is kept host-extendable (ADR-1010).
         settings.Set(
             OpenIdSettingKeys.ClaimsSupported,
             [

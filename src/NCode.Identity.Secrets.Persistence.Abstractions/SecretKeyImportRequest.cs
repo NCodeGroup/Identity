@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <see cref="PersistedSecret"/>. Only public asymmetric material is accepted; private or symmetric material is
 /// rejected by the resolved <c>ISecretKeyTypeDescriptor</c>.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SecretKeyImportRequest

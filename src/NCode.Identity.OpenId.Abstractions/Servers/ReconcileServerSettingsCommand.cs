@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// </summary>
 /// <param name="ServerId">The identifier of the server whose effective settings are reconciled.</param>
 /// <param name="Settings">The server's effective settings that everything derived from them is brought in line with.</param>
-// See ADR-0219 and ADR-0234.
+// See ADR-1219 and ADR-1234.
 [PublicAPI]
 public readonly record struct ReconcileServerSettingsCommand(
     string ServerId,

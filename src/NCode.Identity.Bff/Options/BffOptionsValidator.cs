@@ -172,7 +172,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         }
     }
 
-    // See ADR-0301.
+    // See ADR-1301.
     private static void ValidateIdToken(
         BffIdTokenOptions? idToken,
         BffClientAuthenticationOptions? clientAuthentication,
@@ -195,7 +195,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         );
     }
 
-    // See ADR-0301.
+    // See ADR-1301.
     private static void ValidateUserInfo(
         BffUserInfoOptions? userInfo,
         BffClientAuthenticationOptions? clientAuthentication,

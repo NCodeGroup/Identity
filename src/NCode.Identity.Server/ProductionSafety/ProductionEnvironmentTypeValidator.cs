@@ -33,7 +33,7 @@ namespace NCode.Identity.Server.ProductionSafety;
 /// judged by its own <see cref="ITenantEnvironmentType.IsProduction"/>. A value that names no registered type is left to
 /// the server settings validation, which refuses it in every environment.
 /// </remarks>
-// See ADR-0289.
+// See ADR-1289.
 internal class ProductionEnvironmentTypeValidator(IEnumerable<ITenantEnvironmentType> types)
     : IValidateOptions<OpenIdOptions>
 {

@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// the create-secret form's algorithm, use, and key-size inputs from server discovery rather than hard-coded
 /// defaults.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class AlgorithmCapabilityResource

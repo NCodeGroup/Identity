@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Host.Database;
 /// <c>MigrationService</c> worker both configure the dev Postgres database through these helpers so the provider,
 /// migrations assembly, and migrations-history tables stay a single source of truth.
 /// </summary>
-// See ADR-0073.
+// See ADR-1073.
 [PublicAPI]
 public static class HostDatabase
 {

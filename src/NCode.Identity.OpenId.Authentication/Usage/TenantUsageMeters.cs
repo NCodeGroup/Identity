@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 /// Contains the names of the tenant-usage meters the family records. Meters are an open vocabulary: a
 /// package records its own by name through <see cref="ITenantUsageRecorder"/>.
 /// </summary>
-// See ADR-0199 and ADR-0200.
+// See ADR-1199 and ADR-1200.
 public static class TenantUsageMeters
 {
     /// <summary>

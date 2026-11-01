@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// Defines the <see cref="RateLimitDescriptor.Name"/> of each rate limit and quota the server registers. The name is
 /// the partition of the limit's counters and the <c>partition</c> attribute of the rate-limiting metric.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 [PublicAPI]
 public static class RateLimitPartitions
 {

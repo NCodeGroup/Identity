@@ -6,6 +6,6 @@
     "current-block": "Verify authorization endpoint response",
     "condition": "CheckIfAuthorizationEndpointError",
     "expected-result": "failure",
-    "comment": "Intentional, spec-conformant failure (ADR-0144). The request carries neither a PKCE code_challenge nor a nonce, so nothing protects the code from injection, and the OP rejects it with invalid_request (OAuth 2.1 §7.5.1.1, RFC 9700 §2.1.1). The conformance profile relaxes require_pkce and attests the suite with pkce_nonce_exemption, so a confidential OpenID Connect request may rely on the nonce instead of PKCE; this module uses neither. OpenID Connect Core makes the nonce optional for the code flow, which is why the module expects a code."
+    "comment": "Intentional, spec-conformant failure (ADR-1144). The request carries neither a PKCE code_challenge nor a nonce, so nothing protects the code from injection, and the OP rejects it with invalid_request (OAuth 2.1 §7.5.1.1, RFC 9700 §2.1.1). The conformance profile relaxes require_pkce and attests the suite with pkce_nonce_exemption, so a confidential OpenID Connect request may rely on the nonce instead of PKCE; this module uses neither. OpenID Connect Core makes the nonce optional for the code flow, which is why the module expects a code."
   }
 ]

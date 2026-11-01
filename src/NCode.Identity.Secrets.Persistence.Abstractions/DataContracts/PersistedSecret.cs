@@ -101,7 +101,7 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     /// <see cref="SecretType"/> that distinguishes private (<c>PKCS#8</c>) from public (SPKI) asymmetric material.
     /// See <see cref="SecretEncodings"/> for possible values.
     /// </summary>
-    // See ADR-0104.
+    // See ADR-1104.
     [MaxLength(SecretMaxLengths.SecretEncoding)]
     public required string SecretEncoding { get; init; }
 
@@ -123,7 +123,7 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     /// the public key is read without unprotecting <see cref="EncodedValue"/>; or <c>null</c> when the secret holds
     /// no private asymmetric key (its <see cref="EncodedValue"/> is symmetric or already public material).
     /// </summary>
-    // See ADR-0268.
+    // See ADR-1268.
     [MaxLength(SecretMaxLengths.PublicKey)]
     public string? PublicKey { get; init; }
 }

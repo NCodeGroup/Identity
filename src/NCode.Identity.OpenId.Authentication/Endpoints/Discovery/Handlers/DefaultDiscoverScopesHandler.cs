@@ -48,7 +48,7 @@ internal class DefaultDiscoverScopesHandler(
         var (openIdContext, metadata) = command;
 
         // The OIDC runtime does not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server reads (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -64,7 +64,7 @@ internal class DefaultDiscoverScopesHandler(
             StringComparer.Ordinal
         );
 
-        // A discovery metadata field, not a setting: the scope catalog is the tenant's resource servers (ADR-0026).
+        // A discovery metadata field, not a setting: the scope catalog is the tenant's resource servers (ADR-1026).
         metadata[OpenIdProtocol.MetadataNames.ScopesSupported] = scopes.ToList();
     }
 }

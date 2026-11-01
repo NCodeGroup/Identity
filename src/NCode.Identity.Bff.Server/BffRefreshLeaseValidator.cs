@@ -29,7 +29,7 @@ namespace NCode.Identity.Bff.Server;
 /// lease could expire while the rotated refresh token is still in flight.
 /// </summary>
 /// <param name="clientOptions">The options of the protocol client that sends the refresh request.</param>
-// See ADR-0291.
+// See ADR-1291.
 internal sealed class BffRefreshLeaseValidator(IOptions<OpenIdClientOptions> clientOptions)
     : IValidateOptions<BffOptions>
 {

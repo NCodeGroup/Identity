@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// registered signing algorithm must be in its signing list, and a registered key-management algorithm and its content
 /// encryption, <c>A128CBC-HS256</c> unless registered, in the encryption lists. An unset list is unrestricted.
 /// </summary>
-// See ADR-0155 and ADR-0206.
+// See ADR-1155 and ADR-1206.
 internal sealed class ResponseAlgorithmCoherenceRule : IClientCoherenceRule
 {
     private static ClientJwtProtectionSettings[] Responses { get; } =

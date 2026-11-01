@@ -77,7 +77,7 @@ public sealed record RegisterClientResponse
     /// <summary>
     /// Gets the identifier of the resource server the client is bound to and introspects for, or <c>null</c> for an
     /// ordinary client. The binding comes from the initial access token the client registered with and never changes
-    /// (ADR-0192), so the server reports it and ignores the member in a request.
+    /// (ADR-1192), so the server reports it and ignores the member in a request.
     /// </summary>
     [JsonPropertyName("resource_server_id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -304,14 +304,14 @@ public sealed record RegisterClientResponse
     public string? UserInfoEncryptedResponseEnc { get; init; }
 
     /// <summary>
-    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server (ADR-0192).
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server (ADR-1192).
     /// </summary>
     [JsonPropertyName("introspection_signed_response_alg")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IntrospectionSignedResponseAlg { get; init; }
 
     /// <summary>
-    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server (ADR-0192).
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server (ADR-1192).
     /// </summary>
     [JsonPropertyName("introspection_encrypted_response_alg")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

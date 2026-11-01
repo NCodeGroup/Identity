@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Pins the frontend bootstrap document's issuer to the tenant that serves the surface: the bundle trusts that
-/// authority, so the serving request's <c>Host</c> never changes it (ADR-0182).
+/// authority, so the serving request's <c>Host</c> never changes it (ADR-1182).
 /// </summary>
 public class FrontendBootstrapEndpointTests(HostApplicationFactory factory)
     : IClassFixture<HostApplicationFactory>

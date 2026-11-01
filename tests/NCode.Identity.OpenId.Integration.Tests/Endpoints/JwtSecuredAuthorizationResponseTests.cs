@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Exercises JWT-secured authorization responses (JARM) end to end: the response parameters travel as one signed JWT
 /// issued by the tenant and addressed to the client, in the <c>response</c> parameter of the requested response mode
-/// (ADR-0201).
+/// (ADR-1201).
 /// </summary>
 public class JwtSecuredAuthorizationResponseTests
 {

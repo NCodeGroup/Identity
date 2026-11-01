@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// and the daily token-request quota. Each reads its limit and overage from the settings that the rate-limit setting
 /// descriptors register.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 internal class DefaultRateLimitDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<RateLimitDescriptor>
 {

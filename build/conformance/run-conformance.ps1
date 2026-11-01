@@ -70,7 +70,7 @@ param(
     # (`registration_endpoint_allow_anonymous=true`, set in appsettings.Conformance.json).
     [switch] $IncludeBrowserPlans,
 
-    # Run the FAPI 1.0 Advanced Final plans instead of -Plans (issue #124, ADR-0202): private_key_jwt and
+    # Run the FAPI 1.0 Advanced Final plans instead of -Plans (issue #124, ADR-1202): private_key_jwt and
     # self_signed_tls_client_auth clients, pushed authorization requests, and both plain and JARM responses. Each FAPI
     # client's key and self-signed certificate is generated on first use into the gitignored `.fapi1-keys/` (never
     # committed) and reused, so the seeded clients keep matching a persistent database. The OP is launched with the

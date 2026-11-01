@@ -117,7 +117,7 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
 
         var principal = await Handler.HandleAsync(command, CancellationToken.None);
 
-        // Metadata is a principal-level concept resolved at issuance, never stamped on the ROPC subject (ADR-0055).
+        // Metadata is a principal-level concept resolved at issuance, never stamped on the ROPC subject (ADR-1055).
         Assert.Null(principal.FindFirst(SubjectMetadataClaimTypes.ProfileMetadata));
         Assert.Null(principal.FindFirst(SubjectMetadataClaimTypes.SystemMetadata));
     }

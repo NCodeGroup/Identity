@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// retried after a save that committed adds nothing twice. A removal stages a bounded batch, with its resources, through
 /// the change tracker, which every provider supports.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 internal sealed class AuditRecordStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,

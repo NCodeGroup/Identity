@@ -72,7 +72,7 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     {
         // Every access token must be sender-constrained (§5.2.2-5), and FAPI 1.0's mechanism is mutual TLS (§5.2.2-6,
         // RFC 8705): requiring every client's token to be certificate-bound makes a DPoP-only token request fail (Or
-        // floors, ADR-0158).
+        // floors, ADR-1158).
         ceiling.Set(OpenIdSettingKeys.AccessTokenSenderConstraintRequired, true);
         ceiling.Set(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens, true);
 
@@ -108,15 +108,15 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         // Tight clock skew for signed request objects / client assertions (Min ceiling).
         ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
 
-        // Pin the client-assertion lifetime at the secure default (Min ceiling) (ADR-0124).
+        // Pin the client-assertion lifetime at the secure default (Min ceiling) (ADR-1124).
         ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
 
-        // A request object carries 'nbf' and 'exp', at most 60 minutes apart (§5.2.2-13, -17) (ADR-0187).
+        // A request object carries 'nbf' and 'exp', at most 60 minutes apart (§5.2.2-13, -17) (ADR-1187).
         ceiling.Set(OpenIdSettingKeys.RequestObjectMaxLifetime, TimeSpan.FromMinutes(60));
         ceiling.Set(OpenIdSettingKeys.RequestObjectNotBeforeRequired, true);
 
         // FAPI 1.0 Part 1 §5.2.2-20 and §7.5 permit only https redirect URIs: no http, loopback, or private-use
-        // redirection, so a loopback URI's port never varies either (ADR-0203).
+        // redirection, so a loopback URI's port never varies either (ADR-1203).
         ceiling.Set(OpenIdSettingKeys.AllowLoopbackRedirect, false);
         ceiling.Set(
             OpenIdSettingKeys.RedirectUriKindsSupported,
@@ -128,7 +128,7 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults)
     {
         // The protocol default for the signed responses is RS256, which the signing ceilings above exclude, so a client
-        // that registers no algorithm would fail at issuance; PS256 is the compliant default (ADR-0148, ADR-0155).
+        // that registers no algorithm would fail at issuance; PS256 is the compliant default (ADR-1148, ADR-1155).
         defaults.Set(
             OpenIdSettingKeys.IdTokenSignedResponseAlg,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256

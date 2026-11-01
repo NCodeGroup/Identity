@@ -63,7 +63,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
         mockManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        // The resolver maps the authenticated subject to the stable principal id carried into the ticket (ADR-0035).
+        // The resolver maps the authenticated subject to the stable principal id carried into the ticket (ADR-1035).
         mockResolver
             .Setup(x =>
                 x.ResolvePrincipalIdAsync(
@@ -258,7 +258,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var (command, mockAuthService, _) = CreateScaffold();
         SetupAuthenticate(mockAuthService, SuccessResult());
 
-        // The resolver maps the raw subject to a stable principal id; the ticket carries the resolved id (ADR-0035).
+        // The resolver maps the raw subject to a stable principal id; the ticket carries the resolved id (ADR-1035).
         var result = await CreateHandler("subject-id", resolvedPrincipalId: "principal-99")
             .HandleAsync(command, CancellationToken.None);
 

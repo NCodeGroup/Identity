@@ -63,7 +63,7 @@ serviceCollection.AddAntiforgery();
 serviceCollection.AddHealthChecks();
 
 // Metrics: the family's meters plus ASP.NET Core, Kestrel, outbound HTTP, and the runtime, exported over OTLP when
-// OTEL_EXPORTER_OTLP_ENDPOINT is configured (the Aspire AppHost injects it, so its dashboard shows them). ADR-0197.
+// OTEL_EXPORTER_OTLP_ENDPOINT is configured (the Aspire AppHost injects it, so its dashboard shows them). ADR-1197.
 serviceCollection.AddOpenTelemetryMetrics(configuration);
 
 serviceCollection.AddHttpLogging(options =>
@@ -77,12 +77,12 @@ serviceCollection.AddReverseProxy(configuration);
 
 // Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
 // 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
-// proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-0258.
+// proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1258.
 serviceCollection.AddStrictTransportSecurity(configuration);
 
 // Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
 // (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
-// authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-0202). Kestrel's own validation
+// authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-1202). Kestrel's own validation
 // would refuse every self-signed or tenant-PKI certificate first. Inert while no endpoint requests one. The host owns
 // this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call.
 builder.WebHost.ConfigureKestrel(kestrel =>
@@ -104,14 +104,14 @@ identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultKeyWrapper(config
 // Google Cloud KMS can hold the root key ('SecretProtection:RootKeyProvider' = 'google-cloud-kms'); its client is created on first use, so the provider is inert otherwise.
 identityServer.SecretPersistenceLibraryBuilder.AddGoogleCloudKmsKeyWrapper(configuration);
 
-// Bind the frontend runtime bootstrap document (ADR-0064) from the 'Frontend' configuration section so the host can
+// Bind the frontend runtime bootstrap document (ADR-1064) from the 'Frontend' configuration section so the host can
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic
 // bundles via MapFrontendBootstrap below.
 identityServer.AddFrontendBootstrap(configuration);
 
 // Shared state every replica must see — DPoP nonces and the single-use records of DPoP proofs and client assertions —
 // goes to Valkey when the 'valkey' connection string is configured (the AppHost injects it), and otherwise stays
-// in-process, which is correct only for a single replica (ADR-0164).
+// in-process, which is correct only for a single replica (ADR-1164).
 identityServer.SharedStateLibraryBuilder.AddValkey(configuration);
 
 var entityFrameworkPersistence =
@@ -120,10 +120,10 @@ var entityFrameworkPersistence =
 // Opt in to the generic Entity Framework local-account reference store (the server-owned credential, profile, and
 // status payload behind self-issued connections). A host that fronts its own user store would register a different
 // ILocalAccountStore instead (for example, the ASP.NET Core Identity adapter). The store slice requires the persistence
-// framework's builder as its receiver, and returns the compile-time proof the account capabilities require (ADR-0069).
+// framework's builder as its receiver, and returns the compile-time proof the account capabilities require (ADR-1069).
 var localAccountStore = entityFrameworkPersistence.AddLocalAccountEntityFramework();
 
-// Enable the OpenId Authentication capabilities on the authentication-library builder (ADR-0069 compile-time marker
+// Enable the OpenId Authentication capabilities on the authentication-library builder (ADR-1069 compile-time marker
 // prerequisite): the resource-owner password grant, the interactive login/consent surface (a cookie scheme plus the
 // /account/* endpoints that serve the apps/auth bundle), and the local-account implementation of the surface's
 // credential verifier. All reuse the configured local-account store (dependency inversion — the Authentication library
@@ -144,13 +144,13 @@ identityServer.AddDevelopmentEnvironment(configuration, hostEnvironment);
 
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 
-// The dev database is Postgres, orchestrated by the Aspire AppHost (ADR-0073): the AppHost provisions the container
+// The dev database is Postgres, orchestrated by the Aspire AppHost (ADR-1073): the AppHost provisions the container
 // and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
 // starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
 // same database, so one purge resets the OpenID data, the seeded signing key, the tenants' master keys, and the ring
 // together. Stored secrets are encrypted under their owners' master keys and the ring under the server master key,
 // whose root key lives outside the database (the 'SecretProtection' section); the production gate refuses to start
-// without a real root key (ADR-0235).
+// without a real root key (ADR-1235).
 
 var connectionString = configuration.GetConnectionString("openiddb");
 if (!string.IsNullOrEmpty(connectionString))
@@ -189,7 +189,7 @@ await using var app = builder.Build();
 app.UseReverseProxy();
 
 // After the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in
-// Development. See ADR-0258.
+// Development. See ADR-1258.
 app.UseStrictTransportSecurity();
 
 if (app.Environment.IsDevelopment())

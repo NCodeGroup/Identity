@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { resolveRoute, routePath, type ConsoleRoute } from './routes.js';
 
 // Binds the route grammar (routes.ts) to the browser history: the address bar is the single source of the console's
-// navigation state, so back/forward, reload, and a shared link all land on the same scope and surface (ADR-0174).
+// navigation state, so back/forward, reload, and a shared link all land on the same scope and surface (ADR-1174).
 
 const listeners = new Set<() => void>();
 

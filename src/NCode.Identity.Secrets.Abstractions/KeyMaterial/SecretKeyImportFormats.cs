@@ -26,11 +26,11 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 /// <see cref="ISecretKeyTypeDescriptor"/> for import.
 /// </summary>
 /// <remarks>
-/// The formats are an open vocabulary (ADR-0150): each key type declares the formats it parses in
+/// The formats are an open vocabulary (ADR-1150): each key type declares the formats it parses in
 /// <see cref="ISecretKeyTypeDescriptor.PublicKeyImportFormats"/>, so a key type registered by another package can accept
 /// its own format, such as an OpenSSH public key. Names are compared ordinally.
 /// </remarks>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 public static class SecretKeyImportFormats
 {

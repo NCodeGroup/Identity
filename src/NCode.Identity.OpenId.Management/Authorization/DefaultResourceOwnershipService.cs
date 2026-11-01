@@ -48,7 +48,7 @@ internal class DefaultResourceOwnershipService(
         CancellationToken cancellationToken
     )
     {
-        // Resolve (and provision on first sight) the stable principal id for the creator (ADR-0035).
+        // Resolve (and provision on first sight) the stable principal id for the creator (ADR-1035).
         var principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
             openIdContext,
             user,
@@ -153,7 +153,7 @@ internal class DefaultResourceOwnershipService(
             return OwnerRemovalResult.NotFound;
         }
 
-        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-0034).
+        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1034).
         if (owners.Count - toRemove.Count < 1)
         {
             return OwnerRemovalResult.LastOwnerForbidden;

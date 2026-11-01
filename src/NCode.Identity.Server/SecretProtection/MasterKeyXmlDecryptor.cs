@@ -36,7 +36,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// </remarks>
 // The assembly-qualified name of this type is persisted in every key that the encryptor produces, so this type must
 // never be renamed or moved to another namespace or assembly: that would make every existing key ring unreadable.
-// See ADR-0235.
+// See ADR-1235.
 internal class MasterKeyXmlDecryptor : IXmlDecryptor
 {
     /// <summary>

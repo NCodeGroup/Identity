@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Principals;
 /// resolved at issuance and projected uniformly for every connection kind, so these claim types live with
 /// the principal metadata rather than any single connection's account model.
 /// </summary>
-// See ADR-0055.
+// See ADR-1055.
 [PublicAPI]
 public static class SubjectMetadataClaimTypes
 {

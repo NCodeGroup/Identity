@@ -8,7 +8,7 @@ applyTo: "**"
 ## Design posture (greenfield, pre-release)
 
 This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to
-preserve** ([ADR-0025](../../docs/decisions/0025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best
+preserve** ([ADR-1025](../../docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best
 long-term, cohesive design.** When a change forks between a minimal, compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage — PublicAPI churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected
@@ -24,7 +24,7 @@ registered descriptors or strategies, validated as a whole when composed — and
 `switch` over a vocabulary, a hard-coded relationship between its members) must be justified as provably closed. Before
 adding one, ask "could a package that is not this one ever need another member?"; if the answer is not a clear no, it
 is open. The rule and its test: [`csharp-production.instructions.md`](csharp-production.instructions.md)
-§2 and [ADR-0150](../../docs/decisions/0150-vocabularies-are-open-unless-provably-closed.md).
+§2 and [ADR-1150](../../docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md).
 
 ### Security-practice default — decide, don't ask
 
@@ -65,7 +65,7 @@ during a task into the instruction files or an ADR as part of the same change. S
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
-([ADR-0264](../../docs/decisions/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue
+([ADR-1264](../../docs/decisions/1264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue
 labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](../../docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
 issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as
@@ -89,20 +89,20 @@ enabled per clone and must not be relied on — do not generate them in the firs
 check ([`.template/Test-CommitAttribution.ps1`](../../.template/Test-CommitAttribution.ps1), from the project template)
 rejects agent-authored commits and agent attribution on pull requests, in the merge queue and on pushes, because a
 squash merge credits every commit author. See
-[ADR-0128](../../docs/decisions/0128-commits-are-attributed-to-people-not-agents.md).
+[ADR-1128](../../docs/decisions/1128-commits-are-attributed-to-people-not-agents.md).
 
 ## Push protocol
 
 When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
 changes only by pull request through the merge queue
-([ADR-0261](../../docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
-[ADR-0263](../../docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
+([ADR-1261](../../docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
+[ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
 pull request against `main` as a **draft** if none exists (a push to an open pull request's branch updates it). For a
 plan, `/ship-plan` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says: its `draft: yes`
 opens the pull request as a draft, and its `gate` runs gate 4 below before each push. Without a plan, push the branch
 and run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never
 enables auto-merge, because the user self-reviews the draft and that step is the approval
-([ADR-0269](../../docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
+([ADR-1269](../../docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
 **before** pushing:
 
 1. **Finish the plan.** If a `PLAN.md` exists, every step is `[x]`, its review (`/review-plan-diff`) has run with
@@ -112,7 +112,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    pushed, and `/finish-plan` deletes it once the pull request merges. The `Plan step N` checkpoints reach the pull
    request's branch but never `main`: the merge queue squash-merges, taking the commit's subject from the pull request
    title, which `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject
-   ([ADR-0170](../../docs/decisions/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+   ([ADR-1170](../../docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/decisions/`](../../docs/decisions/), a
    consumer-visible change into [`CHANGELOG.md`](../../CHANGELOG.md), and pending work into a
@@ -125,7 +125,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    as the Landing section's `gate` and stops when it exits non-zero. CI owns the full `./build/dod.ps1` (all tests,
    coverage, packing, and NuGet advisories as errors): the merge queue runs it on the merged result before anything
    reaches `main`
-   ([ADR-0263](../../docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
+   ([ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
    does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` check on the
    pull request finds it.

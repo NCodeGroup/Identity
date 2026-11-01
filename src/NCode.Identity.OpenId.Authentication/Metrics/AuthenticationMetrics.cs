@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Metrics;
 /// <see cref="IMeterFactory"/> so each service provider has its own; call sites record through its methods and never
 /// touch the meter directly.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 internal sealed class AuthenticationMetrics
 {
     internal const string RateLimitingRequestsName = "ncode.identity.rate_limiting.requests";

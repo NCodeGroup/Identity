@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// The registry has no dependencies, so the server provider can register the server it materializes without creating
 /// a cycle through the services that need the server.
 /// </remarks>
-// See ADR-0219.
+// See ADR-1219.
 internal interface IMaterializedServerRegistry : IMaterializedServerAccessor
 {
     /// <summary>

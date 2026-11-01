@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Metrics;
 /// <c>http.server.request.duration</c> measurement with the endpoint's registered name, which stays stable when an
 /// operator remaps routes or changes how tenants are routed.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 internal sealed class OpenIdMetricsEndpointFilter : IEndpointFilter
 {
     /// <inheritdoc />

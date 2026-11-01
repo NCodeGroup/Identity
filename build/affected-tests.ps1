@@ -11,7 +11,7 @@
     selects the test projects (under tests/) in the reverse ProjectReference closure of those projects. A change to a
     global build input (build/, .config/, global.json, nuget.config, version.json, the solution, .editorconfig,
     any BannedSymbols*.txt, any Directory.* file, any .runsettings file) selects all tests. A path under no project,
-    such as docs/, charts/, src/frontend/ or .github/, selects nothing (ADR-0263).
+    such as docs/, charts/, src/frontend/ or .github/, selects nothing (ADR-1263).
 
     Outputs one object with All (true when a global trigger matched), Projects (repository-relative test .csproj paths
     with / separators, sorted ordinal, empty when All is true) and Reasons (one line per changed path).

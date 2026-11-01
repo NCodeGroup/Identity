@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 #
-# The production image of NCode.Identity.OpenId.Host (ADR-0178). Build it from the repository root; it takes no build
+# The production image of NCode.Identity.OpenId.Host (ADR-1178). Build it from the repository root; it takes no build
 # argument:
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
 #     --file src/NCode.Identity.OpenId.Host/Dockerfile .
 #
 # Every base image is pinned by tag and by the digest of its multi-architecture index, and Dependabot moves the digests
-# (ADR-0249). The Node major equals the single pin in src/frontend/.node-version, which the `Host image` workflow
-# checks (ADR-0152).
+# (ADR-1249). The Node major equals the single pin in src/frontend/.node-version, which the `Host image` workflow
+# checks (ADR-1152).
 #
 # Every build stage runs on the build machine's own architecture and cross-publishes for the target, so a multi-arch
 # build needs no emulation: the only target-architecture stage copies files and runs nothing.
@@ -24,7 +24,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 RUN pnpm exec turbo run build --filter=@ncode/app-auth
 
 # The host and its migration worker, published framework-dependent for the target architecture. The worker ships in
-# the host's image so the schema a release migrates to is always the schema that release's host reads (ADR-0180).
+# the host's image so the schema a release migrates to is always the schema that release's host reads (ADR-1180).
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 ARG TARGETARCH
 # The build context carries no .git directory, so the version comes from version.json alone rather than commit height.
@@ -67,7 +67,7 @@ COPY --from=build /app/migrations ./migrations/
 COPY --from=frontend /source/src/frontend/apps/auth/dist ./auth/
 ENV InteractiveAuthentication__BundleRootPath=/app/auth
 # The console writes one JSON object per line with a UTC timestamp, so a container log collector keeps an entry and its
-# exception in one record (ADR-0248).
+# exception in one record (ADR-1248).
 ENV Logging__Console__FormatterName=json \
     Logging__Console__FormatterOptions__UseUtcTimestamp=true \
     Logging__Console__FormatterOptions__TimestampFormat=O

@@ -42,7 +42,7 @@ GET    api/tenants/{tenantId}/audit-records
 /// Provides the API endpoint that looks up a tenant's audit records in the audit store, newest first, by time range and
 /// by the envelope fields an operator investigates with, as CloudTrail's <c>LookupEvents</c> does.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 internal class AuditRecordApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,

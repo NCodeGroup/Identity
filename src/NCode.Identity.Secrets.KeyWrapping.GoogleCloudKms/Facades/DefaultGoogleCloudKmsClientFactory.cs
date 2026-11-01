@@ -31,7 +31,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 /// created, so the first call fails when no credentials are found. A failure is not cached, so the next call tries
 /// again.
 /// </remarks>
-// See ADR-0260.
+// See ADR-1260.
 [ExcludeFromCodeCoverage(
     Justification = "Creates the Google Cloud SDK client; a passthrough to Google.Cloud.Kms.V1."
 )]

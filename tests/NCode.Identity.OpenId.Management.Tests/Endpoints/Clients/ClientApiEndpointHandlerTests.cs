@@ -1077,7 +1077,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(TenantId, json.Value?.TenantId);
         Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
 
-        // A setting the runtime reads only from the tenant's settings does not govern the client (ADR-0149).
+        // A setting the runtime reads only from the tenant's settings does not govern the client (ADR-1149).
         Assert.False(json.Value.Settings.TryGetProperty("session_management_supported", out _));
     }
 

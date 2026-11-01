@@ -31,7 +31,7 @@ namespace NCode.Identity.Cryptography;
 /// </summary>
 /// <remarks>
 /// Encodings are the registered <see cref="IBinaryEncoder"/> strategies, resolved by name; hash algorithms are the
-/// framework's <see cref="HashAlgorithmName"/> names, computed by <see cref="CryptographicOperations"/> (ADR-0150).
+/// framework's <see cref="HashAlgorithmName"/> names, computed by <see cref="CryptographicOperations"/> (ADR-1150).
 /// </remarks>
 internal class DefaultCryptoService : ICryptoService
 {

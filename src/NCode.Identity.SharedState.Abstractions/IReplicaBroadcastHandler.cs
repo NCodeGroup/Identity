@@ -28,7 +28,7 @@ namespace NCode.Identity.SharedState;
 /// message.
 /// When a message may have been lost, the adapter calls <see cref="HandleMissedMessagesAsync"/>.
 /// </summary>
-// See ADR-0205.
+// See ADR-1205.
 [PublicAPI]
 public interface IReplicaBroadcastHandler
 {

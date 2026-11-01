@@ -40,7 +40,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// longer than <see cref="OpenIdMaxLengths.UsageMeter"/> characters.
 /// </para>
 /// </remarks>
-// See ADR-0246.
+// See ADR-1246.
 internal sealed class DefaultRateLimitDescriptorCatalog : IRateLimitDescriptorCatalog
 {
     private FrozenDictionary<

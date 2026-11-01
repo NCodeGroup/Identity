@@ -105,7 +105,7 @@ internal class DefaultBackChannelLogoutNotifier(
         // A logout token is protected like the client's ID tokens: signed with its id_token_signed_response_alg and,
         // when it registers ID token encryption, encrypted to its public key (OpenID Connect Back-Channel Logout 1.0
         // §2.4). A registration the server cannot honor skips the client rather than failing logout or sending a
-        // weaker token (ADR-0155).
+        // weaker token (ADR-1155).
         ClientJwtCredentials credentials;
         try
         {

@@ -46,7 +46,7 @@ jobs:
         if: hashFiles('*.sln', '*.slnx') != ''
         shell: pwsh
         run: dotnet restore
-      # The Node major and the pnpm version are each pinned once (ADR-0152); these steps read the same pins the
+      # The Node major and the pnpm version are each pinned once (ADR-1152); these steps read the same pins the
       # Frontend CI workflow reads.
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

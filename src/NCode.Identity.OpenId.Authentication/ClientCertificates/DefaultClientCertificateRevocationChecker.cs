@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// <see cref="ClientCertificateRevocationStatus.Unknown"/>; the status is
 /// <see cref="ClientCertificateRevocationStatus.Unknown"/> when every source is inconclusive or none is registered.
 /// </summary>
-// See ADR-0259.
+// See ADR-1259.
 internal sealed class DefaultClientCertificateRevocationChecker(
     IEnumerable<IClientCertificateRevocationSource> sources
 ) : IClientCertificateRevocationChecker

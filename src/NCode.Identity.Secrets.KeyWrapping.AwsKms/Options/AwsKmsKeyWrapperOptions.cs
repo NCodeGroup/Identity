@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 /// Contains the options for the AWS Key Management Service key wrapper, bound from the
 /// <see cref="DefaultSectionName"/> configuration section.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public sealed class AwsKmsKeyWrapperOptions
 {

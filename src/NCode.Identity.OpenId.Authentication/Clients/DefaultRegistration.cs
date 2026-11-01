@@ -85,7 +85,7 @@ internal static class DefaultRegistration
             >();
 
             // Each client-authentication handler below has a descriptor of the same name, so the methods are named
-            // without constructing a handler (ADR-0207).
+            // without constructing a handler (ADR-1207).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<ClientAuthenticationMethodDescriptor>,
@@ -158,7 +158,7 @@ internal static class DefaultRegistration
             >();
 
             // The validator runs every registered rule, so a package adds a coherence rule the same way: one
-            // TryAddEnumerable registration of its IClientCoherenceRule (ADR-0206).
+            // TryAddEnumerable registration of its IClientCoherenceRule (ADR-1206).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IClientCoherenceRule, ResponseAlgorithmCoherenceRule>()
             );
@@ -214,7 +214,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A change of the server's settings that is not a write is reported client by client (ADR-0219).
+            // A change of the server's settings that is not a write is reported client by client (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ReconcileServerSettingsCommand>,

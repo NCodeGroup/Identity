@@ -44,7 +44,7 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// fails every request that loads it. The administrator's password must meet the tenant's password policy, and a
 /// refused one stops the seeding with an error naming the administrator.
 /// </remarks>
-// See ADR-0140 and ADR-0206.
+// See ADR-1140 and ADR-1206.
 internal sealed class DeveloperInteractiveSeedHandler(
     DeveloperInteractiveSeedOptions options,
     SeededClientValidator seededClientValidator,
@@ -202,7 +202,7 @@ internal sealed class DeveloperInteractiveSeedHandler(
     }
 
     private bool TargetsTenant(TenantSeedContext context) =>
-        // The registration requires the tenant whenever there is something to seed (ADR-0166): a tenant created at
+        // The registration requires the tenant whenever there is something to seed (ADR-1166): a tenant created at
         // runtime must not inherit a well-known administrator.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 }

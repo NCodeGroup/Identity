@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// under. The key material lives in a pinned array from the secure memory pool so that the garbage collector never
 /// copies it, and it is zeroed when the master key is disposed.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal sealed class MasterKey : IDisposable
 {
     private MasterKey(

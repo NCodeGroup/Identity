@@ -57,7 +57,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         var state = GetState(requestValues);
 
         // The default follows the response type, so a response that returns a token is never redirected in a query
-        // string, whether it carries the tokens or an error (ADR-0141); the JARM 'jwt' shorthand resolves the same way.
+        // string, whether it carries the tokens or an error (ADR-1141); the JARM 'jwt' shorthand resolves the same way.
         requestValues.TryGetValue(
             OpenIdProtocol.Parameters.ResponseType,
             out var responseTypeStringValues
@@ -155,7 +155,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     /// <summary>
     /// Creates the delivery and, for a JWT-secured response mode, selects the credentials that secure the response
     /// when the delivery is derived, so a response that cannot be signed is refused before the user signs in or a code
-    /// is issued (ADR-0201).
+    /// is issued (ADR-1201).
     /// </summary>
     private async ValueTask<AuthorizationResponseDelivery> CreateDeliveryAsync(
         OpenIdContext openIdContext,
@@ -244,7 +244,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
             return null;
         }
 
-        // The value is matched exactly as written (ADR-0203), so a second value is refused rather than joined.
+        // The value is matched exactly as written (ADR-1203), so a second value is refused rather than joined.
         if (redirectUriStringValues.Count > 1)
         {
             throw openIdContext
@@ -268,7 +268,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         var settings = openIdClient.Settings;
 
         // A response mode no registered handler serves could not carry even an error back to the client, and neither
-        // could one the client does not list in response_modes_supported (ADR-0201).
+        // could one the client does not list in response_modes_supported (ADR-1201).
         if (
             !ResponseModeProvider.TryResolve(requestedResponseMode, responseTypes, out var handler)
             || !IsListed(settings, handler.ResponseMode)
@@ -288,7 +288,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     /// <summary>
     /// Determines whether the specified response mode is permitted by the <c>response_modes_supported</c> setting,
     /// which permits every mode when it is not set. It is applied to the value as written (so <c>jwt</c> must be
-    /// listed to be requested) and to the resolved mode, the default included (ADR-0201).
+    /// listed to be requested) and to the resolved mode, the default included (ADR-1201).
     /// </summary>
     private static bool IsListed(IReadOnlySettingCollection settings, string responseMode) =>
         !settings.TryGetValue(OpenIdSettingKeys.ResponseModesSupported, out var supported)
@@ -323,7 +323,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         }
 
         // The raw string must equal a registered one exactly; only a registered loopback IP redirect URI may vary its
-        // port, and only while the client allows it (RFC 9700 §4.1.3, RFC 8252 §7.3; see ADR-0203).
+        // port, and only while the client allows it (RFC 9700 §4.1.3, RFC 8252 §7.3; see ADR-1203).
         var allowLoopbackPortChange = settings.GetValue(OpenIdSettingKeys.AllowLoopbackRedirect);
         var isRegistered = openIdClient.RedirectUris.Any(registered =>
             RedirectUriMatcher.MatchesExactly(redirectUriValue, registered)
@@ -344,7 +344,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         }
 
         // FAPI 1.0 Part 1 §5.2.2-20 and FAPI 2.0 §5.3.2.2-8 refuse an http redirect URI; the effective
-        // redirect_uri_kinds_supported carries every selected profile's ceiling (ADR-0203).
+        // redirect_uri_kinds_supported carries every selected profile's ceiling (ADR-1203).
         if (!RedirectUriKindCatalog.IsPermitted(settings, redirectUriValue))
         {
             throw errorFactory

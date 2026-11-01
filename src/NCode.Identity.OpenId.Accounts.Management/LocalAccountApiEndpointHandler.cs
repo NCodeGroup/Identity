@@ -220,7 +220,7 @@ internal class LocalAccountApiEndpointHandler(
         }
 
         // Eagerly create the owning principal and the account's self-issued connection so the account resolves to a
-        // principal uniformly with any federated identity (ADR-0051/ADR-0057).
+        // principal uniformly with any federated identity (ADR-1051/ADR-1057).
         var principal = new PersistedFederatedPrincipal
         {
             TenantId = tenantId,
@@ -228,7 +228,7 @@ internal class LocalAccountApiEndpointHandler(
             ConcurrencyToken = string.Empty,
         };
 
-        // Set-when-present: a missing bag leaves the principal's default empty object (ADR-0055).
+        // Set-when-present: a missing bag leaves the principal's default empty object (ADR-1055).
         if (request.ProfileMetadata is { } profileMetadata)
         {
             principal.ProfileMetadata = profileMetadata;
@@ -278,7 +278,7 @@ internal class LocalAccountApiEndpointHandler(
 
         // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
         // runs last, with CancellationToken.None, because the limit fails closed: a counter store that throws must not
-        // skip the audit record. See ADR-0237.
+        // skip the audit record. See ADR-1237.
         await PasswordAttemptLimiter.ResetAsync(tenantId, request.UserName, CancellationToken.None);
 
         httpContext.Response.Headers.ETag = account.ConcurrencyToken;
@@ -421,7 +421,7 @@ internal class LocalAccountApiEndpointHandler(
         );
         if (identity is not null)
         {
-            // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-0224.
+            // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-1224.
             await TerminateSessionsAsync(
                 httpContext,
                 tenantId,
@@ -509,7 +509,7 @@ internal class LocalAccountApiEndpointHandler(
         if (!isEnabled)
         {
             // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying
-            // parties. The change is committed, so a client disconnect does not cancel the termination. See ADR-0224.
+            // parties. The change is committed, so a client disconnect does not cancel the termination. See ADR-1224.
             await TerminateAccountSessionsAsync(
                 httpContext,
                 tenantId,
@@ -576,7 +576,7 @@ internal class LocalAccountApiEndpointHandler(
 
         // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
         // compromised account stop at once. The change is committed, so a client disconnect does not cancel the
-        // termination. See ADR-0226.
+        // termination. See ADR-1226.
         await TerminateAccountSessionsAsync(
             httpContext,
             tenantId,
@@ -597,7 +597,7 @@ internal class LocalAccountApiEndpointHandler(
 
         // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
         // runs last, with CancellationToken.None, because the limit fails closed: a counter store that throws must not
-        // skip ending the sessions or the audit record. See ADR-0237.
+        // skip ending the sessions or the audit record. See ADR-1237.
         await PasswordAttemptLimiter.ResetAsync(tenantId, account.UserName, CancellationToken.None);
 
         return TypedResults.NoContent();
@@ -868,7 +868,7 @@ internal class LocalAccountApiEndpointHandler(
 
     // Judges a password an administrator sets by the addressed tenant's effective settings, resolved from its stored
     // document so the tenant need not be served. A document that cannot be honored is answered 409 by the management
-    // route group. See ADR-0236 and ADR-0245.
+    // route group. See ADR-1236 and ADR-1245.
     private async ValueTask<ManagementError?> ValidatePasswordAsync(
         IStoreManager storeManager,
         string tenantId,

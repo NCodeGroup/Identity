@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Contains the known values for <see cref="SecretProtectionContext.Purpose"/>. A value protected for one purpose
 /// cannot be unprotected for another purpose, even when the owner and the item are the same.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public static class SecretProtectionPurposes
 {

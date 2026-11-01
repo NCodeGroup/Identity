@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// it uniformly with any federated identity. The principal's metadata bags are not carried here;
 /// they are a principal-level concept resolved fresh at issuance by the subject-claims projection handlers.
 /// </summary>
-// See ADR-0035, ADR-0051, ADR-0055.
+// See ADR-1035, ADR-1051, ADR-1055.
 internal class DefaultCreatePasswordGrantSubjectHandler(
     IAuthenticationContextReferenceResolver authenticationContextReferenceResolver,
     TimeProvider timeProvider
@@ -61,7 +61,7 @@ internal class DefaultCreatePasswordGrantSubjectHandler(
         var claims = new List<Claim>(account.Claims.Count + 6)
         {
             // The subject is stamped under the tenant's primary subject claim type so principal resolution reads it
-            // back through the same tenant-aware GetSubjectId seam (ADR-0053).
+            // back through the same tenant-aware GetSubjectId seam (ADR-1053).
             new(subjectClaimType, account.LocalAccountId),
             new(issuerClaimType, AccountConstants.SelfIssuer),
             new(JoseClaimNames.Payload.Tid, openIdContext.Tenant.TenantId),

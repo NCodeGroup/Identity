@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// Refuses a password that is expected for the account: its own user name, its email address, or the local part of
 /// that address, ignoring case. Only the whole password is compared.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 internal class AccountNamePasswordBlocklist : IPasswordBlocklist
 {
     /// <inheritdoc />

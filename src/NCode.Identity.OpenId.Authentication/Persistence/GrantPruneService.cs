@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Persistence;
 /// <see cref="GrantRetentionOptions.PruneInterval"/>, in batches of <see cref="BatchSize"/> grants, each its own unit of
 /// work, repeating while a batch is full. A prune that fails is logged and run again at the next interval.
 /// </summary>
-// See ADR-0218.
+// See ADR-1218.
 internal sealed class GrantPruneService(
     IStoreManagerFactory storeManagerFactory,
     IOptions<GrantRetentionOptions> options,
@@ -48,7 +48,7 @@ internal sealed class GrantPruneService(
     /// Gets the types of the grants that end only when they are revoked, so an expired grant of such a type is kept
     /// until it is revoked.
     /// </summary>
-    // See ADR-0223.
+    // See ADR-1223.
     internal static FrozenSet<string> GrantTypesEndedByRevocation { get; } =
         FrozenSet.ToFrozenSet(
             [OpenIdConstants.PersistedGrantTypes.Session],

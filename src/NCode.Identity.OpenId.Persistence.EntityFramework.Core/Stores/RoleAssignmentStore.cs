@@ -105,7 +105,7 @@ internal class RoleAssignmentStore(
     {
         var tenantEntity = await GetTenantEntityAsync(assignment.TenantId, cancellationToken);
 
-        // The interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        // The interceptor leaves a pre-seeded insert token intact (ADR-1012).
         assignment.ConcurrencyToken = NextConcurrencyToken();
 
         var entity = new RoleAssignmentEntity

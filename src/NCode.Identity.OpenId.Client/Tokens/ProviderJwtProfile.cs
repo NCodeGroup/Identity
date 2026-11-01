@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// registered for it, the signature algorithms the provider advertises for it, its <c>typ</c>, its lifetime rules, and
 /// the names that failure reasons use for it. <see cref="ProviderJwtValidator"/> validates a token against it.
 /// </summary>
-// See ADR-0301.
+// See ADR-1301.
 internal sealed record ProviderJwtProfile
 {
     private static readonly TimeSpan LogoutTokenMaxLifetime = TimeSpan.FromMinutes(10);
@@ -145,7 +145,7 @@ internal sealed record ProviderJwtProfile
             );
 
         // A JWE that encloses no signature is never accepted, because anyone holding the client's public key can
-        // produce one (ADR-0301).
+        // produce one (ADR-1301).
         if (encrypted && registration.UserInfoSigningAlgorithms is not { Count: > 0 })
             throw new InvalidOperationException(
                 $"The client '{registration.ClientId}' registers UserInfo encryption without UserInfo signing; an encrypted UserInfo response must be a Nested JWT."

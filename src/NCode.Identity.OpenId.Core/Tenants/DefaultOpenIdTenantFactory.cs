@@ -137,9 +137,9 @@ public class DefaultOpenIdTenantFactory(
         // alone (static/path strategies). Host-based tenancy must map its domain to a tenant via the store, so it
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
         // store. A management write announces the change (TenantChangedCommand), and every replica evicts the tenant
-        // when the announcement arrives (ADR-0205). A replica that missed the announcement evicts every cached tenant
+        // when the announcement arrives (ADR-1205). A replica that missed the announcement evicts every cached tenant
         // when its subscription is restored, and a cached tenant lives at most OpenIdTenantOptions.TenantCacheLifetime
-        // (ADR-0219).
+        // (ADR-1219).
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {
@@ -225,7 +225,7 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
-        // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-0166). The provisioner
+        // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-1166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
@@ -391,9 +391,9 @@ public class DefaultOpenIdTenantFactory(
             return tenantIssuer;
         }
 
-        // Every tenant a strategy serves is written with an issuer (ADR-0165), so this is a tenant stored before that
+        // Every tenant a strategy serves is written with an issuer (ADR-1165), so this is a tenant stored before that
         // rule or written around it. It fails closed: deriving an origin from the request would let a caller's Host
-        // header choose where the server tells clients to send their credentials (ADR-0129).
+        // header choose where the server tells clients to send their credentials (ADR-1129).
         throw new InvalidOperationException(
             $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be served. Give it an issuer "
                 + "through the management API."
@@ -507,7 +507,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <c>issuer identifier</c>.</returns>
     /// <exception cref="InvalidOperationException">The tenant has no issuer.</exception>
-    // See ADR-0129 (the issuer is the single authoritative origin) and ADR-0165 (every served tenant has an issuer).
+    // See ADR-1129 (the issuer is the single authoritative origin) and ADR-1165 (every served tenant has an issuer).
     protected virtual ValueTask<string> GetTenantIssuerAsync(
         HttpContext httpContext,
         PersistedTenant persistedTenant,
@@ -520,7 +520,7 @@ public class DefaultOpenIdTenantFactory(
     /// Used to get the tenant's base address, the <see cref="UriDescriptor"/> every absolute URL the server publishes for
     /// the tenant is built from — the discovery endpoint URLs, the <c>registration_client_uri</c>, the device
     /// <c>verification_uri</c>. The default implementation parses it from the tenant's issuer, which names exactly where
-    /// the tenant is served, tenant route included (ADR-0138).
+    /// the tenant is served, tenant route included (ADR-1138).
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
@@ -586,7 +586,7 @@ public class DefaultOpenIdTenantFactory(
     }
 
     // A tenant key that cannot be unprotected means the master key that protected it, or the root key that wraps that
-    // master key, is missing or has changed. The server never discards or replaces such a key (ADR-0169), so the
+    // master key, is missing or has changed. The server never discards or replaces such a key (ADR-1169), so the
     // tenant fails with a reason an operator can act on instead of the bare cryptographic error.
     private async ValueTask<IReadOnlyCollection<SecretKey>> DeserializeTenantSecretsAsync(
         PersistedTenant persistedTenant,

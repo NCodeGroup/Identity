@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Proves that the interactive login, consent, and account surface is served beneath the tenant route, like the
-/// protocol endpoints (ADR-0193): under the path strategy each tenant's surface lives beneath its own path, its
+/// protocol endpoints (ADR-1193): under the path strategy each tenant's surface lives beneath its own path, its
 /// redirects stay beneath that path, and its session cookie is scoped to it so tenants sharing an origin keep separate
 /// sessions.
 /// </summary>
@@ -381,7 +381,7 @@ public class InteractiveTenantRouteTests
 
             Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
             // The embedded branding is as fresh as the page: every page that issues antiforgery tokens is sent
-            // no-cache, no-store (ADR-0253).
+            // no-cache, no-store (ADR-1253).
             Assert.True(acmeResponse.Headers.CacheControl?.NoStore);
             Assert.True(acmeResponse.Headers.CacheControl?.NoCache);
             Assert.Contains(

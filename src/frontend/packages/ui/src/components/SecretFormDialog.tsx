@@ -78,7 +78,7 @@ const secretTypes: readonly { readonly value: SecretType; readonly label: string
 
 /**
  * Stateless secret create form rendered in a dialog. Secret key material is generated server-side and
- * revealed exactly once (ADR-0050), so there is no edit path here — only create. The field state is
+ * revealed exactly once (ADR-1050), so there is no edit path here — only create. The field state is
  * local because it is intrinsic to the controlled inputs (it reseeds on the rising edge of `open`), so
  * the component still renders in isolation under Storybook/RTL. Persistence, the one-time reveal, and
  * server-error handling live in the container that wires the mutation.
@@ -104,7 +104,7 @@ export function SecretFormDialog({
   }, [open, initialValues]);
 
   // When the server advertises algorithms, the algorithm, use, and key-size inputs are driven by discovery
-  // (ADR-0067) instead of free-text defaults; only algorithms compatible with the chosen type are offered.
+  // (ADR-1067) instead of free-text defaults; only algorithms compatible with the chosen type are offered.
   const algorithmsProvided = (algorithms?.length ?? 0) > 0;
   const applicableAlgorithms = (algorithms ?? []).filter((algorithm) =>
     algorithm.secretTypes.includes(values.secretType),

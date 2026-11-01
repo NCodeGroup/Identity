@@ -75,7 +75,7 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
 
     // A client that acts for a resource server receives the access tokens issued for it at introspection, so binding one
     // is a change to the resource server: the caller must be allowed to update it. A system resource server is read by
-    // the server itself and never acts through a client (ADR-0168).
+    // the server itself and never acts through a client (ADR-1168).
     private async ValueTask<ManagementError?> ValidateResourceServerBindingAsync(
         ClaimsPrincipal user,
         PersistedClient client,

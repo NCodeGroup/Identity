@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 /// Each resolved resource server's secret-key provider is owned by this instance and released on disposal. Access tokens
 /// are always signed with the tenant's key, never a resource server's.
 /// </summary>
-// See ADR-0075 and ADR-0154.
+// See ADR-1075 and ADR-1154.
 [PublicAPI]
 public sealed class ResourceServerCredentialResolution : IAsyncDisposable
 {

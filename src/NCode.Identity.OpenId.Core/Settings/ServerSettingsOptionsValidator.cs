@@ -26,8 +26,8 @@ namespace NCode.Identity.OpenId.Settings;
 /// or a value outside the setting's domain stops the host when it starts instead of being loaded without effect on the
 /// first request.
 /// </summary>
-// See ADR-0137 (fail at startup), ADR-0139 (setting names are a closed vocabulary), ADR-0140 (value domains), and
-// ADR-0149 (scopes).
+// See ADR-1137 (fail at startup), ADR-1139 (setting names are a closed vocabulary), ADR-1140 (value domains), and
+// ADR-1149 (scopes).
 internal class ServerSettingsOptionsValidator(
     ISettingConfigurationReader settingConfigurationReader
 ) : IValidateOptions<OpenIdOptions>

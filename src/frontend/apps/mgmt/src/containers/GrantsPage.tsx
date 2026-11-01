@@ -52,7 +52,7 @@ const closed: DialogState = { kind: 'none' };
  * list query parameters. Wires the RTK Query grant list and revocation mutations to the stateless
  * {@link GrantTable} and {@link ConfirmDialog}; owns only filter/dialog/error state. Minting an initial
  * access token loads the tenant's non-system resource servers while the form is open, so the token can be
- * scoped to one and the client it registers is bound to it (ADR-0192).
+ * scoped to one and the client it registers is bound to it (ADR-1192).
  */
 export function GrantsPage({ tenantId }: GrantsPageProps) {
   // Read the clock once, in a state initializer: reading it during render would make the table's output impure.

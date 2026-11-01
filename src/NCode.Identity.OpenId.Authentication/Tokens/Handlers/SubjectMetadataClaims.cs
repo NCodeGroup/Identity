@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// Shared helper for the default subject-metadata token projection handlers: emits a metadata bag as a single nested
 /// JSON-object claim under a reserved claim type.
 /// </summary>
-// See ADR-0055.
+// See ADR-1055.
 internal static class SubjectMetadataClaims
 {
     /// <summary>

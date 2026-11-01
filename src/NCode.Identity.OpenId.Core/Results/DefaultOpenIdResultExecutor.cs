@@ -45,7 +45,7 @@ internal sealed class DefaultOpenIdResultExecutor : IResultExecutor<IOpenIdResul
         var response = result.Response;
 
         // Every protocol error response is written here, so an endpoint, the exception filter, and the rate-limit
-        // filter all tag the request's duration measurement with the same server-chosen error code (ADR-0197).
+        // filter all tag the request's duration measurement with the same server-chosen error code (ADR-1197).
         if (response is IOpenIdError error)
             OpenIdMetricAttributes.Add(httpContext, OpenIdMetricAttributes.Error, error.Code);
 

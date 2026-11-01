@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// a tenant. Each tenant strategy validates its own options beside it, so this validator never needs to know which
 /// strategies exist.
 /// </summary>
-// See ADR-0137 (fail at startup) and ADR-0160 (a tenant's address is validated wherever it is written).
+// See ADR-1137 (fail at startup) and ADR-1160 (a tenant's address is validated wherever it is written).
 internal class TenantResolutionOptionsValidator : IValidateOptions<TenantResolutionOptions>
 {
     /// <inheritdoc />

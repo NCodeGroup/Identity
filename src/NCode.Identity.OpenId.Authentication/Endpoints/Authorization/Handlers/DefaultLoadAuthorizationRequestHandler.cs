@@ -155,7 +155,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
 
         // OpenID Connect Core 1.0 §6.1: an OP that does not support unsigned request objects must answer exactly
         // 'request_not_supported' (not a generic 'invalid_request_object' decode error) for an 'alg':'none' request
-        // object. The OP never accepts an unsigned request object (ADR-0154), so detect the unsigned case up front and
+        // object. The OP never accepts an unsigned request object (ADR-1154), so detect the unsigned case up front and
         // reject it with the precise error the spec requires.
         if (IsUnsignedRequestObject(requestJwt))
         {
@@ -181,7 +181,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
             // is verified with the client's keys and the encryption removed with the tenant's. The algorithms are those
             // the client's effective settings permit — which carry the tenant's lists and the ceiling of every security
             // profile the client selects — checked before any cryptographic operation; the server never accepts a
-            // compressed request object (ADR-0154, ADR-0155).
+            // compressed request object (ADR-1154, ADR-1155).
             var parameters = new JwtValidationParameters
             {
                 // Honor the client's effective clock_skew setting (the FAPI 2.0 profile tightens this to ≤ 60s via the
@@ -205,7 +205,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 .ValidateTokenLifeTime(options =>
                 {
                     // A request object expires, and is valid for a bounded time from its earliest 'iat' or 'nbf', so a
-                    // pre-generated one cannot be held for later use; FAPI also requires 'nbf' (ADR-0187).
+                    // pre-generated one cannot be held for later use; FAPI also requires 'nbf' (ADR-1187).
                     options.RequireExpirationTime = true;
                     options.MaxLifetime = settings.GetValue(
                         OpenIdSettingKeys.RequestObjectMaxLifetime
@@ -216,7 +216,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 });
 
             // A request object is addressed to the authorization server: its 'aud' is the issuer unless the client's
-            // settings name another audience (RFC 9101 §4, FAPI 2.0 Message Signing §5.3.1, ADR-0187).
+            // settings name another audience (RFC 9101 §4, FAPI 2.0 Message Signing §5.3.1, ADR-1187).
             var expectedAudience = settings.GetValue(
                 OpenIdSettingKeys.RequestObjectExpectedAudience
             );

@@ -71,7 +71,7 @@ internal class DefaultValidateRefreshTokenGrantHandler(IClientScopeService clien
                     "The requested scope exceeds the scope granted by the resource owner."
                 );
 
-        // A requested scope must be permitted by the client's grants (ADR-0026).
+        // A requested scope must be permitted by the client's grants (ADR-1026).
         var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
             openIdContext.Tenant.TenantId,
             openIdClient.ClientId,

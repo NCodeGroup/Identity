@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// written is held and written first by the next flush; the store skips the records it already holds, so a batch whose
 /// save committed but reported a failure is not written twice.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 internal sealed class AuditRecordFlushService(
     AuditRecordQueue queue,
     IStoreManagerFactory storeManagerFactory,

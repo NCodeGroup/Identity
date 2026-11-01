@@ -7,7 +7,7 @@
  */
 
 /**
- * Which presentation surface a bundle represents. An open vocabulary (ADR-0150): the host maps any surface name to its
+ * Which presentation surface a bundle represents. An open vocabulary (ADR-1150): the host maps any surface name to its
  * coordinates (`FrontendBootstrapOptions.Surfaces`), so a new surface needs no change here. The listed names are the
  * surfaces this repository ships.
  */

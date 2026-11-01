@@ -235,7 +235,7 @@ internal class DefaultDeviceVerificationEndpointHandler(
     )
     {
         // A decision applies only to a request that is still pending as stored, so a concurrent submission changes
-        // nothing. See ADR-0222.
+        // nothing. See ADR-1222.
         if (grant.Payload.Status != DeviceAuthorizationStatus.Pending)
             return null;
 
@@ -260,7 +260,7 @@ internal class DefaultDeviceVerificationEndpointHandler(
     )
     {
         // A decision applies only to a request that is still pending as stored, so a concurrent submission changes
-        // nothing. See ADR-0222.
+        // nothing. See ADR-1222.
         if (grant.Payload.Status != DeviceAuthorizationStatus.Pending)
             return null;
 

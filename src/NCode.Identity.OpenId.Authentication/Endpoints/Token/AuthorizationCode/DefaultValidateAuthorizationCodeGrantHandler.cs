@@ -83,7 +83,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
-        // RFC 6749 §4.1.3: identical to the authorization request's redirect_uri, compared as written (ADR-0203).
+        // RFC 6749 §4.1.3: identical to the authorization request's redirect_uri, compared as written (ADR-1203).
         if (!string.Equals(authorizationRequest.RedirectUri, redirectUri, StringComparison.Ordinal))
             // invalid_grant
             throw errorFactory
@@ -110,7 +110,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                 );
 
         // A requested scope must be permitted by the client's grants and must be an actual scope value currently
-        // defined on one of the tenant's enabled resource servers (ADR-0026); GetAllowedScopesAsync already
+        // defined on one of the tenant's enabled resource servers (ADR-1026); GetAllowedScopesAsync already
         // intersects the client's grants with the live resource-server scope definitions, so this one check both
         // enforces the grant ceiling and validates the actual scope values.
         var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
@@ -166,7 +166,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
     // PKCE (RFC 7636 §4.6, OAuth 2.1 §4.1.3): a code bound to a code_challenge is redeemed only with the matching
     // code_verifier; a code that is not bound is redeemed without one (PKCE downgrade, RFC 9700 §4.8.2), and only where
     // the requirement exempts it for the client as authenticated here and the scopes the token request is effectively
-    // for. See ADR-0144.
+    // for. See ADR-1144.
     private void ValidateCodeVerifier(
         IOpenIdErrorFactory errorFactory,
         OpenIdClient openIdClient,

@@ -43,7 +43,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// a pre-routing authentication scheme cannot validate it. Applications replace these handlers to change how the
 /// subject's credentials are validated.
 /// </summary>
-// See ADR-0044 and ADR-0155.
+// See ADR-1044 and ADR-1155.
 internal class DefaultAuthenticateSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
@@ -80,7 +80,7 @@ internal class DefaultAuthenticateSubjectHandler(
         var (openIdContext, requiredAudiences) = command;
 
         // A protected resource is reached only with an access token (OpenID Connect Core 1.0 §5.3.1); an interactive
-        // session never authenticates it, so a request without a token is undefined (ADR-0155).
+        // session never authenticates it, so a request without a token is undefined (ADR-1155).
         var accessToken = await ResolveBearerTokenAsync(openIdContext.Http);
         if (string.IsNullOrEmpty(accessToken))
         {
@@ -135,7 +135,7 @@ internal class DefaultAuthenticateSubjectHandler(
         var baseTicket = baseResult.Ticket;
 
         // The server-side session of the cookie must still be active, as on the authorize path; a session that was
-        // revoked or has ended leaves the request unauthenticated, so the endpoint asks for a new login. See ADR-0225.
+        // revoked or has ended leaves the request unauthenticated, so the endpoint asks for a new login. See ADR-1225.
         var sessionId = baseTicket.Principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
         if (
             !string.IsNullOrEmpty(sessionId)
@@ -227,7 +227,7 @@ internal class DefaultAuthenticateSubjectHandler(
         // Resolve the authenticated subject to a stable, server-owned principal id, provisioning a federated principal
         // (and its connection identity) on first sight. This is the value carried into grants and emitted as the
         // `sub` claim, so authority and tokens reference the durable principal rather than the raw external subject
-        // (ADR-0035). A subject with no resolvable upstream identity falls back to its raw subject id.
+        // (ADR-1035). A subject with no resolvable upstream identity falls back to its raw subject id.
         var principalId = await ResolvePrincipalIdAsync(
             openIdContext,
             subject,

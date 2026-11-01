@@ -3,7 +3,7 @@
  * request token (echoed from a cookie the host sets), the error code, and which page to render. Every
  * path is relative to the surface: the host serves the bundle beneath the tenant's route and sets the
  * document's base to the surface there (`<base href="/{tenant}/account/">`), so the bundle resolves its
- * paths against `document.baseURI` and never assumes where it is mounted (ADR-0193). The helpers take
+ * paths against `document.baseURI` and never assumes where it is mounted (ADR-1193). The helpers take
  * the base as a parameter, defaulting to the document's, so they are unit-testable.
  */
 

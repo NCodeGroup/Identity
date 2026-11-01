@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// clients can drive their UI (for example which types can be created, or which expose an exportable public key)
 /// from server discovery rather than hard-coded assumptions.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SecretTypeCapabilityResource

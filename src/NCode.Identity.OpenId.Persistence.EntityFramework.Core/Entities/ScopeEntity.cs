@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// the same value on two resource servers is two distinct scopes.
 /// </summary>
 [Index(nameof(ResourceServerId), nameof(NormalizedValue), IsUnique = true)]
-// Resource-server runtime reads filter scopes by value across servers (ADR-0080's owns-any-scope join); the composite
+// Resource-server runtime reads filter scopes by value across servers (ADR-1080's owns-any-scope join); the composite
 // unique index above leads with ResourceServerId and cannot seek NormalizedValue alone, so this standalone index backs
 // the scope-driven lookup.
 [Index(nameof(NormalizedValue))]

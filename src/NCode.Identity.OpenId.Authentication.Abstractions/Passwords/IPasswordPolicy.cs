@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// end user, or created by a seeder. The default policy requires the length the tenant's settings set and refuses a
 /// password that any registered <see cref="IPasswordBlocklist"/> lists; it imposes no composition rules.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 [PublicAPI]
 public interface IPasswordPolicy
 {

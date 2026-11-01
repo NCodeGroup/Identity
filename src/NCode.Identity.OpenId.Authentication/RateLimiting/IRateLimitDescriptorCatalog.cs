@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <summary>
 /// Provides the registered <see cref="RateLimitDescriptor"/> instances by the stage that judges them.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 internal interface IRateLimitDescriptorCatalog
 {
     /// <summary>

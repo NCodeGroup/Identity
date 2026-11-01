@@ -239,7 +239,7 @@ internal class ClientApiEndpointHandler(
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the tenant's
     /// settings are absent.</returns>
     /// <exception cref="UnreadableSettingsException">The tenant's document or the server's cannot be honored.</exception>
-    // See ADR-0204 and ADR-0245.
+    // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeTenantSettingsAsync(
         string tenantId,
         IStoreManager storeManager,
@@ -280,7 +280,7 @@ internal class ClientApiEndpointHandler(
     /// settings are absent.</returns>
     /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or the server's cannot be
     /// honored.</exception>
-    // See ADR-0204 and ADR-0245.
+    // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
         string tenantId,
         string clientId,
@@ -317,7 +317,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances naming each registered setting whose value is not permitted, or an
     /// empty list.</returns>
-    // See ADR-0206.
+    // See ADR-1206.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
         string tenantId,
         JsonElement clientSettings,
@@ -467,7 +467,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="limit">The maximum number of clients to check on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">A page of incoherent clients.</response>
-    // See ADR-0233.
+    // See ADR-1233.
     [EndpointName("api/clients/incoherent/list")]
     internal virtual async ValueTask<IResult> ListIncoherentClientsAsync(
         HttpContext httpContext,
@@ -584,7 +584,7 @@ internal class ClientApiEndpointHandler(
             },
         };
 
-        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-1014).
         var error = await ClientValidator.ValidateCreateAsync(
             httpContext.User,
             client,
@@ -597,8 +597,8 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139), and a client carries only the settings that apply within it
-        // (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed on every
+        // Setting names are a closed vocabulary (ADR-1139), and a client carries only the settings that apply within it
+        // (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed on every
         // request that resolves the client.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
@@ -644,7 +644,7 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
-        // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
+        // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = client.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenantId}/clients/{client.ClientId}", resource);
     }
@@ -692,7 +692,7 @@ internal class ClientApiEndpointHandler(
         }
 
         // Core preconditions (authorization + If-Match) are asserted by the validator against the hydrated
-        // model (ADR-0015).
+        // model (ADR-1015).
         var error = await ClientValidator.ValidateUpdateAsync(
             httpContext.User,
             client,
@@ -747,7 +747,7 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // The core precondition (authorization) is asserted by the validator (ADR-0014); the store removes everything that exists for the client (ADR-0212).
+        // The core precondition (authorization) is asserted by the validator (ADR-1014); the store removes everything that exists for the client (ADR-1212).
         var error = await ClientValidator.ValidateDeleteAsync(
             httpContext.User,
             client,
@@ -838,7 +838,7 @@ internal class ClientApiEndpointHandler(
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // A null projection is the absent tenant, answered 404. See ADR-0245.
+        // A null projection is the absent tenant, answered 404. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
             client.Settings.Value,
@@ -1079,7 +1079,7 @@ internal class ClientApiEndpointHandler(
             // A client's symmetric secret is its client_secret — presented verbatim for client_secret_basic/post and
             // used as the HMAC key for client_secret_jwt — so it must be stored as the UTF-8 bytes of the opaque
             // string (GenerateSharedSecret), not the raw-byte / base64url-reveal crypto-key material GenerateSecret
-            // produces for asymmetric JWKS keys (which never UTF-8 round-trips). See ADR-0110.
+            // produces for asymmetric JWKS keys (which never UTF-8 round-trips). See ADR-1110.
             generatedSecret =
                 request.SecretType == SecretTypes.Symmetric
                     ? SecretGenerator.GenerateSharedSecret(protector, generateRequest)
@@ -1122,10 +1122,10 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
-        // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
+        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
 
-        // The one-time material is revealed here only (ADR-0050); the audit snapshot above stays material-free.
+        // The one-time material is revealed here only (ADR-1050); the audit snapshot above stays material-free.
         return TypedResults.Created(
             $"/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}",
             ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
@@ -1141,7 +1141,7 @@ internal class ClientApiEndpointHandler(
     /// keeps its <c>kid</c>; any other key is identified by its secret identifier. The <c>kid</c> must be unique among
     /// the client's keys, and a client that publishes its keys at a <c>jwks_uri</c> cannot have keys registered for it.
     /// </remarks>
-    // See ADR-0104 and ADR-0161.
+    // See ADR-1104 and ADR-1161.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -1324,7 +1324,7 @@ internal class ClientApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            // The public key is read from its stored public half, so no master key is loaded (ADR-0268).
+            // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
             x => SecretPublicKeyConverter.Convert(x.Value)
         );
     }
@@ -1497,7 +1497,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the rotated secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The replacement secret.</response>
-    // See ADR-0183.
+    // See ADR-1183.
     [EndpointName("api/clients/secrets/rotate")]
     internal virtual async ValueTask<IResult> RotateSecretAsync(
         HttpContext httpContext,
@@ -1583,7 +1583,7 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            // A client's shared secret is its client_secret, stored as the UTF-8 bytes of the opaque string (ADR-0110).
+            // A client's shared secret is its client_secret, stored as the UTF-8 bytes of the opaque string (ADR-1110).
             generatedSecret = SecretGenerator.GenerateSharedSecret(
                 protector,
                 new GenerateSecretRequest
@@ -1651,7 +1651,7 @@ internal class ClientApiEndpointHandler(
 
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
 
-        // The replacement's material is revealed here only (ADR-0050).
+        // The replacement's material is revealed here only (ADR-1050).
         return TypedResults.Created(
             $"/tenants/{tenantId}/clients/{clientId}/secrets/{replacementId}",
             ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
@@ -1737,7 +1737,7 @@ internal class ClientApiEndpointHandler(
             is not null;
 
     // A client's public keys come from one source, the keys registered for it or the keys it publishes at its
-    // jwks_uri (OpenID Connect Dynamic Client Registration 1.0 §2). See ADR-0161.
+    // jwks_uri (OpenID Connect Dynamic Client Registration 1.0 §2). See ADR-1161.
     private static ProblemHttpResult KeySourceConflict() =>
         TypedResults.Problem(
             detail: "A client's public keys come from one source: the keys registered for it or the keys it "

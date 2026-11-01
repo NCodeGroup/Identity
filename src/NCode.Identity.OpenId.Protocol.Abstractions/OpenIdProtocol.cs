@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId;
 /// <summary>
 /// Contains the <c>OAuth 2.0</c> and <c>OpenID Connect</c> wire vocabulary that is shared by the OpenID provider and
 /// the protocol client. Its constants name well-known members of open vocabularies without closing them
-/// (<see href="https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/0150-vocabularies-are-open-unless-provably-closed.md">ADR-0150</see>).
+/// (<see href="https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md">ADR-1150</see>).
 /// </summary>
 [PublicAPI]
 public static partial class OpenIdProtocol

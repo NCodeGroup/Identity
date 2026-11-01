@@ -1,0 +1,186 @@
+# 1063. Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store
+
+- **Status:** Accepted (metadata storage and the registration `scope` amended by
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): informational metadata are registered client settings, the
+  requested `scope` is not stored, and the response reports the scopes the client may request; `response_types` and
+  `grant_types` amended by [ADR-1141](1141-response-types-are-whole-values.md): whole response types in canonical form,
+  defaulted and checked consistently with the grant types and with what the tenant supports; `token_endpoint_auth_method`
+  amended by [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the registered method is the
+  only one the client authenticates with, and it must be within the tenant's `token_endpoint_auth_methods_supported`;
+  `jwks` amended by [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): its
+  keys are imported under the client-key policy and stored as the client's secrets, the response projects them back,
+  and an update replaces them; the initial access token amended in place: it is spent by the one registration it
+  authorizes and expires within thirty days; deregistration amended by
+  [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): the store removes the client with its secrets and grants
+  in one unit of work)
+- **Date:** 2026-10-10
+- **Deciders:** NCode Group
+
+## Context
+
+<see href="https://datatracker.ietf.org/doc/html/rfc7591">RFC 7591</see> (OAuth 2.0 Dynamic Client Registration) lets a
+client register itself with the authorization server by `POST`ing a JSON client-metadata document to a
+`registration_endpoint` and receiving an assigned `client_id`, an optional `client_secret`, and — together with
+<see href="https://datatracker.ietf.org/doc/html/rfc7592">RFC 7592</see> (the registration management protocol) — a
+`registration_access_token` and a `registration_client_uri` the client then uses to `GET` / `PUT` / `DELETE` its own
+registration. It is a distinct OpenID Provider certification profile (**Dynamic OP**), and it removes manual client
+seeding: without it the only way to create a client is the management API or provisioning/seeding.
+
+The server already has every seam the feature needs. Clients are persisted as a `PersistedClient` (a disabled flag, a
+JSON settings document, and a secret collection) through `IClientStore`; the management API creates them exactly this
+way. Client secrets are generated server-side and revealed once by `ISecretGenerator`
+([ADR-1050](1050-secret-material-revealed-once-on-create.md)). Protocol endpoints self-register and self-advertise in
+discovery ([ADR-1009](1009-endpoint-families-own-their-route-group.md)). Settings cascade server → tenant → client
+through a merge lattice ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
+[ADR-1038](1038-setting-merge-lattice-duals.md)). And `IPersistedGrantService` persists "any type of grant and its
+payload" as a tenant-scoped, **hash-keyed**, optionally-expiring, status-bearing envelope — the same machinery the
+authorization-code, refresh-token, and device-code flows ride.
+
+Two design questions are genuinely open and deserve a recorded decision:
+
+1. **Who may register?** RFC 7591 permits both open (anonymous) registration and protected registration gated by an
+   _initial access token_. Open registration is an abuse/DoS vector; the Dynamic OP conformance profile, by contrast,
+   wants anonymous registration so its harness can provision clients unattended.
+2. **How is a per-client `registration_access_token` stored and authenticated** for the RFC 7592 management calls, which
+   are **not** standard client authentication — the bearer is a token bound to one specific client, long-lived, and
+   presented without a `client_id`.
+
+## Decision
+
+**Implement the registration and management endpoints as one self-advertising OpenID endpoint family in the
+authentication library, project RFC 7591 client metadata onto the existing `PersistedClient` settings document, reveal
+the `client_secret` through the existing one-time secret generator, and model both the `registration_access_token`
+(RFC 7592) and the `initial_access_token` (RFC 7591) as persisted-grant payloads.** No new persistence table, store, or
+EF migration is introduced — dynamic registration rides the client store and the grant store, which are the cohesive
+homes for "a client" and "a token bound to a client."
+
+Concretely:
+
+- **Two routes, one family.** `POST /oauth2/register` is the registration endpoint; it advertises itself as
+  `registration_endpoint` in `.well-known/openid-configuration`. `GET` / `PUT` / `DELETE /oauth2/register/{client_id}`
+  is the per-client management endpoint (RFC 7592); it is **not** discoverable (the client reaches it through the
+  `registration_client_uri` returned at registration).
+- **Metadata maps onto the settings document.** Functional metadata is stored under the client settings the server
+  already resolves at runtime — `redirect_uris`, `grant_types_supported` (from `grant_types`),
+  `response_types_supported` (from `response_types`), and `scopes_supported` (from the space-delimited `scope`).
+  Informational metadata that has no runtime setting (`client_name`, `client_uri`, `logo_uri`, `contacts`, `tos_uri`,
+  `policy_uri`, `jwks_uri`, `jwks`, `software_id`, `software_version`, and the chosen `token_endpoint_auth_method`) is
+  stored verbatim in the same JSON document so a registration round-trips through the management endpoint. There is no
+  second storage shape: the settings document is the single home, and a `GET` reconstructs the client-information
+  response from it.
+- **The `client_secret` is the existing one-time secret.** A confidential client (any `token_endpoint_auth_method`
+  other than `none`) receives a server-generated symmetric secret via `ISecretGenerator`; its one-time material is the
+  `client_secret` returned in the registration response and never again. This is the same secret a client presents for
+  `client_secret_basic` / `client_secret_post`, so client authentication works unchanged
+  ([ADR-1050](1050-secret-material-revealed-once-on-create.md)). The secret is stored with a non-expiring lifetime and
+  reported as `client_secret_expires_at: 0` ("does not expire"). A public client (`none`) receives no secret.
+- **Both DCR token types are persisted grants.** The `registration_access_token` is a `PersistedGrant` keyed by the
+  token value whose payload binds it to its `client_id`, written with **no expiration**; an RFC 7592 call authenticates
+  by looking the bearer up as that grant and confirming its payload `client_id` matches the `{client_id}` in the route.
+  Because the grant store keys on a **salted hash of the token**, the plaintext token is never stored — the same
+  posture the authorization-code and device-code grants already have. The RFC 7591 _initial access token_ is modeled
+  the same way (`initial_access_token` grant); it is minted through the management API (see Consequences). Unlike the
+  registration access token, it is **single-use and short-lived**: minting gives it an expiry (one day by default, at
+  most thirty days), and the one registration it authorizes spends it
+  ([ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)). The endpoint spends
+  it through `IInitialAccessTokenValidator.TryConsumeAsync`, after every check on the registration has passed and
+  immediately before the client is stored, so a refused registration leaves the token unspent.
+- **Authorization is configurable, protected by default.** A new discoverable-as-non-standard setting
+  `registration_endpoint_allow_anonymous` (default `false`, merged with the boolean **meet** `And` so a parent that
+  disallows anonymous registration cannot be loosened downward) governs the endpoint. When `false`, the caller must
+  present a valid initial access token as a Bearer credential, validated through an injectable
+  `IInitialAccessTokenValidator` seam — deployment-specific, because "what counts as a valid initial access token" is a
+  deployment choice. The default validator treats it as an `initial_access_token` persisted grant; a host may replace
+  the seam to validate, for example, an access token carrying a required scope. When `true`, registration is anonymous
+  (the posture the Dynamic OP conformance harness needs).
+- **Metadata validation.** `token_endpoint_auth_method` is constrained to the supported set
+  (`none` / `client_secret_basic` / `client_secret_post`); `grant_types` defaults to `authorization_code` and
+  `response_types` to `code` per RFC 7591; a grant type that uses a redirect (`authorization_code`, `implicit`) requires
+  at least one `redirect_uris` value; and each redirect URI must be a valid absolute URI without a fragment. Failures
+  return the RFC 7591 error codes `invalid_client_metadata` / `invalid_redirect_uri`.
+- **Back-channel logout metadata.** `backchannel_logout_uri` and `backchannel_logout_session_required` (OpenID Connect
+  Back-Channel Logout 1.0 §2.2) are stored as the client settings of the same names, which the back-channel logout
+  notifier reads, and are reported back. A self-registered `backchannel_logout_uri` must be an absolute `https` URI
+  without a fragment (`invalid_client_metadata` otherwise), because the spec permits http only for a confidential client
+  the OP allows it for and a `logout_token` must not travel in clear; operator-configured clients keep the setting's
+  own rule.
+- **RP-initiated and front-channel logout metadata.** `post_logout_redirect_uris` (RP-Initiated Logout 1.0 §3.1),
+  `frontchannel_logout_uri` and `frontchannel_logout_session_required` (Front-Channel Logout 1.0 §2) are stored as the
+  client settings of the same names, which the end-session endpoint and the front-channel logout service read, and are
+  reported back. Each post-logout redirect URI must be an absolute URI without a fragment, and the front-channel URI an
+  absolute URI without a fragment whose scheme, host and port are those of a registered redirect URI, as the spec
+  requires (`invalid_client_metadata` otherwise). A logout channel the tenant does not support is refused by the client
+  coherence rules.
+- **Delete removes the client with what it owns.** `DELETE` removes the client, and the store removes its secrets and
+  grants, the `registration_access_token` grant included, in the same unit of work
+  ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)).
+
+## Options considered
+
+- **Put registration on the management API instead of a protocol endpoint.** Rejected. The management API is an
+  operator surface guarded by its own authorization model ([ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md));
+  RFC 7591/7592 are _protocol_ endpoints a client calls for itself, advertised in discovery, with their own
+  initial-access-token / registration-access-token authentication. They belong with the OAuth endpoints, and placing
+  them there is what makes the Dynamic OP discovery advertisement and conformance profile work.
+- **A dedicated store (or table/column) for registration access tokens.** Rejected. A per-client bearer token bound to
+  a client, hash-keyed, optionally expiring, and revocable **is** a `PersistedGrant`; a parallel store would duplicate
+  the tenant-scoping, hash-keying, and EF plumbing the grant store already provides and force an out-of-band migration
+  ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)) for a record the existing schema fits.
+- **A separate blob for the registered metadata document, kept beside the runtime settings.** Rejected. It would
+  duplicate the functional fields (which must also be runtime settings) and create two sources of truth. Storing the
+  informational fields inside the one settings document the server already persists keeps a single home and a symmetric
+  read-back, at the cost of a few inert keys the runtime ignores.
+- **Open registration by default (or hard-coded).** Rejected. Correct-by-default forbids shipping an anonymous
+  write endpoint as the baseline; a deployment opts into anonymous registration deliberately via a setting, and even
+  then the merge lattice prevents a child scope from re-enabling what a parent disallowed.
+- **Hash the registration/initial access tokens ourselves before storing.** Unnecessary. The grant store already keys
+  on a salted hash of the grant key, so persisting the token as the grant key yields hash-at-rest for free and matches
+  every other grant.
+
+## Consequences
+
+- Dynamic client registration and management work end to end with **no schema change**: registration writes a
+  `PersistedClient` through the existing client store, the `client_secret` is the existing one-time secret, and both
+  DCR token types ride the existing grant store, discovery, and settings machinery.
+- The server gains the **Dynamic OP** certification profile and removes manual client seeding; the conformance harness
+  can provision clients unattended (with `registration_endpoint_allow_anonymous` enabled) and run plan modules in
+  parallel — the prerequisite the conformance plan records against this gap
+  ([`docs/conformance-testing.md`](../conformance-testing.md)).
+- `IInitialAccessTokenValidator` is the deployment seam for protected registration; a host plugs in its own policy
+  without touching the endpoint. Initial access tokens are **provisioned through the management API**: a tenant-scoped
+  `POST api/tenants/{tenantId}/grants/initial-access-tokens` mints a hash-keyed `initial_access_token` grant,
+  returning the one-time plaintext token (revealed once, ADR-1050 posture) together with the grant id for later
+  revocation through the grant management endpoint, and records an `InitialAccessTokenCreatedAuditEvent`. A minted token
+  expires after one day unless the request's `lifetimeSeconds` says otherwise, and `lifetimeSeconds` is at most thirty
+  days (2 592 000 seconds; a longer lifetime is a `400`), so the response always reports `expiresWhen`. The one
+  registration the token authorizes spends it: `TryConsumeAsync` returns `false` for a token that is already spent,
+  expired or revoked, and the registration is answered `invalid_token` (`401`). A registration refused for any other
+  reason leaves the token unspent. A deployment that wants protected registration either mints tokens this way or
+  replaces the validator seam (for example, to accept an access token carrying a required scope), in which case the
+  replacement implements `TryConsumeAsync` as well; it may also enable anonymous registration. Minting reuses the shared
+  `IPersistedGrantService.AddAsync`, which now returns the server-generated grant id so the management surface can hand
+  it back for revocation.
+- Informational metadata are registered client settings with their RFC 7591 names, so the settings document holds no
+  untyped keys ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); the management endpoint reads them back.
+- RFC 7592 responses omit the `registration_access_token` on `GET` / `PUT` because the server stores only its hash and
+  cannot reproduce the plaintext; the client already holds its token. Rotation on update is intentionally not performed
+  (RFC 7592 makes it a MAY) and remains available as a future addition.
+- A "you chose wrong" smell: if registered-metadata fields ever need first-class validation, indexing, or their own
+  lifecycle distinct from runtime settings, that is the signal to promote them into a dedicated client-metadata
+  contract rather than inert settings keys.
+
+## References
+
+- [ADR-1001](1001-mediator-vs-dependency-injection-logic-classes.md) — the service/strategy/mediator extensibility
+  model the endpoint family and the validator seam follow.
+- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their routes and discovery
+  advertisement.
+- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1038](1038-setting-merge-lattice-duals.md) —
+  the settings descriptor and merge-lattice conventions the `registration_endpoint_allow_anonymous` setting follows.
+- [ADR-1050](1050-secret-material-revealed-once-on-create.md) — the one-time secret reveal reused for the
+  `client_secret`.
+- [ADR-1059](1059-device-authorization-grant.md) — the persisted-grant-payload pattern reused for the DCR token types.
+- [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md) — why avoiding a new migration matters.
+- <see href="https://datatracker.ietf.org/doc/html/rfc7591">RFC 7591</see> — OAuth 2.0 Dynamic Client Registration.
+- <see href="https://datatracker.ietf.org/doc/html/rfc7592">RFC 7592</see> — OAuth 2.0 Dynamic Client Registration
+  Management.

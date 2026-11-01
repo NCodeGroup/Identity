@@ -53,7 +53,7 @@ public sealed class DefaultPrincipalResolverTests
 
         var context = mocks.Create<OpenIdContext>();
         context.Setup(x => x.Tenant).Returns(tenant.Object);
-        // The resolver derives the subject through the tenant-aware context seam (ADR-0053).
+        // The resolver derives the subject through the tenant-aware context seam (ADR-1053).
         context
             .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
             .Returns((ClaimsPrincipal user) => user.FindFirstValue("sub"));

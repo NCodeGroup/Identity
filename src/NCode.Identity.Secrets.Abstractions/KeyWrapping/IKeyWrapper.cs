@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// example a key in a key management service or a key file that is mounted into the process. Each implementation is
 /// identified by <see cref="Name"/> so that a wrapped key records which wrapper can unwrap it.
 /// </summary>
-// See ADR-0279.
+// See ADR-1279.
 [PublicAPI]
 public interface IKeyWrapper
 {

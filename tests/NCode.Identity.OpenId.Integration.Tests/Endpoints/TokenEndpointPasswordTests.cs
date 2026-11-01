@@ -87,7 +87,7 @@ public class TokenEndpointPasswordTests
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
 
         // The access token's subject is the stable, server-owned principal id resolved for the authenticated account —
-        // never the raw local-account id or username (ADR-0035).
+        // never the raw local-account id or username (ADR-1035).
         var payload = DecodeJwtPayload(accessToken.GetString()!);
         var subject = payload.GetProperty("sub").GetString();
         Assert.False(string.IsNullOrEmpty(subject));

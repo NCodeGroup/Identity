@@ -27,7 +27,7 @@ namespace NCode.Identity.Bff.Diagnostics;
 /// touch the meter directly. Logins, session ends and rejections are audit events, which the event seam counts; these
 /// instruments measure the BFF's own mechanisms.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 internal sealed class BffMetrics
 {
     internal const string TokenRefreshDurationName = "ncode.identity.bff.token.refresh.duration";

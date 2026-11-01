@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// lifetime and <c>typ</c> as its <see cref="ProviderJwtProfile"/> says. The caller checks the claims particular to the
 /// kind of token.
 /// </summary>
-// See ADR-0301.
+// See ADR-1301.
 internal class ProviderJwtValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IProviderKeySetResolver keySetResolver,
@@ -108,7 +108,7 @@ internal class ProviderJwtValidator(
             ResolveValidationKeysAsync = (jose, _, _, ct) =>
             {
                 // The signing keys are resolved only for the enclosed JWS, which exists only after decryption, so a
-                // key failure before this point is a decryption failure (ADR-0280).
+                // key failure before this point is a decryption failure (ADR-1280).
                 signingKeysResolved = true;
                 return ProviderSignaturePolicy.ResolveKeysAsync(
                     KeySetResolver,

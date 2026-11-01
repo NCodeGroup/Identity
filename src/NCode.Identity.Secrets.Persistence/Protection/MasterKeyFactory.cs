@@ -42,7 +42,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="catalog">The catalog that resolves the root key provider that wraps and unwraps master keys.</param>
 /// <param name="recovery">The wrapper that wraps a new master key under the offline recovery public key.</param>
 /// <param name="timeProvider">The time provider that supplies the creation time of a new master key.</param>
-// See ADR-0235.
+// See ADR-1235.
 internal class MasterKeyFactory(
     IKeyWrapperCatalog catalog,
     IRecoveryKeyWrapper recovery,

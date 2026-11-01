@@ -28,7 +28,7 @@ namespace NCode.Identity.Bff;
 /// A field may not use one of the <see cref="ReservedFieldNames"/>, which the BFF writes itself, nor a name another
 /// contributor already used.
 /// </summary>
-// See ADR-0290.
+// See ADR-1290.
 [PublicAPI]
 public sealed class BffUserContext
 {

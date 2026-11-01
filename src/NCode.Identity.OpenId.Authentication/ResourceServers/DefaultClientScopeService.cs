@@ -43,7 +43,7 @@ internal class DefaultClientScopeService(
     )
     {
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server and client-grant reads (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server and client-grant reads (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -57,7 +57,7 @@ internal class DefaultClientScopeService(
         );
 
         // The DBMS returns only the enabled resource servers that are system-owned or that this client holds a grant
-        // for; everything else cannot contribute an allowed scope (ADR-0080).
+        // for; everything else cannot contribute an allowed scope (ADR-1080).
         var projections = await resourceServerStore.GetEnabledScopeProjectionsBySystemOrIdsAsync(
             grantedScopesByResourceServer.Keys.ToList(),
             cancellationToken
@@ -70,7 +70,7 @@ internal class DefaultClientScopeService(
         {
             if (resourceServer.IsSystem)
             {
-                // A system resource server is implicitly available to every client (ADR-0025).
+                // A system resource server is implicitly available to every client (ADR-1025).
                 allowedScopes.UnionWith(resourceServer.ScopeValues);
             }
             else if (
@@ -104,14 +104,14 @@ internal class DefaultClientScopeService(
             scopes as IReadOnlySet<string> ?? scopes.ToHashSet(StringComparer.Ordinal);
 
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server reads (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
         // The DBMS pre-filters to enabled resource servers owning one of the scopes (case-insensitive); the exact
-        // case-sensitive ownership match is applied here (ADR-0080).
+        // case-sensitive ownership match is applied here (ADR-1080).
         var projections = await resourceServerStore.GetEnabledScopeProjectionsByScopesAsync(
             scopes,
             cancellationToken
@@ -137,7 +137,7 @@ internal class DefaultClientScopeService(
     )
     {
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server reads (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);

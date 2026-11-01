@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 /// <see cref="SecretResource"/> plus the one-time unprotected key material. The material is revealed only in
 /// this create response and is never returned by any read path.
 /// </summary>
-// See ADR-0050.
+// See ADR-1050.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class CreatedSecretResource

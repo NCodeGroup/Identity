@@ -1104,7 +1104,7 @@ public class TokenIntrospectionEndpointTests
     #endregion
 
     // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys it is provisioned
-    // with (ADR-0169), which only a host without developer keys provisions. The developer-key mode decides what the host
+    // with (ADR-1169), which only a host without developer keys provisions. The developer-key mode decides what the host
     // registers, so it is supplied as a host setting, which that read observes, rather than as a configuration overlay
     // applied after it.
     private sealed class ProvisionedKeysHostApplicationFactory : HostApplicationFactory

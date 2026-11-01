@@ -46,7 +46,7 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// claims permitted by the token's granted scopes or explicitly requested are emitted. A host fronting a different
 /// user store registers its own enricher instead.
 /// </summary>
-// See ADR-0030, ADR-0051.
+// See ADR-1030, ADR-1051.
 internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService
@@ -196,7 +196,7 @@ internal sealed class DefaultGetLocalAccountUserInfoClaimsHandler(
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
-        // The principal owns a one-to-one self-issued connection whose subject is the local account id (ADR-0051); the
+        // The principal owns a one-to-one self-issued connection whose subject is the local account id (ADR-1051); the
         // caller presenting a non-local (external-IdP) principal simply resolves no local account and is skipped.
         var identityStore = storeManager.GetStore<IFederatedIdentityStore>();
         var identities = await identityStore.GetByPrincipalAsync(principalId, cancellationToken);

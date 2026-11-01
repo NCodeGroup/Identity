@@ -63,7 +63,7 @@ internal static class AuthorizationResponseWriter
 
     /// <summary>
     /// Redirects to the redirect URI with the parameters in its query or in its fragment. The redirect URI equals a
-    /// registered one as written (ADR-0203), so its query is the registered query, which the response keeps unless a
+    /// registered one as written (ADR-1203), so its query is the registered query, which the response keeps unless a
     /// response parameter replaces it (RFC 6749 §3.1.2).
     /// </summary>
     public static void WriteRedirect(
@@ -73,7 +73,7 @@ internal static class AuthorizationResponseWriter
         IReadOnlyCollection<KeyValuePair<string, StringValues>> parameters
     )
     {
-        // ADR-0203: delivered as written; re-serializing through Uri adds a trailing slash and lower-cases the host
+        // ADR-1203: delivered as written; re-serializing through Uri adds a trailing slash and lower-cases the host
         var serialized = SerializeUriParameters(parameters);
 
         var location = useQuery
@@ -197,7 +197,7 @@ internal static class AuthorizationResponseWriter
 
     // The form posts to the client, which may redirect anywhere, so form-action stays open. A relying party may
     // re-authenticate with prompt=none in an iframe (Session Management 1.0), so the redirect URI's origin, and no
-    // other, may frame the response. See ADR-0256.
+    // other, may frame the response. See ADR-1256.
     private static HtmlPageSecurityPolicy CreateFormPostPolicy(string redirectUri)
     {
         ImmutableArray<string> frameAncestors =

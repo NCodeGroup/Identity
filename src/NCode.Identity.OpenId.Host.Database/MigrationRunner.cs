@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Host.Database;
 /// <c>MigrationService</c> worker so schema application is a dedicated Aspire resource: a migration failure surfaces as
 /// a failed dashboard resource instead of crashing the <c>api</c> host.
 /// </summary>
-// See ADR-0073.
+// See ADR-1073.
 [PublicAPI]
 public static class MigrationRunner
 {

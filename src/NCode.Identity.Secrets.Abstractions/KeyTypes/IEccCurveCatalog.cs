@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// absent from the catalog is not generatable and is intentionally omitted from the <c>JWKS</c>.
 /// Applications extend the set by registering additional <see cref="EccCurveSpecification"/> services.
 /// </summary>
-// See ADR-0068.
+// See ADR-1068.
 [PublicAPI]
 public interface IEccCurveCatalog
 {

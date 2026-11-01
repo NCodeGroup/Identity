@@ -43,7 +43,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// the host does not run with a key ring that it cannot read.
 /// </para>
 /// </remarks>
-// See ADR-0247.
+// See ADR-1247.
 internal class DataProtectionKeyRingGate(
     IKeyManager keyManager,
     IOptions<DataProtectionKeyRingOptions> optionsAccessor,

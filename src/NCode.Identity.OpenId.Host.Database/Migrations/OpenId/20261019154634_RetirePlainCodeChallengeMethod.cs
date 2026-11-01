@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
     )]
     public partial class RetirePlainCodeChallengeMethod : Migration
     {
-        // Every table that stores a settings document (ADR-0140: narrowing a setting's domain makes a stored document
+        // Every table that stores a settings document (ADR-1140: narrowing a setting's domain makes a stored document
         // that uses the removed value fail closed when it is read, so the narrowing rewrites the stored documents).
         private static readonly string[] SettingsTables = ["Servers", "Tenants", "Clients", "ResourceServers"];
 
@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         {
             // The PKCE 'plain' method is no longer a value of 'code_challenge_methods_supported': it exposes the code
             // verifier in the authorization request, and the domain is the registered transformations, which do not
-            // include it (ADR-0144). Each list that names it is rewritten without it. The list merges by intersection,
+            // include it (ADR-1144). Each list that names it is rewritten without it. The list merges by intersection,
             // so the document restricts at least what it restricted before; a list that named only 'plain' becomes
             // empty, which offers no method — the server cannot honor the one it listed.
             //

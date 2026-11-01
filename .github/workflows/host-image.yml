@@ -1,14 +1,14 @@
 # Host image — builds the production image of NCode.Identity.OpenId.Host for every published architecture.
 #
-# The image is the deployable artifact (ADR-0133), so a change that breaks its build — a project the publish needs, a
+# The image is the deployable artifact (ADR-1133), so a change that breaks its build — a project the publish needs, a
 # frontend build step, the allow-list .dockerignore — fails here rather than at release. Nothing is pushed: publishing
 # to GHCR belongs to the release workflow. Every stage that runs commands runs on the runner's own architecture and
-# cross-publishes, so the arm64 image builds without emulation (ADR-0178).
+# cross-publishes, so the arm64 image builds without emulation (ADR-1178).
 name: Host image
 
 on:
   # A push gates only main and the release lines, because a pull request already gates every other branch (see ci.yml).
-  # The merge queue runs the check on the merged result, so a required check must report on merge_group (ADR-0263).
+  # The merge queue runs the check on the merged result, so a required check must report on merge_group (ADR-1263).
   # Release lines are gated like main.
   push:
     branches: [main, 'release/**']
@@ -41,7 +41,7 @@ jobs:
           persist-credentials: false
 
       # The Dockerfile names Node by a literal tag and digest, which a FROM line cannot read from a file, so its major
-      # must equal the single pin in src/frontend/.node-version (ADR-0152, ADR-0249).
+      # must equal the single pin in src/frontend/.node-version (ADR-1152, ADR-1249).
       - name: Check the Node image follows .node-version
         run: |
           major=$(cat src/frontend/.node-version)
@@ -76,7 +76,7 @@ jobs:
           tags: ncode-identity-host:ci
           cache-from: type=gha
 
-      # The image carries the log format (ADR-0248), so a change that drops it fails here rather than in production.
+      # The image carries the log format (ADR-1248), so a change that drops it fails here rather than in production.
       - name: Check the image logs one-line JSON
         run: |
           env=$(docker image inspect ncode-identity-host:ci --format '{{range .Config.Env}}{{println .}}{{end}}')

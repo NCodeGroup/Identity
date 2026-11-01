@@ -195,12 +195,12 @@ and the backing settings in
 | `userinfo_endpoint`                     | `<issuer>/oauth2/userinfo`                     | Required by Basic OP                                          |
 | `response_types_supported`              | `["code"]`                                     | Add `id_token`/`code id_token` only when those flows verified |
 | `grant_types_supported`                 | `["authorization_code","refresh_token"]`       | Match the seeded client's allowed grants                      |
-| `subject_types_supported`               | `["public","pairwise"]`                        | Both implemented (ADR-0093)                                   |
+| `subject_types_supported`               | `["public","pairwise"]`                        | Both implemented (ADR-1093)                                   |
 | `id_token_signing_alg_values_supported` | `["RS256"]`                                    | Must match the key the suite fetches from `jwks_uri`          |
 | `scopes_supported`                      | incl. `openid`, `profile`, `email`             | Suite requests these in standard claims tests                 |
 | `claims_supported`                      | the claims actually returned                   | Over-advertising triggers warnings                            |
 | `token_endpoint_auth_methods_supported` | `["client_secret_basic","client_secret_post"]` | Must cover both to certify Basic OP                           |
-| `code_challenge_methods_supported`      | `["S256"]`                                     | PKCE; `plain` is not offered (ADR-0144)                       |
+| `code_challenge_methods_supported`      | `["S256"]`                                     | PKCE; `plain` is not offered (ADR-1144)                       |
 
 ## Appendix B — Login/consent automation contract
 
@@ -225,7 +225,7 @@ negative tests.
 ## Appendix C — Client seeding checklist (manual, non-DCR path)
 
 The Basic OP plan needs **three** client registrations; each is a distinct client, because a client authenticates only
-with the one method it registers ([ADR-0145](decisions/0145-a-client-authenticates-only-with-its-registered-method.md)). All
+with the one method it registers ([ADR-1145](decisions/1145-a-client-authenticates-only-with-its-registered-method.md)). All
 must register the suite callback as a redirect URI.
 
 - **`client` (primary):** `token_endpoint_auth_method=client_secret_basic`; grants
@@ -237,7 +237,7 @@ must register the suite callback as a redirect URI.
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`;
   hosted: `https://www.certification.openid.net/test/a/<ALIAS>/callback`).
 - **PKCE:** allow `S256`. The OP binds every authorization code to PKCE by default
-  ([ADR-0144](decisions/0144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
+  ([ADR-1144](decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 

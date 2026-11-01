@@ -36,7 +36,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Drives a tenant past its <c>rate_limit_tenant_per_minute</c> limit and its daily quotas through the real host and
-/// confirms the refused request is answered <c>429 Too Many Requests</c> with <c>Retry-After</c> (ADR-0196, ADR-0198).
+/// confirms the refused request is answered <c>429 Too Many Requests</c> with <c>Retry-After</c> (ADR-1196, ADR-1198).
 /// </summary>
 public class RateLimitTests
 {
@@ -162,7 +162,7 @@ public class RateLimitTests
     public async Task Discovery_WhenRequestedRepeatedly_DoesNotSpendTheDailyQuota()
     {
         // Discovery and the JSON Web Key Set are public metadata, so anonymous callers cannot spend the tenant's quota
-        // and refuse its clients (ADR-0198); the per-minute limits still cover them.
+        // and refuse its clients (ADR-1198); the per-minute limits still cover them.
         using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantRequestsPerDay, "1");
         var client = CreateClient(factory);
 

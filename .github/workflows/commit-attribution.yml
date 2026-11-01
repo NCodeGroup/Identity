@@ -1,4 +1,4 @@
-# Commit attribution — commits are attributed to people, not agents (ADR-0128).
+# Commit attribution — commits are attributed to people, not agents (ADR-1128).
 #
 # This workflow runs .template/Test-CommitAttribution.ps1, from the project template, which rejects any commit whose
 # author or committer is an AI agent account, or whose message carries agent attribution (a `Co-authored-by:` line

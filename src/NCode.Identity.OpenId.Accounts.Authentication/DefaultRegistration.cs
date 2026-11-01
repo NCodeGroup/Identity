@@ -109,7 +109,7 @@ public static class DefaultRegistration
 
             // Replace (not TryAdd) so this capability wins over the surface's default changer, which reports that no
             // change is supported, whatever the order the two registrations run in.
-            // See ADR-0230.
+            // See ADR-1230.
             serviceCollection.Replace(
                 ServiceDescriptor.Singleton<
                     IInteractivePasswordChanger,

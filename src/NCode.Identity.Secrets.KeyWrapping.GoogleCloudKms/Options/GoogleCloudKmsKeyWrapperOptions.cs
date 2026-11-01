@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 /// Contains the options for the Google Cloud Key Management Service key wrapper, bound from the
 /// <see cref="DefaultSectionName"/> configuration section.
 /// </summary>
-// See ADR-0260.
+// See ADR-1260.
 [PublicAPI]
 public sealed class GoogleCloudKmsKeyWrapperOptions
 {

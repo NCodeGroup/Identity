@@ -27,7 +27,7 @@ namespace NCode.Identity.SharedState;
 /// it. The default adapter is in-process and therefore correct only for a single replica; a deployment that runs several
 /// replicas registers a shared adapter (for example Valkey) so a message published by one replica reaches all of them.
 /// </summary>
-// See ADR-0205.
+// See ADR-1205.
 [PublicAPI]
 public interface IReplicaBroadcaster
 {

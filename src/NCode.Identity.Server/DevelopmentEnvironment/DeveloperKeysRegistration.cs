@@ -80,7 +80,7 @@ public static class DeveloperKeysRegistration
             );
 
             // The ephemeral factory never reads a tenant's persisted keys, so provisioning them would only spend key
-            // generation and storage on keys nothing uses (ADR-0169).
+            // generation and storage on keys nothing uses (ADR-1169).
             serviceCollection.PostConfigure<OpenIdOptions>(options =>
                 options.Tenant.KeyProvisioning.Enabled = false
             );
@@ -104,7 +104,7 @@ public static class DeveloperKeysRegistration
             var serviceCollection = builder.ServiceCollection;
 
             // The pruner runs on the tenant seed path ahead of key provisioning, which then replaces what it removed
-            // (ADR-0021, ADR-0045, ADR-0169).
+            // (ADR-1021, ADR-1045, ADR-1169).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<SeedTenantCommand>,

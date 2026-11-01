@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IAuthorizationResponseModeProvider"/> backed by the
-/// <see cref="IAuthorizationResponseModeHandler"/> implementations registered in dependency injection (ADR-0201).
+/// <see cref="IAuthorizationResponseModeHandler"/> implementations registered in dependency injection (ADR-1201).
 /// </summary>
 /// <remarks>
 /// The constructor throws an <see cref="InvalidOperationException"/> when the registered handlers are inconsistent: a

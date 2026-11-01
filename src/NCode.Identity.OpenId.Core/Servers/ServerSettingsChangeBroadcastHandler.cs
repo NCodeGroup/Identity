@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// made the change, and a repeated message, are harmless. A replica that may have missed an announcement reads the
 /// settings again too.
 /// </summary>
-// See ADR-0205 and ADR-0219.
+// See ADR-1205 and ADR-1219.
 internal sealed class ServerSettingsChangeBroadcastHandler(
     IMaterializedServerRegistry materializedServerRegistry
 ) : IReplicaBroadcastHandler

@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// store indexes is <see langword="null"/>, or for a required field its leading characters, while
 /// <see cref="Record"/> keeps it whole.
 /// </summary>
-// See ADR-0283 and ADR-0303.
+// See ADR-1283 and ADR-1303.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedAuditRecord

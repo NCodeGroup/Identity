@@ -26,7 +26,7 @@ namespace NCode.Identity.SharedState.Valkey;
 /// <see cref="IMeterFactory"/> so each service provider has its own; the adapters record through its methods and never
 /// touch the meter directly.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 internal sealed class ValkeySharedStateMetrics
 {
     internal const string OperationDurationName = "ncode.identity.shared_state.operation.duration";

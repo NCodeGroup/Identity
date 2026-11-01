@@ -25,7 +25,7 @@ type ResourceServerSurface = 'scopes' | 'clients' | 'secrets' | 'settings';
  * {@link import('./ResourceServersPage.js').ResourceServersPage} supplies the resource server and owns
  * the drill-in selection. Scopes reuse the embedded {@link ResourceServerScopesPage} and clients the
  * embedded {@link ClientsPage}; secrets/settings reuse the owner-generic {@link OwnerSecretsTab}/
- * {@link OwnerSettingsTab} (one-time reveal per ADR-0050 and a top-level JSON Patch diff). A system
+ * {@link OwnerSettingsTab} (one-time reveal per ADR-1050 and a top-level JSON Patch diff). A system
  * resource server is read by the server itself, so it holds no keys and no client acts for it: those
  * tabs are not offered. Owns only tab state.
  */

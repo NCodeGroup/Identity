@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <see cref="Authorization"/>. A
 /// package that addresses a further kind of JWT to a client describes its own settings with a new instance.
 /// </remarks>
-// See ADR-0155.
+// See ADR-1155.
 [PublicAPI]
 public readonly record struct ClientJwtProtectionSettings
 {

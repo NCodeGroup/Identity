@@ -44,7 +44,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// The server's persisted settings document is loaded through <see cref="ISecurityProfileCatalog"/>, like every other
 /// scope's, so the security profiles it selects contribute their ceilings at the top of the cascade.
 /// </remarks>
-// See ADR-0148 (security profiles accumulate down the cascade).
+// See ADR-1148 (security profiles accumulate down the cascade).
 internal class DefaultOpenIdServerFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
@@ -58,7 +58,7 @@ internal class DefaultOpenIdServerFactory(
     IIdGenerator<long> idGenerator
 ) : IOpenIdServerFactory
 {
-    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on this factory (ADR-0204).
+    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on this factory (ADR-1204).
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
     private OpenIdOptions Options => OptionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
@@ -283,7 +283,7 @@ internal class DefaultOpenIdServerFactory(
         Func<CancellationToken, ValueTask<IReadOnlyCollection<Setting>?>> loadChangedSettingsAsync =
             ct => LoadChangedSettingsAsync(openIdEnvironment, persistedServer, ct);
 
-        // A committed change is read at once through OpenIdServer.RefreshSettingsAsync; the interval is the fallback (ADR-0219).
+        // A committed change is read at once through OpenIdServer.RefreshSettingsAsync; the interval is the fallback (ADR-1219).
         var dataSource = ActivatorUtilities.CreateInstance<RefreshableSettingsCollectionDataSource>(
             ServiceProvider,
             initialSettings,

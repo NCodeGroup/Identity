@@ -36,11 +36,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 filter: "\"NormalizedMtlsEndpointAliasHost\" IS NOT NULL");
 
             // The 'mtls_endpoint_alias_authority' setting is retired: the alias authority is a tenant property the host
-            // strategy routes on (ADR-0195). Each tenant's stored value is copied into the alias columns, with its
+            // strategy routes on (ADR-1195). Each tenant's stored value is copied into the alias columns, with its
             // derived host, and the tenant gets a new concurrency token, as any other tenant write does. The setting
             // stays in the settings document: the previous release reads it while this release rolls out and after a
-            // rollback (ADR-0180), this release ignores it as a retired setting, and a later release removes it
-            // (ADR-0251). The setting applied only to tenants. A stored value was validated as an https origin when it
+            // rollback (ADR-1180), this release ignores it as a retired setting, and a later release removes it
+            // (ADR-1251). The setting applied only to tenants. A stored value was validated as an https origin when it
             // was written; an empty or null value meant "no aliases", so only a non-empty string is copied.
             migrationBuilder.Sql(
                 """

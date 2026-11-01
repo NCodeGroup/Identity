@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// the descriptor or that is outside the setting's domain, is reported, never skipped. A retired setting is reported,
 /// never read.
 /// </summary>
-// See ADR-0139 (closed vocabulary), ADR-0140 (value domains), and ADR-0149 (scopes).
+// See ADR-1139 (closed vocabulary), ADR-1140 (value domains), and ADR-1149 (scopes).
 internal class DefaultSettingConfigurationReader(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingScopeCollectionProvider settingScopeCollectionProvider

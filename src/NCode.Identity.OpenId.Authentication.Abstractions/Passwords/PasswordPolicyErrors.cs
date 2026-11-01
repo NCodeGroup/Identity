@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// <see cref="IPasswordPolicy"/> names the reason it rejects a password. The vocabulary is open: a replacement policy
 /// may report other codes.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 [PublicAPI]
 public static class PasswordPolicyErrors
 {

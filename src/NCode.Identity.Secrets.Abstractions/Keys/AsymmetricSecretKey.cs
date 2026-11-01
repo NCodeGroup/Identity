@@ -49,7 +49,7 @@ public abstract class AsymmetricSecretKey(
     /// intermediate CA's, or an empty list. A TLS client presents them with its certificate, so a server that trusts
     /// only the root can build the chain (RFC 8446 §4.4.2). They are public; no private key material is included.
     /// </summary>
-    // See ADR-0300.
+    // See ADR-1300.
     public IReadOnlyList<ReadOnlyMemory<byte>> IssuerCertificatesRawData { get; } =
         issuerCertificatesRawData ?? [];
 

@@ -26,7 +26,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 // Uses SQLite because the EF InMemory provider does not enforce concurrency tokens or unique indexes, which keep two
-// replicas from losing each other's usage (ADR-0199).
+// replicas from losing each other's usage (ADR-1199).
 public sealed class TenantUsageStoreTests : IDisposable
 {
     private const string TenantId = "tenant-1";

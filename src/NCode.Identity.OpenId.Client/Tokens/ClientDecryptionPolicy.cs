@@ -60,8 +60,8 @@ internal static class ClientDecryptionPolicy
                 continue;
 
             // The OP encrypts only to a public key the client published, so a shared-key algorithm is never
-            // permitted, and RSA1_5 is vulnerable to padding-oracle attacks (RFC 8725 §3.2) (ADR-0280).
-            // The default JOSE registry has no RSA1_5; this refuses one a host registers itself (ADR-0282).
+            // permitted, and RSA1_5 is vulnerable to padding-oracle attacks (RFC 8725 §3.2) (ADR-1280).
+            // The default JOSE registry has no RSA1_5; this refuses one a host registers itself (ADR-1282).
             if (
                 string.Equals(code, AlgorithmCodes.KeyManagement.RsaPkcs1, StringComparison.Ordinal)
             )

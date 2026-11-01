@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// idempotent, so the second eviction on the replica that made the change, and a repeated message, are harmless. A
 /// replica that may have missed an announcement evicts every cached tenant and every cached master key.
 /// </summary>
-// See ADR-0205.
+// See ADR-1205.
 internal sealed class TenantChangeBroadcastHandler(
     IOpenIdTenantCache tenantCache,
     ISecretProtectorProvider secretProtectorProvider

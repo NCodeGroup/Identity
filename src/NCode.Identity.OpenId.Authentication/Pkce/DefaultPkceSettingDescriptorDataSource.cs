@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Pkce;
 /// default is <c>S256</c> alone: registering another transformation adds it to the domain, and an operator enables it
 /// by listing it, so a transformation is never offered only because it is registered.
 /// </summary>
-// See ADR-0144 and ADR-0140.
+// See ADR-1144 and ADR-1140.
 internal class DefaultPkceSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     ICodeChallengeMethodCollectionProvider codeChallengeMethodCollectionProvider

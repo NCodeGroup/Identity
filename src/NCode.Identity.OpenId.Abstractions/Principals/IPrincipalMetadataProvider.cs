@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Principals;
 /// The underlying store is the pluggable persistence seam; a host may replace this provider to source
 /// metadata from anywhere.
 /// </summary>
-// See ADR-0055.
+// See ADR-1055.
 [PublicAPI]
 public interface IPrincipalMetadataProvider
 {

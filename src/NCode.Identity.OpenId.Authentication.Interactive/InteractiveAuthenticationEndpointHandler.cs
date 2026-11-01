@@ -325,10 +325,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         // Resolve the verified credential to the stable, server-owned principal id and normalize the cookie subject to
         // it, so the session, every subsequent authorize request, and the grants they issue all key on the single
-        // principal regardless of how the user authenticates (ADR-0035). Without this the interactive path would carry
+        // principal regardless of how the user authenticates (ADR-1035). Without this the interactive path would carry
         // the raw local-account id while ROPC/bearer carry the resolved principal, keying the same user's grants
         // inconsistently. The same tenant-aware normalization seam enforces the Subject.sub == PrincipalId invariant at
-        // every ticket-construction site (ADR-0094).
+        // every ticket-construction site (ADR-1094).
         principal = await NormalizeSubjectToPrincipalAsync(
             openIdContext,
             principal,
@@ -337,7 +337,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         // The end user's standing is validated before a session is created, so a blocked principal or a disabled
         // account signs in nowhere.
-        // See ADR-0229.
+        // See ADR-1229.
         var standing = await ValidateStandingAsync(
             openIdContext,
             principal,
@@ -472,7 +472,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
     /// <summary>
     /// Resolves the verified credential to the stable, server-owned principal id and returns a principal whose subject
-    /// claim is that principal id, so the cookie, session, and every grant key on one subject (ADR-0035).
+    /// claim is that principal id, so the cookie, session, and every grant key on one subject (ADR-1035).
     /// </summary>
     private async ValueTask<ClaimsPrincipal> NormalizeSubjectToPrincipalAsync(
         OpenIdContext openIdContext,
@@ -576,7 +576,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         {
             // A denial answers the parked authorization request with `access_denied` (OpenID Connect Core 1.0
             // §3.1.2.6).
-            // See ADR-0229.
+            // See ADR-1229.
             var refusal = await ContinueRefusalService.RefuseAsync(
                 openIdContext,
                 safeReturnUrl,
@@ -1032,7 +1032,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         // A change keeps the current session, ends every other one and revokes the grants issued under no session.
         // The password is already saved, so a client disconnect does not cancel the termination.
-        // See ADR-0226 and ADR-0230.
+        // See ADR-1226 and ADR-1230.
         await SessionService.RevokeAllExceptAsync(
             openIdContext,
             subjectId,
@@ -1047,7 +1047,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// Authenticates the login cookie and requires the session it names to be active, so a cookie whose session has
     /// ended or been revoked serves nothing. A cookie without an active session is cleared and reported as no result.
     /// </summary>
-    // See ADR-0229.
+    // See ADR-1229.
     private async ValueTask<AuthenticateResult> AuthenticateSessionAsync(HttpContext httpContext)
     {
         var authenticateResult = await httpContext.AuthenticateAsync(
@@ -1100,7 +1100,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         return new InteractiveHtmlResult(html, security.Policy);
     }
 
-    // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-0253).
+    // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-1253).
     private InteractiveBranding ReadBranding(HttpContext httpContext) =>
         InteractiveBranding.FromSettings(
             httpContext.GetOpenIdContext().Tenant.SettingsProvider.Collection,

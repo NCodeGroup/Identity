@@ -31,7 +31,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // Rotating a client secret through the management API replaces it in one change: the replacement authenticates the
-// client at once and the rotated secret stops (ADR-0183).
+// client at once and the rotated secret stops (ADR-1183).
 public class ClientSecretRotationTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

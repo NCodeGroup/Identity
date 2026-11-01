@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// algorithms the server accepts from another party — a cryptographic trust boundary — or which it may protect a token
 /// with.
 /// </summary>
-// See ADR-0155.
+// See ADR-1155.
 internal static class PermittedAlgorithmExtensions
 {
     extension(IReadOnlySettingCollection settings)

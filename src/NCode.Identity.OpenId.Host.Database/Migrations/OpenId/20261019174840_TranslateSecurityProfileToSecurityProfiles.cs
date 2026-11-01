@@ -6,11 +6,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     [ContractMigration(
-        "Shipped before any release, so no running release reads 'security_profile' (ADR-0148, ADR-0025)."
+        "Shipped before any release, so no running release reads 'security_profile' (ADR-1148, ADR-1025)."
     )]
     public partial class TranslateSecurityProfileToSecurityProfiles : Migration
     {
-        // Every table that stores a settings document (ADR-0139: a stored document that names a retired setting fails
+        // Every table that stores a settings document (ADR-1139: a stored document that names a retired setting fails
         // closed when it is read, so renaming a setting rewrites the stored documents).
         private static readonly string[] SettingsTables = ["Servers", "Tenants", "Clients", "ResourceServers"];
 
@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // 'security_profile' (one profile name) becomes 'security_profiles' (a list of profile names that
-            // accumulates down the cascade, ADR-0148). Each document is rewritten to the setting's meaning:
+            // accumulates down the cascade, ADR-1148). Each document is rewritten to the setting's meaning:
             //
             // - A non-empty name selected that profile, so it becomes a list of that one name.
             // - An empty name (or null) selected no profile, which is the default, so the key is removed.

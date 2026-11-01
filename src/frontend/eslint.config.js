@@ -25,7 +25,7 @@ export default defineConfig([
   eslintReact.configs['disable-conflict-eslint-plugin-react-hooks'],
   {
     // Warnings are errors: every package lints with `--max-warnings 0`, and a stale `eslint-disable` or inline config
-    // comment fails here instead of lingering as a warning (ADR-0151).
+    // comment fails here instead of lingering as a warning (ADR-1151).
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
       reportUnusedInlineConfigs: 'error',

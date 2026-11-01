@@ -27,7 +27,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// A persisted grant carries tokens, PII and request parameters, so its payload is stored only in protected form (ADR-0265).
+// A persisted grant carries tokens, PII and request parameters, so its payload is stored only in protected form (ADR-1265).
 public class GrantPayloadProtectionTests(HostApplicationFactory factory)
     : IClassFixture<HostApplicationFactory>
 {

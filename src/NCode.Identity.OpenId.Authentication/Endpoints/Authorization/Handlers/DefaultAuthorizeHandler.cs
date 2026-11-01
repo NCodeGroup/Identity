@@ -80,7 +80,7 @@ internal class DefaultAuthorizeHandler(
         // prompt=create / login / select_account each force a one-time interactive step. A continuation is the
         // resumption *after* that step completed (the upstream AuthenticateCommand has already established the fresh
         // authentication for the resumed request), so re-challenging it would loop — the same !IsContinuation guard
-        // prompt=consent uses below (ADR-0081).
+        // prompt=consent uses below (ADR-1081).
         if (!authorizationRequest.IsContinuation)
         {
             if (promptTypes.Contains(OpenIdProtocol.PromptTypes.CreateAccount))
@@ -112,7 +112,7 @@ internal class DefaultAuthorizeHandler(
         {
             // A refused standing, which a new authentication cannot change, is answered to the client whatever the
             // prompt; any other refusal asks the end user to authenticate again.
-            // See ADR-0229.
+            // See ADR-1229.
             var standing = await ValidateStandingAsync(
                 openIdContext,
                 authenticationTicket,

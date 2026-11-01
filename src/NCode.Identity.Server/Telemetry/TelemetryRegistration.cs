@@ -27,7 +27,7 @@ namespace NCode.Identity.Server;
 /// Registers the OpenTelemetry metrics pipeline for an OpenID server: the family's meters, ASP.NET Core, Kestrel,
 /// outbound HTTP, and the .NET runtime, exported over OTLP when an endpoint is configured.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 [PublicAPI]
 public static class TelemetryRegistration
 {

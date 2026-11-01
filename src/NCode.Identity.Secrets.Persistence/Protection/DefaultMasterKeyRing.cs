@@ -48,7 +48,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="storeManagerFactory">The factory that creates the unit of work that reads and writes master keys.</param>
 /// <param name="recovery">The wrapper that reports whether master keys are wrapped under a recovery key.</param>
 /// <param name="logger">The logger.</param>
-// See ADR-0235.
+// See ADR-1235.
 internal class DefaultMasterKeyRing(
     MasterKeyFactory factory,
     IStoreManagerFactory storeManagerFactory,

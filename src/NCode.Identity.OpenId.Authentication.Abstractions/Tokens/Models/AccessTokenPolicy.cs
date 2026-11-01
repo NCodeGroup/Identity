@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Models;
 /// The policy an access token is issued under, as <see cref="IAccessTokenPolicyService"/> evaluates it: the settings
 /// that govern the token and the credentials it is signed and, when required, encrypted with.
 /// </summary>
-// See ADR-0158.
+// See ADR-1158.
 [PublicAPI]
 public sealed class AccessTokenPolicy
 {

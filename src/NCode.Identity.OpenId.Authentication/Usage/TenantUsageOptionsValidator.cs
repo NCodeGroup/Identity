@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 /// Validates the options for recording tenant usage when the host starts, so a negative retention or a flush interval
 /// that a timer refuses stops the host instead of failing the first time the usage is flushed.
 /// </summary>
-// See ADR-0199 and ADR-0221.
+// See ADR-1199 and ADR-1221.
 internal sealed class TenantUsageOptionsValidator : IValidateOptions<TenantUsageOptions>
 {
     /// <inheritdoc />

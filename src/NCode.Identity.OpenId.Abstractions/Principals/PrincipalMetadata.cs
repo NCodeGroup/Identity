@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Principals;
 /// <param name="SystemMetadata">The server-controlled system metadata as a free-form JSON object, defaulting to an
 /// empty object <c>{}</c>. Managed only by the server or an administrator and never end-user writable, it may safely
 /// carry authorization-relevant data.</param>
-// See ADR-0055.
+// See ADR-1055.
 [PublicAPI]
 public readonly record struct PrincipalMetadata(
     JsonElement ProfileMetadata,

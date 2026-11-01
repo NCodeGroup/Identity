@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 /// name stops the host instead of failing the first time a master key is wrapped. The options are validated only when
 /// the Google Cloud KMS key wrapper is the one selected.
 /// </summary>
-// See ADR-0260 and ADR-0137 (configuration is validated at startup).
+// See ADR-1260 and ADR-1137 (configuration is validated at startup).
 internal class GoogleCloudKmsKeyWrapperOptionsValidator(
     IOptions<SecretProtectionOptions> protectionOptions
 ) : IValidateOptions<GoogleCloudKmsKeyWrapperOptions>

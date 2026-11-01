@@ -53,7 +53,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 /// So does a setting that a client coherence rule refuses. The test user's password must meet the tenant's password
 /// policy, and a refused one stops the seeding with an error naming the test user.
 /// </remarks>
-// See ADR-0140.
+// See ADR-1140.
 internal sealed class ConformanceSeedHandler(
     ConformanceSeedOptions options,
     ISecretGenerator secretGenerator,
@@ -337,7 +337,7 @@ internal sealed class ConformanceSeedHandler(
     }
 
     private bool TargetsTenant(TenantSeedContext context) =>
-        // The registration requires the tenant whenever there is something to seed (ADR-0166): a tenant created at
+        // The registration requires the tenant whenever there is something to seed (ADR-1166): a tenant created at
         // runtime must not inherit the conformance clients and test user.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
@@ -352,7 +352,7 @@ internal sealed class ConformanceSeedHandler(
 
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the given client_secret through the single shared-secret primitive (ADR-0110) so its stored UTF-8
+        // Persist the given client_secret through the single shared-secret primitive (ADR-1110) so its stored UTF-8
         // shape cannot drift from generated secrets.
         return SecretGenerator.ImportSharedSecret(
             protector,

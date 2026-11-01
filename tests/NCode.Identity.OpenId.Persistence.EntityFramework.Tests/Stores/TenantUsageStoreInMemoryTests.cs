@@ -24,7 +24,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-// EF InMemory supports no set-based delete, and the hermetic host runs on it (ADR-0213).
+// EF InMemory supports no set-based delete, and the hermetic host runs on it (ADR-1213).
 public sealed class TenantUsageStoreInMemoryTests : IDisposable
 {
     private const string TenantId = "tenant-1";

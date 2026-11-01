@@ -399,7 +399,7 @@ export const managementApi = createApi({
         { type: 'Grant', id: tenantTag(tenantId, LIST_TAG) },
       ],
     }),
-    // The usage ledger grows with every flush of the server (ADR-0199), so nothing is cached once unused: every mount
+    // The usage ledger grows with every flush of the server (ADR-1199), so nothing is cached once unused: every mount
     // reads the current ledger.
     getTenantUsage: build.query<
       TenantUsageResource,

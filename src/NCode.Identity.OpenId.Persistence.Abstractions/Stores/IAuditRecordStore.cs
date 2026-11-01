@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// operator queries after the logs that also carry it have rotated. Audit records are not tenant-scoped data: a record is
 /// kept after its tenant is deleted, until its retention ends.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 [PublicAPI]
 public interface IAuditRecordStore : IStore
 {

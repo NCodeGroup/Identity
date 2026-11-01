@@ -70,7 +70,7 @@ public class TokenEndpointClientCredentialsTests
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
         Assert.Equal(TestServerSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
 
-        // The access token audience is bound to the resource server that owns the scope, not the client (ADR-0027).
+        // The access token audience is bound to the resource server that owns the scope, not the client (ADR-1027).
         var payload = DecodeJwtPayload(accessToken.GetString()!);
         var audElement = payload.GetProperty("aud");
         var audiences =

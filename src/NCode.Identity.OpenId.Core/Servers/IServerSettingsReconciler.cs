@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// Brings everything derived from a server's effective settings in line with them whenever those settings differ from
 /// the ones they were last reconciled against.
 /// </summary>
-// See ADR-0219.
+// See ADR-1219.
 internal interface IServerSettingsReconciler
 {
     /// <summary>

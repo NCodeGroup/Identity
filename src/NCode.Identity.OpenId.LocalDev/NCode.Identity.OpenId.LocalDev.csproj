@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <!-- Aspire local-dev orchestrator (ADR-0071). The Aspire.AppHost.Sdk version is pinned in global.json
+    <!-- Aspire local-dev orchestrator (ADR-1071). The Aspire.AppHost.Sdk version is pinned in global.json
          ('msbuild-sdks'); the hosting packages are pinned in Directory.Packages.props. This is a sibling of the
          host (NOT nested inside it): the host stays a single reference OP process, and this AppHost
          orchestrates it plus the frontend apps as one resource graph. It is never packed (IsPackable=false) and is

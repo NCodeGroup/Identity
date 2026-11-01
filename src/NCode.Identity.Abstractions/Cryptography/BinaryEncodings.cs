@@ -24,7 +24,7 @@ namespace NCode.Identity.Cryptography;
 /// </summary>
 /// <remarks>
 /// The set is open: each name is the <see cref="IBinaryEncoder.Name"/> of a registered <see cref="IBinaryEncoder"/>, so
-/// a package adds an encoding, such as Base32, by registering another encoder. Names compare ordinally (ADR-0150).
+/// a package adds an encoding, such as Base32, by registering another encoder. Names compare ordinally (ADR-1150).
 /// </remarks>
 [PublicAPI]
 public static class BinaryEncodings

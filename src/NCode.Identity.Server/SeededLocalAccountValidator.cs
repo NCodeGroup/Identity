@@ -27,7 +27,7 @@ namespace NCode.Identity.Server;
 /// Checks the password of a local account that a configuration seeder is about to create, so a seeder stores no
 /// password that the tenant's password policy refuses.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 internal sealed class SeededLocalAccountValidator(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IPasswordPolicy passwordPolicy

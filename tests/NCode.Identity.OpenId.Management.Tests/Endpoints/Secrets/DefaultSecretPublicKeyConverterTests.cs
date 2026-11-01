@@ -28,7 +28,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
-// See ADR-0235.
+// See ADR-1235.
 public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
 {
     private const string KeyId = "kid-1";
@@ -98,7 +98,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
 
     #region Convert Tests
 
-    // See ADR-0268.
+    // See ADR-1268.
     [Fact]
     public void Convert_PrivateKeyWithStoredPublicKey_ReturnsPublicJwk()
     {
@@ -136,7 +136,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
         Assert.StartsWith("-----BEGIN PUBLIC KEY-----", resource.Pem, StringComparison.Ordinal);
     }
 
-    // See ADR-0268.
+    // See ADR-1268.
     [Fact]
     public void Convert_PrivateKeyWithoutStoredPublicKey_ReturnsNull()
     {
@@ -147,7 +147,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
         Assert.Null(resource);
     }
 
-    // See ADR-0268.
+    // See ADR-1268.
     [Fact]
     public void Convert_SymmetricSecret_ReturnsNullWithoutDeserializing()
     {

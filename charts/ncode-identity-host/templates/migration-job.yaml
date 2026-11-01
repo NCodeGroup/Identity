@@ -3,7 +3,7 @@
 {{- $secret := .Values.migrations.database.existingSecret | default .Values.database.existingSecret }}
 {{- $key := .Values.migrations.database.connectionStringKey | default .Values.database.connectionStringKey }}
 # Applies the database migrations before an install or upgrade changes anything else, while the previous version still
-# serves. Helm waits for the Job, and a failed Job fails the release before its rollout starts (ADR-0180).
+# serves. Helm waits for the Job, and a failed Job fails the release before its rollout starts (ADR-1180).
 apiVersion: batch/v1
 kind: Job
 metadata:

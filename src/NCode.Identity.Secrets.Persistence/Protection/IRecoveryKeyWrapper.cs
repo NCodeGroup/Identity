@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// be read after the root key is lost. Only the public half of the recovery key is ever deployed; the private half
 /// is kept offline.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal interface IRecoveryKeyWrapper : IKeyWrapper
 {
     /// <summary>

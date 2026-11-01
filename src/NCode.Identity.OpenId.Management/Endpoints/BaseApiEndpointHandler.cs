@@ -71,7 +71,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="scopes">The registered <see cref="ISettingScopeCollection"/> that decides where a setting applies.</param>
     /// <param name="scopeName">The name of the scope whose effective settings <paramref name="settings"/> are.</param>
     /// <returns>The serialized <see cref="JsonElement"/>.</returns>
-    // See ADR-0149.
+    // See ADR-1149.
     internal virtual JsonElement ToEffectiveSettingsElement(
         IReadOnlySettingCollection settings,
         ISettingScopeCollection scopes,
@@ -249,7 +249,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="imported">The imported key.</param>
     /// <param name="owner">The kind of owner, such as <c>client</c> or <c>tenant</c>, for the problem detail.</param>
     /// <returns>The conflict result, or <c>null</c> when the <c>kid</c> is free.</returns>
-    // See ADR-0161 and ADR-0186.
+    // See ADR-1161 and ADR-1186.
     internal static IResult? KeyIdConflictOrDefault(
         IEnumerable<PersistedSecret> secrets,
         PersistedSecret imported,

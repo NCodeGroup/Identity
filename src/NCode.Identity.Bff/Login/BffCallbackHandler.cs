@@ -243,7 +243,7 @@ internal class BffCallbackHandler
         if (bffOptions.UserInfo.Load)
         {
             // UserInfo is requested with the new access token, the way it was issued, and must be about the ID token's
-            // subject (OpenID Connect Core 1.0 §5.3.2). See ADR-0299.
+            // subject (OpenID Connect Core 1.0 §5.3.2). See ADR-1299.
             var userInfoRequest = new UserInfoRequest(accessToken, subject)
             {
                 DPoPJwkThumbprint = tokenResult.DPoPJwkThumbprint,

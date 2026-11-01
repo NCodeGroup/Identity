@@ -42,7 +42,7 @@ Scan production code only (test projects are exempt from several rules). Check e
   `CancellationToken` **last**. `Task` is allowed only at framework boundaries (middleware `InvokeAsync`, minimal-API
   handlers, mediator handlers). Collection expressions, `const` for literals, and `u8` for UTF-8 bytes. Fields only for
   `ref`/`Interlocked`/`fixed`/`stackalloc`; everything else an auto-property. Constants/statics at the top.
-- **§2 public API** — vocabularies are **open by default** (ADR-0150): every `enum` must pass the three-part closed test
+- **§2 public API** — vocabularies are **open by default** (ADR-1150): every `enum` must pass the three-part closed test
   (members fixed outside the package's control or by its own operation contract; no other package could need a member;
   a new member would need a library change anyway), and an open vocabulary is `public const string` names plus
   registered descriptors/strategies — never `[Flags]`, never a `switch`/mask encoding relationships among members; no
@@ -60,7 +60,7 @@ Scan production code only (test projects are exempt from several rules). Check e
 Fast mechanical checks (grep production `.cs`, adapt as needed):
 
 - **Nested types**: a `class`/`struct`/`interface`/`enum`/`record` declaration indented inside another type.
-- `enum ` on a public surface (apply the ADR-0150 closed test to each) · `[Flags]` · a `switch` over a vocabulary's
+- `enum ` on a public surface (apply the ADR-1150 closed test to each) · `[Flags]` · a `switch` over a vocabulary's
   members that encodes their relationships · `IList<` returns · `bool ` parameters that switch behavior · `async void` · empty
   `catch` · `.Result` / `.Wait()` / `.GetAwaiter().GetResult()` (banned) · `Newtonsoft` (banned).
 - **Primary-constructor candidates** (§1): grep `^\s+(public|internal|protected)\s+[A-Z]\w*\(` — one identifier

@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// handler's method has a <see cref="ClientAuthenticationMethodDescriptor"/>, no two handlers authenticate one method,
 /// and every described method has a handler.
 /// </summary>
-// See ADR-0145, ADR-0196, ADR-0207 and ADR-0246.
+// See ADR-1145, ADR-1196, ADR-1207 and ADR-1246.
 internal class DefaultClientAuthenticationService(
     IEnumerable<IClientAuthenticationHandler> handlers,
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
@@ -235,7 +235,7 @@ internal class DefaultClientAuthenticationService(
     /// <exception cref="InvalidOperationException">
     /// A handler's method has no descriptor, two handlers authenticate one method, or a descriptor has no handler.
     /// </exception>
-    // See ADR-0207.
+    // See ADR-1207.
     private static ImmutableArray<IClientAuthenticationHandler> EnsureEveryMethodIsDescribed(
         ImmutableArray<IClientAuthenticationHandler> handlers,
         IClientAuthenticationMethodCatalog catalog

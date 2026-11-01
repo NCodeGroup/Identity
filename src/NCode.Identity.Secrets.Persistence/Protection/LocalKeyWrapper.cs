@@ -52,7 +52,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// key is never held as text, except for the inline key, which the configuration supplies as a <see cref="string"/>.
 /// </para>
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal class LocalKeyWrapper(IOptions<LocalKeyWrapperOptions> options) : IKeyWrapper, IDisposable
 {
     private const string SectionName = LocalKeyWrapperOptions.DefaultSectionName;

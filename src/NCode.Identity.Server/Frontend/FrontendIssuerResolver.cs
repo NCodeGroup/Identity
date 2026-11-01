@@ -31,7 +31,7 @@ namespace NCode.Identity.Server.Frontend;
 /// the tenant's stored issuer, or the one its strategy derives before the tenant is provisioned. It is never derived from
 /// the serving request, so a forged or proxied <c>Host</c> cannot change the authority the bundle trusts.
 /// </summary>
-// See ADR-0182.
+// See ADR-1182.
 internal sealed class FrontendIssuerResolver(
     ITenantResolver tenantResolver,
     IOptions<TenantResolutionOptions> tenantResolutionOptionsAccessor,

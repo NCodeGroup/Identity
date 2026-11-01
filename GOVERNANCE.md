@@ -31,30 +31,30 @@ any one host feature.
   runs only the tests its change reaches. A merge goes through the **merge queue**, which runs the full gate on the
   merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added
   when a second maintainer exists
-  ([ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
-  the unprotected trunk of [ADR-0125](docs/decisions/0125-trunk-based-development-on-main.md);
-  [ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
+  ([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
+  the unprotected trunk of [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md);
+  [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
   tiers and the merge queue;
-  [ADR-0128](docs/decisions/0128-commits-are-attributed-to-people-not-agents.md) for `Commit attribution`).
+  [ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md) for `Commit attribution`).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
-  each place in the gate tier that ADR-0263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
+  each place in the gate tier that ADR-1263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,
-  [ADR-0003](docs/decisions/0003-central-package-management-and-lockstep-versioning.md)). Validation-affecting or otherwise
+  [ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)). Validation-affecting or otherwise
   breaking changes are **major** version bumps. Once GA, evolve the public surface backward-compatibly per
   [`docs/api-compatibility.md`](docs/api-compatibility.md)
-  ([ADR-0005](docs/decisions/0005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
+  ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
 
 ## Releases, branches & tags
 
 - **Trunk.** `main` is the single trunk and the released line; there is no long-lived integration branch
-  ([ADR-0125](docs/decisions/0125-trunk-based-development-on-main.md)). Until the first stable release the version is an
+  ([ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md)). Until the first stable release the version is an
   `-alpha` prerelease.
 - **Release lines.** Each shipped `major.minor` is serviced from a long-lived `release/vX.Y` branch, cut with
   `nbgv prepare-release` (which creates the branch and bumps the trunk to the next prerelease). These branches match
   `publicReleaseRefSpec`, so their builds carry a clean version with no commit-height suffix. The ruleset
   `release-lines` (`release/v*`) protects them like `main`, but without a merge queue: every pull request runs the full
   gate on a branch up to date with its line
-  ([ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+  ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
 - **Tags.** A release is an annotated (ideally signed) tag `vMAJOR.MINOR.PATCH` (prereleases `-rc.N` / `-alpha`) on a
   release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
   moving a `v*` tag. Only a **major** is gated behind a release candidate; minors and patches ship straight to GA.
@@ -68,14 +68,14 @@ any one host feature.
   so their checks run; without the app it uses the workflow token, which starts no checks, and the pull request says
   to close and reopen it. A fix that cannot apply to `main` lands directly on the release line by pull request, whose
   description states why. A patch release is an annotated `vX.Y.Z` tag on the release line; a hotfix follows the same
-  flow, expedited (ADR-0263).
+  flow, expedited (ADR-1263).
 - **Binary compatibility.** `AssemblyVersion` is pinned to `major` precision (all `1.*` share `1.0.0.0`), so patch and
   minor upgrades are drop-in within a major and different majors load side by side; `InformationalVersion` /
   `FileVersion` still carry the exact build.
 
 ## Publishing
 
-- Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-0007](docs/decisions/0007-provenance-sourcelink-and-symbols.md))
+- Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-1007](docs/decisions/1007-provenance-sourcelink-and-symbols.md))
   are published to [nuget.org](https://www.nuget.org). Only protected `main` / `release/*` / `v*` refs publish.
 - Release packages should be signed and RFC-3161 timestamped so signatures outlive the certificate; verify with
   `dotnet nuget verify`. Prereleases may publish unsigned.
@@ -84,7 +84,7 @@ any one host feature.
   from a manual run on `main`: bump the prerelease version in `version.json`, merge it, then tag `v<version>` or run the
   workflow, and approve the `nuget` environment. Its publishing job holds only a short-lived key from nuget.org trusted
   publishing, and it refuses a version already published
-  ([ADR-0302](docs/decisions/0302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
+  ([ADR-1302](docs/decisions/1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
 
 ## Definition of Done
 
@@ -93,8 +93,8 @@ The [`build/dod.ps1`](build/dod.ps1) script is the contract. It enforces:
 - **CSharpier** formatting (`dotnet csharpier check .`).
 - Restore + build on **net10**, with warnings-as-errors and vulnerability advisories as errors in CI.
 - **Banned APIs** (`BannedApiAnalyzers`, `RS0030`) from `BannedSymbols.txt` — no `Newtonsoft.Json`, no sync-over-async —
-  and from `BannedSymbols.Encoding.txt` in every project, tests included — no lenient text encodings (ADR-0266).
+  and from `BannedSymbols.Encoding.txt` in every project, tests included — no lenient text encodings (ADR-1266).
 - **Public API surface guard** (`PublicApiAnalyzers`) — the declared surface in each packable project's
   `PublicAPI.{Shipped,Unshipped}.txt`.
-- Tests with coverage — the full suite in the full gate; a pull request into `main` runs the affected tests (ADR-0263).
+- Tests with coverage — the full suite in the full gate; a pull request into `main` runs the affected tests (ADR-1263).
 - Deterministic, source-linked builds.

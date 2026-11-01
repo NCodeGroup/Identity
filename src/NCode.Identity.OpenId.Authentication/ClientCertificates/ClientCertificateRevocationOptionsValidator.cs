@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// that a timer refuses or a limit that is not positive stops the host instead of failing the first time a list is
 /// retrieved.
 /// </summary>
-// See ADR-0252.
+// See ADR-1252.
 internal sealed class ClientCertificateRevocationOptionsValidator
     : IValidateOptions<ClientCertificateRevocationOptions>
 {

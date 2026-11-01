@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// configured, every master key is also wrapped under it, so the stored secrets can still be read after the root key
 /// is lost.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public sealed class RecoveryKeyOptions
 {

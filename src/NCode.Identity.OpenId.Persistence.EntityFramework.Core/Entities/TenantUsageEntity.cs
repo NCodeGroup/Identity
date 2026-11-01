@@ -24,7 +24,7 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 
 /// <summary>
-/// Represents an entity framework data contract for a tenant's usage of one meter on one UTC calendar day (ADR-0199).
+/// Represents an entity framework data contract for a tenant's usage of one meter on one UTC calendar day (ADR-1199).
 /// The tenant is referenced by identifier, not by a foreign key, so the ledger outlives a deleted tenant; replicas add
 /// to an entry under its concurrency token.
 /// </summary>

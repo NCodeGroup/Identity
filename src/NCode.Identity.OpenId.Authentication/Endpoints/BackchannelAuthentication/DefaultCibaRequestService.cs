@@ -61,7 +61,7 @@ internal sealed class DefaultCibaRequestService(
             return false;
 
         // The approving subject is validated before the approval is recorded: push delivery issues the tokens at
-        // approval, and a refused approval denies the request. See ADR-0225.
+        // approval, and a refused approval denies the request. See ADR-1225.
         if (
             !await IsSubjectValidAsync(
                 openIdContext,
@@ -88,7 +88,7 @@ internal sealed class DefaultCibaRequestService(
         );
 
         // Only the call that decides a pending request delivers, so a concurrent approval issues no second set of
-        // tokens. See ADR-0222.
+        // tokens. See ADR-1222.
         var updated = await PersistedGrantService.UpdatePayloadAsync<CibaGrant>(
             openIdContext,
             grantId,
@@ -175,7 +175,7 @@ internal sealed class DefaultCibaRequestService(
 
     // A denial reaches a ping or push client so it does not wait for a request that can no longer be approved. A ping
     // tells the client to poll, and the token endpoint answers access_denied; a push carries the error payload (CIBA
-    // Core §10.2, §12). See ADR-0231.
+    // Core §10.2, §12). See ADR-1231.
     private async ValueTask NotifyDeniedAsync(
         OpenIdClient openIdClient,
         string authReqId,
@@ -268,7 +268,7 @@ internal sealed class DefaultCibaRequestService(
             return false;
 
         // Only the call that decides a pending request notifies, so a concurrent decision sends no second
-        // notification. See ADR-0231.
+        // notification. See ADR-1231.
         await NotifyDeniedAsync(openIdClient, authReqId, pendingOrNull.Value, cancellationToken);
 
         return true;

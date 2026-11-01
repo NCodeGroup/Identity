@@ -28,7 +28,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 // Uses SQLite because the EF InMemory provider does not enforce unique indexes or concurrency tokens, which keep two
-// replicas from creating the same version of an owner's master key (ADR-0235).
+// replicas from creating the same version of an owner's master key (ADR-1235).
 public sealed class MasterKeyStoreTests : IDisposable
 {
     private const string TenantOneId = "Tenant-One";

@@ -70,7 +70,7 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
 
         // A password refused at the limit is verified against the store's dummy hash and answered as a wrong one, and
         // both count as a failure under the user name the store holds. A disabled account goes on to the sign-in's
-        // standing check, which refuses it with its reason. See ADR-0229, ADR-0237 and ADR-0244.
+        // standing check, which refuses it with its reason. See ADR-1229, ADR-1237 and ADR-1244.
         if (!result.IsVerified)
         {
             // A failure is recorded even when the client disconnects.
@@ -108,7 +108,7 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
 
         // The store asks the gate once, with the user name it holds, between its lookup and its verification. The gate
         // refuses a result that a store verified after a refusal and fails a store that never asked, so no store lifts
-        // the limit. See ADR-0237 and ADR-0244.
+        // the limit. See ADR-1237 and ADR-1244.
         var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
         var storedResult = await store.VerifyCredentialAsync(
             username,

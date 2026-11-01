@@ -109,7 +109,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 
         if (!string.IsNullOrEmpty(disposition.RedirectUri))
         {
-            // See ADR-0203.
+            // See ADR-1203.
             return TypedResults.Redirect(RedirectLocation.Escape(disposition.RedirectUri));
         }
 
@@ -159,7 +159,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
     }
 
     // The page may frame only the origins of the logout URIs it renders, and may run only its own redirect script. The
-    // page lists no form-action directive and posts no form, so the strict default applies. See ADR-0256.
+    // page lists no form-action directive and posts no form, so the strict default applies. See ADR-1256.
     private static HtmlPageSecurityPolicy CreateFrontChannelLogoutPolicy(
         IReadOnlyList<string> frontChannelLogoutUris,
         string? redirectUri

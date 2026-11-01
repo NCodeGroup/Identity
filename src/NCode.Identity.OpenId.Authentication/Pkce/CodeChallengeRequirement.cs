@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Pkce;
 /// correctly; and the request uses that mechanism — it requests the <c>openid</c> scope and carries a <c>nonce</c>.
 /// A public client is therefore always bound, and so is any request that relies on neither mechanism.
 /// </summary>
-// See ADR-0144.
+// See ADR-1144.
 internal static class CodeChallengeRequirement
 {
     /// <summary>

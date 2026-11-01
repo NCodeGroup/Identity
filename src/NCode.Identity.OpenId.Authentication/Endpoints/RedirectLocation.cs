@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// Provides the escaping of a redirect <c>Location</c> header value, which the authorization response and the
 /// end-session response share.
 /// </summary>
-// See ADR-0203.
+// See ADR-1203.
 internal static class RedirectLocation
 {
     /// <summary>

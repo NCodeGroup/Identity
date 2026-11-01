@@ -144,7 +144,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     }
 
     // A matched resource server's effective settings are read from the tenant's, which only a match reads, and its
-    // secrets are read through the tenant's protector (ADR-0235).
+    // secrets are read through the tenant's protector (ADR-1235).
     private void SetupMaterialization()
     {
         MockSecretProtectorProvider

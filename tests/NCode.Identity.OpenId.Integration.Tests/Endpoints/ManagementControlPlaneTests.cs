@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Drives the management API under each dynamic tenant strategy with a token the root (control-plane) tenant issued:
 /// the API authenticates the caller against the root tenant whatever tenant the request's host or path addresses, and
-/// the route's <c>tenantId</c> only scopes the data (ADR-0191). The static strategy, whose own tenant is the
+/// the route's <c>tenantId</c> only scopes the data (ADR-1191). The static strategy, whose own tenant is the
 /// control-plane tenant, is driven by every other management integration test.
 /// </summary>
 public class ManagementControlPlaneTests

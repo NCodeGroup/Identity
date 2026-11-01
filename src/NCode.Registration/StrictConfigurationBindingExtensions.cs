@@ -26,7 +26,7 @@ namespace NCode.Registration;
 /// ignored. A misspelled or misplaced key otherwise looks exactly like an absent one: the host starts on its defaults
 /// and the operator has no signal that their setting never took effect.
 /// </summary>
-// See ADR-0137.
+// See ADR-1137.
 [PublicAPI]
 public static class StrictConfigurationBindingExtensions
 {

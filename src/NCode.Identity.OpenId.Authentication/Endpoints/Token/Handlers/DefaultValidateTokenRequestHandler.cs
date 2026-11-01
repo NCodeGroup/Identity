@@ -48,7 +48,7 @@ internal class DefaultValidateTokenRequestHandler(IClientScopeService clientScop
 
         // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
-        // A requested scope must be permitted by the client's grants (ADR-0026). A null scope (the 'scope' parameter
+        // A requested scope must be permitted by the client's grants (ADR-1026). A null scope (the 'scope' parameter
         // is OPTIONAL — RFC 6749 §3.3) is left null here so grants that reuse an original grant's scopes (refresh
         // token, token exchange) can distinguish "not requested" from an explicitly empty set.
         var requestedScopes = tokenRequest.Scopes;

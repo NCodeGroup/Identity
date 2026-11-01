@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// Provides lookup over the registered <see cref="ISecretKeyTypeDescriptor"/> instances — the single source of
 /// truth for the server's secret key-type taxonomy and capabilities.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 [PublicAPI]
 public interface ISecretKeyTypeCatalog
 {

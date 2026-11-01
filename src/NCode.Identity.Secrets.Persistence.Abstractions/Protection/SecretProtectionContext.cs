@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Identifies what a protected value is for by the purpose of the value and the identifier of the item that the
 /// value belongs to. A value can only be unprotected with the same context that it was protected with.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public readonly record struct SecretProtectionContext
 {

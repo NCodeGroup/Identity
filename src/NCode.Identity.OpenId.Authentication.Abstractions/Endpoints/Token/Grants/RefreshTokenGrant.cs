@@ -40,6 +40,6 @@ public readonly record struct RefreshTokenGrant(
     IReadOnlyList<string> EffectiveScopes,
     SubjectAuthentication? SubjectAuthentication,
     TokenConfirmation Confirmation,
-    // See ADR-0297.
+    // See ADR-1297.
     DateTimeOffset LineageCreatedWhen
 );

@@ -27,7 +27,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-// Validates the native EF [ConcurrencyCheck] the stores rely on after ADR-0012. Uses SQLite because the
+// Validates the native EF [ConcurrencyCheck] the stores rely on after ADR-1012. Uses SQLite because the
 // EF InMemory provider does not enforce concurrency tokens in the UPDATE ... WHERE clause.
 public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
 {

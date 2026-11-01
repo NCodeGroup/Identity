@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <param name="PartitionValue">The partition of the limit that the request counts in.</param>
 /// <param name="Limit">The most requests the limit admits in one window.</param>
 /// <param name="Overage">The most requests admitted past <paramref name="Limit"/> as overage; zero when there is none.</param>
-// See ADR-0246.
+// See ADR-1246.
 internal readonly record struct JudgedRateLimit(
     RateLimitDescriptor Descriptor,
     string PartitionValue,

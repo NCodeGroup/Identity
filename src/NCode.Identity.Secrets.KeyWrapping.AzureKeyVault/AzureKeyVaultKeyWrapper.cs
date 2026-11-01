@@ -54,7 +54,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 /// key.
 /// </para>
 /// </remarks>
-// See ADR-0260.
+// See ADR-1260.
 internal class AzureKeyVaultKeyWrapper(
     IAzureKeyVaultClientFactory clientFactory,
     IOptions<AzureKeyVaultKeyWrapperOptions> options

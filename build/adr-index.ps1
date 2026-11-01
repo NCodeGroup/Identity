@@ -54,7 +54,7 @@ $onDisk = @(Get-ChildItem -LiteralPath $Directory -Filter '*.md' -File |
         ForEach-Object { $_.Name } |
         Sort-Object -Culture ([cultureinfo]::InvariantCulture))
 
-# Each ADR is cited by its number alone ("ADR-0278"), so two files with one number make every such citation ambiguous.
+# Each ADR is cited by its number alone ("ADR-1278"), so two files with one number make every such citation ambiguous.
 $onDisk |
     Group-Object { $_.Substring(0, 4) } |
     Where-Object { $_.Count -gt 1 } |

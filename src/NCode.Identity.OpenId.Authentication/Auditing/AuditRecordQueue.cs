@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// queue is full is dropped and counted, so a store that is unreachable costs memory up to the bound and never blocks the
 /// operation that was audited.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 internal sealed class AuditRecordQueue(IOptions<AuditRecordOptions> options)
 {
     private long _droppedCount;

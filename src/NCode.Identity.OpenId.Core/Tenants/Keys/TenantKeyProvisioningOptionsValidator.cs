@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// symmetric algorithm, or a key size the algorithm does not accept stops the host instead of failing the first tenant
 /// that is seeded.
 /// </summary>
-// See ADR-0137 (configuration is validated at startup) and ADR-0169 (every tenant is provisioned with persisted keys).
+// See ADR-1137 (configuration is validated at startup) and ADR-1169 (every tenant is provisioned with persisted keys).
 internal class TenantKeyProvisioningOptionsValidator(ITenantKeyPolicy tenantKeyPolicy)
     : IValidateOptions<OpenIdOptions>
 {

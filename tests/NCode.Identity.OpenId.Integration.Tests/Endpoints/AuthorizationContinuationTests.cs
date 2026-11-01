@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Exercises the authorization continuation end to end: a request without a session is sent to the login page, and
 /// once the user has signed in, the continue URL issues the code and delivers the response in the requested response
-/// mode (ADR-0201).
+/// mode (ADR-1201).
 /// </summary>
 public class AuthorizationContinuationTests
 {

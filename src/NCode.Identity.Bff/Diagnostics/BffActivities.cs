@@ -24,7 +24,7 @@ namespace NCode.Identity.Bff.Diagnostics;
 /// Owns the BFF's <see cref="ActivitySource"/> and the names of its spans. A span carries only the bounded attributes
 /// of the matching instrument, never a token, handle, cookie, subject, client id or path.
 /// </summary>
-// See ADR-0298.
+// See ADR-1298.
 internal static class BffActivities
 {
     /// <summary>

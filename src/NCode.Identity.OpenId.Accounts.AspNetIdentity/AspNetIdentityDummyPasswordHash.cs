@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 /// takes as long whichever user the user name names.
 /// </summary>
 /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
-// See ADR-0239.
+// See ADR-1239.
 internal sealed class AspNetIdentityDummyPasswordHash<TUser>
     where TUser : IdentityUser, new()
 {

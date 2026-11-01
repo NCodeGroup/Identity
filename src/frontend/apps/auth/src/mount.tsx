@@ -13,11 +13,11 @@ import { readServerPage } from './serverPage.js';
  * the page already holds the state to carry and the tenant's branding.
  */
 export function mountSurface(container: HTMLElement, doc: Document = document): Root {
-  // Read what the end-user typed or the browser autofilled before React replaces the page (ADR-0253).
+  // Read what the end-user typed or the browser autofilled before React replaces the page (ADR-1253).
   const serverPage = readServerPage(container, doc.activeElement);
   const branding = readBranding(doc);
   // Emotion writes the theme's styles into `<style>` elements, which the page's Content-Security-Policy admits only
-  // with the host's nonce (ADR-0256).
+  // with the host's nonce (ADR-1256).
   const nonce = readCspNonce(doc);
   const styleCache = createCache({ key: 'auth', container: doc.head, ...(nonce ? { nonce } : {}) });
 

@@ -35,7 +35,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// that unprotects the stored key material and delegates decoding to the <see cref="ISecretKeyTypeDescriptor"/> for
 /// the secret's type (the single extensibility seam).
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalog)
     : ISecretSerializer
 {
@@ -61,7 +61,7 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
     }
 
     /// <inheritdoc />
-    // See ADR-0268.
+    // See ADR-1268.
     public SecretKey DeserializePublicSecret(PersistedSecret persistedSecret)
     {
         ArgumentNullException.ThrowIfNull(persistedSecret);

@@ -37,7 +37,7 @@ GET api/capabilities
 /// document is composed from the registered <see cref="DiscoverManagementCapabilitiesCommand"/> handlers, so new
 /// capabilities are exposed by registering a provider rather than by changing this endpoint.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 internal class CapabilitiesApiEndpointHandler : IEndpointProvider
 {
     /// <inheritdoc />

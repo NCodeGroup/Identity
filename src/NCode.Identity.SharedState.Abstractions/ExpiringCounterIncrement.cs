@@ -27,7 +27,7 @@ namespace NCode.Identity.SharedState;
 /// read, and only when <see cref="ReferenceWeight"/> is positive. The batch stops after this counter when its count plus
 /// <see cref="ReferenceWeight"/> times the reference counter's count exceeds <see cref="Limit"/>.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 [PublicAPI]
 public readonly record struct ExpiringCounterIncrement
 {

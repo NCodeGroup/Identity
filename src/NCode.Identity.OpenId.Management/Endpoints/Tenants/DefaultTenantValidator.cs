@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 /// <see cref="ITenantResolver.ValidateTenantAsync"/>, the same rules the configured tenant strategy routes requests by,
 /// so a tenant can never be written with an address nothing is served under.
 /// </summary>
-// See ADR-0160 (a tenant's address is validated wherever it is written).
+// See ADR-1160 (a tenant's address is validated wherever it is written).
 internal class DefaultTenantValidator(
     IAuthorizationService authorizationService,
     ITenantResolver tenantResolver

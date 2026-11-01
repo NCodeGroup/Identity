@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// tenant's keys and encrypted to one of the client's public keys — its registered <c>jwks</c> or the keys its
 /// <c>jwks_uri</c> publishes — never to a shared key, which the client's registration does not establish.
 /// </summary>
-// See ADR-0155.
+// See ADR-1155.
 internal class DefaultClientJwtCredentialSelector(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,

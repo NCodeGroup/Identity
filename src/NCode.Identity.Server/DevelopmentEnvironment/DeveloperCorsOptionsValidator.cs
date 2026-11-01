@@ -26,7 +26,7 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// header — a trailing slash, a path, a wildcard, a missing scheme — stops the host when it starts instead of leaving
 /// the dev server's cross-origin calls failing with no sign of why.
 /// </summary>
-// See ADR-0137.
+// See ADR-1137.
 internal class DeveloperCorsOptionsValidator : IValidateOptions<DeveloperCorsOptions>
 {
     /// <inheritdoc />

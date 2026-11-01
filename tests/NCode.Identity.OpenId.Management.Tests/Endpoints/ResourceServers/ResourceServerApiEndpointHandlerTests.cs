@@ -560,7 +560,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             json.Value!.Settings.GetProperty("access_token_encryption_required").GetBoolean()
         );
 
-        // A client setting does not govern a resource server, so its preview omits it (ADR-0149).
+        // A client setting does not govern a resource server, so its preview omits it (ADR-1149).
         Assert.False(json.Value.Settings.TryGetProperty("require_pkce", out _));
     }
 

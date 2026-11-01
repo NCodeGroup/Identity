@@ -1,4 +1,4 @@
-# Codecov upload — the reusable job both CI tiers call after their gate job (ADR-0143).
+# Codecov upload — the reusable job both CI tiers call after their gate job (ADR-1143).
 #
 # The upload runs in its OWN job, never inside a gate job. Authenticating to Codecov over OIDC needs `id-token: write`,
 # and a gate job executes third-party build and test code (MSBuild targets, NuGet and npm packages) that must never be

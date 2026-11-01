@@ -32,7 +32,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// per-type generation logic is delegated to the registered <see cref="ISecretKeyTypeDescriptor"/> for the requested
 /// key type.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
@@ -165,7 +165,7 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
         );
     }
 
-    // The single correct-by-default construction of a shared-secret PersistedSecret (ADR-0110): a symmetric_raw secret
+    // The single correct-by-default construction of a shared-secret PersistedSecret (ADR-1110): a symmetric_raw secret
     // whose stored key material is exactly the supplied UTF-8 octets of the opaque string, shared by GenerateSharedSecret
     // (random value) and ImportSharedSecret (caller-supplied value) so the stored shape cannot drift between them.
     private static PersistedSecret CreateSharedSecret(

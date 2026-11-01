@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
     {
         // The settings a client's effective settings never read: discovery and the tenant-wide services read them from
         // a tenant's effective settings only, so a client document that carries one stored a setting the server never
-        // honored (ADR-0149).
+        // honored (ADR-1149).
         private static readonly string[] SettingsOutsideClients =
         [
             "authorization_response_iss_parameter_supported", "backchannel_logout_session_supported",
@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
         // The settings a resource server's effective settings never read: access-token issuance reads a targeted
         // resource server's settings only for its encryption, so a resource-server document that carries any other
-        // setting stored one the server never honored (ADR-0149).
+        // setting stored one the server never honored (ADR-1149).
         private static readonly string[] SettingsOutsideResourceServers =
         [
             "access_token_lifetime", "access_token_signing_alg_values_supported", "access_token_type",
@@ -94,7 +94,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // A setting stored at a scope that never reads it now fails closed when the document is loaded (ADR-0149).
+            // A setting stored at a scope that never reads it now fails closed when the document is loaded (ADR-1149).
             // It never had an effect there, so it is removed rather than translated: no setting at that scope expressed
             // its intent, and moving it to the tenant would change every other client or resource server of the tenant.
             // Its value is irrelevant, so a document is rewritten whatever the value; any other setting the document

@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets;
 /// or importing material and consumes it when deserializing, so public (SPKI) and private (PKCS#8) asymmetric
 /// material are distinguished unambiguously.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public static class SecretEncodings
@@ -63,7 +63,7 @@ public static class SecretEncodings
     /// <see langword="true"/> when <paramref name="secretEncoding"/> is <see cref="Spki"/> or <see cref="X509"/>;
     /// otherwise, <see langword="false"/>.
     /// </returns>
-    // See ADR-0235.
+    // See ADR-1235.
     public static bool IsPublic(string secretEncoding)
     {
         ArgumentNullException.ThrowIfNull(secretEncoding);

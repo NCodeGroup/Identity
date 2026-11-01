@@ -245,9 +245,9 @@ internal static class InteractiveAuthenticationPageRenderer
     // Writes the bundle's head, which ends inside its #root, so the SPA enhances the form on mount; without the bundle,
     // a minimal standalone document keeps the form working. Either way the document's base is the surface beneath the
     // request's tenant, so the bundle's relative asset URLs, its API calls, and the forms' relative actions resolve
-    // there whatever path the page itself was served at (ADR-0193). The tenant's branding follows the base, so the
+    // there whatever path the page itself was served at (ADR-1193). The tenant's branding follows the base, so the
     // bundle finds it in the page it mounts over. The bundle's own markup carries the nonce in place of its placeholder;
-    // no rendered value does. See ADR-0256.
+    // no rendered value does. See ADR-1256.
     private static void WriteHead(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
@@ -284,7 +284,7 @@ internal static class InteractiveAuthenticationPageRenderer
         Write(writer, "\" />");
     }
 
-    // The bundle reads this block when it mounts (ADR-0253). The default encoder of JsonSerializerOptions.Web escapes
+    // The bundle reads this block when it mounts (ADR-1253). The default encoder of JsonSerializerOptions.Web escapes
     // `<`, `>` and `&`, so no value can close the block.
     private static void WriteBranding(IBufferWriter<char> writer, InteractiveBranding branding)
     {

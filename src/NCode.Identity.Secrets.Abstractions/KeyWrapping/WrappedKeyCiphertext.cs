@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// <summary>
 /// Decodes the ciphertext of a wrapped key that a key wrapper stores as base64url text (RFC 4648 §5, no padding).
 /// </summary>
-// See ADR-0279.
+// See ADR-1279.
 [PublicAPI]
 public static class WrappedKeyCiphertext
 {

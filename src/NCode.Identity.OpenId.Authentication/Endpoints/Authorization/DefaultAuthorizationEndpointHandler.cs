@@ -139,7 +139,7 @@ internal class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        // An outer redirect_uri is checked before any request object is verified, so a later error can be delivered there (ADR-0202).
+        // An outer redirect_uri is checked before any request object is verified, so a later error can be delivered there (ADR-1202).
         var checkedDelivery = requestValues.ContainsKey(OpenIdProtocol.Parameters.RedirectUri)
             ? await DeliveryResolver.ResolveAsync(
                 openIdContext,

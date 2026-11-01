@@ -102,10 +102,10 @@ public static class DefaultRegistration
             >();
 
             // The secret key-type catalog is the single source of truth for the key-type taxonomy and
-            // capabilities (ADR-0067); applications can register additional descriptors to support more types.
+            // capabilities (ADR-1067); applications can register additional descriptors to support more types.
             serviceCollection.TryAddSingleton<ISecretKeyTypeCatalog, DefaultSecretKeyTypeCatalog>();
 
-            // The elliptic-curve catalog is the single source of truth for supported curves (ADR-0068);
+            // The elliptic-curve catalog is the single source of truth for supported curves (ADR-1068);
             // applications can register additional EccCurveSpecification services to support more curves.
             serviceCollection.TryAddSingleton<IEccCurveCatalog, DefaultEccCurveCatalog>();
 

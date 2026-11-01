@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// race with <c>412 Precondition Failed</c>, the same answer as a stale <c>If-Match</c>, so that the caller reads the
 /// resource again and retries.
 /// </summary>
-// See ADR-0208 and ADR-0214.
+// See ADR-1208 and ADR-1214.
 internal sealed class StoreConcurrencyEndpointFilter(ILogger<StoreConcurrencyEndpointFilter> logger)
     : IEndpointFilter
 {

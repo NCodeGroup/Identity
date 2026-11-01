@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// strategy derives for it, judged by the same rules as every other tenant written, and it seeds a tenant — after the root
 /// tenant — by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work.
 /// </summary>
-// See ADR-0045 (one seeding pipeline) and ADR-0166 (a tenant is provisioned through one pipeline under every strategy).
+// See ADR-1045 (one seeding pipeline) and ADR-1166 (a tenant is provisioned through one pipeline under every strategy).
 internal sealed class DefaultTenantProvisioner(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
@@ -67,7 +67,7 @@ internal sealed class DefaultTenantProvisioner(
             return existing;
 
         // A tenant created on demand is written like any other: at the address its strategy derives for it, judged by
-        // the rules every tenant write applies (ADR-0160, ADR-0165).
+        // the rules every tenant write applies (ADR-1160, ADR-1165).
         var issuer = await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
         var mtlsEndpointAliasAuthority =
             await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
@@ -126,7 +126,7 @@ internal sealed class DefaultTenantProvisioner(
         var isRootTenant = string.Equals(tenantId, rootTenantId, StringComparison.Ordinal);
 
         // The root (control-plane) tenant must exist and be seeded whatever tenant is seeded, so its control-plane data is
-        // in place under every strategy (ADR-0024, ADR-0166). It is seeded on this same path, so root and workload tenants
+        // in place under every strategy (ADR-1024, ADR-1166). It is seeded on this same path, so root and workload tenants
         // are seeded identically.
         if (!isRootTenant)
         {

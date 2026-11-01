@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 nullable: false,
                 defaultValue: "");
 
-            // Backfill existing rows to the stored-form axis (ADR-0104): symmetric raw bytes, X.509 certificates, or
+            // Backfill existing rows to the stored-form axis (ADR-1104): symmetric raw bytes, X.509 certificates, or
             // (for rsa/ecc) private PKCS#8 — the only forms produced before public-key import existed.
             migrationBuilder.Sql(
                 """

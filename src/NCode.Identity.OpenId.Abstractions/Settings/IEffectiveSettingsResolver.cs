@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// Every one-shot merge uses this resolver instead of building the merge by hand, so a selected security profile is
 /// never skipped. A host can replace the default implementation.
 /// </remarks>
-// See ADR-0204.
+// See ADR-1204.
 [PublicAPI]
 public interface IEffectiveSettingsResolver
 {
@@ -85,7 +85,7 @@ public interface IEffectiveSettingsResolver
     /// <returns>The effective settings of the owner.</returns>
     /// <exception cref="UnreadableSettingsException">The document cannot be honored; the exception names the scope
     /// and the owner.</exception>
-    // See ADR-0245.
+    // See ADR-1245.
     IReadOnlySettingCollection ResolveStored(
         IReadOnlySettingCollection parentSettings,
         string scopeName,
@@ -115,6 +115,6 @@ public interface IEffectiveSettingsResolver
     /// <returns>The effective settings of the server as committed.</returns>
     /// <exception cref="UnreadableSettingsException">The committed document cannot be honored, including a
     /// <c>security_profiles</c> value that names no registered profile; the exception names the server.</exception>
-    // See ADR-0245.
+    // See ADR-1245.
     ValueTask<IReadOnlySettingCollection> ResolveServerAsync(CancellationToken cancellationToken);
 }

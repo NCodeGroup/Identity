@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// <see cref="DefaultSectionName"/> configuration section. Each root key provider binds its own options from a child
 /// of the <c>RootKeyProviders</c> section, so the options a provider needs are not part of this type.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public sealed class SecretProtectionOptions
 {

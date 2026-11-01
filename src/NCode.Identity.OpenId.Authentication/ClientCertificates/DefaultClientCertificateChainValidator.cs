@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// certificate whose revocation status cannot be determined fails the chain unless the client's revocation mode is
 /// the soft-fail mode; a revoked certificate always fails it.
 /// </summary>
-// See ADR-0173.
+// See ADR-1173.
 internal sealed class DefaultClientCertificateChainValidator(
     TimeProvider timeProvider,
     IClientCertificateRevocationChecker revocationChecker,
@@ -79,7 +79,7 @@ internal sealed class DefaultClientCertificateChainValidator(
             : OpenIdConstants.ClientCertificateRevocationMode.Online;
 
         // The soft-fail mode accepts a certificate whose revocation status cannot be determined; it never accepts
-        // one that is revoked. See ADR-0252.
+        // one that is revoked. See ADR-1252.
         var acceptsUnknownStatus = string.Equals(
             revocationMode,
             OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail,

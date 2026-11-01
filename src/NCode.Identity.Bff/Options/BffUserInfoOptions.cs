@@ -25,7 +25,7 @@ namespace NCode.Identity.Bff.Options;
 /// UserInfo responses: the algorithms they are signed and encrypted with. Bound from the <c>Bff:UserInfo</c>
 /// configuration section.
 /// </summary>
-// See ADR-0299 and ADR-0301.
+// See ADR-1299 and ADR-1301.
 [PublicAPI]
 public sealed class BffUserInfoOptions
 {

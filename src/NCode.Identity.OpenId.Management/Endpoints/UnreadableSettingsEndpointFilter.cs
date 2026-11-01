@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// document the registered settings cannot honor is answered <c>409 Conflict</c> with a problem that names the
 /// document, so that the caller can replace it with a settings write.
 /// </summary>
-// See ADR-0245.
+// See ADR-1245.
 internal sealed class UnreadableSettingsEndpointFilter(
     ILogger<UnreadableSettingsEndpointFilter> logger
 ) : IEndpointFilter

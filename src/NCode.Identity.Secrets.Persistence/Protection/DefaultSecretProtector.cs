@@ -36,7 +36,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// unprotect a value throws a <see cref="CryptographicException"/> that names the owner and the master key but never
 /// contains key material, plaintext or the protected value.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal class DefaultSecretProtector(
     SecretOwner owner,
     MasterKey activeKey,

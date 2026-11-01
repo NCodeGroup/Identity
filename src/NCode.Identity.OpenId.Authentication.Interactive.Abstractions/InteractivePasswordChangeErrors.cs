@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// such as the password policy's <c>password_too_short</c>, <c>password_too_long</c> or <c>password_blocklisted</c>,
 /// and the page shows a general message for a code it does not know.
 /// </summary>
-// See ADR-0230.
+// See ADR-1230.
 [PublicAPI]
 public static class InteractivePasswordChangeErrors
 {

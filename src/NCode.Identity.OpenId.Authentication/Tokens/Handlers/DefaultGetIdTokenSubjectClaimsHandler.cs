@@ -109,7 +109,7 @@ internal class DefaultGetIdTokenSubjectClaimsHandler(
             }
         }
 
-        // claims requested via the OpenID Connect 'claims' request parameter (ADR-0039); value/values are advisory and
+        // claims requested via the OpenID Connect 'claims' request parameter (ADR-1039); value/values are advisory and
         // essential is best-effort, so a requested claim is emitted only when the subject actually has it.
         var requestedIdTokenClaims = tokenRequest.RequestClaims?.IdToken;
         if (requestedIdTokenClaims is not null)

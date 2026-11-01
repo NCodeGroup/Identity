@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// registered <see cref="IClientCertificateHeaderDecoder"/> reads, so a misspelled or unregistered format stops the host
 /// instead of failing every request that carries a certificate.
 /// </summary>
-// See ADR-0137 (fail at startup) and ADR-0172 (formats are registered decoders).
+// See ADR-1137 (fail at startup) and ADR-1172 (formats are registered decoders).
 internal class MutualTlsForwardingOptionsValidator(
     IEnumerable<IClientCertificateHeaderDecoder> decoders
 ) : IValidateOptions<MutualTlsForwardingOptions>

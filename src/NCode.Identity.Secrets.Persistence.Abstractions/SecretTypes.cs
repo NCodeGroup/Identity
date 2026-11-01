@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Contains constants for the possible values of the <see cref="PersistedSecret.SecretType"/> property — the
 /// crypto family, shared with the runtime key-type taxonomy (<see cref="SecretKeyTypes"/>). Whether the stored
 /// material is a certificate, a bare public key, or a private key is an orthogonal axis
-/// (<see cref="SecretEncodings"/>, ADR-0104), not a distinct secret type.
+/// (<see cref="SecretEncodings"/>, ADR-1104), not a distinct secret type.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

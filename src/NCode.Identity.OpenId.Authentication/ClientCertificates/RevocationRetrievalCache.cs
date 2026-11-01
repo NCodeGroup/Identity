@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// names, concurrent callers of one key share a single retrieval, and a retrieval that yielded nothing usable is
 /// remembered for <see cref="ClientCertificateRevocationOptions.FailureCacheDuration"/>.
 /// </summary>
-// See ADR-0252.
+// See ADR-1252.
 internal sealed class RevocationRetrievalCache(
     IMemoryCache memoryCache,
     IOptions<ClientCertificateRevocationOptions> options,
@@ -84,7 +84,7 @@ internal sealed class RevocationRetrievalCache(
             return cached;
 
         // A retrieval that yielded nothing usable is remembered, so an unreachable or misbehaving source is not
-        // asked again for every check. See ADR-0252.
+        // asked again for every check. See ADR-1252.
         if (IsUnavailable(key))
         {
             Logger.RevocationRetrievalSuppressed(location, subject, Options.FailureCacheDuration);
@@ -92,7 +92,7 @@ internal sealed class RevocationRetrievalCache(
         }
 
         // Concurrent checks share one retrieval; it runs without the caller's token, so a caller that gives up does
-        // not break it for the others. See ADR-0252.
+        // not break it for the others. See ADR-1252.
         var retrieval = Retrievals.GetOrAdd(
             key,
             _ => new Lazy<Task<object?>>(() => RunAsync(key, retrieve))

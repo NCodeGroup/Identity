@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 /// principal and project into issued tokens and the UserInfo response. The
 /// <see cref="ConcurrencyToken"/> is the owning principal's token.
 /// </summary>
-// See ADR-0054, ADR-0055.
+// See ADR-1054, ADR-1055.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class LocalAccountMetadataResource : ISupportConcurrencyToken

@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Confirms that an operator can re-enable the not-recommended capabilities the library omits from its secure
-/// defaults (ADR-0083) purely through configuration, and that the widened values are then both advertised in
+/// defaults (ADR-1083) purely through configuration, and that the widened values are then both advertised in
 /// discovery and accepted by the authorization endpoint.
 /// </summary>
 public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory factory)

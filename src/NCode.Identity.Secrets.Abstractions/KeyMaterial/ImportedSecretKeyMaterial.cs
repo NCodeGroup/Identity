@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 /// <see cref="ISecretKeyTypeDescriptor"/>, with the public key already protected via the supplied
 /// <see cref="SecretKeyMaterialProtector"/>.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportedSecretKeyMaterial

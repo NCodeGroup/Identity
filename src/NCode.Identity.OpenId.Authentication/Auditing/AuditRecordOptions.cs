@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// Contains the options for keeping audit records in the audit store, where an operator queries them after the logs that
 /// also carry them have rotated.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 public sealed class AuditRecordOptions
 {
     /// <summary>

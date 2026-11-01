@@ -77,7 +77,7 @@ public interface ITokenService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="IssuedRefreshToken"/> that represents the newly generated refresh token.</returns>
-    // See ADR-0297.
+    // See ADR-1297.
     ValueTask<IssuedRefreshToken> CreateRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

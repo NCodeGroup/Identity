@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// the page's base resolves their relative URLs. A content-hashed file is the same for every tenant, so unlike the
 /// surface's group this one adds no environment filter: serving a file resolves no tenant.
 /// </summary>
-// See ADR-0254.
+// See ADR-1254.
 internal sealed class InteractiveBundleAssetEndpointGroup : IEndpointGroup
 {
     /// <summary>

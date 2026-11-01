@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// <c>unknown</c> answer is <see cref="ClientCertificateRevocationStatus.Unknown"/>, which leaves the decision to the
 /// sources that follow.
 /// </summary>
-// See ADR-0259.
+// See ADR-1259.
 internal sealed class OcspClientCertificateRevocationSource(
     TimeProvider timeProvider,
     RevocationDataFetcher fetcher,
@@ -84,7 +84,7 @@ internal sealed class OcspClientCertificateRevocationSource(
         foreach (var uri in uris)
         {
             // A responder that failed at the HTTP level is not asked again for any certificate until the failure is
-            // forgotten. See ADR-0259.
+            // forgotten. See ADR-1259.
             var locationKey = LocationKeyPrefix + uri;
             if (RetrievalCache.IsUnavailable(locationKey))
             {
@@ -158,7 +158,7 @@ internal sealed class OcspClientCertificateRevocationSource(
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     // A delegated responder that lacks id-pkix-ocsp-nocheck is checked by the CRL source only, so the check cannot
-    // loop back through OCSP. See ADR-0259.
+    // loop back through OCSP. See ADR-1259.
     private async ValueTask<bool> IsResponderGoodAsync(
         ReadOnlyMemory<byte> encoded,
         ClientCertificateRevocationContext context,

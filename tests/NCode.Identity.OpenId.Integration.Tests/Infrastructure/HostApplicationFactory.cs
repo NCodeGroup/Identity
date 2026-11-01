@@ -247,7 +247,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
-    /// federated identity that a real interactive login provisions (ADR-0035), so the UserInfo scope-claims enricher
+    /// federated identity that a real interactive login provisions (ADR-1035), so the UserInfo scope-claims enricher
     /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries
     /// as its public <c>sub</c>, which the enricher resolves the local account from.
     /// </summary>
@@ -426,7 +426,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-0110), protected
+        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-1110), protected
         // under the tenant's master key, so the stored UTF-8 shape is identical to a generated secret's and client
         // authentication round-trips.
         var protector = await serviceProvider
@@ -561,7 +561,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-0104).
+            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-1104).
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
             KeySizeBits = keySizeBits,

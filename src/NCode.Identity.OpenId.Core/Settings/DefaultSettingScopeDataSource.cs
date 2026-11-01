@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// server's settings, and each client and each resource server inherits its tenant's. A package that stores settings for
 /// an entity of its own contributes its scope through another data source, beneath the scope it inherits from.
 /// </summary>
-// See ADR-0149.
+// See ADR-1149.
 internal class DefaultSettingScopeDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingScopeDescriptor>
 {

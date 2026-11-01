@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// configuration, bound from the <see cref="DefaultSectionName"/> configuration section. Exactly one of
 /// <see cref="KeyPath"/> and <see cref="Key"/> must be set.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public sealed class LocalKeyWrapperOptions
 {

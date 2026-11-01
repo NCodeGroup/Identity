@@ -153,7 +153,7 @@ internal class DefaultBffUserTokenService(
     }
 
     // The refresh is measured as the request experienced it: refreshed when it presented the refresh token, joined when
-    // another request or replica refreshed the session for it, failed otherwise. See ADR-0197 and ADR-0298.
+    // another request or replica refreshed the session for it, failed otherwise. See ADR-1197 and ADR-1298.
     private void RefreshCompleted(
         Activity? activity,
         long startTimestamp,
@@ -411,7 +411,7 @@ internal class DefaultBffUserTokenService(
         try
         {
             // The lease is won: a caller that aborts now must not lose the rotated refresh token, so nothing
-            // but the client's request timeout ends the request or the write-back. See ADR-0291.
+            // but the client's request timeout ends the request or the write-back. See ADR-1291.
             result = await _tokenClient.RequestTokenAsync(
                 _registrationProvider.Registration,
                 request,

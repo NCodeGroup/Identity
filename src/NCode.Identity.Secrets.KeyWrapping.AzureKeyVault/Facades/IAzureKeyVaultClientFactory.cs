@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 /// Provides the Azure Key Vault cryptography client for a key, so the code that wraps and unwraps keys can be tested
 /// without calling Azure.
 /// </summary>
-// See ADR-0260.
+// See ADR-1260.
 internal interface IAzureKeyVaultClientFactory
 {
     /// <summary>

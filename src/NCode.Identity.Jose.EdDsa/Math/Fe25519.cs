@@ -31,7 +31,7 @@ internal struct Fe25519
     private const ulong Mask = (1UL << 51) - 1;
 
     // Hot inner-loop math: force full JIT optimization and inlining. Constant-time is preserved because none of
-    // these methods branch on or index by field values. See ADR-0116 / the crypto-math performance convention.
+    // these methods branch on or index by field values. See ADR-1116 / the crypto-math performance convention.
     private const MethodImplOptions Opt =
         MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization;
 

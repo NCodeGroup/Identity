@@ -109,6 +109,6 @@ public interface IReadOnlySettingCollection : IReadOnlyCollection<Setting>
     /// <returns>The new <see cref="ISettingCollection"/> instance containing the combined settings.</returns>
     /// <exception cref="InvalidOperationException">A setting in <paramref name="otherCollection"/> does not merge with a
     /// lattice operation, so combining it would let the order of the collections decide its value.</exception>
-    // See ADR-0154.
+    // See ADR-1154.
     ISettingCollection Combine(IEnumerable<Setting> otherCollection);
 }

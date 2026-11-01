@@ -37,7 +37,7 @@ internal class DefaultPersistedGrantService(
     IGrantPayloadProtector payloadProtector
 ) : IPersistedGrantService
 {
-    // The attempts that a write which must not lose a race makes, each in a new unit of work. See ADR-0215.
+    // The attempts that a write which must not lose a race makes, each in a new unit of work. See ADR-1215.
     private const int MaxSaveAttempts = 3;
 
     // This uses C# compiler's ability to refer to static data directly.
@@ -253,7 +253,7 @@ internal class DefaultPersistedGrantService(
         catch (StoreConcurrencyException)
         {
             // Another request spent the grant after it was read, so this one is answered as a second spend.
-            // See ADR-0208.
+            // See ADR-1208.
             return null;
         }
 
@@ -312,7 +312,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A concurrent write changed the grant after it was read, such as a sliding-expiration update.
-                // A revocation must win, so it reads the grant again. See ADR-0215.
+                // A revocation must win, so it reads the grant again. See ADR-1215.
             }
         }
     }
@@ -352,7 +352,7 @@ internal class DefaultPersistedGrantService(
                 if (envelope.SessionId is { Length: > 0 } sessionId)
                 {
                     // The grants issued under the session are revoked in the unit of work that revokes the session,
-                    // so a failure after the claim leaves none of them active. See ADR-0223.
+                    // so a failure after the claim leaves none of them active. See ADR-1223.
                     await store.RevokeWhereAsync(
                         new GrantFilter { SessionId = sessionId },
                         revokedWhen,
@@ -366,13 +366,13 @@ internal class DefaultPersistedGrantService(
             {
                 // A concurrent write changed the session or a grant issued under it after it was read. The
                 // revocation reads them again, and a concurrent revocation of the session ends it with null.
-                // See ADR-0215.
+                // See ADR-1215.
                 continue;
             }
 
             // The session is returned as this call revoked it, so its termination notifies every client it lists;
             // the payload is read after the save, so a payload that cannot be read never keeps a session active.
-            // See ADR-0228.
+            // See ADR-1228.
             var payload = await PayloadProtector.UnprotectOrDefaultAsync<TPayload>(
                 envelope.TenantId,
                 envelope.GrantType,
@@ -441,7 +441,7 @@ internal class DefaultPersistedGrantService(
             {
                 // Another request changed the grant after it was read. A spend or a revocation leaves it inactive,
                 // and the next read refuses it; a write that left it active, such as a retry within the reuse
-                // interval that marks its lineage, is read again. See ADR-0211 and ADR-0217.
+                // interval that marks its lineage, is read again. See ADR-1211 and ADR-1217.
             }
         }
     }
@@ -491,7 +491,7 @@ internal class DefaultPersistedGrantService(
                 return null;
 
             // A rotation marks the grant it spends consumed, which tells a rotated refresh token from one revoked
-            // otherwise. See ADR-0217.
+            // otherwise. See ADR-1217.
             replaced.RevokedWhen = createdWhen;
             replaced.ConsumedWhen = createdWhen;
 
@@ -517,7 +517,7 @@ internal class DefaultPersistedGrantService(
             {
                 // Another request changed the grant after it was read. A spend or a revocation leaves it inactive,
                 // and the next read refuses it; a write that left it active, such as a retry within the reuse
-                // interval that marks its lineage, is read again. See ADR-0211 and ADR-0217.
+                // interval that marks its lineage, is read again. See ADR-1211 and ADR-1217.
             }
         }
     }
@@ -596,7 +596,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // Another request changed a grant of the family after it was read. The next read sees which grants
-                // are still active, and a family with none stores nothing. See ADR-0217.
+                // are still active, and a family with none stores nothing. See ADR-1217.
             }
         }
     }
@@ -622,7 +622,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A grant of the lineage changed after it was read, such as a rotation that committed in between.
-                // A revocation must win, so it reads the lineage again. See ADR-0211.
+                // A revocation must win, so it reads the lineage again. See ADR-1211.
             }
         }
     }
@@ -670,7 +670,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A selected grant changed after it was read, such as a sliding-expiration update or a rotation that
-                // committed in between. A revocation must win, so it reads the grants again. See ADR-0215.
+                // committed in between. A revocation must win, so it reads the grants again. See ADR-1215.
             }
         }
     }
@@ -723,7 +723,7 @@ internal class DefaultPersistedGrantService(
         catch (StoreConcurrencyException)
         {
             // Another request changed the grant after it was read, such as a concurrent refresh that extended it,
-            // and its change stands. See ADR-0211.
+            // and its change stands. See ADR-1211.
         }
     }
 
@@ -806,7 +806,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // Another request changed the grant after it was read, so the update is applied to the grant as it is
-                // stored now. See ADR-0222.
+                // stored now. See ADR-1222.
             }
         }
     }

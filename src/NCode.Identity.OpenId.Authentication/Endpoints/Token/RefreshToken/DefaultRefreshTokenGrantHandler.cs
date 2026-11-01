@@ -113,7 +113,7 @@ internal class DefaultRefreshTokenGrantHandler(
                     );
                 }
 
-                // A rotated token presented again within the reuse interval is a retry, not a reuse. See ADR-0217.
+                // A rotated token presented again within the reuse interval is a retry, not a reuse. See ADR-1217.
                 isRetry = true;
             }
             else
@@ -128,7 +128,7 @@ internal class DefaultRefreshTokenGrantHandler(
 
         // A rotation family expires refresh_token_lifetime after the grant that began it, however often its tokens were
         // used or rotated, so a token that outlived its family — for example after the lifetime was shortened — is
-        // refused. See ADR-0297.
+        // refused. See ADR-1297.
         var lineageExpiresWhen = RefreshTokenExpiration.GetLineageExpiresWhen(
             settings,
             refreshTokenGrant.LineageCreatedWhen
@@ -261,7 +261,7 @@ internal class DefaultRefreshTokenGrantHandler(
             )
             {
                 // A rotation that lost to a concurrent rotation is a retry while the reuse interval lasts: the winner
-                // consumed the grant a moment ago. See ADR-0217.
+                // consumed the grant a moment ago. See ADR-1217.
                 responseRefreshToken = await ReissueRefreshTokenForRetryAsync(
                     openIdContext,
                     openIdClient,
@@ -325,7 +325,7 @@ internal class DefaultRefreshTokenGrantHandler(
         );
 
         // A token that is not rotated stays in use, so it expires as the policy says from now: a sliding token slides,
-        // and an absolute one follows its family's lifetime should that have changed. See ADR-0297.
+        // and an absolute one follows its family's lifetime should that have changed. See ADR-1297.
         if (!rotates)
         {
             var expiresWhen = RefreshTokenExpiration.GetTokenExpiresWhen(
@@ -348,7 +348,7 @@ internal class DefaultRefreshTokenGrantHandler(
     }
 
     // A grant that a rotation spent is a retry, not a reuse, while its reuse interval lasts and the grant has not
-    // expired. A grant that was revoked otherwise is a reuse. See ADR-0217.
+    // expired. A grant that was revoked otherwise is a reuse. See ADR-1217.
     private static bool IsWithinReuseInterval(
         IReadOnlySettingCollection settings,
         PersistedGrant<RefreshTokenGrant> grant,
@@ -369,7 +369,7 @@ internal class DefaultRefreshTokenGrantHandler(
 
     // A retry is answered only when it can issue another refresh token in a lineage that is still active. Otherwise it
     // is refused (null) without a replay audit and without revoking the lineage. A retry that is answered is audited as
-    // a retry; a refused one is not. See ADR-0217.
+    // a retry; a refused one is not. See ADR-1217.
     private async ValueTask<string?> ReissueRefreshTokenForRetryAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
@@ -403,7 +403,7 @@ internal class DefaultRefreshTokenGrantHandler(
     }
 
     // A rotation that lost its spend was won by a concurrent rotation when the grant, read again, is a rotated grant
-    // that is within the reuse interval. The grant is not read again when the interval is off. See ADR-0217.
+    // that is within the reuse interval. The grant is not read again when the interval is off. See ADR-1217.
     private async ValueTask<bool> WasRotatedByConcurrentRequestAsync(
         OpenIdContext openIdContext,
         IReadOnlySettingCollection settings,
@@ -430,7 +430,7 @@ internal class DefaultRefreshTokenGrantHandler(
     }
 
     // A refresh token presented after it was rotated or revoked, or spent first by a concurrent request, is a reuse
-    // (RFC 9700 §4.14.2). See ADR-0211.
+    // (RFC 9700 §4.14.2). See ADR-1211.
     private async ValueTask<IOpenIdResponse> AnswerReuseAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

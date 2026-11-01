@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// Checks that a client's effective <c>redirect_uri_kinds_supported</c> permits every redirect URI it registers, for
 /// both its <c>redirect_uris</c> and its <c>post_logout_redirect_uris</c>.
 /// </summary>
-// See ADR-0203 and ADR-0206.
+// See ADR-1203 and ADR-1206.
 internal sealed class RedirectUriKindCoherenceRule(IRedirectUriKindCatalog redirectUriKindCatalog)
     : IClientCoherenceRule
 {

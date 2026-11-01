@@ -43,7 +43,7 @@ export function LoginForm({
   const carriedUsername = carriedValues?.['username'];
   const carriedPassword = carriedValues?.['password'];
   // A carried value is written to the DOM property, never to React's `defaultValue`, which would put a password in
-  // the `value` attribute (ADR-0253).
+  // the `value` attribute (ADR-1253).
   const carryUsername = useCallback(
     (input: HTMLInputElement | null) => writeCarriedValue(input, carriedUsername),
     [carriedUsername],

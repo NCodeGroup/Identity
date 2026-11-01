@@ -22,7 +22,7 @@ namespace NCode.Identity.Events;
 /// Names the meter through which <c>NCode.Identity.Events</c> counts published events, so a host can subscribe to it,
 /// for example with OpenTelemetry's <c>AddMeter</c>.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 public static class EventMetrics
 {
     /// <summary>

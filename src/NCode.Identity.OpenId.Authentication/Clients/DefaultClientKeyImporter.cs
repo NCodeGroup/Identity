@@ -40,7 +40,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// (which refuses private material), and its declared <c>alg</c> is checked against the registered algorithms, so a key
 /// type or algorithm a package registers is accepted without changes here.
 /// </summary>
-// See ADR-0161.
+// See ADR-1161.
 internal class DefaultClientKeyImporter(
     ILogger<DefaultClientKeyImporter> logger,
     ICryptoService cryptoService,

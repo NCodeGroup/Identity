@@ -11,7 +11,7 @@ export type OwnerSettingsTabProps = {
 };
 
 /**
- * Container: the settings of any owner (a server, a tenant, or a client or resource server in a scope; ADR-0257),
+ * Container: the settings of any owner (a server, a tenant, or a client or resource server in a scope; ADR-1257),
  * wiring the owner-generic settings endpoints to the shared {@link SettingsManager}. Settings are a top-level
  * JSON Patch diff.
  */

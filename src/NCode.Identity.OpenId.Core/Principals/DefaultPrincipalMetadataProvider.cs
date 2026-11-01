@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Principals;
 /// principal's metadata inconsistent across the cluster. Registered as a singleton; it opens a store manager
 /// per resolve via <see cref="IStoreManagerFactory"/>, so it holds no scoped state.
 /// </summary>
-// See ADR-0055.
+// See ADR-1055.
 internal sealed class DefaultPrincipalMetadataProvider(IStoreManagerFactory storeManagerFactory)
     : IPrincipalMetadataProvider
 {

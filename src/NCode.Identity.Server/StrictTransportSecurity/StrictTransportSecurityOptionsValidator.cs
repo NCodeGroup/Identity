@@ -25,7 +25,7 @@ namespace NCode.Identity.Server.StrictTransportSecurity;
 /// reject, or an excluded host that the middleware could never match, stops the host when it starts instead of being
 /// ignored.
 /// </summary>
-// See ADR-0137 and ADR-0258.
+// See ADR-1137 and ADR-1258.
 internal sealed class StrictTransportSecurityOptionsValidator
     : IValidateOptions<StrictTransportSecurityOptions>
 {

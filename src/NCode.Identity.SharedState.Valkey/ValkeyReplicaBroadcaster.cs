@@ -32,7 +32,7 @@ namespace NCode.Identity.SharedState.Valkey;
 /// the publisher can log the loss. The access-control user of the connection needs the <c>PUBLISH</c> and
 /// <c>SUBSCRIBE</c> commands.
 /// </summary>
-// See ADR-0205.
+// See ADR-1205.
 internal sealed class ValkeyReplicaBroadcaster(
     IValkeyConnection connection,
     IOptions<ValkeyOptions> optionsAccessor,

@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// expires then, and under the <c>sliding</c> policy a token expires <c>refresh_token_sliding_lifetime</c> after it was
 /// issued or last used, never later than its family.
 /// </summary>
-// See ADR-0297.
+// See ADR-1297.
 internal static class RefreshTokenExpiration
 {
     /// <summary>

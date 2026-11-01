@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 /// unless it is bound to a proof-of-possession key or to client authentication: a public client's refresh token
 /// without a DPoP or certificate binding is always rotated, as RFC 9700 requires, and no setting turns that off.
 /// </summary>
-// See ADR-0216.
+// See ADR-1216.
 internal static class RefreshTokenRotationRequirement
 {
     /// <summary>

@@ -9,7 +9,7 @@ export type ServerAuthorizationError = {
 /**
  * The state of the page the host rendered. The page the host rendered is the bundle's initial state, so mounting
  * discards no input: what the end-user typed or the browser autofilled, the field that had focus, the consent scopes
- * the end-user cleared, and the authorization error the host reported (ADR-0253).
+ * the end-user cleared, and the authorization error the host reported (ADR-1253).
  */
 export type ServerPage = {
   /** The non-empty values of the text, email and password inputs, by input id. */

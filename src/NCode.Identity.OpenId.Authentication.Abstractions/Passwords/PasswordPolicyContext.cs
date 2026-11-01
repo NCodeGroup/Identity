@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// Carries what an <see cref="IPasswordPolicy"/> and an <see cref="IPasswordBlocklist"/> need to know about the account
 /// a password is being set for: the settings of its tenant and the names it is known by.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 [PublicAPI]
 public sealed class PasswordPolicyContext
 {

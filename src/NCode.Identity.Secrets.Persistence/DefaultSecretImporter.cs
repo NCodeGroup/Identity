@@ -30,8 +30,8 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <see cref="PersistedSecret"/>. The imported material is public, so it is stored as plain base64url without
 /// encryption because it is not secret; an importer never stores private material.
 /// </summary>
-// See ADR-0104.
-// See ADR-0235.
+// See ADR-1104.
+// See ADR-1235.
 internal sealed class DefaultSecretImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog)
     : ISecretImporter
 {

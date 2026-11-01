@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <remarks>
 /// Implementations are registered with <c>TryAddEnumerable</c>, so each rule is its own implementation type.
 /// </remarks>
-// See ADR-0206.
+// See ADR-1206.
 [PublicAPI]
 public interface IClientCoherenceRule
 {

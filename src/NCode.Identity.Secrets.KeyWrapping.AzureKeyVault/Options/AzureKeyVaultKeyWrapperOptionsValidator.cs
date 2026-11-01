@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 /// instead of failing the first time a master key is wrapped. The options are validated only when the Azure Key Vault
 /// root key provider is the one selected.
 /// </summary>
-// See ADR-0260 and ADR-0137 (configuration is validated at startup).
+// See ADR-1260 and ADR-1137 (configuration is validated at startup).
 internal class AzureKeyVaultKeyWrapperOptionsValidator(
     IOptions<SecretProtectionOptions> protectionOptions
 ) : IValidateOptions<AzureKeyVaultKeyWrapperOptions>

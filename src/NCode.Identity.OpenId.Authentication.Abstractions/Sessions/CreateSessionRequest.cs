@@ -30,7 +30,7 @@ public readonly record struct CreateSessionRequest
 {
     /// <summary>
     /// Gets the subject the session belongs to: the stable, server-owned principal identifier resolved for the
-    /// end-user (ADR-0035), not the raw upstream/local subject. The session, and every grant issued under it, key on
+    /// end-user (ADR-1035), not the raw upstream/local subject. The session, and every grant issued under it, key on
     /// this single value so the same user is referenced consistently regardless of how they authenticated.
     /// </summary>
     public required string SubjectId { get; init; }

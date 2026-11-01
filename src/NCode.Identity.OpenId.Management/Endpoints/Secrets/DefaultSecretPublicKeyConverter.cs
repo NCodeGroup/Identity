@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// it as a <c>JWK</c> and a <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without exportable public material (for
 /// example symmetric keys) yield <c>null</c>.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 internal class DefaultSecretPublicKeyConverter(
     ISecretSerializer secretSerializer,
     ISecretKeyTypeCatalog secretKeyTypeCatalog
@@ -42,7 +42,7 @@ internal class DefaultSecretPublicKeyConverter(
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
-    // See ADR-0268.
+    // See ADR-1268.
     public PublicKeyResource? Convert(PersistedSecret secret)
     {
         if (

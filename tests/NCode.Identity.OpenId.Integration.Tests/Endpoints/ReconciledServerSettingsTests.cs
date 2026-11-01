@@ -32,7 +32,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // The server records the effective settings it reconciled against in the form the setting serializer reads back, so
-// the next reconciliation can compare a change with them. See ADR-0234.
+// the next reconciliation can compare a change with them. See ADR-1234.
 public class ReconciledServerSettingsTests
 {
     #region Reconciliation Tests

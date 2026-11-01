@@ -52,14 +52,14 @@ internal class DefaultScopeDescriptionService(
         var descriptions = new Dictionary<string, string>(StringComparer.Ordinal);
 
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server reads (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
 
         // The DBMS pre-filters to enabled scopes matching the wanted values (case-insensitive); the exact
-        // case-sensitive match is applied here (ADR-0080).
+        // case-sensitive match is applied here (ADR-1080).
         var scopes = await resourceServerStore.GetEnabledScopesAsync(
             scopeValues,
             cancellationToken

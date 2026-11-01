@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// supports (including any custom algorithms an integrator registers): the same <see cref="KeyedAlgorithm"/>
 /// metadata the crypto runtime uses to validate a key is what gates its creation here.
 /// </remarks>
-// See ADR-0067.
+// See ADR-1067.
 internal sealed class DefaultSecretValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog
@@ -106,7 +106,7 @@ internal sealed class DefaultSecretValidator(
     /// <inheritdoc />
     public ManagementError? ValidateImport(ImportSecretRequest request)
     {
-        // Each key type declares the formats it parses, so a key type another package registers brings its own (ADR-0150).
+        // Each key type declares the formats it parses, so a key type another package registers brings its own (ADR-1150).
         var secretType = request.SecretType;
         if (
             !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
@@ -148,7 +148,7 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    // See ADR-0161 and ADR-0186.
+    // See ADR-1161 and ADR-1186.
     public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
     {
         var use = request.Use;

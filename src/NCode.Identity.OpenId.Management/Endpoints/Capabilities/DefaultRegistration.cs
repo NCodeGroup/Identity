@@ -37,7 +37,7 @@ internal static class DefaultRegistration
         {
             builder.AddEndpoint<CapabilitiesApiEndpointHandler>();
 
-            // Capability providers compose the discovery document (ADR-0067); applications can register more.
+            // Capability providers compose the discovery document (ADR-1067); applications can register more.
             builder.ServiceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<DiscoverManagementCapabilitiesCommand>,

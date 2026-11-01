@@ -135,7 +135,7 @@ internal class StaticSingleTenantStrategy(
             displayName = StaticSingleTenantOptions.DefaultDisplayName;
 
         // The configured tenant is created on first resolution, with its configured issuer; the caller that
-        // materializes it seeds it (ADR-0166). The provisioner is scoped (its mediator is request-scoped), so it is
+        // materializes it seeds it (ADR-1166). The provisioner is scoped (its mediator is request-scoped), so it is
         // resolved from the request's service provider.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.EnsureCreatedAsync(

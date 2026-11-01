@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// under it, notifies its relying parties, and audits the termination. A pass that fails is logged and run again at the
 /// next interval.
 /// </summary>
-// See ADR-0223.
+// See ADR-1223.
 internal sealed class EndedSessionTerminationService(
     IMaterializedServerAccessor materializedServerAccessor,
     IServiceScopeFactory serviceScopeFactory,

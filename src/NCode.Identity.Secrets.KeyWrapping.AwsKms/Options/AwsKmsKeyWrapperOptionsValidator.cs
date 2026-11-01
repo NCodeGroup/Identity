@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 /// host instead of failing the first time a master key is wrapped. The options are validated only when the AWS KMS
 /// root key provider is the one selected.
 /// </summary>
-// See ADR-0235 and ADR-0137 (configuration is validated at startup).
+// See ADR-1235 and ADR-1137 (configuration is validated at startup).
 internal class AwsKmsKeyWrapperOptionsValidator(IOptions<SecretProtectionOptions> protectionOptions)
     : IValidateOptions<AwsKmsKeyWrapperOptions>
 {

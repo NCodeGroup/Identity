@@ -40,6 +40,6 @@ public sealed class GeneratedSecret
     /// externally-held material to reveal. Populated only for symmetric secrets; asymmetric private keys are
     /// never surfaced. The value exists only in memory and is never persisted.
     /// </summary>
-    // See ADR-0050.
+    // See ADR-1050.
     public required string? SecretMaterial { get; init; }
 }

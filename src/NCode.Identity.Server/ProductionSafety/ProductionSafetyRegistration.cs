@@ -292,7 +292,7 @@ public static class ProductionSafetyRegistration
             return;
         }
 
-        // Developer keys are development-only in BOTH developer modes (ADR-0002, ADR-0021, ADR-0169): Ephemeral regenerates
+        // Developer keys are development-only in BOTH developer modes (ADR-1002, ADR-1021, ADR-1169): Ephemeral regenerates
         // the signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
         // PersistentSigningKey discards a key whose master key, or the root key that wraps it, was lost or changed and
         // replaces it, which in production would hide a lost root key behind a silent key change. Absent configuration is

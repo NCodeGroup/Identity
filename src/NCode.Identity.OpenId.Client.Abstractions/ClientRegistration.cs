@@ -121,7 +121,7 @@ public sealed class ClientRegistration(
     /// <c>iss</c> and an <c>aud</c> naming the client (OpenID Connect Core 1.0 §5.3.2); a JSON response is refused.
     /// <c>none</c> and symmetric algorithms are never accepted.
     /// </summary>
-    // See ADR-0301.
+    // See ADR-1301.
     public IReadOnlyList<string>? UserInfoSigningAlgorithms
     {
         get => _userInfoSigningAlgorithms;
@@ -140,7 +140,7 @@ public sealed class ClientRegistration(
     /// <see cref="UserInfoSigningAlgorithms"/>, because a response that is encrypted but not signed is never accepted.
     /// Only RSA-OAEP and ECDH-ES algorithms are accepted, never <c>RSA1_5</c>, <c>dir</c> or a shared-key algorithm.
     /// </summary>
-    // See ADR-0301.
+    // See ADR-1301.
     public IReadOnlyList<string>? UserInfoKeyManagementAlgorithms
     {
         get => _userInfoKeyManagementAlgorithms;
@@ -159,7 +159,7 @@ public sealed class ClientRegistration(
     /// means <c>A128CBC-HS256</c>, the registration default. It applies only together with
     /// <see cref="UserInfoKeyManagementAlgorithms"/>.
     /// </summary>
-    // See ADR-0301.
+    // See ADR-1301.
     public IReadOnlyList<string>? UserInfoContentEncryptionAlgorithms
     {
         get => _userInfoContentEncryptionAlgorithms;

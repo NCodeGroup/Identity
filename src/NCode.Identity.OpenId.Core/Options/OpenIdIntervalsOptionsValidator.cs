@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId;
 /// Validates the refresh intervals and lifetimes that the server and the tenants run timers on when the host starts,
 /// so a value that a timer refuses stops the host instead of failing the first time a timer is created.
 /// </summary>
-// See ADR-0221.
+// See ADR-1221.
 internal sealed class OpenIdIntervalsOptionsValidator : IValidateOptions<OpenIdOptions>
 {
     /// <inheritdoc />

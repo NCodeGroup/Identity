@@ -28,7 +28,7 @@ namespace NCode.Identity.Jwt.Claims;
 /// Provides the default implementation of <see cref="IClaimsIdentityFactory"/>, which types each claim by its JSON
 /// value through <see cref="ClaimValueMapper"/>.
 /// </summary>
-// See ADR-0122.
+// See ADR-1122.
 internal sealed class DefaultClaimsIdentityFactory : IClaimsIdentityFactory
 {
     /// <inheritdoc />

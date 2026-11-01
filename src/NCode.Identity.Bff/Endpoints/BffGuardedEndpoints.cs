@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.Bff.Endpoints;
 
-// The BFF cookie authenticates only these endpoints (ADR-0292).
+// The BFF cookie authenticates only these endpoints (ADR-1292).
 
 /// <summary>
 /// Classifies the endpoints whose requests the BFF cookie may authenticate.

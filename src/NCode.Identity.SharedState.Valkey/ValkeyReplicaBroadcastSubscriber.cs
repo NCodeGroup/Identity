@@ -36,7 +36,7 @@ namespace NCode.Identity.SharedState.Valkey;
 /// message published before the subscription took effect never reached this replica. Every handler is told again when
 /// the connection is restored, because a message published while it was down is lost.
 /// </summary>
-// See ADR-0205.
+// See ADR-1205.
 internal sealed class ValkeyReplicaBroadcastSubscriber(
     IValkeyConnection connection,
     IOptions<ValkeyOptions> optionsAccessor,

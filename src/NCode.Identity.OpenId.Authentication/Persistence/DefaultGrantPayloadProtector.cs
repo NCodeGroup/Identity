@@ -36,7 +36,7 @@ namespace NCode.Identity.OpenId.Authentication.Persistence;
 /// <param name="secretProtectorProvider">The provider of the protector of a tenant.</param>
 /// <param name="payloadSerializer">The schema-versioned serializer of payloads.</param>
 /// <param name="logger">The logger.</param>
-// See ADR-0265.
+// See ADR-1265.
 internal sealed class DefaultGrantPayloadProtector(
     ISecretProtectorProvider secretProtectorProvider,
     IPersistedPayloadSerializer payloadSerializer,

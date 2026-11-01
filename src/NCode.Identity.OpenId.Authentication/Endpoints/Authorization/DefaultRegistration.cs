@@ -91,7 +91,7 @@ internal static class DefaultRegistration
                 DefaultAuthorizationResponseDeliveryResolver
             >();
 
-            // Response modes are an open vocabulary: a package adds one by registering its handler (ADR-0201).
+            // Response modes are an open vocabulary: a package adds one by registering its handler (ADR-1201).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IAuthorizationResponseModeHandler,

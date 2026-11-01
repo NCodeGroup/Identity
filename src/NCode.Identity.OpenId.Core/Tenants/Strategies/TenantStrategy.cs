@@ -115,7 +115,7 @@ internal abstract class TenantStrategy(
     /// The control-plane tenant is the root tenant, which the request need not address: under a dynamic strategy the
     /// management API is reached on any host or path, not beneath the tenant that issued the caller's token.
     /// </remarks>
-    // See ADR-0191 (the management API authenticates against the control-plane tenant).
+    // See ADR-1191 (the management API authenticates against the control-plane tenant).
     public virtual string GetControlPlaneTenantId() => RootOptions.TenantId;
 
     /// <inheritdoc />
@@ -123,7 +123,7 @@ internal abstract class TenantStrategy(
     /// The control-plane tenant is the root tenant, which the request need not address: under a dynamic strategy the
     /// management API is reached on any host or path, not beneath the tenant that issued the caller's token.
     /// </remarks>
-    // See ADR-0191 (the management API authenticates against the control-plane tenant).
+    // See ADR-1191 (the management API authenticates against the control-plane tenant).
     public virtual async ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -134,7 +134,7 @@ internal abstract class TenantStrategy(
     /// The root tenant is given its configured issuer when it has one; every tenant otherwise gets the expansion of the
     /// strategy's issuer template, or none when the strategy has no template.
     /// </remarks>
-    // See ADR-0165 (every served tenant has an issuer, and its strategy supplies the default).
+    // See ADR-1165 (every served tenant has an issuer, and its strategy supplies the default).
     public virtual ValueTask<string?> GetDefaultIssuerAsync(
         string tenantId,
         CancellationToken cancellationToken
@@ -157,7 +157,7 @@ internal abstract class TenantStrategy(
     /// The root tenant is given its configured alias when it has one; every tenant otherwise gets the expansion of the
     /// strategy's alias template, or none when the strategy has no template.
     /// </remarks>
-    // See ADR-0195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    // See ADR-1195 (a tenant's mTLS endpoint alias is a routed tenant property).
     public virtual ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
         string tenantId,
         CancellationToken cancellationToken
@@ -216,7 +216,7 @@ internal abstract class TenantStrategy(
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant.</param>
     /// <returns>The failure, or <c>null</c> when the tenant needs no issuer.</returns>
-    // See ADR-0165: nothing derives a tenant's issuer from the request, so a tenant without one cannot be served.
+    // See ADR-1165: nothing derives a tenant's issuer from the request, so a tenant without one cannot be served.
     protected TenantValidationFailure? ValidateIssuerPresence(string tenantId)
     {
         if (!RequiresIssuer(tenantId))
@@ -242,7 +242,7 @@ internal abstract class TenantStrategy(
     /// <param name="tenantId">The identifier of the tenant.</param>
     /// <param name="issuer">The proposed issuer of the tenant.</param>
     /// <returns>The failure, or <c>null</c> when the issuer ends with the route.</returns>
-    // See ADR-0138 (an issuer is its tenant's base address) and ADR-0160.
+    // See ADR-1138 (an issuer is its tenant's base address) and ADR-1160.
     protected TenantValidationFailure? ValidateIssuerRoute(string tenantId, Uri issuer)
     {
         var routePath = GetTenantRoutePath(tenantId);
@@ -283,7 +283,7 @@ internal abstract class TenantStrategy(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the root tenant.</returns>
-    // See ADR-0166 (a tenant is provisioned through one pipeline under every strategy).
+    // See ADR-1166 (a tenant is provisioned through one pipeline under every strategy).
     protected async ValueTask<PersistedTenant> EnsureRootTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

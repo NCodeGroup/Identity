@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
     )]
     public partial class RegisterClientAuthenticationMethod : Migration
     {
-        // Every table that stores a settings document (ADR-0140: narrowing a setting's domain makes a stored document
+        // Every table that stores a settings document (ADR-1140: narrowing a setting's domain makes a stored document
         // that uses the removed value fail closed when it is read, so the narrowing rewrites the stored documents).
         private static readonly string[] SettingsTables = ["Servers", "Tenants", "Clients", "ResourceServers"];
 
@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // 'token_endpoint_auth_method' is the one method a client authenticates with, and a client that registers
-            // none uses the RFC 7591 default, 'client_secret_basic' (ADR-0145). The empty string, which registered no
+            // none uses the RFC 7591 default, 'client_secret_basic' (ADR-1145). The empty string, which registered no
             // method, is no longer a value of the setting. Each document that registers no method is rewritten to the
             // setting's meaning:
             //

@@ -43,10 +43,10 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// request wait for it. After a failure the store is not called again for <see cref="StoreRetryInterval"/>, so an
 /// outage costs one bounded wait per interval per replica rather than one per check; a warning is logged when the store
 /// first fails and an information message when it answers again, so an outage is logged once rather than once per
-/// request (ADR-0196). Every judged limit is counted in <c>ncode.identity.rate_limiting.requests</c> with its result,
+/// request (ADR-1196). Every judged limit is counted in <c>ncode.identity.rate_limiting.requests</c> with its result,
 /// so the fail-open path is as visible as a refusal.
 /// </summary>
-// See ADR-0196, ADR-0198 and ADR-0246.
+// See ADR-1196, ADR-1198 and ADR-1246.
 internal class DefaultRequestRateLimiter(
     IRateLimitDescriptorCatalog catalog,
     IExpiringCounterSet counterSet,

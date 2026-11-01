@@ -140,7 +140,7 @@ public static class OpenIdSettingKeys
     /// (RFC 8252 §7.3). Every other part of a redirect URI must equal a registered one exactly. Default <c>true</c>;
     /// <c>fapi1-advanced</c> turns it off.
     /// </summary>
-    // See ADR-0203.
+    // See ADR-1203.
     public static SettingKey<bool> AllowLoopbackRedirect =>
         new(OpenIdSettingNames.AllowLoopbackRedirect);
 

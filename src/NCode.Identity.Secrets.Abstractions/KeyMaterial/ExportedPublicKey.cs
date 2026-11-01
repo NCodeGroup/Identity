@@ -28,7 +28,7 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 /// <see cref="ISecretKeyTypeDescriptor"/> — a <c>JSON Web Key</c> (RFC 7517) object and a
 /// <c>SubjectPublicKeyInfo</c> PEM. No private key material is included.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ExportedPublicKey

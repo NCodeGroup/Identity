@@ -89,7 +89,7 @@ internal class DefaultDeviceCodeGrantHandler(
 
         var persistedGrant = persistedGrantOrNull.Value;
 
-        // A device code is redeemed only by the client it was issued to (RFC 8628 §3.4). See ADR-0225.
+        // A device code is redeemed only by the client it was issued to (RFC 8628 §3.4). See ADR-1225.
         if (
             !string.Equals(
                 persistedGrant.Payload.ClientId,
@@ -193,7 +193,7 @@ internal class DefaultDeviceCodeGrantHandler(
         DateTimeOffset utcNow
     )
     {
-        // An approval that lands between this poll's read and its write stands. See ADR-0222.
+        // An approval that lands between this poll's read and its write stands. See ADR-1222.
         if (stored.Payload.Status != DeviceAuthorizationStatus.Pending)
             return null;
 
@@ -215,7 +215,7 @@ internal class DefaultDeviceCodeGrantHandler(
     )
     {
         // The subject that approved the request is validated before the device code is spent, so a refused subject
-        // leaves it unspent. See ADR-0225.
+        // leaves it unspent. See ADR-1225.
         var validateCommand = new ValidateTokenGrantCommand<DeviceCodeGrant>(
             openIdContext,
             openIdClient,

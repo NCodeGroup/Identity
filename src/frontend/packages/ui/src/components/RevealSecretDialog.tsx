@@ -22,7 +22,7 @@ export type RevealSecretDialogProps = {
 
 /**
  * Stateless one-time secret reveal dialog. The server returns the generated key material exactly once
- * at creation (ADR-0050); this surfaces it with a copy affordance and a prominent warning that it can
+ * at creation (ADR-1050); this surfaces it with a copy affordance and a prominent warning that it can
  * never be retrieved again. Asymmetric secrets have no externally-held material, so only the generated
  * id is shown. Holds only transient "copied" feedback; the container owns the open flag.
  */

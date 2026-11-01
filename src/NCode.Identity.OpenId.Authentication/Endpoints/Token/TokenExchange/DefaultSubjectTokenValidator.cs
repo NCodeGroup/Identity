@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 /// intentionally rejected; a host that federates with upstream issuers replaces or decorates this service to accept
 /// them.
 /// </summary>
-// See ADR-0101 and ADR-0167.
+// See ADR-1101 and ADR-1167.
 internal class DefaultSubjectTokenValidator(IIssuedTokenValidator issuedTokenValidator)
     : ISubjectTokenValidator
 {

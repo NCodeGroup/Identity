@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Exercises request objects (RFC 9101) at the authorization endpoint: the algorithms a request object may use are those
 /// the requesting client's effective settings permit, which a client narrows by registering a
-/// <c>request_object_signing_alg</c> (ADR-0155).
+/// <c>request_object_signing_alg</c> (ADR-1155).
 /// </summary>
 public sealed class AuthorizationRequestObjectTests : IDisposable
 {
@@ -450,7 +450,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenRequestObjectIsNotAddressedToTheIssuer_ReturnsInvalidRequestObject()
     {
         // A request object is addressed to the authorization server, so one without the issuer in its 'aud' is
-        // refused (RFC 9101 §4, ADR-0187).
+        // refused (RFC 9101 §4, ADR-1187).
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
         var client = CreateClient(factory);
@@ -474,7 +474,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     public async Task Authorize_WhenRequestObjectOutlivesTheMaximumLifetime_ReturnsInvalidRequestObject()
     {
         // The default request_object_max_lifetime is 60 minutes, so a request object valid for longer is refused
-        // (ADR-0187).
+        // (ADR-1187).
         using var factory = new AnonymousRegistrationApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
         var client = CreateClient(factory);

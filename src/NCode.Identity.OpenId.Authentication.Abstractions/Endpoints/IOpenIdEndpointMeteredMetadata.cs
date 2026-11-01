@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// traffic cannot spend a tenant's quota or bill its overage; the per-minute rate limits still apply to it. An endpoint
 /// without this metadata is metered.
 /// </summary>
-// See ADR-0198 and ADR-0199.
+// See ADR-1198 and ADR-1199.
 [PublicAPI]
 public interface IOpenIdEndpointMeteredMetadata
 {

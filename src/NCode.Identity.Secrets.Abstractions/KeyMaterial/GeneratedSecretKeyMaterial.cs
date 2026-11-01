@@ -44,7 +44,7 @@ public sealed class GeneratedSecretKeyMaterial
     /// <summary>
     /// Gets the encoding of the stored material. See <see cref="SecretEncodings"/> for possible values.
     /// </summary>
-    // See ADR-0104.
+    // See ADR-1104.
     public required string SecretEncoding { get; init; }
 
     /// <summary>
@@ -52,13 +52,13 @@ public sealed class GeneratedSecretKeyMaterial
     /// externally-held material to reveal. Populated only for symmetric keys; asymmetric private keys are never
     /// surfaced.
     /// </summary>
-    // See ADR-0050.
+    // See ADR-1050.
     public required string? SecretMaterial { get; init; }
 
     /// <summary>
     /// Gets the base64url-encoded <c>SubjectPublicKeyInfo</c> DER of the generated key's public half, or
     /// <c>null</c> when the key has no public half (a symmetric key).
     /// </summary>
-    // See ADR-0268.
+    // See ADR-1268.
     public required string? PublicKey { get; init; }
 }

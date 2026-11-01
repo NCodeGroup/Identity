@@ -332,7 +332,7 @@ internal class ClientCertificateProvider(
     }
 
     // The certificates of the authorities that issued the client's certificate travel with it in the TLS handshake, so a
-    // server that trusts only the root builds the chain (RFC 8446 §4.4.2); offline, nothing is downloaded. See ADR-0300.
+    // server that trusts only the root builds the chain (RFC 8446 §4.4.2); offline, nothing is downloaded. See ADR-1300.
     private sealed class SelectedCertificate(
         X509Certificate2 certificate,
         X509Certificate2Collection issuers

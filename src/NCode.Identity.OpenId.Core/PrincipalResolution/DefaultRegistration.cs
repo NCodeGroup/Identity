@@ -47,7 +47,7 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IPrincipalResolver, DefaultPrincipalResolver>();
 
-            // Subject-metadata projection resolves a principal's inlined metadata bags fresh at issuance (ADR-0055).
+            // Subject-metadata projection resolves a principal's inlined metadata bags fresh at issuance (ADR-1055).
             serviceCollection.TryAddSingleton<
                 IPrincipalMetadataProvider,
                 DefaultPrincipalMetadataProvider

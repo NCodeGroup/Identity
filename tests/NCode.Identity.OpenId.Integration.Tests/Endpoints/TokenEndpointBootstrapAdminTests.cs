@@ -46,7 +46,7 @@ public class TokenEndpointBootstrapAdminTests
     {
         using var factory = new HostApplicationFactory();
 
-        // The bootstrap credential is supplied out of band (ADR-0044); nothing is pre-seeded.
+        // The bootstrap credential is supplied out of band (ADR-1044); nothing is pre-seeded.
         using var configured = factory.WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration(
                 (_, config) =>
@@ -81,7 +81,7 @@ public class TokenEndpointBootstrapAdminTests
         var payload = DecodeJwtPayload(accessToken.GetString()!);
         var payloadRoot = payload;
 
-        // The bootstrap client's management token is stamped with the GlobalAdmin role at issuance (ADR-0044).
+        // The bootstrap client's management token is stamped with the GlobalAdmin role at issuance (ADR-1044).
         Assert.Equal("GlobalAdmin", payloadRoot.GetProperty("role").GetString());
 
         var audElement = payloadRoot.GetProperty("aud");

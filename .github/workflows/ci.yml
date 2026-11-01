@@ -3,7 +3,7 @@
 # This workflow runs the SAME entrypoint developers run (build/dod.ps1), with no CI-only variant of the gate: the
 # script is the single source of truth for what "done" means (CONTRIBUTING.md), so a green run here and a green run
 # locally mean the same thing. It always runs in Release with coverage, packing and NuGet vulnerability advisories as
-# errors; the gate tier only decides which tests run (ADR-0263). A pull request into main runs the tests affected by its
+# errors; the gate tier only decides which tests run (ADR-1263). A pull request into main runs the tests affected by its
 # change (-Affected against the pull request's base); the merge queue, a push to main or a release line, and a pull
 # request into a release line run the FULL gate.
 #
@@ -16,7 +16,7 @@ name: .NET CI
 
 on:
   # A pull request into main runs the affected tests; the merge queue then runs the full gate on the merged result, so a
-  # required check must report on merge_group (ADR-0263). Release lines are gated like main before the queue: a push
+  # required check must report on merge_group (ADR-1263). Release lines are gated like main before the queue: a push
   # to main or a release line, and a pull request into a release line, run the full gate. A push trigger on other
   # branches would run the gate a second time for each commit of a branch with a pull request. Run a branch that has no
   # pull request yet with workflow_dispatch, or open a draft pull request.
@@ -30,7 +30,7 @@ on:
 
 # Least privilege: the gate job only reads the tree, and nothing here publishes. The one write-scoped permission —
 # `id-token: write`, to authenticate the Codecov upload over OIDC — belongs to the separate codecov job, never to the gate
-# job that executes third-party build and test code (ADR-0143).
+# job that executes third-party build and test code (ADR-1143).
 permissions:
   contents: read
 
@@ -67,7 +67,7 @@ jobs:
           global-json-file: global.json
 
       # No lock files are committed, so setup-dotnet's built-in cache cannot key itself. Key on the central package
-      # manifest plus every project file: those are exactly the inputs that change the restore graph (ADR-0003).
+      # manifest plus every project file: those are exactly the inputs that change the restore graph (ADR-1003).
       - name: Cache NuGet packages
         uses: actions/cache@v6
         with:
@@ -78,9 +78,9 @@ jobs:
 
       # The one gate. dod.ps1 sets CI=true internally, which promotes NuGet vulnerability advisories (NU1901-1904) to
       # errors on top of the always-on warnings-as-errors. Under GitHub Actions it also writes the job summary (stage
-      # table, test results, coverage) and annotates failed tests and the failing stage (ADR-0143). A pull request into
+      # table, test results, coverage) and annotates failed tests and the failing stage (ADR-1143). A pull request into
       # main runs only the tests its change affects, measured from the base SHA (the checkout's full history holds its
-      # merge base); every other event runs the full gate (ADR-0263).
+      # merge base); every other event runs the full gate (ADR-1263).
       - name: Definition of Done
         shell: pwsh
         env:

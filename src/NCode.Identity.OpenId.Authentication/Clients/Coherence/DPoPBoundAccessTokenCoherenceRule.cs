@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// (<see href="https://datatracker.ietf.org/doc/html/rfc9449#section-5.1">RFC 9449</see> §5.1), so an empty list means
 /// that no DPoP proof can be accepted.
 /// </summary>
-// See ADR-0097 and ADR-0206.
+// See ADR-1097 and ADR-1206.
 internal sealed class DPoPBoundAccessTokenCoherenceRule : IClientCoherenceRule
 {
     private static string[] BindingSettingNames { get; } =

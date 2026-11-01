@@ -27,7 +27,7 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
-// See ADR-0104 (public-key import) and ADR-0105 (descriptor first-class seam).
+// See ADR-1104 (public-key import) and ADR-1105 (descriptor first-class seam).
 public class AsymmetricSecretKeyImportExportTests : BaseTests
 {
     private static readonly KeyMetadata Metadata = new()

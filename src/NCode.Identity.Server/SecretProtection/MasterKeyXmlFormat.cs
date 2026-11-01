@@ -25,7 +25,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// Contains the XML vocabulary and the protection context that the encryptor and the decryptor of the Data Protection
 /// key ring share. The XML names are persisted in every encrypted key, so they never change.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal static class MasterKeyXmlFormat
 {
     /// <summary>

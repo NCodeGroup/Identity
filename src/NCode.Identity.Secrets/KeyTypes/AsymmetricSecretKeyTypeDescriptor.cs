@@ -36,7 +36,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// abstract hooks a concrete RSA or ECC descriptor implements. Applications can derive from this base to add support
 /// for custom asymmetric key types.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
     : SecretKeyTypeDescriptor

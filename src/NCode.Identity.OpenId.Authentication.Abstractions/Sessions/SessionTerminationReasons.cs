@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// cause.
 /// </summary>
 /// <remarks>
-/// The reasons are an open vocabulary (ADR-0150): a consumer or an extension that ends a session for its own cause, such
+/// The reasons are an open vocabulary (ADR-1150): a consumer or an extension that ends a session for its own cause, such
 /// as a risk signal, passes its own name. Names are compared ordinally.
 /// </remarks>
 [PublicAPI]

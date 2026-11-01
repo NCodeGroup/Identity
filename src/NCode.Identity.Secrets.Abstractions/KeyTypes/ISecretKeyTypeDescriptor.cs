@@ -29,7 +29,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// their key sizes are validated, how their material is generated, imported, deserialized, and which expose
 /// exportable public-key material.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 [PublicAPI]
 public interface ISecretKeyTypeDescriptor
 {
@@ -48,7 +48,7 @@ public interface ISecretKeyTypeDescriptor
     /// Gets the JSON Web Key key type of keys of this type: its <c>kty</c> name, its RFC 7638 thumbprint members and
     /// its private members. Returns <c>null</c> when keys of this type have no JSON Web Key form. A key supplied as a
     /// JSON Web Key is matched to its descriptor by <see cref="JsonWebKeyTypeDescriptor.Name"/>. A key type a package
-    /// contributes supplies its own descriptor; see ADR-0271.
+    /// contributes supplies its own descriptor; see ADR-1271.
     /// </summary>
     JsonWebKeyTypeDescriptor? JwkKeyType { get; }
 
@@ -69,7 +69,7 @@ public interface ISecretKeyTypeDescriptor
     /// <see cref="SecretKeyImportFormats"/> or a key type's own names; empty when the type imports none. Always empty
     /// for symmetric types.
     /// </summary>
-    // See ADR-0104.
+    // See ADR-1104.
     IReadOnlyCollection<string> PublicKeyImportFormats { get; }
 
     /// <summary>
@@ -103,7 +103,7 @@ public interface ISecretKeyTypeDescriptor
     /// <param name="parameters">The caller-supplied material to import.</param>
     /// <param name="protect">Protects the canonical public-key bytes.</param>
     /// <returns>The imported key material.</returns>
-    // See ADR-0104.
+    // See ADR-1104.
     ImportedSecretKeyMaterial ImportPublicKeyMaterial(
         SecretKeyImportParameters parameters,
         SecretKeyMaterialProtector protect
@@ -117,7 +117,7 @@ public interface ISecretKeyTypeDescriptor
     /// <param name="secretEncoding">The stored encoding of the material. See <see cref="SecretEncodings"/>.</param>
     /// <param name="keyMaterial">The unprotected stored key material.</param>
     /// <returns>The deserialized <see cref="SecretKey"/>.</returns>
-    // See ADR-0104.
+    // See ADR-1104.
     SecretKey DeserializeKeyMaterial(
         KeyMetadata metadata,
         string secretEncoding,
@@ -131,6 +131,6 @@ public interface ISecretKeyTypeDescriptor
     /// </summary>
     /// <param name="secretKey">The <see cref="SecretKey"/> whose public material to export.</param>
     /// <returns>The exported public material, or <c>null</c> when none is available.</returns>
-    // See ADR-0104.
+    // See ADR-1104.
     ExportedPublicKey? ExportPublicKey(SecretKey secretKey);
 }

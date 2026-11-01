@@ -35,7 +35,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// <remarks>
 /// It also warns when a Production host protects its master keys under a root key that is a local file.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal class ServerSecretProtectorWarmup(
     ISecretProtectorProvider provider,
     IOptions<OpenIdOptions> openIdOptions,

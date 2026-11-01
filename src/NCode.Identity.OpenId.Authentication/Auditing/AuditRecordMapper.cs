@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// is not indexed, so an optional field is <see langword="null"/> and a required one keeps its leading characters, while
 /// the record keeps it whole.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 internal static class AuditRecordMapper
 {
     /// <summary>

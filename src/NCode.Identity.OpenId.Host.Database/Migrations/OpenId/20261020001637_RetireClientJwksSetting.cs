@@ -6,23 +6,23 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     [ContractMigration(
-        "Shipped before any release, so no running release reads the 'jwks' setting (ADR-0161, ADR-0025)."
+        "Shipped before any release, so no running release reads the 'jwks' setting (ADR-1161, ADR-1025)."
     )]
     public partial class RetireClientJwksSetting : Migration
     {
-        // Every table that stores a settings document (ADR-0139).
+        // Every table that stores a settings document (ADR-1139).
         private static readonly string[] SettingsTables =
         [
             "Servers", "Tenants", "Clients", "ResourceServers",
         ];
 
-        // Retired setting (ADR-0161): the JSON Web Key Set a client registered by value.
+        // Retired setting (ADR-1161): the JSON Web Key Set a client registered by value.
         private const string RetiredSetting = "jwks";
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // A retired setting fails closed when a document that carries it is loaded (ADR-0139). A client's public keys
+            // A retired setting fails closed when a document that carries it is loaded (ADR-1139). A client's public keys
             // are its stored secrets, so the setting has no meaning to translate: dynamic client registration imported
             // the keys of every 'jwks' it stored as the client's secrets, and the registration response projects them
             // back, while a 'jwks' written any other way was never read and never authenticated anything. Removing it

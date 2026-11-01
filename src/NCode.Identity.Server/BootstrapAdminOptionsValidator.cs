@@ -25,7 +25,7 @@ namespace NCode.Identity.Server;
 /// tenant it is seeded into. Without that, every tenant — including each one created at runtime — would receive a client
 /// whose tokens carry the <c>GlobalAdmin</c> role.
 /// </summary>
-// See ADR-0137 (fail at startup) and ADR-0166 (a seeder that names a tenant seeds exactly that tenant).
+// See ADR-1137 (fail at startup) and ADR-1166 (a seeder that names a tenant seeds exactly that tenant).
 internal sealed class BootstrapAdminOptionsValidator : IValidateOptions<BootstrapAdminOptions>
 {
     /// <inheritdoc />

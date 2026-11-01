@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// when the <see cref="OpenIdServerOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on
 /// stop.
 /// </summary>
-// See ADR-0219.
+// See ADR-1219.
 internal sealed class ServerSettingsReconciliationService(
     IMaterializedServerRegistry materializedServerRegistry,
     IServerSettingsReconciler serverSettingsReconciler,

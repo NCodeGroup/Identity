@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A change to a tenant's settings is checked against the clients the tenant already stores: a redirect URI the new
 // settings would not permit refuses the change, including when selecting a security profile narrows the permitted
-// redirect URI kinds (ADR-0206).
+// redirect URI kinds (ADR-1206).
 public class ClientCoherenceTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

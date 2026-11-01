@@ -35,7 +35,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// not secret, is stored in the element that is returned.
 /// </remarks>
 /// <param name="holder">The holder of the protector of the server.</param>
-// See ADR-0235.
+// See ADR-1235.
 internal class MasterKeyXmlEncryptor(ServerSecretProtectorHolder holder) : IXmlEncryptor
 {
     private ServerSecretProtectorHolder Holder { get; } = holder;

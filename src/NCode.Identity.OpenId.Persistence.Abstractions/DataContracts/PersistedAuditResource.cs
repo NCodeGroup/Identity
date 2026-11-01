@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains an entity an audited operation acted on, as an audit store keeps it.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedAuditResource

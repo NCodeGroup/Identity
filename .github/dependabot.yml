@@ -2,13 +2,13 @@
 #
 # Dependabot is the free, built-in counterpart to the Definition of Done: the gate proves a change is safe, this keeps
 # the inputs current so the gate has something honest to prove. Every ecosystem the repository actually ships or builds
-# from is covered; updates land as pull requests against the single `main` trunk (ADR-0125) and are gated by CI.
+# from is covered; updates land as pull requests against the single `main` trunk (ADR-1125) and are gated by CI.
 #
 # VERSION UPDATES ARE PAUSED (issue #36), except for the docker ecosystem. While the family is refactored heavily
 # ahead of its first release, a weekly version bump is mostly churn against code that is about to move. Every other
 # ecosystem therefore sets `open-pull-requests-limit: 0`, which is GitHub's documented way to pause version updates
 # while keeping their configuration. The docker ecosystem keeps its limit of 5 because a digest pin receives its fixes
-# only through that stream (ADR-0249). Security updates continue: with the repository setting "Dependabot security
+# only through that stream (ADR-1249). Security updates continue: with the repository setting "Dependabot security
 # updates" on, Dependabot opens a pull request whenever a published advisory affects a dependency, and the limit does
 # not apply to those. Everything below — ignore rules, cooldown, groups — stays in place, so resuming means setting
 # each paused limit back to 5.
@@ -22,7 +22,7 @@
 version: 2
 
 updates:
-  # The .NET family. Versions are centrally managed in Directory.Packages.props (ADR-0003), which Dependabot reads and
+  # The .NET family. Versions are centrally managed in Directory.Packages.props (ADR-1003), which Dependabot reads and
   # edits in place, so a bump stays lockstep across every project instead of drifting per-csproj.
   - package-ecosystem: nuget
     directory: /
@@ -44,7 +44,7 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  # The frontend pnpm workspace (ADR-0064). Its root is src/frontend, not the repository root — that is where
+  # The frontend pnpm workspace (ADR-1064). Its root is src/frontend, not the repository root — that is where
   # pnpm-workspace.yaml and the lockfile live, and pointing Dependabot anywhere else finds no manifest.
   - package-ecosystem: npm
     directory: /src/frontend
@@ -54,7 +54,7 @@ updates:
     open-pull-requests-limit: 0
     # A version must be three days old before Dependabot proposes it. It is the same window as pnpm's
     # minimumReleaseAge in src/frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
-    # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-0153). Equal
+    # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-1153). Equal
     # windows also mean Dependabot defers to pnpm's own setting. Dependabot's default is 3 days; it is stated here so a
     # change to that default cannot reopen the gap.
     cooldown:
@@ -62,7 +62,7 @@ updates:
     ignore:
       # `@types/node` describes the Node runtime, so its major must equal the one pinned in src/frontend/.node-version
       # (which CI, NVS, and the Aspire AppHost all read). Types from a newer major let code compile against APIs the
-      # runtime lacks. Bump the runtime and this major together, deliberately (ADR-0147).
+      # runtime lacks. Bump the runtime and this major together, deliberately (ADR-1147).
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
       # TypeScript 7 (the native compiler) no longer ships the JavaScript compiler API that typescript-eslint parses
@@ -106,7 +106,7 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  # The host image's base images (ADR-0249). A digest pin receives operating-system and runtime fixes only through this
+  # The host image's base images (ADR-1249). A digest pin receives operating-system and runtime fixes only through this
   # stream, so it runs while issue #36 pauses the other ecosystems. A runtime major moves deliberately, together with
   # src/frontend/.node-version or the target framework, so semver-major updates are ignored.
   - package-ecosystem: docker

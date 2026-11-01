@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// time range of one value; the tenant's index ends with the surrogate identifier, which orders the records of one
 /// instant for paging.
 /// </summary>
-// See ADR-0283 and ADR-0303.
+// See ADR-1283 and ADR-1303.
 [Index(nameof(EventId), IsUnique = true)]
 [Index(nameof(EventTime))]
 [Index(nameof(TenantId), nameof(EventTime), nameof(Id))]

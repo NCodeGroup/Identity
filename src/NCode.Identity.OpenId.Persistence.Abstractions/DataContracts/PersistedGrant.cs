@@ -69,7 +69,7 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
 
     /// <summary>
     /// Gets the subject identifier this grant belongs to: the stable, server-owned principal identifier resolved for
-    /// the end-user (ADR-0035), not the raw upstream/local subject. This is the single value grant enumeration and
+    /// the end-user (ADR-1035), not the raw upstream/local subject. This is the single value grant enumeration and
     /// subject-wide revocation key on, so a user's grants are findable regardless of how they authenticated.
     /// </summary>
     [MaxLength(OpenIdMaxLengths.SubjectId)]
@@ -112,7 +112,7 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the payload, protected under the tenant's master key (ADR-0265).
+    /// Gets or sets the payload, protected under the tenant's master key (ADR-1265).
     /// </summary>
     public required string ProtectedPayload { get; set; }
 }

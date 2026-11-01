@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 /// <summary>
 /// Represents a tenant's effective environment within a <see cref="TenantResource"/>.
 /// </summary>
-// See ADR-0289.
+// See ADR-1289.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class TenantEnvironmentResource

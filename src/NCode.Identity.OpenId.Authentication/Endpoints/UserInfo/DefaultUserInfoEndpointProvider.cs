@@ -46,7 +46,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// algorithm for its UserInfo responses, as a JWT signed by the tenant and/or encrypted to the client
 /// (<see href="https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse">OpenID Connect Core 5.3.2</see>).
 /// </summary>
-// See ADR-0155.
+// See ADR-1155.
 internal class DefaultUserInfoEndpointProvider(
     TimeProvider timeProvider,
     IOpenIdClientResolver clientResolver,
@@ -57,7 +57,7 @@ internal class DefaultUserInfoEndpointProvider(
     private const string JwtContentType = "application/jwt";
 
     // A UserInfo access token binds the OpenID identity resource server, which owns the openid/profile/email scopes
-    // (ADR-0027); require that audience so a token minted for a different resource server is rejected.
+    // (ADR-1027); require that audience so a token minted for a different resource server is rejected.
     private static readonly string[] UserInfoAudiences =
     [
         OpenIdConstants.SystemResourceServerIdentifiers.OpenId,

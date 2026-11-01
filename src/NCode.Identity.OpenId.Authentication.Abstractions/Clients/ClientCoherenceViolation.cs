@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <param name="GoverningSettingName">
 /// The name of the effective setting that does not permit the value or that requires it.
 /// </param>
-// See ADR-0206.
+// See ADR-1206.
 [PublicAPI]
 public readonly record struct ClientCoherenceViolation(
     string SettingName,

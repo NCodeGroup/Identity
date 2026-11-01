@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
 /// <param name="RequiredAudiences">The audiences the access token must target; the token is rejected unless it targets
 /// at least one of them.</param>
-// See ADR-0155.
+// See ADR-1155.
 [PublicAPI]
 public readonly record struct AuthenticateResourceRequestCommand(
     OpenIdContext OpenIdContext,

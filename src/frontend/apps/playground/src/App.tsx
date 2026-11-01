@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography';
 import { useAppSelector } from '@ncode/store';
 import { createFlowDeps } from './flow.js';
 
-// The surface's container is its own chunk, so the shell renders before it loads (ADR-0175).
+// The surface's container is its own chunk, so the shell renders before it loads (ADR-1175).
 const FlowExplorer = lazy(() =>
   import('./containers/FlowExplorer.js').then((m) => ({ default: m.FlowExplorer })),
 );

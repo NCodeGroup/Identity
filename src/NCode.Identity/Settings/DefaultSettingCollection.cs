@@ -219,7 +219,7 @@ internal class DefaultSettingCollection : ISettingCollection
         var otherSettings = otherCollection.ToList();
 
         // Every contributed setting must merge with a lattice operation whether or not this collection carries it, so a
-        // descriptor that cannot be combined fails the same way for every pair of collections (ADR-0154).
+        // descriptor that cannot be combined fails the same way for every pair of collections (ADR-1154).
         foreach (var otherSetting in otherSettings)
         {
             var descriptor = otherSetting.Descriptor;

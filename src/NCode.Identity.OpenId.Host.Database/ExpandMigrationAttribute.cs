@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Host.Database;
 /// writes is one the previous release does not read, or reads without failing, with the same meaning or a restriction
 /// this release applies too.
 /// </summary>
-// See ADR-0184 and ADR-0250.
+// See ADR-1184 and ADR-1250.
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ExpandMigrationAttribute(string reason) : Attribute

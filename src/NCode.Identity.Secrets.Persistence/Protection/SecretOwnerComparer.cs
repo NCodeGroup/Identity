@@ -22,7 +22,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Compares <see cref="SecretOwner"/> values without regard to the case of the owner type and the owner identifier,
 /// so that a lookup does not have to allocate a normalized copy of the owner.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal sealed class SecretOwnerComparer : IEqualityComparer<SecretOwner>
 {
     /// <summary>

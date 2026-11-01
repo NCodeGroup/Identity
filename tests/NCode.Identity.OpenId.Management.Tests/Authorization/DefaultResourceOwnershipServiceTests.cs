@@ -104,7 +104,7 @@ public class DefaultResourceOwnershipServiceTests
         var resolver = mocks.Create<IPrincipalResolver>();
 
         crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns("assign-1");
-        // The resolver maps the raw upstream subject to a stable, server-owned principal id (ADR-0035).
+        // The resolver maps the raw upstream subject to a stable, server-owned principal id (ADR-1035).
         resolver
             .Setup(x =>
                 x.ResolvePrincipalIdAsync(

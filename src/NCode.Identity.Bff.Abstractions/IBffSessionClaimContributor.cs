@@ -25,7 +25,7 @@ namespace NCode.Identity.Bff;
 /// gate judges the session as it will be created. A good place for an expensive lookup, such as roles from a
 /// directory, because the session keeps the result. Every registered contributor runs, in registration order.
 /// </summary>
-// See ADR-0290.
+// See ADR-1290.
 [PublicAPI]
 public interface IBffSessionClaimContributor
 {

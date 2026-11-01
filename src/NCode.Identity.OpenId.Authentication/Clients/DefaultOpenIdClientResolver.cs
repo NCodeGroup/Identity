@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its credentials
 /// serve only the calls the resource server needs.
 /// </summary>
-// See ADR-0168.
+// See ADR-1168.
 internal class DefaultOpenIdClientResolver(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,

@@ -60,7 +60,7 @@ internal class DefaultCheckSessionEndpointProvider : IEndpointProvider
         + Script
         + "</script></body></html>";
 
-    // Relying parties frame this document cross-site by design, so it is the one page that may be framed. See ADR-0256.
+    // Relying parties frame this document cross-site by design, so it is the one page that may be framed. See ADR-1256.
     private static HtmlPageSecurityPolicy Policy { get; } =
         new()
         {

@@ -27,7 +27,7 @@ namespace NCode.Identity.Settings;
 /// must form a forest — unique names, each parent registered, no cycles — so the scopes a scope's settings cascade into
 /// are computed once, when the collection is built.
 /// </summary>
-// See ADR-0149.
+// See ADR-1149.
 internal sealed class DefaultSettingScopeCollection : ISettingScopeCollection
 {
     private FrozenDictionary<string, SettingScopeDescriptor> ScopesByName { get; }

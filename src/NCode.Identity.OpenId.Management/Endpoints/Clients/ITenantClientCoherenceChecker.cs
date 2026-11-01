@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// Checks a change to the settings above a tenant's clients against every client coherence rule, so a change never
 /// leaves a stored client registering a value the changed settings do not permit.
 /// </summary>
-// See ADR-0206.
+// See ADR-1206.
 internal interface ITenantClientCoherenceChecker
 {
     /// <summary>

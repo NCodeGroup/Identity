@@ -25,7 +25,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// A consent denial answers the parked authorization request with access_denied. See ADR-0229.
+// A consent denial answers the parked authorization request with access_denied. See ADR-1229.
 public class InteractiveConsentTests
 {
     private const string UserName = "consent-user";

@@ -96,7 +96,7 @@ public static class DefaultRegistration
             var section = configuration.GetSection(ConfigurationSectionName);
 
             // ValidateOnStart materializes the options as the host starts, so a strict-binding failure stops the host
-            // before it accepts traffic (ADR-0137).
+            // before it accepts traffic (ADR-1137).
             var optionsBuilder = serviceCollection
                 .AddOptions<InteractiveAuthenticationOptions>()
                 .Configure(options => section.BindStrictly(options));
@@ -146,7 +146,7 @@ public static class DefaultRegistration
             builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();
 
             // The bundle's content-hashed files are served beneath the tenant route by a group that resolves no tenant
-            // (ADR-0254).
+            // (ADR-1254).
             builder.AddEndpointGroup<InteractiveBundleAssetEndpointGroup>();
 
             // Replace the core no-op consent-challenge handler with one that redirects to the interactive consent page.
@@ -176,7 +176,7 @@ public static class DefaultRegistration
                     }
                 );
 
-            // The surface is served under the tenant route (ADR-0193): the session cookie is scoped to the tenant's
+            // The surface is served under the tenant route (ADR-1193): the session cookie is scoped to the tenant's
             // path, and a challenge redirects to the login page of the tenant that issued it.
             serviceCollection
                 .AddOptions<CookieAuthenticationOptions>(

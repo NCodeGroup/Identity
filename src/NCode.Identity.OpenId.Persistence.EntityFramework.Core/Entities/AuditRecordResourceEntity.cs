@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// Represents an entity framework data contract for an entity an audited operation acted on, so a lookup finds every
 /// record of a resource, whether it was the target or an owner of it.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 [Index(nameof(Type), nameof(ResourceId))]
 public sealed class AuditRecordResourceEntity
 {

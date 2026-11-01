@@ -105,7 +105,7 @@ internal class FederatedPrincipalStore(
     {
         var tenantEntity = await GetTenantEntityAsync(principal, cancellationToken);
 
-        // The interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        // The interceptor leaves a pre-seeded insert token intact (ADR-1012).
         principal.ConcurrencyToken = NextConcurrencyToken();
 
         var entity = new FederatedPrincipalEntity
@@ -159,7 +159,7 @@ internal class FederatedPrincipalStore(
         entity.SystemMetadataJson = principal.SystemMetadata.OrEmptyObject();
         entity.IsBlocked = principal.IsBlocked;
 
-        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-1012).
         DbContext.FederatedPrincipals.Update(entity);
     }
 
@@ -177,7 +177,7 @@ internal class FederatedPrincipalStore(
         }
 
         // The role assignments of the principal, ownership included, are removed with it in every tenant: a principal is
-        // a server-owned actor that may hold assignments at the nodes of any tenant. See ADR-0212.
+        // a server-owned actor that may hold assignments at the nodes of any tenant. See ADR-1212.
         DbContext.RoleAssignments.RemoveRange(
             await DbContext
                 .RoleAssignments.IgnoreQueryFilters()
@@ -185,7 +185,7 @@ internal class FederatedPrincipalStore(
                 .ToListAsync(cancellationToken)
         );
 
-        // A principal's consents and grants are personal data of its end user and are erased with it. See ADR-0224.
+        // A principal's consents and grants are personal data of its end user and are erased with it. See ADR-1224.
         var tenantKey = entity.TenantId;
         DbContext.Consents.RemoveRange(
             await DbContext

@@ -24,7 +24,7 @@ namespace NCode.Identity.Bff;
 /// Names the meter and the activity source through which the BFF records its instruments and spans, so a host can
 /// subscribe to them, for example with OpenTelemetry's <c>AddMeter</c> and <c>AddSource</c>.
 /// </summary>
-// See ADR-0197 and ADR-0298.
+// See ADR-1197 and ADR-1298.
 [PublicAPI]
 public static class BffTelemetry
 {

@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// Only the request object's parameters are used (RFC 9101 §6.3). A parameter whose outer copy must match is
 /// compared in a single comparable form, as ordinal strings.
 /// </remarks>
-// See ADR-0202.
+// See ADR-1202.
 internal static class RequestObjectParameterPolicy
 {
     /// <summary>
@@ -57,7 +57,7 @@ internal static class RequestObjectParameterPolicy
                     : null,
             OuterValueMustMatch: false
         ),
-        // The redirect URI as written (ADR-0203).
+        // The redirect URI as written (ADR-1203).
         new RequestObjectParameterRule(
             OpenIdProtocol.Parameters.RedirectUri,
             values => string.IsNullOrEmpty(values.RedirectUri) ? null : values.RedirectUri,

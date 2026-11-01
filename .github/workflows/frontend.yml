@@ -7,14 +7,14 @@
 # A push to main or a release line is path-filtered, so a C#-only push does not pay for a pnpm install. A pull request
 # and the merge queue always run the workflow, and the `changes` job decides whether the frontend job runs. A skipped
 # job reports success, so every pull request reports "Lint, typecheck, test, build", which is a required check of the
-# main ruleset (ADR-0261).
+# main ruleset (ADR-1261).
 name: Frontend CI
 
 on:
   # See the note in ci.yml: a push gates only main and the release lines, because a pull request already gates every
   # other branch. A pull request always runs the workflow, so its required check reports; the `changes` job skips the
   # frontend job when no frontend path changed. The merge queue runs the check on the merged result, so a required check
-  # must report on merge_group too (ADR-0263); it always runs the frontend job. Release lines are gated like main: a
+  # must report on merge_group too (ADR-1263); it always runs the frontend job. Release lines are gated like main: a
   # push to either keeps the path filter.
   push:
     branches: [main, 'release/**']
@@ -35,7 +35,7 @@ on:
   workflow_dispatch:
 
 # The frontend job only reads the tree; `id-token: write` (the Codecov OIDC upload) belongs to the separate codecov job
-# alone (ADR-0143).
+# alone (ADR-1143).
 permissions:
   contents: read
 
@@ -103,7 +103,7 @@ jobs:
           persist-credentials: false
 
       # The Node major is pinned once, in src/frontend/.node-version, which is the same file NVS selects locally and the
-      # Aspire AppHost reads (ADR-0152), so CI runs the runtime a developer machine runs.
+      # Aspire AppHost reads (ADR-1152), so CI runs the runtime a developer machine runs.
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
@@ -179,7 +179,7 @@ jobs:
         run: pnpm run build
 
       # The host splits the built login bundle's `index.html` around its mount point and serves its `assets` directory
-      # (ADR-0254). The .NET Definition of Done builds no frontend, so the split is tested here, against the real build.
+      # (ADR-1254). The .NET Definition of Done builds no frontend, so the split is tested here, against the real build.
       - name: Test the host against the built login bundle
         if: steps.build.outcome == 'success'
         shell: pwsh

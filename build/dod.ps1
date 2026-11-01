@@ -13,7 +13,7 @@
     artifacts/test-results (cleared first, so a report never mixes in an earlier run) and prints a test digest and a
     stage/duration table. A full run also writes the merged coverage report to artifacts/coverage (index.html is the
     browsable report). On GitHub Actions each stage is a collapsible log group, a failure is annotated with the stage
-    that broke, and the job summary shows the stage table, the test results, and the coverage summary (ADR-0143).
+    that broke, and the job summary shows the stage table, the test results, and the coverage summary (ADR-1143).
 
 .PARAMETER Configuration
     The build configuration. Defaults to Release.
@@ -26,7 +26,7 @@
     project builds and skips the non-correctness stages (coverage collection and NuGet packing). Test assemblies run in
     parallel in every mode, so -Fast does not change that. Compile warnings-as-errors and analyzers stay on, but NuGet
     vulnerability advisories (NU1901-1904) are warnings instead of errors. The plain ./build/dod.ps1 (no -Fast) is the
-    full gate that the merge queue, main and the release lines run (ADR-0263).
+    full gate that the merge queue, main and the release lines run (ADR-1263).
 
 .PARAMETER Filter
     A `dotnet test --filter` expression; runs only the matching tests (for example `FullyQualifiedName~NCode.Time`).
@@ -200,7 +200,7 @@ try {
     }
 
     # EF model-drift gate: fail if either host context has model changes no migration captures. The dev database
-    # is Postgres, applied by the migration worker (ADR-0073), so migrations are authoritative — an un-migrated model
+    # is Postgres, applied by the migration worker (ADR-1073), so migrations are authoritative — an un-migrated model
     # edit must fail pre-push and in CI, when the feature is added. Both contexts share the dev database (OpenID data +
     # the developer DataProtection key ring), so both are checked. Reuses the build output (--no-build); exit code 1 =
     # pending changes. The Database project carries the design-time factories, so it is both project and startup.
@@ -268,7 +268,7 @@ try {
             if (-not $Fast) {
                 # Coverage is collected per test host, so it is unaffected by running the assemblies in parallel.
                 # coverage.runsettings sets the coverage scope: hand-written code, without generated sources or EF
-                # migrations (ADR-0185). -Fast skips coverage collection.
+                # migrations (ADR-1185). -Fast skips coverage collection.
                 $testArguments += '--collect:XPlat Code Coverage'
                 $testArguments += '--settings', (Join-Path $PSScriptRoot 'coverage.runsettings')
             }

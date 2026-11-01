@@ -216,7 +216,7 @@ internal class GrantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        // A revocation retries a lost race instead of answering 412. See ADR-0215.
+        // A revocation retries a lost race instead of answering 412. See ADR-1215.
         var revoked = await PersistedGrantService.RevokeWhereAsync(
             httpContext.GetOpenIdContext(),
             filter,
@@ -356,7 +356,7 @@ internal class GrantApiEndpointHandler(
     // A token scoped to a resource server registers a client that introspects for it and reads every token issued to
     // it, so minting one is a change to the resource server, exactly like binding a client through the management API:
     // the resource server must exist in the tenant, must not be a system resource server, and the caller must be
-    // authorized to update it (ADR-0168, ADR-0192).
+    // authorized to update it (ADR-1168, ADR-1192).
     private async ValueTask<IResult?> AuthorizeResourceServerScopeAsync(
         HttpContext httpContext,
         string tenantId,
@@ -478,7 +478,7 @@ internal class GrantApiEndpointHandler(
         }
 
         // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race
-        // instead of answering 412. See ADR-0215.
+        // instead of answering 412. See ADR-1215.
         if (grant.RevokedWhen is null)
         {
             var revoked = await PersistedGrantService.RevokeWhereAsync(

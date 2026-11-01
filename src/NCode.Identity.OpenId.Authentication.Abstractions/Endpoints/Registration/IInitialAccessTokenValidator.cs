@@ -40,7 +40,7 @@ public interface IInitialAccessTokenValidator
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="InitialAccessTokenGrant"/> the token carries when it authorizes registration; otherwise,
-    /// <c>null</c>. A grant naming a resource server binds the registered client to it (ADR-0192).</returns>
+    /// <c>null</c>. A grant naming a resource server binds the registered client to it (ADR-1192).</returns>
     ValueTask<InitialAccessTokenGrant?> ValidateAsync(
         OpenIdContext openIdContext,
         string initialAccessToken,

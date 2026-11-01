@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <param name="Active">The master key that protects new values.</param>
 /// <param name="Keys">Every master key of the owner by its identifier, including the active master key.</param>
-// See ADR-0235.
+// See ADR-1235.
 internal sealed record MasterKeyRingEntry(MasterKey Active, FrozenDictionary<Guid, MasterKey> Keys)
 {
     /// <summary>

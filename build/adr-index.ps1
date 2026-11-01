@@ -49,7 +49,7 @@ for ($i = 0; $i -lt $indexLines.Count; $i++) {
     }
 }
 
-$onDisk = @(Get-ChildItem -LiteralPath $Directory -Filter '0*.md' -File |
+$onDisk = @(Get-ChildItem -LiteralPath $Directory -Filter '*.md' -File |
         Where-Object { $_.Name -match '^(?!0000-)\d{4}-' } |
         ForEach-Object { $_.Name } |
         Sort-Object -Culture ([cultureinfo]::InvariantCulture))

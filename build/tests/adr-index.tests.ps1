@@ -70,6 +70,9 @@ try {
     $fixture = New-Fixture 'twice' @('0001-a.md') @('0001|0001-a.md', '0001|0001-a.md')
     Assert-Problems 'a file listed twice is reported' $fixture @('lists ./0001-a.md on more than one row')
 
+    $fixture = New-Fixture 'from-1000' @('1000-a.md') @()
+    Assert-Problems 'a record numbered from 1000 is checked' $fixture @('docs/decisions/1000-a.md is not listed')
+
     $fixture = New-Fixture 'columns' @('0001-a.md') @('0001|0001-a.md')
     Add-Content -LiteralPath (Join-Path $fixture 'README.md') -Value '| [x] | two |'
     Assert-Problems 'a row with the wrong column count is reported' $fixture @('table row has 2 columns, expected 3')

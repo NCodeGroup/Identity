@@ -4,7 +4,16 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
-  <ItemGroup></ItemGroup>
+  <!-- Analyzers every project references: the banned APIs in build/BannedSymbols.txt. -->
+  <ItemGroup>
+    <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
+  </ItemGroup>
+
+  <!-- Analyzers build/ProjectTemplate.props references for some projects: the null-forgiving operator banned outside test
+       projects. -->
+  <ItemGroup>
+    <PackageVersion Include="Nullable.Extended.Analyzer" Version="1.17.0" />
+  </ItemGroup>
 
   <!-- Kept from this repository's own Directory.Packages.props when it adopted the project template -->
   <PropertyGroup>
@@ -21,8 +30,6 @@
     <!-- Held at 3.3.4: 5.x reformats C# 14 `extension` members inconsistently (static vs .extension form) and
          rejects the existing extension-block API files, regressing the extension syntax the codebase relies on. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
-    <PackageVersion Include="Nullable.Extended.Analyzer" Version="1.17.0" />
     <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
   </ItemGroup>
 

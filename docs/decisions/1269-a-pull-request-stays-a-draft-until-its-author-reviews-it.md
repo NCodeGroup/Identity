@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0006](project-template/0006-a-person-merges-every-pull-request.md); tracked in [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200)
+- **Refines:** [project-template ADR-0006](project-template/0006-a-person-merges-every-pull-request.md); its merge method is [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md)
 
 ## Context
 

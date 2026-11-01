@@ -3,7 +3,7 @@
 - **Status:** Accepted (strict up-to-date superseded by [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md))
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); tracked in [NCodeGroup/project-template#200](https://github.com/NCodeGroup/project-template/issues/200)
+- **Refines:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); its merge method is [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md)
 
 ## Context
 

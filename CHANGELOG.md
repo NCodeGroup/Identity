@@ -10,13 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **Project template v0.49.0.** The repository moves from project-template v0.41.1 to v0.49.0. It gains the
+- **Project template v0.53.0.** The repository moves from project-template v0.41.1 to v0.53.0. It gains the
   `/address-feedback` command; the weekly `template-update` workflow, which keeps an issue open while a newer template
-  version is out; `code-review-auto-merge.yml` for NCode Review pin bumps (it fails here until
-  [NCodeGroup/project-template#195](https://github.com/NCodeGroup/project-template/issues/195), since `main` takes only
-  squash and rebase merges); the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`;
-  and the template's 48 general decision records in `docs/decisions/project-template/`, now the source of truth for
-  the rules they cover.
+  version is out; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first
+  merge method `main` allows; the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`;
+  and the template's 50 general decision records in `docs/decisions/project-template/`, now the source of truth for
+  the rules they cover. `build/dod.ps1` stays this repository's own: the `project_owned_files` answer names it, so
+  template updates leave it alone.
 
 - **The backend-for-frontend core (`NCode.Identity.Bff`).** The new `NCode.Identity.Bff` and
   `NCode.Identity.Bff.Abstractions` packages make an ASP.NET Core app the confidential OAuth client of its browser
@@ -4087,6 +4087,25 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   token was minted for it; a token spanning several resource servers carries a multi-valued `aud`, and a scopeless token
   falls back to the client id. The ID token's `aud` remains the client. See
   [ADR-1027](docs/decisions/1027-access-token-audience-from-resource-servers.md).
+
+- **The family's decision records are numbered from 1000.** Each `docs/decisions/0NNN-<slug>.md` is now
+  `docs/decisions/1NNN-<slug>.md`, and every citation and link names the new number, such as
+  [ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)
+  for the former ADR-0170: numbers below 1000 belong to the project template's records in
+  `docs/decisions/project-template/`, so a bare ADR number names one record. The `adr index` stage of
+  `./build/dod.ps1` fails a record numbered below 1000
+  ([#449](https://github.com/NCodeGroup/Identity/issues/449),
+  [project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)).
+
+- **Squash merging through the merge queue is a decision of its own.**
+  [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+  project-template ADR-0013, which makes a merge commit or a rebase the default, and ADR-1261, ADR-1263 and ADR-1269
+  now refine project-template ADR-0005 and ADR-0006 instead of conflicting with them.
+
+- **The `Commit attribution` check reads a pull request's title and description.** The squash merge makes them the
+  message of the commit that lands on `main`, so `.github/workflows/commit-attribution.yml` passes them to
+  `.template/Test-CommitAttribution.ps1` and runs again when a pull request is edited
+  ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
 
 ### Removed
 

@@ -15,7 +15,7 @@ and agent reads. Two forces shape it:
   frontend, secrets, tooling) without reading everything else.
 
 Conventions, reasoning and recurring gotchas stay in the repository
-([ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md)); a tracker holds only work that is still to do.
+([project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md)); a tracker holds only work that is still to do.
 
 ## Decision
 
@@ -52,7 +52,7 @@ Conventions, reasoning and recurring gotchas stay in the repository
 
 ## References
 
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — durable knowledge lives in the repository.
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — durable knowledge lives in the repository.
 - [ADR-0170](0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) — the
   plan-and-execute workflow whose pull requests close issues.
 - [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) — the

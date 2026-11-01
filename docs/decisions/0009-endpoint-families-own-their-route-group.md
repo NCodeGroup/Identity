@@ -50,7 +50,7 @@ falls back to a `500 server_error` for everything else.
 ## Options considered
 
 - **Core middleware / Core-installed filter.** Rejected: Core cannot reference OpenID types
-  (ADR-0004 spirit — no leaking of family-specific concerns into the composition root), and a
+  (project-template ADR-0104 spirit — no leaking of family-specific concerns into the composition root), and a
   process-wide middleware would also wrap non-OpenID endpoints.
 - **Attach the filter on every OpenID endpoint individually.** Rejected: repetitive, easy to forget
   on a new endpoint, and spreads the same wiring across five files.
@@ -78,4 +78,4 @@ falls back to a `500 server_error` for everything else.
 - `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdEndpointGroupProvider.cs`
 - `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdExceptionEndpointFilter.cs`
 - `src/NCode.Identity.OpenId.Core/Exceptions/DefaultOpenIdExceptionHandler.cs`
-- ADR-0004 (no cross-assembly leakage), ADR-0005 (public API surface)
+- project-template ADR-0104 (no cross-assembly leakage), ADR-0005 (public API surface)

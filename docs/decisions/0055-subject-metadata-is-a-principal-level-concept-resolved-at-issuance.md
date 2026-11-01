@@ -144,5 +144,5 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
   first-class extension seam.
 - [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture: per-user metadata
   available across all connection types.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
   chat or agent memory.

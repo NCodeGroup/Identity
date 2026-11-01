@@ -93,6 +93,6 @@ OIDC.**
 
 - [Hosting analysis](../hosting-analysis.md) — §3 bootstrap, §11 delivery, §13 backups.
 - [ADR-0131](0131-hosted-platform-environment-model-and-hostname-scheme.md) — environment model and hostnames.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — knowledge lives in the repository.
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — knowledge lives in the repository.
 - GitHub: [deployment environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
   (protection-rule availability by plan).

@@ -240,7 +240,7 @@ over to events; the allocation argument does not, because event payloads are che
   for no value: `await publisher.PublishAsync(new RefreshTokenReusedEvent(grantId, clientId), ct)`.
 
 - **Audit events (shared envelope) → a typed recorder facade.** A single `IAuditEventRecorder`
-  (`DefaultAuditEventRecorder`, per [ADR-0006](./0006-single-canonical-impl-is-defaultfoo.md)) exposes
+  (`DefaultAuditEventRecorder`, per [project-template ADR-0105](./project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)) exposes
   grouped, intent-revealing methods — `RecordTokenIssuedAsync(openIdContext, openIdClient, securityToken, ct)`,
   `RecordTokenRevokedAsync(...)`, `RecordAuthenticationFailedAsync(...)`. The recorder derives the common
   envelope once from ambient sources (clock, correlation/trace id, `OpenIdContext` actor/tenant/client),
@@ -433,7 +433,7 @@ example.
   implementation package split for `NCode.Identity.Events(.Abstractions)`.
 - [ADR-0048](./0048-durable-audit-delivery-outbox.md) — durable, at-least-once audit delivery (outbox,
   retry, publish-after-commit) layered on this seam.
-- [ADR-0006](./0006-single-canonical-impl-is-defaultfoo.md) — `DefaultEventPublisher` naming.
+- [project-template ADR-0105](./project-template/0105-the-canonical-implementation-is-named-defaultfoo.md) — `DefaultEventPublisher` naming.
 - [ADR-0025](./0025-pre-release-posture-and-auth0-parity-plus.md) — breaking-change latitude for
   re-homing `SecurityTokenIssuedEvent`.
 - [`src/NCode.Identity.OpenId.Authentication.Abstractions/Auditing/TokenIssuedAuditEvent.cs`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Auditing/TokenIssuedAuditEvent.cs)

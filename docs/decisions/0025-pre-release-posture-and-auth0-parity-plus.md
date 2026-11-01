@@ -63,7 +63,7 @@ than a hardcoded OIDC special case — so the same mechanism can later bless any
 
 - [ADR-0005](0005-public-api-surface-is-tracked-and-evolves-compatibly.md) — the post-release compatibility regime this
   posture defers to once the family ships.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — durable conventions and stances live in the
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — durable conventions and stances live in the
   repository, which is why these are recorded here rather than left implicit.
 - [ADR-0023](0023-scopes-and-resources-management-model.md) — the Auth0-style resource-server / scope / client-grant
   model that this philosophy extends with implicit system-resource-server grants.

@@ -122,5 +122,5 @@ without a registered `ILocalAccountProvisioner` they respond `501 Not Implemente
   model the self-issued connection participates in.
 - [ADR-0011](0011-secret-management-api.md) — the management-API shape (validators, auditing, ownership) this family
   mirrors.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
   chat or agent memory.

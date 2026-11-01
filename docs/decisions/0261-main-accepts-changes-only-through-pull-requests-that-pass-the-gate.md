@@ -78,7 +78,7 @@ stands: one trunk, short-lived branches, release lines, and deployment gated by 
 - [ADR-0125](0125-trunk-based-development-on-main.md) — trunk-based development on `main`, whose unprotected-trunk
   decision this supersedes.
 - [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) — the greenfield pre-release posture.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — why the workflow is recorded in the repository.
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why the workflow is recorded in the repository.
 - [ADR-0170](0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) — the
   plan-and-execute workflow whose push protocol opens the pull request.
 - [`GOVERNANCE.md`](../../GOVERNANCE.md) — change control and the release/branch/tag model.

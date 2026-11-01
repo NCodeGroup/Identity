@@ -229,7 +229,7 @@ rationale.
   property-add** on `T`, not a new callback parameter that breaks every caller.
 - 👁 **No cross-assembly `InternalsVisibleTo` in production.** It is for **test projects only** (plus
   `DynamicProxyGenAssembly2` for mocking). Packages collaborate through **public** contracts, never internals. See
-  [ADR-0004](../../docs/decisions/0004-no-cross-assembly-internalsvisibleto.md).
+  [project-template ADR-0104](../../docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md).
 - 👁 **An implementation package references only `*.Abstractions` packages — never another implementation package.**
   Cross-implementation collaboration flows through an interface owned by an `*.Abstractions` package, resolved from DI;
   the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
@@ -294,7 +294,7 @@ rationale.
   **framework** interface follows that framework's own pattern name; (c) a **public, developer-facing
   data / message / model / result type a consumer constructs and names directly** keeps the bare concept name
   (`AuthorizationTicket`, `TokenRequest`, `ResourceNode` — never `Default*`), even when it implements an `IFoo` seam.
-  See [ADR-0006](../../docs/decisions/0006-single-canonical-impl-is-defaultfoo.md).
+  See [project-template ADR-0105](../../docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md).
 - 👁 **No nested types**, with two exceptions: (a) a private nested type that must **close over the enclosing type's
   generic type parameter**; (b) a nested `static` class that groups a related **constant vocabulary** (only `const`
   fields — no behavior, no state). Everything else is its own top-level file.
@@ -1307,7 +1307,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 - 👁 **A library never registers or removes a logging provider; the host's composition root chooses its sinks.** The
   reference hosts log to standard output on every platform, with
   `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`, and never to the Windows Event Log
-  ([ADR-0210](../../docs/decisions/0210-the-reference-hosts-log-to-standard-output.md)).
+  ([project-template ADR-0115](../../docs/decisions/project-template/0115-a-host-logs-to-standard-output.md)).
 - 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
   message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
   package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**

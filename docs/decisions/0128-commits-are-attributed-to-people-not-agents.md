@@ -65,7 +65,7 @@ Three properties make this worth a decision rather than a cleanup:
    rewrite and a second force-push. One unaware session re-taints the trunk, and each recurrence costs another rewrite.
 3. **A per-session instruction cannot bind the next session.** Telling one agent, or storing the preference in an
    agent's volatile memory, does not reach a session that started earlier, a different tool, a different machine, or a
-   human typing `git commit`. By [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) the guard has to be
+   human typing `git commit`. By [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) the guard has to be
    a versioned artifact in the repository.
 
 ## Decision

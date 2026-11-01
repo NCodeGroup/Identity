@@ -1371,7 +1371,7 @@ change to the public API is a **major** version bump.
   console writes to standard output in the format that `Logging:Console:FormatterName` selects, and EventSource writes
   nothing until `dotnet-monitor` or `dotnet-trace` attaches. A reference host writes nothing to the Windows Event Log,
   and a deployment that needs another sink, such as the Event Log of a Windows service, adds it in its own composition
-  root ([ADR-0210](docs/decisions/0210-the-reference-hosts-log-to-standard-output.md), issue [#245](https://github.com/NCodeGroup/Identity/issues/245)).
+  root ([project-template ADR-0115](docs/decisions/project-template/0115-a-host-logs-to-standard-output.md), issue [#245](https://github.com/NCodeGroup/Identity/issues/245)).
 
 - **Breaking: a coherence rule reads a `ClientCoherenceContext`, and the validator resolves a client's settings
   itself.** `IClientCoherenceRule.FindViolations(ClientCoherenceContext)` takes the client's registered and effective

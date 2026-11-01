@@ -154,5 +154,5 @@ protects `app_metadata`. It is called out here and tracked as management work in
   (Actions-equivalent) extension seam.
 - [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture: database-connection
   metadata (`user_metadata` / `app_metadata`) surfaced as opt-in, namespaced-or-nested claims.
-- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
+- [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
   chat or agent memory.

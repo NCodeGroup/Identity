@@ -30,7 +30,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests;
 
-// The reference host logs only to standard output and to a diagnostics tool that attaches (ADR-0210).
+// The reference host logs only to standard output and to a diagnostics tool that attaches (project-template ADR-0115).
 /// <summary>
 /// Provides unit tests for the <c>Program</c> entry point of the host project.
 /// </summary>

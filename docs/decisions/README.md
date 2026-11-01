@@ -22,12 +22,15 @@ standards.
 
 ## Conventions
 
-- Files are named `NNNN-title-in-kebab-case.md`, where `NNNN` is a zero-padded, monotonically
-  increasing number. Take the next number above the highest ADR on a freshly fetched `origin/main` and any a change
-  in flight elsewhere has claimed; re-check it when you rebase, and renumber yours (file name, title, index row, and
-  links) if it was taken in the meantime. The `adr index` stage of `./build/dod.ps1` (`build/adr-index.ps1`) fails
-  when two files share a number, when the index misses a file or links a missing one, or when a row's number is not
-  its file's, so a collision that slips past a textual merge still fails the merge queue.
+- Files are named `NNNN-title-in-kebab-case.md`, where `NNNN` is a four-digit, monotonically increasing number from
+  `1000`. Numbers below 1000 are the project template's, in [`project-template/`](./project-template/README.md)
+  ([project-template ADR-0012](./project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
+  so a bare ADR number names one record across both folders. Take the next number above the highest ADR on a freshly
+  fetched `origin/main` and any a change in flight elsewhere has claimed; re-check it when you rebase, and renumber
+  yours (file name, title, index row, and links) if it was taken in the meantime. The `adr index` stage of
+  `./build/dod.ps1` (`build/adr-index.ps1`) fails when a file is numbered below 1000, when two files share a number,
+  when the index misses a file or links a missing one, or when a row's number is not its file's, so a collision that
+  slips past a textual merge still fails the merge queue.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
 - **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`. A record that builds on
   one of the project template's decisions says so on a metadata line under `**Deciders:**` (see

@@ -48,7 +48,7 @@ grammar as UI-free, unit-tested functions:
   vocabulary for the same rules. If the console grows nested routes, for example a client detail view, they extend
   `ConsoleRoute` and its grammar.
 
-The console is served from the origin root (`base: '/'`, [ADR-1157](0157-one-shared-vite-preset-for-every-workspace.md)).
+The console is served from the origin root (`base: '/'`, [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
 Its host must answer every console path with `index.html`. The Vite dev server and `vite preview` already do this, and a
 production static host needs the same SPA fallback.
 

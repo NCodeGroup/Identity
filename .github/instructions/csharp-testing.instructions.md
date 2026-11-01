@@ -31,9 +31,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   isolated site, use a tight `#pragma warning disable/restore` with a reason instead. 🚫 Never reintroduce
   `TreatWarningsAsErrors=false` or reach for a project-level `NoWarn`.
 - ✅ **Prefer a real fix over a suppression for nullable warnings.** Test projects are exempt from the production ban on
-  the null-forgiving operator (`Nullable.Extended.Analyzer` is gated on `IsPackable != false`), so `null!` is available
-  — but a `[MaybeNullWhen(false)]` `out` argument should be given a **nullable local** (`IReadOnlyCollection<string>?
-  supported = …`) and a maybe-null result should be narrowed with `Assert.NotNull(x)` before dereferencing.
+  the null-forgiving operator (`build/ProjectTemplate.props` references `Nullable.Extended.Analyzer` in
+  every project whose name does not end in `.Tests`), so `null!` is available — but a `[MaybeNullWhen(false)]` `out`
+  argument should be given a **nullable local** (`IReadOnlyCollection<string>? supported = …`) and a maybe-null
+  result should be narrowed with `Assert.NotNull(x)` before dereferencing.
 - 👁 **Organize tests with `#region` directives** grouping tests by the member under test:
     - `Constructor Tests` for constructors
     - `{MethodName} Tests` for methods (e.g. `Dispose Tests`)

@@ -4,8 +4,9 @@ name: Code review
 # check run, a summary comment and inline threads, and nothing requires it. It reviews a pull request once when it
 # opens (drafts included, since that's when its author reviews it) and again when it's marked ready, unless that commit
 # was already reviewed (the engine reads its own summary comment to tell); pushes in between start nothing. A top-level
-# `/review` comment from someone with write access reviews the latest commit on demand. A `skip-review` label skips the
-# automatic reviews.
+# `/review` comment from someone with write access reviews the latest commit on demand; `/review explain F3` says
+# whether a finding still holds, and `/review teach <rule>` files a rule as an issue, both on a closed pull request too.
+# A `skip-review` label skips the automatic reviews.
 #
 # pull_request_target and issue_comment both run this file, the engine pin and the conventions from main, so a pull
 # request can't change its own review. The engine fetches its code only to read it: nothing from it is built, run or
@@ -28,7 +29,8 @@ jobs:
   review:
     # The engine checks a comment again (`/review`, `/review explain` or `/review teach`, from a writer, on a pull request
     # that isn't from a fork) and stops before any model call when it isn't one. A plain `/review` on a closed pull
-    # request doesn't run, so it can't cancel or displace the outcomes job, which shares its concurrency group.
+    # request doesn't run, so it can't cancel or displace the outcomes job, which shares its concurrency group. The
+    # explain and teach checks here and in the concurrency group must name the same commands.
     if: >-
       (github.event_name == 'pull_request_target' && github.event.action != 'closed' &&
         github.event.pull_request.head.repo.full_name == github.repository &&

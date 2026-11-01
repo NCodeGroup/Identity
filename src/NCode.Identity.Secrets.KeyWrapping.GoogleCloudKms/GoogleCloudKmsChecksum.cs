@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// Computes the CRC32C (Castagnoli) checksum that Google Cloud KMS verifies on requests and reports on responses, so a
 /// value corrupted in transit is detected.
 /// </summary>
-// See ADR-0260.
+// See ADR-1260.
 internal static class GoogleCloudKmsChecksum
 {
     /// <summary>

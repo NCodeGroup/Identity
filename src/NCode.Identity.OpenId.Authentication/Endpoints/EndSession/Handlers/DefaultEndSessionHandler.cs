@@ -84,7 +84,7 @@ internal class DefaultEndSessionHandler(
         }
 
         // A logout that names a session terminates it through the session service, whose claim terminates a session
-        // once however many paths end it at the same time. See ADR-0227.
+        // once however many paths end it at the same time. See ADR-1227.
         if (subject.SessionId is { Length: > 0 } sessionId)
         {
             await SessionService.RevokeAsync(
@@ -168,7 +168,7 @@ internal class DefaultEndSessionHandler(
             return null;
         }
 
-        // See ADR-0203.
+        // See ADR-1203.
         if (!RedirectUriKindCatalog.IsPermitted(client.Settings, postLogoutRedirectUri))
         {
             Logger.EndSessionPostLogoutRedirectUriKindRejected(postLogoutRedirectUri, clientId);

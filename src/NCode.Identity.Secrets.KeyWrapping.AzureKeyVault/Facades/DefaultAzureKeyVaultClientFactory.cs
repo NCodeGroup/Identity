@@ -36,7 +36,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 /// it to <c>WorkloadIdentityCredential</c>, so exactly one credential is tried). A client first requests a token on its
 /// first call, so creating a client never fails for lack of credentials; the first call that uses one does.
 /// </remarks>
-// See ADR-0260.
+// See ADR-1260.
 internal sealed class DefaultAzureKeyVaultClientFactory : IAzureKeyVaultClientFactory
 {
     private Lazy<TokenCredential> Credential { get; } = new(() => new DefaultAzureCredential());

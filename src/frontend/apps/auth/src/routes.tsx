@@ -115,7 +115,7 @@ function renderLogin({
 /** Resolves the interactive surface for the given request context (login is the fallback). */
 export function resolveRoute(context: RouteContext): ReactElement {
   // The error page is served at the protocol endpoint, outside the surface's paths, so the page the host rendered
-  // selects it, not the path (ADR-0253).
+  // selects it, not the path (ADR-1253).
   const authorizationError = context.serverPage?.authorizationError;
   if (authorizationError) {
     return (

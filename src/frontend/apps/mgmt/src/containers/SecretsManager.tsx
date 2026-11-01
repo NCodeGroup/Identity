@@ -38,7 +38,7 @@ export type SecretsManagerProps = {
   /** Reads an asymmetric secret's public key; must reject with an {@link ApiError}-shaped error on failure. */
   readonly onExportPublicKey: (secretId: string) => Promise<PublicKeyResource>;
   /**
-   * Rotates a shared secret in one call, replacing it with a new one (ADR-0183); must reject with an
+   * Rotates a shared secret in one call, replacing it with a new one (ADR-1183); must reject with an
    * {@link ApiError}-shaped error on failure. The rotate action is shown only when this is supplied.
    */
   readonly onRotate?: (
@@ -75,7 +75,7 @@ function defaultSecretFormValues(): SecretFormValues {
 
 /**
  * Container-agnostic secrets surface shared by every secret owner (client, tenant, server). It owns only
- * the tab's dialog/form/error state and the one-time reveal (ADR-0050: the create response's material is
+ * the tab's dialog/form/error state and the one-time reveal (ADR-1050: the create response's material is
  * shown once in {@link RevealSecretDialog} and never re-fetched); the owner-specific RTK Query data and
  * mutations are injected so the same UI serves each owner's nested path. {@link SecretsManagerProps.onCreate}
  * and {@link SecretsManagerProps.onDelete} reject with an {@link ApiError} that is shaped for display.
@@ -109,7 +109,7 @@ export function SecretsManager({
     .map((capability) => capability.secretType);
   const eccCurves = capabilities?.eccCurves ?? [];
   const algorithms = capabilities?.algorithms ?? [];
-  // A shared secret is rotated; a key is replaced by importing a new one (ADR-0183).
+  // A shared secret is rotated; a key is replaced by importing a new one (ADR-1183).
   const rotatableSecretTypes = (capabilities?.secretTypes ?? [])
     .filter((capability) => !capability.isAsymmetric)
     .map((capability) => capability.secretType);

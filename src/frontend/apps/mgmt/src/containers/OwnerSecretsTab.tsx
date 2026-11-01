@@ -15,9 +15,9 @@ export type OwnerSecretsTabProps = {
 };
 
 /**
- * Container: the secrets of any owner (a server, a tenant, or a client or resource server in a scope; ADR-0257),
+ * Container: the secrets of any owner (a server, a tenant, or a client or resource server in a scope; ADR-1257),
  * wiring the owner-generic secret endpoints to the shared {@link SecretsManager}. Secrets honor the one-time
- * reveal (ADR-0050). The rotate action is offered only for a client owner.
+ * reveal (ADR-1050). The rotate action is offered only for a client owner.
  */
 export function OwnerSecretsTab({ owner, ownerLabel }: OwnerSecretsTabProps) {
   const { data, isLoading, error } = useListSecretsQuery(owner);

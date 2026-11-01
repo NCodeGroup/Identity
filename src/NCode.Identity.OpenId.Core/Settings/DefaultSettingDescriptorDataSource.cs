@@ -43,10 +43,10 @@ namespace NCode.Identity.OpenId.Settings;
 /// principal resolution, federation, dynamic registration policy) read a tenant's effective settings, so every
 /// discoverable setting applies to tenants; the protocol endpoints read the effective settings of the client making the
 /// request; and access-token issuance combines the client's effective settings with those of every resource server the
-/// token targets, so every setting that applies to resource servers merges with a lattice operation (ADR-0158).
+/// token targets, so every setting that applies to resource servers merges with a lattice operation (ADR-1158).
 /// </para>
 /// </remarks>
-// See ADR-0140 (domains), ADR-0149 (scopes), and ADR-0158 (resource-server bounds).
+// See ADR-1140 (domains), ADR-1149 (scopes), and ADR-1158 (resource-server bounds).
 internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
@@ -94,7 +94,7 @@ internal class DefaultSettingDescriptorDataSource(
     {
         get
         {
-            // subject_claim_types: ordered claim types that identify the end-user subject (default sub, then nameidentifier). (ADR-0053)
+            // subject_claim_types: ordered claim types that identify the end-user subject (default sub, then nameidentifier). (ADR-1053)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
@@ -107,7 +107,7 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // principal_issuer_claim: claim identifying the upstream issuer of a federated principal (default "iss"). (ADR-0035)
+            // principal_issuer_claim: claim identifying the upstream issuer of a federated principal (default "iss"). (ADR-1035)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -120,7 +120,7 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // federated_identity_join_claim: claim used to auto-link a federated identity to an existing principal (default "email"). (ADR-0035)
+            // federated_identity_join_claim: claim used to auto-link a federated identity to an existing principal (default "email"). (ADR-1035)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -133,7 +133,7 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // federated_identity_verified_claim: boolean claim proving the join claim is verified (default "email_verified"). (ADR-0035)
+            // federated_identity_verified_claim: boolean claim proving the join claim is verified (default "email_verified"). (ADR-1035)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -146,7 +146,7 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // federated_identity_require_verified: require the join claim be verified before auto-linking (default true). (ADR-0035)
+            // federated_identity_require_verified: require the join claim be verified before auto-linking (default true). (ADR-1035)
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
@@ -158,7 +158,7 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // federated_identity_explicit_only: only link federated identities that were explicitly provisioned (default false). (ADR-0035)
+            // federated_identity_explicit_only: only link federated identities that were explicitly provisioned (default false). (ADR-1035)
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
@@ -172,8 +172,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_confirmation_methods_supported: the 'cnf' methods a resource server verifies (jkt for DPoP,
             // x5t#S256 for mutual TLS). A required sender constraint is met only by a binding every targeted resource
-            // server verifies. Ceiling (Intersect): a child narrows the parent's set; unset = every method (ADR-0010).
-            // Scopes: a resource server's bound on the tokens issued for it, combined at issuance (ADR-0158).
+            // server verifies. Ceiling (Intersect): a child narrows the parent's set; unset = every method (ADR-1010).
+            // Scopes: a resource server's bound on the tokens issued for it, combined at issuance (ADR-1158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenConfirmationMethodsSupported,
@@ -185,8 +185,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // access_token_encryption_alg_values_supported: permitted "alg" values for access-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-0158).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
+            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-1158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
@@ -198,8 +198,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // access_token_encryption_enc_values_supported: permitted "enc" values for access-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-0158).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
+            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-1158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionEncValuesSupported,
@@ -212,7 +212,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_encryption_required: whether issued access tokens must be encrypted (default false).
             // Floor (Or): once a parent requires it, a child cannot un-require it. Scopes: the client's and every
-            // targeted resource server's requirements combine at issuance (ADR-0075, ADR-0158).
+            // targeted resource server's requirements combine at issuance (ADR-1075, ADR-1158).
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionRequired,
@@ -225,7 +225,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_lifetime: validity window for issued access tokens (default 5 minutes).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
-            // Scopes: the client's and every targeted resource server's lifetimes combine at issuance (ADR-0158).
+            // Scopes: the client's and every targeted resource server's lifetimes combine at issuance (ADR-1158).
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AccessTokenLifetime,
@@ -240,7 +240,7 @@ internal class DefaultSettingDescriptorDataSource(
             // access_token_sender_constraint_required: whether an access token must be bound to a DPoP proof key or a
             // mutual-TLS client certificate (default false). Floor (Or): once a parent requires it, a child cannot
             // un-require it. Scopes: the client's requirement is enforced at the token endpoint; the client's and every
-            // targeted resource server's requirements combine at issuance (ADR-0158).
+            // targeted resource server's requirements combine at issuance (ADR-1158).
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenSenderConstraintRequired,
@@ -252,8 +252,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // access_token_signing_alg_values_supported: permitted "alg" values for access-token signing.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
-            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-0158).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
+            // Scopes: the client's and every targeted resource server's lists combine at issuance (ADR-1158).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
@@ -279,7 +279,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // acr_values_supported: Authentication Context Class Reference values the server honors.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AcrValuesSupported,
@@ -318,7 +318,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // allow_loopback_redirect: whether a registered loopback IP redirect URI (http://127.0.0.1 or http://[::1])
             // may be requested with any port (RFC 8252 §7.3). Every other part of a redirect URI must equal a registered
-            // one exactly. Default true; fapi1-advanced turns it off (ADR-0203).
+            // one exactly. Default true; fapi1-advanced turns it off (ADR-1203).
             // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
             {
@@ -401,7 +401,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // claims_locales_supported: BCP47 locales for which the server can return localized claim values.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ClaimsLocalesSupported,
@@ -412,7 +412,7 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // claims_parameter_supported: whether the OIDC "claims" request parameter is honored (default true; ADR-0039).
+            // claims_parameter_supported: whether the OIDC "claims" request parameter is honored (default true; ADR-1039).
             // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
@@ -462,7 +462,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // client_assertion_max_lifetime: longest lifetime accepted for a private_key_jwt / client_secret_jwt
-            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-0124).
+            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-1124).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -568,7 +568,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // backchannel_token_delivery_modes_supported: CIBA delivery modes the server supports.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelTokenDeliveryModesSupported,
@@ -593,9 +593,9 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // backchannel_authentication_request_signing_alg_values_supported: permitted "alg" values for a signed CIBA request object.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). CIBA Core §7.1.1
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010). CIBA Core §7.1.1
             // requires an asymmetric signature (and defines no encrypted request), so the domain excludes symmetric
-            // algorithms; enforced against the requesting client's effective settings (ADR-0155).
+            // algorithms; enforced against the requesting client's effective settings (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
@@ -633,7 +633,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // display_values_supported: OIDC "display" parameter values the server supports.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.DisplayValuesSupported,
@@ -645,7 +645,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // grant_types_supported: OAuth grant types the server permits (default supplied by the baseline provider).
-            // Ceiling (Intersect): a child narrows the parent's set; capability is enforced by grant handlers (ADR-0010/0026).
+            // Ceiling (Intersect): a child narrows the parent's set; capability is enforced by grant handlers (ADR-1010/1026).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.GrantTypesSupported,
@@ -659,7 +659,7 @@ internal class DefaultSettingDescriptorDataSource(
             // id_token_encrypted_response_alg: the key-management "alg" the client registers for encrypting its ID tokens
             // to its public key (OpenID Connect Dynamic Client Registration 1.0 §2); absent = ID tokens are not encrypted.
             // Override (Replace): a child fully replaces the parent value. The effective
-            // id_token_encryption_alg_values_supported must permit it (ADR-0155).
+            // id_token_encryption_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptedResponseAlg,
@@ -673,7 +673,7 @@ internal class DefaultSettingDescriptorDataSource(
             // id_token_encrypted_response_enc: the content-encryption "enc" of the client's encrypted ID tokens
             // (OpenID Connect Dynamic Client Registration 1.0 §2: A128CBC-HS256 unless registered).
             // Override (Replace): a child fully replaces the parent value. The effective
-            // id_token_encryption_enc_values_supported must permit it (ADR-0155).
+            // id_token_encryption_enc_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptedResponseEnc,
@@ -686,8 +686,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // id_token_encryption_alg_values_supported: permitted "alg" values for id-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). An ID token is
-            // encrypted to the client's public key, so only asymmetric key management applies (ADR-0155).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010). An ID token is
+            // encrypted to the client's public key, so only asymmetric key management applies (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionAlgValuesSupported,
@@ -699,7 +699,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // id_token_encryption_enc_values_supported: permitted "enc" values for id-token encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenEncryptionEncValuesSupported,
@@ -711,7 +711,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // id_token_encryption_required: whether issued id tokens must be encrypted (default false); a client that
-            // registers no id_token_encrypted_response_alg then cannot be issued an ID token (ADR-0155).
+            // registers no id_token_encrypted_response_alg then cannot be issued an ID token (ADR-1155).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
@@ -739,7 +739,7 @@ internal class DefaultSettingDescriptorDataSource(
             // id_token_signed_response_alg: the signature "alg" the client registers for its ID tokens (OpenID Connect
             // Dynamic Client Registration 1.0 §2: RS256 unless registered); also signs its logout tokens.
             // Override (Replace): a child fully replaces the parent value, so a server or tenant sets the default for
-            // its clients. The effective id_token_signing_alg_values_supported must permit it (ADR-0155).
+            // its clients. The effective id_token_signing_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IdTokenSignedResponseAlg,
@@ -752,7 +752,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // id_token_signing_alg_values_supported: permitted "alg" values for id-token signing.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
@@ -788,7 +788,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // prompt_values_supported: OIDC "prompt" values the server supports (default supplied by the baseline provider).
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PromptValuesSupported,
@@ -812,7 +812,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // redirect_uri_kinds_supported: the kinds of redirect URI (https, loopback, http, private_use) a client may
-            // register and use; unset permits every registered kind, and a security profile caps it (ADR-0203). Not
+            // register and use; unset permits every registered kind, and a security profile caps it (ADR-1203). Not
             // advertised. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
@@ -907,7 +907,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // frontchannel_logout_supported: server advertises Front-Channel Logout support (default false — the
-            // mechanism is available but disabled by default because it depends on third-party cookies). (ADR-0088)
+            // mechanism is available but disabled by default because it depends on third-party cookies). (ADR-1088)
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutSupported,
@@ -933,7 +933,7 @@ internal class DefaultSettingDescriptorDataSource(
             // session_management_supported: gates the check_session_iframe advertisement, the session_state
             // authorization response parameter, and the OP browser-state cookie. Non-discoverable (the standard
             // discovery signal is the check_session_iframe URL). Default false — available but disabled by default
-            // because it depends on third-party cookies the browser platform is removing. (ADR-0088)
+            // because it depends on third-party cookies the browser platform is removing. (ADR-1088)
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.SessionManagementSupported,
@@ -948,7 +948,7 @@ internal class DefaultSettingDescriptorDataSource(
             // however it is used. Between one second and 365 days; default 30 days (Auth0's tenant default and NIST
             // SP 800-63B's AAL1 reauthentication of at least once per 30 days; the maximum is Auth0's). Not advertised
             // (leaking session policy aids attackers). Override (Replace): a tenant fully replaces the value.
-            // (ADR-0220)
+            // (ADR-1220)
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionAbsoluteLifetime,
@@ -963,7 +963,7 @@ internal class DefaultSettingDescriptorDataSource(
             // session_idle_timeout: sliding inactivity window after which the end-user session ends if unused; each
             // authorize request that resolves the session renews it. Between one second and 100 days; default 3 days
             // (Auth0's inactivity default; the maximum is Auth0's enterprise maximum). Not advertised. Override
-            // (Replace): a tenant fully replaces the value. (ADR-0220)
+            // (Replace): a tenant fully replaces the value. (ADR-1220)
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionIdleTimeout,
@@ -990,7 +990,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
-            // anonymous (no initial access token) requests (default false). (ADR-0063)
+            // anonymous (no initial access token) requests (default false). (ADR-1063)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
@@ -1005,7 +1005,7 @@ internal class DefaultSettingDescriptorDataSource(
             // refresh_token_expiration_policy: how a refresh token's expiration is computed — absolute (at its family's
             // refresh_token_lifetime) or sliding (refresh_token_sliding_lifetime after its last use, capped at the family's
             // lifetime); default absolute. Either way the token expires; a never-expiring refresh token is not offered
-            // (RFC 9700 §4.14.2). (ADR-0297)
+            // (RFC 9700 §4.14.2). (ADR-1297)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -1037,7 +1037,7 @@ internal class DefaultSettingDescriptorDataSource(
             // each time they are used — unbound (the default) rotates a token bound neither to a proof-of-possession
             // key nor to client authentication, that is a public client's token without a DPoP or certificate binding,
             // as RFC 9700 §2.2.2 and §4.14.2 require; always rotates every refresh token. No value turns off the
-            // rotation of a public client's unbound token. (ADR-0216)
+            // rotation of a public client's unbound token. (ADR-1216)
             // Override (Replace): a child fully replaces the parent value, so a tenant cannot force rotation on its
             // clients; the floor that matters is the requirement that a public client's unbound token is rotated.
             yield return new SettingDescriptor<string>
@@ -1054,7 +1054,7 @@ internal class DefaultSettingDescriptorDataSource(
             // refresh_token_reuse_interval: how long after a rotation the rotated refresh token may be presented again
             // as a retry instead of a reuse, so a client that lost the rotation response can recover; the retry is
             // answered as the rotation was and the rotation family is not revoked. TimeSpan.Zero turns it off
-            // (default); at most one minute, because a longer window weakens reuse detection. (ADR-0217)
+            // (default); at most one minute, because a longer window weakens reuse detection. (ADR-1217)
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -1070,7 +1070,7 @@ internal class DefaultSettingDescriptorDataSource(
             // refresh_token_rotation_retry_required: whether a client whose refresh tokens rotate must be able to retry
             // a rotation, that is have a positive refresh_token_reuse_interval (default false; FAPI 2.0 §5.3.2.1
             // requires it).
-            // Floor (Or): once a parent requires it, a child cannot un-require it. (ADR-0206, ADR-0217)
+            // Floor (Or): once a parent requires it, a child cannot un-require it. (ADR-1206, ADR-1217)
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RefreshTokenRotationRetryRequired,
@@ -1083,7 +1083,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // refresh_token_lifetime: the absolute lifetime of a refresh token's rotation family, from the grant that
             // began it, however often its tokens are used or rotated (default 30 days). The token response announces
-            // the time left as refresh_token_expires_in. (ADR-0297)
+            // the time left as refresh_token_expires_in. (ADR-1297)
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -1098,7 +1098,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // refresh_token_sliding_lifetime: under the sliding refresh_token_expiration_policy, how long a refresh token
             // stays valid after it was issued or last used, never past its family's refresh_token_lifetime (default 15
-            // days); the absolute policy ignores it. (ADR-0297)
+            // days); the absolute policy ignores it. (ADR-1297)
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -1115,7 +1115,7 @@ internal class DefaultSettingDescriptorDataSource(
             // Ceiling (Intersect): a child narrows the parent's set. A request object is encrypted to the server's public
             // key, so only asymmetric key management applies; advertised from the tenant's settings and enforced against
             // the requesting client's before the request object is decrypted, where an unset list permits nothing
-            // (ADR-0155).
+            // (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
@@ -1129,7 +1129,7 @@ internal class DefaultSettingDescriptorDataSource(
             // request_object_encryption_enc_values_supported: permitted "enc" values for encrypting request objects.
             // Ceiling (Intersect): a child narrows the parent's set. Advertised from the tenant's settings and enforced
             // against the requesting client's before the request object is decrypted, where an unset list permits nothing
-            // (ADR-0155).
+            // (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
@@ -1143,7 +1143,7 @@ internal class DefaultSettingDescriptorDataSource(
             // request_object_signing_alg_values_supported: permitted "alg" values for signing request objects.
             // Ceiling (Intersect): a child narrows the parent's set. Advertised from the tenant's settings and enforced
             // against the requesting client's before the signature is verified, where an unset list permits nothing; a
-            // client that registers a request_object_signing_alg narrows its own list to it (ADR-0155).
+            // client that registers a request_object_signing_alg narrows its own list to it (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RequestObjectSigningAlgValuesSupported,
@@ -1155,7 +1155,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // request_object_expected_audience: expected "aud" of a client's request object; empty expects the tenant's
-            // issuer (RFC 9101 §4, ADR-0187), which a FAPI profile requires (ADR-0202) (default empty).
+            // issuer (RFC 9101 §4, ADR-1187), which a FAPI profile requires (ADR-1202) (default empty).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -1168,7 +1168,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // request_object_max_lifetime: longest lifetime accepted for a signed request object or CIBA authentication
-            // request, from its earliest 'iat'/'nbf' to its 'exp' (default 60 minutes, FAPI's bound; ADR-0187).
+            // request, from its earliest 'iat'/'nbf' to its 'exp' (default 60 minutes, FAPI's bound; ADR-1187).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -1182,7 +1182,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // request_object_nbf_required: whether a signed request object must carry 'nbf' (default false; FAPI requires
-            // it; a CIBA authentication request always must, ADR-0187).
+            // it; a CIBA authentication request always must, ADR-1187).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
@@ -1301,7 +1301,7 @@ internal class DefaultSettingDescriptorDataSource(
             // bind the code to a PKCE code_challenge (default true; RFC 9700 §2.1.1, OAuth 2.1 §4.1.1). Only the
             // server's configuration can relax it; where it is relaxed, a confidential client attested by
             // pkce_nonce_exemption may use the OpenID Connect nonce instead. A public client always uses PKCE
-            // (ADR-0144).
+            // (ADR-1144).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
@@ -1317,7 +1317,7 @@ internal class DefaultSettingDescriptorDataSource(
             // correctly — the "reasonable assurance" of OAuth 2.1 §7.5.1.1 — so where require_pkce is relaxed, its
             // confidential OpenID Connect requests that carry a nonce may omit the PKCE code_challenge (default false).
             // It is an administrator's statement about a known client: dynamic client registration never sets it, and
-            // it has no effect while require_pkce is in force (ADR-0144).
+            // it has no effect while require_pkce is in force (ADR-1144).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<bool>
             {
@@ -1547,7 +1547,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // response_modes_supported: OAuth response modes the server supports (default supplied by the baseline provider).
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseModesSupported,
@@ -1560,7 +1560,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // response_types_supported: the whole response_type values the server accepts, in canonical form (default
             // supplied by the baseline provider). Ceiling (Intersect): a child narrows the parent's set; discovery
-            // advertises the values as they are, and the authorization endpoint accepts exactly them (ADR-0141).
+            // advertises the values as they are, and the authorization endpoint accepts exactly them (ADR-1141).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.ResponseTypesSupported,
@@ -1744,7 +1744,7 @@ internal class DefaultSettingDescriptorDataSource(
             // software_version. Registered so a registration (or the management API) stores them as typed settings rather
             // than untyped extras; client_name is shown on the consent page. The jwks metadata is deliberately not a
             // setting: its keys are the client's stored public keys, imported under the client-key policy, and a
-            // registration response projects them back (ADR-0161). No defaults: absent means the client did not provide
+            // registration response projects them back (ADR-1161). No defaults: absent means the client did not provide
             // it. Not advertised. Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -1879,7 +1879,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // sector_identifier_uri_allowed_hosts: SSRF allow-list for the registration-time sector_identifier_uri
             // fetch (OpenID Connect Core 1.0 §8.1). When set, the sector_identifier_uri host must appear in this list;
-            // unset = no host allow-list (ADR-0010), though the always-on private/loopback/link-local address block
+            // unset = no host allow-list (ADR-1010), though the always-on private/loopback/link-local address block
             // still applies. Not advertised. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
@@ -1935,9 +1935,9 @@ internal class DefaultSettingDescriptorDataSource(
             // default) selects none, and every value must name a registered profile, because a name that matches none
             // would silently leave the scope without the baseline it asked for. Not advertised. Floor (Union): the
             // profiles accumulate down the cascade, so a child can add a profile but never remove one a parent selects
-            // (a server or tenant can mandate a profile), and every selected profile applies. (ADR-0148)
+            // (a server or tenant can mandate a profile), and every selected profile applies. (ADR-1148)
             // Scopes: a tenant's selection expands into the ceilings discovery advertises, and a client's effective
-            // selection is enforced on its requests; a resource server selects none, since no profile governs one. (ADR-0149)
+            // selection is enforced on its requests; a resource server selects none, since no profile governs one. (ADR-1149)
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SecurityProfiles,
@@ -1967,7 +1967,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // token_endpoint_auth_signing_alg_values_supported: permitted "alg" values for private_key_jwt / client_secret_jwt client auth.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Scopes: advertised
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010). Scopes: advertised
             // from the tenant's settings and enforced against the authenticating client's.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
@@ -1980,7 +1980,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // ui_locales_supported: BCP47 locales the server's UI supports.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UiLocalesSupported,
@@ -1994,7 +1994,7 @@ internal class DefaultSettingDescriptorDataSource(
             // userinfo_encrypted_response_alg: the key-management "alg" the client registers for encrypting its UserInfo
             // responses to its public key (OpenID Connect Dynamic Client Registration 1.0 §2); absent = not encrypted.
             // Override (Replace): a child fully replaces the parent value. The effective
-            // userinfo_encryption_alg_values_supported must permit it (ADR-0155).
+            // userinfo_encryption_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptedResponseAlg,
@@ -2008,7 +2008,7 @@ internal class DefaultSettingDescriptorDataSource(
             // userinfo_encrypted_response_enc: the content-encryption "enc" of the client's encrypted UserInfo responses
             // (OpenID Connect Dynamic Client Registration 1.0 §2: A128CBC-HS256 unless registered).
             // Override (Replace): a child fully replaces the parent value. The effective
-            // userinfo_encryption_enc_values_supported must permit it (ADR-0155).
+            // userinfo_encryption_enc_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptedResponseEnc,
@@ -2021,9 +2021,9 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // userinfo_encryption_alg_values_supported: permitted "alg" values for UserInfo response encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). A UserInfo response
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010). A UserInfo response
             // is encrypted to the client's public key, so only asymmetric key management applies; advertised from the
-            // tenant's settings and enforced against the client's (ADR-0155).
+            // tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
@@ -2035,8 +2035,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // userinfo_encryption_enc_values_supported: permitted "enc" values for UserInfo response encryption.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Advertised from the
-            // tenant's settings and enforced against the client's (ADR-0155).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010). Advertised from the
+            // tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
@@ -2050,7 +2050,7 @@ internal class DefaultSettingDescriptorDataSource(
             // userinfo_signed_response_alg: the signature "alg" the client registers for its UserInfo responses (OpenID
             // Connect Dynamic Client Registration 1.0 §2); absent = the response is not signed.
             // Override (Replace): a child fully replaces the parent value. The effective
-            // userinfo_signing_alg_values_supported must permit it (ADR-0155).
+            // userinfo_signing_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.UserInfoSignedResponseAlg,
@@ -2062,8 +2062,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // userinfo_signing_alg_values_supported: permitted "alg" values for signing the UserInfo response.
-            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-0010). Advertised from the
-            // tenant's settings and enforced against the client's (ADR-0155).
+            // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010). Advertised from the
+            // tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
@@ -2077,7 +2077,7 @@ internal class DefaultSettingDescriptorDataSource(
             // introspection_signed_response_alg: the signature "alg" a client acting for a resource server registers for
             // its JWT introspection responses (RFC 9701 §6: RS256 unless registered).
             // Override (Replace): a child fully replaces the parent value. The effective
-            // introspection_signing_alg_values_supported must permit it (ADR-0155, ADR-0168).
+            // introspection_signing_alg_values_supported must permit it (ADR-1155, ADR-1168).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IntrospectionSignedResponseAlg,
@@ -2091,7 +2091,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // introspection_signing_alg_values_supported: permitted "alg" values for signing a JWT introspection
             // response (RFC 9701 §7). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
-            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            // (ADR-1010). Advertised from the tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
@@ -2105,7 +2105,7 @@ internal class DefaultSettingDescriptorDataSource(
             // introspection_encrypted_response_alg: the key-management "alg" a client acting for a resource server
             // registers for encrypting its JWT introspection responses to its public key (RFC 9701 §6); absent = not
             // encrypted. Override (Replace): a child fully replaces the parent value. The effective
-            // introspection_encryption_alg_values_supported must permit it (ADR-0155).
+            // introspection_encryption_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
@@ -2119,7 +2119,7 @@ internal class DefaultSettingDescriptorDataSource(
             // introspection_encrypted_response_enc: the content-encryption "enc" of the client's encrypted JWT
             // introspection responses (RFC 9701 §6: A128CBC-HS256 unless registered).
             // Override (Replace): a child fully replaces the parent value. The effective
-            // introspection_encryption_enc_values_supported must permit it (ADR-0155).
+            // introspection_encryption_enc_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
@@ -2133,8 +2133,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // introspection_encryption_alg_values_supported: permitted "alg" values for encrypting a JWT introspection
             // response (RFC 9701 §7). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
-            // (ADR-0010). The response is encrypted to the client's public key, so only asymmetric key management
-            // applies; advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            // (ADR-1010). The response is encrypted to the client's public key, so only asymmetric key management
+            // applies; advertised from the tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IntrospectionEncryptionAlgValuesSupported,
@@ -2147,7 +2147,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // introspection_encryption_enc_values_supported: permitted "enc" values for encrypting a JWT introspection
             // response (RFC 9701 §7). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
-            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            // (ADR-1010). Advertised from the tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.IntrospectionEncryptionEncValuesSupported,
@@ -2161,7 +2161,7 @@ internal class DefaultSettingDescriptorDataSource(
             // authorization_signed_response_alg: the signature "alg" a client registers for
             // its JWT-secured authorization responses (JARM) (JARM §3: RS256 unless registered).
             // Override (Replace): a child fully replaces the parent value. The effective
-            // authorization_signing_alg_values_supported must permit it (ADR-0155, ADR-0168).
+            // authorization_signing_alg_values_supported must permit it (ADR-1155, ADR-1168).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationSignedResponseAlg,
@@ -2186,8 +2186,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // authorization_signing_alg_values_supported: permitted "alg" values for signing a JWT-secured authorization
-            // response (JARM §4); a key-provisioning default (ADR-0169). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
-            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            // response (JARM §4); a key-provisioning default (ADR-1169). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-1010). Advertised from the tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
@@ -2201,7 +2201,7 @@ internal class DefaultSettingDescriptorDataSource(
             // authorization_encrypted_response_alg: the key-management "alg" a client acting for a resource server
             // registers for encrypting its JWT-secured authorization responses (JARM) to its public key (JARM §3); absent = not
             // encrypted. Override (Replace): a child fully replaces the parent value. The effective
-            // authorization_encryption_alg_values_supported must permit it (ADR-0155).
+            // authorization_encryption_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
@@ -2215,7 +2215,7 @@ internal class DefaultSettingDescriptorDataSource(
             // authorization_encrypted_response_enc: the content-encryption "enc" of the client's encrypted JWT
             // introspection responses (JARM §3: A128CBC-HS256 unless registered).
             // Override (Replace): a child fully replaces the parent value. The effective
-            // authorization_encryption_enc_values_supported must permit it (ADR-0155).
+            // authorization_encryption_enc_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
@@ -2229,8 +2229,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // authorization_encryption_alg_values_supported: permitted "alg" values for encrypting a JWT introspection
             // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
-            // (ADR-0010). The response is encrypted to the client's public key, so only asymmetric key management
-            // applies; advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            // (ADR-1010). The response is encrypted to the client's public key, so only asymmetric key management
+            // applies; advertised from the tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AuthorizationEncryptionAlgValuesSupported,
@@ -2243,7 +2243,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // authorization_encryption_enc_values_supported: permitted "enc" values for encrypting a JWT introspection
             // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
-            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            // (ADR-1010). Advertised from the tenant's settings and enforced against the client's (ADR-1155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.AuthorizationEncryptionEncValuesSupported,
@@ -2256,7 +2256,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // mtls_endpoint_alias_authority: retired. A tenant's mTLS endpoint alias is a tenant property; the
             // descriptor stays registered so a stored document that carries the setting still loads, until a later
-            // release removes the setting from the stored documents (ADR-0195, ADR-0251).
+            // release removes the setting from the stored documents (ADR-1195, ADR-1251).
             yield return new SettingDescriptor<string>
             {
                 Name = RetiredMtlsEndpointAliasAuthority,

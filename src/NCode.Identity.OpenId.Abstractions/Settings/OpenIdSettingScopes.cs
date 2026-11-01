@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// scopes, not all of them: a package that stores settings for an entity of its own registers another
 /// <see cref="SettingScopeDescriptor"/> beneath the scope its settings inherit from.
 /// </summary>
-// See ADR-0149 and ADR-0150.
+// See ADR-1149 and ADR-1150.
 [PublicAPI]
 public static class OpenIdSettingScopes
 {

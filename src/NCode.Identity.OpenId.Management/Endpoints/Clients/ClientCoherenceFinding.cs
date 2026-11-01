@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// </summary>
 /// <param name="ClientId">The identifier of the client that registers the value.</param>
 /// <param name="Violation">The <see cref="ClientCoherenceViolation"/> the change introduces.</param>
-// See ADR-0206.
+// See ADR-1206.
 internal readonly record struct ClientCoherenceFinding(
     string ClientId,
     ClientCoherenceViolation Violation

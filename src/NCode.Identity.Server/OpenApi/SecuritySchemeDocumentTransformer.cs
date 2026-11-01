@@ -41,7 +41,7 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
     public const string OAuth2SchemeName = "OAuth2";
 
     // Authority is role-based (GlobalAdmin), so any management-audience scope authenticates the dashboard; this one
-    // simply binds the 'urn:ncode:management' audience. See ADR-0044.
+    // simply binds the 'urn:ncode:management' audience. See ADR-1044.
     internal const string ManagementAudienceScope = "read:clients";
 
     private static readonly FrozenSet<string> ManagementTagNames = new[]

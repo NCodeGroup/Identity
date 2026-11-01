@@ -5,7 +5,7 @@
 .SYNOPSIS
     Opens the backport pull requests that a merged pull request's `backport vX.Y` labels ask for.
 .DESCRIPTION
-    Servicing is upstream-first (GOVERNANCE.md "Releases, branches & tags", ADR-0263): a fix merges to `main`, and a
+    Servicing is upstream-first (GOVERNANCE.md "Releases, branches & tags", ADR-1263): a fix merges to `main`, and a
     backport pull request cherry-picks it with `git cherry-pick -x` onto `backport/<pr>-vX.Y`, cut from `release/vX.Y`,
     and targets that line. For each `backport vX.Y` label, this script cuts that branch, cherry-picks the commit the pull
     request merged as, pushes the branch and opens the pull request. When the release line does not exist, or the

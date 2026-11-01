@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// and tenant-bound endpoints open their scope from the route's <c>tenantId</c> via the
 /// <see cref="TenantScopeEndpointFilter"/> on the tenant-plane group, so the route's tenant only scopes the data.
 /// </summary>
-// See ADR-0191 (the management API authenticates against the control-plane tenant).
+// See ADR-1191 (the management API authenticates against the control-plane tenant).
 internal sealed class ManagementEnvironmentEndpointFilter(
     IOpenIdContextFactory openIdContextFactory
 ) : IEndpointFilter

@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 /// as a top-level member (via <see cref="JsonExtensionDataAttribute"/>), so new capabilities can be exposed by
 /// registering a provider without changing this type.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ManagementCapabilitiesResource

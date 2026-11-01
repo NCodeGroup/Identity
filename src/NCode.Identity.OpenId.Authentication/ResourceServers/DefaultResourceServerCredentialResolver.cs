@@ -87,7 +87,7 @@ internal class DefaultResourceServerCredentialResolver(
             : null;
 
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server reads (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server reads (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(openIdTenant.TenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -97,7 +97,7 @@ internal class DefaultResourceServerCredentialResolver(
         var matches = new SortedList<string, PersistedResourceServer>(StringComparer.Ordinal);
 
         // The DBMS pre-filters to enabled resource servers owning one of the scopes (and, when resources were
-        // requested, to those audiences); the exact case-sensitive matches are applied here (ADR-0080).
+        // requested, to those audiences); the exact case-sensitive matches are applied here (ADR-1080).
         var candidates = await resourceServerStore.FindEnabledByScopesAsync(
             effectiveScopes,
             hasRequestedResources ? requestedResources : null,
@@ -132,7 +132,7 @@ internal class DefaultResourceServerCredentialResolver(
         }
 
         // Every targeted resource server's settings bound the token, and its own keys decide whether it decrypts the
-        // tokens issued for it (ADR-0154), so both are materialized for each match. The key providers are owned by the
+        // tokens issued for it (ADR-1154), so both are materialized for each match. The key providers are owned by the
         // resolution; any already built are released if a later one cannot be.
         var resourceServers = new List<ResolvedResourceServer>(matches.Count);
         try
@@ -171,7 +171,7 @@ internal class DefaultResourceServerCredentialResolver(
     )
     {
         // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
-        // persistence-layer tenant query filter applies to the resource-server read (ADR-0018).
+        // persistence-layer tenant query filter applies to the resource-server read (ADR-1018).
         using var tenantScope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -198,7 +198,7 @@ internal class DefaultResourceServerCredentialResolver(
     }
 
     // A resource server's effective settings are the tenant's merged with its own, and its keys are its own secrets. Its
-    // document is read like every scope's (ADR-0204), and it selects no profile.
+    // document is read like every scope's (ADR-1204), and it selects no profile.
     private ResolvedResourceServer CreateResolvedResourceServer(
         OpenIdContext openIdContext,
         PersistedResourceServer resourceServer,

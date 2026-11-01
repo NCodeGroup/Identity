@@ -6,7 +6,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     [ContractMigration(
-        "Shipped before any release, so no running release writes or deletes the rows this key binds (ADR-0025)."
+        "Shipped before any release, so no running release writes or deletes the rows this key binds (ADR-1025)."
     )]
     public partial class AddClientResourceServer : Migration
     {

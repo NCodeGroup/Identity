@@ -477,7 +477,7 @@ internal class DefaultManagementAuditRecorder(
         AuditActor.Administrator(GetActorId(httpContext));
 
     // The actor is a self-issued/control-plane admin, so its subject is read with the server-default claim types
-    // (ADR-0053) through the app-level environment — not the request tenant's subject_claim_types setting.
+    // (ADR-1053) through the app-level environment — not the request tenant's subject_claim_types setting.
     private string? GetActorId(HttpContext httpContext) =>
         EnvironmentProvider
             .Get()

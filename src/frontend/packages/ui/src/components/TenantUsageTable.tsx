@@ -18,7 +18,7 @@ export type TenantUsageTableProps = {
 const numberFormat = new Intl.NumberFormat();
 
 /**
- * Stateless per-day usage table for a tenant's usage ledger (ADR-0199). Meters are an open vocabulary, so the
+ * Stateless per-day usage table for a tenant's usage ledger (ADR-1199). Meters are an open vocabulary, so the
  * columns are the meters present in the entries, in name order; a day without an entry for a meter shows zero. Days
  * are listed newest first and a final row totals each meter over the range. Holds no state and does no fetching.
  */

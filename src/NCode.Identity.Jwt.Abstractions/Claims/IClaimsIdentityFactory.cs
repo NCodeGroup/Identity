@@ -27,7 +27,7 @@ namespace NCode.Identity.Jwt.Claims;
 /// <see cref="ClaimsIdentity"/>, typing each claim by its JSON value, so every claim set the family reads maps the same
 /// way. A member whose value is an array becomes one claim per element.
 /// </summary>
-// See ADR-0122.
+// See ADR-1122.
 [PublicAPI]
 public interface IClaimsIdentityFactory
 {

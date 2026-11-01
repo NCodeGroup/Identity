@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// configuration validated when the host starts and the tenants written while it runs are judged by these same rules,
 /// so the two cannot disagree about what a servable tenant is.
 /// </summary>
-// See ADR-0159 (a tenant is named by its creator) and ADR-0160 (a tenant's address is validated wherever it is written).
+// See ADR-1159 (a tenant is named by its creator) and ADR-1160 (a tenant's address is validated wherever it is written).
 internal static partial class TenantAddressRules
 {
     /// <summary>

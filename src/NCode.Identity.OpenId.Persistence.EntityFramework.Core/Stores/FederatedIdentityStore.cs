@@ -120,7 +120,7 @@ internal class FederatedIdentityStore(
                 $"A federated principal with '{identity.PrincipalId}' was not found."
             );
 
-        // The interceptor leaves a pre-seeded insert token intact (ADR-0012).
+        // The interceptor leaves a pre-seeded insert token intact (ADR-1012).
         identity.ConcurrencyToken = NextConcurrencyToken();
 
         var entity = new FederatedIdentityEntity

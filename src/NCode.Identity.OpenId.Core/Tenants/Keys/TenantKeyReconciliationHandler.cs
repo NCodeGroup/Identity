@@ -48,7 +48,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// and skipped, and the pass continues: the tenant is seeded again the next time it is materialized. The handler is
 /// idempotent, because announcing a tenant that is already seeded provisions nothing.
 /// </remarks>
-// See ADR-0169 (decision 10), ADR-0219 and ADR-0234.
+// See ADR-1169 (decision 10), ADR-1219 and ADR-1234.
 internal sealed class TenantKeyReconciliationHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     ITenantKeyPolicy tenantKeyPolicy,
@@ -151,7 +151,7 @@ internal sealed class TenantKeyReconciliationHandler(
             return false;
 
         // A tenant that used every one of these algorithms before the change was reconciled with them already.
-        // See ADR-0234.
+        // See ADR-1234.
         if (command.PreviousSettings is { } previousServerSettings)
         {
             var previousSettings = EffectiveSettingsResolver.Resolve(
@@ -179,7 +179,7 @@ internal sealed class TenantKeyReconciliationHandler(
 
         // A tenant that holds no key has never been seeded, or is being seeded right now by its first materialization,
         // which seeds every key it uses through the one pipeline; the reconciliation fills only a gap in a seeded tenant,
-        // so it never seeds a tenant concurrently with its first request. See ADR-0166 and ADR-0219.
+        // so it never seeds a tenant concurrently with its first request. See ADR-1166 and ADR-1219.
         if (held.Count == 0)
             return false;
 

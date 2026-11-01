@@ -76,7 +76,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private const int ClientSecretKeySizeBits = 256;
 
     // The request-object metadata (OpenID Connect Dynamic Client Registration 1.0 §2) is stored as the client's own
-    // algorithm lists, each narrowed to the one registered value, which the authorization endpoint enforces (ADR-0155).
+    // algorithm lists, each narrowed to the one registered value, which the authorization endpoint enforces (ADR-1155).
     private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
     private const string RequestObjectEncryptionEncMetadata = "request_object_encryption_enc";
 
@@ -342,7 +342,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             }
 
             // The token is spent only after every check has passed, so a refused request leaves it usable; a store
-            // failure after the spend leaves it spent (fails closed) (ADR-0192).
+            // failure after the spend leaves it spent (fails closed) (ADR-1192).
             if (
                 token is not null
                 && !await InitialAccessTokenValidator.TryConsumeAsync(
@@ -628,7 +628,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// of the request's <c>jwks</c> take the place of every stored public key, and none remain when the client
     /// publishes a <c>jwks_uri</c> instead. The secrets the client shares with the server are kept.
     /// </summary>
-    // See ADR-0161.
+    // See ADR-1161.
     private async ValueTask<List<PersistedSecret>> ReplacePublicKeysAsync(
         IClientStore store,
         PersistedClient client,
@@ -673,7 +673,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
-        // The store removes the client's keys and grants with it, its registration access token included. See ADR-0212.
+        // The store removes the client's keys and grants with it, its registration access token included. See ADR-1212.
         await store.RemoveAsync(clientId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -682,7 +682,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     // A presented initial access token is always validated, even where anonymous registration is allowed, so a token
     // scoped to a resource server binds the client it registers and an invalid token is never silently ignored
-    // (ADR-0192).
+    // (ADR-1192).
     private async ValueTask<(
         bool IsAuthorized,
         string? Token,
@@ -713,7 +713,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     // A client registered with a token scoped to a resource server is bound to it, so the resource server must still
-    // exist in the tenant and must not be a system resource server when the client registers (ADR-0168, ADR-0192).
+    // exist in the tenant and must not be a system resource server when the client registers (ADR-1168, ADR-1192).
     private static async ValueTask<bool> CanBindResourceServerAsync(
         IStoreManager storeManager,
         string tenantId,
@@ -733,7 +733,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     // A resource-server client introspects for its resource server, which requires a confidential client, and only a
     // resource-server client receives a JWT introspection response, so only it registers how that response is protected
-    // (RFC 9701 §6, ADR-0168, ADR-0192).
+    // (RFC 9701 §6, ADR-1168, ADR-1192).
     private static IResult? ValidateResourceServerBinding(
         IOpenIdErrorFactory errorFactory,
         RegisterClientRequest request,
@@ -1002,7 +1002,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// <param name="tenantSettings">The effective settings of the tenant the client registers with.</param>
     /// <param name="settingsJson">The client's settings document.</param>
     /// <returns>The error, or <see langword="null"/> when the client settings are coherent.</returns>
-    // See ADR-0206.
+    // See ADR-1206.
     internal virtual IOpenIdError? ValidateCoherence(
         IOpenIdErrorFactory errorFactory,
         IReadOnlySettingCollection tenantSettings,
@@ -1035,7 +1035,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// <c>*_alg</c>, and a client that registers an encrypted response publishes the public keys it is encrypted to.
     /// Returns an <c>invalid_client_metadata</c> error, or <see langword="null"/> when the metadata is consistent.
     /// </summary>
-    // See ADR-0155.
+    // See ADR-1155.
     internal virtual IOpenIdError? ValidateKeyMetadata(
         IOpenIdErrorFactory errorFactory,
         RegisterClientRequest request
@@ -1119,14 +1119,14 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// with a registered certificate when given by value, for <c>self_signed_tls_client_auth</c>; and exactly one
     /// <c>tls_client_auth_*</c> certificate identity for <c>tls_client_auth</c>, which is refused for any other method.
     /// A registering client never supplies trust anchors: a <c>tls_client_auth</c> certificate chains to the tenant's
-    /// anchors, and with none configured the method fails closed (ADR-0173). Returns an <c>invalid_client_metadata</c>
+    /// anchors, and with none configured the method fails closed (ADR-1173). Returns an <c>invalid_client_metadata</c>
     /// error, or <see langword="null"/> when the metadata is consistent.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
     /// <param name="request">The registration request.</param>
     /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
     /// <returns>The error, or <see langword="null"/> when the metadata is consistent.</returns>
-    // See ADR-0145.
+    // See ADR-1145.
     internal virtual IOpenIdError? ValidateAuthenticationMetadata(
         IOpenIdErrorFactory errorFactory,
         RegisterClientRequest request,
@@ -1280,7 +1280,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// </summary>
     /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
     /// <returns><see langword="true"/> when the client is issued a <c>client_secret</c>.</returns>
-    // See ADR-0145 and ADR-0207.
+    // See ADR-1145 and ADR-1207.
     internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
         ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
         && descriptor.RequiresClientSecret;
@@ -1387,7 +1387,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// key. Returns an <c>invalid_client_metadata</c> error result when the set is refused; otherwise
     /// <see langword="null"/> with the imported keys, which are empty when the request carries no <c>jwks</c>.
     /// </summary>
-    // See ADR-0161.
+    // See ADR-1161.
     private IResult? ImportRegisteredKeys(
         RegisterClientRequest request,
         DateTimeOffset createdWhen,
@@ -1436,7 +1436,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// grant type or a <c>jwks_uri</c> that is not https — so the registration is refused rather than stored as a client
     /// that fails every request that loads it; otherwise <see langword="null"/>.
     /// </summary>
-    // See ADR-0140.
+    // See ADR-1140.
     private IResult? ValidateSettings(
         IOpenIdErrorFactory errorFactory,
         JsonElement settingsJson,
@@ -1844,7 +1844,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// <see langword="null"/> when it has none. A secret without readable public key material — the client secret, or
     /// a private key stored without its public key — is skipped and never deserialized.
     /// </summary>
-    // See ADR-0161 and ADR-0268.
+    // See ADR-1161 and ADR-1268.
     private JsonElement? ExportPublicKeys(IEnumerable<PersistedSecret> secrets)
     {
         var keys = new List<JsonWebKey>();

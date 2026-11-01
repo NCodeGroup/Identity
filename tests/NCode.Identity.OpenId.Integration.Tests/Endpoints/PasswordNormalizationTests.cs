@@ -23,7 +23,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// A password is judged, hashed and verified in its NFC form (ADR-0238).
+// A password is judged, hashed and verified in its NFC form (ADR-1238).
 public class PasswordNormalizationTests
 {
     private const string ClientId = "it-normalization-client";

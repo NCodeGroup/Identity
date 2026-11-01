@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// every validation of a subject refuses an end user whose standing is refused: a grant, a session or a backchannel
 /// authentication approval issues no token to a blocked principal or a disabled account.
 /// </summary>
-// See ADR-0229.
+// See ADR-1229.
 internal class DefaultValidateStandingOnSubjectAuthenticationHandler
     : ICommandHandler<ValidateSubjectAuthenticationCommand>
 {

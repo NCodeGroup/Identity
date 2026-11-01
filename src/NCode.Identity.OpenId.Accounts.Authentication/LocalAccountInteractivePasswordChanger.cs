@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// one, and verifies the current password under the limit on failed attempts. An end user without exactly one enabled
 /// local account has no password to change here.
 /// </summary>
-// See ADR-0230.
+// See ADR-1230.
 internal sealed class LocalAccountInteractivePasswordChanger(
     IStoreManagerFactory storeManagerFactory,
     IPasswordPolicy passwordPolicy,
@@ -93,7 +93,7 @@ internal sealed class LocalAccountInteractivePasswordChanger(
         }
 
         // The new password is judged before the current one is verified, so a password the policy refuses costs no
-        // verification. See ADR-0236.
+        // verification. See ADR-1236.
         var newPasswordMemory = newPassword.AsMemory();
         var policyContext = new PasswordPolicyContext
         {
@@ -123,7 +123,7 @@ internal sealed class LocalAccountInteractivePasswordChanger(
         // The store asks the gate once, with the user name it holds, between its lookup and its verification, and a
         // password refused at the limit is verified against its dummy hash and counts as a failure, as a wrong one
         // does. The gate refuses a result that a store verified after a refusal and fails a store that never asked, so
-        // no store lifts the limit. See ADR-0237 and ADR-0244.
+        // no store lifts the limit. See ADR-1237 and ADR-1244.
         var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
         var storedResult = await accountStore.VerifyCredentialAsync(
             account.UserName,

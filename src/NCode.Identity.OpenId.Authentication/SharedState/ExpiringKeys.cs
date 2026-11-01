@@ -24,7 +24,7 @@ using NCode.Encoders;
 
 namespace NCode.Identity.OpenId.Authentication.SharedState;
 
-// See ADR-0246.
+// See ADR-1246.
 /// <summary>
 /// Builds the keys this library records in the shared <c>IExpiringKeySet</c>. A key is
 /// <c>{purpose}:{tenant in braces}:{digest}</c>, where the digest is the base64url SHA-256 of the length-prefixed UTF-8

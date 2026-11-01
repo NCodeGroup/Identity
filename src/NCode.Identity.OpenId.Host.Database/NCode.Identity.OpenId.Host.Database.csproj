@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <!-- Host-owned database project for the reference OP (ADR-0073). It owns the Npgsql EF Core migrations
+    <!-- Host-owned database project for the reference OP (ADR-1073). It owns the Npgsql EF Core migrations
          (OpenIdDbContext + the developer DataProtection key ring) and the shared Npgsql wiring, so BOTH the host
          `api` host and the `MigrationService` worker consume one source of truth for the dev database. Never packed. -->
     <PropertyGroup>

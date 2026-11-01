@@ -23,14 +23,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
 /// <summary>
 /// Resolves a <c>response_mode</c> to the registered <see cref="IAuthorizationResponseModeHandler"/> that delivers it
-/// (ADR-0201).
+/// (ADR-1201).
 /// </summary>
 internal interface IAuthorizationResponseModeProvider
 {
     /// <summary>
     /// Resolves the requested response mode, or the response type's default when none is requested, to its registered
     /// handler. <c>jwt</c> resolves to the handler whose <see cref="IAuthorizationResponseModeHandler.SecuredResponseMode"/>
-    /// is that default (JARM §2.3.4). Returns <see langword="false"/> when no registered handler serves it (ADR-0201).
+    /// is that default (JARM §2.3.4). Returns <see langword="false"/> when no registered handler serves it (ADR-1201).
     /// </summary>
     /// <param name="requestedResponseMode">The requested <c>response_mode</c>, or <see langword="null"/> when none is requested.</param>
     /// <param name="responseTypes">The names of the response type, in any order.</param>

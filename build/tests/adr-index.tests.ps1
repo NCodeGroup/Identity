@@ -50,27 +50,33 @@ function Assert-Problems([string]$Name, [string]$Directory, [string[]]$ExpectedF
 }
 
 try {
-    $fixture = New-Fixture 'consistent' @('0001-a.md', '0002-b.md') @('0001|0001-a.md', '0002|0002-b.md')
+    $fixture = New-Fixture 'consistent' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
     Assert-Problems 'a consistent index has no problems' $fixture @()
 
-    $fixture = New-Fixture 'duplicate' @('0001-a.md', '0001-b.md') @('0001|0001-a.md', '0001|0001-b.md')
+    $fixture = New-Fixture 'duplicate' @('1001-a.md', '1001-b.md') @('1001|1001-a.md', '1001|1001-b.md')
     Assert-Problems 'two files with one number are named' $fixture @(
-        'ADR number 0001 is used by more than one file: docs/decisions/0001-a.md, docs/decisions/0001-b.md.'
+        'ADR number 1001 is used by more than one file: docs/decisions/1001-a.md, docs/decisions/1001-b.md.'
     )
 
-    $fixture = New-Fixture 'unindexed' @('0001-a.md', '0002-b.md') @('0001|0001-a.md')
-    Assert-Problems 'an unindexed file is reported' $fixture @('docs/decisions/0002-b.md is not listed')
+    $fixture = New-Fixture 'unindexed' @('1001-a.md', '1002-b.md') @('1001|1001-a.md')
+    Assert-Problems 'an unindexed file is reported' $fixture @('docs/decisions/1002-b.md is not listed')
 
-    $fixture = New-Fixture 'missing' @('0001-a.md') @('0001|0001-a.md', '0002|0002-b.md')
-    Assert-Problems 'a link to a missing file is reported' $fixture @('links ./0002-b.md, which does not exist')
+    $fixture = New-Fixture 'missing' @('1001-a.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Assert-Problems 'a link to a missing file is reported' $fixture @('links ./1002-b.md, which does not exist')
 
-    $fixture = New-Fixture 'mislabeled' @('0001-a.md', '0002-b.md') @('0001|0001-a.md', '0003|0002-b.md')
-    Assert-Problems 'a row labeled with another number is reported' $fixture @('labels ./0002-b.md as 0003')
+    $fixture = New-Fixture 'mislabeled' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1003|1002-b.md')
+    Assert-Problems 'a row labeled with another number is reported' $fixture @('labels ./1002-b.md as 1003')
 
-    $fixture = New-Fixture 'twice' @('0001-a.md') @('0001|0001-a.md', '0001|0001-a.md')
-    Assert-Problems 'a file listed twice is reported' $fixture @('lists ./0001-a.md on more than one row')
+    $fixture = New-Fixture 'twice' @('1001-a.md') @('1001|1001-a.md', '1001|1001-a.md')
+    Assert-Problems 'a file listed twice is reported' $fixture @('lists ./1001-a.md on more than one row')
 
-    $fixture = New-Fixture 'columns' @('0001-a.md') @('0001|0001-a.md')
+    $fixture = New-Fixture 'from-1000' @('1000-a.md') @()
+    Assert-Problems 'a record numbered from 1000 is checked' $fixture @('docs/decisions/1000-a.md is not listed')
+
+    $fixture = New-Fixture 'below-1000' @('0999-a.md') @('0999|0999-a.md')
+    Assert-Problems 'a record numbered below 1000 is reported' $fixture @('docs/decisions/0999-a.md is numbered below 1000')
+
+    $fixture = New-Fixture 'columns'@('1001-a.md') @('1001|1001-a.md')
     Add-Content -LiteralPath (Join-Path $fixture 'README.md') -Value '| [x] | two |'
     Assert-Problems 'a row with the wrong column count is reported' $fixture @('table row has 2 columns, expected 3')
 

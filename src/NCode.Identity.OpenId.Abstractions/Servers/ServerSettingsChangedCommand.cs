@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// <param name="ServerId">The identifier of the server whose settings changed.</param>
 /// <param name="PreviousSettings">The server's persisted settings document before the change.</param>
 /// <param name="Settings">The server's persisted settings document after the change.</param>
-// See ADR-0169 and ADR-0219.
+// See ADR-1169 and ADR-1219.
 [PublicAPI]
 public readonly record struct ServerSettingsChangedCommand(
     string ServerId,

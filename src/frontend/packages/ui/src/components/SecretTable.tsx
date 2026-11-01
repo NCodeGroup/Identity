@@ -56,7 +56,7 @@ function formatInstant(value: string): string {
 
 /**
  * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation,
- * ADR-0050); this lists only metadata. An expired secret is flagged. Receives rows and a callback as
+ * ADR-1050); this lists only metadata. An expired secret is flagged. Receives rows and a callback as
  * props; holds no state and does no fetching, so it renders directly in Storybook and under RTL.
  */
 export function SecretTable({

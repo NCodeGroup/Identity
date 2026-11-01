@@ -30,7 +30,7 @@ namespace NCode.Identity.Events;
 /// the tenant's environment type, unlike the tenant id, is a bounded, registered value, so an audit event that carries
 /// one is tagged with it.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandlerPriority
 {
     /// <summary>

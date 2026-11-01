@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// Both comparisons work on the raw strings and never on parsed or normalized URIs, so a requested value that differs
 /// from a registered value in any character (case, a trailing slash, a query) does not match.
 /// </remarks>
-// See ADR-0203.
+// See ADR-1203.
 internal static class RedirectUriMatcher
 {
     /// <summary>

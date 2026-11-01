@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 /// <param name="profileName">The name of the profile whose ceiling is built, used to name it in an error.</param>
 /// <param name="ceiling">The collection that receives the profile's ceiling settings.</param>
-// See ADR-0148 (a profile's ceiling binds every scope below the one that selects it).
+// See ADR-1148 (a profile's ceiling binds every scope below the one that selects it).
 internal sealed class SecurityProfileCeilingBuilder(string profileName, ISettingCollection ceiling)
     : ISecurityProfileCeilingBuilder
 {

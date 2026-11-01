@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// writes it to the audit store. Mapping and queuing are all that run with the audited operation, so the store's latency
 /// never reaches it.
 /// </summary>
-// See ADR-0303.
+// See ADR-1303.
 internal sealed class AuditRecordHandler(
     IOptions<AuditRecordOptions> options,
     AuditRecordQueue queue

@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
     )]
     public partial class RetireAllowUnsafeTokenResponse : Migration
     {
-        // Every table that stores a settings document (ADR-0139: a stored document that names a retired setting fails
+        // Every table that stores a settings document (ADR-1139: a stored document that names a retired setting fails
         // closed when it is read, so retiring a setting rewrites the stored documents).
         private static readonly string[] SettingsTables = ["Servers", "Tenants", "Clients", "ResourceServers"];
 
@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // 'allow_unsafe_token_response' is retired: 'response_types_supported' is the only control over the tokens
-            // the authorization endpoint returns (ADR-0142). Each document is rewritten to the setting's meaning:
+            // the authorization endpoint returns (ADR-1142). Each document is rewritten to the setting's meaning:
             //
             // - 'true' (or null, its default) restricted nothing, so the key is removed.
             // - 'false' rejected every response type that includes the 'token' name. The document instead narrows

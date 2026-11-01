@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// settings onto the effective settings of its tenant, so every caller gives every rule the same two views of the
 /// client.
 /// </remarks>
-// See ADR-0206.
+// See ADR-1206.
 [PublicAPI]
 public interface IClientCoherenceValidator
 {

@@ -15,37 +15,37 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.JsonWebTokens`
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
   opt-in key wrapper adapters `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`
-  ([ADR-0235](docs/decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-0260](docs/decisions/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md))
+  ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1260](docs/decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
+  [ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md))
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
   `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`, and
   `NCode.Identity.OpenId.Protocol.Abstractions` (the dependency-free OAuth/OIDC wire vocabulary `OpenIdProtocol`, shared
   by the OP and the protocol client —
-  [ADR-0276](docs/decisions/0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md))
+  [ADR-1276](docs/decisions/1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
-  ([ADR-0270](docs/decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
+  ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
 - **Backend for frontend** — `NCode.Identity.Bff(.Abstractions)`: makes an ASP.NET Core app the confidential client of
   its browser frontend, with an opaque `__Host-` cookie over an encrypted server-side session every replica sees
-  ([ADR-0290](docs/decisions/0290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md));
+  ([ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md));
   `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`)
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
 - **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its
   opt-in `NCode.Identity.SharedState.Valkey` adapter
-  ([ADR-0164](docs/decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
+  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
 - **Composition / host** — `NCode.Registration` (the `IServiceBuilder<TMarker>` builder), `NCode.Identity`,
   `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
-  `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-0071](docs/decisions/0071-aspire-local-dev-orchestrator.md))
+  `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
 
 The central extensibility model — **service** vs **strategy collection** vs **mediator** — is captured in
-[ADR-0001](docs/decisions/0001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a
+[ADR-1001](docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). Extensibility is the family's goal: a
 consumer or sibling package extends any vocabulary (settings, setting scopes, profiles, grant types, methods) by
 registering into it, so vocabularies are **open by default** and a closed construct such as an `enum` must be provably
-closed ([ADR-0150](docs/decisions/0150-vocabularies-are-open-unless-provably-closed.md)).
+closed ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
 
 ## Coding conventions
 
@@ -56,7 +56,12 @@ non-obvious decisions lives in [`docs/decisions/`](docs/decisions/): the project
 [`docs/decisions/project-template/`](docs/decisions/project-template/README.md), the source of truth for every rule
 they cover, and this family's own beside them. A family record never restates a template record: one that builds on
 it names it on a `**Refines:**` line, and one that still contradicts it on a `**Conflicts with:**` line with the issue
-that tracks the alignment. Cite a template record as `project-template ADR-NNNN`.
+that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
+1000 and the template below 1000
+([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
+so a bare ADR number names one record. One family record overrides a template record:
+[ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
 
@@ -75,7 +80,7 @@ those two files win. Claude Code ignores `applyTo`, so
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
-([ADR-0264](docs/decisions/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue labeled by
+([ADR-1264](docs/decisions/1264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue labeled by
 its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
 closes it with `Closes #<number>`.
@@ -83,7 +88,7 @@ closes it with `Closes #<number>`.
 ## Plan-and-execute workflow
 
 Multi-step changes run as **plan-and-execute**
-([ADR-0170](docs/decisions/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
+([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
 Claude Opus plans into a root `PLAN.md`, Claude Sonnet 5.5 executes it one verified step at a time, and any step that
 needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI or Claude Code.
 
@@ -138,7 +143,7 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   `/ship-plan` (every tool has it): it runs the [Landing](#landing) section's `gate`, pushes the plan's branch and
   opens a pull request against `main`, as a draft because that section sets `draft: yes`: a pull request stays a draft
   until its author reviews it
-  ([ADR-0269](docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). The squash merge takes
+  ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). The squash merge takes
   its subject from the pull request title, which `/ship-plan` takes from the plan's title, so a plan's title is a
   conventional commit subject, such as `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows
   where every open plan stands and the command to run next. In Claude Code, `/run-issues #<number> …` takes issues, or
@@ -160,9 +165,9 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   workflow as an issue in project-template, where it is fixed and tagged. Repository rules belong in the instruction
   files, which every agent in the loop already loads; this repository's own `/audit-conventions` sweeps are in
   [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md). `build/dod.ps1` is this
-  repository's own Definition of Done, although the template renders a simpler one at that path: when an update
-  conflicts on it or replaces it, keep this repository's version (`git checkout HEAD -- build/dod.ps1`) until
-  [NCodeGroup/project-template#198](https://github.com/NCodeGroup/project-template/issues/198) lets a project own it.
+  repository's own Definition of Done, although the template renders a simpler one at that path: the
+  `project_owned_files` answer in [`.copier-answers.yml`](.copier-answers.yml) names it, so an update leaves it alone
+  and only shows the template's changes to it.
 
 ### Local and Copilot customizations
 
@@ -188,7 +193,7 @@ cannot read, but this repository already provides their skill equivalents. Use *
 which files the runtime can read. Generic conversion loses prompt-specific agent/model/tool selection and adds
 `disable-model-invocation: true`, which is not part of our supported skill configuration. User-profile customizations
 are separate: review any such entries individually rather than assuming the repository skills cover them. See
-[ADR-0170](docs/decisions/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
 
 ## Landing
 
@@ -206,12 +211,12 @@ bots whose findings `/run-issues` and `/address-feedback` may fix, or `none`. `m
 rounds of review feedback, `/run-issues` recommends the merge. `prelude`: `none`; one PowerShell command that sets up
 the shell the workflow's commands run in. Here the `main`
 ruleset already requires pull requests through the merge queue
-([ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
+([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
 ([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; a pull request stays a draft until
-its author reviews it ([ADR-0269](docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
+its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
-([ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
+([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
 Review reviews every pull request (`.github/workflows/code-review.yml`), so `review-bots` is `ncode-review`; nothing
 needs a shell set up, so `prelude` is `none`; and a plan's title is already the conventional commit subject the squash
 merge takes, so `pr-format` is `none`.
@@ -244,7 +249,7 @@ narrow the tests with `-Filter <expr>` (a `dotnet test --filter` expression, for
 pre-push gate** (the push protocol's final check): it runs only the test projects the change reaches since its merge
 base with `origin/main`, while still building the whole solution. The plain `./build/dod.ps1` is the full gate, which
 runs in the merge queue, on `main` and on the release lines; a pull request into `main` runs it with `-Affected`
-([ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
+([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
 available locally for a thorough clean Release check. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
@@ -252,11 +257,11 @@ from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTI
 [`/audit-conventions`](.github/prompts/audit-conventions.prompt.md) prompt.
 
 This family is **greenfield and pre-release**: all work lands on the single `main` trunk through pull requests
-([ADR-0125](docs/decisions/0125-trunk-based-development-on-main.md),
-[ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
+([ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md),
+[ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
 acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and the design
 follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls. See
-[ADR-0025](docs/decisions/0025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
+[ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
 best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the
@@ -281,7 +286,7 @@ everything on it. Only commits pushed from the repository clone survive — work
   fails the required `Commit attribution` check until a person re-authors them
   (`git rebase origin/main --exec "git commit --amend --no-edit --reset-author"`) and force-pushes the branch
   (`git push --force-with-lease`). See
-  [ADR-0128](docs/decisions/0128-commits-are-attributed-to-people-not-agents.md) and
+  [ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md) and
   [`.template/Test-CommitAttribution.ps1`](.template/Test-CommitAttribution.ps1).
 - **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker
   builds slow every agent down rather than finishing more items.

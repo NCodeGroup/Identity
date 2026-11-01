@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// A replica numbers its batches in the order it adds them, so a batch numbered at or below
 /// <see cref="LastBatchNumber"/> was added before and is skipped when the replica retries it.
 /// </summary>
-// See ADR-0209.
+// See ADR-1209.
 [Index(nameof(ReplicaId), IsUnique = true)]
 [Index(nameof(LastDay))]
 public sealed class TenantUsageCheckpointEntity : ISupportConcurrencyToken

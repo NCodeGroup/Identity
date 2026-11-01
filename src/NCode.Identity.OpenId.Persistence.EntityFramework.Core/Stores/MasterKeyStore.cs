@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// This store does not save changes. The caller's store manager commits them, which is where a duplicate version for
 /// the same owner is rejected by the unique index.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal class MasterKeyStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,

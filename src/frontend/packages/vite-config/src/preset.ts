@@ -7,9 +7,9 @@ import type { ViteUserConfig } from 'vitest/config';
 
 // Every workspace's vite.config.ts / vitest.config.ts imports this module, and Vite's config bundler externalizes bare
 // imports, so Node loads it natively by stripping its types. Keep it one module of erasable TypeScript with no relative
-// or workspace imports (ADR-0157). The configs that call it are not type-checked, so it validates its own options.
+// or workspace imports (ADR-1157). The configs that call it are not type-checked, so it validates its own options.
 
-/** The coverage floors a workspace holds: the level it has reached, rounded down (ADR-0151). */
+/** The coverage floors a workspace holds: the level it has reached, rounded down (ADR-1151). */
 export type CoverageFloors = {
   readonly statements: number;
   readonly branches: number;
@@ -57,7 +57,7 @@ type BuildConfig = NonNullable<ViteUserConfig['build']>;
 /**
  * The vendor chunks every bundle splits its third-party code into, highest priority first: React, then MUI with its
  * emotion styling engine, then Redux, then every other package. A vendor chunk changes only when its packages are
- * upgraded, so it stays cached across application releases, and no chunk carries the whole dependency graph (ADR-0175).
+ * upgraded, so it stays cached across application releases, and no chunk carries the whole dependency graph (ADR-1175).
  */
 export const VENDOR_CHUNKS: readonly { readonly name: string; readonly test: RegExp }[] = [
   { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
@@ -94,7 +94,7 @@ export function oversizedChunks(
 
 /**
  * Fails the build when a chunk exceeds the build's `chunkSizeWarningLimit`, the build-time counterpart of the test
- * gates that treat warnings as errors (ADR-0151). Vite only warns, and a warning in a passing build goes unread.
+ * gates that treat warnings as errors (ADR-1151). Vite only warns, and a warning in a passing build goes unread.
  */
 export function failOnOversizedChunks(): Plugin {
   let limitKb = CHUNK_SIZE_LIMIT_KB;
@@ -110,7 +110,7 @@ export function failOnOversizedChunks(): Plugin {
         const list = oversized.map((c) => `${c.fileName} (${c.sizeKb.toFixed(2)} kB)`).join(', ');
         this.error(
           `Chunks larger than ${String(limitKb)} kB after minification: ${list}. Split them — lazy-load the ` +
-            'route-level containers or add a vendor chunk — rather than raising the limit (ADR-0175).',
+            'route-level containers or add a vendor chunk — rather than raising the limit (ADR-1175).',
         );
       }
     },
@@ -119,12 +119,12 @@ export function failOnOversizedChunks(): Plugin {
 
 /**
  * The build options every bundle shares: the output and assets directories, source maps, the vendor chunks, and the
- * chunk-size limit (ADR-0175).
+ * chunk-size limit (ADR-1175).
  */
 function buildOptions(): BuildConfig {
   return {
     outDir: 'dist',
-    // The host serves only this directory of a backend-served bundle, as immutable content-hashed files (ADR-0254).
+    // The host serves only this directory of a backend-served bundle, as immutable content-hashed files (ADR-1254).
     assetsDir: 'assets',
     sourcemap: true,
     chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,
@@ -166,11 +166,11 @@ function assertPort(port: number): void {
  * The test timeout, in milliseconds, of a suite that simulates a browser. It leaves room for at least three Testing
  * Library waits, each bounded by `ASYNC_UTIL_TIMEOUT_MS` from `@ncode/test-support`, so a test that waits on a few
  * renders fails with the library's DOM report rather than a bare timeout. The preset names that constant in prose only:
- * it must not import a workspace package (ADR-0157).
+ * it must not import a workspace package (ADR-1157).
  */
 export const BROWSER_TEST_TIMEOUT_MS = 30_000;
 
-/** The test gates every workspace holds (ADR-0151), for a workspace's own `test` configuration. */
+/** The test gates every workspace holds (ADR-1151), for a workspace's own `test` configuration. */
 export function testGates({ environment, coverage }: TestConfigOptions): TestConfig {
   assertCoverageFloors(coverage);
   const simulatesBrowser = environment !== 'node';
@@ -204,7 +204,7 @@ export function defineTestConfig(options: TestConfigOptions): ViteUserConfig {
 }
 
 /**
- * Resolves the bootstrap host's origin. Under the Aspire local-dev orchestrator (ADR-0071) the surface's resource is
+ * Resolves the bootstrap host's origin. Under the Aspire local-dev orchestrator (ADR-1071) the surface's resource is
  * `WithReference` the host, so Aspire injects its service-discovery variables; outside Aspire none is set.
  */
 export function resolveServiceOrigin(
@@ -253,7 +253,7 @@ export function readDevCertificate(env: ServiceEnvironment): DevCertificate {
 
 /**
  * Serves the dev server over HTTPS with the exported ASP.NET Core development certificate, so a standalone surface
- * matches its HTTPS-only redirect URIs and CORS origin outside Aspire (ADR-0071). Aspire's wrapper config supplies the
+ * matches its HTTPS-only redirect URIs and CORS origin outside Aspire (ADR-1071). Aspire's wrapper config supplies the
  * certificate (`TLS_CONFIG_PFX`) for the AppHost, so the plugin adds nothing then; tests and previews never need one;
  * otherwise the installer exports the certificate and a missing one fails the dev server at start.
  */
@@ -273,7 +273,7 @@ export function serveOverHttps(env: ServiceEnvironment): Plugin {
 /**
  * The configuration of a standalone surface: a single-page app served by its own Vite dev server. That server is the
  * bundle's serving host, so it must publish the bootstrap document; rather than ship a static copy that drifts, it
- * proxies the well-known path to the OpenID Provider host, and local development reads the real document (ADR-0064).
+ * proxies the well-known path to the OpenID Provider host, and local development reads the real document (ADR-1064).
  */
 export function defineStandaloneSurfaceConfig({
   port,
@@ -305,7 +305,7 @@ export function defineStandaloneSurfaceConfig({
 /**
  * The value Vite writes into the `nonce` attribute of every script, modulepreload link and the
  * `<meta property="csp-nonce">` of a backend-served bundle. The host writes each response's nonce in its place, so
- * `InteractiveBundleShell.NoncePlaceholder` in the .NET host must stay equal (ADR-0256).
+ * `InteractiveBundleShell.NoncePlaceholder` in the .NET host must stay equal (ADR-1256).
  */
 export const CSP_NONCE_PLACEHOLDER = '__NCODE_CSP_NONCE__';
 
@@ -313,9 +313,9 @@ export const CSP_NONCE_PLACEHOLDER = '__NCODE_CSP_NONCE__';
  * The configuration of a backend-served surface: a bundle the OpenID Provider host serves from its `dist` folder. It has
  * no dev server; its `dev` script rebuilds `dist` on change instead. The bundle is built with a relative base, so it
  * does not assume where it is mounted: the host serves it beneath each tenant's route and sets the document's
- * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-0193). The bundle runs under the
+ * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-1193). The bundle runs under the
  * page's Content-Security-Policy nonce, so the build marks its scripts with the placeholder the host replaces
- * (ADR-0256).
+ * (ADR-1256).
  */
 export function defineBackendServedSurfaceConfig({
   coverage,

@@ -112,7 +112,7 @@ public class ClientRegistrationEndpointTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        // Only a client bound to a resource server receives JWT introspection responses (ADR-0192).
+        // Only a client bound to a resource server receives JWT introspection responses (ADR-1192).
         using var response = await client.PostAsJsonAsync(
             "/oauth2/register",
             new Dictionary<string, object>
@@ -140,7 +140,7 @@ public class ClientRegistrationEndpointTests
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        // A presented token is always validated, so a scoped token is never silently ignored (ADR-0192).
+        // A presented token is always validated, so a scoped token is never silently ignored (ADR-1192).
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/register")
         {
             Headers = { Authorization = new AuthenticationHeaderValue("Bearer", "not-a-token") },

@@ -235,7 +235,7 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         IReadOnlySettingCollection settings
     )
     {
-        // An unset allowlist imposes no restriction (ADR-0010); a set allowlist (which merges as a
+        // An unset allowlist imposes no restriction (ADR-1010); a set allowlist (which merges as a
         // ceiling via intersection) is explicit, so a narrowed-to-empty list denies every IdP.
         if (!settings.TryGetValue(OpenIdSettingKeys.AllowedIdentityProviders, out var allowed))
             return true;

@@ -30,7 +30,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// as the UTF-8 octets of the opaque string, and its bit length is derived from those octets, so this request carries
 /// only the descriptive metadata.
 /// </summary>
-// See ADR-0110.
+// See ADR-1110.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportSharedSecretRequest

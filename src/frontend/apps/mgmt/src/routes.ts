@@ -1,12 +1,12 @@
 import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
 
 /**
- * The console's URL is its navigation state (ADR-0174). The path names the security boundary first and the surface
- * within it second, so the global ↔ tenant boundary (ADR-0064) stays explicit in every address:
+ * The console's URL is its navigation state (ADR-1174). The path names the security boundary first and the surface
+ * within it second, so the global ↔ tenant boundary (ADR-1064) stays explicit in every address:
  *
  * - `/tenants`, `/servers` — the global scope's surfaces;
  * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
- *   `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-0255).
+ *   `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
  *
  * This module is UI-free so the route grammar is unit-tested; `navigation.ts` binds it to the browser history.
  */

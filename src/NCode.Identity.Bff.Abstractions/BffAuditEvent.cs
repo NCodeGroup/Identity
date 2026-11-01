@@ -36,7 +36,7 @@ public sealed record BffAuditEvent : AuditEvent, ISupportAuditDetails, ISupportM
     /// The name of the metric attribute that carries the event's reason, a value from the BFF's reason vocabularies,
     /// such as <see cref="BffLoginFailureReasons"/> or <see cref="BffSessionEndReasons"/>.
     /// </summary>
-    // See ADR-0197.
+    // See ADR-1197.
     public const string ReasonMetricAttribute = "ncode.identity.bff.reason";
 
     /// <summary>

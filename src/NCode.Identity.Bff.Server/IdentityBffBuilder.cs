@@ -35,7 +35,7 @@ namespace NCode.Identity.Bff.Server;
 /// Provides the default implementation of <see cref="IIdentityBffBuilder"/>: the composition root that references the
 /// implementation packages a BFF needs and wires them together.
 /// </summary>
-// See ADR-0016.
+// See ADR-1016.
 internal sealed class IdentityBffBuilder : ServiceBuilder<IdentityBff>, IIdentityBffBuilder
 {
     /// <inheritdoc />
@@ -87,7 +87,7 @@ internal sealed class IdentityBffBuilder : ServiceBuilder<IdentityBff>, IIdentit
             .AddBffConfiguration(configuration);
 
         // Only the composition root knows both the BFF and the protocol client, so it checks the lease against the
-        // client's request timeout (ADR-0291).
+        // client's request timeout (ADR-1291).
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffRefreshLeaseValidator>()
         );

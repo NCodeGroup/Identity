@@ -6,7 +6,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     [ContractMigration(
-        "Shipped before any release, so no running release reads Grants.PayloadJson (ADR-0265, ADR-0025)."
+        "Shipped before any release, so no running release reads Grants.PayloadJson (ADR-1265, ADR-1025)."
     )]
     public partial class ProtectGrantPayloads : Migration
     {

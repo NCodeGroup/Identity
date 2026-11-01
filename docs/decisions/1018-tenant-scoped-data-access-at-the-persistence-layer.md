@@ -1,0 +1,114 @@
+# 1018. Tenant selection is shared; tenant-bound data access is scoped at the persistence layer
+
+- **Status:** Accepted
+- **Date:** 2026-09-30
+- **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)
+- **Supersedes:** [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md)
+
+## Context
+
+The OpenID runtime resolves the ambient tenant for a request as a first-class, pluggable concern: a static single
+tenant, or a tenant derived from the request host or path. This request-derived tenancy doubles as a security /
+deployment / infrastructure boundary — a deployment reached at `tenant1.example.com` (or `/tenant1/…`) serves exactly
+one tenant. The management API administers those same tenants and their children (clients and, in the future, other
+tenant-bound resources).
+
+[ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) separated tenant _selection_ from
+tenant _materialization_ and enforced the management scope with an _optional post-fetch boundary_ (`ITenantBoundary`):
+each endpoint loaded a resource by its globally-unique opaque id ([ADR-1014](1014-server-generated-opaque-resource-ids.md)),
+then compared the resource's `TenantId` to the request's resolved tenant and returned `404` on a mismatch. That
+boundary has a data-sensitivity flaw: the resource — including sensitive material — is **materialized from the store
+before** the scope decision. A logging statement, an early return, or a future refactor in that window can leak another
+tenant's data. Because the resource's tenant is only knowable by reading the row, no pre-fetch filter can gate the
+_specific_ resource; the fetch itself must be scoped.
+
+## Decision
+
+**Tenant _selection_ remains a shared abstraction, and tenant-bound _data access_ is scoped at the persistence layer
+so a cross-tenant row is never materialized.** "Never fetch what you cannot see" replaces "fetch, then hide."
+
+- **Selection (shared, unchanged from ADR-1017).** `ITenantResolver` (plus the pluggable `ITenantStrategy` for
+  static-single / dynamic-by-host / dynamic-by-path, and `TenantResolutionOptions`) resolves a request to a
+  `PersistedTenant`. Contracts live in `NCode.Identity.OpenId.Abstractions`; the default implementation lives in
+  `NCode.Identity.OpenId.Core`. Both the runtime and the management API depend only on the abstraction and receive the
+  implementation through dependency injection ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)).
+- **Ambient scope (shared).** `IAmbientTenantAccessor` (in `NCode.Identity.OpenId.Persistence.Abstractions`) holds the
+  request's tenant scope. The default implementation stores it in an `AsyncLocal<T>` so the scope flows across
+  asynchronous calls — including data-access components created outside the current dependency-injection scope (the
+  `OpenIdDbContext` is created by an `IDbContextFactory` from the root provider). When no scope is active the accessor
+  is unscoped.
+- **Enforcement (persistence).** `OpenIdDbContext` applies a global query filter to each tenant-child entity
+  (every `ISupportTenantEntity`) of the form _"ambient tenant is unset **or** the row's tenant equals the
+  ambient tenant"_ — compared against a denormalized `NormalizedTenantId` discriminator on the row, so the filter is a
+  single indexed-column predicate and the framework stays decoupled from the concrete tenant entity
+  ([ADR-1052](1052-entity-framework-persistence-is-a-framework-plus-slices.md)). When a scope is active, a row owned by
+  another tenant is never returned by any query, so it is never materialized (defense against cross-tenant leaks). When
+  unset — the runtime, and central-admin surfaces — the filter is a no-op. The tenant root itself has no owning-tenant
+  foreign key, so it is **not** an `ISupportTenantEntity` and stays unscoped (discoverable by id during resolution); its
+  tenant-owned rows — including its secrets — **are** scoped like every other tenant-child (tenant resolution and tenant
+  management read them with no ambient scope). The server root and its secrets are **global** (not tenant-scoped), so
+  server administration stays central-admin.
+- **Establishing the scope (management).** A reusable `TenantScopeEndpointFilter` on the tenant-bound endpoint group
+  ([ADR-1009](1009-endpoint-families-own-their-route-group.md)) resolves the ambient tenant via `ITenantResolver` and
+  opens an `IAmbientTenantAccessor` scope for the duration of the request; an unresolvable tenant short-circuits with
+  its mapped result (typically `404`). A tenant-bound resource is always owned by the request's tenant, so the scope is
+  established for **every** tenant strategy — including static-single, which has a single real tenant.
+- **Writes.** A tenant-bound resource is always owned by the request's tenant, never a client-supplied value, so a
+  create derives the owning tenant from the ambient scope — the request carries no tenant identifier at all. This
+  removes the redundancy (and the footgun) of echoing a tenant the server already resolved, and it means a caller can
+  only ever create within the tenant its request resolves to. Every operation on an _existing_ resource (get, update,
+  delete — for the client and its settings and secrets alike) loads it by its opaque id through the tenant-scoped query
+  filter, so a cross-tenant resource is already unreachable (`null` → `404`) before validation runs.
+- **Establishing the scope doubles as the tenant's existence proof.** `TenantScopeEndpointFilter` opens a scope only
+  after `ITenantResolver` has _resolved the tenant from the store_ (an unresolvable tenant already short-circuited with
+  `404`). So the tenant a create writes into is provably present — the validator needs no "parent tenant exists"
+  lookup, which would be a redundant second round-trip for a row the scope already loaded. Create validation is reduced
+  to authorization and identifier uniqueness.
+
+## Options considered
+
+- **Keep the post-fetch `ITenantBoundary` (ADR-1017).** Rejected: it materializes the resource before the scope
+  decision, leaving a cross-tenant data-leak window that repeats at every call site.
+- **Tenant-scoped getters at each call site** (e.g. `TryGetByClientIdAsync(ambientTenant, id)`). Rejected as the
+  primary mechanism: correct only if every call site remembers to pass the scope; a single omission silently leaks.
+- **A pre-fetch endpoint filter that checks the resource's tenant.** Impossible: with globally-unique opaque ids the
+  resource's tenant is unknown until the row is read.
+- **An ambient scope plus an EF global query filter (chosen).** Leak-proof by construction — no query can return a
+  cross-tenant row, and no call site can forget it — while remaining a no-op for the runtime and central-admin
+  surfaces.
+
+## Consequences
+
+- Tenant-bound reads cannot leak: a cross-tenant resource is not fetched at all, so it cannot be logged, inspected, or
+  returned. The management endpoints drop their per-call boundary checks; a cross-tenant resource is simply "not
+  found."
+- The scope is established once per request by a reusable filter, and the persistence layer enforces it uniformly, so
+  new tenant-bound resource families inherit isolation by adding the entity to the scoped set — no new per-endpoint
+  logic.
+- A create derives its owning tenant from the ambient scope, so the request carries no tenant identifier — there is
+  nothing for a caller to get wrong, and the same tenant row is not fetched twice (the scope resolution is the
+  existence proof, so create needs no separate "parent exists" query).
+- The `OpenIdDbContext` takes a **required** `IAmbientTenantAccessor`: a missing registration fails fast at startup
+  rather than silently running unscoped (fail-closed against a cross-tenant leak), and the unscoped state is modeled by
+  a `null` `TenantId`, not a `null` accessor. Direct construction (tests, tooling) passes an explicit unscoped accessor.
+- The tenant selection rules still have a single source of truth shared by the runtime and the management API, so the
+  two can never diverge on "which tenant is this request?"
+- Extracting the scope and removing `ITenantBoundary` are public-API changes on pre-1.0 unshipped surface, so no
+  shipped contract is broken.
+
+## References
+
+- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their route group and
+  cross-cutting filters, the seam `TenantScopeEndpointFilter` uses.
+- [ADR-1014](1014-server-generated-opaque-resource-ids.md) — globally-unique opaque identifiers, why a resource's
+  tenant is not derivable from the request.
+- [ADR-1015](1015-management-core-validation-via-validators.md) — the management validator seam that enforces the
+  create-time tenant scope.
+- [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — the reference-direction rule the
+  abstraction/implementation split honors.
+- [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) — the superseded shared-selection +
+  post-fetch-boundary decision.
+- Code: `NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor`,
+  `NCode.Identity.OpenId.Persistence.EntityFramework.OpenIdDbContext` (global query filters),
+  `NCode.Identity.OpenId.Management.Endpoints.TenantScopeEndpointFilter`.

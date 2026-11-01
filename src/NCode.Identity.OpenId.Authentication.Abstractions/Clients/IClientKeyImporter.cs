@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <c>key_ops</c>, and <c>alg</c> that agree with each other and with the key, and has a <c>kid</c> that is unique
 /// among its owner's keys.
 /// </summary>
-// See ADR-0161 and ADR-0186.
+// See ADR-1161 and ADR-1186.
 [PublicAPI]
 public interface IClientKeyImporter
 {

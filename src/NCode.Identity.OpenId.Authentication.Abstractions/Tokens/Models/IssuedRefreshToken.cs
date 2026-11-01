@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Models;
 /// <summary>
 /// Represents a refresh token that the authorization server issued, with the moment its rotation family expires.
 /// </summary>
-// See ADR-0297.
+// See ADR-1297.
 [PublicAPI]
 public readonly record struct IssuedRefreshToken
 {

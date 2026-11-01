@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 /// Describes caller-supplied <b>public</b> key material to import into a new secret. The
 /// <see cref="ISecretKeyTypeDescriptor"/> for the requested key type parses and validates the material.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SecretKeyImportParameters

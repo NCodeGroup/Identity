@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// have to be honored. Each shape is checked the way the runtime uses the value, so a lenient parser can never turn a
 /// typo into a different, accepted value.
 /// </summary>
-// See ADR-0140.
+// See ADR-1140.
 internal static class OpenIdSettingRules
 {
     private static readonly string[] GrantTypeNames =
@@ -93,7 +93,7 @@ internal static class OpenIdSettingRules
     /// <summary>
     /// Gets the rule for a <c>response_mode</c> value: a non-empty name with no whitespace. Response modes are an open
     /// vocabulary — a package adds one by registering its handler — so the rule cannot list them; a request whose
-    /// response mode no registered handler serves is refused at the authorization endpoint (ADR-0150, ADR-0201).
+    /// response mode no registered handler serves is refused at the authorization endpoint (ADR-1150, ADR-1201).
     /// </summary>
     public static SettingRule<string> ResponseMode() =>
         SettingRules.Must<string>(

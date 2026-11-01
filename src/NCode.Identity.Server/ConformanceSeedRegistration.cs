@@ -57,7 +57,7 @@ public static class ConformanceSeedRegistration
             var section = configuration.GetSection(ConformanceSeedOptions.DefaultSectionName);
             section.BindStrictly(options);
 
-            // A seeder that names no tenant would seed every tenant, including each one created at runtime (ADR-0166).
+            // A seeder that names no tenant would seed every tenant, including each one created at runtime (ADR-1166).
             var hasSeedData = options.Clients.Count > 0 || options.SeedTestUser;
             if (hasSeedData && string.IsNullOrEmpty(options.TenantId))
             {

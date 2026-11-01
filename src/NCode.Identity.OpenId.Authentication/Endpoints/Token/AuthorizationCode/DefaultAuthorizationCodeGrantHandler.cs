@@ -88,7 +88,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         {
             // A second redemption of an already-consumed authorization code is a replay/compromise signal: terminate
             // the end-user session the code was issued under, which revokes the access and refresh tokens previously
-            // issued from this code (RFC 6749 §4.1.2, ADR-0112). The grant row survives consumption, so it still names
+            // issued from this code (RFC 6749 §4.1.2, ADR-1112). The grant row survives consumption, so it still names
             // the session to terminate.
             await RevokeSessionOnReplayAsync(openIdContext, persistedGrantId, cancellationToken);
 
@@ -165,7 +165,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
             return;
 
         // The replay terminates the session through the termination seam so its relying parties receive back-channel
-        // logout and the termination is audited. See ADR-0112 and ADR-0228.
+        // logout and the termination is audited. See ADR-1112 and ADR-1228.
         await SessionService.RevokeAsync(
             openIdContext,
             sessionId,

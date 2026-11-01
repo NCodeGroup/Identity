@@ -23,7 +23,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// <summary>
 /// Provides extension methods for <see cref="PersistedSecret"/>.
 /// </summary>
-// See ADR-0268.
+// See ADR-1268.
 [PublicAPI]
 public static class PersistedSecretExtensions
 {

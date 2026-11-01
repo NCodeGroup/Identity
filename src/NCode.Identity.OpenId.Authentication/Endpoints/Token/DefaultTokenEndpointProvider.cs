@@ -149,7 +149,7 @@ internal class DefaultTokenEndpointProvider(
 
         // The daily token-request quota counts only confidential clients, which proved their identity. A public client is
         // named by its client_id alone, so counting it would let anyone spend the tenant's quota and refuse every client
-        // until midnight UTC (ADR-0198).
+        // until midnight UTC (ADR-1198).
         if (authResult.IsConfidential)
         {
             var rateLimitContext = new RateLimitContext

@@ -30,7 +30,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // The management API looks up a tenant's audit records in the audit store, newest first, by the envelope fields an
-// operator investigates with. See ADR-0303.
+// operator investigates with. See ADR-1303.
 public class AuditRecordLookupTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

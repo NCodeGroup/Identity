@@ -89,7 +89,7 @@ internal class DefaultCibaGrantHandler(
 
         var persistedGrant = persistedGrantOrNull.Value;
 
-        // An auth_req_id is redeemed only by the client it was issued to (CIBA Core §11). See ADR-0225.
+        // An auth_req_id is redeemed only by the client it was issued to (CIBA Core §11). See ADR-1225.
         if (
             !string.Equals(
                 persistedGrant.Payload.ClientId,
@@ -209,7 +209,7 @@ internal class DefaultCibaGrantHandler(
         DateTimeOffset utcNow
     )
     {
-        // An approval that lands between this poll's read and its write stands. See ADR-0222.
+        // An approval that lands between this poll's read and its write stands. See ADR-1222.
         if (stored.Payload.Status != DeviceAuthorizationStatus.Pending)
             return null;
 
@@ -231,7 +231,7 @@ internal class DefaultCibaGrantHandler(
     )
     {
         // The subject that approved the request is validated before the auth_req_id is spent, so a refused subject
-        // leaves it unspent. See ADR-0225.
+        // leaves it unspent. See ADR-1225.
         var validateCommand = new ValidateTokenGrantCommand<CibaGrant>(
             openIdContext,
             openIdClient,

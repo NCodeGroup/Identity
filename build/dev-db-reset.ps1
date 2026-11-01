@@ -6,7 +6,7 @@
     Purges the OpenID host developer database on demand.
 
 .DESCRIPTION
-    The host dev database is Postgres in a container, orchestrated by the Aspire AppHost (ADR-0073). Its data
+    The host dev database is Postgres in a container, orchestrated by the Aspire AppHost (ADR-1073). Its data
     lives in a STABLE named volume (ncode-identity-openiddb-data) so it survives restarts. This script removes that
     volume so the next AppHost run starts from an empty database: the migration worker re-applies the schema and the
     host re-seeds the admin user, SPA client, and developer signing key. Because the data, the seeded signing key, the

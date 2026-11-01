@@ -24,7 +24,7 @@ namespace NCode.Persistence.Stores;
 /// Represents the error that occurs when a unit of work writes an entity that another unit of work changed after it was
 /// read, as the concurrency token of the entity shows. The caller lost the race and must not retry the same write.
 /// </summary>
-// See ADR-0208.
+// See ADR-1208.
 [PublicAPI]
 public class StoreConcurrencyException : Exception
 {

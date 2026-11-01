@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 /// <param name="Nonce">The nonce of the page's policy, written in place of the bundle's nonce placeholder.</param>
 /// <param name="Policy">The policy that the page is served under.</param>
-// See ADR-0256.
+// See ADR-1256.
 internal readonly record struct InteractivePageSecurity(string Nonce, HtmlPageSecurityPolicy Policy)
 {
     /// <summary>

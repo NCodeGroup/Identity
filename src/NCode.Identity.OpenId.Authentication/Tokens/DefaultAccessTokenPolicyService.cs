@@ -51,7 +51,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// tenant's key.
 /// </para>
 /// </remarks>
-// See ADR-0158 (amending ADR-0075).
+// See ADR-1158 (amending ADR-1075).
 internal class DefaultAccessTokenPolicyService(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
@@ -160,7 +160,7 @@ internal class DefaultAccessTokenPolicyService(
     }
 
     // Access tokens are always signed with a tenant key and validated through the tenant's JWKS (RFC 9068); a resource
-    // server never holds a token-signing key (ADR-0075).
+    // server never holds a token-signing key (ADR-1075).
     private JoseSigningCredentials SelectSigningCredentials(
         OpenIdContext openIdContext,
         IReadOnlySettingCollection settings
@@ -232,8 +232,8 @@ internal class DefaultAccessTokenPolicyService(
     }
 
     // A resource server decrypts the tokens issued for it when it holds a key it can decrypt with under its own effective
-    // settings — the opt-in to per-audience encryption (ADR-0075). A system resource server never does: its tokens are
-    // read by the server's own endpoints, which decrypt with the tenant's keys (ADR-0167). The server never compresses
+    // settings — the opt-in to per-audience encryption (ADR-1075). A system resource server never does: its tokens are
+    // read by the server's own endpoints, which decrypt with the tenant's keys (ADR-1167). The server never compresses
     // what it encrypts.
     private bool DecryptsItsOwnTokens(ResolvedResourceServer resourceServer)
     {

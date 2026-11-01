@@ -126,7 +126,7 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     /// not tied to a session. The <c>sid</c> is an opaque, case-significant Base64Url key matched verbatim, so it is
     /// indexed directly with no normalized companion column.
     /// </summary>
-    // See ADR-0052 on normalized vs. verbatim-indexed keys.
+    // See ADR-1052 on normalized vs. verbatim-indexed keys.
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.SessionId)]
     public required string? SessionId { get; init; }
@@ -162,7 +162,7 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the payload, protected under the tenant's master key (ADR-0265).
+    /// Gets or sets the payload, protected under the tenant's master key (ADR-1265).
     /// </summary>
     [Unicode(false)]
     public required string ProtectedPayload { get; set; }

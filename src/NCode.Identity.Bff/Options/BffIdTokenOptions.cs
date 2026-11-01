@@ -24,7 +24,7 @@ namespace NCode.Identity.Bff.Options;
 /// Configures the protection that the BFF registered at the OpenID Provider for its ID tokens and logout tokens: the
 /// algorithms they are signed and encrypted with. Bound from the <c>Bff:IdToken</c> configuration section.
 /// </summary>
-// See ADR-0301.
+// See ADR-1301.
 [PublicAPI]
 public sealed class BffIdTokenOptions
 {

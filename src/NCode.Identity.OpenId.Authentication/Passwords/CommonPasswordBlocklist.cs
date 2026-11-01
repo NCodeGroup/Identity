@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// Refuses a password that is on the bundled list of 46,483 common passwords of at least eight characters. The
 /// password is compared whole and ignoring case. The list is loaded once, on first use.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 internal class CommonPasswordBlocklist : IPasswordBlocklist
 {
     internal const string ResourceName =

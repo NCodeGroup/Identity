@@ -39,7 +39,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// key. The fingerprint of a random 256-bit key reveals nothing about the key.
 /// </para>
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal static class AesGcmKeyWrap
 {
     /// <summary>

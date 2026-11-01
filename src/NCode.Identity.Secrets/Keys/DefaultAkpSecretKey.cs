@@ -24,7 +24,7 @@ using NCode.Extensions.DataProtection;
 
 namespace NCode.Identity.Secrets.Keys;
 
-// See the note on AkpSecretKey: ML-DSA PKCS#8 DER is [Experimental] (SYSLIB5006) but spec-fixed (RFC 9881). See ADR-0118.
+// See the note on AkpSecretKey: ML-DSA PKCS#8 DER is [Experimental] (SYSLIB5006) but spec-fixed (RFC 9881). See ADR-1118.
 #pragma warning disable SYSLIB5006
 
 /// <summary>

@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <summary>
 /// Executes an <see cref="AuthorizationResult"/>: an error with an explicit HTTP status code is answered directly, and
 /// every other response is delivered through the <see cref="IAuthorizationResponseModeHandler"/> of the result's
-/// <see cref="AuthorizationResult.Delivery"/> (ADR-0201).
+/// <see cref="AuthorizationResult.Delivery"/> (ADR-1201).
 /// </summary>
 internal class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
@@ -49,7 +49,7 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
         }
 
         // An error returned to the client through its redirect URI never reaches the JSON result executor, so it is
-        // tagged here with the same server-chosen error code (ADR-0197).
+        // tagged here with the same server-chosen error code (ADR-1197).
         if (result.Error is not null)
             OpenIdMetricAttributes.Add(
                 httpContext,

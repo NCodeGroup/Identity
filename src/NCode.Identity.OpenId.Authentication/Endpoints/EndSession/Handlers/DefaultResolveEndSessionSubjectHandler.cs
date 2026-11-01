@@ -39,9 +39,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// back-channel logout) is recovered from server-owned state — the persisted session grant, falling back to the login
 /// cookie. The <c>sub</c> carried by the <c>id_token_hint</c> is deliberately never used as the subject identifier:
 /// for a <c>pairwise</c> client it is a per-sector pseudonym produced by a one-way projection
-/// (<see cref="NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService"/>, ADR-0093) the OP cannot and
+/// (<see cref="NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService"/>, ADR-1093) the OP cannot and
 /// must not reverse. Resolving the subject forward from the <c>sid</c> mirrors the one-way-hashed grant-key model where
-/// a presented value is matched forward, never reversed (ADR-0096).
+/// a presented value is matched forward, never reversed (ADR-1096).
 /// </summary>
 internal class DefaultResolveEndSessionSubjectHandler(
     IIssuedTokenValidator issuedTokenValidator,
@@ -90,7 +90,7 @@ internal class DefaultResolveEndSessionSubjectHandler(
         }
 
         // Fall back to the current OP login cookie for the session (and a provisional subject) when the hint did not
-        // supply a sid. The cookie's `sub` is the stable PrincipalId (ADR-0094).
+        // supply a sid. The cookie's `sub` is the stable PrincipalId (ADR-1094).
         if (string.IsNullOrEmpty(sessionId))
         {
             var authenticateResult = await httpContext.AuthenticateAsync();

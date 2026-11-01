@@ -55,7 +55,7 @@ internal static class DefaultRegistration
             );
 
             // The scopes of the settings cascade are registered data, so an extension adds a scope for an entity of its
-            // own beneath the scope it inherits from (ADR-0149, ADR-0150).
+            // own beneath the scope it inherits from (ADR-1149, ADR-1150).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<SettingScopeDescriptor>,
@@ -68,7 +68,7 @@ internal static class DefaultRegistration
             );
 
             // The server's configured settings are a closed vocabulary typed by the descriptor catalog; a configured
-            // setting that cannot be honored stops the host when it starts (ADR-0137, ADR-0139).
+            // setting that cannot be honored stops the host when it starts (ADR-1137, ADR-1139).
             serviceCollection.TryAddSingleton<
                 ISettingConfigurationReader,
                 DefaultSettingConfigurationReader
@@ -92,7 +92,7 @@ internal static class DefaultRegistration
             );
 
             // Each built-in type is its own class: TryAddEnumerable keeps one registration per implementation type
-            // (ADR-0289).
+            // (ADR-1289).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ITenantEnvironmentType,
@@ -126,14 +126,14 @@ internal static class DefaultRegistration
             );
 
             // The effective-settings resolver is the one place that resolves a scope's effective settings outside the
-            // live providers; a host can replace it (ADR-0204).
+            // live providers; a host can replace it (ADR-1204).
             serviceCollection.TryAddSingleton<
                 IEffectiveSettingsResolver,
                 DefaultEffectiveSettingsResolver
             >();
 
             // Each built-in kind is its own class: TryAddEnumerable keeps one registration per implementation type
-            // (ADR-0203).
+            // (ADR-1203).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IRedirectUriKind, HttpsRedirectUriKind>()
             );

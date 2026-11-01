@@ -142,7 +142,7 @@ public static class IdentityServerBuilderExtensions
                 InProcessJobDispatcherOptions.SectionName
             );
             // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
-            // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
+            // out of band (for example, environment variables); absent it, the feature stays inert (ADR-1044).
             var bootstrapAdminSection = configuration.GetSection(
                 BootstrapAdminOptions.DefaultSectionName
             );
@@ -150,7 +150,7 @@ public static class IdentityServerBuilderExtensions
             var serviceCollection = builder.ServiceCollection;
 
             // ValidateOnStart materializes each options instance as the host starts, so a strict-binding failure stops
-            // the host before it accepts traffic rather than on the first request that reads the option (ADR-0137).
+            // the host before it accepts traffic rather than on the first request that reads the option (ADR-1137).
             serviceCollection
                 .AddOptions<OpenIdOptions>()
                 .Configure(options =>
@@ -200,7 +200,7 @@ public static class IdentityServerBuilderExtensions
                 .Configure(options => endedSessionTerminationSection.BindStrictly(options))
                 .ValidateOnStart();
 
-            // See ADR-0242.
+            // See ADR-1242.
             serviceCollection
                 .AddOptions<InProcessJobDispatcherOptions>()
                 .Configure(options => inProcessJobDispatcherSection.BindStrictly(options))
@@ -211,7 +211,7 @@ public static class IdentityServerBuilderExtensions
                 .Configure(options => bootstrapAdminSection.BindStrictly(options))
                 .ValidateOnStart();
 
-            // Stored secrets and the Data Protection key ring are protected under a root key held outside the database (ADR-0235).
+            // Stored secrets and the Data Protection key ring are protected under a root key held outside the database (ADR-1235).
             SecretProtectionRegistration.AddSecretProtection(builder, configuration);
 
             return builder;

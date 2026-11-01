@@ -27,7 +27,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// synchronous because the master keys of the owner are already loaded when the protector is obtained, and both write
 /// their result to a caller-supplied buffer writer so that the caller decides how the memory is allocated.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public interface ISecretProtector
 {

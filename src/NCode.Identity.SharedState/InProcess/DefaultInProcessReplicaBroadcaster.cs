@@ -27,7 +27,7 @@ namespace NCode.Identity.SharedState.InProcess;
 /// correct only for a deployment that runs a single replica, because a message published by one replica is not seen by
 /// another. A handler's failure is logged and never reaches the publisher.
 /// </summary>
-// See ADR-0205.
+// See ADR-1205.
 internal sealed class DefaultInProcessReplicaBroadcaster(
     IEnumerable<IReplicaBroadcastHandler> handlers,
     ILogger<DefaultInProcessReplicaBroadcaster> logger

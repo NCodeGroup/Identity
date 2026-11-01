@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// The refresh tokens of a client can rotate under the <c>always</c> rotation policy, and a public client's under the
 /// <c>unbound</c> rotation policy.
 /// </summary>
-// See ADR-0206 and ADR-0217.
+// See ADR-1206 and ADR-1217.
 internal sealed class RefreshTokenRotationRetryCoherenceRule : IClientCoherenceRule
 {
     private static string[] RetrySettingNames { get; } =

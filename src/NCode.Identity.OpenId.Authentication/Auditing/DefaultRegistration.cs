@@ -46,7 +46,7 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IAuditEventRecorder, DefaultAuditEventRecorder>();
 
-            // See ADR-0303.
+            // See ADR-1303.
             serviceCollection.AddOptions<AuditRecordOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

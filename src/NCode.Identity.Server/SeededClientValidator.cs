@@ -34,7 +34,7 @@ namespace NCode.Identity.Server;
 /// the document against the registered setting domains, and then resolves the server's committed settings and the
 /// tenant's, so every coherence rule sees the client as the materialized client will be.
 /// </remarks>
-// See ADR-0140 and ADR-0206.
+// See ADR-1140 and ADR-1206.
 internal sealed class SeededClientValidator(
     ISettingSerializer settingSerializer,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,

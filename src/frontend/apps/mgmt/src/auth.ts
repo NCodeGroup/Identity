@@ -41,7 +41,7 @@ export const RETURN_PATH_KEY = 'ncode.mgmt.returnPath';
 
 /**
  * Remembers the console path the user was on before the sign-in redirect, so a deep link or a reload that lands on the
- * sign-in screen returns to the same scope and surface once signed in (ADR-0174).
+ * sign-in screen returns to the same scope and surface once signed in (ADR-1174).
  */
 export function rememberReturnPath(storage: KeyValueStorage, pathname: string): void {
   storage.setItem(RETURN_PATH_KEY, pathname);

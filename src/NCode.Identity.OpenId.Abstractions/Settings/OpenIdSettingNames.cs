@@ -144,7 +144,7 @@ public static class OpenIdSettingNames
     /// part of a redirect URI must equal a registered one exactly. Default <c>true</c>; <c>fapi1-advanced</c> turns it
     /// off.
     /// </summary>
-    // See ADR-0203.
+    // See ADR-1203.
     public const string AllowLoopbackRedirect = "allow_loopback_redirect";
 
     /// <summary>

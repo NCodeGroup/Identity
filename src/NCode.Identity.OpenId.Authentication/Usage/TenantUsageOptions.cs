@@ -21,7 +21,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 /// <summary>
 /// Contains the options for recording tenant usage into the durable daily ledger.
 /// </summary>
-// See ADR-0199 and ADR-0221.
+// See ADR-1199 and ADR-1221.
 public sealed class TenantUsageOptions
 {
     /// <summary>

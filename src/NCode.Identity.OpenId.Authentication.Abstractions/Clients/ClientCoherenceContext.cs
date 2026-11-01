@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Carries the two views of a client's settings that an <see cref="IClientCoherenceRule"/> checks: the settings that
 /// the client registers and the effective settings that result from them.
 /// </summary>
-// See ADR-0206.
+// See ADR-1206.
 [PublicAPI]
 public sealed class ClientCoherenceContext
 {

@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// client sends a signed <c>request</c> JWT (OpenID Connect CIBA §7.1.1), it validates the JWT against the client's keys
 /// and uses its claims as the authoritative request; otherwise the form-based request is returned as-is. The JWT must
 /// carry an asymmetric signature the client's effective settings permit, and is never encrypted: CIBA defines no
-/// encrypted authentication request (ADR-0155).
+/// encrypted authentication request (ADR-1155).
 /// </summary>
 internal class DefaultLoadBackchannelAuthenticationRequestHandler(
     ILogger<DefaultLoadBackchannelAuthenticationRequestHandler> logger,
@@ -78,7 +78,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
             );
 
             // No decryption keys are given, so an encrypted request is rejected; the signature algorithm is one the
-            // client's effective settings permit, checked before the signature is verified (ADR-0154).
+            // client's effective settings permit, checked before the signature is verified (ADR-1154).
             var settings = openIdClient.Settings;
             var parameters = new JwtValidationParameters
             {
@@ -96,7 +96,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
                 .ValidateTokenLifeTime(options =>
                 {
                     // CIBA Core 1.0 §7.1.1: a signed authentication request carries 'iat', 'nbf', and 'exp', and is
-                    // valid for a bounded time like any request object (ADR-0187).
+                    // valid for a bounded time like any request object (ADR-1187).
                     options.RequireExpirationTime = true;
                     options.RequireIssuedAt = true;
                     options.RequireNotBefore = true;

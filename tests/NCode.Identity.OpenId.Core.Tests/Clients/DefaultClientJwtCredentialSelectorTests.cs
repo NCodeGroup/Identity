@@ -175,7 +175,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
     [Fact]
     public async Task SelectCredentialsAsync_WhenRegisteredSignatureNotPermitted_Throws()
     {
-        // A security profile's ceiling binds the client's registration; it is never weakened to fit (ADR-0155).
+        // A security profile's ceiling binds the client's registration; it is never weakened to fit (ADR-1155).
         var client = CreateClient(
             new Dictionary<string, object>
             {

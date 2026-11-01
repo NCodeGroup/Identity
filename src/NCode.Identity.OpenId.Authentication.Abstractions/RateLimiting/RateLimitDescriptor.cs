@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// judges the limit with the descriptors of the same stage in one counter-store call. Every partition lies within the
 /// request's tenant, so a descriptor cannot count requests across tenants.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 [PublicAPI]
 public sealed class RateLimitDescriptor
 {

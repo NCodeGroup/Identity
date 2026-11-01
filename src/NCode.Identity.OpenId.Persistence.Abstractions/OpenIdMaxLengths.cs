@@ -111,26 +111,26 @@ public static class OpenIdMaxLengths
     /// <summary>
     /// Gets the max length of the name of a tenant-usage meter.
     /// </summary>
-    // See ADR-0199.
+    // See ADR-1199.
     public const int UsageMeter = 100;
 
     /// <summary>
     /// Gets the max length of a name from an audit record's open vocabularies: its event name, category, outcome, severity,
     /// actor type and resource type.
     /// </summary>
-    // See ADR-0303.
+    // See ADR-1303.
     public const int AuditName = 100;
 
     /// <summary>
     /// Gets the max length of the trace identifier of the request an audit record belongs to.
     /// </summary>
-    // See ADR-0303.
+    // See ADR-1303.
     public const int AuditTraceId = 100;
 
     /// <summary>
     /// Gets the max length of the source IP address of the request an audit record belongs to, the longest textual IPv6
     /// address with a zone.
     /// </summary>
-    // See ADR-0303.
+    // See ADR-1303.
     public const int AuditSourceIp = 64;
 }

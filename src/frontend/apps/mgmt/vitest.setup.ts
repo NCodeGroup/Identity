@@ -3,7 +3,7 @@ import { configure } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
 import { configureAsyncUtilTimeout, failOnConsole } from '@ncode/test-support';
 
-// Warnings-as-errors for tests: any console.error/console.warn fails the test that logged it (ADR-0151).
+// Warnings-as-errors for tests: any console.error/console.warn fails the test that logged it (ADR-1151).
 failOnConsole({ beforeEach, afterEach });
 
 // Every Testing Library wait gets the one deliberate timeout (see "Testing Library and test timeouts" in the frontend

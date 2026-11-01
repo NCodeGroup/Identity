@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// Resolves the effective <c>environment_type</c> of the tenant a management audit event names, so control-plane
 /// records carry <c>tenant_environment_type</c> as protocol records do.
 /// </summary>
-// See ADR-0289.
+// See ADR-1289.
 internal interface IManagementTenantEnvironmentResolver
 {
     /// <summary>

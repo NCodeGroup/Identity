@@ -108,7 +108,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A session that ends while no request uses it is terminated in the background, once (ADR-0223).
+            // A session that ends while no request uses it is terminated in the background, once (ADR-1223).
             serviceCollection.AddOptions<EndedSessionTerminationOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

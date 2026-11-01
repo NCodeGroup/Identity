@@ -25,7 +25,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// The failed password attempts of an account are limited (ADR-0237).
+// The failed password attempts of an account are limited (ADR-1237).
 public class PasswordAttemptLimitTests
 {
     private const string ClientId = "it-attempt-limit-client";

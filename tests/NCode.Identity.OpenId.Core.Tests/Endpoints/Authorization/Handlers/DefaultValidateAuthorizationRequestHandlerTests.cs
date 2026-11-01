@@ -259,7 +259,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     [Fact]
     public void ValidateRequestObject_WhenTheOuterRedirectUriDiffersOnlyInHostCase_ThrowsInvalidRequestObject()
     {
-        // Uri equality ignores the case of the host, so the redirect URI is compared as written (ADR-0203).
+        // Uri equality ignores the case of the host, so the redirect URI is compared as written (ADR-1203).
         var scaffold = CreateRequestObjectScaffold();
         scaffold.Message.SetupGet(x => x.RedirectUri).Returns("https://CLIENT.example/callback");
 
@@ -562,7 +562,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     public void ValidateConfiguredConstraints_WhenTheResponseTypeReturnsAnAccessToken_DoesNotThrow()
     {
         // The settings stub reads false for every boolean, so a separate "allow token responses" switch would reject
-        // this request; response_types_supported alone decides it (ADR-0142).
+        // this request; response_types_supported alone decides it (ADR-1142).
         var (mockSettings, mockRequest) = CreateScaffold();
         IReadOnlyList<string> responseTypes =
         [

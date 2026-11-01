@@ -137,7 +137,7 @@ internal class BffBackChannelLogoutHandler(
             return;
         }
 
-        // ADR-0284: the token is recorded only after the sessions it names have ended.
+        // ADR-1284: the token is recorded only after the sessions it names have ended.
         await logoutTokenValidator.TryRecordHandledAsync(
             registration,
             result,

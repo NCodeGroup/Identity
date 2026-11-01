@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// Describes the judgment of an <see cref="IPasswordPolicy"/> on a password: it is accepted, or it is rejected with an
 /// error code and a description of the requirement it does not meet.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 [PublicAPI]
 public sealed class PasswordPolicyResult
 {

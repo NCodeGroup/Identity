@@ -171,7 +171,7 @@ internal class DefaultOpenIdContextFactory(
         CancellationToken cancellationToken
     )
     {
-        // See ADR-0223.
+        // See ADR-1223.
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         return await CreateForTenantAsync(httpContext, tenantId, mediator, cancellationToken);

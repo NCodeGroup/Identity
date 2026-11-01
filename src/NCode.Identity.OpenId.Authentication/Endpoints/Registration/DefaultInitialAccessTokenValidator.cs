@@ -56,7 +56,7 @@ internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persist
         );
 
         // Every minted token expires, so a grant without an expiry was minted by an earlier release without a
-        // lifetime, and it authorizes nothing. See ADR-0192.
+        // lifetime, and it authorizes nothing. See ADR-1192.
         return
             grant
                 is {
@@ -84,7 +84,7 @@ internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persist
             initialAccessToken
         );
 
-        // The grant row's concurrency token makes the spend atomic across replicas. See ADR-0192.
+        // The grant row's concurrency token makes the spend atomic across replicas. See ADR-1192.
         return await PersistedGrantService.ConsumeOnceOrDefault<InitialAccessTokenGrant>(
             openIdContext,
             grantId,

@@ -34,7 +34,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </remarks>
 /// <param name="providers">The registered root key providers.</param>
 /// <param name="options">The options that select the provider for wrapping new keys.</param>
-// See ADR-0150 and ADR-0235.
+// See ADR-1150 and ADR-1235.
 internal class DefaultKeyWrapperCatalog(
     IEnumerable<IKeyWrapper> providers,
     IOptions<SecretProtectionOptions> options

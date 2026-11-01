@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// Describes the outcome of a change of the signed-in end user's password: the password is changed, or the change is
 /// refused with the error code the change-password page shows.
 /// </summary>
-// See ADR-0230.
+// See ADR-1230.
 [PublicAPI]
 public sealed class InteractivePasswordChangeResult
 {

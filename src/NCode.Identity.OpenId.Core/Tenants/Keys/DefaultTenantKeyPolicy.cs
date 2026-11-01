@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// the key's use and type follow from the registered algorithm and key types, so any registered asymmetric signature or
 /// key-management algorithm can be provisioned without this policy knowing it.
 /// </summary>
-// See ADR-0169 (every tenant is provisioned with persisted keys).
+// See ADR-1169 (every tenant is provisioned with persisted keys).
 internal class DefaultTenantKeyPolicy(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog

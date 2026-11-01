@@ -212,7 +212,7 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     // A system resource server's tokens are read by the server itself, which decrypts them with the tenant's keys; a key
-    // of its own would make issuance encrypt its tokens to a key the server's own endpoints do not read (ADR-0167).
+    // of its own would make issuance encrypt its tokens to a key the server's own endpoints do not read (ADR-1167).
     private static ProblemHttpResult SystemResourceServerHoldsNoKeys() =>
         TypedResults.Problem(
             detail: "A system resource server is read by the server itself and holds no keys.",
@@ -345,7 +345,7 @@ internal class ResourceServerApiEndpointHandler(
             },
         };
 
-        // Core preconditions (authorization + identifier uniqueness) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + identifier uniqueness) are asserted by the validator (ADR-1014).
         var error = await ResourceServerValidator.ValidateCreateAsync(
             httpContext.User,
             resourceServer,
@@ -357,8 +357,8 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139), and a resource server carries only the settings that apply
-        // within it (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed
+        // Setting names are a closed vocabulary (ADR-1139), and a resource server carries only the settings that apply
+        // within it (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed
         // when the resource server's settings are next loaded.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
@@ -901,12 +901,12 @@ internal class ResourceServerApiEndpointHandler(
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
     /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>
-    /// (ADR-0204); a resource server selects no security profile, so its document adds none (ADR-0149). A document that
+    /// (ADR-1204); a resource server selects no security profile, so its document adds none (ADR-1149). A document that
     /// cannot be honored fails naming its owner.
     /// </summary>
     /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or the server's
     /// cannot be honored.</exception>
-    // See ADR-0245.
+    // See ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
         string tenantId,
         PersistedResourceServer resourceServer,
@@ -1076,7 +1076,7 @@ internal class ResourceServerApiEndpointHandler(
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // A null projection is the absent tenant, answered 404. See ADR-0245.
+        // A null projection is the absent tenant, answered 404. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
             resourceServer.Settings.Value,
@@ -1242,7 +1242,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="201">The imported secret.</response>
     /// <response code="409">The resource server is a system resource server, which holds no keys.</response>
-    // See ADR-0104.
+    // See ADR-1104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -1420,7 +1420,7 @@ internal class ResourceServerApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            // The public key is read from its stored public half, so no master key is loaded (ADR-0268).
+            // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
             x => SecretPublicKeyConverter.Convert(x.Value)
         );
     }

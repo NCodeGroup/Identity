@@ -52,7 +52,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
-    <!-- Npgsql is the single relational provider for the host dev database (ADR-0073). -->
+    <!-- Npgsql is the single relational provider for the host dev database (ADR-1073). -->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
@@ -129,7 +129,7 @@
   </ItemGroup>
 
   <!-- Metrics export (NCode.Identity.Server only; the library packages depend only on System.Diagnostics.Metrics).
-       See ADR-0197. -->
+       See ADR-1197. -->
   <ItemGroup>
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
@@ -147,7 +147,7 @@
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
   </ItemGroup>
 
-  <!-- Aspire local-dev orchestrator (Host.AppHost only; never packed). See ADR-0071. The Aspire.AppHost.Sdk
+  <!-- Aspire local-dev orchestrator (Host.AppHost only; never packed). See ADR-1071. The Aspire.AppHost.Sdk
        MSBuild SDK is pinned in lockstep in global.json ('msbuild-sdks'). -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.4" />

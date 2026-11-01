@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// further rule. A replacement must not weaken the protection the client registered.
 /// </para>
 /// </remarks>
-// See ADR-0155.
+// See ADR-1155.
 [PublicAPI]
 public interface IClientJwtCredentialSelector
 {

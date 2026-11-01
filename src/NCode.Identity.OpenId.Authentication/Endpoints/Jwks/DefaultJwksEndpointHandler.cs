@@ -47,7 +47,7 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .Produces<JsonWebKeySet>(StatusCodes.Status200OK)
             .WithOpenIdDiscoverable()
-            // Public metadata any anonymous caller may fetch is not the tenant's metered usage (ADR-0198).
+            // Public metadata any anonymous caller may fetch is not the tenant's metered usage (ADR-1198).
             .WithOpenIdMetered(false);
 
     /// <summary>
@@ -70,7 +70,7 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
         var openIdEnvironment = openIdContext.Environment;
         var secretKeys = openIdContext.Tenant.SecretsProvider.Collection;
 
-        // Each key's descriptor (the single extensibility seam, ADR-0104) produces its public JWK; keys with no
+        // Each key's descriptor (the single extensibility seam, ADR-1104) produces its public JWK; keys with no
         // exportable public material (for example symmetric keys) are omitted.
         var keys = new List<JsonWebKey>();
         foreach (var secretKey in secretKeys)

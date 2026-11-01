@@ -27,7 +27,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-// A package's tenant-owned entity, such as a local account, is erased with its tenant (ADR-0212). The contributed
+// A package's tenant-owned entity, such as a local account, is erased with its tenant (ADR-1212). The contributed
 // entity changes the model, which Entity Framework caches per context type, so this context disables that caching.
 public sealed class TenantStoreContributedEntityRemovalTests : IDisposable
 {

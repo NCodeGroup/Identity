@@ -20,7 +20,7 @@ type ClientSurface = 'secrets' | 'settings';
 /**
  * Container: drills into a single client to manage its secrets and settings. The parent
  * {@link import('./ClientsPage.js').ClientsPage} supplies the client and owns the drill-in selection.
- * Secrets honor the one-time reveal (ADR-0050) and settings are a top-level JSON Patch diff; the owner-generic
+ * Secrets honor the one-time reveal (ADR-1050) and settings are a top-level JSON Patch diff; the owner-generic
  * {@link OwnerSecretsTab}/{@link OwnerSettingsTab} render both for the client. Owns only tab state.
  */
 export function ClientDetailPage({ scope, client, onBack }: ClientDetailPageProps) {

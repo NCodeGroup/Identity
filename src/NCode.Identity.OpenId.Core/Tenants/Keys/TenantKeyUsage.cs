@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// The rule that decides which algorithms a tenant uses, and so which keys the tenant needs: an algorithm is used when
 /// some named algorithm setting of the tenant's effective settings lists it.
 /// </summary>
-// See ADR-0169 (decision 9).
+// See ADR-1169 (decision 9).
 internal static class TenantKeyUsage
 {
     /// <summary>

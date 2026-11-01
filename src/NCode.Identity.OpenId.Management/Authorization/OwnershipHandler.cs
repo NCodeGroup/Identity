@@ -57,7 +57,7 @@ internal class OwnershipHandler(
         IResourceNode resource
     )
     {
-        // Ownership never grants creation of a new resource; that is authority at the parent node (ADR-0034).
+        // Ownership never grants creation of a new resource; that is authority at the parent node (ADR-1034).
         if (
             requirement is OperationAuthorizationRequirement operation
             && string.Equals(operation.Name, Operations.Create.Name, StringComparison.Ordinal)
@@ -78,7 +78,7 @@ internal class OwnershipHandler(
             CancellationToken.None
         );
 
-        // Resolve the caller to a stable principal id (ADR-0035); a caller that has never been provisioned has no
+        // Resolve the caller to a stable principal id (ADR-1035); a caller that has never been provisioned has no
         // authority, so there is nothing to look up.
         var principalId = await PrincipalResolver.ResolvePrincipalIdOrDefaultAsync(
             openIdContext,
@@ -113,7 +113,7 @@ internal class OwnershipHandler(
         IResourceNode resource,
         string rootTenantId
     ) =>
-        // A resource's authority chain is fixed: the node itself, its tenant, then the server root (ADR-0034).
+        // A resource's authority chain is fixed: the node itself, its tenant, then the server root (ADR-1034).
         [
             (resource.ResourceType, Normalize(resource.ResourceId)),
             (ResourceNodeTypes.Tenant, Normalize(resource.TenantId)),

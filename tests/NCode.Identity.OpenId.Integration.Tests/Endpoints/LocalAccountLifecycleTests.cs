@@ -37,7 +37,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// An administrator's actions on an end user end its sessions, and every grant checks the subject (ADR-0224, ADR-0225, ADR-0226).
+// An administrator's actions on an end user end its sessions, and every grant checks the subject (ADR-1224, ADR-1225, ADR-1226).
 public class LocalAccountLifecycleTests
 {
     private const string UserName = "lifecycle-user";

@@ -42,7 +42,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// written exactly as given.
 /// </para>
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal static class SecretProtectionFormat
 {
     /// <summary>

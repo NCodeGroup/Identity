@@ -42,7 +42,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// configured duration. A fetch that fails or a set that is refused leaves the client with no public keys, so an
 /// unreachable, malformed, or unsafe key set never grants access.
 /// </summary>
-// See ADR-0161.
+// See ADR-1161.
 internal sealed class DefaultClientKeyResolver(
     ILogger<DefaultClientKeyResolver> logger,
     TimeProvider timeProvider,

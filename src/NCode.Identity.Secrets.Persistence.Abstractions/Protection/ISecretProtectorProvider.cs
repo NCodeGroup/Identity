@@ -29,7 +29,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <remarks>
 /// A protector is short-lived, so callers obtain one for a single request or batch and must not cache it.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public interface ISecretProtectorProvider
 {

@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// every rule that reads such a list reads it as a set. Two collections with the same settings and values therefore
 /// have the same fingerprint, whatever order they enumerate in.
 /// </summary>
-// See ADR-0219.
+// See ADR-1219.
 internal static class ServerSettingsFingerprint
 {
     /// <summary>

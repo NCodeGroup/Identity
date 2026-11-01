@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="protector">The protector that protects the value.</param>
 /// <param name="plaintext">The value to protect.</param>
 /// <param name="context">The purpose of the value and the identifier of the item that the value belongs to.</param>
-// See ADR-0235.
+// See ADR-1235.
 internal readonly ref struct ProtectToStringState(
     ISecretProtector protector,
     ReadOnlySpan<byte> plaintext,

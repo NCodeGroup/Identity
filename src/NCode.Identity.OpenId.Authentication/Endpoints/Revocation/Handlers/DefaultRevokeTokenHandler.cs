@@ -87,7 +87,7 @@ internal class DefaultRevokeTokenHandler(
             return;
         }
 
-        // Revoking a refresh token revokes its rotation family, every branch included (RFC 7009 §2.1). See ADR-0217.
+        // Revoking a refresh token revokes its rotation family, every branch included (RFC 7009 §2.1). See ADR-1217.
         var lineageId = grant.Value.RefreshTokenLineageId;
         if (!string.IsNullOrEmpty(lineageId))
         {

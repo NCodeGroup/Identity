@@ -165,7 +165,7 @@ internal class PrincipalApiEndpointHandler(
         }
 
         // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. The change is
-        // committed, so a client disconnect does not cancel the termination. See ADR-0226.
+        // committed, so a client disconnect does not cancel the termination. See ADR-1226.
         await TerminateSessionsAsync(
             httpContext,
             tenantId,

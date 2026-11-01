@@ -1,4 +1,4 @@
-# Commit attribution — commits are attributed to people, not agents (ADR-0128).
+# Commit attribution — commits are attributed to people, not agents (ADR-1128).
 #
 # This workflow runs .template/Test-CommitAttribution.ps1, from the project template, which rejects any commit whose
 # author or committer is an AI agent account, or whose message carries agent attribution (a `Co-authored-by:` line
@@ -9,6 +9,9 @@
 # on main even though the pull request's own commits were checked. Checking the merge group's commit covers those
 # trailers. A pull request is checked from its base to its head, the merge queue from the merge group's base to its
 # head, and a push from the commit before the push to the commit after it.
+#
+# A pull request's title and description are checked too: the squash merge makes them the message of the commit that
+# lands on main (ADR-1304), so the check runs again when a pull request is edited.
 #
 # A separate workflow, rather than a step of the .NET gate, keeps this check independent of that gate's concurrency
 # group, and it finishes in seconds.
@@ -21,6 +24,8 @@ on:
     branches: [main, 'release/**']
   pull_request:
     branches: [main, 'release/**']
+    # edited: the check reads the pull request's title and description, so it runs again when they change.
+    types: [opened, synchronize, reopened, edited]
   merge_group:
     types: [checks_requested]
 
@@ -50,4 +55,6 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-        run: ./.template/Test-CommitAttribution.ps1 -Base $env:BASE -Head $env:HEAD
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: ./.template/Test-CommitAttribution.ps1 -Base $env:BASE -Head $env:HEAD -PullRequestTitle $env:PR_TITLE -PullRequestBody $env:PR_BODY

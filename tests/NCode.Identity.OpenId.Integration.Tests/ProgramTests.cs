@@ -54,7 +54,7 @@ public class ProgramTests
     [Fact]
     public async Task Logging_WhenTheJsonFormatterIsSelected_WritesEachEntryOnOneLine()
     {
-        // The values the host image sets through its Logging__Console__ environment variables (ADR-0248).
+        // The values the host image sets through its Logging__Console__ environment variables (ADR-1248).
         await using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {

@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// Contributes the <c>eccCurves</c> section to the management capabilities document, projecting each supported
 /// <see cref="EccCurveSpecification"/> so clients can offer a curve picker for <c>ecc</c> secrets.
 /// </summary>
-// See ADR-0068.
+// See ADR-1068.
 internal sealed class EccCurveCapabilitiesProvider(IEccCurveCatalog eccCurveCatalog)
     : ICommandHandler<DiscoverManagementCapabilitiesCommand>
 {

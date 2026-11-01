@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// local refresh even when the refresh fails, because the change is committed either way. Neither failure fails the
 /// committed write: a replica that did not apply the change picks it up at its next poll.
 /// </summary>
-// See ADR-0219.
+// See ADR-1219.
 internal sealed class ServerSettingsChangedHandler(
     IMaterializedServerRegistry materializedServerRegistry,
     IReplicaBroadcaster replicaBroadcaster,

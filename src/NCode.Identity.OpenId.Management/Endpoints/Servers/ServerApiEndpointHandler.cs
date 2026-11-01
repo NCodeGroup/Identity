@@ -310,7 +310,7 @@ internal class ServerApiEndpointHandler(
             },
         };
 
-        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-1014).
         var error = await ServerValidator.ValidateCreateAsync(
             httpContext.User,
             server,
@@ -323,8 +323,8 @@ internal class ServerApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139), and the server carries only the settings that apply within it
-        // (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed when the
+        // Setting names are a closed vocabulary (ADR-1139), and the server carries only the settings that apply within it
+        // (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed when the
         // server's settings are next loaded.
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
         var settingErrors = SettingSerializer.ValidateSettings(
@@ -350,7 +350,7 @@ internal class ServerApiEndpointHandler(
             cancellationToken
         );
 
-        // The store assigns the row token on insert (ADR-0012), so no re-read is needed.
+        // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = server.ConcurrencyToken;
         return TypedResults.Created($"/servers/{server.ServerId}", resource);
     }
@@ -398,7 +398,7 @@ internal class ServerApiEndpointHandler(
         }
 
         // Core preconditions (authorization + If-Match + required fields) are asserted by the validator
-        // against the hydrated model (ADR-0014).
+        // against the hydrated model (ADR-1014).
         var error = await ServerValidator.ValidateUpdateAsync(
             httpContext.User,
             server,
@@ -452,7 +452,7 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-1014).
         var error = await ServerValidator.ValidateDeleteAsync(
             httpContext.User,
             server,
@@ -533,7 +533,7 @@ internal class ServerApiEndpointHandler(
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // The authorization is against the persisted settings, like the raw settings read. See ADR-0245.
+        // The authorization is against the persisted settings, like the raw settings read. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
             serverSettings.Value,
@@ -561,7 +561,7 @@ internal class ServerApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The server's effective settings.</returns>
     /// <exception cref="UnreadableSettingsException">The document cannot be honored.</exception>
-    // See ADR-0245.
+    // See ADR-1245.
     private async ValueTask<IReadOnlySettingCollection> ResolveStoredServerSettingsAsync(
         string serverId,
         JsonElement settings,
@@ -738,7 +738,7 @@ internal class ServerApiEndpointHandler(
     /// <param name="replacedSettings">The server's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The server's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
-    // See ADR-0241.
+    // See ADR-1241.
     private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedServerSettingsOrDefaultAsync(
         string serverId,
         JsonElement replacedSettings,
@@ -775,7 +775,7 @@ internal class ServerApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-0206 and ADR-0241.
+    // See ADR-1206 and ADR-1241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         IReadOnlySettingCollection currentServerSettings,
         IReadOnlySettingCollection newServerSettings,
@@ -966,7 +966,7 @@ internal class ServerApiEndpointHandler(
             cancellationToken
         );
 
-        // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
+        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created($"/servers/{serverId}/secrets/{secretId}", secretResource);
     }
@@ -974,7 +974,7 @@ internal class ServerApiEndpointHandler(
     /// <summary>
     /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new server secret.
     /// </summary>
-    // See ADR-0104.
+    // See ADR-1104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
@@ -1122,7 +1122,7 @@ internal class ServerApiEndpointHandler(
             secret,
             authorizationResource: null,
             Operations.Read,
-            // The public key is read from its stored public half, so no master key is loaded (ADR-0268).
+            // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
             x => SecretPublicKeyConverter.Convert(x)
         );
     }
@@ -1267,7 +1267,7 @@ internal class ServerApiEndpointHandler(
 
     // Announces a committed change to the server's settings document, so every handler of the change (the default one
     // reads the document again on every replica, whose reconciliation then seeds the tenants and checks the clients,
-    // ADR-0219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
+    // ADR-1219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
     private static ValueTask NotifyServerSettingsChangedAsync(
         HttpContext httpContext,
         string serverId,

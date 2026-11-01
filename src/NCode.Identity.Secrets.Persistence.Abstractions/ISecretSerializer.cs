@@ -43,7 +43,7 @@ public interface ISecretSerializer
     /// <exception cref="CryptographicException">
     /// Thrown when the key material of a secret cannot be unprotected.
     /// </exception>
-    // See ADR-0235.
+    // See ADR-1235.
     IReadOnlyCollection<SecretKey> DeserializeSecrets(
         ISecretProtector protector,
         IReadOnlyCollection<PersistedSecret> persistedSecrets
@@ -59,7 +59,7 @@ public interface ISecretSerializer
     /// <exception cref="CryptographicException">
     /// Thrown when the key material of the secret cannot be unprotected.
     /// </exception>
-    // See ADR-0235.
+    // See ADR-1235.
     SecretKey DeserializeSecret(ISecretProtector protector, PersistedSecret persistedSecret);
 
     /// <summary>
@@ -71,6 +71,6 @@ public interface ISecretSerializer
     /// <exception cref="InvalidOperationException">
     /// Thrown when <paramref name="persistedSecret"/> holds no public key material.
     /// </exception>
-    // See ADR-0235.
+    // See ADR-1235.
     SecretKey DeserializePublicSecret(PersistedSecret persistedSecret);
 }

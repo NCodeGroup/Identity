@@ -27,7 +27,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // The management API lists the clients that a tenant stores and that its effective settings make incoherent, through
-// the reporter that the server settings reconciliation also uses. See ADR-0233.
+// the reporter that the server settings reconciliation also uses. See ADR-1233.
 public class IncoherentClientReportTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

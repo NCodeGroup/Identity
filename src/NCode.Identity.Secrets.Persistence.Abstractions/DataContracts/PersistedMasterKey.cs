@@ -33,7 +33,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// An owner has at most one active master key, which is the one that has not been retired, and zero or more retired
 /// master keys. A retired master key is kept so that the values it protected can still be read.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedMasterKey : ISupportConcurrencyToken

@@ -45,7 +45,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 /// see. A caller acting for a resource server may request the response as a signed, and optionally encrypted, JSON Web
 /// Token (JWT) (<see href="https://datatracker.ietf.org/doc/html/rfc9701">RFC 9701</see>).
 /// </summary>
-// See ADR-0029 and ADR-0168.
+// See ADR-1029 and ADR-1168.
 internal class DefaultIntrospectionEndpointProvider(
     TimeProvider timeProvider,
     IClientAuthenticationService clientAuthenticationService,
@@ -272,7 +272,7 @@ internal class DefaultIntrospectionEndpointProvider(
 
     // RFC 9701 §5: the response is a JWT typed 'token-introspection+jwt' that carries 'iss', the resource server as
     // 'aud', 'iat', and the introspection response as 'token_introspection' — and no 'sub' or 'exp', so it cannot pass for
-    // an access token. It is signed and encrypted as the client registered (ADR-0155).
+    // an access token. It is signed and encrypted as the client registered (ADR-1155).
     private async ValueTask<string> EncodeJwtResponseAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

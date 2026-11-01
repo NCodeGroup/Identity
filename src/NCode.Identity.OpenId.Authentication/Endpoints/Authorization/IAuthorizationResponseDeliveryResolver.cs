@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 
 /// <summary>
 /// Derives the <see cref="AuthorizationResponseDelivery"/> of an authorization request: the redirect URI checked
-/// against the client's registration, the handler of the effective response mode, and the state to echo (ADR-0201).
+/// against the client's registration, the handler of the effective response mode, and the state to echo (ADR-1201).
 /// </summary>
 /// <remarks>
 /// Each overload throws an <see cref="NCode.Identity.OpenId.Exceptions.OpenIdException"/> when the delivery cannot be

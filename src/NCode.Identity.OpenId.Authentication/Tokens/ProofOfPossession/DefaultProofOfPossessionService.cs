@@ -77,7 +77,7 @@ internal class DefaultProofOfPossessionService(
 
         // A client whose effective settings require a sender-constrained access token — set on the client, inherited
         // from its tenant, or the ceiling of a security profile it selects — is refused here, before its grant is spent.
-        // Issuance checks the requirement again together with every targeted resource server's (ADR-0158).
+        // Issuance checks the requirement again together with every targeted resource server's (ADR-1158).
         if (
             settings.GetValue(OpenIdSettingKeys.AccessTokenSenderConstraintRequired)
             && !confirmation.HasValue

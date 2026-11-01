@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// every password is refused until the window ends. A counter store that throws propagates the exception, so the limit
 /// fails closed.
 /// </summary>
-// See ADR-0237.
+// See ADR-1237.
 internal class DefaultPasswordAttemptLimiter(
     IExpiringCounterSet counterSet,
     TimeProvider timeProvider,

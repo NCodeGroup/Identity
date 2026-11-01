@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 /// material is accepted; a private or symmetric key is rejected. The secret type and key size are derived from the
 /// supplied material.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportSecretRequest

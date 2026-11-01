@@ -50,7 +50,7 @@ public static class StrictTransportSecurityApplicationBuilderExtensions
 
             var services = app.ApplicationServices;
 
-            // Read the environment first: Development never sends the header (ADR-0258).
+            // Read the environment first: Development never sends the header (ADR-1258).
             if (services.GetRequiredService<IHostEnvironment>().IsDevelopment())
                 return app;
 

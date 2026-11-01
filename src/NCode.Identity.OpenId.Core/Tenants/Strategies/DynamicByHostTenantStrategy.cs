@@ -95,7 +95,7 @@ internal class DynamicByHostTenantStrategy(
     /// tenant may hold either of them as its issuer host or its alias host: a request to a shared host could not tell the
     /// tenants apart.
     /// </remarks>
-    // See ADR-0129 (host uniqueness is a rule of the host strategy, not the schema), ADR-0160, and ADR-0195.
+    // See ADR-1129 (host uniqueness is a rule of the host strategy, not the schema), ADR-1160, and ADR-1195.
     public override async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         Uri? issuer,

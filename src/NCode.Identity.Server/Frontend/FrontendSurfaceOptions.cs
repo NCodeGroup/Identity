@@ -26,7 +26,7 @@ namespace NCode.Identity.Server.Frontend;
 /// <see cref="ClientId"/> and <see cref="Scopes"/>, which replace the default so a read-only surface can publish no
 /// client at all.
 /// </summary>
-// See ADR-0064.
+// See ADR-1064.
 [PublicAPI]
 public sealed class FrontendSurfaceOptions
 {

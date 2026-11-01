@@ -35,7 +35,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// caller may request a specific curve by name or let one be selected by key size. ECC keys are asymmetric and
 /// therefore expose exportable and importable public-key material.
 /// </summary>
-// See ADR-0068.
+// See ADR-1068.
 internal sealed class EccSecretKeyTypeDescriptor(
     ISecretKeyFactory secretKeyFactory,
     IEccCurveCatalog eccCurveCatalog

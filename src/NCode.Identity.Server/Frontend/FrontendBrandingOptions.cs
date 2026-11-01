@@ -23,7 +23,7 @@ namespace NCode.Identity.Server.Frontend;
 /// <summary>
 /// Configures the brandable theme tokens injected into the frontend bundles at runtime.
 /// </summary>
-// See ADR-0064 (branding seam).
+// See ADR-1064 (branding seam).
 [PublicAPI]
 public sealed class FrontendBrandingOptions
 {

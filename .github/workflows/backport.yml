@@ -1,6 +1,6 @@
 # Backport — opens the cherry-pick pull requests that `backport vX.Y` labels ask for (issue #185).
 #
-# Servicing is upstream-first (GOVERNANCE.md "Releases, branches & tags", ADR-0263): a fix merges to main, and a backport
+# Servicing is upstream-first (GOVERNANCE.md "Releases, branches & tags", ADR-1263): a fix merges to main, and a backport
 # pull request cherry-picks it with `git cherry-pick -x` onto `backport/<pr>-vX.Y`, cut from `release/vX.Y`. When a pull
 # request labeled `backport vX.Y` merges to main, or a merged pull request gets that label, build/backport.ps1 cuts the
 # branch, cherry-picks the commit the pull request merged as, and opens the pull request against the release line; when

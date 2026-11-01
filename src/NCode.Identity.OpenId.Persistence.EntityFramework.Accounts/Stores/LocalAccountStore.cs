@@ -178,15 +178,15 @@ internal sealed class LocalAccountStore(
             cancellationToken
         );
         // The limit counts the user name the account holds, and a refused password is verified against the dummy hash,
-        // so a refusal costs what a wrong password costs. See ADR-0244.
+        // so a refusal costs what a wrong password costs. See ADR-1244.
         var countedUserName = entity?.UserName ?? userName;
         var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
         // A disabled account's credential is verified too, so the sign-in can tell the end user why it is refused.
-        // See ADR-0229.
+        // See ADR-1229.
         var passwordHash =
             !isRefused && entity?.PasswordHash is { Length: > 0 } storedHash ? storedHash : null;
         // An unknown user name and an account without a password are verified against the dummy hash, so a wrong
-        // password takes as long whether or not an account has the user name. See ADR-0239.
+        // password takes as long whether or not an account has the user name. See ADR-1239.
         var verifiedHash = passwordHash ?? PasswordHasher.DummyPasswordHash;
         var result = PasswordHasher.VerifyHashedPassword(verifiedHash, password.Span);
         if (entity is null || passwordHash is null || result == PasswordVerificationResult.Failed)

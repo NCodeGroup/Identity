@@ -27,7 +27,7 @@ namespace NCode.Identity.Dispatch.InProcess;
 /// runs no job at once or a full-queue behavior the channel does not define stops the host instead of silently
 /// dropping or never running the dispatched jobs.
 /// </summary>
-// See ADR-0232 and ADR-0242.
+// See ADR-1232 and ADR-1242.
 internal sealed class InProcessJobDispatcherOptionsValidator
     : IValidateOptions<InProcessJobDispatcherOptions>
 {

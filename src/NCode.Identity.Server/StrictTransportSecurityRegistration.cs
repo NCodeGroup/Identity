@@ -65,7 +65,7 @@ public static class StrictTransportSecurityRegistration
             );
 
             // ValidateOnStart materializes the options as the host starts, so a policy that cannot be honored stops
-            // the host before it accepts traffic (ADR-0137).
+            // the host before it accepts traffic (ADR-1137).
             serviceCollection
                 .AddOptions<StrictTransportSecurityOptions>()
                 .Configure(options => section.BindStrictly(options))

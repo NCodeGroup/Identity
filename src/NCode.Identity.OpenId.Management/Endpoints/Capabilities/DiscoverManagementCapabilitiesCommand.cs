@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// </summary>
 /// <param name="OpenIdContext">The ambient OpenID context for the request.</param>
 /// <param name="Capabilities">The mutable capability document each provider contributes a section to.</param>
-// See ADR-0067.
+// See ADR-1067.
 [PublicAPI]
 public readonly record struct DiscoverManagementCapabilitiesCommand(
     OpenIdContext OpenIdContext,

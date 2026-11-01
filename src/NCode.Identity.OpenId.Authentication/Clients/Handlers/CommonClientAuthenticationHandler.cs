@@ -151,7 +151,7 @@ internal abstract class CommonClientAuthenticationHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation, containing the <c>invalid_client</c>
     /// failure, or <see langword="null"/> when the client may authenticate with this handler's method.</returns>
-    // See ADR-0145.
+    // See ADR-1145.
     protected async ValueTask<ClientAuthenticationResult?> RejectUnlessRegisteredAsync(
         OpenIdContext openIdContext,
         OpenIdClient client,

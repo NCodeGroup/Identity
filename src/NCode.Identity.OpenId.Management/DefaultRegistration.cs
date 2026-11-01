@@ -78,11 +78,11 @@ public static class DefaultRegistration
                 DefaultManagementAuditRecorder
             >();
 
-            // Shared by the server/tenant/client secret-create endpoints (ADR-0015).
+            // Shared by the server/tenant/client secret-create endpoints (ADR-1015).
             serviceCollection.TryAddSingleton<ISecretValidator, DefaultSecretValidator>();
 
-            // Shared by the server/tenant/client public-key read endpoints (ADR-0058). Delegates to each key's
-            // ISecretKeyTypeDescriptor (the single extensibility seam, ADR-0104) for the JWK/PEM representation.
+            // Shared by the server/tenant/client public-key read endpoints (ADR-1058). Delegates to each key's
+            // ISecretKeyTypeDescriptor (the single extensibility seam, ADR-1104) for the JWK/PEM representation.
             serviceCollection.TryAddSingleton<
                 ISecretPublicKeyConverter,
                 DefaultSecretPublicKeyConverter
@@ -95,7 +95,7 @@ public static class DefaultRegistration
                 >()
             );
 
-            // The root group declares its own endpoints and child groups (ADR-0042); registering it wires the whole
+            // The root group declares its own endpoints and child groups (ADR-1042); registering it wires the whole
             // /api tree.
             builder.AddEndpointGroup<ManagementRootGroup>();
 

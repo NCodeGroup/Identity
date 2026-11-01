@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// one of the collections has changed, two lists of strings are compared as ordinal sets so that their order is
 /// ignored, and any other pair of values is compared with <see cref="object.Equals(object?, object?)"/>.
 /// </summary>
-// See ADR-0206.
+// See ADR-1206.
 internal sealed class DefaultClientCoherenceValidator : IClientCoherenceValidator
 {
     private ImmutableArray<IClientCoherenceRule> Rules { get; }

@@ -202,7 +202,7 @@ public class RefreshTokenRotationTests
         var firstHorizon = redeemBody.GetProperty("refresh_token_expires_in").GetInt64();
         Assert.Equal((long)TimeSpan.FromDays(30).TotalSeconds, firstHorizon);
 
-        // A rotation does not renew the family: its successor expires when the family does (ADR-0297).
+        // A rotation does not renew the family: its successor expires when the family does (ADR-1297).
         var (rotatedStatus, rotatedBody) = await RefreshAsync(client, clientId, first);
         GetRefreshToken(rotatedStatus, rotatedBody);
         var rotatedHorizon = rotatedBody.GetProperty("refresh_token_expires_in").GetInt64();

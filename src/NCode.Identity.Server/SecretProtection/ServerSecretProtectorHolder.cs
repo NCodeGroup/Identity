@@ -25,7 +25,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// key ring, can protect and unprotect synchronously. The protector is loaded once when the host starts and is read
 /// from other threads afterwards.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal class ServerSecretProtectorHolder
 {
     // A volatile field rather than an auto-property: the protector is published once at startup and read from other

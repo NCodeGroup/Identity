@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// so every other replica evicts the tenant too. A failed announcement is logged and never fails the committed change:
 /// a replica that missed it picks the change up through its polls.
 /// </summary>
-// See ADR-0169 (every tenant is provisioned with persisted keys) and ADR-0205 (replicas announce changes through a
+// See ADR-1169 (every tenant is provisioned with persisted keys) and ADR-1205 (replicas announce changes through a
 // broadcast port).
 internal sealed class TenantChangedHandler(
     IOpenIdTenantCache tenantCache,

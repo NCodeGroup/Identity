@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
 /// A parameter a request object must carry, and whether a copy sent outside it must equal it or is ignored
-/// (RFC 9101 §5, §6.3; ADR-0202).
+/// (RFC 9101 §5, §6.3; ADR-1202).
 /// </summary>
 /// <param name="ParameterName">The name of the parameter.</param>
 /// <param name="GetValue">
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// <see langword="true"/> when a copy of the parameter sent outside the request object must equal the object's value;
 /// <see langword="false"/> when an outer copy is ignored.
 /// </param>
-// See ADR-0202.
+// See ADR-1202.
 internal sealed record RequestObjectParameterRule(
     string ParameterName,
     Func<IBaseAuthorizationRequestValues, string?> GetValue,

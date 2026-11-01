@@ -179,6 +179,6 @@ public interface IClientStore : IStore<PersistedClient>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the client was removed; otherwise <c>false</c> when no matching client existed.</returns>
-    // See ADR-0212.
+    // See ADR-1212.
     ValueTask<bool> RemoveAsync(string clientId, CancellationToken cancellationToken);
 }

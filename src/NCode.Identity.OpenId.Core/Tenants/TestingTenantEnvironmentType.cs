@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides the <c>testing</c> tenant environment type: a non-production environment that selects no additional
 /// security profiles.
 /// </summary>
-// See ADR-0289.
+// See ADR-1289.
 internal sealed class TestingTenantEnvironmentType : ITenantEnvironmentType
 {
     /// <inheritdoc />

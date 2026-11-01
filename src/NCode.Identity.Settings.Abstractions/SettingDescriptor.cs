@@ -42,7 +42,7 @@ public abstract class SettingDescriptor
     /// be accepted without being honored, so every entry point that accepts a settings document rejects it there. A
     /// setting that names no registered scope applies nowhere.
     /// </summary>
-    // See ADR-0149.
+    // See ADR-1149.
     public required ImmutableArray<string> AppliesTo { get; init; }
 
     /// <summary>

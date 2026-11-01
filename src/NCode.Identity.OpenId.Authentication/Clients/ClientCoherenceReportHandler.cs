@@ -42,7 +42,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// changes a client. A tenant that cannot be checked is logged and skipped, and the pass continues. The handler is
 /// idempotent, because it reads and logs only.
 /// </remarks>
-// See ADR-0206, ADR-0219 and ADR-0234.
+// See ADR-1206, ADR-1219 and ADR-1234.
 internal sealed class ClientCoherenceReportHandler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
@@ -116,7 +116,7 @@ internal sealed class ClientCoherenceReportHandler(
         );
 
         // A tenant whose settings no coherence rule reads differently cannot hold a client that the change made
-        // incoherent. See ADR-0234.
+        // incoherent. See ADR-1234.
         if (command.PreviousSettings is { } previousServerSettings)
         {
             var previousTenantSettings = EffectiveSettingsResolver.Resolve(

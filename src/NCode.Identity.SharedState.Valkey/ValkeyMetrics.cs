@@ -22,7 +22,7 @@ namespace NCode.Identity.SharedState.Valkey;
 /// Names the meter through which the Valkey shared-state adapter records its instruments, so a host can subscribe to
 /// it, for example with OpenTelemetry's <c>AddMeter</c>.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 public static class ValkeyMetrics
 {
     /// <summary>

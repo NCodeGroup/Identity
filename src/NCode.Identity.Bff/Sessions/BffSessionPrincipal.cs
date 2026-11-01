@@ -58,7 +58,7 @@ internal static class BffSessionPrincipal
     /// </summary>
     /// <param name="claims">The claims of the session, from the ID token.</param>
     /// <param name="userInfo">The claims of the UserInfo response.</param>
-    // See ADR-0299.
+    // See ADR-1299.
     public static IReadOnlyList<Claim> MergeUserInfo(
         IEnumerable<Claim> claims,
         ClaimsIdentity userInfo

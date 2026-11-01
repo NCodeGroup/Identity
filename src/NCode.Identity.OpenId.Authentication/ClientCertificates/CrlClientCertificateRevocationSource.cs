@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// trusted, until its next update, for at most the configured maximum cache duration; each check verifies the list
 /// against its own signers, so a list retrieved for one authority is never trusted for another.
 /// </summary>
-// See ADR-0252.
+// See ADR-1252.
 internal sealed class CrlClientCertificateRevocationSource(
     TimeProvider timeProvider,
     RevocationDataFetcher fetcher,
@@ -59,7 +59,7 @@ internal sealed class CrlClientCertificateRevocationSource(
     public string Name => ClientCertificateRevocationSourceNames.Crl;
 
     /// <inheritdoc />
-    // Processes the certificate's distribution points as RFC 5280 §6.3.3 describes. See ADR-0259.
+    // Processes the certificate's distribution points as RFC 5280 §6.3.3 describes. See ADR-1259.
     public async ValueTask<ClientCertificateRevocationStatus> CheckAsync(
         ClientCertificateRevocationContext context,
         CancellationToken cancellationToken

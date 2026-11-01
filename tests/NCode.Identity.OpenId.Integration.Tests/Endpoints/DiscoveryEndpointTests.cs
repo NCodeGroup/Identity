@@ -95,7 +95,7 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         var jsonElement = JsonElement.Parse(json);
         var root = jsonElement;
 
-        // The 'claims' request parameter is now honored end-to-end (ADR-0039), so it is advertised.
+        // The 'claims' request parameter is now honored end-to-end (ADR-1039), so it is advertised.
         Assert.True(
             root.TryGetProperty("claims_parameter_supported", out var claimsParameterSupported)
         );

@@ -80,7 +80,7 @@ public class OwnershipHandlerTests
             .ReturnsAsync(manager.Object);
         manager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        // The resolver maps the caller to a stable principal id; mirror the token's subject claim (ADR-0035).
+        // The resolver maps the caller to a stable principal id; mirror the token's subject claim (ADR-1035).
         resolver
             .Setup(x =>
                 x.ResolvePrincipalIdOrDefaultAsync(

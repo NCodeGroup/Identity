@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <summary>
 /// Provides extension methods for <see cref="ISecretProtector"/>.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public static class SecretProtectorExtensions
 {

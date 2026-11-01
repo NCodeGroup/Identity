@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// the server compares response types in one canonical form — the names in ordinal order, separated by a single space —
 /// which is the form in which <c>response_types_supported</c> lists them.
 /// </remarks>
-// See ADR-0141.
+// See ADR-1141.
 internal static class ResponseTypeValues
 {
     /// <summary>

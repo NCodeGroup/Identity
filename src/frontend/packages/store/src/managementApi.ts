@@ -57,7 +57,7 @@ const tenantTag = (tenantId: string, id: string): string =>
  * The RTK Query client for the Management REST API. Co-located with the store (one RTK module
  * boundary) so its middleware/reducer types reconcile with `configureStore`. Every cache-tag id is
  * derived from the scope that owns the resource ({@link scopeTagId}), so the global and tenant
- * boundaries invalidate independently (see docs/decisions/0064): a mutation in one scope never invalidates
+ * boundaries invalidate independently (see docs/decisions/1064): a mutation in one scope never invalidates
  * the caches of the global scope or another tenant.
  */
 export const managementApi = createApi({
@@ -399,7 +399,7 @@ export const managementApi = createApi({
         { type: 'Grant', id: tenantTag(tenantId, LIST_TAG) },
       ],
     }),
-    // The usage ledger grows with every flush of the server (ADR-0199), so nothing is cached once unused: every mount
+    // The usage ledger grows with every flush of the server (ADR-1199), so nothing is cached once unused: every mount
     // reads the current ledger.
     getTenantUsage: build.query<
       TenantUsageResource,
@@ -415,7 +415,7 @@ export const managementApi = createApi({
       keepUnusedDataFor: 0,
     }),
     // The secrets and settings of any owner: a server, a tenant, or a client or resource server in a scope
-    // (docs/decisions/0257). Every tag is scoped by the owner's scope, so one owner's caches never invalidate another's.
+    // (docs/decisions/1257). Every tag is scoped by the owner's scope, so one owner's caches never invalidate another's.
     listSecrets: build.query<SecretsResource, ManagementOwner>({
       query: (owner) => `${ownerApiPath(owner)}/secrets`,
       providesTags: (result, _error, owner) => [

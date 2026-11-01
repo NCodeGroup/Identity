@@ -28,7 +28,7 @@ namespace NCode.Identity.Server.Frontend;
 /// <see cref="ApiBaseUrl"/> is left unset, the serving request's own origin (<c>scheme://host</c>) is used. A host
 /// therefore needs no configuration at all.
 /// </summary>
-// See ADR-0064.
+// See ADR-1064.
 [PublicAPI]
 public sealed class FrontendBootstrapOptions
 {

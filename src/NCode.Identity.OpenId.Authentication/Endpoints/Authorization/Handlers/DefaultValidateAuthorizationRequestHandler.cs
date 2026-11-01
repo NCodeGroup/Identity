@@ -79,7 +79,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
             cancellationToken
         );
 
-        // A requested scope must be permitted by the client's grants (ADR-0026).
+        // A requested scope must be permitted by the client's grants (ADR-1026).
         var allowedScopes = await ClientScopeService.GetAllowedScopesAsync(
             openIdContext.Tenant.TenantId,
             openIdClient.ClientId,
@@ -166,7 +166,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         // The parameters a request object must carry, and how an outer copy of each relates to them, are declared in one
-        // table (RFC 9101 §5, §6.3; ADR-0202).
+        // table (RFC 9101 §5, §6.3; ADR-1202).
         RequestObjectParameterPolicy.Validate(
             errorFactory,
             errorCode,
@@ -310,7 +310,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
     /// supports.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> whose settings define what the client may use.</param>
     /// <param name="request">The authorization request to validate.</param>
-    // See ADR-0141 and ADR-0142.
+    // See ADR-1141 and ADR-1142.
     [AssertionMethod]
     internal static void ValidateResponseType(
         OpenIdContext openIdContext,
@@ -372,7 +372,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> whose registration and settings decide the
     /// requirement.</param>
     /// <param name="request">The authorization request to validate.</param>
-    // See ADR-0144.
+    // See ADR-1144.
     [AssertionMethod]
     internal static void ValidateCodeChallenge(
         IOpenIdErrorFactory errorFactory,
@@ -502,7 +502,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         // response_modes_supported is enforced when the delivery is derived (IAuthorizationResponseDeliveryResolver)
 
-        // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-0026)
+        // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-1026)
 
         // TODO: other checks...
 

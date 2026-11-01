@@ -40,7 +40,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// further scope. A replacement must not weaken the bounds of the default implementation.
 /// </para>
 /// </remarks>
-// See ADR-0158.
+// See ADR-1158.
 [PublicAPI]
 public interface IAccessTokenPolicyService
 {

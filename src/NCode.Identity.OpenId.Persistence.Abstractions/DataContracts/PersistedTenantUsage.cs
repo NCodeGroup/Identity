@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
 /// Contains a tenant's usage of one meter on one UTC calendar day: the durable count the platform bills a plan by and
-/// reports to the customer (ADR-0199).
+/// reports to the customer (ADR-1199).
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

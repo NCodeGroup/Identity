@@ -70,7 +70,7 @@ internal class BffLogoutService(
         }
 
         // Revocation follows the removal and nothing cancels it, so a disconnect cannot leave the session behind.
-        // See ADR-0293.
+        // See ADR-1293.
         if (state.Payload.RefreshToken is { Length: > 0 } refreshToken)
             await RevokeAsync(refreshToken);
     }

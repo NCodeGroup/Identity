@@ -85,7 +85,7 @@ public sealed class EphemeralOpenIdTenantFactory(
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
 
     // One key per tenant for the life of the process: a tenant is materialized again after every management write
-    // evicts it (ADR-0169), and a new key would invalidate every token the tenant issued.
+    // evicts it (ADR-1169), and a new key would invalidate every token the tenant issued.
     private ConcurrentDictionary<string, RsaSecretKey> SigningKeys { get; } =
         new(StringComparer.Ordinal);
 

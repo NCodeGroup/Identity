@@ -41,7 +41,7 @@ internal static class ClaimValueMapper
 
     /// <summary>
     /// Creates a <see cref="Claim"/> from a JSON value. Strings, numbers, objects, and arrays keep their exact JSON text;
-    /// a string is never re-typed by its shape (ADR-0121); a number is typed with the most specific of
+    /// a string is never re-typed by its shape (ADR-1121); a number is typed with the most specific of
     /// <see cref="ClaimValueTypes.Integer32"/>, <see cref="ClaimValueTypes.Integer64"/>,
     /// <see cref="ClaimValueTypes.UInteger64"/>, the unbounded <see cref="ClaimValueTypes.Integer"/>, or
     /// <see cref="ClaimValueTypes.Double"/> for a fraction or exponent.

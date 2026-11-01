@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Host.Database;
 /// together, with nothing left on the filesystem. Kept out of the shared <c>OpenIdDbContext</c> so the published
 /// persistence library never forces a <c>DataProtectionKeys</c> table on other hosts.
 /// </summary>
-// See ADR-0073.
+// See ADR-1073.
 [PublicAPI]
 public sealed class DeveloperDataProtectionDbContext(
     DbContextOptions<DeveloperDataProtectionDbContext> options

@@ -41,7 +41,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// has an empty name, a name that contains whitespace, or the same name as another kind.
 /// </para>
 /// </remarks>
-// See ADR-0203 (redirect URI kinds).
+// See ADR-1203 (redirect URI kinds).
 internal sealed class DefaultRedirectUriKindCatalog : IRedirectUriKindCatalog
 {
     private ImmutableArray<IRedirectUriKind> Kinds { get; }

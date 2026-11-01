@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// Carries what a <see cref="RateLimitDescriptor"/> needs to decide whether its limit applies to a request and which
 /// partition of the limit the request counts in.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 [PublicAPI]
 public readonly record struct RateLimitContext
 {

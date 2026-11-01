@@ -92,7 +92,7 @@ public readonly record struct CreateSecurityTokenRequest
     /// passes the presented token's value, so every token of the family expires no later than the family does,
     /// <c>refresh_token_lifetime</c> after it began.
     /// </summary>
-    // See ADR-0297.
+    // See ADR-1297.
     public DateTimeOffset? RefreshTokenLineageCreatedWhen { get; init; }
 
     /// <summary>

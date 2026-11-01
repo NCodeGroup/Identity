@@ -74,7 +74,7 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffOptionsValidator>()
             );
 
-            // The BFF's instruments are created through the IMeterFactory (ADR-0197).
+            // The BFF's instruments are created through the IMeterFactory (ADR-1197).
             serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton<BffMetrics>();
 

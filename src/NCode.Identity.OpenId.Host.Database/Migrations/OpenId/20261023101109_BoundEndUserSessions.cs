@@ -31,8 +31,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // The previous release keeps serving while this migration is applied (ADR-0180), and this data rewrite
-            // keeps it working (ADR-0250). That release accepts every row that this migration rewrites: a document
+            // The previous release keeps serving while this migration is applied (ADR-1180), and this data rewrite
+            // keeps it working (ADR-1250). That release accepts every row that this migration rewrites: a document
             // without a session setting is valid, and a grant with an expiry is valid.
             //
             // A session setting is removed when its value is a TimeSpan that its domain refuses, for example zero,

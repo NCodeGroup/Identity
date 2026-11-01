@@ -151,7 +151,7 @@ internal class DefaultTokenExchangeGrantHandler(
         }
 
         // A refresh token issued by exchange joins the horizon of the authentication it carries, so exchange cannot
-        // renew a family. See ADR-0297.
+        // renew a family. See ADR-1297.
         DateTimeOffset? lineageCreatedWhen = null;
         if (
             string.Equals(
@@ -233,7 +233,7 @@ internal class DefaultTokenExchangeGrantHandler(
         };
 
         // The subject token was validated as one this tenant issued, so the subject belongs to this tenant; an ID token
-        // carries no tid claim. See ADR-0225.
+        // carries no tid claim. See ADR-1225.
         var tenantId = openIdContext.Tenant.TenantId;
         authenticationProperties.SetString(
             OpenIdConstants.AuthenticationPropertyItems.TenantId,

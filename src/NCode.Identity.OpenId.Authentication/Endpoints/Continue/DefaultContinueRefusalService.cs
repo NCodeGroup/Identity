@@ -54,7 +54,7 @@ internal class DefaultContinueRefusalService(
         );
 
         // The continuation is spent, so a refused operation cannot be resumed.
-        // See ADR-0229.
+        // See ADR-1229.
         var persistedGrantOrNull =
             await PersistedGrantService.ConsumeOnceOrDefault<ContinueEnvelope>(
                 openIdContext,

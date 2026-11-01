@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// certificate-bound access tokens whenever the client requires them, its
 /// <c>require_tls_client_certificate_bound_access_tokens</c>.
 /// </summary>
-// See ADR-0097 and ADR-0206.
+// See ADR-1097 and ADR-1206.
 internal sealed class CertificateBoundAccessTokenCoherenceRule : IClientCoherenceRule
 {
     private static string[] BindingSettingNames { get; } =

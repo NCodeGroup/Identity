@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// method the client is registered to use, its <c>token_endpoint_auth_method</c>. An unset
 /// <c>token_endpoint_auth_methods_supported</c> permits every method.
 /// </summary>
-// See ADR-0145 and ADR-0206.
+// See ADR-1145 and ADR-1206.
 internal sealed class TokenEndpointAuthMethodCoherenceRule : IClientCoherenceRule
 {
     private static string[] AuthMethodSettingNames { get; } =

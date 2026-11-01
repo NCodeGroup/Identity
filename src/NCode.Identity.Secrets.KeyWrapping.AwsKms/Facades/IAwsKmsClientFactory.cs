@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 /// Provides the AWS Key Management Service client for a region, so the code that wraps and unwraps keys can be tested
 /// without calling AWS.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal interface IAwsKmsClientFactory
 {
     /// <summary>

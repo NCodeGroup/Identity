@@ -269,7 +269,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_StartsTheKeyRingGateAfterTheWarmupAndBeforeDataProtection()
     {
         // Hosted services start in registration order. The gate needs the protector that the warmup loads, and it must
-        // refuse the host before Data Protection loads the key ring (ADR-0247).
+        // refuse the host before Data Protection loads the key ring (ADR-1247).
         using var host = BuildHost([]);
 
         var names = host
@@ -328,7 +328,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_RegistersADescriptorForEveryClientAuthenticationHandler()
     {
         // A handler without a descriptor is not advertised or accepted; a descriptor without a handler is advertised
-        // but cannot authenticate (ADR-0207).
+        // but cannot authenticate (ADR-1207).
         using var host = BuildHost([]);
         var catalog = host.Services.GetRequiredService<IClientAuthenticationMethodCatalog>();
 
@@ -345,7 +345,7 @@ public sealed class DefaultRegistrationTests
     public async Task AddIdentityServer_ResolvesTheClientAuthenticationHandlersWithoutDeadlocking()
     {
         // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
-        // IOptions<OpenIdOptions>.Value (ADR-0204, ADR-0207).
+        // IOptions<OpenIdOptions>.Value (ADR-1204, ADR-1207).
         using var host = BuildHost([]);
 
         var handlers = await Task.Run(() =>
@@ -360,7 +360,7 @@ public sealed class DefaultRegistrationTests
     public async Task AddIdentityServer_ReadingTheOpenIdOptionsDoesNotDeadlock()
     {
         // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
-        // IOptions<OpenIdOptions>.Value (ADR-0204, ADR-0207).
+        // IOptions<OpenIdOptions>.Value (ADR-1204, ADR-1207).
         using var host = BuildHost([]);
 
         await Task.Run(() => host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value)
@@ -371,7 +371,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler()
     {
         // The setting descriptors name the client-authentication methods from their descriptors, so reading the options
-        // constructs no handler (ADR-0207).
+        // constructs no handler (ADR-1207).
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
@@ -394,7 +394,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_ResolvesTheClientAuthenticationService()
     {
         // The service checks at construction that every handler has a descriptor and every descriptor has a handler
-        // (ADR-0207), so the built-in registrations must correspond.
+        // (ADR-1207), so the built-in registrations must correspond.
         using var host = BuildHost([]);
 
         Assert.NotNull(host.Services.GetRequiredService<IClientAuthenticationService>());
@@ -404,7 +404,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_RegistersTheBuiltInClientCoherenceRules()
     {
         // A client's settings are checked wherever a client is stored, so the validator and the built-in rules must be
-        // composed by default (ADR-0206).
+        // composed by default (ADR-1206).
         using var host = BuildHost([]);
 
         var settingNames = host
@@ -427,7 +427,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegisteredValueRuleReadsEveryMeetAClientCanRegister()
     {
-        // A value a client registers survives only where no ceiling lowers it (ADR-0240).
+        // A value a client registers survives only where no ceiling lowers it (ADR-1240).
         using var host = BuildHost([]);
 
         var settingNames = host
@@ -457,7 +457,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
     {
         // Without this handler a change to the server's settings that is not a write leaves the stored clients that it
-        // makes incoherent unreported until they fail at their next request (ADR-0219).
+        // makes incoherent unreported until they fail at their next request (ADR-1219).
         using var host = BuildHost([]);
 
         var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
@@ -610,7 +610,7 @@ public sealed class DefaultRegistrationTests
     {
         // An extension that stores settings for an entity of its own registers the entity's scope and its settings;
         // nothing in the library changes, and the scopes above the new one accept the settings while its siblings do
-        // not (ADR-0149, ADR-0150).
+        // not (ADR-1149, ADR-1150).
         const string Organization = "organization";
         using var host = BuildHost(
             [],
@@ -660,7 +660,7 @@ public sealed class DefaultRegistrationTests
     {
         // Access-token issuance combines a resource server's settings with the client's and those of every other
         // resource server the token targets, as siblings rather than parent and child; only a lattice merge combines
-        // them in any order and binds both (ADR-0158).
+        // them in any order and binds both (ADR-1158).
         using var host = BuildHost([]);
         var descriptors = host.Services.GetRequiredService<ISettingDescriptorCollectionProvider>();
         var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
@@ -711,7 +711,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_WhenOnlyAClientSelectsFapi1Advanced_LeavesCertificateBindingSupportToTheTenant()
     {
         // A profile's default applies only to a setting that applies within the expanding scope: a client selection
-        // requires certificate-bound tokens, but whether the server supports them is the tenant's choice (ADR-0148).
+        // requires certificate-bound tokens, but whether the server supports them is the tenant's choice (ADR-1148).
         using var host = BuildHost([]);
         var catalog = host.Services.GetRequiredService<ISecurityProfileCatalog>();
         var settingCollectionFactory =

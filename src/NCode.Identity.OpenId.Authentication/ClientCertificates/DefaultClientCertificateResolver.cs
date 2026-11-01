@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// a value it cannot decode fails the request. Otherwise the certificate negotiated directly on the connection is used.
 /// The result is resolved once per request, and the certificates decoded from a header are disposed with the request.
 /// </summary>
-// See ADR-0172.
+// See ADR-1172.
 internal sealed class DefaultClientCertificateResolver(
     IOptions<MutualTlsForwardingOptions> options,
     IEnumerable<IClientCertificateHeaderDecoder> decoders,

@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// descriptor catalog from the core slice: the length a local account's password must have, and the failed attempts an
 /// account may accumulate before its passwords are refused. Every setting applies to tenants and is not advertised.
 /// </summary>
-// See ADR-0236 and ADR-0237.
+// See ADR-1236 and ADR-1237.
 internal class DefaultPasswordSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>
 {

@@ -28,7 +28,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// The recovery for a ring whose keys the server can no longer decrypt, because the master key that encrypted them is
 /// lost, is to list their IDs in <see cref="RevokedKeyIds"/> and start the host again.
 /// </remarks>
-// See ADR-0247.
+// See ADR-1247.
 [PublicAPI]
 public sealed class DataProtectionKeyRingOptions
 {

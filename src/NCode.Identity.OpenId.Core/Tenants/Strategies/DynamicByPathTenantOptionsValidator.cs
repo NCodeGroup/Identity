@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 /// address. The options of an unselected strategy are inert, and a layered configuration may legitimately carry them, so
 /// they are skipped.
 /// </summary>
-// See ADR-0137 (fail at startup), ADR-0160 (a path tenant's issuer is checked against its bound route), and ADR-0165
+// See ADR-1137 (fail at startup), ADR-1160 (a path tenant's issuer is checked against its bound route), and ADR-1165
 // (every served tenant has an issuer, and its strategy supplies the default).
 internal class DynamicByPathTenantOptionsValidator : IValidateOptions<TenantResolutionOptions>
 {

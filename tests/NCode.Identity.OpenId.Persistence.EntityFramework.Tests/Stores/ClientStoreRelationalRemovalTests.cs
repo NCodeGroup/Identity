@@ -28,7 +28,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-// Validates ClientStore.RemoveAsync against a relational provider that enforces foreign keys (ADR-0212). The EF
+// Validates ClientStore.RemoveAsync against a relational provider that enforces foreign keys (ADR-1212). The EF
 // InMemory provider skips foreign keys, so the delete order and the exact set of rows removed are proven here.
 public sealed class ClientStoreRelationalRemovalTests : IDisposable
 {

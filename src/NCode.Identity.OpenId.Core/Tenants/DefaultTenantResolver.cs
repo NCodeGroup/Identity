@@ -175,7 +175,7 @@ internal class DefaultTenantResolver(
         var store = storeManager.GetStore<ITenantStore>();
 
         // A tenant identifier names its tenant in every route and management call, so one that belonged to a deleted
-        // tenant is never reissued (ADR-0189).
+        // tenant is never reissued (ADR-1189).
         if (await store.IsTenantIdRetiredAsync(tenantId, cancellationToken))
         {
             failures.Add(
@@ -189,7 +189,7 @@ internal class DefaultTenantResolver(
         }
 
         // The issuer is the tenant's identity and is asserted in every token it mints, so two tenants sharing one
-        // would mint tokens a relying party cannot tell apart (ADR-0129).
+        // would mint tokens a relying party cannot tell apart (ADR-1129).
         if (issuerUri is not null)
         {
             var holder = await store.GetOrDefaultByIssuerAsync(
@@ -219,7 +219,7 @@ internal class DefaultTenantResolver(
             )
             {
                 // Relying parties that trusted a retired issuer would accept another tenant's tokens under it, so only
-                // the tenant that gave it up can take it back (ADR-0189).
+                // the tenant that gave it up can take it back (ADR-1189).
                 failures.Add(
                     new TenantValidationFailure
                     {
@@ -232,7 +232,7 @@ internal class DefaultTenantResolver(
             else if (await IsRootTenantAddressAsync(tenantId, issuerUri, cancellationToken))
             {
                 // The root tenant is created on demand at its configured address, so a tenant written there first would
-                // take the control plane's address and leave the root tenant unable to be created (ADR-0165).
+                // take the control plane's address and leave the root tenant unable to be created (ADR-1165).
                 failures.Add(
                     new TenantValidationFailure
                     {

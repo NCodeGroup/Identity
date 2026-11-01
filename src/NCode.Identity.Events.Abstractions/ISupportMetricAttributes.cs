@@ -25,7 +25,7 @@ namespace NCode.Identity.Events;
 /// outcome, on the counter of published events. Each attribute must be bounded — a server-chosen value from a small
 /// set, such as a token type — and never a tenant, client, subject, address, or anything a caller supplies.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 public interface ISupportMetricAttributes
 {
     /// <summary>

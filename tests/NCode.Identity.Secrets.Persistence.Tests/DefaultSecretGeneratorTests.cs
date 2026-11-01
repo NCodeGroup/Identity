@@ -106,7 +106,7 @@ public class DefaultSecretGeneratorTests
         Assert.Equal(256, persisted.KeySizeBits);
         Assert.NotEmpty(persisted.EncodedValue);
 
-        // ADR-0050: symmetric secrets reveal their one-time unprotected material, distinct from the protected value.
+        // ADR-1050: symmetric secrets reveal their one-time unprotected material, distinct from the protected value.
         Assert.NotNull(generated.SecretMaterial);
         Assert.NotEmpty(generated.SecretMaterial);
         Assert.NotEqual(persisted.EncodedValue, generated.SecretMaterial);
@@ -204,7 +204,7 @@ public class DefaultSecretGeneratorTests
         Assert.Equal(SecretTypes.Rsa, persisted.SecretType);
         Assert.Equal(2048, persisted.KeySizeBits);
 
-        // ADR-0050: asymmetric private keys are never revealed.
+        // ADR-1050: asymmetric private keys are never revealed.
         Assert.Null(generated.SecretMaterial);
 
         var secretKey = _serializer.DeserializeSecret(protector, persisted);
@@ -229,7 +229,7 @@ public class DefaultSecretGeneratorTests
         Assert.Equal(SecretTypes.Ecc, persisted.SecretType);
         Assert.Equal(256, persisted.KeySizeBits);
 
-        // ADR-0050: asymmetric private keys are never revealed.
+        // ADR-1050: asymmetric private keys are never revealed.
         Assert.Null(generated.SecretMaterial);
 
         var secretKey = _serializer.DeserializeSecret(protector, persisted);

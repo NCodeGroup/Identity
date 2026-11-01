@@ -10,7 +10,7 @@
 # Authorization: every build enforces authentication. These require a GlobalAdmin token
 # (servers, tenants) or a GlobalAdmin/TenantAdmin token for the request's tenant (clients).
 # Obtain one by exchanging the configuration-seeded bootstrap administrator credential at the
-# token endpoint (see ADR-0044).
+# token endpoint (see ADR-1044).
 #
 # First-run bootstrap: the OpenID server and the static-single tenant are provisioned LAZILY by the
 # OpenID runtime on first resolution, not at startup and not by these management endpoints (the list

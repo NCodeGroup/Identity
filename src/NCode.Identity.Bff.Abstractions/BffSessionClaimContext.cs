@@ -29,7 +29,7 @@ namespace NCode.Identity.Bff;
 /// authentication (<see cref="ReservedClaimTypes"/>) can be neither added nor removed, so no contributor can change
 /// who the session is for or how the user authenticated.
 /// </summary>
-// See ADR-0290.
+// See ADR-1290.
 [PublicAPI]
 public sealed class BffSessionClaimContext
 {

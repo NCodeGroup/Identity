@@ -41,7 +41,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// When the options disable recovery or do not configure a key, no recovery key is loaded and nothing is wrapped.
 /// </para>
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
 {
     /// <summary>

@@ -29,7 +29,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A wrong password takes as long whether or not an account has the user name, and a password refused at the attempt
-// limit takes the work of a wrong one (ADR-0239, ADR-0244).
+// limit takes the work of a wrong one (ADR-1239, ADR-1244).
 public class PasswordVerificationTimingTests
 {
     private const string ClientId = "it-verification-timing-client";

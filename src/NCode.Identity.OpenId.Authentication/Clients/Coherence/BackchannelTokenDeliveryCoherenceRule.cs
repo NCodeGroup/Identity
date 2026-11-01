@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// must use a mode that <c>backchannel_token_delivery_modes_supported</c> lists when it is set. The mode is
 /// <c>poll</c> when none is registered.
 /// </summary>
-// See ADR-0085 and ADR-0206.
+// See ADR-1085 and ADR-1206.
 internal sealed class BackchannelTokenDeliveryCoherenceRule : IClientCoherenceRule
 {
     private static string[] DeliverySettingNames { get; } =

@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The subject is derived through
 /// the environment's host-configured <c>GetSubjectId</c>; the issuer claim name is a per-tenant setting.
 /// </summary>
-// See ADR-0053.
+// See ADR-1053.
 internal class DefaultPrincipalResolver(
     IStoreManagerFactory storeManagerFactory,
     ICryptoService cryptoService,
@@ -107,7 +107,7 @@ internal class DefaultPrincipalResolver(
 
         // Without a resolvable upstream (issuer, subject) pair we cannot form a durable connection identity for
         // idempotent lookup, so the subject value is used as-is: for a non-federated caller the subject is already the
-        // principal reference, and provisioning on every sight would create duplicates (ADR-0035).
+        // principal reference, and provisioning on every sight would create duplicates (ADR-1035).
         if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(issuer))
         {
             return subject ?? string.Empty;
@@ -176,7 +176,7 @@ internal class DefaultPrincipalResolver(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         // A caller with no resolvable upstream identity has no provisioned principal; its raw subject is already the
-        // reference (ADR-0035), so fall back to it rather than returning an empty subject.
+        // reference (ADR-1035), so fall back to it rather than returning an empty subject.
         return string.IsNullOrEmpty(principalId)
             ? openIdContext.GetSubjectId(user) ?? string.Empty
             : principalId;

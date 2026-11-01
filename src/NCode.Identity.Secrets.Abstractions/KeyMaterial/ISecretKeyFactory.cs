@@ -77,7 +77,7 @@ public interface ISecretKeyFactory
     /// <returns>The newly created <see cref="AsymmetricSecretKey"/> instance.</returns>
     /// <exception cref="ArgumentException">The collection does not hold exactly one certificate with a private
     /// key.</exception>
-    // See ADR-0300.
+    // See ADR-1300.
     AsymmetricSecretKey Create(KeyMetadata metadata, X509Certificate2Collection certificates);
 
     /// <summary>

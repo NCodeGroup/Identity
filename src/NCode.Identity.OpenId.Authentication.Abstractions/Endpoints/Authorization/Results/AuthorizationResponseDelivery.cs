@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <param name="RedirectUri">The <c>redirect_uri</c> the response is returned to, exactly as the request wrote it and the client registered it.</param>
 /// <param name="ResponseModeHandler">The <see cref="IAuthorizationResponseModeHandler"/> of the effective <c>response_mode</c> that delivers the response to the user-agent.</param>
 /// <param name="State">The <c>state</c> parameter that is included when returning the response to the user-agent.</param>
-// See ADR-0201.
+// See ADR-1201.
 [PublicAPI]
 public sealed record AuthorizationResponseDelivery(
     string RedirectUri,

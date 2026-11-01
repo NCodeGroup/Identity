@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <param name="SettingsChanged"><see langword="true"/> when the tenant's settings changed; otherwise,
 /// <see langword="false"/>. Only a settings change re-seeds the tenant: a deleted secret is not provisioned again in
 /// the request that deleted it, and a deleted tenant is not seeded at all.</param>
-// See ADR-0169 (every tenant is provisioned with persisted keys) and ADR-0205 (replicas announce changes through a
+// See ADR-1169 (every tenant is provisioned with persisted keys) and ADR-1205 (replicas announce changes through a
 // broadcast port).
 [PublicAPI]
 public readonly record struct TenantChangedCommand(string TenantId, bool SettingsChanged)

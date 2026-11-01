@@ -33,7 +33,7 @@ internal static class DefaultRegistration
         public void AddJwksEndpoint()
         {
             // The endpoint publishes each key via its ISecretKeyTypeDescriptor (the single extensibility seam,
-            // ADR-0104), resolved from the ISecretKeyTypeCatalog registered by AddSecretsLibrary. Applications add
+            // ADR-1104), resolved from the ISecretKeyTypeCatalog registered by AddSecretsLibrary. Applications add
             // support for additional secret key types by registering a descriptor — no JWKS-specific wiring.
             builder.AddEndpoint<DefaultJwksEndpointHandler>();
         }

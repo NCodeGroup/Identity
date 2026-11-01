@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/>, because a tenant's settings derive from the
 /// server's when it is materialized.
 /// </summary>
-// See ADR-0219 and ADR-0289.
+// See ADR-1219 and ADR-1289.
 internal class DefaultOpenIdServerProvider(
     IOpenIdServerFactory factory,
     IMaterializedServerRegistry materializedServerRegistry,
@@ -89,11 +89,11 @@ internal class DefaultOpenIdServerProvider(
                     var server = await Factory.CreateAsync(openIdEnvironment, cancellationToken);
                     InstanceOrNull = server;
 
-                    // Background work waits for the server this replica materializes, and a committed change refreshes it (ADR-0219).
+                    // Background work waits for the server this replica materializes, and a committed change refreshes it (ADR-1219).
                     MaterializedServerRegistry.Register(server);
 
                     // A tenant computes the profiles its environment type implies from the server's settings when it is
-                    // materialized, so a changed server reaches cached tenants at once rather than when they expire (ADR-0289).
+                    // materialized, so a changed server reaches cached tenants at once rather than when they expire (ADR-1289).
                     SettingsChangeRegistration = ChangeToken.OnChange(
                         server.SettingsProvider.GetChangeToken,
                         EvictTenants

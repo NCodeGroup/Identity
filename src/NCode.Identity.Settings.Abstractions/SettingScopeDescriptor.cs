@@ -26,7 +26,7 @@ namespace NCode.Identity.Settings;
 /// entity of its own registers that entity's scope, beneath the scope its settings inherit from, through
 /// <c>ICollectionDataSource&lt;SettingScopeDescriptor&gt;</c>.
 /// </summary>
-// See ADR-0149.
+// See ADR-1149.
 [PublicAPI]
 public sealed class SettingScopeDescriptor
 {

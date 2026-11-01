@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// refuses a password of an account at its limit by verifying it against the dummy hash, and answers it as it answers
 /// a wrong password.
 /// </summary>
-// See ADR-0237.
+// See ADR-1237.
 [PublicAPI]
 public interface IPasswordAttemptLimiter
 {

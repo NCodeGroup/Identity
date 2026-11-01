@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// with its implied use, compatible secret types, and legal key sizes, so the console create-secret form can drive
 /// its algorithm, use, and key-size inputs from discovery instead of hard-coded defaults.
 /// </summary>
-// See ADR-0067.
+// See ADR-1067.
 internal sealed class AlgorithmCapabilitiesProvider(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog

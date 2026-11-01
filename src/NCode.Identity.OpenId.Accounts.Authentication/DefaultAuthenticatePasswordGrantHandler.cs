@@ -88,7 +88,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         );
 
         // A password refused at the limit is verified against the store's dummy hash and counts as a failure, as a
-        // wrong one does, under the user name the store holds. See ADR-0237 and ADR-0244.
+        // wrong one does, under the user name the store holds. See ADR-1237 and ADR-1244.
         if (result.IsVerified)
         {
             await PasswordAttemptLimiter.ResetAsync(
@@ -178,7 +178,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
 
         // The store asks the gate once, with the user name it holds, between its lookup and its verification. The gate
         // refuses a result that a store verified after a refusal and fails a store that never asked, so no store lifts
-        // the limit. See ADR-0237 and ADR-0244.
+        // the limit. See ADR-1237 and ADR-1244.
         var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
         var storedResult = await store.VerifyCredentialAsync(
             userName,

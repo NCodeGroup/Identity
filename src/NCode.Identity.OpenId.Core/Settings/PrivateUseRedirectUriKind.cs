@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// reverse domain name that the application controls, such as <c>com.example.app</c> (RFC 8252 §7.1). A scheme without a
 /// period, such as <c>javascript</c>, <c>data</c>, or <c>myapp</c>, is of no kind.
 /// </remarks>
-// See ADR-0203.
+// See ADR-1203.
 internal sealed class PrivateUseRedirectUriKind : IRedirectUriKind
 {
     /// <inheritdoc />

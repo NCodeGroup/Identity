@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// are a strategy collection that a deployment extends by registering another, for example a breached-password
 /// service.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 [PublicAPI]
 public interface IPasswordBlocklist
 {

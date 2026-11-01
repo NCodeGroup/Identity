@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 /// Contains the rules for the identifier of a key in Azure Key Vault or Managed HSM: whether a value is one, and whether
 /// it names a key version.
 /// </summary>
-// See ADR-0260.
+// See ADR-1260.
 internal static partial class AzureKeyVaultKeyId
 {
     // '\z' rather than '$', which also matches before a trailing newline; the patterns accept ASCII letters and digits

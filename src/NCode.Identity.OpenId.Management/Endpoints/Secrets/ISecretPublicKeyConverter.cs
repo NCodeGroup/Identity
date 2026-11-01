@@ -34,6 +34,6 @@ internal interface ISecretPublicKeyConverter
     /// </summary>
     /// <param name="secret">The persisted secret to convert.</param>
     /// <returns>The <see cref="PublicKeyResource"/>, or <c>null</c> when the secret has no public key material.</returns>
-    // See ADR-0268.
+    // See ADR-1268.
     PublicKeyResource? Convert(PersistedSecret secret);
 }

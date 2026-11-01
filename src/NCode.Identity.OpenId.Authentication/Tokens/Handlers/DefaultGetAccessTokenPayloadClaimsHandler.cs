@@ -92,7 +92,7 @@ internal class DefaultGetAccessTokenPayloadClaimsHandler(ICryptoService cryptoSe
 
         // sid (session identifier, RFC 9068 §2.2.1): always emitted for a subject-bound access token so a resource
         // server can correlate the token to the end-user session and the OP's own endpoints can honor session-scoped
-        // revocation — the non-bypassable enabler for authorization-code-replay revocation (ADR-0112).
+        // revocation — the non-bypassable enabler for authorization-code-replay revocation (ADR-1112).
         var sessionId = tokenRequest.SubjectAuthentication?.SessionId;
         if (
             !string.IsNullOrEmpty(sessionId)

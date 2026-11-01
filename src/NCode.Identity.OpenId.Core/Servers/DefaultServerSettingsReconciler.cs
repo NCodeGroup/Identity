@@ -42,7 +42,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// while the row is unchanged. A lease that is held, a pass that fails, and a record that loses a race with a change
 /// to the row leave the settings unreconciled, so the caller tries again.
 /// </summary>
-// See ADR-0219.
+// See ADR-1219.
 internal sealed class DefaultServerSettingsReconciler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
@@ -103,7 +103,7 @@ internal sealed class DefaultServerSettingsReconciler(
         )
             return true;
 
-        // Replicas that observe one change share the key; every write to the row changes the token (ADR-0219).
+        // Replicas that observe one change share the key; every write to the row changes the token (ADR-1219).
         var leaseKey =
             $"{LeasePurpose}:{serverId}:{persistedServer.ConcurrencyToken}:{fingerprint}";
         var leaseExpiresWhen =

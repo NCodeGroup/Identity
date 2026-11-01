@@ -32,7 +32,7 @@ namespace NCode.Identity.Server.Frontend;
 /// endpoint; the tier-agnostic bundles fetch this document from their serving host at boot to discover their
 /// deployment coordinates (API base, issuer, client id, feature flags, branding), so one bundle serves every tier.
 /// </summary>
-// See ADR-0064.
+// See ADR-1064.
 internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
 {
     /// <summary>
@@ -59,7 +59,7 @@ internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
         var options = optionsAccessor.Value;
 
         // The issuer is the authority the bundle trusts, so it comes from configuration or the tenant that serves the
-        // surface, never from the request (ADR-0182).
+        // surface, never from the request (ADR-1182).
         var issuer = string.IsNullOrWhiteSpace(options.Issuer)
             ? await issuerResolver.ResolveIssuerAsync(httpContext, cancellationToken)
             : options.Issuer;

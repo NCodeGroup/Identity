@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// a descriptor has an empty name, a name that contains whitespace, or the same name as another descriptor.
 /// </para>
 /// </remarks>
-// See ADR-0207.
+// See ADR-1207.
 internal sealed class DefaultClientAuthenticationMethodCatalog : IClientAuthenticationMethodCatalog
 {
     private FrozenDictionary<

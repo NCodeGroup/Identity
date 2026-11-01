@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.Keys;
 
 // ML-DSA PKCS#8 / SubjectPublicKeyInfo DER container formats are marked [Experimental] (SYSLIB5006) in .NET 10, but
 // their encoding is fixed by the published RFC 9881 (ML-DSA X.509 / PKCS#8 algorithm identifiers) and consumed by
-// RFC 9964 (ML-DSA for JOSE). The suppression is the deliberate, documented decision in ADR-0118.
+// RFC 9964 (ML-DSA for JOSE). The suppression is the deliberate, documented decision in ADR-1118.
 #pragma warning disable SYSLIB5006
 
 /// <summary>

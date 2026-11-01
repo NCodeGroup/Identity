@@ -46,7 +46,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// implementation.
 /// </para>
 /// </remarks>
-// See ADR-0167.
+// See ADR-1167.
 [PublicAPI]
 public interface IIssuedTokenValidator
 {

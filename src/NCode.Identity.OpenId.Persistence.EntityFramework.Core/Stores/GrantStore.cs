@@ -197,7 +197,7 @@ internal class GrantStore(
             query = query.Where(entity => entity.Id > id);
         }
 
-        // The sessions that ended while no request used them. See ADR-0223.
+        // The sessions that ended while no request used them. See ADR-1223.
         var cutoff = expiredAt.ToUniversalTime();
         query = query.Where(entity =>
             entity.GrantType == grantType
@@ -223,7 +223,7 @@ internal class GrantStore(
     )
     {
         // Only active grants are touched so the operation is idempotent and the interceptor bumps the row token
-        // (ADR-0012) on exactly the rows it changes.
+        // (ADR-1012) on exactly the rows it changes.
         var query = DbContext
             .Grants.Include(entity => entity.Client)
             .Where(entity => entity.RevokedWhen == null);
@@ -249,7 +249,7 @@ internal class GrantStore(
     )
     {
         // Only active grants are touched so the operation is idempotent and the interceptor bumps the row token
-        // (ADR-0012) on exactly the rows it changes. The lineage id is an opaque resource id matched verbatim.
+        // (ADR-1012) on exactly the rows it changes. The lineage id is an opaque resource id matched verbatim.
         var entities = await DbContext
             .Grants.Where(entity =>
                 entity.RevokedWhen == null && entity.RefreshTokenLineageId == refreshTokenLineageId
@@ -291,7 +291,7 @@ internal class GrantStore(
     }
 
     /// <inheritdoc />
-    // See ADR-0218.
+    // See ADR-1218.
     public async ValueTask<int> RemoveEndedBeforeAsync(
         DateTimeOffset endedBefore,
         IReadOnlyCollection<string> grantTypesEndedByRevocation,
@@ -305,7 +305,7 @@ internal class GrantStore(
         var cutoff = endedBefore.ToUniversalTime();
         var endedByRevocation = grantTypesEndedByRevocation.ToList();
 
-        // The prune never removes a session that was not terminated. See ADR-0223.
+        // The prune never removes a session that was not terminated. See ADR-1223.
         var entities = await DbContext
             .Grants.Where(entity =>
                 entity.RevokedWhen < cutoff
@@ -454,7 +454,7 @@ internal class GrantStore(
             );
         }
 
-        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-1012).
         grantEntity.ExpiresWhen = persistedGrant.ExpiresWhen;
         grantEntity.RevokedWhen = persistedGrant.RevokedWhen;
         grantEntity.ConsumedWhen = persistedGrant.ConsumedWhen;

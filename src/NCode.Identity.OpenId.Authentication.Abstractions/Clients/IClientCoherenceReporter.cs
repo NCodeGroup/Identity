@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// The reporter only reads. It reports what it finds and changes no client, so a caller acts on the report in its own
 /// right.
 /// </remarks>
-// See ADR-0233.
+// See ADR-1233.
 [PublicAPI]
 public interface IClientCoherenceReporter
 {

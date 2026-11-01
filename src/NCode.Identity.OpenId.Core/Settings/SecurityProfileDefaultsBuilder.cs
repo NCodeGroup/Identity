@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 /// <param name="profileName">The name of the profile whose defaults are built, used to name it in an error.</param>
 /// <param name="defaults">The collection that receives the profile's default settings.</param>
-// See ADR-0148 (a profile's defaults apply beneath the selecting scope's own values).
+// See ADR-1148 (a profile's defaults apply beneath the selecting scope's own values).
 internal sealed class SecurityProfileDefaultsBuilder(
     string profileName,
     ISettingCollection defaults

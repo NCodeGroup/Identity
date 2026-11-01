@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <see cref="RateLimitDescriptor.Stage"/> of its descriptors and passes the same name when it asks the request rate
 /// limiter to judge it.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 [PublicAPI]
 public static class RateLimitStages
 {

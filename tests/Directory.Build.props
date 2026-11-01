@@ -7,7 +7,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <!-- Test projects are NOT exempt from the warning gate: warnings-as-errors is inherited from the root.
-         See ADR-0127 — the criterion is "code we maintain", not "code we ship", and the xunit.analyzers rules
+         See ADR-1127 — the criterion is "code we maintain", not "code we ship", and the xunit.analyzers rules
          in particular report real defects in the tests themselves. Relax an individual rule via the justified
          [tests/**/*.cs] block in .editorconfig; never by reintroducing TreatWarningsAsErrors=false. -->
     <!-- Roslyn only runs IDE0005 (unnecessary usings) when a documentation file is generated, and hard-errors
@@ -19,7 +19,7 @@
   </PropertyGroup>
 
   <!-- The Definition of Done (dod.ps1) writes one JUnit report per test assembly to artifacts/test-results via the JUnit
-       test logger; build/test-report.ps1 presents them and CI uploads them to Codecov (ADR-0143). -->
+       test logger; build/test-report.ps1 presents them and CI uploads them to Codecov (ADR-1143). -->
   <ItemGroup>
     <PackageReference Include="JunitXml.TestLogger" />
   </ItemGroup>

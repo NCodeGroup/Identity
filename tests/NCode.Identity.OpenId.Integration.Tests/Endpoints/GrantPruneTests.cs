@@ -28,7 +28,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// Grants that ended before their retention are removed by the host's hosted service (ADR-0218).
+// Grants that ended before their retention are removed by the host's hosted service (ADR-1218).
 public class GrantPruneTests
 {
     private const string GrantType = "authorization_code";

@@ -28,7 +28,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A retired setting stays registered until a later release removes it: a stored document that carries it loads, an
-// update may keep or remove it, and a write that adds it is refused. See ADR-0251.
+// update may keep or remove it, and a write that adds it is refused. See ADR-1251.
 public class RetiredSettingTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

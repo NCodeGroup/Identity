@@ -27,7 +27,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A committed change to the server's settings takes effect on the replica that made it before the write returns, not at
-// its next poll (ADR-0219).
+// its next poll (ADR-1219).
 public class ServerSettingsConvergenceTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

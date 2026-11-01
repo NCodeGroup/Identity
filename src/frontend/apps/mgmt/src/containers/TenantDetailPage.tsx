@@ -21,9 +21,9 @@ type TenantTabProps = {
 
 /**
  * Container: the current tenant's own secrets, settings, or usage surface (as opposed to its clients'), as the
- * `surface` prop names. The address bar selects the surface (ADR-0255), so this page holds no tab state. Wires the
+ * `surface` prop names. The address bar selects the surface (ADR-1255), so this page holds no tab state. Wires the
  * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab} to the tenant, and shows the tenant's usage ledger
- * (ADR-0199) through {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays
+ * (ADR-1199) through {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays
  * structural (a tenant administrator can never address another tenant).
  */
 export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {

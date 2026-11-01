@@ -88,7 +88,7 @@ public static class DeveloperCorsRegistration
             var isDevelopment = hostEnvironment.IsDevelopment();
 
             // ValidateOnStart materializes the options as the host starts, so an origin that can never match stops the
-            // host before it accepts traffic (ADR-0137).
+            // host before it accepts traffic (ADR-1137).
             serviceCollection
                 .AddOptions<DeveloperCorsOptions>()
                 .Configure(options => section.BindStrictly(options))

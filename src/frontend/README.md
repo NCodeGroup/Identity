@@ -2,7 +2,7 @@
 
 A single, cohesive TypeScript presentation platform shared by every NCode.Identity UI surface —
 Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision record:
-[ADR-0064](../../docs/decisions/0064-frontend-presentation-platform.md).
+[ADR-1064](../../docs/decisions/1064-frontend-presentation-platform.md).
 
 > **Monorepo now, clean split later.** This lives in the monorepo under `src/frontend/` today. At GA
 > the repo may be reorganized, so every shared concern is a scoped `@ncode/*` package consumed only
@@ -27,24 +27,24 @@ runner uses the exact same pnpm. Node no longer bundles Corepack, so nothing act
 npm, and CI installs it with `pnpm/action-setup`. A globally installed pnpm 10 or later also switches to the pinned
 version by itself. The pin stays on the newest pnpm major Dependabot supports (10), and Dependabot does not bump it, so
 it moves only by a deliberate change (issue [#153](https://github.com/NCodeGroup/Identity/issues/153),
-[ADR-0152](../../docs/decisions/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+[ADR-1152](../../docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
 
 Every pnpm setting lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml), not `.npmrc` or the `package.json` `pnpm`
 field. Dependency install scripts are denied unless reviewed: `strictDepBuilds` fails an install on any script nobody
 has decided about, and `allowBuilds` records each decision. A version must also be published for three days before pnpm
 resolves it (`minimumReleaseAge`), the same window Dependabot waits for its npm updates
-([ADR-0153](../../docs/decisions/0153-one-release-age-window-gates-frontend-dependencies.md)).
+([ADR-1153](../../docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)).
 
 We deliberately use pnpm's strict, symlinked `node_modules` rather than Yarn Plug'n'Play or
 zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack and zero-installs would
-bloat the repo (see [ADR-0064](../../docs/decisions/0064-frontend-presentation-platform.md)).
+bloat the repo (see [ADR-1064](../../docs/decisions/1064-frontend-presentation-platform.md)).
 
 The Node major version is pinned once, in [`.node-version`](.node-version) (Node 26). CI reads it
 (`node-version-file`), the Aspire AppHost and `build/frontend-install.ps1` read it to select the NVS install, and NVS
 and fnm honor it, so each repo selects its own Node (nvm reads only `.nvmrc`). `engines.node` states the same
 major as the floor — it is also what makes Turborepo's cache miss when the runtime changes — and `@types/node` tracks
 that major, not the newest release
-([ADR-0147](../../docs/decisions/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
+([ADR-1147](../../docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
 new major changes `.node-version`, `engines.node`, the `@types/node` ranges, and the Node image of the host
 [`Dockerfile`](../NCode.Identity.OpenId.Host/Dockerfile) together; the `Host image` workflow checks that image's
 major. With NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in
@@ -80,7 +80,7 @@ src/frontend/
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
     playground/   @ncode/app-playground — OAuth 2.1 / OIDC authorization-code + PKCE flow explorer (dev server :5174)
     conformance/  @ncode/app-conformance — Security-posture & conformance-readiness dashboard (dev server :5175)
-    conformance-runner/ @ncode/app-conformance-runner — headless CLI probing the confidential/server-initiated legs (ADR-0084 Phase 3)
+    conformance-runner/ @ncode/app-conformance-runner — headless CLI probing the confidential/server-initiated legs (ADR-1084 Phase 3)
 ```
 
 ## Architectural invariants
@@ -94,7 +94,7 @@ src/frontend/
    (`apps/*/src/containers/`) and the shell, which wire Redux + RTK Query and pass plain props down. A container that
    more than one surface needs (the runtime-config `BootstrapGate`) lives in `@ncode/shell`, the one package that may
    depend on both `@ncode/store` and `@ncode/ui`: `@ncode/ui` stays store-free and `@ncode/store` stays UI-free
-   ([ADR-0156](../../docs/decisions/0156-shared-app-shell-containers-live-in-ncode-shell.md)).
+   ([ADR-1156](../../docs/decisions/1156-shared-app-shell-containers-live-in-ncode-shell.md)).
 3. **UI-free services/logic are unit-tested directly.** Validation, discovery parsing, PKCE, and the
    global-vs-tenant boundary rules live in plain modules (`@ncode/config`, `@ncode/api/scope`) with
    their own Vitest suites.
@@ -107,7 +107,7 @@ src/frontend/
 7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
    surface (`apps/auth`) reads its tenant's branding from the JSON block the host embeds in every page it
    serves with the bundle (`<script type="application/json" id="branding">`, `BRANDING_ELEMENT_ID`), parses
-   it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-0194, ADR-0253).
+   it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-1194, ADR-1253).
 8. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
    standardizing on the single most capable mechanism (unions, intersections, mapped/conditional
    types) rather than mixing the two.
@@ -132,9 +132,9 @@ pnpm build                # build all packages/apps
 
 ### Test gates — warnings are errors
 
-A green run means more than "no assertion failed" ([ADR-0151](../../docs/decisions/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+A green run means more than "no assertion failed" ([ADR-1151](../../docs/decisions/1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
 The gates are set once, in the [`@ncode/vite-config`](packages/vite-config) preset that every workspace's Vite or Vitest
-config calls with its own coverage floors ([ADR-0157](../../docs/decisions/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)):
+config calls with its own coverage floors ([ADR-1157](../../docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)):
 
 - **A test that logs `console.error` or `console.warn` fails.** Every workspace's `vitest.setup.ts` registers
   `failOnConsole` from [`@ncode/test-support`](packages/test-support). The usual cause is a React
@@ -172,7 +172,7 @@ served:
   .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ coverage })`, which
   builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
   `<base href>` there. The host serves only the bundle's `assets` directory, its content-hashed files, and marks them
-  immutable, so the preset pins `build.assetsDir` to `assets` (ADR-0254).
+  immutable, so the preset pins `build.assetsDir` to `assets` (ADR-1254).
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
@@ -213,7 +213,7 @@ unfinished load and starts over.
 > `?surface=` (for example `/config/bootstrap.json?surface=playground`). The host maps that to a per-surface override
 > (`FrontendBootstrapOptions.Surfaces`) so every surface gets its **own** public client id and scopes from the one
 > endpoint — the Playground discovers `playground-spa`, while the read-only conformance dashboard gets no client at all
-> ([ADR-0082](../../docs/decisions/0082-playground-and-conformance-surfaces.md)). A surface with no override, or no
+> ([ADR-1082](../../docs/decisions/1082-playground-and-conformance-surfaces.md)). A surface with no override, or no
 > `?surface=`, receives the host default (the Management console's). `SurfaceKind` is an open vocabulary: it lists the
 > shipped surfaces but accepts any name, so a new surface needs only its host override, not a change to
 > `@ncode/config`.
@@ -223,7 +223,7 @@ single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the
 `MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding). An unset
 issuer is the issuer of the tenant that serves the surface — never the request's origin — and an unset API base is the
 serving request's own origin, so a single-origin host needs no configuration
-([ADR-0182](../../docs/decisions/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
+([ADR-1182](../../docs/decisions/1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.
@@ -231,14 +231,14 @@ serving request's own origin, so a single-origin host needs no configuration
   Vite dev server **proxies** `/config/bootstrap.json` to the OP host instead of shipping a static copy (the
   `bootstrapHost` of `defineStandaloneSurfaceConfig` in [`@ncode/vite-config`](packages/vite-config/src/preset.ts)).
   The proxy target comes from the Aspire service-discovery variable the surface's resource receives via
-  `WithReference(api)` ([ADR-0071](../../docs/decisions/0071-aspire-local-dev-orchestrator.md)), falling back to the pinned
+  `WithReference(api)` ([ADR-1071](../../docs/decisions/1071-aspire-local-dev-orchestrator.md)), falling back to the pinned
   origin (`https://localhost:5001`) when run outside Aspire — so local dev exercises the real runtime endpoint.
 
 ## Authentication (authorization-code + PKCE)
 
 The Management console authenticates with OAuth 2.0 **authorization-code + PKCE** to obtain a
 `urn:ncode:management`-audience access token (authority is role-based `GlobalAdmin`; any management
-scope binds the audience — see [ADR-0044](../../docs/decisions/0044-management-api-authentication-and-globaladmin-bootstrap.md)).
+scope binds the audience — see [ADR-1044](../../docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md)).
 
 - `@ncode/auth` is a framework-free, fully unit-tested package: PKCE (`generateCodeVerifier`,
   `deriveCodeChallenge`), the authorize redirect, `state` CSRF validation, `exchangeCodeForToken` /
@@ -253,13 +253,13 @@ scope binds the audience — see [ADR-0044](../../docs/decisions/0044-management
   `DeveloperInteractiveSeed:SpaClients` (seeded by `AddDeveloperInteractiveSeed`), beside the `Frontend` section that
   publishes the same client id; the reference host does both in its `appsettings.Development.json`, where
   `playground-spa` requires consent so the flow explorer exercises the consent surface. The seed has no built-in
-  clients ([ADR-0146](../../docs/decisions/0146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)),
+  clients ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)),
   so a surface you add needs both entries.
 
 ## Running the full stack (VS Code F5)
 
 Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a **.NET Aspire** AppHost
-([ADR-0071](../../docs/decisions/0071-aspire-local-dev-orchestrator.md)) that orchestrates the whole local stack
+([ADR-1071](../../docs/decisions/1071-aspire-local-dev-orchestrator.md)) that orchestrates the whole local stack
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
 Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
 conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
@@ -275,7 +275,7 @@ first on `PATH` for the frontend resources — no global `nvs link` required. Be
 also checks the toolchain and **stops at startup** (naming `build/frontend-install.ps1`) when no Node of the pinned
 major is available, or when `node_modules` was installed by another pnpm than the `packageManager` pin or before the
 last `pnpm-lock.yaml` change
-([ADR-0287](../../docs/decisions/0287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md)).
+([ADR-1287](../../docs/decisions/1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md)).
 
 > **Self-healing / repair.** If a surface fails at dev time with Vite `Failed to resolve import "react-redux"` (or any
 > workspace dependency) — the symptom of `node_modules` symlinks lost out-of-band to a branch switch, antivirus, or an
@@ -312,7 +312,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   `index.ts`), that uses only erasable syntax (`erasableSyntaxOnly`) and has no relative or workspace imports: Node
   cannot map the `.js` specifiers the other packages use to their `.ts` files. The configs that call it are not
   type-checked, so it validates its own options. Keep new presets in that module
-  ([ADR-0157](../../docs/decisions/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
+  ([ADR-1157](../../docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
 - **Turborepo re-runs a task when anything it reads changes.** A task's hash covers only its own package by default, so
   `test` and `typecheck` depend on a no-op `transit` task that links the package graph: editing an internal package
   re-runs its dependents' tests and type-checks (still in parallel), and `globalDependencies` re-runs everything when
@@ -354,13 +354,13 @@ with an error naming that script when the files are missing; under Aspire the Ap
   `writeCarriedValue` carries a value into an input from a stable ref callback: it assigns the DOM `value` property,
   never the attribute that React's `defaultValue` writes, so a carried password stays out of the markup. Never call
   `flushSync` here (`@eslint-react/dom-no-flush-sync` is an error); a root's first render is not time-sliced, so it
-  is not needed (ADR-0253).
+  is not needed (ADR-1253).
 - **The interactive bundle carries the page's Content-Security-Policy nonce.** `defineBackendServedSurfaceConfig` sets
   Vite's `html.cspNonce` to `CSP_NONCE_PLACEHOLDER`, so the build writes `nonce="__NCODE_CSP_NONCE__"` on every script
   and modulepreload link and on a `<meta property="csp-nonce">`; the host writes the response's nonce in its place, and
   `mountSurface` reads it with `readCspNonce` and gives it to the emotion cache, so MUI's `<style>` elements are
   allowed. A browser hides the `nonce` attribute once the page is parsed, so read the `nonce` property; jsdom has no
-  such property, so a test assigns `meta.nonce` itself (ADR-0256).
+  such property, so a test assigns `meta.nonce` itself (ADR-1256).
 - **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
   stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
   builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`
@@ -405,7 +405,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   [`owner.ts`](packages/api/src/owner.ts) builds each owner's API path (`ownerApiPath`) and cache tags (`ownerTagId`,
   `ownerEffectiveTagId`), and `@ncode/store` defines `listSecrets`, `getSettings` and the rest once. A new owner kind is
   a member of `ManagementOwner`, never another set of endpoints; the detail pages render `OwnerSecretsTab` and
-  `OwnerSettingsTab` (ADR-0257).
+  `OwnerSettingsTab` (ADR-1257).
 - **A query that checks live input shows its result only while the result describes that input.** RTK Query keeps
   returning the previous `data` while a query for new arguments loads, and a debounced input lags the field it reads,
   so a preview of the old input would be shown as the current one. Compare the hook's `originalArgs` with the input as
@@ -449,7 +449,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   transitive and auto-installed copy to it — without it, `auto-install-peers` resolves Vite's and Vitest's
   `@types/node` peer to the newest major in every workspace that does not declare it. Dependabot ignores its majors;
   move it only together with `.node-version` and `engines.node`
-  ([ADR-0152](../../docs/decisions/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+  ([ADR-1152](../../docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
 - **A dependency with an install script fails `pnpm install` until it is decided.** `strictDepBuilds` turns pnpm's
   "Ignored build scripts" warning into `ERR_PNPM_IGNORED_BUILDS`. Decide whether the script is needed and record it in
   `allowBuilds` in [`pnpm-workspace.yaml`](pnpm-workspace.yaml) (`true` to run it, `false` to skip it); prefer
@@ -463,7 +463,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   passes again once the version ages. When a fix cannot wait (and is not arriving as a Dependabot security update,
   which bypasses both gates), list the package in `minimumReleaseAgeExclude` with a comment and remove the entry once
   the version is three days old
-  ([ADR-0153](../../docs/decisions/0153-one-release-age-window-gates-frontend-dependencies.md)). The gate also re-checks the
+  ([ADR-1153](../../docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)). The gate also re-checks the
   locked versions a non-frozen install re-resolves, so adding a workspace or a dependency can move a locked transitive
   version younger than three days back to an older one. Review the lockfile diff for such unrelated moves. When a change
   adds no external version (a new workspace, or a workspace dependency), keep the locked versions by running that one

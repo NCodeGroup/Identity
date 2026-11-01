@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// It depends on <see cref="IOpenIdServerProvider"/>, so the server's own factory and the root settings data source,
 /// which the provider builds on, keep calling <see cref="ISecurityProfileCatalog"/> directly.
 /// </remarks>
-// See ADR-0204.
+// See ADR-1204.
 internal sealed class DefaultEffectiveSettingsResolver(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
     IOpenIdServerProvider openIdServerProvider,
@@ -93,7 +93,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
-    // See ADR-0245.
+    // See ADR-1245.
     public IReadOnlySettingCollection ResolveStored(
         IReadOnlySettingCollection parentSettings,
         string scopeName,
@@ -132,7 +132,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
-    // See ADR-0245.
+    // See ADR-1245.
     public async ValueTask<IReadOnlySettingCollection> ResolveServerAsync(
         CancellationToken cancellationToken
     )

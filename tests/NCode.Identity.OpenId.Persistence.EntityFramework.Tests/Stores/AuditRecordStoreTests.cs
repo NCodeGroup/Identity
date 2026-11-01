@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 // Adds through SQLite, because the EF InMemory provider does not enforce the unique event identifier or the foreign key
 // that ties a resource to its record, and removes through the InMemory provider, because EF's SQLite provider cannot
-// compare a DateTimeOffset in a query; the host's Npgsql provider does both (ADR-0303).
+// compare a DateTimeOffset in a query; the host's Npgsql provider does both (ADR-1303).
 public sealed class AuditRecordStoreTests : IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 29, 12, 0, 0, TimeSpan.Zero);

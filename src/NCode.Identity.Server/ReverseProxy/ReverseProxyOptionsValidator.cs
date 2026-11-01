@@ -29,7 +29,7 @@ namespace NCode.Identity.Server.ReverseProxy;
 /// headers silently ignored, so the server publishes an <c>http://</c> issuer for an internal host), and the IPv4
 /// parser's shorthand forms (<c>10.0.0</c>, <c>010.0.0.1</c>) would trust an address other than the one written.
 /// </summary>
-// See ADR-0137.
+// See ADR-1137.
 internal class ReverseProxyOptionsValidator : IValidateOptions<ReverseProxyOptions>
 {
     private const string Prefix = ReverseProxyOptions.DefaultSectionName;

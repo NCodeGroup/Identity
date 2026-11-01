@@ -6,7 +6,7 @@
     Regenerates the list of common passwords the password policy refuses.
 
 .DESCRIPTION
-    The password policy refuses a password that is on a bundled list of common passwords (ADR-0236). The list is
+    The password policy refuses a password that is on a bundled list of common passwords (ADR-1236). The list is
     derived from the UK National Cyber Security Centre's 100,000 most used passwords, as published in the SecLists
     repository at a pinned commit. The script downloads that file, verifies its SHA-256, and writes
     src/NCode.Identity.OpenId.Authentication/Passwords/common-passwords.txt: one entry per line, UTF-8 without a byte

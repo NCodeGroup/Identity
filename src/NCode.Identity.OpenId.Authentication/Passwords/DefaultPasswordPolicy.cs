@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Passwords;
 /// length the tenant's settings set, counted in Unicode code points, and then by every registered
 /// <see cref="IPasswordBlocklist"/> in order. It imposes no composition rules and does not truncate the password.
 /// </summary>
-// See ADR-0236.
+// See ADR-1236.
 internal class DefaultPasswordPolicy(IEnumerable<IPasswordBlocklist> blocklists) : IPasswordPolicy
 {
     private ImmutableArray<IPasswordBlocklist> Blocklists { get; } = [.. blocklists];
@@ -44,7 +44,7 @@ internal class DefaultPasswordPolicy(IEnumerable<IPasswordBlocklist> blocklists)
         var minLength = context.Settings.GetValue(OpenIdSettingKeys.PasswordMinLength);
         var maxLength = context.Settings.GetValue(OpenIdSettingKeys.PasswordMaxLength);
 
-        // The policy judges the NFC form, the form a store hashes. See ADR-0238.
+        // The policy judges the NFC form, the form a store hashes. See ADR-1238.
         using var lease = RentNormalized(password, out var normalized);
 
         var length = CountCodePoints(normalized.Span);

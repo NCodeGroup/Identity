@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// authenticated is always of the type it is registered as; the authorization endpoint, which does not authenticate the
 /// client, reads the registered type directly.
 /// </summary>
-// See ADR-0145.
+// See ADR-1145.
 internal static class OpenIdClientRegistrationExtensions
 {
     extension(OpenIdClient client)

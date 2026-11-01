@@ -160,7 +160,7 @@ internal class ConsentStore(
 
         if (existing is not null)
         {
-            // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
+            // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-1012).
             existing.RequestedScopesJson = requestedScopesJson;
             existing.GrantedScopesJson = scopesJson;
             existing.UpdatedWhen = consent.UpdatedWhen.ToUniversalTime();

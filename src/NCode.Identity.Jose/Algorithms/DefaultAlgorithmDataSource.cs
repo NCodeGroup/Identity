@@ -46,7 +46,7 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
         {
             #region Signature Algorithms
 
-            // The unsecured `none` algorithm (RFC 7518 §3.6) is not implemented: it proves nothing (ADR-0295).
+            // The unsecured `none` algorithm (RFC 7518 §3.6) is not implemented: it proves nothing (ADR-1295).
 
             // HMAC using SHA-2 Functions
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.2
@@ -226,7 +226,7 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
             );
 
             // RSAES-PKCS1-v1_5 (RSA1_5, RFC 7518 §4.2) is deliberately not registered: RFC 8725 §3.2 says to avoid it
-            // because of padding-oracle attacks (ADR-0282).
+            // because of padding-oracle attacks (ADR-1282).
 
             // RSA-OAEP
             // RSA-OAEP-256

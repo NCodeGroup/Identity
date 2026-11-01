@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// <summary>
 /// Provides an abstraction for a store which persists <see cref="PersistedTenant"/> instances.
 /// </summary>
-// See ADR-0169 (a tenant's keys and its system resources are part of the tenant and are removed with it).
+// See ADR-1169 (a tenant's keys and its system resources are part of the tenant and are removed with it).
 [PublicAPI]
 public interface ITenantStore : IStore<PersistedTenant>
 {
@@ -255,7 +255,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the tenant was removed; otherwise <c>false</c> when no matching tenant existed.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the tenant still has clients or resource servers.</exception>
-    // See ADR-0189 and ADR-0212.
+    // See ADR-1189 and ADR-1212.
     ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -271,7 +271,7 @@ public interface ITenantStore : IStore<PersistedTenant>
 
     /// <summary>
     /// Determines whether the specified tenant identifier belonged to a deleted tenant. A tenant identifier is never
-    /// reissued (ADR-0189).
+    /// reissued (ADR-1189).
     /// </summary>
     /// <param name="tenantId">The tenant identifier to look up.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -282,7 +282,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <summary>
     /// Gets the identifier of the tenant that gave up the specified issuer, by changing its issuer or by being deleted.
     /// Relying parties that trusted the issuer would trust any tenant that took it, so only that tenant can take it back
-    /// (ADR-0189).
+    /// (ADR-1189).
     /// </summary>
     /// <param name="issuer">The issuer to look up.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

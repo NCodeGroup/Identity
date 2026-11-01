@@ -24,7 +24,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 /// <summary>
 /// Contains the rules for the ARN of an AWS KMS key or alias: whether a value is one, and which region it names.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal static partial class AwsKmsKeyArn
 {
     // '\z' rather than '$', which also matches before a trailing newline, and '[0-9]' rather than '\d', which accepts

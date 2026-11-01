@@ -1,6 +1,6 @@
 # Discovery-metadata alignment audit
 
-Status: **implemented** ([ADR-0083](../decisions/0083-secure-by-default-discovery-metadata.md)). The OpenID Provider now
+Status: **implemented** ([ADR-1083](../decisions/1083-secure-by-default-discovery-metadata.md)). The OpenID Provider now
 advertises secure-by-default, verified capabilities, overridable by operators through configuration. This document is
 retained as the field-by-field reference and rationale. Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #4 and Appendix A).
@@ -57,12 +57,12 @@ Verify each discoverable field against actual support for the Basic/Config profi
 | `authorization_endpoint`/`token_endpoint`/`jwks_uri`/`userinfo_endpoint` | origin-relative, present                       | Emitted from `EndpointDataSource`                     |
 | `response_types_supported`                                               | `["code"]`                                     | **Drop `implicit`/hybrid** until those flows verified |
 | `grant_types_supported`                                                  | `["authorization_code","refresh_token"]`       | **Drop `implicit`**; match the seeded client's grants |
-| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented ([#47](https://github.com/NCodeGroup/Identity/issues/47), ADR-0093)                     |
+| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented ([#47](https://github.com/NCodeGroup/Identity/issues/47), ADR-1093)                     |
 | `id_token_signing_alg_values_supported`                                  | `["RS256"]`                                    | Must match the key served at `jwks_uri`               |
 | `scopes_supported`                                                       | incl. `openid`, `profile`, `email`             | Suite requests these in standard-claims tests         |
 | `claims_supported`                                                       | the claims actually returned                   | Over-advertising triggers warnings                    |
 | `token_endpoint_auth_methods_supported`                                  | `["client_secret_basic","client_secret_post"]` | Must cover both to certify Basic OP                   |
-| `code_challenge_methods_supported`                                       | `["S256"]`                                     | `plain` is not offered (ADR-0144)                     |
+| `code_challenge_methods_supported`                                       | `["S256"]`                                     | `plain` is not offered (ADR-1144)                     |
 
 ## Approach
 

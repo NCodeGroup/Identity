@@ -7,7 +7,7 @@ renaming a field or an event changes this document in the same change.
 ## Overview
 
 An operation that is audited (a token issued, a client that failed to authenticate, a configuration change) publishes an
-audit event through the event seam ([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)). Which
+audit event through the event seam ([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)). Which
 operations are audited, and their outcomes, are the same whatever sink receives the event.
 
 One record shape serves every sink:
@@ -119,7 +119,7 @@ the members in the order below.
 ## Vocabularies
 
 Every vocabulary is an open set of lower-case string names, never an enumeration
-([ADR-0150](decisions/0150-vocabularies-are-open-unless-provably-closed.md)): a package that adds an event adds its own
+([ADR-1150](decisions/1150-vocabularies-are-open-unless-provably-closed.md)): a package that adds an event adds its own
 names without editing this library. The tables list the names the library defines.
 
 ### Outcomes
@@ -348,7 +348,7 @@ events library builder, and call `AuditRecordWriter.Write` (into a `Utf8JsonWrit
 `IBufferWriter<byte>`, ref structs included, through a pooled staging buffer) for the record. The request context is
 captured when the event is published, so a sink that runs in the background after the request has completed still sees
 it. A handler that throws neither fails the audited operation nor stops the other handlers
-([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)).
+([ADR-1047](decisions/1047-auditing-and-events-observation-seam.md)).
 
 ## Indexing
 
@@ -403,7 +403,7 @@ filter Category = "NCode.Identity.Audit" and State.audit.request.trace_id = "<tr
 ### The audit store
 
 The server keeps each audit record in the `AuditRecords` table and its `AuditRecordResources` child table
-([ADR-0303](decisions/0303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)),
+([ADR-1303](decisions/1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)),
 configured by `OpenId:AuditRecords` and read through `GET api/tenants/{tenantId}/audit-records`. `Record` holds the
 whole record as JSON text, so in PostgreSQL `"Record"::jsonb` reads it, with the record's own member names and no
 `audit.` prefix. A host that sends records to its own store through a [custom sink](#custom-sinks) queries that store

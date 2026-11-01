@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// <param name="ownerId">The identifier of the server, tenant, client or resource server that owns the
 /// document.</param>
 /// <param name="innerException">The error that the settings vocabulary reported for the document.</param>
-// See ADR-0245.
+// See ADR-1245.
 [PublicAPI]
 public sealed class UnreadableSettingsException(
     string scopeName,

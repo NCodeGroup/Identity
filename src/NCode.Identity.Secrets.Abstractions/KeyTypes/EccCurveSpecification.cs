@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// <see cref="System.Security.Cryptography.ECCurve"/> used to generate and name keys. This is the single source of
 /// truth for elliptic curves, shared by key generation and <c>JWK</c> publication.
 /// </summary>
-// See ADR-0068.
+// See ADR-1068.
 [PublicAPI]
 public sealed class EccCurveSpecification
 {

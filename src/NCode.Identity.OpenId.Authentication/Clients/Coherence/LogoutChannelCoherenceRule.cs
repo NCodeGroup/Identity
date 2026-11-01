@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 /// <c>frontchannel_logout_session_required</c>, needs the matching <c>*_session_supported</c>. Without this rule the
 /// server would advertise one thing in discovery and deliver another, or never deliver what the client waits for.
 /// </summary>
-// See ADR-0206 and ADR-0088.
+// See ADR-1206 and ADR-1088.
 internal sealed class LogoutChannelCoherenceRule : IClientCoherenceRule
 {
     private static string[] LogoutSettingNames { get; } =

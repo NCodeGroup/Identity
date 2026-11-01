@@ -32,7 +32,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 /// profile, container credentials or instance credentials) on its first request, so creating a client never fails
 /// for lack of credentials; the first call that uses one does.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 [ExcludeFromCodeCoverage(
     Justification = "Creates AWS SDK clients; a passthrough to AWSSDK.KeyManagementService."
 )]

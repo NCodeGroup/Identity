@@ -36,7 +36,7 @@ namespace NCode.Identity.OpenId.Accounts.Credentials;
 /// Normalization Form C (NFC) of the password, and verifies a stored hash of the password as submitted as a fallback
 /// that requests a rehash.
 /// </summary>
-// See ADR-0238.
+// See ADR-1238.
 internal sealed class DefaultPasswordHasher : IPasswordHasher
 {
     private const string SchemeId = "ncode-pbkdf2-sha256";
@@ -68,7 +68,7 @@ internal sealed class DefaultPasswordHasher : IPasswordHasher
     private static string CreateDummyPasswordHash(PasswordHasherOptions options)
     {
         // A random salt and key at the current iterations: verifying against it costs what verifying a stored hash
-        // of the current parameters costs, and no known password matches it. See ADR-0239.
+        // of the current parameters costs, and no known password matches it. See ADR-1239.
         Span<byte> salt = stackalloc byte[options.SaltByteCount];
         Span<byte> key = stackalloc byte[options.HashByteCount];
         RandomNumberGenerator.Fill(salt);
@@ -111,7 +111,7 @@ internal sealed class DefaultPasswordHasher : IPasswordHasher
         }
 
         // A stored hash of the password as submitted still verifies and is reported for a rehash, so the store
-        // replaces it with a hash of the NFC form. See ADR-0238.
+        // replaces it with a hash of the NFC form. See ADR-1238.
         var submittedResult = VerifyCore(hashedPassword, password);
         return submittedResult == PasswordVerificationResult.Failed
             ? PasswordVerificationResult.Failed
@@ -210,7 +210,7 @@ internal sealed class DefaultPasswordHasher : IPasswordHasher
         if (!TryParse(hashedPassword, out var iterations, out var salt, out var expectedHash))
         {
             // A stored hash this hasher cannot read takes as long to refuse as a wrong password. The dummy hash always
-            // reads, so this recursion is one level deep. See ADR-0239.
+            // reads, so this recursion is one level deep. See ADR-1239.
             _ = VerifyCore(DummyPasswordHash, password);
             return PasswordVerificationResult.Failed;
         }

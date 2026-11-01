@@ -32,7 +32,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// so a contributed signature algorithm can hash with any of them. <c>MD5</c> is refused by name because its collision
 /// resistance is broken (<c>RFC 6151</c>).
 /// </remarks>
-// See ADR-0190 and ADR-0150.
+// See ADR-1190 and ADR-1150.
 [PublicAPI]
 public static class HashAlgorithmNameExtensions
 {

@@ -329,7 +329,7 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         bool expected
     )
     {
-        // A response is signed with an asymmetric key and encrypted to the client's public key (ADR-0155).
+        // A response is signed with an asymmetric key and encrypted to the client's public key (ADR-1155).
         var dataSource = CreateDataSource();
         var descriptor = GetDescriptor(dataSource, settingName);
 

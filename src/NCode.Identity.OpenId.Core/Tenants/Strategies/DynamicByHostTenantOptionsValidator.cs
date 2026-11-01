@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Tenants.Strategies;
 /// options of an unselected strategy are inert, and a layered configuration may legitimately carry them, so they are
 /// skipped.
 /// </summary>
-// See ADR-0137 (fail at startup), ADR-0160 (the same rules apply to tenants written at runtime), and ADR-0165 (every
+// See ADR-1137 (fail at startup), ADR-1160 (the same rules apply to tenants written at runtime), and ADR-1165 (every
 // served tenant has an issuer, and its strategy supplies the default).
 internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantResolutionOptions>
 {
@@ -123,7 +123,7 @@ internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantReso
         );
     }
 
-    // See ADR-0195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    // See ADR-1195 (a tenant's mTLS endpoint alias is a routed tenant property).
     private static void ValidateMtlsEndpointAliasTemplate(
         DynamicByHostTenantOptions options,
         Regex hostPattern,

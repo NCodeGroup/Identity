@@ -33,7 +33,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 /// unreachable, or another replica updated one of its entries first — is held and retried under its number before any
 /// new usage is drained, so each batch is added to the ledger once.
 /// </summary>
-// See ADR-0199 and ADR-0209.
+// See ADR-1199 and ADR-1209.
 internal sealed class TenantUsageFlushService(
     DefaultTenantUsageRecorder recorder,
     IStoreManagerFactory storeManagerFactory,
@@ -288,7 +288,7 @@ internal sealed class TenantUsageFlushService(
         }
         catch (StoreConcurrencyException)
         {
-            // Another replica removed rows of this batch first, which is progress, so read the next batch. See ADR-0213.
+            // Another replica removed rows of this batch first, which is progress, so read the next batch. See ADR-1213.
             return BatchSize;
         }
 

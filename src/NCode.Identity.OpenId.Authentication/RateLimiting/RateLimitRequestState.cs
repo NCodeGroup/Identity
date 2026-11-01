@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// the meters unless a stage refused the request. The state lives in <see cref="HttpContext.Items"/>, so it ends with
 /// the request.
 /// </summary>
-// See ADR-0246.
+// See ADR-1246.
 internal sealed class RateLimitRequestState
 {
     /// <summary>

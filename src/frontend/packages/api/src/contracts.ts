@@ -235,7 +235,7 @@ export type GrantRevocationResult = {
 
 /**
  * Mirror of `SecretResource` — metadata-only projection of a persisted secret. The key material is never
- * returned by a read path; only {@link CreatedSecretResource} carries it, once, at creation (ADR-0050).
+ * returned by a read path; only {@link CreatedSecretResource} carries it, once, at creation (ADR-1050).
  * Timestamps are ISO-8601 strings on the wire.
  */
 export type SecretResource = {
@@ -275,7 +275,7 @@ export type CreateSecretRequest = {
 
 /**
  * Mirror of `RotateSecretRequest`. The server generates a replacement of the rotated client secret's type, size,
- * use, and algorithm; `expiresWhen` is the replacement's ISO-8601 expiry. See ADR-0183.
+ * use, and algorithm; `expiresWhen` is the replacement's ISO-8601 expiry. See ADR-1183.
  */
 export type RotateSecretRequest = {
   readonly expiresWhen: string;
@@ -284,7 +284,7 @@ export type RotateSecretRequest = {
 /**
  * Mirror of `CreatedSecretResource` — the create response. It carries the same metadata as
  * {@link SecretResource} plus `secretMaterial`: the one-time, base64url-encoded key material revealed only
- * here and never again (`null` for asymmetric secrets, which have no externally-held material). See ADR-0050.
+ * here and never again (`null` for asymmetric secrets, which have no externally-held material). See ADR-1050.
  */
 export type CreatedSecretResource = SecretResource & {
   readonly secretMaterial: string | null;
@@ -294,7 +294,7 @@ export type CreatedSecretResource = SecretResource & {
  * Mirror of `PublicKeyResource` — the public key material of an asymmetric secret, in two representations:
  * `jwk` (an RFC 7517 JSON Web Key carrying only the public members, the same shape the JWKS endpoint publishes)
  * and `pem` (a `SubjectPublicKeyInfo` PEM string). No private material is ever included; only asymmetric secrets
- * (`rsa`, `ecc`) expose this sub-resource. See ADR-0058.
+ * (`rsa`, `ecc`) expose this sub-resource. See ADR-1058.
  */
 export type PublicKeyResource = {
   readonly secretId: string;
@@ -369,7 +369,7 @@ export type EffectiveSettingsResource = {
 };
 
 /**
- * Mirror of `TenantUsageEntry` — one row of the durable usage ledger (ADR-0199): a tenant's `count` of a `meter` (an
+ * Mirror of `TenantUsageEntry` — one row of the durable usage ledger (ADR-1199): a tenant's `count` of a `meter` (an
  * open vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).
  */
 export type TenantUsageEntry = {
@@ -393,7 +393,7 @@ export type TenantUsageResource = {
  * Mirror of `CreateInitialAccessTokenRequest` (RFC 7591). Mints a token that authorizes its bearer to register a new
  * client at the protected dynamic client registration endpoint. `description` is an optional administrative note;
  * `lifetimeSeconds` is an optional lifetime (`null` means a one-day lifetime; at most 30 days). `resourceServerId`
- * scopes the token to a resource server, so the client it registers is bound to it and introspects for it (ADR-0192).
+ * scopes the token to a resource server, so the client it registers is bound to it and introspects for it (ADR-1192).
  */
 export type CreateInitialAccessTokenRequest = {
   readonly description: string | null;
@@ -403,7 +403,7 @@ export type CreateInitialAccessTokenRequest = {
 
 /**
  * Mirror of `CreatedInitialAccessTokenResource` — the mint response. The `initialAccessToken` plaintext is revealed
- * exactly once here and never again (the grant store persists only its salted hash, like ADR-0050 secret material).
+ * exactly once here and never again (the grant store persists only its salted hash, like ADR-1050 secret material).
  * `grantId` addresses the backing grant for later revocation; `expiresWhen` is when the single-use token expires.
  * `resourceServerId` is the resource server the token is scoped to, if any. Timestamps are ISO-8601 strings on the
  * wire.

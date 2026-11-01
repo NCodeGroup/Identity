@@ -176,7 +176,7 @@ internal class ClientGrantApiEndpointHandler(
         };
 
         // Core preconditions (authorization + resource-server existence + scope-subset + uniqueness) are asserted by
-        // the validator (ADR-0014).
+        // the validator (ADR-1014).
         var error = await ClientGrantValidator.ValidateCreateAsync(
             httpContext.User,
             grant,
@@ -226,7 +226,7 @@ internal class ClientGrantApiEndpointHandler(
         }
 
         // Core preconditions (authorization + resource-server existence + scope-subset) are asserted by the
-        // validator (ADR-0014).
+        // validator (ADR-1014).
         var error = await ClientGrantValidator.ValidateUpdateAsync(
             httpContext.User,
             grant,

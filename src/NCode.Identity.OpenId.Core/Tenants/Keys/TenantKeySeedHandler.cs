@@ -42,7 +42,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// papered over with a new key. New keys are protected under the tenant's master key, which is loaded only when a key
 /// has to be generated.
 /// </remarks>
-// See ADR-0166 (every tenant is seeded through one pipeline) and ADR-0169 (every tenant is provisioned with persisted
+// See ADR-1166 (every tenant is seeded through one pipeline) and ADR-1169 (every tenant is provisioned with persisted
 // keys).
 internal class TenantKeySeedHandler(
     IOptions<OpenIdOptions> optionsAccessor,
@@ -150,7 +150,7 @@ internal class TenantKeySeedHandler(
     }
 
     // The tenant's settings materialize only after the seed, so the seed resolves the tenant's persisted document onto
-    // the server's committed settings through the resolver, as the materialized tenant will (see ADR-0204).
+    // the server's committed settings through the resolver, as the materialized tenant will (see ADR-1204).
     private async ValueTask<IReadOnlySettingCollection> GetEffectiveSettingsAsync(
         PersistedTenant tenant,
         CancellationToken cancellationToken

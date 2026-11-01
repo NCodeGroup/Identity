@@ -29,7 +29,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// The catalog is independent of the <see cref="IClientAuthenticationHandler"/> implementations, so reading it
 /// constructs no handler.
 /// </remarks>
-// See ADR-0207.
+// See ADR-1207.
 [PublicAPI]
 public interface IClientAuthenticationMethodCatalog
 {

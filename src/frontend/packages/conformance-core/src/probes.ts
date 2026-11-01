@@ -3,7 +3,7 @@
  *
  * Where the spec-coverage matrix ([coverage.ts](./coverage.ts)) reports what a provider *advertises*, these probes
  * actively exercise the browser-drivable, CORS-reachable endpoints to turn *advertised* into *verified* — or flag a
- * row as *advertised but broken*. They are the first slice of the Phase 2 active-probe track (ADR-0084); the legs that
+ * row as *advertised but broken*. They are the first slice of the Phase 2 active-probe track (ADR-1084); the legs that
  * require a confidential client, a client certificate, or an interactive login session are left to the headless probe
  * runner (Phase 3). Every probe is a plain async function over an injected fetch so the harness stays deterministic
  * and testable without a network.

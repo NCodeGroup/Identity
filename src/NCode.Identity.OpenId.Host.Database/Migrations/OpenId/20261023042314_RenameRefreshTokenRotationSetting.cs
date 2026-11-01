@@ -6,7 +6,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     [ContractMigration(
-        "Shipped before any release, so no running release reads 'refresh_token_rotation_enabled' (ADR-0216, ADR-0025)."
+        "Shipped before any release, so no running release reads 'refresh_token_rotation_enabled' (ADR-1216, ADR-1025)."
     )]
     public partial class RenameRefreshTokenRotationSetting : Migration
     {
@@ -28,10 +28,10 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // The previous release keeps serving while this migration is applied (ADR-0180), so this data rewrite is a
-            // contract step (ADR-0250). That release fails closed on a document that carries
+            // The previous release keeps serving while this migration is applied (ADR-1180), so this data rewrite is a
+            // contract step (ADR-1250). That release fails closed on a document that carries
             // 'refresh_token_rotation_policy', because a stored document that names a setting the release does not
-            // know fails to load (ADR-0139). Such a document is refused until the rollout completes.
+            // know fails to load (ADR-1139). Such a document is refused until the rollout completes.
             //
             // Every rewritten document gets a new settings concurrency token, as any other settings write does. A
             // document that is not a JSON object is left as is, rather than guessing at its intent.

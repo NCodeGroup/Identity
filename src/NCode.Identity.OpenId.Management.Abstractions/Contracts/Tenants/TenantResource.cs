@@ -57,7 +57,7 @@ public sealed class TenantResource : ISupportTenantId, ISupportConcurrencyToken
     /// so that a tenant whose settings need repair is still listed. Read-only; a tenant declares its environment
     /// through its settings. An audit record's resource values carry only the tenant's own state, so they omit it.
     /// </summary>
-    // See ADR-0245 and ADR-0289.
+    // See ADR-1245 and ADR-1289.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TenantEnvironmentResource? Environment { get; init; }
 }

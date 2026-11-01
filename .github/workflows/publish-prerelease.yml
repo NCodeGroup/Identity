@@ -1,10 +1,10 @@
-# Publish prerelease packages — pushes the family's prerelease NuGet packages to nuget.org (issue #324, ADR-0302).
+# Publish prerelease packages — pushes the family's prerelease NuGet packages to nuget.org (issue #324, ADR-1302).
 #
 # A prerelease publishes from a prerelease tag (`v0.1.0-alpha`, `v1.0.0-rc.1`) on main or a release line, or from a
 # manual run on main; never from every merge, which would flood nuget.org with versions nobody asked for. Releases are
 # signed and published from a release tag by a separate workflow (issue #184), so this one refuses a release version.
 #
-# Two jobs, so the job that runs third-party build and test code never holds a publishing credential (ADR-0143):
+# Two jobs, so the job that runs third-party build and test code never holds a publishing credential (ADR-1143):
 #   - build runs the full Definition of Done, which packs every shippable project, checks the packages carry one
 #     prerelease version that the tag, if any, names, and uploads them;
 #   - publish runs in the protected `nuget` environment, exchanges the job's OIDC token for a short-lived nuget.org API

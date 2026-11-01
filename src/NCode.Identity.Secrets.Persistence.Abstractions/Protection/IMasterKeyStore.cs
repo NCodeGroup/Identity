@@ -29,7 +29,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// A master key is not scoped to a tenant because the master key of the server has no tenant, so every query
 /// identifies the owner explicitly.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 [PublicAPI]
 public interface IMasterKeyStore : IStore<PersistedMasterKey>
 {

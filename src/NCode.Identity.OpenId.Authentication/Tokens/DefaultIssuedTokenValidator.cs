@@ -37,7 +37,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// the lists of the client and resource servers it was issued for, which narrow the tenant's lists by intersection, so
 /// the tenant's lists admit every token it issued and no algorithm it does not permit.
 /// </remarks>
-// See ADR-0167 (closing the follow-ups of ADR-0154 and ADR-0158, and the introspection clause of ADR-0112).
+// See ADR-1167 (closing the follow-ups of ADR-1154 and ADR-1158, and the introspection clause of ADR-1112).
 internal class DefaultIssuedTokenValidator(
     IJwtValidator jwtValidator,
     ISessionService sessionService

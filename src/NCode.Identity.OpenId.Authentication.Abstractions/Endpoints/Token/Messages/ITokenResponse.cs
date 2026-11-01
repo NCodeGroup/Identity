@@ -52,7 +52,7 @@ public interface ITokenResponse : IOpenIdResponse
     /// family expires, however often its tokens are used or rotated. It never grows within a family, so a client may
     /// bound a session by it.
     /// </summary>
-    // See ADR-0297.
+    // See ADR-1297.
     TimeSpan? RefreshTokenExpiresIn { get; set; }
 
     /// <summary>

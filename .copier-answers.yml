@@ -1,5 +1,5 @@
 # Written by Copier; never edit by hand. Change an answer with .template\Update-Project.ps1 -Data.
-_commit: v0.49.0
+_commit: v0.53.0
 _src_path: https://github.com/NCodeGroup/project-template.git
 author_name: NCode Group
 build_command: ./build/dod.ps1 -Fast -SkipTests
@@ -14,6 +14,7 @@ project_owned_files:
 - .github/workflows/ci.yml
 - Directory.Packages.props
 - global.json
+- build/dod.ps1
 stack: dotnet
 test_command: ./build/dod.ps1 -Fast
 workflow_tools:

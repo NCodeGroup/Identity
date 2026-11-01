@@ -200,7 +200,7 @@ public class TenantKeyProvisioningTests
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
-        // Provisioned when the tenant is created, before anything requests it (ADR-0166, ADR-0169).
+        // Provisioned when the tenant is created, before anything requests it (ADR-1166, ADR-1169).
         var provisioned = await GetSecretIdsAsync(factory, "acme");
         Assert.Equal(3, provisioned.Count);
 
@@ -237,7 +237,7 @@ public class TenantKeyProvisioningTests
         var createBody = await createResponse.Content.ReadAsStringAsync();
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
 
-        // FAPI 2.0 permits PS256 and ES256 only, so the tenant holds and publishes no RS256 key (ADR-0169 decision 9).
+        // FAPI 2.0 permits PS256 and ES256 only, so the tenant holds and publishes no RS256 key (ADR-1169 decision 9).
         var keys = await GetJwksAsync(client, host: "acme.auth.test");
         Assert.Equal(
             ["ES256", "PS256"],
@@ -276,7 +276,7 @@ public class TenantKeyProvisioningTests
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
         // Restoring the default lists permits ES256 again; the reconciliation of the server's settings seeds it for the
-        // tenant (ADR-0219), so the key arrives after the PATCH returns.
+        // tenant (ADR-1219), so the key arrives after the PATCH returns.
         await PatchServerSettingsAsync(client, operation: "remove", value: null);
 
         var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
@@ -318,7 +318,7 @@ public class TenantKeyProvisioningTests
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
         // A configuration reload that adds ES256 to every list permits it; the reconciliation of the server's settings
-        // seeds the key for the tenant (ADR-0219), though nothing was written through the management API.
+        // seeds the key for the tenant (ADR-1219), though nothing was written through the management API.
         var configuration = (IConfigurationRoot)
             factory.Services.GetRequiredService<IConfiguration>();
         foreach (var name in SigningListNames)
@@ -358,7 +358,7 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(3, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // The tenant's keys are part of it, so they no longer block its deletion (ADR-0169).
+        // The tenant's keys are part of it, so they no longer block its deletion (ADR-1169).
         using var deleteResponse = await client.DeleteAsync("/api/tenants/acme");
         var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
         Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);

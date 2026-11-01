@@ -24,7 +24,7 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 
 // WORKER: a one-shot Aspire resource that applies the host Postgres migrations, then stops. It registers only
 // what constructing the contexts needs (the OpenID persistence slice + its id generator + model contributors); it does
-// not boot the web host. See ADR-0073.
+// not boot the web host. See ADR-1073.
 var builder = Host.CreateApplicationBuilder(args);
 
 // Logs go to standard output on every platform: the console provider writes them, and the EventSource provider hands

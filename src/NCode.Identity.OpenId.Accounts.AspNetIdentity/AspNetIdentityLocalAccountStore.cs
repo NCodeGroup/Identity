@@ -205,13 +205,13 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             );
 
         // The limit counts the user name the user holds, and a refused password is verified against the dummy hash, so
-        // a refusal costs what a wrong password costs. See ADR-0244.
+        // a refusal costs what a wrong password costs. See ADR-1244.
         var countedUserName = user?.UserName ?? userName;
         var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
         var passwordHash = isRefused ? null : storedHash;
 
         // An unknown user name, a locked-out user and a user without a password are verified against the dummy hash, so
-        // a wrong password takes as long for them as for a user whose hash is verified. See ADR-0239.
+        // a wrong password takes as long for them as for a user whose hash is verified. See ADR-1239.
         var verifiedUser = user ?? new TUser();
         var verifiedHash = passwordHash ?? dummyPasswordHash;
         var result = passwordHasher.VerifyHashedPassword(verifiedUser, verifiedHash, submitted);
@@ -452,7 +452,7 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     )
     {
         // The hash is made with the user manager's normalizing hasher and stored through the user store, so no password
-        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-0238 and ADR-0243.
+        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-1238 and ADR-1243.
         var passwordHash = passwordHasher.HashPassword(user, password);
         await passwordStore.SetPasswordHashAsync(user, passwordHash, cancellationToken);
     }
@@ -465,14 +465,14 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     )
     {
         // A locked-out user's password is not verified: the lockout defends against guessing, so a correct password must
-        // not be told apart from a wrong one. See ADR-0229.
+        // not be told apart from a wrong one. See ADR-1229.
         if (userManager.SupportsUserLockout && await userManager.IsLockedOutAsync(user))
         {
             return null;
         }
 
         // An empty hash is no password, as in the Entity Framework store; the host's hasher would refuse it without the
-        // work of a verification. See ADR-0239.
+        // work of a verification. See ADR-1239.
         var passwordHash = await passwordStore.GetPasswordHashAsync(user, cancellationToken);
         return string.IsNullOrEmpty(passwordHash) ? null : passwordHash;
     }

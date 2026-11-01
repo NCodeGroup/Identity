@@ -30,7 +30,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// keys have no public key, so <see cref="ISecretKeyTypeDescriptor.SupportsPublicKeyExport"/> is <c>false</c>;
 /// their generated material is the one-time reveal value.
 /// </summary>
-// See ADR-0050.
+// See ADR-1050.
 internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
     : SecretKeyTypeDescriptor
 {
@@ -74,7 +74,7 @@ internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretK
         using var _ = BufferFactory.Rent(keySizeBytes, isSensitive: true, out Span<byte> span);
         RandomNumberGenerator.Fill(span);
 
-        // Reveal-once plaintext for symmetric shared secrets (ADR-0050); asymmetric private keys stay null.
+        // Reveal-once plaintext for symmetric shared secrets (ADR-1050); asymmetric private keys stay null.
         var secretMaterial = Base64Url.EncodeToString(span);
 
         return new GeneratedSecretKeyMaterial

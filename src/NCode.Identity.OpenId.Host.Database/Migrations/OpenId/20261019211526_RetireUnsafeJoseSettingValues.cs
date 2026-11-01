@@ -6,17 +6,17 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
     [ContractMigration(
-        "Shipped before any release, so no running release honors the retired settings (ADR-0155, ADR-0025)."
+        "Shipped before any release, so no running release honors the retired settings (ADR-1155, ADR-1025)."
     )]
     public partial class RetireUnsafeJoseSettingValues : Migration
     {
-        // Every table that stores a settings document (ADR-0139).
+        // Every table that stores a settings document (ADR-1139).
         private static readonly string[] SettingsTables =
         [
             "Servers", "Tenants", "Clients", "ResourceServers",
         ];
 
-        // Retired settings (ADR-0155): the compression lists, because the server neither compresses what it encrypts nor
+        // Retired settings (ADR-1155): the compression lists, because the server neither compresses what it encrypts nor
         // accepts a compressed JWT (RFC 8725 §3.6), and the CIBA request-object encryption lists, because CIBA defines no
         // encrypted authentication request (CIBA Core §7.1.1).
         private static readonly string[] RetiredSettings =
@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         private static readonly string[] RsaPkcs1KeyManagement = ["RSA1_5"];
 
         // The key-management algorithms that need a key both parties share, which a response encrypted to a client's
-        // public key and a request object encrypted to the server's public key cannot use (ADR-0155), plus RSA1_5.
+        // public key and a request object encrypted to the server's public key cannot use (ADR-1155), plus RSA1_5.
         private static readonly string[] NonAsymmetricKeyManagement =
         [
             "dir", "A128KW", "A192KW", "A256KW", "A128GCMKW", "A192GCMKW", "A256GCMKW", "PBES2-HS256+A128KW",
@@ -45,16 +45,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // A retired setting fails closed when a document that carries it is loaded (ADR-0139). Each one only enabled
+            // A retired setting fails closed when a document that carries it is loaded (ADR-1139). Each one only enabled
             // something the server no longer does — compressing what it encrypts, accepting a compressed or an encrypted
             // CIBA request — and no setting expresses that intent any more, so it is removed rather than translated.
             //
-            // A narrowed domain (ADR-0140) fails closed the same way. Each removed value names an algorithm the server
+            // A narrowed domain (ADR-1140) fails closed the same way. Each removed value names an algorithm the server
             // could never honor where the list applies — a response it addresses to a client is encrypted to the client's
             // public key, a request object to the server's, a CIBA request is signed asymmetrically — or one RFC 8725
             // §3.2 says to avoid, so removing it from the list narrows the list to what it could already permit; a list
             // left empty stays an empty list, which permits nothing, and never becomes an unset one, which is
-            // unrestricted (ADR-0010). A value the server does not recognize is left in place and keeps failing closed.
+            // unrestricted (ADR-1010). A value the server does not recognize is left in place and keeps failing closed.
             // A rewritten document gets a new settings concurrency token, as any other settings write does.
             foreach (var table in SettingsTables)
             {

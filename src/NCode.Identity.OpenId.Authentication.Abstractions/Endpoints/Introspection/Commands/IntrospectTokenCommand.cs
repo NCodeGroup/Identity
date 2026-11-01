@@ -39,7 +39,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 /// client or its resource server is not enabled.</param>
 /// <param name="TokenIntrospectionRequest">The <see cref="ITokenIntrospectionRequest"/> identifying the token to introspect.</param>
 /// <param name="Result">The mutable <see cref="IntrospectionResult"/> that handlers populate with the token's active state and claims.</param>
-// See ADR-0029 and ADR-0168.
+// See ADR-1029 and ADR-1168.
 [PublicAPI]
 public readonly record struct IntrospectTokenCommand(
     OpenIdContext OpenIdContext,

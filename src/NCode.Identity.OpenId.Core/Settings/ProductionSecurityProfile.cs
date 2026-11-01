@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// tenant must not keep, namely plain <c>http</c> redirect URIs and anonymous dynamic client registration, and turns
 /// on deletion protection by default.
 /// </summary>
-// See ADR-0289.
+// See ADR-1289.
 internal sealed class ProductionSecurityProfile : ISecurityProfile
 {
     /// <inheritdoc />

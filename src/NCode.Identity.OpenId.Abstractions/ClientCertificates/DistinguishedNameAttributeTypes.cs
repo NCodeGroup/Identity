@@ -28,7 +28,7 @@ internal static class DistinguishedNameAttributeTypes
 {
     private const string OidPrefix = "OID.";
 
-    // The table is closed because a dotted OID names any other attribute type (ADR-0150).
+    // The table is closed because a dotted OID names any other attribute type (ADR-1150).
     private static readonly FrozenDictionary<string, string> Keywords = new Dictionary<
         string,
         string

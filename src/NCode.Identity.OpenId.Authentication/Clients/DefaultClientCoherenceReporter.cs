@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// checks each client through the <see cref="IClientCoherenceValidator"/>, which resolves the client's settings onto
 /// the tenant's.
 /// </summary>
-// See ADR-0233.
+// See ADR-1233.
 internal sealed class DefaultClientCoherenceReporter(
     IAmbientTenantAccessor ambientTenantAccessor,
     IClientCoherenceValidator clientCoherenceValidator

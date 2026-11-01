@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
-    <!-- Dedicated Aspire migration resource for the host dev database (ADR-0073). It applies the Npgsql
+    <!-- Dedicated Aspire migration resource for the host dev database (ADR-1073). It applies the Npgsql
          migrations for the OpenID context and the developer DataProtection context, then exits, so a migration failure
          surfaces as a failed dashboard resource that blocks the `api`/`mgmt` resources (WaitForCompletion) rather than
          crashing the api host. It also ships in the host's container image, where the Helm chart runs it as the
-         pre-deploy Job (ADR-0180). Never packed. -->
+         pre-deploy Job (ADR-1180). Never packed. -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <LangVersion>latest</LangVersion>

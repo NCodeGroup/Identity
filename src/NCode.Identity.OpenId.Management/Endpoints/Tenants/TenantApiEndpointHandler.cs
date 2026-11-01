@@ -123,7 +123,7 @@ internal class TenantApiEndpointHandler(
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
     /// <summary>
-    /// Gets the most days one read of a tenant's usage spans: a year of the ledger's retention (ADR-0199).
+    /// Gets the most days one read of a tenant's usage spans: a year of the ledger's retention (ADR-1199).
     /// </summary>
     internal const int MaxUsageDays = 366;
 
@@ -235,7 +235,7 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The mapper.</returns>
-    // See ADR-0289.
+    // See ADR-1289.
     internal virtual async ValueTask<
         Func<PersistedTenant, TenantResource>
     > CreateTenantResourceMapperAsync(CancellationToken cancellationToken)
@@ -261,7 +261,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenant">The tenant whose environment to resolve.</param>
     /// <returns>The tenant's environment, or <see langword="null"/> when its stored settings cannot be honored or name a
     /// type that is not registered.</returns>
-    // A tenant whose settings need repair is still listed, so its environment is best-effort (ADR-0245, ADR-0289).
+    // A tenant whose settings need repair is still listed, so its environment is best-effort (ADR-1245, ADR-1289).
     internal virtual TenantEnvironmentResource? ResolveEnvironment(
         IReadOnlySettingCollection serverSettings,
         PersistedTenant tenant
@@ -424,7 +424,7 @@ internal class TenantApiEndpointHandler(
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
 
-        // The environment is resolved only after authorization (ADR-0245).
+        // The environment is resolved only after authorization (ADR-1245).
         return await ProcessGetAsync(
             httpContext,
             tenant,
@@ -458,11 +458,11 @@ internal class TenantApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        // A tenant is named by its creator (ADR-0159); the validator checks the name with the rest of its address.
+        // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
 
         // A tenant written without an issuer gets the one its strategy derives for it, judged like an explicit one
-        // (ADR-0165).
+        // (ADR-1165).
         var issuer =
             NullIfEmpty(request.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
@@ -496,7 +496,7 @@ internal class TenantApiEndpointHandler(
         };
 
         // Core preconditions (authorization + the tenant's address + uniqueness) are asserted by the validator
-        // (ADR-0014, ADR-0160).
+        // (ADR-1014, ADR-1160).
         var error = await TenantValidator.ValidateCreateAsync(
             httpContext.User,
             tenant,
@@ -508,8 +508,8 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // Setting names are a closed vocabulary (ADR-0139), and a tenant carries only the settings that apply within it
-        // (ADR-0149): a settings document that cannot be honored is rejected here rather than stored and failed on every
+        // Setting names are a closed vocabulary (ADR-1139), and a tenant carries only the settings that apply within it
+        // (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed on every
         // request that resolves the tenant.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
@@ -540,7 +540,7 @@ internal class TenantApiEndpointHandler(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         // The tenant is seeded as soon as it exists — after the root tenant — so its system resource servers and keys
-        // are in place before its first request, through the one pipeline every tenant is seeded by (ADR-0166). The
+        // are in place before its first request, through the one pipeline every tenant is seeded by (ADR-1166). The
         // provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         await provisioner.SeedAsync(tenant.TenantId, cancellationToken);
@@ -550,7 +550,7 @@ internal class TenantApiEndpointHandler(
         tenant = await ReloadTenantAsync(tenant, cancellationToken);
 
         // The audit record carries the tenant's own state, as an update's and a deletion's do; the environment is
-        // derived from its settings and stamps the audit event itself (ADR-0289).
+        // derived from its settings and stamps the audit event itself (ADR-1289).
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
             tenant.TenantId,
@@ -579,7 +579,7 @@ internal class TenantApiEndpointHandler(
     /// tenant's current alias, or for a tenant without one the alias its strategy derives for it.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's address and the reasons it cannot be served there, if any.</response>
-    // See ADR-0165 (the address is previewed through the seam that judges it).
+    // See ADR-1165 (the address is previewed through the seam that judges it).
     [EndpointName("api/tenants/address")]
     internal virtual async ValueTask<IResult> GetAddressAsync(
         HttpContext httpContext,
@@ -596,7 +596,7 @@ internal class TenantApiEndpointHandler(
         var exists = tenant is not null;
 
         // Previewing an existing tenant's address reads it; previewing a new one is part of creating it, which is
-        // authority at the parent node rather than ownership (ADR-0034).
+        // authority at the parent node rather than ownership (ADR-1034).
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -700,8 +700,8 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-0165,
-        // ADR-0195).
+        // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-1165,
+        // ADR-1195).
         model.Issuer =
             NullIfEmpty(model.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);
@@ -713,7 +713,7 @@ internal class TenantApiEndpointHandler(
             );
 
         // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
-        // are asserted by the validator against the hydrated model (ADR-0014, ADR-0160).
+        // are asserted by the validator against the hydrated model (ADR-1014, ADR-1160).
         var error = await TenantValidator.ValidateUpdateAsync(
             httpContext.User,
             tenant,
@@ -777,7 +777,7 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-1014).
         var error = await TenantValidator.ValidateDeleteAsync(
             httpContext.User,
             tenant,
@@ -808,7 +808,7 @@ internal class TenantApiEndpointHandler(
 
         var resourceValues = ToResourceValues(ToTenantResource(tenant));
 
-        // The tenant's row is gone when the deletion is audited, so its environment type is recorded now (ADR-0289).
+        // The tenant's row is gone when the deletion is audited, so its environment type is recorded now (ADR-1289).
         ManagementTenantEnvironment.Remember(
             httpContext,
             tenant.TenantId,
@@ -849,7 +849,7 @@ internal class TenantApiEndpointHandler(
     /// <response code="200">The tenant's usage on the range.</response>
     /// <response code="400">The range is reversed, longer than <see cref="MaxUsageDays"/> days, or would start before the
     /// first representable day.</response>
-    // See ADR-0199.
+    // See ADR-1199.
     [EndpointName("api/tenants/usage/get")]
     internal virtual async ValueTask<IResult> GetUsageAsync(
         HttpContext httpContext,
@@ -977,7 +977,7 @@ internal class TenantApiEndpointHandler(
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // See ADR-0245.
+        // See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
             tenantSettings.Value,
@@ -996,14 +996,14 @@ internal class TenantApiEndpointHandler(
     /// Merges a tenant's persisted settings onto the server's effective settings through the
     /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
     /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
-    /// tenant selects (ADR-0204). A document that cannot be honored fails naming the tenant.
+    /// tenant selects (ADR-1204). A document that cannot be honored fails naming the tenant.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings document.</param>
     /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
     /// <exception cref="UnreadableSettingsException">The tenant's document, or the server's, cannot be honored.</exception>
-    // See ADR-0245.
+    // See ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
         string tenantId,
         JsonElement tenantSettings,
@@ -1032,7 +1032,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-0206 and ADR-0241.
+    // See ADR-1206 and ADR-1241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         string tenantId,
         JsonElement currentSettings,
@@ -1332,7 +1332,7 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
-        // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
+        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
     }
@@ -1340,7 +1340,7 @@ internal class TenantApiEndpointHandler(
     /// <summary>
     /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new tenant secret.
     /// </summary>
-    // See ADR-0104.
+    // See ADR-1104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
@@ -1506,7 +1506,7 @@ internal class TenantApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            // The public key is read from its stored public half, so no master key is loaded (ADR-0268).
+            // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
             x => SecretPublicKeyConverter.Convert(x.Value)
         );
     }
@@ -1731,7 +1731,7 @@ internal class TenantApiEndpointHandler(
     }
 
     // Announces a committed change to the tenant: this replica evicts it from the tenant cache, so the change takes effect
-    // at once, and seeds it after a settings change, so a key its new settings require is provisioned (ADR-0169). The
+    // at once, and seeds it after a settings change, so a key its new settings require is provisioned (ADR-1169). The
     // mediator is request-scoped, so it is resolved from the request's services.
     private static ValueTask NotifyTenantChangedAsync(
         HttpContext httpContext,

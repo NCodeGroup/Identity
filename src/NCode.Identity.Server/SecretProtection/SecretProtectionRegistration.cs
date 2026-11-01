@@ -31,7 +31,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// Binds the <see cref="SecretProtectionOptions.DefaultSectionName"/> configuration section and protects the Data
 /// Protection key ring under the master key of the server.
 /// </summary>
-// See ADR-0235.
+// See ADR-1235.
 internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";
@@ -79,7 +79,7 @@ internal static class SecretProtectionRegistration
         var serviceCollection = builder.ServiceCollection;
 
         // ValidateOnStart materializes each options instance as the host starts, so a strict-binding failure stops the
-        // host before it accepts traffic rather than on the first request that reads the option (ADR-0137).
+        // host before it accepts traffic rather than on the first request that reads the option (ADR-1137).
         serviceCollection
             .AddOptions<SecretProtectionOptions>()
             .Configure(options =>

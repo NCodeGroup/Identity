@@ -47,7 +47,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// baseline beneath its configuration, so a selected profile's default replaces them but never a configured value.
 /// </para>
 /// </remarks>
-// See ADR-0148 (security profiles accumulate down the cascade).
+// See ADR-1148 (security profiles accumulate down the cascade).
 internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSource<Setting>
 {
     private IConfigurationSection? ConfigurationSection { get; }
@@ -198,7 +198,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
                 return;
 
             // A reload that cannot be honored leaves the last valid settings in force rather than loading part of it
-            // or faulting the reload callback; the error log is the signal (ADR-0139).
+            // or faulting the reload callback; the error log is the signal (ADR-1139).
             if (!CanLoadConfiguration())
                 return;
 
@@ -228,7 +228,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     {
         // The descriptor defaults, the computed supported values and the default-settings providers are the baseline
         // beneath the server's configuration, so a selected security profile's default replaces them but never a
-        // configured value (ADR-0148).
+        // configured value (ADR-1148).
         var baselineSettings = SettingCollectionFactory.Create();
         LoadDefaults(baselineSettings);
         LoadSupportedAlgorithms(baselineSettings);
@@ -307,7 +307,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         }
 
         // Cross-trust-boundary token signing advertises asymmetric algorithms only (no HS*); configuration may narrow
-        // these lists but never name a symmetric algorithm, because the settings' domain excludes them (ADR-0140).
+        // these lists but never name a symmetric algorithm, because the settings' domain excludes them (ADR-1140).
         settings.Set(
             OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
@@ -348,7 +348,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
 
         // ID tokens, UserInfo responses, JWT introspection responses, and JWT-secured authorization responses are encrypted to the client's public key, and
-        // request objects to the server's, so they advertise asymmetric key management only (ADR-0155). An access token
+        // request objects to the server's, so they advertise asymmetric key management only (ADR-1155). An access token
         // may be encrypted to a resource server that holds a shared key, so it keeps the full set.
         settings.Set(
             OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported,

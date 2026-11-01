@@ -46,7 +46,7 @@ public static class DefaultRegistration
 
             var newBuilder = serviceCollection.NewBuilder<EventsLibrary>();
 
-            // The metrics subscriber creates its meter through the IMeterFactory (ADR-0197).
+            // The metrics subscriber creates its meter through the IMeterFactory (ADR-1197).
             serviceCollection.AddMetrics();
 
             // Register the concrete publisher so the background dispatcher can reach its internal

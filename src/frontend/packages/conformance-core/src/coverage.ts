@@ -8,9 +8,9 @@
  *
  * Phase 1 classification is **discovery-driven**: status derives entirely from the published
  * `/.well-known/openid-configuration`, so the matrix is read-only and needs no OAuth client. The column semantics are
- * therefore *advertised* — a secure-by-default provider (ADR-0083) may implement but not advertise a capability. Later
+ * therefore *advertised* — a secure-by-default provider (ADR-1083) may implement but not advertise a capability. Later
  * phases add active probes that refine *advertised* into *verified*. See
- * [ADR-0084](../../../../../docs/decisions/0084-spec-coverage-conformance-harness.md).
+ * [ADR-1084](../../../../../docs/decisions/1084-spec-coverage-conformance-harness.md).
  */
 
 import type { RawDiscovery } from './audit.js';
@@ -20,7 +20,7 @@ export type CoverageStatus = 'implemented' | 'partial' | 'missing' | 'non-confor
 
 /**
  * Which actor can actually exercise a feature end to end. The browser SPA cannot drive the confidential or
- * server-initiated legs; those require the headless probe runner or the external certified suite (ADR-0084).
+ * server-initiated legs; those require the headless probe runner or the external certified suite (ADR-1084).
  */
 export type CoverageChannel = 'browser' | 'probe-runner' | 'external-suite';
 

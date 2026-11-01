@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Metrics;
 /// <c>http.server.request.duration</c>, and adds them through <see cref="IHttpMetricsTagsFeature"/> so every component
 /// that writes a protocol response tags it the same way.
 /// </summary>
-// See ADR-0197.
+// See ADR-1197.
 public static class OpenIdMetricAttributes
 {
     /// <summary>

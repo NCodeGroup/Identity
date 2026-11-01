@@ -64,7 +64,7 @@ public static class ReverseProxyRegistration
             var section = configuration.GetSection(ReverseProxyOptions.DefaultSectionName);
 
             // ValidateOnStart materializes the options as the host starts, so an entry that cannot be honored stops
-            // the host before it accepts traffic (ADR-0137).
+            // the host before it accepts traffic (ADR-1137).
             serviceCollection
                 .AddOptions<ReverseProxyOptions>()
                 .Configure(options => section.BindStrictly(options))

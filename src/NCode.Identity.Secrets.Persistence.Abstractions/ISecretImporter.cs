@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// a new <see cref="PersistedSecret"/>. Only public material is accepted — a private or symmetric key is rejected —
 /// so no secret material is ever supplied to, or revealed by, this path.
 /// </summary>
-// See ADR-0104.
+// See ADR-1104.
 [PublicAPI]
 public interface ISecretImporter
 {

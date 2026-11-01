@@ -32,7 +32,7 @@ using NCode.Json;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
-// See the note on AkpSecretKey: ML-DSA PKCS#8 / SPKI DER is [Experimental] (SYSLIB5006) but spec-fixed (RFC 9881). See ADR-0118.
+// See the note on AkpSecretKey: ML-DSA PKCS#8 / SPKI DER is [Experimental] (SYSLIB5006) but spec-fixed (RFC 9881). See ADR-1118.
 #pragma warning disable SYSLIB5006
 
 /// <summary>
@@ -44,7 +44,7 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// <param name="dataProtectorFactory">
 /// The <see cref="IDataProtectorFactory{T}"/> used to protect and unprotect private keys at rest in memory.
 /// </param>
-// See ADR-0118.
+// See ADR-1118.
 [PublicAPI]
 public sealed class AkpSecretKeyTypeDescriptor(
     IDataProtectorFactory<SecretKey> dataProtectorFactory

@@ -36,7 +36,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A tenant's admitted requests reach the durable usage ledger through each replica's periodic flush and are read back
-// through the management API (ADR-0199).
+// through the management API (ADR-1199).
 public class TenantUsageTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
@@ -217,7 +217,7 @@ public class TenantUsageTests
 
         // The administrator's token request spent the first of the two requests the quota allows; the first anonymous
         // token request spends the second, the next two are admitted as overage, and the overage ceiling refuses the
-        // last. Discovery is public metadata, so it spends neither (ADR-0198).
+        // last. Discovery is public metadata, so it spends neither (ADR-1198).
         using (var discovery = await client.GetAsync("/.well-known/openid-configuration"))
             Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
 
@@ -238,7 +238,7 @@ public class TenantUsageTests
     public async Task GetUsage_WhenTheClientLimitRefusesARequest_DoesNotRecordIt()
     {
         // The per-client limit refuses inside the token endpoint, after the tenant-wide limits admitted the request; a
-        // refused request is not usage (ADR-0199).
+        // refused request is not usage (ADR-1199).
         using var host = CreateHost(
             new Dictionary<string, string?> { [OpenIdSettingNames.RateLimitClientPerMinute] = "1" }
         );

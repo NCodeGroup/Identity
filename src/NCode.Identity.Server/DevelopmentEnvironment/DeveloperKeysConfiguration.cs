@@ -42,7 +42,7 @@ public static class DeveloperKeysConfiguration
         /// that names no <see cref="DeveloperKeyMode"/>. A mode the server cannot honor must not fall back to a default
         /// silently: a misspelled <c>PersistentSigningKey</c> would otherwise regenerate the signing key on every
         /// restart.</exception>
-        // See ADR-0137.
+        // See ADR-1137.
         public DeveloperKeysOptions GetDeveloperKeysOptions()
         {
             ArgumentNullException.ThrowIfNull(configuration);

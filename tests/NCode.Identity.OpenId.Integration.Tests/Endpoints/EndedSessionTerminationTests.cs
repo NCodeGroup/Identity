@@ -32,7 +32,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// A session that ends while no request uses it is terminated in the background (ADR-0223).
+// A session that ends while no request uses it is terminated in the background (ADR-1223).
 public class EndedSessionTerminationTests
 {
     private const string UserName = "ended-session-user";

@@ -25,7 +25,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// Contains the rules for the resource name of a Google Cloud KMS crypto key or crypto key version: whether a value is
 /// one, and which crypto key a version belongs to.
 /// </summary>
-// See ADR-0260.
+// See ADR-1260.
 internal static partial class GoogleCloudKmsKeyName
 {
     private const string CryptoKeyVersionsSegment = "/cryptoKeyVersions/";

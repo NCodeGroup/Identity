@@ -46,8 +46,8 @@ namespace NCode.Identity.Server;
 /// <c>client_secret_basic</c> stops the seed. An existing client is left as it is; the reconciliation of the server's
 /// settings reports it, as it reports every stored client, when the settings make it incoherent.
 /// </summary>
-// See ADR-0044 (the bootstrap administrator), ADR-0166 (a seeder that names a tenant seeds exactly that tenant), and
-// ADR-0219 (an existing client is reported by the reconciliation).
+// See ADR-1044 (the bootstrap administrator), ADR-1166 (a seeder that names a tenant seeds exactly that tenant), and
+// ADR-1219 (an existing client is reported by the reconciliation).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
     ISecretGenerator secretGenerator,
@@ -118,7 +118,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
         var settings = CreateSettings();
 
-        // See ADR-0206.
+        // See ADR-1206.
         await SeededClientValidator.EnsureCanBeSeededAsync(
             "bootstrap administrator client",
             clientId,
@@ -229,7 +229,7 @@ internal sealed class BootstrapAdminSeedHandler(
     {
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the configured client_secret through the single shared-secret primitive (ADR-0110) so its stored
+        // Persist the configured client_secret through the single shared-secret primitive (ADR-1110) so its stored
         // UTF-8 shape cannot drift from generated secrets.
         return SecretGenerator.ImportSharedSecret(
             protector,

@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <c>query.jwt</c>, <c>fragment.jwt</c>, and <c>form_post.jwt</c>. A handler declares its traits; nothing is inferred
 /// from its name.
 /// </remarks>
-// See ADR-0150 and ADR-0201.
+// See ADR-1150 and ADR-1201.
 [PublicAPI]
 public interface IAuthorizationResponseModeHandler
 {

@@ -57,13 +57,13 @@ internal static class DefaultRegistration
                 DefaultMaterializedServerRegistry
             >();
 
-            // Background work in another package waits for the server through the public accessor (ADR-0223).
+            // Background work in another package waits for the server through the public accessor (ADR-1223).
             serviceCollection.TryAddSingleton<IMaterializedServerAccessor>(serviceProvider =>
                 serviceProvider.GetRequiredService<IMaterializedServerRegistry>()
             );
 
             // A committed server settings change is applied on this replica before the write returns and then announced
-            // to every replica (ADR-0219).
+            // to every replica (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ServerSettingsChangedCommand>,
@@ -72,7 +72,7 @@ internal static class DefaultRegistration
             );
 
             // A server settings change announced on the replica broadcast channel makes every replica read the committed
-            // settings again, so each serves the change rather than only the one that made it (ADR-0219).
+            // settings again, so each serves the change rather than only the one that made it (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IReplicaBroadcastHandler,
@@ -81,7 +81,7 @@ internal static class DefaultRegistration
             );
 
             // Each replica reconciles every tenant and client with the server's effective settings whenever they change,
-            // one replica per change (ADR-0219).
+            // one replica per change (ADR-1219).
             serviceCollection.TryAddSingleton<
                 IServerSettingsReconciler,
                 DefaultServerSettingsReconciler
@@ -89,7 +89,7 @@ internal static class DefaultRegistration
             serviceCollection.AddHostedService<ServerSettingsReconciliationService>();
 
             // A server or tenant interval that a timer refuses stops the host when it starts instead of failing the
-            // first time a timer is created (ADR-0221).
+            // first time a timer is created (ADR-1221).
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

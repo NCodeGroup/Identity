@@ -23,7 +23,8 @@ turns on auto-merge, resolves a review thread, dismisses a review or force-pushe
    (`draft: no`), or as a draft with `draft: yes` or `/ship-plan draft`. `/run-issues` always opens drafts.
 2. The author reviews. Requesting changes is a comment left as an unresolved review thread, which the ruleset's
    conversation rule keeps from merging. Approving is resolving every thread, marking a draft ready, and merging, or
-   turning on auto-merge with a merge commit; those are the author's actions.
+   turning on auto-merge with the merge method
+   [ADR-0013](0013-pull-requests-merge-with-a-merge-commit-or-by-rebasing.md) sets; those are the author's actions.
 3. `/run-issues` answers review feedback and fixes the review bot's findings that hold, then recommends the merge after
    `max-review-rounds` rounds, or a round of only minor findings; the person merges.
 4. After the merge, the next `/ship-plan` tags the release when the Landing section asks for one and closes any of the
@@ -38,7 +39,8 @@ At the maintainer's request ([NCodeGroup/code-review#33](https://github.com/NCod
 workflow turns on auto-merge: `.github/workflows/code-review-auto-merge.yml`. Its scope is narrow. It acts only on a
 pull request that Dependabot opened from the repository itself, whose only change is the
 `uses: NCodeGroup/code-review@<full commit SHA> # vX.Y.Z` line of a workflow, moving it to a minor or patch release, and
-the pull request merges with a merge commit, only after the checks the default branch requires pass.
+the pull request merges only after the checks the default branch requires pass, by the first merge method that both
+the repository's settings and the branch's rules allow: a merge commit, else a rebase, else a squash.
 
 The rule exists so that nothing merges while its author is still reviewing it, over a review thread no person read.
 That reason doesn't hold here: the change is a pin to a release whose code was itself reviewed and merged by a person
@@ -72,3 +74,5 @@ a pull request that updates anything else, and every other pull request are stil
 - [ADR-0002](0002-commits-are-attributed-to-people-not-agents.md): commits are attributed to people, not agents.
 - [ADR-0005](0005-the-default-branch-accepts-changes-only-through-pull-requests.md): the default branch accepts changes
   only through pull requests that pass CI.
+- [ADR-0013](0013-pull-requests-merge-with-a-merge-commit-or-by-rebasing.md): pull requests merge with a merge commit
+  or by rebasing.

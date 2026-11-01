@@ -30,7 +30,7 @@ export type InitialAccessTokenResourceServerOption = {
 export type InitialAccessTokenFormDialogProps = {
   readonly open: boolean;
   /**
-   * The resource servers the token may be scoped to (ADR-0192). The picker is offered only when there is at
+   * The resource servers the token may be scoped to (ADR-1192). The picker is offered only when there is at
    * least one; the container passes the tenant's non-system resource servers.
    */
   readonly resourceServers?: readonly InitialAccessTokenResourceServerOption[];

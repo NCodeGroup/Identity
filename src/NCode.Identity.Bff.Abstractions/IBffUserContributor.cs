@@ -24,7 +24,7 @@ namespace NCode.Identity.Bff;
 /// Adds computed fields to the <c>/bff/user</c> response, beside its reserved keys, on every request for it. Every
 /// registered contributor runs, in registration order.
 /// </summary>
-// See ADR-0290.
+// See ADR-1290.
 [PublicAPI]
 public interface IBffUserContributor
 {

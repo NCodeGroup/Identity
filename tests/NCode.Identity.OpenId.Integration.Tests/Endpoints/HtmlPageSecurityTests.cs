@@ -38,7 +38,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// Proves that every page the server writes carries its Content-Security-Policy and security headers, and that only
 /// the <c>check_session_iframe</c> may be framed.
 /// </summary>
-// See ADR-0256.
+// See ADR-1256.
 public class HtmlPageSecurityTests
 {
     private const string UserName = "page-user";

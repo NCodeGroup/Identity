@@ -24,7 +24,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// The active-sessions list reads the stored session and reports when it ends. See ADR-0220.
+// The active-sessions list reads the stored session and reports when it ends. See ADR-1220.
 public class InteractiveSessionsTests
 {
     private const string UserName = "admin";

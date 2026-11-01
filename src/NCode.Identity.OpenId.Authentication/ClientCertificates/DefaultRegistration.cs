@@ -79,7 +79,7 @@ internal static class DefaultRegistration
             // The CRL source is registered as itself because the OCSP source checks delegated responders through it.
             serviceCollection.TryAddSingleton<CrlClientCertificateRevocationSource>();
 
-            // Sources are asked in registration order: OCSP, then the CRLs. See ADR-0259.
+            // Sources are asked in registration order: OCSP, then the CRLs. See ADR-1259.
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IClientCertificateRevocationSource,

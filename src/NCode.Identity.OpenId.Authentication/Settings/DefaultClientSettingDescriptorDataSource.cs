@@ -30,7 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 /// composed with the base descriptor catalog from the core slice. Each such setting accepts only the registered
 /// authentication methods, so a misspelled or unsupported method is rejected rather than stored and never matched.
 /// </summary>
-// See ADR-0140 and ADR-0207.
+// See ADR-1140 and ADR-1207.
 internal class DefaultClientSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog
@@ -54,7 +54,7 @@ internal class DefaultClientSettingDescriptorDataSource(
             // token_endpoint_auth_methods_supported: the client-authentication methods the server, tenant, or security
             // profile permits (default derived from the registered method descriptors). A ceiling over the registered
             // method, never a choice between methods. Ceiling (Intersect): a child narrows the parent's set; unset =
-            // unrestricted (ADR-0010).
+            // unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethodsSupported,
@@ -70,7 +70,7 @@ internal class DefaultClientSettingDescriptorDataSource(
             // §2); it decides the client type (none = public) and is the only method that authenticates the client.
             // A client that registers none gets the RFC 7591 default, client_secret_basic, unless its server or tenant
             // configures another. Not advertised. Override (Replace): a child fully replaces the parent value
-            // (ADR-0145).
+            // (ADR-1145).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethod,

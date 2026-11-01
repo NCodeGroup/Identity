@@ -30,7 +30,7 @@ namespace NCode.Identity.Settings;
 /// — a descendant of the scope. A settings document at a scope may carry exactly the settings that apply within it: a
 /// setting anywhere else would be accepted without being honored.
 /// </remarks>
-// See ADR-0149.
+// See ADR-1149.
 [PublicAPI]
 public interface ISettingScopeCollection : IReadOnlyCollection<SettingScopeDescriptor>
 {

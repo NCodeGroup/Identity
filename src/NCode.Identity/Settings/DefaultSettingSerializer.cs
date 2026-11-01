@@ -34,7 +34,7 @@ namespace NCode.Identity.Settings;
 /// in the same way. A retired setting (<see cref="SettingDescriptor.IsRetired"/>) is ignored when a stored document is
 /// read and refused when a document is validated.
 /// </summary>
-// See ADR-0139 (closed vocabulary), ADR-0140 (value domains), ADR-0149 (scopes), and ADR-0251.
+// See ADR-1139 (closed vocabulary), ADR-1140 (value domains), ADR-1149 (scopes), and ADR-1251.
 internal class DefaultSettingSerializer(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingScopeCollectionProvider settingScopeCollectionProvider
@@ -152,7 +152,7 @@ internal class DefaultSettingSerializer(
                 continue;
             }
 
-            // A retired setting is never read; a validation accepts it only where the caller allows (ADR-0251).
+            // A retired setting is never read; a validation accepts it only where the caller allows (ADR-1251).
             if (descriptor.IsRetired)
             {
                 if (!acceptsRetiredSetting(settingName, jsonProperty.Value))
@@ -168,7 +168,7 @@ internal class DefaultSettingSerializer(
                 continue;
             }
 
-            // A setting the scope never reads would be stored without effect, whatever its value (ADR-0149).
+            // A setting the scope never reads would be stored without effect, whatever its value (ADR-1149).
             if (!scopes.AppliesWithin(descriptor, scopeName, out var scopeFailure))
             {
                 errors.Add(
@@ -188,7 +188,7 @@ internal class DefaultSettingSerializer(
                 continue;
             }
 
-            // A value of the right type is still rejected when it is outside the setting's domain (ADR-0140).
+            // A value of the right type is still rejected when it is outside the setting's domain (ADR-1140).
             if (!descriptor.TryValidate(setting.GetValue(), out var failure))
             {
                 errors.Add(

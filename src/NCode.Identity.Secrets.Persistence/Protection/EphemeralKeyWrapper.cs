@@ -32,7 +32,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// The root key lives in a pinned buffer from the secure memory pool so that the garbage collector never copies it,
 /// and it is zeroed when the key wrapper is disposed.
 /// </remarks>
-// See ADR-0235.
+// See ADR-1235.
 internal class EphemeralKeyWrapper : IKeyWrapper, IDisposable
 {
     private const int RootKeySizeBytes = 32;

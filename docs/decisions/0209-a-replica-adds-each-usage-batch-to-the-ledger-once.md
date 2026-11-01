@@ -87,4 +87,4 @@ the counts, and a failed batch is retried under its number.**
   `NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.TenantUsageStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/ApplicationRunLoopHost.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/ApplicationRunLoopHost.cs`.

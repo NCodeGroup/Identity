@@ -87,4 +87,4 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
   `NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions`,
   `NCode.Identity.Server.SecretProtection.SecretProtectionRegistration`,
   `NCode.Identity.Server.SecretProtection.ServerSecretProtectorWarmup`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/HostApplicationFactory.cs`.

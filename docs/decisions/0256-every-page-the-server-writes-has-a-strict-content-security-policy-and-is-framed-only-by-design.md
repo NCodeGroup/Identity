@@ -181,4 +181,4 @@ and the `form_post` response only by its client's origin.**
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleShell.cs`,
   `src/frontend/packages/vite-config/src/preset.ts`, `src/frontend/apps/auth/src/cspNonce.ts`,
   `src/frontend/apps/auth/src/mount.tsx` and
-  `tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/HtmlPageSecurityTests.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/HtmlPageSecurityTests.cs`.

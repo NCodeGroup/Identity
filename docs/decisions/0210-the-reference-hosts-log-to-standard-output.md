@@ -53,4 +53,4 @@ teardown (issue [#245](https://github.com/NCodeGroup/Identity/issues/245), [ADR-
 - [ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) — the final flush that the Event Log provider
   failed under.
 - Code: `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host.MigrationService/Program.cs`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/ProgramTests.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/ProgramTests.cs`.

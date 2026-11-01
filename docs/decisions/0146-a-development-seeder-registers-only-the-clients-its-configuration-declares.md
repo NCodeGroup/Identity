@@ -81,4 +81,4 @@ library has no default; the host's environment overlay declares the entries.
 - Code: `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions`,
   `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedHandler`,
   `src/NCode.Identity.OpenId.Host/appsettings.Development.json`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/DeveloperSpaClientSeedingTests.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/DeveloperSpaClientSeedingTests.cs`.

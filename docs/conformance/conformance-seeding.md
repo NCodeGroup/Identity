@@ -24,7 +24,7 @@ calls — so the suite and the login UI ([#125](https://github.com/NCodeGroup/Id
 ## Current state (verified)
 
 - **Seeding exists only in test infrastructure.**
-  [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
+  [`HostApplicationFactory`](../../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/HostApplicationFactory.cs)
   exposes `SeedPublicClientAsync`, `SeedConfidentialClientAsync(clientId, secret, grantTypes…)`,
   `SeedLocalAccountAsync(userName, password, email?, emailVerified?)`, and
   `SeedResourceServerWithClientGrantAsync(…)`. These run in-process against a per-test in-memory database

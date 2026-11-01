@@ -67,4 +67,4 @@ so every log entry is one JSON object on one line.**
 - [ADR-0210](0210-the-reference-hosts-log-to-standard-output.md) — logs go to standard output, and their format is
   configuration.
 - Code: `src/NCode.Identity.OpenId.Host/Dockerfile`, `.github/workflows/host-image.yml`,
-  `tests/NCode.Identity.OpenId.IntegrationTests/ProgramTests.cs`.
+  `tests/NCode.Identity.OpenId.Integration.Tests/ProgramTests.cs`.

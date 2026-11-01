@@ -1,0 +1,1322 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using System.Buffers.Text;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Web;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+using NCode.Buffers;
+using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
+using Xunit;
+
+namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
+
+public class ClientRegistrationEndpointTests
+{
+    private const string RedirectUri = "https://client.example/callback";
+
+    [Fact]
+    public async Task PostRegister_WithInformationalMetadata_RegistersAClientTheServerCanLoad()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["client_name"] = "Registered Client",
+                ["contacts"] = new[] { "ops@example.com" },
+                ["software_id"] = "integration-tests",
+                ["software_version"] = "1.0",
+                ["scope"] = $"openid {TestServerSettingsProvider.ApiScope}",
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+        var clientId = root.GetProperty("client_id").GetString();
+        var clientSecret = root.GetProperty("client_secret").GetString();
+        Assert.NotNull(clientId);
+        Assert.NotNull(clientSecret);
+        Assert.Equal("Registered Client", root.GetProperty("client_name").GetString());
+        Assert.Equal("integration-tests", root.GetProperty("software_id").GetString());
+
+        // The response reports the scopes the client may actually request: it holds no grant to the API, so the
+        // requested 'api' scope is not among them.
+        var scopes = root.GetProperty("scope").GetString()?.Split(' ') ?? [];
+        Assert.Contains(OpenIdProtocol.ScopeTypes.OpenId, scopes);
+        Assert.DoesNotContain(TestServerSettingsProvider.ApiScope, scopes);
+
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            "it-rs-api",
+            "https://api.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        // Authenticating the client loads its persisted settings (every registered metadata key included) through the
+        // setting serializer, which rejects any name without a registered descriptor.
+        using var tokenContent = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+                ["scope"] = TestServerSettingsProvider.ApiScope,
+            }
+        );
+
+        using var tokenResponse = await client.PostAsync("/oauth2/token", tokenContent);
+
+        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
+        Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAnOrdinaryClientRegistersIntrospectionMetadata_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // Only a client bound to a resource server receives JWT introspection responses (ADR-0192).
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["introspection_signed_response_alg"] = "RS256",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "introspection_*_response_*"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAnonymousRegistrationIsAllowed_StillRejectsAnInvalidInitialAccessToken()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // A presented token is always validated, so a scoped token is never silently ignored (ADR-0192).
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/register")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", "not-a-token") },
+            Content = JsonContent.Create(
+                new Dictionary<string, object>
+                {
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                }
+            ),
+        };
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Unauthorized, body);
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheTenantIsProduction_RefusesAnonymousRegistrationEvenWhenTheServerAllowsIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        using var productionFactory = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration(configurationBuilder =>
+                configurationBuilder.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["OpenId:Server:Settings:environment_type"] = OpenIdConstants
+                            .TenantEnvironmentTypes
+                            .Production,
+                    }
+                )
+            )
+        );
+        var developmentClient = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var productionClient = productionFactory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var metadata = new Dictionary<string, object>
+        {
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = OpenIdProtocol
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+        };
+
+        // The control: the Development host's tenant allows anonymous registration, so the same request is accepted.
+        using var developmentResponse = await developmentClient.PostAsJsonAsync(
+            "/oauth2/register",
+            metadata
+        );
+        var developmentBody = await developmentResponse.Content.ReadAsStringAsync();
+        Assert.True(developmentResponse.StatusCode == HttpStatusCode.Created, developmentBody);
+
+        // The production profile's ceiling turns anonymous registration off for the tenant, whatever the server says.
+        using var productionResponse = await productionClient.PostAsJsonAsync(
+            "/oauth2/register",
+            metadata
+        );
+        var productionBody = await productionResponse.Content.ReadAsStringAsync();
+        Assert.True(productionResponse.StatusCode == HttpStatusCode.Unauthorized, productionBody);
+    }
+
+    [Theory]
+    [InlineData("grant_types", "authorisation_code", OpenIdSettingNames.GrantTypesSupported)]
+    [InlineData("response_types", "code none", OpenIdSettingNames.ResponseTypesSupported)]
+    public async Task PostRegister_WhenAListValueIsOutsideItsDomain_ReturnsInvalidClientMetadata(
+        string metadataName,
+        string value,
+        string settingName
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                [metadataName] = new[] { value },
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            settingName
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenJwksUriIsNotHttps_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["jwks_uri"] = "http://client.example/jwks",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.JwksUri
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenRedirectUriIsRelative_ReturnsInvalidRedirectUri()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["redirect_uris"] = new[] { "/callback" },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
+            jsonElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithAHybridResponseType_RegistersAClientTheAuthorizationEndpointHonors()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            CreateServerConfiguration(
+                [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
+                [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
+            )
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["response_types"] = new[] { "id_token code" },
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+        var clientId = root.GetProperty("client_id").GetString();
+        Assert.NotNull(clientId);
+
+        // The response type is registered, and reported, in canonical form together with the grant types it uses.
+        Assert.Equal(
+            [OpenIdProtocol.ResponseTypes.CodeIdToken],
+            GetStringArray(root, "response_types")
+        );
+        Assert.Equal(
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit],
+            GetStringArray(root, "grant_types")
+        );
+
+        // The authorization endpoint accepts the registered response type: with no end-user session it issues the
+        // interactive challenge rather than an error redirected to the client.
+        using var hybridResponse = await client.GetAsync(
+            CreateAuthorizeUri(clientId, OpenIdProtocol.ResponseTypes.CodeIdToken)
+        );
+        Assert.Equal(HttpStatusCode.Redirect, hybridResponse.StatusCode);
+        var hybridLocation = hybridResponse.Headers.Location;
+        Assert.NotNull(hybridLocation);
+        Assert.False(
+            hybridLocation.OriginalString.StartsWith(RedirectUri, StringComparison.Ordinal),
+            "Expected an interactive challenge, not an error redirected back to the client."
+        );
+
+        // The server supports 'code', but the client did not register it.
+        using var codeResponse = await client.GetAsync(
+            CreateAuthorizeUri(clientId, OpenIdProtocol.ResponseTypes.Code)
+        );
+        Assert.Equal(HttpStatusCode.SeeOther, codeResponse.StatusCode);
+        var codeLocation = codeResponse.Headers.Location;
+        Assert.NotNull(codeLocation);
+        var parameters = HttpUtility.ParseQueryString(codeLocation.Query);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, parameters["error"]);
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheServerDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            CreateServerConfiguration(
+                [OpenIdProtocol.ResponseTypes.Code],
+                [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
+            )
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["response_types"] = new[] { OpenIdProtocol.ResponseTypes.CodeIdToken },
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.ResponseTypesSupported
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheServerDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
+    {
+        // A client whose registered method the server's ceiling excludes could never authenticate.
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretBasic,
+            }
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "token_endpoint_auth_method"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAResponseTypeUsesAnUnregisteredGrantType_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.AuthorizationCode },
+                ["response_types"] = new[] { OpenIdProtocol.ResponseTypes.CodeIdToken },
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.GrantTypes.Implicit
+        );
+    }
+
+    private static Dictionary<string, string?> CreateServerConfiguration(
+        string[] responseTypesSupported,
+        string[] grantTypesSupported
+    )
+    {
+        var configuration = new Dictionary<string, string?>
+        {
+            ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+        };
+        for (var index = 0; index < responseTypesSupported.Length; ++index)
+            configuration[$"OpenId:Server:Settings:response_types_supported:{index}"] =
+                responseTypesSupported[index];
+        for (var index = 0; index < grantTypesSupported.Length; ++index)
+            configuration[$"OpenId:Server:Settings:grant_types_supported:{index}"] =
+                grantTypesSupported[index];
+        return configuration;
+    }
+
+    private static string CreateAuthorizeUri(string clientId, string responseType) =>
+        "/oauth2/authorize"
+        + $"?client_id={Uri.EscapeDataString(clientId)}"
+        + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+        + $"&response_type={Uri.EscapeDataString(responseType)}"
+        + "&scope=openid"
+        + "&nonce=n-0S6_WzA2Mj"
+        + "&state=abc123"
+        + TestPkce.QueryParameters;
+
+    private static string[] GetStringArray(JsonElement root, string propertyName) =>
+        [
+            .. root.GetProperty(propertyName)
+                .EnumerateArray()
+                .Select(value => value.GetString() ?? string.Empty),
+        ];
+
+    private static async Task AssertRegistrationErrorAsync(
+        HttpResponseMessage response,
+        string expectedError,
+        string expectedQuotedName
+    )
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        var jsonElement = JsonElement.Parse(body);
+        var root = jsonElement;
+        Assert.Equal(expectedError, root.GetProperty("error").GetString());
+        Assert.Contains(
+            $"'{expectedQuotedName}'",
+            root.GetProperty("error_description").GetString(),
+            StringComparison.Ordinal
+        );
+    }
+
+    #region Registered Keys
+
+    private static Dictionary<string, object> CreateRsaJwk(
+        RSA rsa,
+        string? keyId,
+        bool includePrivateExponent = false
+    )
+    {
+        var parameters = rsa.ExportParameters(includePrivateExponent);
+        var jwk = new Dictionary<string, object>
+        {
+            ["kty"] = "RSA",
+            ["use"] = "sig",
+            ["alg"] = "RS256",
+            ["n"] = Base64Url.EncodeToString(parameters.Modulus),
+            ["e"] = Base64Url.EncodeToString(parameters.Exponent),
+        };
+        if (keyId is not null)
+            jwk["kid"] = keyId;
+        if (includePrivateExponent)
+            jwk["d"] = Base64Url.EncodeToString(parameters.D);
+        return jwk;
+    }
+
+    private static Dictionary<string, object> CreateKeyRegistration(
+        Dictionary<string, object> jwk
+    ) =>
+        new()
+        {
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = OpenIdProtocol
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+            ["jwks"] = new Dictionary<string, object> { ["keys"] = new[] { jwk } },
+        };
+
+    private static string[] GetKeyIds(JsonElement root) =>
+        [
+            .. root.GetProperty("jwks")
+                .GetProperty("keys")
+                .EnumerateArray()
+                .Select(key => key.GetProperty("kid").GetString() ?? string.Empty),
+        ];
+
+    [Fact]
+    public async Task PostRegister_WhenJwksCarriesPrivateKeyMaterial_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key", includePrivateExponent: true))
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "jwks"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAJwksKeyHasNoKid_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, keyId: null))
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "kid"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithJwks_ReportsTheRegisteredKeysByTheirKid()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"))
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+        Assert.Equal(["client-key"], GetKeyIds(root));
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+        Assert.Equal(["client-key"], GetKeyIds(read));
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTwoClientsRegisterTheSameKid_RegistersBoth()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var firstRsa = RSA.Create(2048);
+        using var secondRsa = RSA.Create(2048);
+
+        // A kid names a key among its own client's keys, so it is not a server-wide identifier.
+        using var firstResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(firstRsa, "key-1"))
+        );
+        using var secondResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(secondRsa, "key-1"))
+        );
+
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+        var secondBody = await secondResponse.Content.ReadAsStringAsync();
+        Assert.True(secondResponse.StatusCode == HttpStatusCode.Created, secondBody);
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenJwksUriReplacesJwks_RemovesTheRegisteredKeys()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"))
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+
+        using var updateRequest = new HttpRequestMessage(
+            HttpMethod.Put,
+            root.GetProperty("registration_client_uri").GetString()
+        )
+        {
+            Content = JsonContent.Create(
+                new Dictionary<string, object>
+                {
+                    ["client_id"] = root.GetProperty("client_id").GetString() ?? string.Empty,
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                    ["jwks_uri"] = "https://client.example/jwks",
+                }
+            ),
+        };
+        updateRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var updateResponse = await client.SendAsync(updateRequest);
+
+        // A client's keys come from one source, so publishing them at a jwks_uri replaces the registered ones.
+        var updateBody = await updateResponse.Content.ReadAsStringAsync();
+        Assert.True(updateResponse.StatusCode == HttpStatusCode.OK, updateBody);
+        var update = JsonElement.Parse(updateBody);
+        Assert.Equal("https://client.example/jwks", update.GetProperty("jwks_uri").GetString());
+        Assert.False(update.TryGetProperty("jwks", out _));
+    }
+
+    [Fact]
+    public async Task DeleteRegistration_RemovesTheClientWithItsKeysAndRegistrationAccessToken()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"))
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+        var registrationClientUri = root.GetProperty("registration_client_uri").GetString();
+        var registrationAccessToken = root.GetProperty("registration_access_token").GetString();
+
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, registrationClientUri);
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            registrationAccessToken
+        );
+        using var deleteResponse = await client.SendAsync(deleteRequest);
+
+        var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
+        Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
+
+        // The registration access token is removed with the client, so it no longer authenticates a read.
+        using var readRequest = new HttpRequestMessage(HttpMethod.Get, registrationClientUri);
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            registrationAccessToken
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.Unauthorized, readBody);
+    }
+
+    #endregion
+
+    #region Client Authentication Methods
+
+    private static string BuildPrivateKeyJwt(string clientId, RSA privateKey, string audience)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var header = new Dictionary<string, object> { ["alg"] = "RS256", ["typ"] = "JWT" };
+        var payload = new Dictionary<string, object>
+        {
+            ["iss"] = clientId,
+            ["sub"] = clientId,
+            ["aud"] = audience,
+            ["jti"] = Guid.NewGuid().ToString("N"),
+            ["iat"] = now.ToUnixTimeSeconds(),
+            ["exp"] = now.AddMinutes(5).ToUnixTimeSeconds(),
+        };
+
+        var encodedHeader = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(header));
+        var encodedPayload = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload));
+        var signingInput = $"{encodedHeader}.{encodedPayload}";
+        var signature = privateKey.SignData(
+            SecureEncoding.ASCII.GetBytes(signingInput),
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        return $"{signingInput}.{Base64Url.EncodeToString(signature)}";
+    }
+
+    [Fact]
+    public async Task PostRegister_WithPrivateKeyJwt_RegistersAClientThatAuthenticatesWithItsKey()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+        var registration = CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"));
+        registration["token_endpoint_auth_method"] = OpenIdProtocol
+            .ClientAuthenticationMethods
+            .PrivateKeyJwt;
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            registration
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            root.GetProperty("token_endpoint_auth_method").GetString()
+        );
+        // A key-based client verifies with its keys; a shared secret would be a second, weaker credential.
+        Assert.False(root.TryGetProperty("client_secret", out _));
+
+        var clientId = root.GetProperty("client_id").GetString() ?? string.Empty;
+        var discovery = JsonElement.Parse(
+            await client.GetStringAsync("/.well-known/openid-configuration")
+        );
+        var issuer = discovery.GetProperty("issuer").GetString() ?? string.Empty;
+        using var tokenResponse = await client.PostAsync(
+            "/oauth2/token",
+            new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
+                    ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
+                    ["client_assertion"] = BuildPrivateKeyJwt(clientId, rsa, issuer),
+                }
+            )
+        );
+
+        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
+        var token = JsonElement.Parse(tokenBody);
+        Assert.False(
+            token.TryGetProperty("error", out var error)
+                && error.GetString() == OpenIdProtocol.ErrorCodes.InvalidClient,
+            tokenBody
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithPrivateKeyJwtWithoutKeys_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .PrivateKeyJwt,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "jwks_uri"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithTlsClientAuth_StoresAndReportsTheCertificateIdentity()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .TlsClientAuth,
+                ["tls_client_auth_san_dns"] = "client.example.com",
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
+        Assert.False(root.TryGetProperty("client_secret", out _));
+        Assert.Equal("client.example.com", root.GetProperty("tls_client_auth_san_dns").GetString());
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+        Assert.Equal("client.example.com", read.GetProperty("tls_client_auth_san_dns").GetString());
+    }
+
+    [Fact]
+    public async Task PostRegister_WithTlsClientAuthWithoutIdentity_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .TlsClientAuth,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "tls_client_auth_subject_dn"
+        );
+    }
+
+    #endregion
+
+    #region Token Endpoint and CIBA Metadata
+
+    [Fact]
+    public async Task PostRegister_WithTokenEndpointAndCibaMetadata_StoresAndReportsThem()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["token_endpoint_auth_signing_alg"] = "ES256",
+                ["backchannel_token_delivery_mode"] = OpenIdProtocol
+                    .BackchannelTokenDeliveryModes
+                    .Ping,
+                ["backchannel_client_notification_endpoint"] = "https://client.example/ciba",
+                ["backchannel_authentication_request_signing_alg"] = "PS256",
+                ["backchannel_user_code_parameter"] = false,
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+
+        // Reading the registration back loads the stored client, so the metadata round-trips through its settings.
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+
+        foreach (var jsonElement in new[] { root, read })
+        {
+            Assert.Equal(
+                "ES256",
+                jsonElement.GetProperty("token_endpoint_auth_signing_alg").GetString()
+            );
+            Assert.Equal(
+                OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+                jsonElement.GetProperty("backchannel_token_delivery_mode").GetString()
+            );
+            Assert.Equal(
+                "https://client.example/ciba",
+                jsonElement.GetProperty("backchannel_client_notification_endpoint").GetString()
+            );
+            Assert.Equal(
+                "PS256",
+                jsonElement
+                    .GetProperty("backchannel_authentication_request_signing_alg")
+                    .GetString()
+            );
+            Assert.False(jsonElement.GetProperty("backchannel_user_code_parameter").GetBoolean());
+        }
+    }
+
+    [Theory]
+    [InlineData("push", null, OpenIdSettingNames.ClientNotificationEndpoint)]
+    [InlineData(
+        "ping",
+        "http://client.example/ciba",
+        OpenIdSettingNames.ClientNotificationEndpoint
+    )]
+    [InlineData("poll", null, OpenIdSettingNames.BackchannelUserCodeParameterSupported)]
+    public async Task PostRegister_WhenTheCibaMetadataCannotBeHonored_ReturnsInvalidClientMetadata(
+        string deliveryMode,
+        string? notificationEndpoint,
+        string expectedQuotedName
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var metadata = new Dictionary<string, object>
+        {
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+            ["backchannel_token_delivery_mode"] = deliveryMode,
+        };
+        if (notificationEndpoint is not null)
+            metadata["backchannel_client_notification_endpoint"] = notificationEndpoint;
+
+        // The server does not support the user_code parameter by default, so no client may claim it.
+        if (expectedQuotedName == OpenIdSettingNames.BackchannelUserCodeParameterSupported)
+            metadata["backchannel_user_code_parameter"] = true;
+
+        using var response = await client.PostAsJsonAsync("/oauth2/register", metadata);
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            expectedQuotedName
+        );
+    }
+
+    #endregion
+
+    #region Certificate-Bound Access Tokens
+
+    [Fact]
+    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerDoesNotSupportThem_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["tls_client_certificate_bound_access_tokens"] = true,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "tls_client_certificate_bound_access_tokens"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerSupportsThem_StoresAndReportsThem()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Server:Settings:tls_client_certificate_bound_access_tokens"] = "true",
+            }
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["tls_client_certificate_bound_access_tokens"] = true,
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
+        Assert.True(root.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean());
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+        Assert.True(read.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean());
+    }
+
+    #endregion
+
+    #region DPoP-Bound Access Tokens
+
+    [Fact]
+    public async Task PostRegister_WithDPoPBoundTokens_StoresTheRequirementAndTheTokenEndpointEnforcesIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["dpop_bound_access_tokens"] = true,
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registered = JsonElement.Parse(registrationBody);
+        var root = registered;
+        Assert.True(root.GetProperty("dpop_bound_access_tokens").GetBoolean());
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+        Assert.True(read.GetProperty("dpop_bound_access_tokens").GetBoolean());
+
+        // The stored requirement is the client's own: a token request without a DPoP proof is refused.
+        using var tokenContent = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
+                ["client_id"] = root.GetProperty("client_id").GetString()!,
+                ["client_secret"] = root.GetProperty("client_secret").GetString()!,
+            }
+        );
+        using var tokenResponse = await client.PostAsync("/oauth2/token", tokenContent);
+
+        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
+        Assert.True(tokenResponse.StatusCode == HttpStatusCode.BadRequest, tokenBody);
+        var token = JsonElement.Parse(tokenBody);
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.InvalidDPoPProof,
+            token.GetProperty("error").GetString()
+        );
+    }
+
+    #endregion
+
+    #region Back-Channel Logout Metadata
+
+    [Fact]
+    public async Task PostRegister_WithBackChannelLogoutMetadata_StoresAndReportsIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["backchannel_logout_uri"] = "https://client.example/logout",
+                ["backchannel_logout_session_required"] = true,
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+
+        foreach (var jsonElement in new[] { root, read })
+        {
+            Assert.Equal(
+                "https://client.example/logout",
+                jsonElement.GetProperty("backchannel_logout_uri").GetString()
+            );
+            Assert.True(
+                jsonElement.GetProperty("backchannel_logout_session_required").GetBoolean()
+            );
+        }
+    }
+
+    [Theory]
+    [InlineData("http://client.example/logout")]
+    [InlineData("https://client.example/logout#fragment")]
+    public async Task PostRegister_WhenTheBackChannelLogoutUriIsNotHttps_ReturnsInvalidClientMetadata(
+        string logoutUri
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["backchannel_logout_uri"] = logoutUri,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.BackChannelLogoutUri
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithPostLogoutRedirectUris_StoresAndReportsThem()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                ["post_logout_redirect_uris"] = new[] { "https://client.example/signed-out" },
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var registration = JsonElement.Parse(registrationBody);
+        var root = registration;
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        var read = JsonElement.Parse(readBody);
+
+        foreach (var jsonElement in new[] { root, read })
+        {
+            var uris = jsonElement.GetProperty("post_logout_redirect_uris");
+            Assert.Equal(
+                "https://client.example/signed-out",
+                Assert.Single(uris.EnumerateArray()).GetString()
+            );
+        }
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheTenantDoesNotSupportFrontChannelLogout_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { "https://client.example/callback" },
+                ["frontchannel_logout_uri"] = "https://client.example/frontchannel-logout",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            OpenIdSettingNames.FrontChannelLogoutUri
+        );
+    }
+
+    #endregion
+}

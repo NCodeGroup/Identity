@@ -9,7 +9,7 @@ conformance harness, and for driving that harness **fully automated** in CI. It 
 
 ## Why an external harness (not just our own tests)
 
-Our own integration tests ([`NCode.Identity.OpenId.IntegrationTests`](../tests/NCode.Identity.OpenId.IntegrationTests))
+Our own integration tests ([`NCode.Identity.OpenId.Integration.Tests`](../tests/NCode.Identity.OpenId.Integration.Tests))
 exercise the endpoints over the wire via `WebApplicationFactory`/`TestServer`, but they encode **our own
 reading** of the specs — the same reading that produced the implementation, so a shared misunderstanding
 passes both. An independent oracle removes that blind spot.
@@ -95,7 +95,7 @@ Prerequisites, roughly in dependency order:
 
 1. **Reachable HTTPS host.** Run the host on a real Kestrel HTTPS endpoint the suite's Selenium/nginx
    can reach (not `TestServer`). The existing
-   [`HostApplicationFactory`](../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/HostApplicationFactory.cs)
+   [`HostApplicationFactory`](../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/HostApplicationFactory.cs)
    is in-process only; CI needs a launched process (Docker container or `dotnet run`) addressable from
    the suite. On Windows/Docker, the suite reaches the host via `host.docker.internal`.
 2. **Automatable login + consent UI** with stable selectors and a **seeded deterministic conformance

@@ -29,8 +29,8 @@ injected into the bundle's `#root` so the SPA replaces it on mount — so the su
 suite's no-JS `HtmlUnitDriver` without user-agent sniffing. The host opts in
 ([`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)) and the endpoints are covered by
 integration and unit tests
-([`InteractiveLoginAntiforgeryTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLoginAntiforgeryTests.cs),
-[`InteractiveLogoutTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLogoutTests.cs),
+([`InteractiveLoginAntiforgeryTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/InteractiveLoginAntiforgeryTests.cs),
+[`InteractiveLogoutTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/InteractiveLogoutTests.cs),
 [`InteractiveAuthenticationEndpointHandlerTests`](../../tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/InteractiveAuthenticationEndpointHandlerTests.cs)).
 Consent went beyond the auto-approve stopgap below: durable, granular consent now enforces through this
 same surface ([ADR-0076](../decisions/0076-consent-persistence-and-enforcement.md),
@@ -67,7 +67,7 @@ the wire protocol is correct.
   calls `app.UseAuthentication()` / `app.UseAuthorization()` but has **no `AddAuthentication(...)`
   registration**, so a challenge today has no cookie handler and no `LoginPath` to redirect to.
 - **Integration tests bypass the UI.** Tests use
-  [`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/TestSubjectAuthenticationHandler.cs),
+  [`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/TestSubjectAuthenticationHandler.cs),
   which reads an `X-Test-Subject` header. This is header-driven, not browser-drivable, so it cannot
   satisfy the suite's Selenium login task.
 - **Consent is an open feature gap.** `DefaultAuthorizeHandler` carries `// TODO: check consent`; durable

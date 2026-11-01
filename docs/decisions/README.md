@@ -29,7 +29,8 @@ standards.
   when two files share a number, when the index misses a file or links a missing one, or when a row's number is not
   its file's, so a collision that slips past a textual merge still fails the merge queue.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
-- **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`.
+- **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`. A record that builds on one of the project template's decisions says so on a metadata line under
+  `**Deciders:**` (see [The template's decisions](#the-templates-decisions)).
 - Keep ADRs short, concrete, and link to real code so future readers can verify the decision
   against the current source.
 - Write each ADR as a **timeless, present-tense record** of the decision and its rationale — never a
@@ -37,6 +38,16 @@ standards.
   before release"_, _"the first cut"_, _"we built"_, _"now/originally/today"_): describe what the
   decision **is** and why, so the record reads the same a year later. A superseded ADR keeps its
   original decision text and only gains a status change plus a forward pointer to its successor.
+
+## The template's decisions
+
+The project template's general decisions are in [`project-template/`](./project-template/README.md); template updates
+replace that folder. They are the source of truth for every rule they cover: cite one as `project-template ADR-NNNN`,
+linking `project-template/NNNN-<slug>.md`. A record here never restates one. When it adds NCode.Identity-specific
+decisions to one, it says `- **Refines:** project-template ADR-NNNN`, and where the two differ the template's holds.
+When it contradicts one, it says `- **Conflicts with:** project-template ADR-NNNN` with the issue that tracks bringing
+the two into line; until then the record describes what the code does. To decide otherwise for good, write a record
+that says `- **Supersedes:** project-template ADR-NNNN` and list the override in [`AGENTS.md`](../../AGENTS.md).
 
 ## Index
 

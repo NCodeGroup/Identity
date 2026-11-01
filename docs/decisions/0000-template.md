@@ -4,6 +4,8 @@
 - **Date:** YYYY-MM-DD
 - **Deciders:** _who was involved_
 
+_A record that builds on one of the project template's decisions in [project-template/](project-template/README.md) adds a line here: **Refines:** project-template ADR-NNNN when it adds NCode.Identity-specific decisions to it, or **Supersedes:** project-template ADR-NNNN when it replaces it (list the override in AGENTS.md)._
+
 ## Context
 
 _What is the problem or the recurring question? What forces (technical, organizational) are at

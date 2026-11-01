@@ -1,22 +1,45 @@
 <Project>
 
-  <!-- Shared build settings from the project template, imported by Directory.Build.props. Template updates replace this file; never edit it. Override a setting in Directory.Build.props, after the import. -->
+  <!-- Shared build settings from the project template, imported by Directory.Build.props. Template updates replace this file; never edit it. Override a setting in Directory.Build.props, after the import. The decisions behind them are in docs/decisions/project-template/. -->
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Roslyn reports unused usings (IDE0005) in the build only when it generates XML documentation. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- A newly published NuGet advisory fails CI and the full Definition of Done (build/dod.ps1 sets FailOnNuGetAdvisories), but not a local build of unchanged code. -->
+    <WarningsNotAsErrors Condition="'$(CI)' != 'true' and '$(FailOnNuGetAdvisories)' != 'true'">$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+    <!-- Minimal-API request delegates are generated at compile time; only the Web SDK reads this. -->
+    <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <Product>NCode.Identity</Product>
     <Authors>NCode Group</Authors>
     <Company>NCode Group</Company>
     <Copyright>Copyright © $([System.DateTime]::Now.Year) NCode Group</Copyright>
     <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
-  <!-- Test projects, named <Name>.Tests by the C# conventions. IsTestProject isn't set yet when this file is read. -->
+  <!-- Analyzer severities (ProjectTemplate.globalconfig; .editorconfig overrides them) and the banned APIs (BannedApiAnalyzers, referenced in Directory.Packages.props). Add a list of the project's own as BannedSymbols.<name>.txt in Directory.Build.props. -->
+  <ItemGroup>
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)ProjectTemplate.globalconfig" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
+  <!-- The null-forgiving operator (!) fails the build outside test projects (Nullable.Extended.Analyzer, NX0001-NX0004). Restructure instead; its '// !' justification comment is not an escape here. Item conditions see the project's final properties. -->
+  <ItemGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <PackageReference Include="Nullable.Extended.Analyzer" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <!-- Test projects, named <Name>.Tests by the C# conventions. IsTestProject isn't set yet when this file is read. They keep XML documentation on, which IDE0005 needs, and take the severities in ProjectTemplate.Tests.globalconfig, which .editorconfig overrides. -->
   <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)ProjectTemplate.Tests.globalconfig" />
+  </ItemGroup>
 
 </Project>

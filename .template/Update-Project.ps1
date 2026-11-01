@@ -27,7 +27,8 @@
                       = '.github/workflows/ci.yml' }, and only merged files can be named.
                       When the template changed a merged file that shares less than half its lines with the
                       template's version, the script suggests that answer, with the -Data to run;
-                      it doesn't stop the update.
+                      it doesn't stop the update. When Copier can't render the project's version, it warns
+                      with Copier's error and says it skipped the suggestion.
 
     The update runs `copier recopy` at the project's current template version, which resets the template-owned
     files and shows any local edits, then `copier update --defaults` to the newest version (or -Ref), which merges
@@ -40,9 +41,10 @@
 
     On the default branch (the branch origin/HEAD names) it refuses to run unless -NoCommit is given, because it
     commits. It enables the template's hooks (core.hooksPath .githooks) unless the clone already has a hooks path,
-    hooks in .git/hooks, or uses pre-commit; then it says how to run them, or nothing once .pre-commit-config.yaml
-    runs .githooks/commit-msg. With protect: hook in AGENTS.md's Landing section, it also says how to run
-    .githooks/pre-push there.
+    hooks in .git/hooks, or uses pre-commit; then it leaves them as they are and warns, naming the command that runs
+    the template's hooks, or says nothing when core.hooksPath names a .githooks folder, or when
+    .pre-commit-config.yaml runs .githooks/commit-msg. With protect: hook in AGENTS.md's Landing section, it also says
+    how to run .githooks/pre-push there.
 
     When the project has version tags merged into HEAD that the changelog (AGENTS.md's Landing changelog key,
     CHANGELOG.md by default) has no section for, it ends with a /plan-migration request to backfill them.
@@ -85,11 +87,14 @@ function ConvertTo-CopierValue($Value) {
     if ($Value -is [Collections.IList]) { '[' + ($Value -join ', ') + ']' } else { "$Value" }
 }
 
-# Render the template at a version into a folder with the project's answers; false when Copier can't.
+# Render the template at a version into a folder with the project's answers;
+# false, with a warning that says why, when Copier can't.
 function Invoke-TemplateRender([string]$Version, [string]$Folder) {
     $renderArgs = @('copy', '--defaults', '--quiet', '--vcs-ref', $Version, '--data-file', (Join-Path $project '.copier-answers.yml'))
     foreach ($k in $Data.Keys) { $renderArgs += '--data', "$k=$(ConvertTo-CopierValue $Data[$k])" }
-    try { Invoke-Copier @renderArgs $TemplateClone $Folder | Out-Null; $true } catch { $false }
+    $copierOutput = [Collections.Generic.List[string]]::new()
+    try { Invoke-Copier @renderArgs $TemplateClone $Folder | ForEach-Object { $copierOutput.Add("$_") }; $true }
+    catch { Write-Warning ((@("Copier couldn't render template $Version with this project's answers: $_") + $copierOutput) -join "`n"); $false }
 }
 
 function Get-Answer([string]$Key) {
@@ -166,9 +171,14 @@ function Get-RewrittenFile([string[]]$Files, [string]$Folder) {
 }
 
 # How to run the template's .githooks in this clone: HooksPath when core.hooksPath can point at it, otherwise the
-# Note to print. A hooks path turns off the hooks in .git/hooks, and pre-commit won't install while one is set, so
+# Note to warn with. A hooks path turns off the hooks in .git/hooks, and pre-commit won't install while one is set, so
 # a clone that uses pre-commit gets a local pre-commit hook to add instead, and no note once its config runs it.
+# A hooks path the clone already has, from any Git config, is never changed: one that names a .githooks folder runs the
+# template's hooks, and any other, such as husky's or a global hooks folder, gets a note naming the command to run.
 # With "- protect: hook" in AGENTS.md's Landing section, it also says how to run .githooks/pre-push until something does.
+# This is a deliberate copy of Get-GitHooksSetup in the template's tools/adopt/Adoption.psm1, not shared code: this
+# script runs on its own, from an older template's copy. Change both together, or Update and Adopt can decide
+# differently for the same clone; tests/Test-GitHooks.ps1 runs both copies through the same cases.
 function Get-GitHooksSetup {
     $config = '.pre-commit-config.yaml'
     $hooksDir = git rev-parse --path-format=absolute --git-path hooks
@@ -185,6 +195,14 @@ function Get-GitHooksSetup {
             if ($inLanding -and $line -match '^## ') { break }
             if ($inLanding -and $line -match '^- protect:\s*(\S+)') { $protect = $Matches[1]; break }
         }
+    }
+
+    $current = git config --get core.hooksPath
+    if ($current) {
+        if ((Split-Path -Leaf $current.TrimEnd('\', '/')) -eq '.githooks') { return [pscustomobject]@{ HooksPath = $false; Note = $null } }
+        $push = if ($protect -eq 'hook') { ', or .githooks/pre-push, which refuses a push to the default branch as AGENTS.md''s Landing section says (protect: hook)' } else { '' }
+        $call = if ($protect -eq 'hook') { "call .githooks/commit-msg from $current/commit-msg and .githooks/pre-push from $current/pre-push" } else { "call .githooks/commit-msg from $current/commit-msg" }
+        return [pscustomobject]@{ HooksPath = $false; Note = "Git hooks: .githooks not enabled. core.hooksPath is already $current (git config --show-origin core.hooksPath says where it's set), so Git never runs .githooks/commit-msg, which strips AI agent attribution from commit messages$push. To run both, $call. To run the template's hooks instead, run: git config core.hooksPath .githooks" }
     }
 
     # True when the clone's pre-push hook, or the pre-push.legacy that pre-commit runs first, calls .githooks/pre-push.
@@ -224,7 +242,9 @@ function Get-GitHooksSetup {
 }
 
 # The changelog AGENTS.md's Landing section names (CHANGELOG.md by default) as File, and as Range the version tags merged into HEAD
-# that have no release heading in it: <oldest>..<newest>, the tag alone, or -. workflow/Get-PlanState.ps1 prints Range as changelog-backfill.
+# that have no release heading in it: <oldest>..<newest>, the tag alone, or -. .template/Get-PlanState.ps1 prints Range as changelog-backfill.
+# This is a deliberate copy of that logic, not shared code: Update-Project.ps1 runs on its own, from an older template's copy, before any workflow script exists to dot-source.
+# Change the release-heading pattern and the merged-tag filter in both places, or the request printed here can disagree with changelog-backfill.
 function Get-ChangelogBackfill {
     $file = 'CHANGELOG.md'
     if (Test-Path -LiteralPath AGENTS.md) {
@@ -248,7 +268,7 @@ $outputEncoding = [Console]::OutputEncoding
 Push-Location -LiteralPath $project
 try {
     # Read Git's output as UTF-8, so file contents and diffs keep their characters.
-    try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
+    try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { Write-Verbose "Couldn't set the console's output encoding: $_" }
     if (-not (Test-Path -LiteralPath .copier-answers.yml)) { throw "$project has no .copier-answers.yml, so it wasn't created from the template." }
     if (git status --porcelain) { throw "$project has uncommitted changes. Commit or stash them first." }
     $head = git rev-parse HEAD
@@ -256,7 +276,8 @@ try {
     $src = Get-Answer '_src_path'
     # The template moved from polewskm/project-template to NCodeGroup/project-template. A project whose answers still name the old
     # address moves over with this update, so it stops depending on GitHub's redirect. Only the _src_path line changes, and the
-    # update commits it with everything else.
+    # update commits it with everything else. Get-TemplateUpdate.ps1 reads the same old address for the weekly notice;
+    # change both together.
     $movedSource = 'https://github.com/NCodeGroup/project-template.git'
     if ($src -match '^https://github\.com/polewskm/project-template(?:\.git)?/?$') {
         $answersFile = Join-Path $project '.copier-answers.yml'
@@ -278,7 +299,8 @@ try {
     # The update commits, and the default branch may accept changes only through pull requests.
     $branch = git branch --show-current
     $defaultRef = git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null
-    $default = if ($defaultRef) { $defaultRef -replace '^origin/' } elseif ($branch -in 'main', 'master' -and (git rev-parse --quiet --verify "refs/remotes/origin/$branch" 2>$null)) { $branch }
+    $originBranch = if ($branch -in 'main', 'master') { git rev-parse --quiet --verify "refs/remotes/origin/$branch" 2>$null }
+    $default = if ($defaultRef) { $defaultRef -replace '^origin/' } elseif ($originBranch) { $branch }
     if ($branch -and $branch -eq $default -and -not $NoCommit) { throw "$project is on $branch, its default branch, and the update commits. Update on a branch of its own: git switch -c build/project-template-$to — or stage the update here with -NoCommit." }
 
     # Hand over to the target version's copy of this script when it differs, so the newest update logic runs.
@@ -316,14 +338,19 @@ try {
                 })
             if ($changedMerged) { $fromRendered = Invoke-TemplateRender $from $renderedFrom }
             if ($fromRendered) { $rewritten = @(Get-RewrittenFile $changedMerged $renderedFrom) }
-        } catch { $rewritten = @() }
+            elseif ($changedMerged) { Write-Warning "Skipped the rewritten-file suggestion: without template $from rendered, the update can't tell which merged files this project rewrote." }
+        }
+        catch {
+            Write-Warning "Skipped the rewritten-file suggestion: checking for merged files this project rewrote failed: $_"
+            $rewritten = @()
+        }
     }
     try {
         # Reset the template-owned files to the project's current version; what changes was edited or deleted here.
         $exclude = foreach ($file in $projectOwned + $merged) { '--exclude', $file }
         Invoke-Copier recopy --force --quiet --vcs-ref :current: @exclude
         $reset = @(Get-Change)
-        # Adopt-Project.ps1 ends these files with the repository's own lines under a "# Kept from …" comment. Set them aside while
+        # The template's Adopt-Project.ps1 ends these files with the repository's own lines under a "# Kept from …" comment. Set them aside while
         # Copier merges, so a template change to the file's last lines can't conflict with them or take them into its conflict.
         $keptLines = @{}
         foreach ($file in '.gitignore', '.gitattributes', '.editorconfig') {
@@ -389,11 +416,12 @@ try {
         if (Test-Path -LiteralPath .githooks/commit-msg) { git update-index --chmod=+x .githooks/commit-msg }
         if (Test-Path -LiteralPath .githooks/pre-push) { git update-index --chmod=+x .githooks/pre-push }
     }
-    # Enable the template's versioned hooks in this clone, unless it already runs hooks another way (Get-GitHooksSetup).
-    if ((Test-Path -LiteralPath .githooks) -and -not (git config --get core.hooksPath)) {
+    # Enable the template's versioned hooks in this clone, unless it already has a hooks path or runs hooks another way
+    # (Get-GitHooksSetup): then warn, because without them nothing strips AI agent attribution before a push.
+    if (Test-Path -LiteralPath .githooks) {
         $hooksSetup = Get-GitHooksSetup
         if ($hooksSetup.HooksPath) { git config core.hooksPath .githooks }
-        elseif ($hooksSetup.Note) { $hooksSetup.Note; '' }
+        elseif ($hooksSetup.Note) { Write-Warning $hooksSetup.Note }
     }
     $changes = @(Get-Change)
     $projectOwnedChanged = @(if ($from -ne $to) {
@@ -484,7 +512,7 @@ try {
 }
 finally {
     Pop-Location
-    try { [Console]::OutputEncoding = $outputEncoding } catch { }
+    try { [Console]::OutputEncoding = $outputEncoding } catch { Write-Verbose "Couldn't restore the console's output encoding: $_" }
     if ($ownClone -and $TemplateClone -and (Test-Path -LiteralPath $TemplateClone)) { Remove-Item -LiteralPath $TemplateClone -Recurse -Force -ErrorAction SilentlyContinue }
     if (Test-Path -LiteralPath $scratch) { Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue }
 }

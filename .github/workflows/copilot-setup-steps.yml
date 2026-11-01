@@ -1,72 +1,46 @@
-# Copilot cloud agent environment — prepared before the agent starts work.
-#
-# A cloud-agent session runs for at most 59 minutes, and these steps run inside that window. They do only what every
-# session needs anyway — the repo-pinned .NET SDK, Node, and pnpm, plus the restored NuGet and pnpm packages — from
-# cache and deterministically, instead of the agent finding and installing the toolchain itself (the runner image ships
-# neither Node 26 nor pnpm). The agent's first build then starts from restored packages. How to size a session so it
-# fits the window: AGENTS.md, "Copilot cloud agent sessions".
-#
-# GitHub runs this job for the agent only from the default branch; the push and pull_request triggers validate edits.
+# The Copilot cloud agent's environment, prepared before each session: GitHub runs this workflow's one job on the
+# session's fresh runner, so the agent starts with the project's toolchain and packages instead of installing them
+# itself. GitHub reads the job only from the default branch and only under the name copilot-setup-steps, and takes only
+# its steps, permissions, runs-on, services, snapshot and timeout-minutes, so each step names its own shell. When a step
+# fails, the rest are skipped and the session starts anyway. The push and pull_request triggers run it when this file
+# changes, to show it still works.
 name: Copilot Setup Steps
 
 on:
   workflow_dispatch:
-  # A push runs only on main, because a pull request already runs every other branch (see ci.yml).
   push:
     branches: [main]
     paths: [.github/workflows/copilot-setup-steps.yml]
   pull_request:
     paths: [.github/workflows/copilot-setup-steps.yml]
 
-permissions:
-  contents: read
-
 jobs:
-  # The job MUST be named copilot-setup-steps, or the agent does not pick it up.
   copilot-setup-steps:
     runs-on: ubuntu-latest
-    # The whole agent session ends at this limit, and 59 is the most the agent allows.
+    # The session's limit too, counted from this job's start: 59 is the most Copilot allows.
     timeout-minutes: 59
     permissions:
       contents: read
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+      # The agent gets a token of its own, so the checkout keeps none.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-
-      # The same key as the .NET CI gate, so a session reuses the packages CI already restored.
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      # The same key as CI's, so a session reuses the packages CI restored.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-
-      - name: Restore .NET tools and packages
-        run: |
-          dotnet tool restore
-          dotnet restore NCode.Identity.slnx
-
-      # The Node major and the pnpm version are each pinned once (ADR-0152); these steps read the same pins the
-      # Frontend CI workflow reads.
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: src/frontend/.node-version
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          package_json_file: src/frontend/package.json
-          cache: true
-          cache_dependency_path: src/frontend/pnpm-lock.yaml
-
-      - name: Install frontend packages
-        working-directory: src/frontend
-        run: pnpm install --frozen-lockfile
+      - name: Restore tools
+        if: hashFiles('.config/dotnet-tools.json') != ''
+        shell: pwsh
+        run: dotnet tool restore
+      - name: Restore packages
+        if: hashFiles('*.sln', '*.slnx') != ''
+        shell: pwsh
+        run: dotnet restore

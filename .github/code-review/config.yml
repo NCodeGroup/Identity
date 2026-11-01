@@ -2,8 +2,8 @@
 #
 # A pull request that changes a file these globs match gets a deep review: correctness and security on Opus, and
 # verification of those files' findings on Opus. These are the projects whose defects are security defects: tokens,
-# keys and secrets, and the code that authenticates users and clients and serves the protocol. About 1 in 3 pull
-# requests touch them, at about $1.80 to $2.80 a deep review.
+# keys and secrets, and the code that authenticates users and clients and serves the protocol. NCodeGroup/project-template#141
+# weighs this set against a narrower one.
 sensitive:
   - "src/NCode.Identity.Jose*/**"
   - "src/NCode.Identity.Jwt*/**"

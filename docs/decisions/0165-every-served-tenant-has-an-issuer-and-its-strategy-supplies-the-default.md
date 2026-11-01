@@ -5,6 +5,7 @@
   document's issuer is the serving tenant's)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md)
 
 ## Context
 

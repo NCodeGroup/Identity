@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)
 - **Supersedes:** [ADR-0017](0017-tenant-resolution-shared-abstraction-and-management-boundary.md)
 
 ## Context

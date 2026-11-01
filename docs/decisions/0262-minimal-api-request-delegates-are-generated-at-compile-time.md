@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-25
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0120](project-template/0120-request-delegates-are-generated-at-compile-time.md)
 
 ## Context
 

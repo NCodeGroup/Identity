@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0122](project-template/0122-strict-transport-security-outside-development.md)
 
 ## Context
 

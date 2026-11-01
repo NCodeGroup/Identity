@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md)
 
 ## Context
 

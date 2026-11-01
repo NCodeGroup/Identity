@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md)
 
 ## Context
 

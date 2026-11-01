@@ -3,7 +3,7 @@
  *
  * A single bundle runs unchanged in sandbox/test/production: no tier value is baked at build time.
  * On boot, the app fetches a bootstrap document from the serving host and the OpenID Provider's
- * discovery document, and merges them into a {@link RuntimeConfig}. See docs/decisions/0064.
+ * discovery document, and merges them into a {@link RuntimeConfig}. See docs/decisions/1064.
  */
 
 /**
@@ -43,7 +43,7 @@ export type EnvironmentConfig = {
   readonly name?: string;
 };
 
-/** Brandable theme tokens injected at runtime (see docs/decisions/0064 branding seam). */
+/** Brandable theme tokens injected at runtime (see docs/decisions/1064 branding seam). */
 export type BrandingConfig = {
   readonly displayName?: string;
   readonly logoUrl?: string;

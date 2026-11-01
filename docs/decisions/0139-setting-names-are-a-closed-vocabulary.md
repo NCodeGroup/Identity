@@ -8,6 +8,7 @@
   registered until a later release removes it)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)
 
 ## Context
 

@@ -5,6 +5,7 @@
   [ADR-0215](0215-a-revocation-wins-a-concurrency-race.md): a revocation retries a lost race)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0109](project-template/0109-a-lost-concurrency-race-is-a-store-neutral-exception.md)
 
 ## Context
 

@@ -137,7 +137,9 @@ Three layers keep the record clean:
   ([`.template/Test-CommitAttribution.ps1`](.template/Test-CommitAttribution.ps1), from the project template) runs on
   pull requests, in the merge queue and on pushes to `main` and release lines. It fails when a commit's author or
   committer is an AI agent account, or when a message carries agent attribution, because a squash merge credits every
-  commit author.
+  commit author. It also reads the pull request's title and description, which the squash merge copies into the
+  commit on `main`, and runs again when they are edited: when it finds such a line there, edit the pull request
+  instead of rebasing.
 
 The Copilot cloud agent authors its commits as `copilot-swe-agent[bot]`, so its pull request fails the check until a
 person re-authors the commits and force-pushes the branch:

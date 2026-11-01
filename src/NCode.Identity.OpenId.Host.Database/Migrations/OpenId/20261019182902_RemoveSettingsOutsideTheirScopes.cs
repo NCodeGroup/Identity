@@ -94,7 +94,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // A setting stored at a scope that never reads it now fails closed when the document is loaded (ADR-1149).
+            // A setting stored at a scope that never reads it fails closed when the document is loaded (ADR-1149).
             // It never had an effect there, so it is removed rather than translated: no setting at that scope expressed
             // its intent, and moving it to the tenant would change every other client or resource server of the tenant.
             // Its value is irrelevant, so a document is rewritten whatever the value; any other setting the document

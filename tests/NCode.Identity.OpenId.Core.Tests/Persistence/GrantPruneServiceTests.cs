@@ -57,6 +57,20 @@ public sealed class GrantPruneServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
+    private void SetupSaveChangesFailingOnce(
+        Exception exception,
+        CancellationToken cancellationToken
+    )
+    {
+        var saves = 0;
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(() =>
+                ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask
+            )
+            .Verifiable(Times.Exactly(2));
+    }
+
     #region PruneAsync Tests
 
     [Fact]
@@ -88,8 +102,9 @@ public sealed class GrantPruneServiceTests : IDisposable
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
+        var batches = 0;
         MockGrantStore
-            .SetupSequence(x =>
+            .Setup(x =>
                 x.RemoveEndedBeforeAsync(
                     Now - TimeSpan.FromDays(14),
                     GrantPruneService.GrantTypesEndedByRevocation,
@@ -97,8 +112,8 @@ public sealed class GrantPruneServiceTests : IDisposable
                     cancellationToken
                 )
             )
-            .ReturnsAsync(GrantPruneService.BatchSize)
-            .ReturnsAsync(5);
+            .ReturnsAsync(() => ++batches == 1 ? GrantPruneService.BatchSize : 5)
+            .Verifiable(Times.Exactly(2));
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(cancellationToken))
             .Returns(ValueTask.CompletedTask)
@@ -123,10 +138,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        SetupSaveChangesFailingOnce(new StoreConcurrencyException("conflict"), cancellationToken);
 
         await Service.PruneAsync(cancellationToken);
     }
@@ -147,10 +159,10 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("unreachable"))
-            .Returns(ValueTask.CompletedTask);
+        SetupSaveChangesFailingOnce(
+            new InvalidOperationException("unreachable"),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);
@@ -172,11 +184,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        var timeout = new TaskCanceledException("timed out");
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(timeout)
-            .Returns(ValueTask.CompletedTask);
+        SetupSaveChangesFailingOnce(new TaskCanceledException("timed out"), cancellationToken);
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);

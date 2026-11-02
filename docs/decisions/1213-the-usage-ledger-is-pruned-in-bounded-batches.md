@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md); tracked in [#443](https://github.com/NCodeGroup/Identity/issues/443)
+- **Refines:** [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md)
 
 ## Context
 
@@ -23,12 +23,14 @@ every provider supports it (issue [#264](https://github.com/NCodeGroup/Identity/
    day, and every checkpoint whose last day is before it, for removal when the unit of work is saved, and returns the
    count of usage entries it staged. The Entity Framework store reads the rows and removes them through the change
    tracker, so every provider supports it.
-2. **The flush service repeats batches.** `TenantUsageFlushService` prunes once per UTC day, in units of work of 256
-   entries, and repeats while a batch is full.
+2. **A hosted service prunes on an interval.** `TenantUsagePruneService` prunes every `TenantUsageOptions.PruneInterval`
+   (`OpenId:TenantUsage:PruneInterval`, one hour by default, validated as a timer period when the host starts —
+   [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)) on a `PeriodicTimer`
+   through the registered `TimeProvider`, in units of work of 256 entries, and repeats while a batch is full.
 3. **A lost race is progress.** A batch whose save loses a race to the prune of another replica counts as progress,
    because the other replica removed rows of it, and the next batch is read.
-4. **Any other failure is retried at the next flush.** The service logs it (`TenantUsagePruneFailed`) and does not mark
-   the day as pruned, so the prune runs again at the next flush.
+4. **Any other failure is retried at the next tick.** The service logs it (`TenantUsagePruneFailed`), and the prune runs
+   again at the next tick.
 
 ## Options considered
 
@@ -55,4 +57,4 @@ every provider supports it (issue [#264](https://github.com/NCodeGroup/Identity/
 - [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantUsageStore`,
-  `NCode.Identity.OpenId.Authentication.Usage.TenantUsageFlushService`.
+  `NCode.Identity.OpenId.Authentication.Usage.TenantUsagePruneService`.

@@ -188,7 +188,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     }
 
     private static EndSessionSubject CreateSubject(string? clientId) =>
-        new(SubjectId, SessionId, clientId, [ClientId]);
+        new(SubjectId, SessionId, clientId, [ClientId], RequiresConfirmation: false);
 
     private List<int> LogEventIds =>
         Logger.Collector.GetSnapshot().Select(record => record.Id.Id).ToList();
@@ -201,7 +201,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheLogoutNamesNoSession_DispatchesTheTerminationForTheSubject()
     {
         var scaffold = CreateScaffold(
-            new EndSessionSubject(SubjectId, null, ClientId, []),
+            new EndSessionSubject(SubjectId, null, ClientId, [], RequiresConfirmation: false),
             postLogoutRedirectUri: null,
             state: null
         );
@@ -215,7 +215,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheLogoutNamesNoSubjectOrSession_LeavesTheLoginCookie()
     {
         var scaffold = CreateScaffold(
-            new EndSessionSubject(null, null, ClientId, []),
+            new EndSessionSubject(null, null, ClientId, [], RequiresConfirmation: false),
             postLogoutRedirectUri: null,
             state: null
         );

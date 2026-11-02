@@ -24,11 +24,12 @@ OP session with the RP and/or currently logged in End-User"
    confirmed logout ends the session the end-user is signed in to; the hint's `sid` identifies the session only when no
    login is present (amends [ADR-1096](1096-end-session-subject-from-server-state.md)).
 
-3. **The subject carries the answer.** `EndSessionSubject` gains `bool RequiresConfirmation { get; init; }`
-   (non-positional, so existing constructions compile), computed by `DefaultResolveEndSessionSubjectHandler`.
+3. **The subject carries the answer.** `EndSessionSubject` has a positional `bool RequiresConfirmation`, computed
+   by `DefaultResolveEndSessionSubjectHandler`. It is positional, so a replacement `ResolveEndSessionSubjectCommand`
+   handler must state the answer to compile and cannot silently log out unprompted.
    `EndSessionCommand` takes the resolved `EndSessionSubject` as a third positional parameter, so the endpoint
    validates the hint once; callers send `ResolveEndSessionSubjectCommand` first. The first-party
-   `POST /account/logout` stays unprompted: its antiforgery-protected form is the end-user's own confirmation.
+   `POST /account/logout` is unprompted: its antiforgery-protected form is the end-user's own confirmation.
 
 4. **The request is parked as a one-time continuation.** The request is parked with `IContinueService` under the new
    continue code `OpenIdConstants.ContinueCodes.EndSession` (`"continue_end_session"`) for 10 minutes, with

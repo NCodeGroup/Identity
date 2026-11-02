@@ -53,7 +53,9 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
 
     private void SetupMediator(EndSessionDisposition disposition)
     {
-        SetupLoadAndResolve(new EndSessionSubject("subject-1", "sid-1", null, []));
+        SetupLoadAndResolve(
+            new EndSessionSubject("subject-1", "sid-1", null, [], RequiresConfirmation: false)
+        );
         SetupEndSession(disposition);
     }
 
@@ -129,7 +131,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
     public async Task HandleRouteAsync_WhenTheLogoutRequiresConfirmation_ReturnsTheChallengeWithoutEndingTheSession()
     {
         SetupLoadAndResolve(
-            new EndSessionSubject("subject-1", "sid-1", null, []) { RequiresConfirmation = true }
+            new EndSessionSubject("subject-1", "sid-1", null, [], RequiresConfirmation: true)
         );
         var challengeResult = TypedResults.Redirect("/account/logout/confirm");
         SetupChallenge(ReadOnlyEndpointDisposition.Handled(challengeResult));
@@ -143,7 +145,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
     public async Task HandleRouteAsync_WhenTheChallengeIsUnhandled_EndsTheSessionUnprompted()
     {
         SetupLoadAndResolve(
-            new EndSessionSubject("subject-1", "sid-1", null, []) { RequiresConfirmation = true }
+            new EndSessionSubject("subject-1", "sid-1", null, [], RequiresConfirmation: true)
         );
         SetupChallenge(ReadOnlyEndpointDisposition.UnHandled());
         SetupEndSession(new EndSessionDisposition(null, []));

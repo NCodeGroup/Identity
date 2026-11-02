@@ -1415,7 +1415,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRe
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest.State.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.EndSessionSubject() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.EndSessionSubject(string? SubjectId, string? SessionId, string? ClientId, System.Collections.Generic.IReadOnlyList<string!>! ParticipatingClientIds) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.EndSessionSubject(string? SubjectId, string? SessionId, string? ClientId, System.Collections.Generic.IReadOnlyList<string!>! ParticipatingClientIds, bool RequiresConfirmation) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.SubjectId.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.SubjectId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.SessionId.get -> string?

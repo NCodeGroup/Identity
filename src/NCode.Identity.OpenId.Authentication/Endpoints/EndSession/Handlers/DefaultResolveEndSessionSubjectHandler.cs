@@ -119,10 +119,13 @@ internal class DefaultResolveEndSessionSubjectHandler(
             Logger.EndSessionSubjectUnresolved();
         }
 
-        return new EndSessionSubject(subjectId, sessionId, clientId, participatingClientIds)
-        {
-            RequiresConfirmation = requiresConfirmation,
-        };
+        return new EndSessionSubject(
+            subjectId,
+            sessionId,
+            clientId,
+            participatingClientIds,
+            requiresConfirmation
+        );
     }
 
     private async ValueTask<HintClaims?> TryReadIdTokenHintAsync(

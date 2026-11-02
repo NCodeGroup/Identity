@@ -69,9 +69,10 @@ internal static class ConformanceSeedSecrets
 
         foreach (var clientId in ClientIds)
         {
-            var path = DevelopmentSecretFile.Ensure(directory, GetClientSecretFileName(clientId));
-            environment[GetClientSecretVariable(clientId)] =
-                DevelopmentSecretFile.ReadBase64UrlEncoded(path);
+            var fileName = GetClientSecretFileName(clientId);
+            var path = DevelopmentSecretFile.Ensure(directory, fileName);
+            var variable = GetClientSecretVariable(clientId);
+            environment[variable] = DevelopmentSecretFile.ReadBase64UrlEncoded(path);
         }
 
         var passwordPath = DevelopmentSecretFile.Ensure(directory, TestUserPasswordFileName);

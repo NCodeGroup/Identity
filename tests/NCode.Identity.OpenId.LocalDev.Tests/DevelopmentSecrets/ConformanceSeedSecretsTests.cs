@@ -28,17 +28,25 @@ public class ConformanceSeedSecretsTests : IDisposable
         "conformance-seed-golden.json"
     );
 
+    private const string ExistingPassword = "existing-password";
+
     private static readonly string ConformanceSettingsPath = Path.Combine(
         AppContext.BaseDirectory,
         "DevelopmentSecrets",
         "appsettings.Conformance.json"
     );
 
-    private string ReadFile(string fileName) =>
-        File.ReadAllText(Path.Combine(_root, fileName), SecureEncoding.UTF8);
+    private string ReadFile(string fileName)
+    {
+        var path = Path.Combine(_root, fileName);
+        return File.ReadAllText(path, SecureEncoding.UTF8);
+    }
 
-    private static JsonElement ReadJson(string path) =>
-        JsonElement.Parse(File.ReadAllText(path, SecureEncoding.UTF8));
+    private static JsonElement ReadJson(string path)
+    {
+        var json = File.ReadAllText(path, SecureEncoding.UTF8);
+        return JsonElement.Parse(json);
+    }
 
     private static SortedDictionary<string, string> ReadStringMap(JsonElement element)
     {
@@ -94,7 +102,8 @@ public class ConformanceSeedSecretsTests : IDisposable
         var files = ReadStringMap(golden.GetProperty("files"));
         foreach (var (fileName, text) in files)
         {
-            File.WriteAllText(Path.Combine(_root, fileName), text, SecureEncoding.UTF8);
+            var path = Path.Combine(_root, fileName);
+            File.WriteAllText(path, text, SecureEncoding.UTF8);
         }
         var expected = ReadStringMap(golden.GetProperty("environment"));
 
@@ -112,6 +121,8 @@ public class ConformanceSeedSecretsTests : IDisposable
     {
         var environment = ConformanceSeedSecrets.GetEnvironment(_root);
 
+        // The names are the contract the host and the runner share, so they are written out rather than taken from
+        // the class under test.
         Assert.Equal(
             [
                 "ConformanceSeed__Clients__client-secret-post__ClientSecret",
@@ -128,9 +139,12 @@ public class ConformanceSeedSecretsTests : IDisposable
     {
         var environment = ConformanceSeedSecrets.GetEnvironment(_root);
 
-        var fileText = ReadFile("conformance-secret-client2");
-        var expected = Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(fileText));
-        Assert.Equal(expected, environment["ConformanceSeed__Clients__client2__ClientSecret"]);
+        var fileName = ConformanceSeedSecrets.GetClientSecretFileName("client2");
+        var fileText = ReadFile(fileName);
+        var fileBytes = SecureEncoding.UTF8.GetBytes(fileText);
+        var expected = Base64Url.EncodeToString(fileBytes);
+        var variable = ConformanceSeedSecrets.GetClientSecretVariable("client2");
+        Assert.Equal(expected, environment[variable]);
     }
 
     [Fact]
@@ -138,8 +152,8 @@ public class ConformanceSeedSecretsTests : IDisposable
     {
         var environment = ConformanceSeedSecrets.GetEnvironment(_root);
 
-        var fileText = ReadFile("conformance-user-password");
-        Assert.Equal(fileText, environment["ConformanceSeed__TestUserPassword"]);
+        var fileText = ReadFile(ConformanceSeedSecrets.TestUserPasswordFileName);
+        Assert.Equal(fileText, environment[ConformanceSeedSecrets.TestUserPasswordVariable]);
     }
 
     [Fact]
@@ -147,7 +161,7 @@ public class ConformanceSeedSecretsTests : IDisposable
     {
         ConformanceSeedSecrets.GetEnvironment(_root);
 
-        var fileText = ReadFile("conformance-user-password");
+        var fileText = ReadFile(ConformanceSeedSecrets.TestUserPasswordFileName);
         Assert.Equal(43, fileText.Length);
     }
 
@@ -176,15 +190,15 @@ public class ConformanceSeedSecretsTests : IDisposable
     public void GetEnvironment_WhenAFileExists_KeepsItsValue()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(
-            Path.Combine(_root, "conformance-user-password"),
-            "existing-password",
-            SecureEncoding.UTF8
-        );
+        var path = Path.Combine(_root, ConformanceSeedSecrets.TestUserPasswordFileName);
+        File.WriteAllText(path, ExistingPassword, SecureEncoding.UTF8);
 
         var environment = ConformanceSeedSecrets.GetEnvironment(_root);
 
-        Assert.Equal("existing-password", environment["ConformanceSeed__TestUserPassword"]);
+        Assert.Equal(
+            ExistingPassword,
+            environment[ConformanceSeedSecrets.TestUserPasswordVariable]
+        );
     }
 
     #endregion

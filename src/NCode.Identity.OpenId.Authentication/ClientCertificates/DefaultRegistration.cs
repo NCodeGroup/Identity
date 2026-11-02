@@ -1,12 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
@@ -84,21 +82,6 @@ internal static class DefaultRegistration
                 IClientCertificateRevocationChecker,
                 DefaultClientCertificateRevocationChecker
             >();
-
-            // Revocation information is fetched from a URL named by the presented client certificate, so it uses a
-            // dedicated HTTP client whose connections are pinned away from private/loopback/link-local addresses
-            // (SSRF floor) and which never follows redirects, so a redirect cannot bounce the fetch to an internal
-            // host.
-            serviceCollection
-                .AddHttpClient(RevocationDataFetcher.HttpClientName)
-                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
-                {
-                    AllowAutoRedirect = false,
-                    ConnectCallback = serviceProvider
-                        .GetRequiredService<IOutboundHttpForgeryGuard>()
-                        .ConnectAsync,
-                    AutomaticDecompression = DecompressionMethods.All,
-                });
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

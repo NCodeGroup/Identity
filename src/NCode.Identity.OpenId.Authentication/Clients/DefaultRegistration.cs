@@ -1,14 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Clients.Coherence;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
-using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Servers;
 using NCode.Mediator;
 using NCode.Registration;
@@ -44,20 +42,6 @@ internal static class DefaultRegistration
                 IClientJwtCredentialSelector,
                 DefaultClientJwtCredentialSelector
             >();
-
-            // The client jwks_uri fetch targets a client-supplied URL, so it uses a dedicated HTTP client whose
-            // connections are pinned away from private/loopback/link-local addresses (SSRF floor) and which never
-            // follows redirects, so a redirect cannot bounce the fetch to an internal host.
-            serviceCollection
-                .AddHttpClient(DefaultClientKeyResolver.HttpClientName)
-                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
-                {
-                    AllowAutoRedirect = false,
-                    ConnectCallback = serviceProvider
-                        .GetRequiredService<IOutboundHttpForgeryGuard>()
-                        .ConnectAsync,
-                    AutomaticDecompression = DecompressionMethods.All,
-                });
 
             serviceCollection.TryAddSingleton<
                 IClientAuthenticationService,

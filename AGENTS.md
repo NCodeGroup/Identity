@@ -59,12 +59,17 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Two family records override a template record:
-[ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
-project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue, and
-[ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
-project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
-file.
+so a bare ADR number names one record. Three family records override template records:
+
+- [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+  project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
+- [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
+  project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
+  file.
+- [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
+  two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
+  client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
+
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
 

@@ -6,23 +6,26 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logging;
 
 namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
 /// Reconciles everything derived from the server's effective settings in the background, whenever those settings
-/// differ from the ones they were last reconciled against. The service waits until this replica materializes its
-/// server, which is its first request, so it never reads the database while the host starts. It then reconciles once,
-/// and again whenever the server's settings provider signals a change: a configuration reload, a read of the committed
-/// settings document, or a poll that saw a change. Signals that arrive during a reconciliation coalesce into one more.
-/// A reconciliation that is unsettled, because another replica holds its lease or the pass failed, is attempted again
-/// when the <see cref="OpenIdServerOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on
-/// stop.
+/// differ from the ones they were last reconciled against. The service materializes the server when the replica starts
+/// and reconciles it; the recorded fingerprint makes a start that changes nothing cost one read. When materializing at
+/// start fails, it waits until a request materializes the server. It reconciles once, and again whenever the server's
+/// settings provider signals a change: a configuration reload, a read of the committed settings document, or a poll
+/// that saw a change. Signals that arrive during a reconciliation coalesce into one more. A reconciliation that is
+/// unsettled, because another replica holds its lease or the pass failed, is attempted again when the
+/// <see cref="OpenIdServerOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on stop.
 /// </summary>
 // See ADR-1219.
 internal sealed class ServerSettingsReconciliationService(
     IMaterializedServerRegistry materializedServerRegistry,
+    IOpenIdServerProvider serverProvider,
+    IOpenIdEnvironmentProvider environmentProvider,
     IServerSettingsReconciler serverSettingsReconciler,
     IOptions<OpenIdOptions> optionsAccessor,
     TimeProvider timeProvider,
@@ -31,6 +34,8 @@ internal sealed class ServerSettingsReconciliationService(
 {
     private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
         materializedServerRegistry;
+    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
     private IServerSettingsReconciler ServerSettingsReconciler { get; } = serverSettingsReconciler;
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -50,8 +55,7 @@ internal sealed class ServerSettingsReconciliationService(
     {
         try
         {
-            // Never at host start: the server is materialized by the replica's first request.
-            var server = await MaterializedServerRegistry.GetServerAsync(stoppingToken);
+            var server = await GetServerAsync(stoppingToken);
 
             // The provider signals a configuration reload, a refresh of the committed document, and a poll that saw one.
             using var registration = ChangeToken.OnChange(
@@ -74,6 +78,21 @@ internal sealed class ServerSettingsReconciliationService(
     }
 
     private void Trigger() => Triggers.Writer.TryWrite(true);
+
+    private async ValueTask<OpenIdServer> GetServerAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            var environment = EnvironmentProvider.Get();
+            return await ServerProvider.GetAsync(environment, stoppingToken);
+        }
+        catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+        {
+            // The database may be unreachable while the replica starts; the first request materializes the server.
+            Logger.ServerMaterializationAtStartFailed(exception);
+            return await MaterializedServerRegistry.GetServerAsync(stoppingToken);
+        }
+    }
 
     private async Task WaitForTriggerAsync(bool settled, CancellationToken stoppingToken)
     {

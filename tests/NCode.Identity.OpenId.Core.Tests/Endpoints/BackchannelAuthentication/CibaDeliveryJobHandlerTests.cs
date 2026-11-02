@@ -6,6 +6,8 @@ using System.Text.Json;
 using Moq;
 using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.BackchannelAuthentication;
@@ -50,7 +52,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
     private void SetupHttpClient() =>
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(CibaDeliveryJobHandler.HttpClientName))
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
             .Returns(new HttpClient(Handler))
             .Verifiable();
 
@@ -63,6 +65,26 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         };
 
     #region HandleAsync Tests
+
+    [Fact]
+    public async Task HandleAsync_WhenTheResponseHasABody_DoesNotReadIt()
+    {
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new UnreadableBodyHttpMessageHandler()))
+            .Verifiable();
+
+        var job = new CibaDeliveryJob
+        {
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+            ClientId = "client-1",
+            EndpointUrl = Endpoint,
+            ClientNotificationToken = NotificationToken,
+            AuthReqId = AuthReqId,
+        };
+
+        await Subject.HandleAsync(job, Context(), CancellationToken.None);
+    }
 
     [Fact]
     public async Task HandleAsync_WhenPing_PostsAuthReqIdWithBearerToken()

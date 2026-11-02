@@ -1108,23 +1108,17 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 ## 11. Logging & metrics
 
-- 👁 **A library never registers or removes a logging provider; the host's composition root chooses its sinks.** The
-  reference hosts log to standard output on every platform, with
-  `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`, and never to the Windows Event Log
+- 👁 **A library never registers or removes a logging provider** — template [Logging](csharp.instructions.md#logging);
+  the reference hosts log with `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`
   ([project-template ADR-0115](../../docs/decisions/project-template/0115-a-host-logs-to-standard-output.md)).
-- 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
-  message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
-  package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**
-  (`Logger.SubjectValidationFailed(reason)`), and mark the class `[ExcludeFromCodeCoverage]` (generated plumbing).
-- 👁 **A message template is a constant with named placeholders** (`"… {DisplayName}"`), never string interpolation or
-  concatenation; a value that also feeds an error/response is defined **once** (§6) and passed to the log method as a
-  structured argument. Pass a value as its own type, never a pre-built `ToString()` — the generated method formats it
-  only when the level is enabled.
-- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — an `internal static class EventIds`
-  with a `private const int Base` set to the package's band (below) and one `public const int` per event defined as
-  `Base + n`. **Each constant is named _exactly_ as the `[LoggerMessage]` method it identifies**
-  (`EventIds.SubjectValidationFailed` ↔ `Log.SubjectValidationFailed(…)`), and the attribute references it
-  (`EventId = EventIds.SubjectValidationFailed`) — never a bare magic number at the call site or in the attribute.
+- 👁 **Log through source-generated `[LoggerMessage]` methods** in `Logging/Log.cs` — template
+  [Logging](csharp.instructions.md#logging); mark the `Log` class `[ExcludeFromCodeCoverage]` (generated plumbing).
+- 👁 **A message template is a constant with named placeholders** — template
+  [Logging](csharp.instructions.md#logging); a value that also feeds an error or a response is defined once (§6).
+- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — template
+  [Logging](csharp.instructions.md#logging): an `internal static class EventIds` with a `private const int Base` set to
+  the package's band (below) and one `public const int` per event, `Base + n`, named exactly as its `[LoggerMessage]`
+  method.
 - 👁 **Every runtime package is pre-assigned a disjoint 1000-wide Event-ID band** in the registry below; a package
   starts using its band when it adds its first log. An `EventId` only has to be unique within an `ILogger<T>` category,
   but a family-wide band makes it **globally unique across packages**, so an operator's log filter or alert keys on a
@@ -1157,33 +1151,32 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 ### Metrics
 
-- 👁 **Measure a signal once, through its owner**
-  ([ADR-1197](../../docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)): request
-  count, latency, and status belong to ASP.NET Core's `http.server.request.duration` (enrich it through
-  `IHttpMetricsTagsFeature`), outbound calls to `System.Net.Http`, and domain outcomes to the event seam's counter.
-  Add a family instrument only for a mechanism that is none of these, such as rate limiting or shared state.
-- 👁 **Create meters through `IMeterFactory`, never `new Meter(…)`**: one meter per package, named after the package
-  as a public constant, with its instruments in one internal `…Metrics` singleton that call sites use. A meter name
-  starts with `NCode.Identity.`, so the host's `AddOpenTelemetryMetrics` subscribes to it without a change.
+- 👁 **Measure a signal once, through its owner** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces) and
+  [ADR-1197](../../docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md):
+  enrich `http.server.request.duration` through `IHttpMetricsTagsFeature`, count domain outcomes through the event
+  seam's counter, and add a family instrument only for a mechanism such as rate limiting or shared state.
+- 👁 **Create meters through `IMeterFactory`** — template [Metrics and Traces](csharp.instructions.md#metrics-and-traces);
+  a package's instruments live in one internal `…Metrics` singleton, and a meter name starts with `NCode.Identity.`, so
+  the host's `AddOpenTelemetryMetrics` subscribes to it without a change.
 - 👁 **An event adds metric dimensions by implementing `ISupportMetricAttributes`**, never through a counter at its
   call site; an endpoint tags the request through `OpenIdMetricAttributes.Add`.
-- 👁 **Name instruments and attributes `ncode.identity.{area}.…`**, keep an OpenTelemetry semantic-convention name
-  (`error.type`) where one exists, and use UCUM units: durations as histograms in seconds, counts as `{noun}`.
-- 👁 **A metric attribute's value comes from a vocabulary the server controls**: a registered name, a server-chosen
-  error code, or `_OTHER`. Never a tenant, client, subject, or address, and never a value echoed from the request;
-  those belong to traces and logs.
-- 👁 **Test every instrument with `MetricCollector<T>`**, asserting its name, unit, and attributes.
+- 👁 **Name instruments and attributes `ncode.identity.{area}.…`** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces); counts use a `{noun}` unit.
+- 👁 **A metric attribute's value comes from a vocabulary the server controls** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces); a tenant, client, subject or address is never one.
+- 👁 **Test every instrument with `MetricCollector<T>`** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces).
 - 👁 **A new or renamed instrument or attribute updates [`docs/metrics.md`](../../docs/metrics.md)** in the same
-  change; the catalog is the contract dashboards and alerts are built against.
+  change — template [Metrics and Traces](csharp.instructions.md#metrics-and-traces).
 
 ### Traces
 
-- 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter**
-  ([ADR-1298](../../docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)):
-  a public name constant beside the meter's, a static source, and no span for what ASP.NET Core or `System.Net.Http`
-  already traces. A span mirrors one of the package's duration histograms — its name without `.duration`, the same
-  bounded attributes, `Error` status and `error.type` on failure — and never carries a token, handle, cookie, key,
-  subject, client id or path. Test it with an `ActivityListener` filtered to a parent activity the test started.
+- 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces) and
+  [ADR-1298](../../docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md);
+  a span never carries a handle, subject or client id either.
+
 ## 12. Configuration & options
 
 - 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with

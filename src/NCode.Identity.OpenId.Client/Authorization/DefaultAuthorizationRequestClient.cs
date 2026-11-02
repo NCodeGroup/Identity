@@ -31,9 +31,10 @@ namespace NCode.Identity.OpenId.Client.Authorization;
 /// <summary>
 /// Provides a default implementation of <see cref="IAuthorizationRequestClient"/> that pushes the request when the
 /// provider advertises a pushed authorization request endpoint (RFC 9126) and always uses PKCE <c>S256</c> (RFC 7636).
-/// See ADR-1275. When the client uses DPoP, it also sends the <c>dpop_jkt</c> parameter (RFC 9449 §10) so the
+/// When the client uses DPoP, it also sends the <c>dpop_jkt</c> parameter (RFC 9449 §10) so the
 /// authorization code is bound to the DPoP key.
 /// </summary>
+// See ADR-1275.
 internal class DefaultAuthorizationRequestClient(
     IProviderMetadataResolver metadataResolver,
     ClientRequestSender sender,

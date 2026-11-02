@@ -24,13 +24,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IAuthorizationResponseModeProvider"/> backed by the
-/// <see cref="IAuthorizationResponseModeHandler"/> implementations registered in dependency injection (ADR-1201).
+/// <see cref="IAuthorizationResponseModeHandler"/> implementations registered in dependency injection.
 /// </summary>
 /// <remarks>
 /// The constructor throws an <see cref="InvalidOperationException"/> when the registered handlers are inconsistent: a
 /// handler is named <c>jwt</c>, two handlers deliver the same response mode, two handlers secure the same response mode,
 /// or a handler secures a response mode that no registered handler delivers.
 /// </remarks>
+// See ADR-1201.
 internal class DefaultAuthorizationResponseModeProvider : IAuthorizationResponseModeProvider
 {
     private FrozenDictionary<string, IAuthorizationResponseModeHandler> Handlers { get; }

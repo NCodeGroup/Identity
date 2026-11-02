@@ -28,8 +28,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <summary>
 /// Executes an <see cref="AuthorizationResult"/>: an error with an explicit HTTP status code is answered directly, and
 /// every other response is delivered through the <see cref="IAuthorizationResponseModeHandler"/> of the result's
-/// <see cref="AuthorizationResult.Delivery"/> (ADR-1201).
+/// <see cref="AuthorizationResult.Delivery"/>.
 /// </summary>
+// See ADR-1201.
 internal class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
     public async ValueTask ExecuteAsync(

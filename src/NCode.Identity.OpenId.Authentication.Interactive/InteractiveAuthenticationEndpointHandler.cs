@@ -472,8 +472,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
     /// <summary>
     /// Resolves the verified credential to the stable, server-owned principal id and returns a principal whose subject
-    /// claim is that principal id, so the cookie, session, and every grant key on one subject (ADR-1035).
+    /// claim is that principal id, so the cookie, session, and every grant key on one subject.
     /// </summary>
+    // See ADR-1035.
     private async ValueTask<ClaimsPrincipal> NormalizeSubjectToPrincipalAsync(
         OpenIdContext openIdContext,
         ClaimsPrincipal principal,

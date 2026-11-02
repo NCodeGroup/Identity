@@ -22,8 +22,9 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantUsageRecorder"/>: it accumulates usage in memory until
-/// <see cref="TenantUsageFlushService"/> drains it into the ledger (ADR-1199).
+/// <see cref="TenantUsageFlushService"/> drains it into the ledger.
 /// </summary>
+// See ADR-1199.
 internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : ITenantUsageRecorder
 {
     private readonly Lock _sync = new();

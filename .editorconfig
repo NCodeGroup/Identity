@@ -93,8 +93,6 @@ indent_size = 2
 dotnet_diagnostic.CA1062.severity = none
 # Intention-revealing public API names (e.g. 'Error', 'Get') are deliberate; do not rename to dodge keywords.
 dotnet_diagnostic.CA1716.severity = none
-# LoggerMessage source-gen delegates are a micro-optimization not warranted on rarely-hit paths.
-dotnet_diagnostic.CA1848.severity = none
 # No ConfigureAwait(false): this is an ASP.NET-Core-only library. ASP.NET Core installs no
 # SynchronizationContext (and no custom TaskScheduler), so ConfigureAwait(false) is a no-op here.
 dotnet_diagnostic.CA2007.severity = none

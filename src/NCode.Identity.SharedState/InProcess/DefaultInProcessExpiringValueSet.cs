@@ -138,6 +138,28 @@ internal class DefaultInProcessExpiringValueSet(TimeProvider timeProvider) : IEx
     }
 
     /// <inheritdoc />
+    public ValueTask<bool> TryRemoveAsync(
+        string key,
+        ReadOnlyMemory<byte> expectedValue,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        var now = TimeProvider.GetUtcNow();
+
+        if (
+            !Entries.TryGetValue(key, out var existing)
+            || existing.ExpiresWhen <= now
+            || !existing.Value.AsSpan().SequenceEqual(expectedValue.Span)
+        )
+            return ValueTask.FromResult(false);
+
+        // Removes the pair only if it still holds this entry, so exactly one caller removes it.
+        return ValueTask.FromResult(Entries.TryRemove(KeyValuePair.Create(key, existing)));
+    }
+
+    /// <inheritdoc />
     public ValueTask RemoveAsync(string key, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(key);

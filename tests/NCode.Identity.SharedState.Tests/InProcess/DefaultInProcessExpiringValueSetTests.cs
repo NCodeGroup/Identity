@@ -452,6 +452,116 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
 
     #endregion
 
+    #region TryRemoveAsync Tests
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenValueMatches_RemovesItAndReturnsTrue()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1, 2 },
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1, 2 },
+            CancellationToken.None
+        );
+
+        Assert.True(removed);
+        Assert.Null(await valueSet.GetAsync("key", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenValueDiffers_ReturnsFalseAndKeepsTheValue()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1, 2 },
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1, 3 },
+            CancellationToken.None
+        );
+
+        Assert.False(removed);
+        var result = await valueSet.GetAsync("key", CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.Equal(new byte[] { 1, 2 }, result.Value.Value.ToArray());
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenAbsent_ReturnsFalse()
+    {
+        var valueSet = CreateValueSet();
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1 },
+            CancellationToken.None
+        );
+
+        Assert.False(removed);
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenExpiredAndAddedAgainWithAnotherValue_KeepsTheNewValue()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1 },
+            Start.AddSeconds(10),
+            CancellationToken.None
+        );
+        Now = Start.AddSeconds(10);
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 2 },
+            Now.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1 },
+            CancellationToken.None
+        );
+
+        Assert.False(removed);
+        var result = await valueSet.GetAsync("key", CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.Equal(new byte[] { 2 }, result.Value.Value.ToArray());
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenConcurrentForSameValue_ExactlyOneSucceeds()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1 },
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var results = await RunConcurrentlyAsync(async () =>
+            await valueSet.TryRemoveAsync("key", new byte[] { 1 }, CancellationToken.None)
+        );
+
+        Assert.Single(results, removed => removed);
+    }
+
+    #endregion
+
     #region RemoveAsync Tests
 
     [Fact]

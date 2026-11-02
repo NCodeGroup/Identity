@@ -23,5 +23,6 @@
         <PackageReference Include="Microsoft.Extensions.Primitives" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Buffers" />
+        <PackageReference Include="Nerdbank.Streams" />
     </ItemGroup>
 </Project>

@@ -66,39 +66,26 @@ internal class DefaultAuthenticateSubjectHandler(
         var (openIdContext, requiredAudiences) = command;
         var request = openIdContext.Http.Request;
 
-        // A protected resource is reached only with an access token (OpenID Connect Core 1.0 §5.3.1); an interactive
-        // session never authenticates it, so a request without a token is undefined (ADR-1155).
-        if (TryGetAuthorizationHeaderToken(request, out var headerToken))
-        {
-            return await AuthenticateAccessTokenAsync(
-                openIdContext,
-                headerToken,
-                requiredAudiences,
-                cancellationToken
-            );
-        }
-
-        if (!CanCarryFormBodyToken(request))
-        {
-            return Undefined();
-        }
-
         // A body that cannot be read is a malformed request (RFC 6750 §3.1), not a request without a token.
-        var form = await request.TryReadFormAsync(cancellationToken);
-        if (form is null)
+        var (accessToken, formUnreadable) = await ResolveBearerTokenAsync(
+            request,
+            cancellationToken
+        );
+        if (formUnreadable)
         {
             return Failed(UnreadableForm.CreateError(openIdContext.ErrorFactory));
         }
 
-        var bodyToken = form[OpenIdProtocol.Parameters.AccessToken].ToString();
-        if (string.IsNullOrEmpty(bodyToken))
+        // A protected resource is reached only with an access token (OpenID Connect Core 1.0 §5.3.1); an interactive
+        // session never authenticates it, so a request without a token is undefined (ADR-1155).
+        if (string.IsNullOrEmpty(accessToken))
         {
             return Undefined();
         }
 
         return await AuthenticateAccessTokenAsync(
             openIdContext,
-            bodyToken,
+            accessToken,
             requiredAudiences,
             cancellationToken
         );
@@ -259,6 +246,27 @@ internal class DefaultAuthenticateSubjectHandler(
         );
 
         return Authenticated(ticket);
+    }
+
+    private static async ValueTask<(string? Token, bool FormUnreadable)> ResolveBearerTokenAsync(
+        HttpRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (TryGetAuthorizationHeaderToken(request, out var headerToken))
+        {
+            return (headerToken, false);
+        }
+
+        if (!CanCarryFormBodyToken(request))
+        {
+            return (null, false);
+        }
+
+        var form = await request.TryReadFormAsync(cancellationToken);
+        return form is null
+            ? (null, true)
+            : (form[OpenIdProtocol.Parameters.AccessToken].ToString(), false);
     }
 
     // RFC 6750 §2.1: the 'Authorization' header is the preferred (and here, primary) transport.

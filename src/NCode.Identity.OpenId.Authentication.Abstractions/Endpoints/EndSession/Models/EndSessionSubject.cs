@@ -22,4 +22,11 @@ public readonly record struct EndSessionSubject(
     string? SessionId,
     string? ClientId,
     IReadOnlyList<string> ParticipatingClientIds
-);
+)
+{
+    /// <summary>
+    /// Gets a value indicating whether the end-user must confirm the logout: an OP login is present and the request
+    /// carries no valid <c>id_token_hint</c> whose <c>sid</c> names the login's session.
+    /// </summary>
+    public bool RequiresConfirmation { get; init; }
+}

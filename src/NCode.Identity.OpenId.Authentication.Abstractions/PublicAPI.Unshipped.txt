@@ -1413,6 +1413,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubje
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.ClientId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.ParticipatingClientIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.ParticipatingClientIds.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.RequiresConfirmation.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.RequiresConfirmation.init -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectDisposition
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectDisposition.AuthenticateSubjectDisposition() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectDisposition.AuthenticateSubjectDisposition(NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication ticket) -> void

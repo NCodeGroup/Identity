@@ -44,7 +44,7 @@ public class HtmlPageSecurityTests
     private const string UserName = "page-user";
     private const string Password = "page-security-passphrase";
     private const string RedirectUri = "https://client.example/callback";
-    private const string AntiforgeryCookiePrefix = ".AspNetCore.Antiforgery";
+    private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
     private const string SurfacePolicyPattern =
         @"^default-src 'none'; script-src 'nonce-([A-Za-z0-9_-]{22})' 'strict-dynamic'; style-src 'nonce-\1'; img-src 'self'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'\z";

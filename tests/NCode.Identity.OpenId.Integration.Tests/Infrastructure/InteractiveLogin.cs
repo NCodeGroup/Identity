@@ -30,13 +30,13 @@ public static class InteractiveLogin
     /// <summary>
     /// The name of the OP session cookie the interactive login issues.
     /// </summary>
-    public const string SessionCookieName = "NCode.Identity.Interactive";
+    public const string SessionCookieName = "__Host-NCode.Identity.Interactive";
 
     private const string LoginPath = "/account/login";
     private const string ReturnUrl = "/foo";
-    private const string AntiforgeryRequestCookieName = "XSRF-TOKEN";
+    private const string AntiforgeryRequestCookieName = "__Host-XSRF-TOKEN";
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
-    private const string AntiforgeryCookiePrefix = ".AspNetCore.Antiforgery";
+    private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
     /// <summary>
     /// Signs <paramref name="userName"/> in and returns the value of the session cookie. The client must not handle

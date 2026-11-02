@@ -47,41 +47,14 @@ public sealed class DeveloperKeysRegistrationTests
             .Value.Tenant.KeyProvisioning.Enabled;
     }
 
-    #region AddDeveloperKeys Tests
+    #region AddDeveloperKeyPruning Tests
 
     [Fact]
-    public void AddDeveloperKeys_WhenNone_LeavesTheProductionKeyPathUntouched()
-    {
-        var (services, builder) = CreateBuilder();
-        var registered = services.Count;
-
-        builder.AddDeveloperKeys(DeveloperKeyMode.None);
-
-        Assert.Equal(registered, services.Count);
-        Assert.True(IsProvisioningEnabled(services));
-    }
-
-    [Fact]
-    public void AddDeveloperKeys_WhenEphemeral_ServesInMemoryKeysAndTurnsOffProvisioning()
+    public void AddDeveloperKeyPruning_PrunesUnreadableKeysAndKeepsProvisioning()
     {
         var (services, builder) = CreateBuilder();
 
-        builder.AddDeveloperKeys(DeveloperKeyMode.Ephemeral);
-
-        var factory = Assert.Single(
-            services,
-            descriptor => descriptor.ServiceType == typeof(IOpenIdTenantFactory)
-        );
-        Assert.Equal(typeof(EphemeralOpenIdTenantFactory), factory.ImplementationType);
-        Assert.False(IsProvisioningEnabled(services));
-    }
-
-    [Fact]
-    public void AddDeveloperKeys_WhenPersistentSigningKey_PrunesUnreadableKeysAndKeepsProvisioning()
-    {
-        var (services, builder) = CreateBuilder();
-
-        builder.AddDeveloperKeys(DeveloperKeyMode.PersistentSigningKey);
+        builder.AddDeveloperKeyPruning();
 
         var handler = Assert.Single(
             services,

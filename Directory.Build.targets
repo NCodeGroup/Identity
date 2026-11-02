@@ -55,26 +55,24 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- The repository keeps the Microsoft.Extensions.Logging source generator for [LoggerMessage]:
-       Microsoft.Extensions.Telemetry.Abstractions, a transitive dependency of Microsoft.Extensions.Http.Resilience
-       (the guarded outbound client, ADR-1315), would replace it with Microsoft.Gen.Logging, which generates a
-       different logged-state type. ClientCoherenceReportHandlerTests and
-       AuditRecordFlushServiceTests.StopAsync_WhenTheStopTokenEndsTheWait_LogsTheHeldRecords match that state's text
-       and fail when the other generator runs. Remove this when no project references
-       Microsoft.Extensions.Telemetry.Abstractions. -->
-  <PropertyGroup>
-    <DisableMicrosoftExtensionsLoggingSourceGenerator>false</DisableMicrosoftExtensionsLoggingSourceGenerator>
-  </PropertyGroup>
+  <!-- A shipping package never switches off its consumers' [LoggerMessage] generator. Microsoft.Extensions.Telemetry.Abstractions
+       (a dependency of Microsoft.Extensions.Http.Resilience) sets DisableMicrosoftExtensionsLoggingSourceGenerator in every
+       project that consumes it, directly or transitively, and replaces the generator with Microsoft.Gen.Logging, which
+       generates a different logged-state type. See ADR-1385. -->
   <Target
-    Name="RemoveTelemetryAnalyzers"
-    AfterTargets="ResolveReferences;_Microsoft_Extensions_Logging_AbstractionsRemoveAnalyzers"
+    Name="RejectLoggingGeneratorReplacement"
+    AfterTargets="ResolveReferences"
+    Condition="'$(IsPackable)' != 'false'"
   >
     <ItemGroup>
-      <_TelemetryAnalyzer
+      <_TelemetryAbstractionsAnalyzer
         Include="@(Analyzer)"
         Condition="'%(Analyzer.NuGetPackageId)' == 'Microsoft.Extensions.Telemetry.Abstractions'"
       />
-      <Analyzer Remove="@(_TelemetryAnalyzer)" />
     </ItemGroup>
+    <Error
+      Condition="'$(DisableMicrosoftExtensionsLoggingSourceGenerator)' == 'true' Or '@(_TelemetryAbstractionsAnalyzer)' != ''"
+      Text="A shipping package must not switch off the Microsoft.Extensions.Logging source generator: $(MSBuildProjectName) depends on Microsoft.Extensions.Telemetry.Abstractions or sets DisableMicrosoftExtensionsLoggingSourceGenerator, which replaces the [LoggerMessage] generator of every project that consumes the package. Bound outbound calls with Polly.Core instead of Microsoft.Extensions.Http.Resilience (ADR-1385)."
+    />
   </Target>
 </Project>

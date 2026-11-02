@@ -319,3 +319,6 @@ storybook-static/
 .vite/
 coverage/
 *.tsbuildinfo
+
+# BenchmarkDotNet results (benchmarks/**)
+BenchmarkDotNet.Artifacts/

@@ -8,6 +8,9 @@
         <File Path=".editorconfig" />
         <File Path="README.md" />
     </Folder>
+    <Folder Name="/benchmarks/">
+        <Project Path="benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks.csproj" />
+    </Folder>
     <Folder Name="/src/">
         <Project Path="src/NCode.AspNetCore/NCode.AspNetCore.csproj" />
         <Project Path="src/NCode.Identity.Abstractions/NCode.Identity.Abstractions.csproj" />

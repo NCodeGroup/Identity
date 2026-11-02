@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
@@ -27,7 +28,10 @@ internal class DefaultLoadEndSessionRequestHandler
 
         if (HttpMethods.IsPost(httpRequest.Method) && httpRequest.HasFormContentType)
         {
-            var form = await httpRequest.ReadFormAsync(cancellationToken);
+            var form = await httpRequest.TryReadFormAsync(cancellationToken);
+            if (form is null)
+                throw UnreadableForm.CreateError(openIdContext.ErrorFactory).AsException();
+
             return EndSessionRequest.Load(openIdEnvironment, form);
         }
 

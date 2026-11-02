@@ -75,6 +75,11 @@ internal class DefaultRevocationEndpointProvider(
                 .AsHttpResult();
         }
 
+        // The form is read before client authentication, so an unreadable body is the client's error (400).
+        var formData = await httpContext.Request.TryReadFormAsync(cancellationToken);
+        if (formData is null)
+            return UnreadableForm.CreateError(errorFactory).AsHttpResult();
+
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
             cancellationToken
@@ -95,7 +100,6 @@ internal class DefaultRevocationEndpointProvider(
                 .AsHttpResult();
         }
 
-        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var revocationRequest = TokenRevocationRequest.Load(openIdEnvironment, formData);
 
         await mediator.SendAsync(

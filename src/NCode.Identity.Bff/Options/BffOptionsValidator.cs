@@ -25,6 +25,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         var isDevelopment = environment.IsDevelopment();
 
         ValidateAuthority(options.Authority, isDevelopment, failures);
+        ValidatePublicOrigin(options.PublicOrigin, isDevelopment, failures);
 
         if (string.IsNullOrWhiteSpace(options.ClientId))
         {
@@ -373,6 +374,12 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         }
     }
 
+    // A URL with user info may carry a password, which a failure message never quotes.
+    private static string QuoteUrl(string? url) =>
+        url is not null && url.Contains('@', StringComparison.Ordinal)
+            ? "(withheld because it contains '@')"
+            : $"'{url}'";
+
     private static void ValidateAuthority(
         string? authority,
         bool isDevelopment,
@@ -395,8 +402,39 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         {
             failures.Add(
                 isDevelopment
-                    ? "Bff:Authority must be an absolute 'https:' or 'http:' URI without whitespace."
-                    : "Bff:Authority must be an absolute 'https:' URI without whitespace."
+                    ? $"Bff:Authority {QuoteUrl(authority)} must be an absolute 'https:' or 'http:' URI without whitespace."
+                    : $"Bff:Authority {QuoteUrl(authority)} must be an absolute 'https:' URI without whitespace."
+            );
+        }
+    }
+
+    private static void ValidatePublicOrigin(
+        string? publicOrigin,
+        bool isDevelopment,
+        List<string> failures
+    )
+    {
+        var isValid =
+            !string.IsNullOrEmpty(publicOrigin)
+            && AbsoluteUri.TryParse(publicOrigin, out var uri)
+            && uri.UserInfo.Length == 0
+            && string.Equals(
+                publicOrigin,
+                uri.GetLeftPart(UriPartial.Authority) + uri.AbsolutePath.TrimEnd('/'),
+                StringComparison.Ordinal
+            )
+            && (
+                string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+                || (
+                    isDevelopment
+                    && string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
+                )
+            );
+
+        if (!isValid)
+        {
+            failures.Add(
+                $"Bff:PublicOrigin {QuoteUrl(publicOrigin)} must be the absolute URL the BFF is published at — scheme, host, optional port and path base, without user info, a query, a fragment or a trailing '/' — and must use 'https' outside Development."
             );
         }
     }

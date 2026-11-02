@@ -762,8 +762,9 @@ public class LocalAccountLifecycleTests
 
         using var authorizeResponse = await SendAuthorizeAsync(client, null, clientId);
         Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
-        var loginLocation = authorizeResponse.Headers.Location;
-        Assert.NotNull(loginLocation);
+        Assert.NotNull(client.BaseAddress);
+        Assert.NotNull(authorizeResponse.Headers.Location);
+        var loginLocation = new Uri(client.BaseAddress, authorizeResponse.Headers.Location);
         var returnUrl = HttpUtility.ParseQueryString(loginLocation.Query)["ReturnUrl"];
         Assert.False(string.IsNullOrEmpty(returnUrl), loginLocation.OriginalString);
 

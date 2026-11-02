@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Logout;
@@ -166,6 +167,24 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
     {
         SetupRejected(OpenIdProtocol.ErrorCodes.InvalidRequest);
         var httpContext = CreateHttpContext(form: false);
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task HandleAsync_FormOverTheKeyLengthLimit_WritesBadRequest()
+    {
+        SetupRejected(OpenIdProtocol.ErrorCodes.InvalidRequest);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.Request.ContentType = "application/x-www-form-urlencoded";
+        httpContext.Request.Body = new MemoryStream(
+            SecureEncoding.UTF8.GetBytes($"{new string('k', 2049)}=value")
+        );
         var handler = CreateHandler();
 
         await handler.HandleAsync(httpContext);

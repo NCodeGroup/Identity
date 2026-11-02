@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -506,6 +507,54 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.IsAuthenticated);
         mockMediator.Verify();
+    }
+
+    private AuthenticateResourceRequestCommand CreateFormBodyCommand(
+        string body,
+        IOpenIdErrorFactory errorFactory
+    )
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockContext = mockContext;
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.Request.ContentType = "application/x-www-form-urlencoded";
+        httpContext.Request.Body = new MemoryStream(SecureEncoding.UTF8.GetBytes(body));
+
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(errorFactory);
+
+        return new AuthenticateResourceRequestCommand(mockContext.Object, RequiredAudiences);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenFormBodyUnreadable_ReturnsInvalidRequest()
+    {
+        var mockError = CreateLooseMock<IOpenIdError>();
+        var mockErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
+        mockErrorFactory
+            .Setup(x => x.Create(OpenIdProtocol.ErrorCodes.InvalidRequest))
+            .Returns(mockError.Object)
+            .Verifiable();
+        // The form key limit is 2048 characters.
+        var command = CreateFormBodyCommand(new string('k', 2049) + "=v", mockErrorFactory.Object);
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.HasError);
+        Assert.Same(mockError.Object, result.Error);
+        mockError.VerifySet(x => x.StatusCode = StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenFormBodyHasNoAccessToken_ReturnsUndefined()
+    {
+        var command = CreateFormBodyCommand("a=1", CreateStrictMock<IOpenIdErrorFactory>().Object);
+
+        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsUndefined);
     }
 
     #endregion

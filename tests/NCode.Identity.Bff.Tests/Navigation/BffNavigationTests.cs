@@ -22,11 +22,11 @@ public class BffNavigationTests : BaseTests
     #region CallbackUri Tests
 
     [Fact]
-    public void CallbackUri_WithPathBase_IncludesPathBaseAndPrefix()
+    public void CallbackUri_WithAPathBase_AppendsThePrefixToThePublicOrigin()
     {
-        var httpContext = CreateHttpContext();
+        var options = new BffOptions { PublicOrigin = "https://app.example.com/app" };
 
-        var result = BffNavigation.CallbackUri(httpContext.Request, new BffOptions());
+        var result = BffNavigation.CallbackUri(options);
 
         Assert.Equal("https://app.example.com/app/bff/callback", result);
     }
@@ -65,11 +65,11 @@ public class BffNavigationTests : BaseTests
     #region AbsoluteUrl Tests
 
     [Fact]
-    public void AbsoluteUrl_WithPathBase_BuildsFullUrl()
+    public void AbsoluteUrl_Always_AppendsThePathToThePublicOrigin()
     {
-        var httpContext = CreateHttpContext();
+        var options = new BffOptions { PublicOrigin = "https://app.example.com/app" };
 
-        var result = BffNavigation.AbsoluteUrl(httpContext.Request, "/home");
+        var result = BffNavigation.AbsoluteUrl(options, "/home");
 
         Assert.Equal("https://app.example.com/app/home", result);
     }

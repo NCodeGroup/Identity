@@ -95,6 +95,7 @@ internal sealed class BffTestHost : IAsyncDisposable
             new Dictionary<string, string?>
             {
                 ["Bff:Authority"] = HostApplicationFactory.TestServerIssuer,
+                ["Bff:PublicOrigin"] = "https://bff.example",
                 ["Bff:ClientId"] = ClientId,
                 ["Bff:ClientAuthentication:Method"] = OpenIdProtocol
                     .ClientAuthenticationMethods

@@ -60,19 +60,20 @@ internal sealed class RevocationRetrievalCache(
     )
         where T : class
     {
-        if (MemoryCache.TryGetValue<T>(key, out var cached) && cached is not null)
-            return cached;
-
         // A retrieval that yielded nothing usable is remembered, so an unreachable or misbehaving source is not
         // asked again for every check. See ADR-1252.
-        if (IsUnavailable(key))
+        if (TryGetRemembered(key, out T? remembered))
         {
-            Logger.RevocationRetrievalSuppressed(
-                location,
-                subject,
-                Retrievals.FailureCacheDuration
-            );
-            return null;
+            if (remembered is null)
+            {
+                Logger.RevocationRetrievalSuppressed(
+                    location,
+                    subject,
+                    Retrievals.FailureCacheDuration
+                );
+            }
+
+            return remembered;
         }
 
         // Concurrent checks share one retrieval; it runs without the caller's token, so a caller that gives up does
@@ -85,12 +86,31 @@ internal sealed class RevocationRetrievalCache(
         return value as T;
     }
 
+    // Returns true with the cached value or, for a remembered failure, with null; false when neither is cached.
+    private bool TryGetRemembered<T>(string key, out T? value)
+        where T : class
+    {
+        if (MemoryCache.TryGetValue<T>(key, out var cached) && cached is not null)
+        {
+            value = cached;
+            return true;
+        }
+
+        value = null;
+        return IsUnavailable(key);
+    }
+
     private async Task<object?> RetrieveAsync<T>(
         string key,
         Func<Task<RevocationRetrieval<T>>> retrieve
     )
         where T : class
     {
+        // A caller that checked the caches just before a previous retrieval recorded its result and left the in-flight
+        // dictionary starts this one, so the caches are checked again before anything is downloaded. See ADR-1366.
+        if (TryGetRemembered(key, out T? remembered))
+            return remembered;
+
         var result = await retrieve();
         if (result.Value is null)
         {

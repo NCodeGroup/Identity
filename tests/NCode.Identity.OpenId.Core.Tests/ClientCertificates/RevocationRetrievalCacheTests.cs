@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using Xunit;
 
@@ -30,12 +31,17 @@ public class RevocationRetrievalCacheTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private RevocationRetrievalCache CreateCache() =>
+    private RevocationRetrievalCache CreateCache() => CreateCacheOver(MemoryCache);
+
+    private RevocationRetrievalCache CreateCacheOver(IMemoryCache memoryCache) =>
         new(
-            MemoryCache,
+            memoryCache,
             Options.Create(new ClientCertificateRevocationOptions()),
             CreateLooseMock<ILogger<RevocationRetrievalCache>>().Object
         );
+
+    private static bool IsUnavailableKey(object key) =>
+        key is string text && text.EndsWith(":unavailable", StringComparison.Ordinal);
 
     private static DateTimeOffset InAnHour() => DateTimeOffset.UtcNow.AddHours(1);
 
@@ -189,6 +195,84 @@ public class RevocationRetrievalCacheTests : BaseTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
         Assert.Equal(Value, await second);
         Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenAFailureIsRememberedBeforeTheRetrievalStarts_DoesNotRetrieve()
+    {
+        var calls = 0;
+        var unavailableChecks = 0;
+        object? notCached = null;
+        object? remembered = true;
+        var mockMemoryCache = CreateStrictMock<IMemoryCache>();
+        mockMemoryCache
+            .Setup(x => x.TryGetValue(It.Is<object>(key => !IsUnavailableKey(key)), out notCached))
+            .Returns(false)
+            .Verifiable();
+        // The caller's check misses; a retrieval that ends before this one starts has remembered its failure by then.
+        mockMemoryCache
+            .Setup(x => x.TryGetValue(It.Is<object>(key => IsUnavailableKey(key)), out remembered))
+            .Returns(() => Interlocked.Increment(ref unavailableChecks) > 1)
+            .Verifiable();
+        var cache = CreateCacheOver(mockMemoryCache.Object);
+        Task<RevocationRetrieval<string>> Retrieve()
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
+        }
+
+        var result = await cache.GetAsync<string>(
+            Key,
+            Location,
+            Subject,
+            Retrieve,
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+        Assert.Equal(0, calls);
+        Assert.Equal(2, unavailableChecks);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenAValueIsCachedBeforeTheRetrievalStarts_ReturnsItWithoutRetrieving()
+    {
+        var calls = 0;
+        var valueChecks = 0;
+        object? cachedValue = Value;
+        object? notRemembered = null;
+        var mockMemoryCache = CreateStrictMock<IMemoryCache>();
+        // The caller's check misses; a retrieval that ends before this one starts has cached its value by then.
+        mockMemoryCache
+            .Setup(x =>
+                x.TryGetValue(It.Is<object>(key => !IsUnavailableKey(key)), out cachedValue)
+            )
+            .Returns(() => Interlocked.Increment(ref valueChecks) > 1)
+            .Verifiable();
+        mockMemoryCache
+            .Setup(x =>
+                x.TryGetValue(It.Is<object>(key => IsUnavailableKey(key)), out notRemembered)
+            )
+            .Returns(false)
+            .Verifiable();
+        var cache = CreateCacheOver(mockMemoryCache.Object);
+        Task<RevocationRetrieval<string>> Retrieve()
+        {
+            Interlocked.Increment(ref calls);
+            return Task.FromResult(new RevocationRetrieval<string>(Value, InAnHour()));
+        }
+
+        var result = await cache.GetAsync<string>(
+            Key,
+            Location,
+            Subject,
+            Retrieve,
+            CancellationToken.None
+        );
+
+        Assert.Equal(Value, result);
+        Assert.Equal(0, calls);
+        Assert.Equal(2, valueChecks);
     }
 
     #endregion

@@ -21,6 +21,7 @@ public class BffOptionsValidatorTests : BaseTests
         new()
         {
             Authority = "https://op.example.com",
+            PublicOrigin = "https://app.example.com",
             ClientId = "bff",
             ReturnUrls = ["/"],
             TrustedOrigins = ["https://app.example.com"],
@@ -57,6 +58,105 @@ public class BffOptionsValidatorTests : BaseTests
     {
         var options = CreateValidOptions();
         options.Authority = "http://localhost:5000";
+
+        var result = CreateValidator("Development").Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("app.example.com")]
+    [InlineData("http://app.example.com")]
+    [InlineData("https://app.example.com/")]
+    [InlineData("https://app.example.com/app?x=1")]
+    [InlineData("https://app.example.com#top")]
+    [InlineData("https://user@app.example.com")]
+    [InlineData("https://APP.example.com")]
+    public void Validate_WhenPublicOriginInvalid_Fails(string publicOrigin)
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = publicOrigin;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:PublicOrigin"));
+    }
+
+    [Fact]
+    public void Validate_WhenPublicOriginInvalid_NamesTheValue()
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = "https://app.example.com/";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith(
+                    "Bff:PublicOrigin 'https://app.example.com/' must",
+                    StringComparison.Ordinal
+                )
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenPublicOriginHasUserInfo_WithholdsTheValue()
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = "https://user:secret@app.example.com";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:PublicOrigin"));
+        Assert.DoesNotContain(result.Failures ?? [], x => x.Contains("secret"));
+    }
+
+    [Fact]
+    public void Validate_WhenAuthorityInvalid_NamesTheValue()
+    {
+        var options = CreateValidOptions();
+        options.Authority = "http://op.example.com";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith("Bff:Authority 'http://op.example.com' must", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenAuthorityHasUserInfo_WithholdsTheValue()
+    {
+        var options = CreateValidOptions();
+        options.Authority = "http://user:secret@op.example.com";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Authority"));
+        Assert.DoesNotContain(result.Failures ?? [], x => x.Contains("secret"));
+    }
+
+    [Fact]
+    public void Validate_WhenPublicOriginHasAPathBase_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = "https://example.com/app";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenHttpPublicOriginInDevelopment_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = "http://localhost:5000";
 
         var result = CreateValidator("Development").Validate(null, options);
 

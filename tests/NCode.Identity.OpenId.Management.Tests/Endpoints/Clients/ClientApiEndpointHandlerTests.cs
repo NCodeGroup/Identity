@@ -2671,10 +2671,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
             .Verifiable();
-        SetupRotateAuthorization(
-            createResult: AuthorizationResult.Success(),
-            updateResult: AuthorizationResult.Failed()
-        );
+        SetupRotateAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupRotateAuthorization(Operations.Update, AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -2699,10 +2697,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
             .Verifiable();
-        SetupRotateAuthorization(
-            createResult: AuthorizationResult.Failed(),
-            updateResult: AuthorizationResult.Success()
-        );
+        SetupRotateAuthorization(Operations.Create, AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -2719,41 +2714,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.IsType<ForbidHttpResult>(result);
     }
 
-    // Rotation is authorized as the create and the update it performs, so each requirement is set up on its own. A
-    // setup that is not reached because the other requirement already failed is not verified.
+    // Rotation is authorized as the create and the update it performs, so each requirement is set up on its own, and
+    // only by the tests that reach it.
     private void SetupRotateAuthorization(
-        AuthorizationResult createResult,
-        AuthorizationResult updateResult
-    )
-    {
+        IAuthorizationRequirement requirement,
+        AuthorizationResult result
+    ) =>
         MockAuthorizationService
             .Setup(x =>
                 x.AuthorizeAsync(
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<object?>(),
-                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
-                        r.Contains(Operations.Create)
-                    )
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r => r.Contains(requirement))
                 )
             )
-            .ReturnsAsync(createResult)
+            .ReturnsAsync(result)
             .Verifiable();
-        var updateSetup = MockAuthorizationService
-            .Setup(x =>
-                x.AuthorizeAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<object?>(),
-                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
-                        r.Contains(Operations.Update)
-                    )
-                )
-            )
-            .ReturnsAsync(updateResult);
-        if (createResult.Succeeded)
-        {
-            updateSetup.Verifiable();
-        }
-    }
 
     [Fact]
     public async Task RotateSecretAsync_WhenIfMatchDiffers_ReturnsPreconditionFailed()

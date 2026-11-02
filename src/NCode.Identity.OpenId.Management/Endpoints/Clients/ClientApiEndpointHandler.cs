@@ -81,6 +81,48 @@ internal class ClientApiEndpointHandler(
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
+    /// <summary>
+    /// Gets the entropy, in bits, of the secret that replaces a rotated shared secret.
+    /// </summary>
+    /// <remarks>
+    /// A shared secret stores the UTF-8 length of its base64url string as its key size, and base64url writes four
+    /// characters for every three bytes, so <c>storedKeySizeBits / 8 * 3 / 4 * 8</c> recovers the rotated secret's
+    /// entropy exactly. The replacement therefore keeps that entropy instead of growing with each rotation, and is
+    /// never below <see cref="SharedSecretPolicy.MinimumEntropyBits"/>.
+    /// </remarks>
+    /// <param name="storedKeySizeBits">The key size, in bits, stored for the rotated shared secret.</param>
+    /// <returns>The entropy, in bits, to generate the replacement with.</returns>
+    // See ADR-1320.
+    internal static int GetReplacementEntropyBits(int storedKeySizeBits) =>
+        Math.Max(SharedSecretPolicy.MinimumEntropyBits, storedKeySizeBits / 8 * 3 / 4 * 8);
+
+    /// <summary>
+    /// Copies a persisted secret with the use, algorithm, and expiry of the specified metadata, keeping its identity,
+    /// concurrency token, and key material.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> to copy.</param>
+    /// <param name="metadata">The <see cref="UpdateSecretRequest"/> whose metadata the copy takes.</param>
+    /// <returns>The copy of <paramref name="secret"/> with the metadata of <paramref name="metadata"/>.</returns>
+    private static PersistedSecret WithMetadata(
+        PersistedSecret secret,
+        UpdateSecretRequest metadata
+    ) =>
+        new()
+        {
+            SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = metadata.Use,
+            Algorithm = metadata.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = metadata.ExpiresWhen,
+            SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+            PublicKey = secret.PublicKey,
+        };
+
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientValidator ClientValidator { get; } = clientValidator;
@@ -1385,21 +1427,7 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(metadataError);
         }
 
-        var updated = new PersistedSecret
-        {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
-            ExpiresWhen = request.ExpiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
-        };
+        var updated = WithMetadata(secret, request);
 
         await store.UpdateSecretAsync(clientId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -1628,21 +1656,13 @@ internal class ClientApiEndpointHandler(
         PersistedSecret? shortened = null;
         if (rotatedExpiresWhen != secret.ExpiresWhen)
         {
-            shortened = new PersistedSecret
+            var shortenedMetadata = new UpdateSecretRequest
             {
-                SecretId = secret.SecretId,
-                KeyId = secret.KeyId,
-                ConcurrencyToken = secret.ConcurrencyToken,
                 Use = secret.Use,
                 Algorithm = secret.Algorithm,
-                CreatedWhen = secret.CreatedWhen,
                 ExpiresWhen = rotatedExpiresWhen,
-                SecretType = secret.SecretType,
-                SecretEncoding = secret.SecretEncoding,
-                KeySizeBits = secret.KeySizeBits,
-                EncodedValue = secret.EncodedValue,
-                PublicKey = secret.PublicKey,
             };
+            shortened = WithMetadata(secret, shortenedMetadata);
             await store.UpdateSecretAsync(clientId, shortened, cancellationToken);
         }
 
@@ -1661,13 +1681,15 @@ internal class ClientApiEndpointHandler(
         );
         if (shortened is not null)
         {
+            var shortenedResource = ToSecretResource(shortened);
+            var shortenedValues = ToResourceValues(shortenedResource);
             await ManagementAuditRecorder.RecordClientSecretChangedAsync(
                 httpContext,
                 client.TenantId,
                 clientId,
                 secretId,
                 ResourceChangeTypes.Updated,
-                ToResourceValues(ToSecretResource(shortened)),
+                shortenedValues,
                 cancellationToken
             );
         }
@@ -1680,11 +1702,6 @@ internal class ClientApiEndpointHandler(
             ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
         );
     }
-
-    // A shared secret stores the UTF-8 length of its base64url string as KeySizeBits, so this recovers the entropy of
-    // the rotated secret; the replacement never grows with each rotation and is never below the floor.
-    internal static int GetReplacementEntropyBits(int storedKeySizeBits) =>
-        Math.Max(SharedSecretPolicy.MinimumEntropyBits, storedKeySizeBits / 8 * 3 / 4 * 8);
 
     /// <summary>
     /// Lists a client's owners.

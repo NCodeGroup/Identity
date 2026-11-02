@@ -133,9 +133,12 @@ applied. Rendered for its side effect only.
 {{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}
 {{- end }}
+{{- if not .Values.secretProtection.rootKeyProvider }}
+{{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}
+{{- end }}
 {{- if eq .Values.environment "Production" }}
 {{- $secretProtection := .Values.secretProtection }}
-{{- if or (not $secretProtection.rootKeyProvider) (eq $secretProtection.rootKeyProvider "ephemeral") }}
+{{- if eq $secretProtection.rootKeyProvider "ephemeral" }}
 {{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod in Production: local, aws-kms, azure-key-vault or google-cloud-kms." }}
 {{- end }}
 {{- if and (eq $secretProtection.rootKeyProvider "local") (not $secretProtection.local.keySecret) }}

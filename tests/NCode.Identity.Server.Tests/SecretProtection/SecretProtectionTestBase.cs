@@ -7,6 +7,7 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -86,8 +87,10 @@ public abstract class SecretProtectionTestBase : BaseTests
         serviceCollection.AddSecretsLibrary().AddPersistenceLibrary();
         serviceCollection.AddSingleton(storeManagerFactory.Object);
         serviceCollection.Configure<SecretProtectionOptions>(options =>
-            options.Recovery = new RecoveryKeyOptions { Disabled = true }
-        );
+        {
+            options.RootKeyProvider = KeyWrapperNames.Ephemeral;
+            options.Recovery = new RecoveryKeyOptions { Disabled = true };
+        });
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
         ServiceProviders.Add(serviceProvider);

@@ -45,7 +45,21 @@ internal class DefaultKeyWrapperCatalog(
     public IKeyWrapper GetConfigured()
     {
         var name = ProtectionOptions.Value.RootKeyProvider;
-        return Get(string.IsNullOrWhiteSpace(name) ? KeyWrapperNames.Ephemeral : name);
+
+        // Worded like the host's start-up check of the same key, but naming the providers actually registered, which
+        // that check cannot resolve.
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            var actual = name is null ? "it is not set" : $"it is blank ('{name}')";
+
+            throw new InvalidOperationException(
+                $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.RootKeyProvider)} is "
+                    + $"required, but {actual}. Name one of the registered root key providers: "
+                    + $"{FormatNames(ProvidersByName.Keys)}."
+            );
+        }
+
+        return Get(name);
     }
 
     private static FrozenDictionary<string, IKeyWrapper> IndexByName(

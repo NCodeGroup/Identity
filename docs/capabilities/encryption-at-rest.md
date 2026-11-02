@@ -240,7 +240,8 @@ keys or call the KMS.
 
 ## The root of trust: root keys and KMS
 
-The root key provider is chosen with one setting, `SecretProtection:RootKeyProvider`. Providers are an open
+The root key provider is chosen with one setting, `SecretProtection:RootKeyProvider`. The setting is required:
+a host that leaves it unset stops when it starts. Providers are an open
 vocabulary: the family ships five, and any package can register its own.
 
 | Provider           | Where the root key lives                                     | Binding                                               | Credentials                         | Use for                                     |
@@ -303,7 +304,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Production**  | Refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together.              |
 | **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-1179](../decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). |
-| **Development** | No root key is ever committed. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development pruning heals affected tenants automatically.       |
+| **Development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development pruning heals affected tenants automatically.       |
 
 ## Protect your own data with it
 

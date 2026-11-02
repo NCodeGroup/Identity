@@ -43,8 +43,9 @@ Rendering fails, before anything is applied, when:
   set `probes.host` to a concrete host it accepts;
 - `database.existingSecret` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
-- `environment` is `Production` and `secretProtection.rootKeyProvider` is empty or `ephemeral`, which would leave no
-  root key outside the pod;
+- `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
+- `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key
+  outside the pod;
 - `environment` is `Production`, `secretProtection.rootKeyProvider` is `local`, and `secretProtection.local.keySecret`
   is empty;
 - `secretProtection.rootKeyProvider` is `aws-kms`, in any environment, and `secretProtection.awsKms.keyArn` is empty or
@@ -85,8 +86,7 @@ after the old one has terminated, so each update has a short outage.
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so
 a database dump or backup is useless without it
 ([ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
-`secretProtection.rootKeyProvider` chooses where the root key lives, and Production refuses an empty or `ephemeral`
-choice:
+`secretProtection.rootKeyProvider` chooses where the root key lives, is required, and Production refuses `ephemeral`:
 
 - `local`: an AES key in a Secret the chart mounts into the pod. It suits a homelab: the key is outside the database,
   but anyone who can read the Secret can read the key.

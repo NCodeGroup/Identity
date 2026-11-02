@@ -462,6 +462,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             {
                 ["OpenId:TenantResolution:StrategyCode"] = "StaticSingle",
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/",
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
             },
             out var secretProtectorProvider
         );

@@ -59,9 +59,16 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. One family record overrides a template record:
-[ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
-project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
+so a bare ADR number names one record. Three family records override template records:
+
+- [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
+  project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
+- [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
+  supersedes project-template ADR-0121, because a page that lists no form-action gets 'none', not 'self'.
+- [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) supersedes
+  project-template ADR-0129's decision 2 for the authorization, continue and end-session endpoints, whose GET the OAuth
+  2.0 and OpenID Connect specifications require.
+
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
 

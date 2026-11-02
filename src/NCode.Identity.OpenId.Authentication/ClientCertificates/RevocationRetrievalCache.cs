@@ -107,7 +107,7 @@ internal sealed class RevocationRetrievalCache(
         where T : class
     {
         // A caller that checked the caches just before a previous retrieval recorded its result and left the in-flight
-        // dictionary starts this one, so the caches are checked again before anything is downloaded. See ADR-1335.
+        // dictionary starts this one, so the caches are checked again before anything is downloaded. See ADR-1366.
         if (TryGetRemembered(key, out T? remembered))
             return remembered;
 

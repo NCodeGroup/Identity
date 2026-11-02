@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using NCode.Identity.Secrets.KeyWrapping;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Registration;
 
@@ -22,11 +22,6 @@ namespace NCode.Identity.Server.SecretProtection;
 internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";
-
-    internal const string RootKeyProviderMissingMessage =
-        "SecretProtection:RootKeyProvider is not set. Name the root key provider that protects the stored secrets, such as "
-        + $"'{KeyWrapperNames.Local}', '{KeyWrapperNames.AwsKms}', '{KeyWrapperNames.AzureKeyVault}' or '{KeyWrapperNames.GoogleCloudKms}'; "
-        + $"local development and tests may select '{KeyWrapperNames.Ephemeral}', whose root key is lost when the process stops.";
 
     // Every direct child of the secret protection section. The children of RootKeyProviders belong to the root key
     // providers, each of which binds its own, so strict binding does not close the set of providers.
@@ -80,11 +75,14 @@ internal static class SecretProtectionRegistration
                 options.RootKeyProvider = section[nameof(SecretProtectionOptions.RootKeyProvider)];
                 recoverySection.BindStrictly(options.Recovery);
             })
-            .Validate(
-                options => !string.IsNullOrWhiteSpace(options.RootKeyProvider),
-                RootKeyProviderMissingMessage
-            )
             .ValidateOnStart();
+
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IValidateOptions<SecretProtectionOptions>,
+                SecretProtectionOptionsValidator
+            >()
+        );
 
         serviceCollection
             .AddOptions<LocalKeyWrapperOptions>()

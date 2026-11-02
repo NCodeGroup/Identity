@@ -124,7 +124,7 @@ public class SecretProtectionRegistrationTests : BaseTests
         );
 
         Assert.Contains(
-            SecretProtectionRegistration.RootKeyProviderMissingMessage,
+            $"{SecretProtectionOptionsValidator.RootKeyProviderKey} is required",
             exception.Message,
             StringComparison.Ordinal
         );

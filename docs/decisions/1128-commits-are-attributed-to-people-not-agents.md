@@ -67,7 +67,9 @@ trailer back on 7 new commits, forcing a second rewrite and a second force-push.
 
 ## Decision
 
-Its first two layers in this repository are:
+The rule of [project-template ADR-0002](project-template/0002-commits-are-attributed-to-people-not-agents.md) holds
+here: a commit records the people who authored it, and agent accounts are never co-authors. Its first two layers in
+this repository are:
 
 - **Prevention — an instruction.**
   [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) states

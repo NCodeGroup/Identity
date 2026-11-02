@@ -1,10 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints;
+namespace NCode.AspNetCore.Tests;
 
 public class HtmlPageSecurityPolicyTests : BaseTests
 {

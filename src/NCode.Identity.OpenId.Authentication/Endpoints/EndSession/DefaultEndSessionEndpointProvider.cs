@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
@@ -38,7 +39,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             .Produces(StatusCodes.Status302Found)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable()
-            .WithOpenIdFrontChannel();
+            .WithFrontChannel();
 
     /// <summary>
     /// End session endpoint (OpenID Connect RP-Initiated Logout).

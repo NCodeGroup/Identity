@@ -96,10 +96,10 @@ than inlining the rationale.
   `IOpenIdEndpointResourceServerClientMetadata`, which `DefaultOpenIdClientResolver` checks, and a request with no
   endpoint, such as background work, resolves no such client
   ([ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
-- 👁 **Keep CORS off a front-channel endpoint with `WithOpenIdFrontChannel()`, never CORS metadata.** An endpoint the
-  user agent navigates to (authorization, continue, end-session, the interactive surface) carries
-  `IOpenIdEndpointFrontChannelMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same
-  call routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
+- 👁 **Keep CORS off a front-channel endpoint with `WithFrontChannel()`, never CORS metadata.** An endpoint the
+  user agent navigates to (authorization, continue, end-session, the interactive surface) carries `NCode.AspNetCore`'s
+  `IFrontChannelEndpointMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same call
+  routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
   preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
   `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an endpoint carrying CORS
   metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-1109](../../docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md).
@@ -751,9 +751,10 @@ than inlining the rationale.
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` before the handler runs, so the mapping shows
   which routes reveal a secret and no handler path can forget it. `HttpResponse.SetNoStore()` writes the same headers
   where a response rather than a route carries the secret, as the authorization response writer does. Reference the
-  dependency-free `NCode.AspNetCore` package, the home for general ASP.NET Core helpers. See
-  [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md) and
-  [ADR-1355](../../docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md).
+  `NCode.AspNetCore` package, the home for general ASP.NET Core helpers, which references no identity package. See
+  [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md),
+  [ADR-1355](../../docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) and
+  [ADR-1388](../../docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

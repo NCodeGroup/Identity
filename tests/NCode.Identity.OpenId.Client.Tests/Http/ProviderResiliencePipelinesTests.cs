@@ -12,10 +12,19 @@ namespace NCode.Identity.OpenId.Client.Tests.Http;
 
 public class ProviderResiliencePipelinesTests : BaseTests
 {
-    private static ProviderResiliencePipelines CreatePipelines()
+    private TestMetrics Metrics { get; } = new();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            Metrics.Dispose();
+        base.Dispose(disposing);
+    }
+
+    private ProviderResiliencePipelines CreatePipelines()
     {
         var options = Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions());
-        return new ProviderResiliencePipelines(options);
+        return new ProviderResiliencePipelines(options, Metrics.CreateProviderMetrics());
     }
 
     #region IsTransient Tests
@@ -156,6 +165,58 @@ public class ProviderResiliencePipelinesTests : BaseTests
         var forPost = pipelines.Select(post);
 
         Assert.NotSame(forGet, forPost);
+    }
+
+    #endregion
+
+    #region GetErrorType Tests
+
+    [Fact]
+    public void GetErrorType_WhenTheOutcomeIsAResponse_ReturnsItsStatusCode()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+
+        var errorType = ProviderResiliencePipelines.GetErrorType(Outcome.FromResult(response));
+
+        Assert.Equal("503", errorType);
+    }
+
+    [Fact]
+    public void GetErrorType_WhenTheAttemptTimedOut_ReturnsTimeout()
+    {
+        var outcome = Outcome.FromException<HttpResponseMessage>(new TimeoutRejectedException());
+
+        var errorType = ProviderResiliencePipelines.GetErrorType(outcome);
+
+        Assert.Equal("timeout", errorType);
+    }
+
+    [Theory]
+    [InlineData(HttpRequestError.ConnectionError, "connection_error")]
+    [InlineData(HttpRequestError.NameResolutionError, "name_resolution_error")]
+    [InlineData(HttpRequestError.Unknown, "unknown")]
+    public void GetErrorType_WhenTheRequestFailed_ReturnsTheRequestErrorInSnakeCase(
+        HttpRequestError requestError,
+        string expected
+    )
+    {
+        var outcome = Outcome.FromException<HttpResponseMessage>(
+            new HttpRequestException(requestError)
+        );
+
+        var errorType = ProviderResiliencePipelines.GetErrorType(outcome);
+
+        Assert.Equal(expected, errorType);
+    }
+
+    [Fact]
+    public void GetErrorType_WhenTheExceptionIsUnexpected_ReturnsOther()
+    {
+        var outcome = Outcome.FromException<HttpResponseMessage>(new InvalidOperationException());
+
+        var errorType = ProviderResiliencePipelines.GetErrorType(outcome);
+
+        Assert.Equal("_OTHER", errorType);
     }
 
     #endregion

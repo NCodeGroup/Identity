@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides the names of the Content-Security-Policy directives that the server's pages use. The list is not

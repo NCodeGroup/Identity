@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides the extension method that writes the security headers of an HTML page. Every page that the server renders
@@ -21,11 +21,12 @@ public static class HtmlPageSecurityResponseExtensions
     {
         /// <summary>
         /// Sets the security headers of an HTML page: <c>Content-Security-Policy</c>, <c>X-Frame-Options</c>,
-        /// <c>X-Content-Type-Options</c>, <c>Referrer-Policy</c>, <c>Cache-Control</c> and <c>Pragma</c>. The headers
-        /// are assigned, so a value that another component wrote, such as the <c>SAMEORIGIN</c> frame option that
-        /// antiforgery adds, is replaced. When <see cref="HtmlPageSecurityPolicy.AllowsFraming"/> is set or
-        /// <see cref="HtmlPageSecurityPolicy.FrameAncestors"/> lists a source, the response carries no
-        /// <c>X-Frame-Options</c> header, because that header cannot name an origin; otherwise it is <c>DENY</c>.
+        /// <c>X-Content-Type-Options</c>, <c>Referrer-Policy</c>, and the <c>Cache-Control</c> and <c>Pragma</c>
+        /// headers that <c>SetNoStore</c> writes. The headers are assigned, so a value that another component wrote,
+        /// such as the <c>SAMEORIGIN</c> frame option that antiforgery adds, is replaced. When
+        /// <see cref="HtmlPageSecurityPolicy.AllowsFraming"/> is set or <see cref="HtmlPageSecurityPolicy.FrameAncestors"/>
+        /// lists a source, the response carries no <c>X-Frame-Options</c> header, because that header cannot name an
+        /// origin; otherwise it is <c>DENY</c>.
         /// </summary>
         /// <param name="policy">The <see cref="HtmlPageSecurityPolicy"/> that describes the page.</param>
         public void SetHtmlPageSecurity(HtmlPageSecurityPolicy policy)
@@ -48,8 +49,7 @@ public static class HtmlPageSecurityResponseExtensions
 
             headers.XContentTypeOptions = "nosniff";
             headers[ReferrerPolicyHeaderName] = "same-origin";
-            headers.CacheControl = "no-store, no-cache, max-age=0";
-            headers.Pragma = "no-cache";
+            response.SetNoStore();
         }
     }
 }

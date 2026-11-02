@@ -1,7 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
+using System.Text;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Client.Metrics;
 using NCode.Identity.OpenId.Client.Options;
 using Polly;
 using Polly.Retry;
@@ -16,14 +19,18 @@ namespace NCode.Identity.OpenId.Client.Http;
 /// the total timeout only, so it is never sent twice.
 /// </summary>
 /// <param name="options">The <see cref="OpenIdClientOptions"/> that hold the limits.</param>
+/// <param name="metrics">The <see cref="ProviderMetrics"/> that count the retries and the timeouts.</param>
 // See ADR-1336.
-internal sealed class ProviderResiliencePipelines(IOptions<OpenIdClientOptions> options)
+internal sealed class ProviderResiliencePipelines(
+    IOptions<OpenIdClientOptions> options,
+    ProviderMetrics metrics
+)
 {
     private ResiliencePipeline<HttpResponseMessage> Retrying { get; } =
-        Build(options.Value, options.Value.MaxRetryAttempts);
+        Build(options.Value, options.Value.MaxRetryAttempts, metrics);
 
     private ResiliencePipeline<HttpResponseMessage> Bounded { get; } =
-        Build(options.Value, maxRetryAttempts: 0);
+        Build(options.Value, maxRetryAttempts: 0, metrics);
 
     /// <summary>
     /// Selects the pipeline that bounds <paramref name="request"/>.
@@ -70,13 +77,77 @@ internal sealed class ProviderResiliencePipelines(IOptions<OpenIdClientOptions> 
         return statusCode is 408 or 429 or >= 500;
     }
 
+    /// <summary>
+    /// Gets the bounded <c>error.type</c> of a failed attempt: the response's status code, <c>timeout</c> for an attempt
+    /// that the per-attempt timeout cancelled, the <see cref="HttpRequestError"/> in snake case for a failed request,
+    /// or <c>_OTHER</c>.
+    /// </summary>
+    /// <param name="outcome">The outcome of the attempt.</param>
+    /// <returns>The error type.</returns>
+    // NCode.Identity.OpenId.Authentication's GuardedResiliencePipelines.GetErrorType maps outcomes the same way; this
+    // package cannot reference it (ADR-1285), so the two copies are kept in step, and both test suites pin the values.
+    internal static string GetErrorType(Outcome<HttpResponseMessage> outcome) =>
+        outcome switch
+        {
+            { Result: { } response } => ((int)response.StatusCode).ToString(
+                CultureInfo.InvariantCulture
+            ),
+            { Exception: TimeoutRejectedException } => ProviderMetrics.TimeoutErrorType,
+            { Exception: HttpRequestException exception } => ToSnakeCase(
+                exception.HttpRequestError.ToString()
+            ),
+            _ => ProviderMetrics.OtherErrorType,
+        };
+
+    private static string ToSnakeCase(string name)
+    {
+        var builder = new StringBuilder(name.Length + 8);
+        for (var index = 0; index < name.Length; index++)
+        {
+            var character = name[index];
+            if (char.IsUpper(character))
+            {
+                if (index > 0)
+                    builder.Append('_');
+                builder.Append(char.ToLowerInvariant(character));
+            }
+            else
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static TimeoutStrategyOptions CreateTimeout(
+        TimeSpan timeout,
+        string scope,
+        ProviderMetrics metrics
+    ) =>
+        new()
+        {
+            Timeout = timeout,
+            OnTimeout = args =>
+            {
+                metrics.TimedOut(scope);
+                return ValueTask.CompletedTask;
+            },
+        };
+
     private static ResiliencePipeline<HttpResponseMessage> Build(
         OpenIdClientOptions options,
-        int maxRetryAttempts
+        int maxRetryAttempts,
+        ProviderMetrics metrics
     )
     {
         var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        builder.AddTimeout(options.TotalTimeout);
+        var totalTimeout = CreateTimeout(
+            options.TotalTimeout,
+            ProviderMetrics.TotalTimeoutScope,
+            metrics
+        );
+        builder.AddTimeout(totalTimeout);
 
         if (maxRetryAttempts > 0)
         {
@@ -92,14 +163,21 @@ internal sealed class ProviderResiliencePipelines(IOptions<OpenIdClientOptions> 
                         var isTransient = IsTransient(args.Outcome);
                         return ValueTask.FromResult(isTransient);
                     },
-                    OnRetry = static args =>
+                    OnRetry = args =>
                     {
+                        var errorType = GetErrorType(args.Outcome);
+                        metrics.Retried(errorType);
                         args.Outcome.Result?.Dispose();
                         return ValueTask.CompletedTask;
                     },
                 }
             );
-            builder.AddTimeout(options.AttemptTimeout);
+            var attemptTimeout = CreateTimeout(
+                options.AttemptTimeout,
+                ProviderMetrics.AttemptTimeoutScope,
+                metrics
+            );
+            builder.AddTimeout(attemptTimeout);
         }
 
         return builder.Build();

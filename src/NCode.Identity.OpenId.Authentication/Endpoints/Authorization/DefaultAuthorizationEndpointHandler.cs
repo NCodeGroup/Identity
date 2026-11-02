@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
@@ -64,7 +65,7 @@ internal class DefaultAuthorizationEndpointHandler(
                 OpenIdConstants.EndpointNames.Authorization
             )
             .WithOpenIdDiscoverable()
-            .WithOpenIdFrontChannel();
+            .WithFrontChannel();
     }
 
     /// <summary>

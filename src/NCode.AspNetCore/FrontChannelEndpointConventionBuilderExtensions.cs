@@ -7,13 +7,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides extension methods that mark front-channel endpoints and recognize them.
 /// </summary>
 [PublicAPI]
-public static class OpenIdFrontChannelEndpointConventionBuilderExtensions
+public static class FrontChannelEndpointConventionBuilderExtensions
 {
     /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
     /// <typeparam name="TBuilder">The type of the <see cref="IEndpointConventionBuilder"/> instance.</typeparam>
@@ -21,15 +21,17 @@ public static class OpenIdFrontChannelEndpointConventionBuilderExtensions
         where TBuilder : IEndpointConventionBuilder
     {
         /// <summary>
-        /// Adds <see cref="IOpenIdEndpointFrontChannelMetadata"/> to the <see cref="IEndpointConventionBuilder"/> so
+        /// Adds <see cref="IFrontChannelEndpointMetadata"/> to the <see cref="IEndpointConventionBuilder"/> so
         /// that no CORS policy applies to the endpoint: the user agent navigates to it, and a script never calls it.
         /// The endpoint also receives its CORS preflight requests and refuses them with <c>405</c>, so a CORS
         /// middleware never answers them either.
         /// </summary>
         /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
-        public TBuilder WithOpenIdFrontChannel()
+        public TBuilder WithFrontChannel()
         {
-            builder.WithMetadata(new OpenIdEndpointFrontChannelMetadata());
+            ArgumentNullException.ThrowIfNull(builder);
+
+            builder.WithMetadata(new FrontChannelEndpointMetadata());
             builder.Finally(RefuseCorsPreflight);
             return builder;
         }
@@ -40,10 +42,10 @@ public static class OpenIdFrontChannelEndpointConventionBuilderExtensions
     {
         /// <summary>
         /// Gets a value indicating whether the endpoint is a front-channel endpoint that no CORS policy applies to: its
-        /// last <see cref="IOpenIdEndpointFrontChannelMetadata"/> sets <see cref="IOpenIdEndpointFrontChannelMetadata.IsFrontChannel"/>.
+        /// last <see cref="IFrontChannelEndpointMetadata"/> sets <see cref="IFrontChannelEndpointMetadata.IsFrontChannel"/>.
         /// </summary>
-        public bool IsOpenIdFrontChannel =>
-            endpoint?.Metadata.GetMetadata<IOpenIdEndpointFrontChannelMetadata>()?.IsFrontChannel
+        public bool IsFrontChannel =>
+            endpoint?.Metadata.GetMetadata<IFrontChannelEndpointMetadata>()?.IsFrontChannel
             ?? false;
     }
 

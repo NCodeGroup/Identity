@@ -25,3 +25,5 @@ NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.StaleLifetime.get -> Sy
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.StaleLifetime.set -> void
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.TotalTimeout.get -> System.TimeSpan
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.TotalTimeout.set -> void
+NCode.Identity.OpenId.Client.Metrics.OpenIdClientMetrics
+const NCode.Identity.OpenId.Client.Metrics.OpenIdClientMetrics.MeterName = "NCode.Identity.OpenId.Client" -> string!

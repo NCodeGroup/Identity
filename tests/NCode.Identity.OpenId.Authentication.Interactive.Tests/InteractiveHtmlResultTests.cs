@@ -3,8 +3,8 @@
 
 using System.Buffers;
 using Microsoft.AspNetCore.Http;
+using NCode.AspNetCore;
 using NCode.Buffers;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;

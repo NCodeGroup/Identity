@@ -1,8 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
 using System.Net;
+using System.Text;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Authentication.Metrics;
+using NCode.Identity.OpenId.Metrics;
 using Polly;
 using Polly.Retry;
 using Polly.Timeout;
@@ -17,10 +21,12 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 /// </summary>
 /// <param name="options">The <see cref="OutboundHttpOptions"/> that hold the limits.</param>
 /// <param name="timeProvider">The <see cref="TimeProvider"/> that runs the timeouts and the retry delays.</param>
+/// <param name="metrics">The <see cref="AuthenticationMetrics"/> that count the retries and the timeouts.</param>
 // See ADR-1385.
 internal sealed class GuardedResiliencePipelines(
     IOptions<OutboundHttpOptions> options,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    AuthenticationMetrics metrics
 )
 {
     /// <summary>
@@ -69,17 +75,81 @@ internal sealed class GuardedResiliencePipelines(
                 or >= HttpStatusCode.InternalServerError;
     }
 
+    /// <summary>
+    /// Gets the bounded <c>error.type</c> of a failed attempt: the response's status code, <c>timeout</c> for an attempt
+    /// that the per-attempt timeout cancelled, the <see cref="HttpRequestError"/> in snake case for a failed request,
+    /// or <c>_OTHER</c>.
+    /// </summary>
+    /// <param name="outcome">The outcome of the attempt.</param>
+    /// <returns>The error type.</returns>
+    // The protocol client's ProviderResiliencePipelines.GetErrorType maps outcomes the same way; the client package
+    // cannot reference this one (ADR-1285), so the two copies are kept in step, and both test suites pin the values.
+    internal static string GetErrorType(Outcome<HttpResponseMessage> outcome) =>
+        outcome switch
+        {
+            { Result: { } response } => ((int)response.StatusCode).ToString(
+                CultureInfo.InvariantCulture
+            ),
+            { Exception: TimeoutRejectedException } => AuthenticationMetrics.TimeoutErrorType,
+            { Exception: HttpRequestException exception } => ToSnakeCase(
+                exception.HttpRequestError.ToString()
+            ),
+            _ => OpenIdMetricAttributes.OtherValue,
+        };
+
+    private static string ToSnakeCase(string name)
+    {
+        var builder = new StringBuilder(name.Length + 8);
+        for (var index = 0; index < name.Length; index++)
+        {
+            var character = name[index];
+            if (char.IsUpper(character))
+            {
+                if (index > 0)
+                    builder.Append('_');
+                builder.Append(char.ToLowerInvariant(character));
+            }
+            else
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static TimeoutStrategyOptions CreateTimeout(
+        TimeSpan timeout,
+        string scope,
+        AuthenticationMetrics metrics
+    ) =>
+        new()
+        {
+            Timeout = timeout,
+            OnTimeout = args =>
+            {
+                metrics.OutboundTimedOut(scope);
+                return ValueTask.CompletedTask;
+            },
+        };
+
     private static ResiliencePipeline<HttpResponseMessage> Build(
         OutboundHttpOptions options,
         int maxRetryAttempts,
-        TimeProvider timeProvider
+        TimeProvider timeProvider,
+        AuthenticationMetrics metrics
     )
     {
         var builder = new ResiliencePipelineBuilder<HttpResponseMessage>
         {
             TimeProvider = timeProvider,
         };
-        builder.AddTimeout(options.TotalTimeout);
+        var totalTimeout = CreateTimeout(
+            options.TotalTimeout,
+            AuthenticationMetrics.TotalTimeoutScope,
+            metrics
+        );
+        builder.AddTimeout(totalTimeout);
 
         if (maxRetryAttempts > 0)
         {
@@ -95,8 +165,10 @@ internal sealed class GuardedResiliencePipelines(
                         var isTransient = IsTransient(args.Outcome);
                         return ValueTask.FromResult(isTransient);
                     },
-                    OnRetry = static args =>
+                    OnRetry = args =>
                     {
+                        var errorType = GetErrorType(args.Outcome);
+                        metrics.OutboundRetried(errorType);
                         args.Outcome.Result?.Dispose();
                         return ValueTask.CompletedTask;
                     },
@@ -104,16 +176,21 @@ internal sealed class GuardedResiliencePipelines(
             );
         }
 
-        builder.AddTimeout(options.AttemptTimeout);
+        var attemptTimeout = CreateTimeout(
+            options.AttemptTimeout,
+            AuthenticationMetrics.AttemptTimeoutScope,
+            metrics
+        );
+        builder.AddTimeout(attemptTimeout);
 
         return builder.Build();
     }
 
     private ResiliencePipeline<HttpResponseMessage> Retrying { get; } =
-        Build(options.Value, options.Value.MaxRetryAttempts, timeProvider);
+        Build(options.Value, options.Value.MaxRetryAttempts, timeProvider, metrics);
 
     private ResiliencePipeline<HttpResponseMessage> Bounded { get; } =
-        Build(options.Value, maxRetryAttempts: 0, timeProvider);
+        Build(options.Value, maxRetryAttempts: 0, timeProvider, metrics);
 
     /// <summary>
     /// Selects the pipeline that bounds <paramref name="request"/>.

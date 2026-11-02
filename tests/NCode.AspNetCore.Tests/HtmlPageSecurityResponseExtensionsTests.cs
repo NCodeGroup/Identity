@@ -3,10 +3,9 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints;
+namespace NCode.AspNetCore.Tests;
 
 public class HtmlPageSecurityResponseExtensionsTests : BaseTests
 {

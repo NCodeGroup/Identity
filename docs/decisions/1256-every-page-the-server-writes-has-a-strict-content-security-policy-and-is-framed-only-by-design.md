@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md): the server's pipeline sends
-  Strict-Transport-Security)
+  Strict-Transport-Security; decisions 1 and 3 amended by
+  [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md):
+  the model and its writer live in `NCode.AspNetCore`, namespace `NCode.AspNetCore`, and `SetHtmlPageSecurity` writes
+  `Cache-Control` and `Pragma` through `SetNoStore()`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Supersedes:** [project-template ADR-0121](project-template/0121-html-pages-have-a-strict-content-security-policy.md)
@@ -180,11 +183,11 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
   responses are delivered by registered response-mode handlers.
 - [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md): the interactive bundle
   mounts at once over the page the host rendered.
-- Code: `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/HtmlPageSecurityPolicy.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/HtmlPageSecurityResponseExtensions.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/ContentSecurityPolicyDirective.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/ContentSecurityPolicyDirectives.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/ContentSecurityPolicySources.cs`,
+- Code: `src/NCode.AspNetCore/HtmlPageSecurityPolicy.cs`,
+  `src/NCode.AspNetCore/HtmlPageSecurityResponseExtensions.cs`,
+  `src/NCode.AspNetCore/ContentSecurityPolicyDirective.cs`,
+  `src/NCode.AspNetCore/ContentSecurityPolicyDirectives.cs`,
+  `src/NCode.AspNetCore/ContentSecurityPolicySources.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/AuthorizationResponseWriter.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/CheckSession/DefaultCheckSessionEndpointProvider.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/DefaultEndSessionEndpointProvider.cs`,

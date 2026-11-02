@@ -32,6 +32,15 @@ describe('parseBootstrapDocument', () => {
     });
   });
 
+  it('keeps a root-relative api base', () => {
+    expect(
+      parseBootstrapDocument({ apiBaseUrl: '/identity/', issuer: 'https://op.example' }).apiBaseUrl,
+    ).toBe('/identity');
+    expect(parseBootstrapDocument({ apiBaseUrl: '/', issuer: 'https://op.example' }).apiBaseUrl).toBe(
+      '',
+    );
+  });
+
   it('preserves features and branding', () => {
     const result = parseBootstrapDocument({
       apiBaseUrl: 'https://api.example',

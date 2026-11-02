@@ -145,6 +145,12 @@ function buildOptions(): BuildConfig {
 /** The well-known path of the bootstrap document every bundle fetches from its serving host (`@ncode/config`). */
 const BOOTSTRAP_PATH = '/config/bootstrap.json';
 
+/**
+ * The path of the management API. The bootstrap document's root-relative `apiBaseUrl` reaches it on the origin that
+ * serves the bundle, so a standalone dev server proxies it to the OpenID Provider host (ADR-1312).
+ */
+const API_PATH = '/api/';
+
 const COVERAGE_METRICS = ['statements', 'branches', 'functions', 'lines'] as const;
 
 function assertCoverageFloors(coverage: CoverageFloors): void {
@@ -274,6 +280,7 @@ export function serveOverHttps(env: ServiceEnvironment): Plugin {
  * The configuration of a standalone surface: a single-page app served by its own Vite dev server. That server is the
  * bundle's serving host, so it must publish the bootstrap document; rather than ship a static copy that drifts, it
  * proxies the well-known path to the OpenID Provider host, and local development reads the real document (ADR-1064).
+ * It also proxies the management API (`/api/`), which the document's root-relative `apiBaseUrl` reaches on this origin.
  */
 export function defineStandaloneSurfaceConfig({
   port,
@@ -293,6 +300,11 @@ export function defineStandaloneSurfaceConfig({
           target: resolveServiceOrigin(bootstrapHost, env),
           changeOrigin: true,
           // The local OpenID Provider host serves a development certificate.
+          secure: false,
+        },
+        [API_PATH]: {
+          target: resolveServiceOrigin(bootstrapHost, env),
+          changeOrigin: true,
           secure: false,
         },
       },

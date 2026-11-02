@@ -1194,15 +1194,20 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   Token (JWT)"** (and likewise JSON/JOSE/OAuth/OpenID in their canonical casing); do not carry the `JsonWebToken` type's
   Pascal casing into documentation. This applies only to prose — a `<see cref="JsonWebToken"/>` or an identifier keeps
   its real casing.
-- 👁 **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
+- ✅ **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
   XML-doc file (IntelliSense) and, for any type on an HTTP API surface, is surfaced into the generated **OpenAPI**
   document (.NET's XML-comment integration turns a DTO/property `<summary>` into a schema `description`). So a `///`
-  comment must read as a clean, self-contained **public** description: never an ADR number (`ADR-1011`), a
-  `<see href="../../../docs/decisions/…">` link (a broken relative path for a consumer), or an internal implementation name
-  (a persistence column, an internal type). Keep the behavioral prose; drop the citation. When the _why_ is worth
-  recording in code, put the ADR reference in a **`//` code comment** (which never ships) — this is what "link to the
-  ADR rather than inlining the rationale" (file header) means: the link lives in `//`, the ADR doc, or the `CHANGELOG`,
-  **never** in consumer-facing `///`.
+  comment must read as a clean, self-contained **public** description: never an ADR number (`ADR-1011`) or a
+  `<see href="../../../docs/decisions/…">` link (a broken relative path for a consumer). Keep the behavioral prose;
+  drop the citation. When the _why_ is worth recording in code, put the ADR reference in a **`//` code comment**
+  (which never ships) — this is what "link to the ADR rather than inlining the rationale" (file header) means: the
+  link lives in `//`, the ADR doc, or the `CHANGELOG`, **never** in consumer-facing `///`. Put that `//` line directly
+  after the doc comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
+  [`build/dod.ps1`](../../build/dod.ps1) runs
+  [`build/doc-comment-citations.ps1`](../../build/doc-comment-citations.ps1), which fails on any `///` line under
+  `src/` that matches `ADR-\d{4}` or `docs/decisions/`.
+- 👁 **No internal implementation names in `///` doc comments.** For the same reason, a `///` comment never names an
+  internal implementation detail a consumer cannot see, such as a persistence column or an internal type.
 - 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions.** `<summary>` /
   `<remarks>` become the operation description and `<param>` / `<response code="NNN">desc</response>` annotate it, but
   only when **all** hold: (1) the handler's **defining** project references `Microsoft.AspNetCore.OpenApi` and calls

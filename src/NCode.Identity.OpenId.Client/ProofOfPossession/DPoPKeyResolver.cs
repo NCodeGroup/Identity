@@ -12,9 +12,9 @@ namespace NCode.Identity.OpenId.Client.ProofOfPossession;
 /// <summary>
 /// Chooses the DPoP signing key of a client for one operation: from the client's <c>DPoPKeyRing</c>, optionally pinned by
 /// JWK thumbprint, and with an algorithm the provider advertises in <c>dpop_signing_alg_values_supported</c>. DPoP is used
-/// whenever it is available and is required when the client registration demands it or a key is pinned (RFC 9449,
-/// ADR-1286, design D7).
+/// whenever it is available and is required when the client registration demands it or a key is pinned (RFC 9449).
 /// </summary>
+// See ADR-1286, design D7.
 internal class DPoPKeyResolver(
     IClientKeyRingProvider keyRingProvider,
     IAlgorithmCollectionProvider algorithmCollectionProvider,

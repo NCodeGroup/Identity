@@ -4607,7 +4607,12 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 - **The changelog's `[Unreleased]` link names `main`.** It linked the commit history of the `dev` branch, which no
   longer exists ([#454](https://github.com/NCodeGroup/Identity/issues/454),
   [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md)).
-
+- **Doc comments no longer cite decision records.** 59 `///` lines in 49 files under `src/` named an ADR number or
+  linked into `docs/decisions/`. Those comments ship in each package's XML documentation (IntelliSense) and, for the
+  registration and management contracts, in the OpenAPI document, where the citation means nothing to a consumer.
+  The citations move to `//` comments, and the new `doc comment citations` stage of `./build/dod.ps1`
+  (`build/doc-comment-citations.ps1`) fails on any `///` line under `src/` that cites one, issue
+  [#453](https://github.com/NCodeGroup/Identity/issues/453).
 - **A token issued by token exchange is issued now.** It started its lifetime at the subject's `auth_time`, so a token
   exchanged after a long session was already expired; `auth_time` still carries the original authentication.
 - **An absolute URI means the same on every platform.** The new `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts

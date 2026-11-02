@@ -15,8 +15,9 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// Provides a default implementation of <see cref="ILogoutTokenValidator"/> that first decrypts an encrypted logout
 /// token with the client's keys, then verifies its signature with the provider's signing keys, checks its claims
 /// (OpenID Connect Back-Channel Logout 1.0 §2.6) and refuses a token whose <c>jti</c> is already recorded;
-/// <see cref="TryRecordHandledAsync"/> records it (ADR-1274, ADR-1284).
+/// <see cref="TryRecordHandledAsync"/> records it.
 /// </summary>
+// See ADR-1274 and ADR-1284.
 internal class DefaultLogoutTokenValidator(
     IProviderMetadataResolver metadataResolver,
     ProviderJwtValidator providerJwtValidator,

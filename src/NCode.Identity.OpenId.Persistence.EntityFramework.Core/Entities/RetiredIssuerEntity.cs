@@ -11,8 +11,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// <summary>
 /// Represents an entity framework data contract for an issuer a tenant gave up, by changing its issuer or by being
 /// deleted. Relying parties that trusted the issuer would trust any tenant that took it, so only the tenant that held it
-/// can take it back (ADR-1189).
+/// can take it back.
 /// </summary>
+// See ADR-1189.
 [Index(nameof(NormalizedIssuer), IsUnique = true)]
 public sealed class RetiredIssuerEntity
 {

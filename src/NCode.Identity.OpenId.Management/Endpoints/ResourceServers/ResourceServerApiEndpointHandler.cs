@@ -885,13 +885,13 @@ internal class ResourceServerApiEndpointHandler(
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
-    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>
-    /// (ADR-1204); a resource server selects no security profile, so its document adds none (ADR-1149). A document that
+    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>;
+    /// a resource server selects no security profile, so its document adds none. A document that
     /// cannot be honored fails naming its owner.
     /// </summary>
     /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or the server's
     /// cannot be honored.</exception>
-    // See ADR-1245.
+    // See ADR-1149, ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
         string tenantId,
         PersistedResourceServer resourceServer,

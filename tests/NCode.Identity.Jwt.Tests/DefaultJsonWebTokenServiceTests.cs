@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -31,7 +32,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton<TimeProvider>(new TestTimeProvider(_utcNow));
+        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(_utcNow));
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
         _serviceProvider = serviceCollection.BuildServiceProvider();
 

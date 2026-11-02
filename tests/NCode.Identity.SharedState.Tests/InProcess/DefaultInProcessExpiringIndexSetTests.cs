@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.SharedState.InProcess;
 using Xunit;
 
@@ -10,14 +11,9 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
 {
     private static DateTimeOffset Start { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
-    private DateTimeOffset Now { get; set; } = Start;
+    private FakeTimeProvider TimeProvider { get; } = new(Start);
 
-    private DefaultInProcessExpiringIndexSet CreateIndexSet()
-    {
-        var mockTimeProvider = CreateStrictMock<TimeProvider>();
-        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(() => Now);
-        return new DefaultInProcessExpiringIndexSet(mockTimeProvider.Object);
-    }
+    private DefaultInProcessExpiringIndexSet CreateIndexSet() => new(TimeProvider);
 
     private static async Task<string[]> GetSortedMembersAsync(
         DefaultInProcessExpiringIndexSet indexSet,
@@ -57,7 +53,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         var indexSet = CreateIndexSet();
         await indexSet.AddMemberAsync("index", "a", Start.AddMinutes(1), CancellationToken.None);
         await indexSet.AddMemberAsync("index", "a", Start.AddMinutes(10), CancellationToken.None);
-        Now = Start.AddMinutes(5);
+        TimeProvider.SetUtcNow(Start.AddMinutes(5));
 
         Assert.Equal(["a"], await GetSortedMembersAsync(indexSet, "index"));
     }
@@ -99,9 +95,14 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
             Start.AddSeconds(10),
             CancellationToken.None
         );
-        Now = Start + DefaultInProcessExpiringIndexSet.SweepInterval;
+        TimeProvider.SetUtcNow(Start + DefaultInProcessExpiringIndexSet.SweepInterval);
 
-        await indexSet.AddMemberAsync("live", "b", Now.AddMinutes(1), CancellationToken.None);
+        await indexSet.AddMemberAsync(
+            "live",
+            "b",
+            TimeProvider.GetUtcNow().AddMinutes(1),
+            CancellationToken.None
+        );
 
         Assert.Equal(1, indexSet.Count);
         Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "live"));
@@ -125,7 +126,7 @@ public sealed class DefaultInProcessExpiringIndexSetTests : BaseTests
         var indexSet = CreateIndexSet();
         await indexSet.AddMemberAsync("index", "a", Start.AddSeconds(10), CancellationToken.None);
         await indexSet.AddMemberAsync("index", "b", Start.AddMinutes(1), CancellationToken.None);
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
         Assert.Equal(["b"], await GetSortedMembersAsync(indexSet, "index"));
     }

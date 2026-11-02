@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.OpenId.Client.Caching;
 using Xunit;
 
@@ -16,7 +17,7 @@ public class RefreshingCacheTests : BaseTests
         StaleLifetime: TimeSpan.FromHours(24)
     );
 
-    private MutableTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
+    private FakeTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
 
     private RefreshingCache<string> Cache { get; }
 
@@ -49,7 +50,7 @@ public class RefreshingCacheTests : BaseTests
     public async Task GetAsync_WithinInterval_DoesNotFetch()
     {
         var first = await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromMinutes(30);
+        TimeProvider.Advance(TimeSpan.FromMinutes(30));
         var second = await GetAsync();
 
         Assert.Equal(1, FetchCount);
@@ -60,7 +61,7 @@ public class RefreshingCacheTests : BaseTests
     public async Task GetAsync_AfterInterval_Fetches()
     {
         await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromHours(2);
+        TimeProvider.Advance(TimeSpan.FromHours(2));
         var second = await GetAsync();
 
         Assert.Equal(2, FetchCount);
@@ -71,7 +72,7 @@ public class RefreshingCacheTests : BaseTests
     public async Task GetAsync_FailedRefreshWithinStaleLifetime_ReturnsStaleValue()
     {
         var first = await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromHours(2);
+        TimeProvider.Advance(TimeSpan.FromHours(2));
         ShouldFail = true;
 
         var second = await GetAsync();
@@ -84,11 +85,11 @@ public class RefreshingCacheTests : BaseTests
     public async Task GetAsync_FailedRefreshAfterStaleLifetime_Throws()
     {
         await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromHours(2);
+        TimeProvider.Advance(TimeSpan.FromHours(2));
         ShouldFail = true;
         await GetAsync();
 
-        TimeProvider.UtcNow += TimeSpan.FromHours(25);
+        TimeProvider.Advance(TimeSpan.FromHours(25));
 
         await Assert.ThrowsAsync<OpenIdProviderException>(async () => await GetAsync());
     }
@@ -97,12 +98,12 @@ public class RefreshingCacheTests : BaseTests
     public async Task GetAsync_AfterFailedRefreshWithinMinimumInterval_DoesNotFetch()
     {
         await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromHours(2);
+        TimeProvider.Advance(TimeSpan.FromHours(2));
         ShouldFail = true;
         await GetAsync();
         Assert.Equal(2, FetchCount);
 
-        TimeProvider.UtcNow += TimeSpan.FromMinutes(1);
+        TimeProvider.Advance(TimeSpan.FromMinutes(1));
         await GetAsync();
 
         Assert.Equal(2, FetchCount);
@@ -153,7 +154,7 @@ public class RefreshingCacheTests : BaseTests
     public async Task RefreshAsync_WithinMinimumInterval_DoesNotFetch()
     {
         await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromMinutes(1);
+        TimeProvider.Advance(TimeSpan.FromMinutes(1));
 
         await RefreshAsync();
 
@@ -164,7 +165,7 @@ public class RefreshingCacheTests : BaseTests
     public async Task RefreshAsync_AfterMinimumInterval_Fetches()
     {
         await GetAsync();
-        TimeProvider.UtcNow += TimeSpan.FromMinutes(6);
+        TimeProvider.Advance(TimeSpan.FromMinutes(6));
 
         var value = await RefreshAsync();
 

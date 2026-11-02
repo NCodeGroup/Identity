@@ -4,6 +4,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Client.Discovery;
 using NCode.Identity.OpenId.Client.Http;
@@ -18,7 +19,7 @@ public class DefaultProviderMetadataResolverTests : BaseTests
 
     private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
 
-    private MutableTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
+    private FakeTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
 
     public DefaultProviderMetadataResolverTests()
     {

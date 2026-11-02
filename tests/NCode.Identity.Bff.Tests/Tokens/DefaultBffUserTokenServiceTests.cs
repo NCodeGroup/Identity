@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
@@ -37,7 +38,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private Mock<IBffSessionStore> MockStore { get; }
     private Mock<ITokenClient> MockTokenClient { get; }
     private Mock<IBffAuditRecorder> MockRecorder { get; }
-    private MutableTimeProvider TimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; }
     private ServiceProvider MetricsProvider { get; }
     private BffMetrics Metrics { get; }
     private MetricCollector<double> RefreshCollector { get; }
@@ -81,7 +82,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         var options = Microsoft.Extensions.Options.Options.Create(
             new BffOptions { Authority = "https://op.example", ClientId = "bff" }
         );
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         TimeProvider = timeProvider;
         var cookies = new BffCookies(options, timeProvider);
         var resolver = new BffSessionResolver(
@@ -524,7 +525,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             )
             .Returns(() =>
             {
-                TimeProvider.UtcNow = Now.AddSeconds(41);
+                TimeProvider.Advance(TimeSpan.FromSeconds(41));
                 var response = new TokenResponse
                 {
                     AccessToken = "new-access",

@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
@@ -37,7 +38,7 @@ public class BffCallbackHandlerTests : BaseTests
     private readonly Mock<IUserInfoClient> _userInfoClient;
     private bool _loadUserInfo;
     private readonly Mock<IBffSessionManager> _sessionManager;
-    private readonly MutableTimeProvider _timeProvider = new(
+    private readonly FakeTimeProvider _timeProvider = new(
         new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)
     );
     private readonly List<IBffLoginGate> _gates = [];

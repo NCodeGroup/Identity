@@ -5,6 +5,7 @@ using System.Net;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Keys;
@@ -27,7 +28,7 @@ public class DefaultProviderKeySetResolverTests : BaseTests, IAsyncLifetime
 
     private Mock<IProviderMetadataResolver> MockMetadataResolver { get; }
 
-    private MutableTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
+    private FakeTimeProvider TimeProvider { get; } = new(DateTimeOffset.UnixEpoch);
 
     public DefaultProviderKeySetResolverTests()
     {
@@ -210,7 +211,7 @@ public class DefaultProviderKeySetResolverTests : BaseTests, IAsyncLifetime
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, CreateKeySet());
         var resolver = CreateResolver(handler);
         await resolver.GetSigningKeysAsync(Authority, CancellationToken.None);
-        TimeProvider.UtcNow = TimeProvider.UtcNow.AddMinutes(6);
+        TimeProvider.Advance(TimeSpan.FromMinutes(6));
 
         await resolver.RefreshSigningKeysAsync(Authority, CancellationToken.None);
 

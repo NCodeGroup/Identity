@@ -48,7 +48,7 @@ public class RevocationDataFetcherTests : BaseTests
         if (handler is not null)
         {
             MockHttpClientFactory
-                .Setup(x => x.CreateClient(RevocationDataFetcher.HttpClientName))
+                .Setup(x => x.CreateClient(GuardedHttpClient.Name))
                 .Returns(() => new HttpClient(handler, disposeHandler: false))
                 .Verifiable();
         }

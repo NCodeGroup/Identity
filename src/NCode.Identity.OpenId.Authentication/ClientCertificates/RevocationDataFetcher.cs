@@ -27,9 +27,10 @@ using NCode.Identity.OpenId.Authentication.OutboundHttp;
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
 /// <summary>
-/// Fetches revocation information, a certificate revocation list or an OCSP response, through the guarded named
-/// client: the connection is pinned away from private, loopback, and link-local addresses, redirects are not followed,
-/// and both <see cref="ClientCertificateRevocationOptions.FetchTimeout"/> and
+/// Fetches revocation information, a certificate revocation list or an OCSP response, through the guarded client
+/// (ADR-1315): the connection is pinned away from private, loopback, and link-local addresses, redirects are not
+/// followed, a failed <c>GET</c> is retried within <see cref="ClientCertificateRevocationOptions.FetchTimeout"/>, and
+/// both <see cref="ClientCertificateRevocationOptions.FetchTimeout"/> and
 /// <see cref="ClientCertificateRevocationOptions.MaxResponseSizeBytes"/> bound the request. A fetch that yields
 /// nothing usable returns <see langword="null"/> after it logs why.
 /// </summary>
@@ -41,8 +42,6 @@ internal sealed class RevocationDataFetcher(
     ILogger<RevocationDataFetcher> logger
 )
 {
-    internal const string HttpClientName = "NCode.Identity.OpenId.ClientCertificateRevocation";
-
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
@@ -118,7 +117,7 @@ internal sealed class RevocationDataFetcher(
 
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
+            using var httpClient = HttpClientFactory.CreateClient(GuardedHttpClient.Name);
             using var request = new HttpRequestMessage(method, parsedUri) { Content = content };
 
             using var response = await httpClient.SendAsync(

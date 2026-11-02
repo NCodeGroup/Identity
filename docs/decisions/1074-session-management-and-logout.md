@@ -4,10 +4,11 @@
   logout revokes the terminating session's grants, not the whole subject's). The outright decline of the two
   iframe-based mechanisms below is **superseded by [ADR-1088](1088-opt-in-front-channel-logout-and-session-management.md)**,
   which implements Front-Channel Logout 1.0 and Session Management 1.0 as opt-in capabilities that are available but
-  disabled by default.
+  disabled by default. Its `end_session_endpoint` accepts `GET` as RP-Initiated Logout 1.0 requires, the override of
+  project-template ADR-0129 recorded by
+  [ADR-1314](1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md).
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

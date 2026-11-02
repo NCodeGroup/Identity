@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 
@@ -22,7 +7,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
 /// A parameter a request object must carry, and whether a copy sent outside it must equal it or is ignored
-/// (RFC 9101 §5, §6.3; ADR-1202).
+/// (RFC 9101 §5, §6.3).
 /// </summary>
 /// <param name="ParameterName">The name of the parameter.</param>
 /// <param name="GetValue">

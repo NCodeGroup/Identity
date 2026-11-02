@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -27,9 +12,9 @@ namespace NCode.Identity.OpenId.Client.ProofOfPossession;
 /// <summary>
 /// Chooses the DPoP signing key of a client for one operation: from the client's <c>DPoPKeyRing</c>, optionally pinned by
 /// JWK thumbprint, and with an algorithm the provider advertises in <c>dpop_signing_alg_values_supported</c>. DPoP is used
-/// whenever it is available and is required when the client registration demands it or a key is pinned (RFC 9449,
-/// ADR-1286, design D7).
+/// whenever it is available and is required when the client registration demands it or a key is pinned (RFC 9449).
 /// </summary>
+// See ADR-1286, design D7.
 internal class DPoPKeyResolver(
     IClientKeyRingProvider keyRingProvider,
     IAlgorithmCollectionProvider algorithmCollectionProvider,

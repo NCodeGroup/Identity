@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
 using System.Net.Http.Headers;
@@ -27,14 +12,14 @@ using NCode.Identity.OpenId.Authentication.OutboundHttp;
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
 /// <summary>
-/// Fetches revocation information, a certificate revocation list or an OCSP response, through the guarded client
-/// (ADR-1315): the connection is pinned away from private, loopback, and link-local addresses, redirects are not
-/// followed, a failed <c>GET</c> is retried within <see cref="ClientCertificateRevocationOptions.FetchTimeout"/>, and
-/// both <see cref="ClientCertificateRevocationOptions.FetchTimeout"/> and
+/// Fetches revocation information, a certificate revocation list or an OCSP response, through the guarded client: the
+/// connection is pinned away from private, loopback, and link-local addresses, redirects are not followed, a failed
+/// <c>GET</c> is retried within <see cref="ClientCertificateRevocationOptions.FetchTimeout"/>, and both
+/// <see cref="ClientCertificateRevocationOptions.FetchTimeout"/> and
 /// <see cref="ClientCertificateRevocationOptions.MaxResponseSizeBytes"/> bound the request. A fetch that yields
 /// nothing usable returns <see langword="null"/> after it logs why.
 /// </summary>
-// See ADR-1252.
+// See ADR-1252 and ADR-1315.
 internal sealed class RevocationDataFetcher(
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader,

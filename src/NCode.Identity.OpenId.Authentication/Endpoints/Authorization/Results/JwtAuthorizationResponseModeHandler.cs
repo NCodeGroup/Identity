@@ -1,21 +1,5 @@
-#region Copyright Preamble
-
-//
-//    Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -32,8 +16,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <c>authorization_signed_response_alg</c>, and encrypted when the client registers an encryption algorithm — in the
 /// single <c>response</c> parameter of the derived response mode. An error response is secured the same way. The
 /// credentials are the ones selected when the delivery was derived, before the user signed in, and travel on
-/// <see cref="AuthorizationResponseDelivery.SecuringCredentials"/>; this handler selects none. See ADR-1201.
+/// <see cref="AuthorizationResponseDelivery.SecuringCredentials"/>; this handler selects none.
 /// </summary>
+// See ADR-1201.
 internal abstract class JwtAuthorizationResponseModeHandler(
     TimeProvider timeProvider,
     IJwtEncoder jwtEncoder

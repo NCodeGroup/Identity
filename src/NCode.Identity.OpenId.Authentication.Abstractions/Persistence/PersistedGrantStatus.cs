@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2024 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
 
@@ -26,10 +11,11 @@ namespace NCode.Identity.OpenId.Authentication.Persistence;
 /// <remarks>
 /// The status is never stored. <see cref="IPersistedGrantService"/> derives it on every read from the grant's own
 /// revocation and expiry instants, so the members are the outcome set of that library-owned operation, and the set is
-/// closed under ADR-1150. A grant type that has its own lifecycle, such as a device code or a CIBA request that is
+/// closed. A grant type that has its own lifecycle, such as a device code or a CIBA request that is
 /// pending, approved, or denied, keeps that state in its payload, not here. A new member would need a new instant on
 /// the stored grant and a change to the service that derives the status.
 /// </remarks>
+// See ADR-1150.
 [PublicAPI]
 public enum PersistedGrantStatus
 {

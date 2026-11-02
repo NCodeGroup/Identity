@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Globalization;
 using System.Security.Cryptography;
@@ -30,8 +15,9 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// Provides a default implementation of <see cref="ILogoutTokenValidator"/> that first decrypts an encrypted logout
 /// token with the client's keys, then verifies its signature with the provider's signing keys, checks its claims
 /// (OpenID Connect Back-Channel Logout 1.0 §2.6) and refuses a token whose <c>jti</c> is already recorded;
-/// <see cref="TryRecordHandledAsync"/> records it (ADR-1274, ADR-1284).
+/// <see cref="TryRecordHandledAsync"/> records it.
 /// </summary>
+// See ADR-1274 and ADR-1284.
 internal class DefaultLogoutTokenValidator(
     IProviderMetadataResolver metadataResolver,
     ProviderJwtValidator providerJwtValidator,

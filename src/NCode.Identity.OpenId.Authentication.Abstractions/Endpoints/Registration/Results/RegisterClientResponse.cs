@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -76,9 +61,10 @@ public sealed record RegisterClientResponse
 
     /// <summary>
     /// Gets the identifier of the resource server the client is bound to and introspects for, or <c>null</c> for an
-    /// ordinary client. The binding comes from the initial access token the client registered with and never changes
-    /// (ADR-1192), so the server reports it and ignores the member in a request.
+    /// ordinary client. The binding comes from the initial access token the client registered with and never changes,
+    /// so the server reports it and ignores the member in a request.
     /// </summary>
+    // See ADR-1192.
     [JsonPropertyName("resource_server_id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ResourceServerId { get; init; }
@@ -304,15 +290,17 @@ public sealed record RegisterClientResponse
     public string? UserInfoEncryptedResponseEnc { get; init; }
 
     /// <summary>
-    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server (ADR-1192).
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server.
     /// </summary>
+    // See ADR-1192.
     [JsonPropertyName("introspection_signed_response_alg")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IntrospectionSignedResponseAlg { get; init; }
 
     /// <summary>
-    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server (ADR-1192).
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server.
     /// </summary>
+    // See ADR-1192.
     [JsonPropertyName("introspection_encrypted_response_alg")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IntrospectionEncryptedResponseAlg { get; init; }

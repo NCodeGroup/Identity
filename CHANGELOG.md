@@ -1318,6 +1318,30 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
+  `TryRemoveAsync(key, expectedValue, cancellationToken)`, an atomic compare-and-remove that deletes a value only while
+  it still holds the expected bytes; the in-process and Valkey adapters implement it, and the Valkey script is
+  recorded as the `value_set.try_remove` operation. `IBffSessionStore.TryAcquireRefreshLeaseAsync` returns a
+  `BffRefreshLease` that names a fresh random owner token, or `null` when the lease is held, and
+  `ReleaseRefreshLeaseAsync` takes that lease and removes it only while its owner still holds it. The winner of a
+  refresh therefore always releases its own lease as soon as it finishes, instead of only when it finished 5 seconds
+  before the lease expired, and never removes a lease another replica took after its own expired. A custom
+  `IExpiringValueSet` adapter or `IBffSessionStore` implements the new members
+  ([#422](https://github.com/NCodeGroup/Identity/issues/422),
+  [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
+
+- **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
+  `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`
+  block with a dated Apache 2.0 notice in three layouts. `.editorconfig` sets the header as `file_header_template` and
+  raises `IDE0073` to `warning`, so a file whose header is missing or differs fails the build
+  ([#448](https://github.com/NCodeGroup/Identity/issues/448),
+  [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md)).
+
+- **The `adr index` stage checks decision-record links.** `build/adr-index.ps1` also fails a tracked file that names
+  a `NNNN-<slug>.md` record in neither `docs/decisions/` nor `docs/decisions/project-template/`, or points a
+  `docs/decisions/0NNN` path at the family's folder, where records are numbered from 1000
+  ([#455](https://github.com/NCodeGroup/Identity/issues/455)).
+
 - **Breaking:** the six per-purpose outbound HTTP clients (`NCode.Identity.OpenId.SectorIdentifier`, `.ClientJwks`, `.RequestUri`, `.BackChannelLogout`, `.CibaDelivery`, `.ClientCertificateRevocation`) are one guarded client; configure its limits under `OpenId:OutboundHttp`. The back-channel logout and CIBA deliveries no longer read the response body ([#444](https://github.com/NCodeGroup/Identity/issues/444), [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
 
 - **Server settings are reconciled when a replica starts**, not at its first request; a replica that cannot materialize its server at start falls back to its first request ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
@@ -1340,6 +1364,19 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   `.github/instructions/convention-audit.instructions.md`.
 - **Dependabot waits three days before it offers a new NuGet package, action or base image**, and gives NCode Review's
   pin bump a group of its own.
+- **The process decisions follow the project template's.** Release lines are a decision of their own,
+  [ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md), which refines
+  project-template ADR-0004 and supersedes ADR-1125: no integration branch returns with a second contributor or the
+  first stable release.
+  [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
+  project-template ADR-0007 and ADR-1264: pending work stays in GitHub issues, and a Markdown file still links an issue
+  by its address, because GitHub doesn't autolink `#123` in a file. ADR-1125 and ADR-1264 no longer carry a
+  `**Conflicts with:**` line ([#439](https://github.com/NCodeGroup/Identity/issues/439)).
+- **identity-platform's template overrides have a decision record.**
+  [ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)
+  records that `NCodeGroup/identity-platform` keeps its decisions in this repository's `docs/decisions/` and its pending
+  work in this repository's issues, and that its `main` takes only squash merges: the three project-template records it
+  overrides ([#438](https://github.com/NCodeGroup/Identity/issues/438)).
 
 - **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
   are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and
@@ -4134,6 +4171,13 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body,
+  under `OpenIdClientOptions.MaxResponseSizeBytes`, into a sensitive pooled buffer that is zeroed when released,
+  instead of copying it into `HttpContent`'s buffer and then a fresh `byte[]`, because a body may carry tokens. It
+  parses JSON from that buffer with `JsonElement.Parse(ReadOnlySequence<byte>)` and decodes an `application/jwt`
+  body from it. A body larger than the limit, whatever its `Content-Length` says, fails with an
+  `OpenIdProviderException` that names the limit ([#423](https://github.com/NCodeGroup/Identity/issues/423)).
+
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release, instead of returning uncleared to the shared array pool ([#440](https://github.com/NCodeGroup/Identity/issues/440), [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
 
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
@@ -4591,6 +4635,15 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
+- **The changelog's `[Unreleased]` link names `main`.** It linked the commit history of the `dev` branch, which no
+  longer exists ([#454](https://github.com/NCodeGroup/Identity/issues/454),
+  [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md)).
+- **Doc comments no longer cite decision records.** 59 `///` lines in 49 files under `src/` named an ADR number or
+  linked into `docs/decisions/`. Those comments ship in each package's XML documentation (IntelliSense) and, for the
+  registration and management contracts, in the OpenAPI document, where the citation means nothing to a consumer.
+  The citations move to `//` comments, and the new `doc comment citations` stage of `./build/dod.ps1`
+  (`build/doc-comment-citations.ps1`) fails on any `///` line under `src/` that cites one, issue
+  [#453](https://github.com/NCodeGroup/Identity/issues/453).
 - **A token issued by token exchange is issued now.** It started its lifetime at the subject's `auth_time`, so a token
   exchanged after a long session was already expired; `auth_time` still carries the original authentication.
 - **An absolute URI means the same on every platform.** The new `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts
@@ -5368,4 +5421,4 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of Done, CSharpier
   formatting, and scoped coding-convention instruction files. See [`docs/decisions/`](docs/decisions/).
 
-[Unreleased]: https://github.com/NCodeGroup/Identity/commits/dev
+[Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

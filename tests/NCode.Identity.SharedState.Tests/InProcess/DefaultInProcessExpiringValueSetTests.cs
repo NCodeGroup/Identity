@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.SharedState.InProcess;
 using Xunit;
@@ -463,6 +448,116 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
         );
 
         Assert.Single(results, taken => taken);
+    }
+
+    #endregion
+
+    #region TryRemoveAsync Tests
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenValueMatches_RemovesItAndReturnsTrue()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1, 2 },
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1, 2 },
+            CancellationToken.None
+        );
+
+        Assert.True(removed);
+        Assert.Null(await valueSet.GetAsync("key", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenValueDiffers_ReturnsFalseAndKeepsTheValue()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1, 2 },
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1, 3 },
+            CancellationToken.None
+        );
+
+        Assert.False(removed);
+        var result = await valueSet.GetAsync("key", CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.Equal(new byte[] { 1, 2 }, result.Value.Value.ToArray());
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenAbsent_ReturnsFalse()
+    {
+        var valueSet = CreateValueSet();
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1 },
+            CancellationToken.None
+        );
+
+        Assert.False(removed);
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenExpiredAndAddedAgainWithAnotherValue_KeepsTheNewValue()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1 },
+            Start.AddSeconds(10),
+            CancellationToken.None
+        );
+        Now = Start.AddSeconds(10);
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 2 },
+            Now.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var removed = await valueSet.TryRemoveAsync(
+            "key",
+            new byte[] { 1 },
+            CancellationToken.None
+        );
+
+        Assert.False(removed);
+        var result = await valueSet.GetAsync("key", CancellationToken.None);
+        Assert.NotNull(result);
+        Assert.Equal(new byte[] { 2 }, result.Value.Value.ToArray());
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenConcurrentForSameValue_ExactlyOneSucceeds()
+    {
+        var valueSet = CreateValueSet();
+        await valueSet.TryAddAsync(
+            "key",
+            new byte[] { 1 },
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        var results = await RunConcurrentlyAsync(async () =>
+            await valueSet.TryRemoveAsync("key", new byte[] { 1 }, CancellationToken.None)
+        );
+
+        Assert.Single(results, removed => removed);
     }
 
     #endregion

@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
 using System.Net.Mail;
@@ -93,8 +78,9 @@ internal static class OpenIdSettingRules
     /// <summary>
     /// Gets the rule for a <c>response_mode</c> value: a non-empty name with no whitespace. Response modes are an open
     /// vocabulary — a package adds one by registering its handler — so the rule cannot list them; a request whose
-    /// response mode no registered handler serves is refused at the authorization endpoint (ADR-1150, ADR-1201).
+    /// response mode no registered handler serves is refused at the authorization endpoint.
     /// </summary>
+    // See ADR-1150 and ADR-1201.
     public static SettingRule<string> ResponseMode() =>
         SettingRules.Must<string>(
             "a response mode such as 'query' or 'form_post.jwt': a non-empty value with no whitespace",

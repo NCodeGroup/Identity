@@ -1,21 +1,5 @@
-#region Copyright Preamble
-
-//
-//    Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -155,8 +139,9 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     /// <summary>
     /// Creates the delivery and, for a JWT-secured response mode, selects the credentials that secure the response
     /// when the delivery is derived, so a response that cannot be signed is refused before the user signs in or a code
-    /// is issued (ADR-1201).
+    /// is issued.
     /// </summary>
+    // See ADR-1201.
     private async ValueTask<AuthorizationResponseDelivery> CreateDeliveryAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
@@ -288,8 +273,9 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     /// <summary>
     /// Determines whether the specified response mode is permitted by the <c>response_modes_supported</c> setting,
     /// which permits every mode when it is not set. It is applied to the value as written (so <c>jwt</c> must be
-    /// listed to be requested) and to the resolved mode, the default included (ADR-1201).
+    /// listed to be requested) and to the resolved mode, the default included.
     /// </summary>
+    // See ADR-1201.
     private static bool IsListed(IReadOnlySettingCollection settings, string responseMode) =>
         !settings.TryGetValue(OpenIdSettingKeys.ResponseModesSupported, out var supported)
         || supported.Contains(responseMode, StringComparer.Ordinal);

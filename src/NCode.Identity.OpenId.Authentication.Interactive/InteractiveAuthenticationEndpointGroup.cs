@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -28,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// The route group for the interactive login/consent/account surface. Like the protocol group, its prefix is the tenant
-/// route (ADR-1138, ADR-1193), so the surface is served beneath the tenant it signs in to (for example
+/// route, so the surface is served beneath the tenant it signs in to (for example
 /// <c>/{tenantId}/account/login</c> under the path strategy), and the shared
 /// <see cref="OpenIdEnvironmentEndpointFilter"/> — which materializes the request environment and opens the resolved
 /// tenant's ambient scope the credential verifier reads — resolves the same tenant the protocol endpoints do. Unlike the protocol group,
@@ -36,6 +21,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// It mirrors the protocol endpoints' registration so the surface flows through the same
 /// <c>MapEndpointGroups</c> discovery as every other endpoint instead of a bespoke mapping call.
 /// </summary>
+// See ADR-1138 and ADR-1193.
 internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
 {
     /// <summary>

@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Commands;
@@ -26,9 +11,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
 /// <summary>
 /// Contributes the OpenID Connect Session Management 1.0 <c>check_session_iframe</c> discovery metadata, but only when
 /// the tenant's <c>session_management_supported</c> setting is enabled. Session Management is available but disabled by
-/// default (it depends on third-party cookies the browser platform is removing); see
-/// <see href="../../../../../docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md">ADR-1088</see>.
+/// default (it depends on third-party cookies the browser platform is removing).
 /// </summary>
+// See ADR-1088.
 internal class DefaultDiscoverSessionManagementHandler(LinkGenerator linkGenerator)
     : ICommandHandler<DiscoverMetadataCommand>,
         ISupportMediatorPriority

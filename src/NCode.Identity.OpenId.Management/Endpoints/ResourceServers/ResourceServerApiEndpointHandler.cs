@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
@@ -900,13 +885,13 @@ internal class ResourceServerApiEndpointHandler(
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
-    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>
-    /// (ADR-1204); a resource server selects no security profile, so its document adds none (ADR-1149). A document that
+    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>;
+    /// a resource server selects no security profile, so its document adds none. A document that
     /// cannot be honored fails naming its owner.
     /// </summary>
     /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or the server's
     /// cannot be honored.</exception>
-    // See ADR-1245.
+    // See ADR-1149, ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
         string tenantId,
         PersistedResourceServer resourceServer,

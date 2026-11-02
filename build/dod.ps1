@@ -186,6 +186,14 @@ try {
         $global:LASTEXITCODE = 0
     }
 
+    # Doc-comment citation gate: a /// comment ships in the package's XML documentation and, for HTTP contracts, in
+    # the OpenAPI document, where an ADR number or a docs/decisions/ link means nothing to a consumer. Build-free, so it
+    # runs before the slow stages. Its fixture tests end with the repository's own src/.
+    Invoke-Step 'doc comment citations' {
+        & (Join-Path $PSScriptRoot 'tests\doc-comment-citations.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
+
     Invoke-Step 'restore' { dotnet restore $solution }
     # Build also PACKS: GeneratePackageOnBuild (Directory.Build.targets) emits each shippable .nupkg + .snupkg to
     # artifacts/packages as part of the build, so there is no separate pack step. -Fast builds projects in parallel

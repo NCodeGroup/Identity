@@ -1,4 +1,7 @@
-﻿using JetBrains.Annotations;
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using JetBrains.Annotations;
 
 namespace NCode.Identity.Settings;
 

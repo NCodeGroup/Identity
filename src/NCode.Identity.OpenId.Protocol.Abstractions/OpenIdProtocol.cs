@@ -1,21 +1,5 @@
-#region Copyright Preamble
-
-//
-//    Copyright @ 2023 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
 
@@ -23,9 +7,9 @@ namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Contains the <c>OAuth 2.0</c> and <c>OpenID Connect</c> wire vocabulary that is shared by the OpenID provider and
-/// the protocol client. Its constants name well-known members of open vocabularies without closing them
-/// (<see href="https://github.com/NCodeGroup/Identity/blob/main/docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md">ADR-1150</see>).
+/// the protocol client. Its constants name well-known members of open vocabularies without closing them.
 /// </summary>
+// See ADR-1150.
 [PublicAPI]
 public static partial class OpenIdProtocol
 {

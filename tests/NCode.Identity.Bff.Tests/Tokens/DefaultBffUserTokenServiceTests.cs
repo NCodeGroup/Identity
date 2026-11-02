@@ -46,6 +46,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private static readonly string LeaseKey =
         "store-key:" + BffKeyDerivation.Fingerprint("refresh-token");
 
+    private static readonly BffRefreshLease Lease = new(LeaseKey, "owner-1");
+
     private Mock<IBffSessionManager> MockManager { get; }
     private Mock<IBffSessionStore> MockStore { get; }
     private Mock<ITokenClient> MockTokenClient { get; }
@@ -340,7 +342,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             )
             .Verifiable();
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
@@ -384,7 +386,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync((BffRefreshLease?)Lease)
             .Verifiable();
         const string resource = "https://api.example";
         MockTokenClient
@@ -439,7 +441,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             )
             .Verifiable();
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
@@ -503,7 +505,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             )
             .Verifiable();
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
@@ -521,7 +523,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task GetAccessTokenAsync_RefreshSlowerThanMargin_KeepsLease()
+    public async Task GetAccessTokenAsync_RefreshOutlastsTheLease_StillReleasesItsOwnLease()
     {
         var state = CreateState("refresh-token");
         var httpContext = CreateHttpContext(state);
@@ -537,7 +539,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             )
             .Returns(() =>
             {
-                TimeProvider.UtcNow = Now.AddSeconds(36);
+                TimeProvider.UtcNow = Now.AddSeconds(41);
                 var response = new TokenResponse
                 {
                     AccessToken = "new-access",
@@ -563,6 +565,10 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 ) => ValueTask.FromResult(update(current))
             )
             .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
@@ -573,8 +579,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         Assert.True(result.IsSuccess);
         MockStore.Verify(
-            x => x.ReleaseRefreshLeaseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never
+            x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None),
+            Times.Once
         );
     }
 
@@ -666,7 +672,16 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync((BffRefreshLease?)new BffRefreshLease(changedLeaseKey, "owner-2"))
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.ReleaseRefreshLeaseAsync(
+                    new BffRefreshLease(changedLeaseKey, "owner-2"),
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockTokenClient
             .Setup(x =>
@@ -853,7 +868,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
@@ -897,7 +912,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
@@ -934,7 +949,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync(LeaseKey, CancellationToken.None))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
     }
@@ -948,7 +963,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(false)
+            .ReturnsAsync((BffRefreshLease?)null)
             .Verifiable();
 
     private DefaultBffUserTokenService CreateWaitingService()
@@ -997,7 +1012,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Setup(x =>
                 x.TryAcquireRefreshLeaseAsync(LeaseKey, Now.AddSeconds(40), CancellationToken.None)
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync((BffRefreshLease?)Lease)
             .Verifiable();
 
     #endregion

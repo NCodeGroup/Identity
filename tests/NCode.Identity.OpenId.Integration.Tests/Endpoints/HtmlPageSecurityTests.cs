@@ -313,7 +313,7 @@ public class HtmlPageSecurityTests
     }
 
     [Fact]
-    public async Task GetEndSession_WhenFrontChannelLogoutUrisAreRendered_FramesOnlyTheirOrigins()
+    public async Task ConfirmEndSession_WhenFrontChannelLogoutUrisAreRendered_FramesOnlyTheirOrigins()
     {
         using var factory = new HostApplicationFactory();
         await factory.SeedTenantSettingsAsync(
@@ -333,7 +333,7 @@ public class HtmlPageSecurityTests
         using var client = CreateClient(host);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
 
-        using var response = await GetWithSessionAsync(
+        using var response = await InteractiveLogin.ConfirmEndSessionAsync(
             client,
             "/oauth2/end_session",
             sessionCookie

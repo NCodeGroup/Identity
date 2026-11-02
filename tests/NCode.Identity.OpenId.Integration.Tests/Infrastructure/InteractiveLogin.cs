@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using System.Web;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -22,6 +23,12 @@ public static class InteractiveLogin
     private const string AntiforgeryRequestCookieName = "__Host-XSRF-TOKEN";
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
     private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
+
+    /// <summary>
+    /// The path of the interactive surface's logout confirmation page, which an end-session request that needs the
+    /// end-user's confirmation redirects to.
+    /// </summary>
+    public const string LogoutConfirmPath = "/account/logout/confirm";
 
     /// <summary>
     /// Signs <paramref name="userName"/> in and returns the value of the session cookie. The client must not handle
@@ -125,6 +132,87 @@ public static class InteractiveLogin
         request.Content = new FormUrlEncodedContent(form);
 
         return await client.SendAsync(request);
+    }
+
+    /// <summary>
+    /// Sends an end-session request that needs the end-user's confirmation and answers the confirmation page the way a
+    /// browser does: it asserts the request redirects to the logout confirmation page carrying the one-time continue
+    /// URL, then posts the answer to it. The caller disposes the response.
+    /// </summary>
+    /// <param name="client">The <see cref="HttpClient"/> of the host, with automatic redirects and cookies off.</param>
+    /// <param name="endSessionUrl">The URL of the end-session request, with its query.</param>
+    /// <param name="sessionCookie">The value of the session cookie to send.</param>
+    /// <param name="action">The <c>action</c> the form posts, <c>logout</c> to confirm or <c>cancel</c> to decline.</param>
+    /// <returns>The response of the confirmation form post.</returns>
+    public static async Task<HttpResponseMessage> AnswerEndSessionConfirmationAsync(
+        HttpClient client,
+        string endSessionUrl,
+        string sessionCookie,
+        string action
+    )
+    {
+        using var challenge = await GetWithSessionAsync(client, endSessionUrl, sessionCookie);
+        Assert.Equal(HttpStatusCode.Found, challenge.StatusCode);
+        Assert.NotNull(challenge.Headers.Location);
+
+        var location = new Uri(
+            new Uri("http://localhost"),
+            challenge.Headers.Location.OriginalString
+        );
+        Assert.Equal(LogoutConfirmPath, location.AbsolutePath);
+
+        var returnUrl = HttpUtility.ParseQueryString(location.Query)["ReturnUrl"];
+        Assert.NotNull(returnUrl);
+        Assert.NotEmpty(returnUrl);
+
+        return await PostFormAsync(
+            client,
+            location.PathAndQuery,
+            LogoutConfirmPath,
+            sessionCookie,
+            new Dictionary<string, string> { ["action"] = action, ["ReturnUrl"] = returnUrl }
+        );
+    }
+
+    /// <summary>
+    /// Sends an end-session request that needs the end-user's confirmation, confirms it on the confirmation page, and
+    /// follows the redirect to the one-time continue URL that resumes the logout. The caller disposes the response.
+    /// </summary>
+    /// <param name="client">The <see cref="HttpClient"/> of the host, with automatic redirects and cookies off.</param>
+    /// <param name="endSessionUrl">The URL of the end-session request, with its query.</param>
+    /// <param name="sessionCookie">The value of the session cookie to send.</param>
+    /// <returns>The response of the resumed logout.</returns>
+    public static async Task<HttpResponseMessage> ConfirmEndSessionAsync(
+        HttpClient client,
+        string endSessionUrl,
+        string sessionCookie
+    )
+    {
+        using var confirmation = await AnswerEndSessionConfirmationAsync(
+            client,
+            endSessionUrl,
+            sessionCookie,
+            "logout"
+        );
+        Assert.Equal(HttpStatusCode.Found, confirmation.StatusCode);
+        Assert.NotNull(confirmation.Headers.Location);
+
+        var continueUrl = new Uri(
+            new Uri("http://localhost"),
+            confirmation.Headers.Location.OriginalString
+        );
+        return await GetWithSessionAsync(client, continueUrl.PathAndQuery, sessionCookie);
+    }
+
+    private static Task<HttpResponseMessage> GetWithSessionAsync(
+        HttpClient client,
+        string url,
+        string sessionCookie
+    )
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("Cookie", $"{SessionCookieName}={sessionCookie}");
+        return client.SendAsync(request);
     }
 
     private static string? ReadSetCookieValue(HttpResponseMessage response, string name)

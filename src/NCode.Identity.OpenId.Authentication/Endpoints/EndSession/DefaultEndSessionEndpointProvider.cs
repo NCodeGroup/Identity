@@ -1,14 +1,13 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text;
-using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Registration.AspNetCore;
 
@@ -19,16 +18,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 /// RP-Initiated Logout <c>end_session_endpoint</c>
 /// (<see href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html">RP-Initiated Logout 1.0</see>). The
 /// endpoint is a thin HTTP shell that dispatches the <see cref="EndSessionCommand"/> and either redirects to the
-/// validated <c>post_logout_redirect_uri</c> or renders a logged-out confirmation.
+/// validated <c>post_logout_redirect_uri</c> or renders a logged-out confirmation. A logout that requires the
+/// end-user's confirmation is parked through <see cref="ParkEndSessionRequestCommand"/> and the end-user is asked
+/// through <see cref="EndSessionConfirmationChallengeCommand"/> instead.
 /// </summary>
 internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 {
-    private const string RedirectScript =
-        "window.addEventListener('load',function(){setTimeout(function(){window.location.href=document.getElementById('pl').getAttribute('data-url');},2000);});";
-
-    private static string RedirectScriptSource { get; } =
-        ContentSecurityPolicySources.Sha256(RedirectScript);
-
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
         endpoints
@@ -51,12 +46,13 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
     /// <remarks>
     /// Logs the end-user out of the OpenID Provider: it clears the OP login, revokes the session and the subject's
     /// grants, notifies participating relying parties via back-channel logout, and redirects to the validated
-    /// <c>post_logout_redirect_uri</c> when one is supplied.
+    /// <c>post_logout_redirect_uri</c> when one is supplied. When an OP login is present and the request carries no valid
+    /// <c>id_token_hint</c> for its session, it first parks the request and asks the end-user to confirm the logout.
     /// </remarks>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The end-user has been logged out (no valid post-logout redirect was supplied).</response>
-    /// <response code="302">The end-user has been logged out and is redirected to the validated post-logout URI.</response>
+    /// <response code="302">The end-user has been logged out and is redirected to the validated post-logout URI, or is redirected to the page that asks them to confirm the logout.</response>
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -70,105 +66,39 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             cancellationToken
         );
 
-        var disposition = await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
-            new EndSessionCommand(openIdContext, request),
+        var subject = await mediator.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
+            new ResolveEndSessionSubjectCommand(openIdContext, request),
             cancellationToken
         );
 
-        // When front-channel logout URIs are present, the OP must render a page that loads each one in a hidden iframe
-        // so the participating clients clear their own sessions before the user agent leaves the OP.
-        if (disposition.FrontChannelLogoutUris.Count > 0)
+        // A logout that no valid id_token_hint vouches for is parked and confirmed by the end-user first
+        // (RP-Initiated Logout 1.0 section 2). A challenge handler that leaves it unhandled opts out of the question.
+        // See ADR-1380.
+        if (subject.RequiresConfirmation)
         {
-            var html = BuildFrontChannelLogoutHtml(
-                disposition.FrontChannelLogoutUris,
-                disposition.RedirectUri
+            var continueUrl = await mediator.SendAsync<ParkEndSessionRequestCommand, string>(
+                new ParkEndSessionRequestCommand(openIdContext, request, subject),
+                cancellationToken
             );
-            httpContext.Response.SetHtmlPageSecurity(
-                CreateFrontChannelLogoutPolicy(
-                    disposition.FrontChannelLogoutUris,
-                    disposition.RedirectUri
-                )
+
+            var challenge = await mediator.SendAsync<
+                EndSessionConfirmationChallengeCommand,
+                ReadOnlyEndpointDisposition
+            >(
+                new EndSessionConfirmationChallengeCommand(openIdContext, request, continueUrl),
+                cancellationToken
             );
-            return TypedResults.Content(html, "text/html; charset=utf-8", SecureEncoding.UTF8);
+            if (challenge.WasHandled)
+            {
+                return challenge.HasHttpResult ? challenge.HttpResult : EmptyHttpResult.Instance;
+            }
         }
 
-        if (!string.IsNullOrEmpty(disposition.RedirectUri))
-        {
-            // See ADR-1203.
-            return TypedResults.Redirect(RedirectLocation.Escape(disposition.RedirectUri));
-        }
-
-        return TypedResults.Content("You have been logged out.", "text/plain", SecureEncoding.UTF8);
-    }
-
-    // Builds the Front-Channel Logout 1.0 page: a hidden iframe per participating client, then a scripted redirect to
-    // the validated post-logout URI (or a plain confirmation when none was supplied). All URIs are registered client
-    // values but are HTML-encoded defensively before they are embedded in the markup. The page hides its elements with
-    // the hidden attribute rather than a style attribute, so its Content-Security-Policy needs no style source.
-    private static string BuildFrontChannelLogoutHtml(
-        IReadOnlyList<string> frontChannelLogoutUris,
-        string? redirectUri
-    )
-    {
-        var encoder = HtmlEncoder.Default;
-        var builder = new StringBuilder();
-        builder.Append(
-            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Logout</title></head><body>"
+        var disposition = await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
+            new EndSessionCommand(openIdContext, request, subject),
+            cancellationToken
         );
 
-        foreach (var uri in frontChannelLogoutUris)
-        {
-            builder
-                .Append("<iframe hidden src=\"")
-                .Append(encoder.Encode(uri))
-                .Append("\"></iframe>");
-        }
-
-        if (!string.IsNullOrEmpty(redirectUri))
-        {
-            // Redirect only after the iframes have had a chance to load; the target is read from a DOM attribute so
-            // the validated URI is never interpolated into an inline script literal.
-            builder
-                .Append("<a id=\"pl\" data-url=\"")
-                .Append(encoder.Encode(redirectUri))
-                .Append("\" hidden></a>")
-                .Append("<script>" + RedirectScript + "</script>");
-        }
-        else
-        {
-            builder.Append("<p>You have been logged out.</p>");
-        }
-
-        builder.Append("</body></html>");
-        return builder.ToString();
-    }
-
-    // The page may frame only the origins of the logout URIs it renders, and may run only its own redirect script. The
-    // page lists no form-action directive and posts no form, so the strict default applies. See ADR-1256.
-    private static HtmlPageSecurityPolicy CreateFrontChannelLogoutPolicy(
-        IReadOnlyList<string> frontChannelLogoutUris,
-        string? redirectUri
-    )
-    {
-        var frameSources = frontChannelLogoutUris
-            .Select(uri =>
-                AbsoluteUri.TryParse(uri, out var parsed)
-                    ? ContentSecurityPolicySources.Origin(parsed)
-                    : null
-            )
-            .OfType<string>()
-            .Distinct(StringComparer.Ordinal);
-
-        List<ContentSecurityPolicyDirective> directives =
-        [
-            new(ContentSecurityPolicyDirectives.FrameSrc, frameSources),
-        ];
-
-        if (!string.IsNullOrEmpty(redirectUri))
-        {
-            directives.Add(new(ContentSecurityPolicyDirectives.ScriptSrc, RedirectScriptSource));
-        }
-
-        return new HtmlPageSecurityPolicy { Directives = [.. directives] };
+        return EndSessionHttpResults.Create(httpContext, disposition);
     }
 }

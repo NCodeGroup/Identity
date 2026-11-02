@@ -16,8 +16,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="EndSessionCommand"/> handler that orchestrates OpenID Connect
-/// RP-Initiated Logout: it resolves the subject/session (<see cref="ResolveEndSessionSubjectCommand"/>), clears the OP
-/// login, terminates the session the logout names through <see cref="ISessionService"/> so the logout side effects
+/// RP-Initiated Logout for the <see cref="EndSessionSubject"/> already resolved for the request
+/// (<see cref="ResolveEndSessionSubjectCommand"/>): when the subject names a login it clears the OP login, then
+/// terminates the session the logout names through <see cref="ISessionService"/> so the logout side effects
 /// (revocation, back-channel notification, and any application extensions) run once however many paths end the session
 /// at the same time, or, when the logout names no session, dispatches
 /// <see cref="NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand"/> for the subject, and
@@ -51,21 +52,25 @@ internal class DefaultEndSessionHandler(
     {
         var openIdContext = command.OpenIdContext;
         var request = command.Request;
+        var subject = command.Subject;
         var mediator = openIdContext.Mediator;
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
+        var httpContext = openIdContext.Http;
 
-        var subject = await mediator.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
-            new ResolveEndSessionSubjectCommand(openIdContext, request),
-            cancellationToken
-        );
-
-        // Clear the OP login cookie.
-        await openIdContext.Http.SignOutAsync();
-
-        // Removing the OP browser-state cookie lets session-management relying parties observe the login-state change.
-        if (settings.GetValue(OpenIdSettingKeys.SessionManagementSupported))
+        // A logout that names no login cannot clear the cookie a cross-site request did not carry, so it leaves the
+        // login and the browser state alone.
+        // See ADR-1380.
+        if (subject.SubjectId is { Length: > 0 } || subject.SessionId is { Length: > 0 })
         {
-            SessionStateService.ClearBrowserState(openIdContext);
+            // Clear the OP login cookie.
+            await httpContext.SignOutAsync();
+
+            // Removing the OP browser-state cookie lets session-management relying parties observe the login-state
+            // change.
+            if (settings.GetValue(OpenIdSettingKeys.SessionManagementSupported))
+            {
+                SessionStateService.ClearBrowserState(openIdContext);
+            }
         }
 
         // A logout that names a session terminates it through the session service, whose claim terminates a session

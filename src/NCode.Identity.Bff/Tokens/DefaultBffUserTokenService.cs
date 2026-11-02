@@ -310,7 +310,22 @@ internal class DefaultBffUserTokenService(
         finally
         {
             // releases only this hold: a lease another replica took after this one expired has another owner and stays
+            await ReleaseLeaseAsync(lease);
+        }
+    }
+
+    // A lease that is not released expires on its own, so a store that cannot be reached never changes the refresh's
+    // result or hides its failure.
+    // See ADR-1308.
+    private async ValueTask ReleaseLeaseAsync(BffRefreshLease lease)
+    {
+        try
+        {
             await _sessionStore.ReleaseRefreshLeaseAsync(lease, CancellationToken.None);
+        }
+        catch (BffStoreUnavailableException exception)
+        {
+            _logger.RefreshLeaseReleaseFailed(exception);
         }
     }
 

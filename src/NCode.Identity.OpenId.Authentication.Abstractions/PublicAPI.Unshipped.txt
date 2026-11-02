@@ -1843,6 +1843,9 @@ NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtension
 NCode.Identity.OpenId.Authentication.Endpoints.NoStoreEndpointConventionBuilderExtensions
 NCode.Identity.OpenId.Authentication.Endpoints.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
 NCode.Identity.OpenId.Authentication.Endpoints.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithNoStore() -> TBuilder
+NCode.Identity.OpenId.Authentication.Endpoints.FormRequestExtensions
+NCode.Identity.OpenId.Authentication.Endpoints.FormRequestExtensions.extension(Microsoft.AspNetCore.Http.HttpRequest!)
+NCode.Identity.OpenId.Authentication.Endpoints.FormRequestExtensions.extension(Microsoft.AspNetCore.Http.HttpRequest!).TryReadFormAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IFormCollection?>
 NCode.Identity.OpenId.Authentication.Endpoints.NoStoreResponseExtensions
 NCode.Identity.OpenId.Authentication.Endpoints.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
 NCode.Identity.OpenId.Authentication.Endpoints.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetNoStore() -> void

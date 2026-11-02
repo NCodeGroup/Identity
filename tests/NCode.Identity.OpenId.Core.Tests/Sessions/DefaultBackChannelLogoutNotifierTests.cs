@@ -110,7 +110,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         return mockClient;
     }
 
-    private void SetupClientId(Mock<OpenIdClient> mockClient) =>
+    private static void SetupClientId(Mock<OpenIdClient> mockClient) =>
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
 
     private JoseSigningCredentials CreateSigningCredentials() =>

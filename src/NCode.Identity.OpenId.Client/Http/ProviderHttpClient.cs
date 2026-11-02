@@ -21,11 +21,14 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Client.Options;
+using NCode.Json;
+using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Client.Http;
 
 /// <summary>
-/// Sends requests to an OpenID provider with a timeout and a response size cap.
+/// Sends requests to an OpenID provider with a timeout and a response size cap. It streams each response body into
+/// pooled memory that is zeroed when released, because a body may carry tokens.
 /// </summary>
 internal class ProviderHttpClient(
     IHttpClientFactory httpClientFactory,
@@ -65,8 +68,14 @@ internal class ProviderHttpClient(
                 token
             );
 
-            await response.Content.LoadIntoBufferAsync(Options.MaxResponseSizeBytes, token);
-            var bytes = await response.Content.ReadAsByteArrayAsync(token);
+            using var body = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
+            var withinLimit = await TryReadBodyAsync(response.Content, body, token);
+            if (!withinLimit)
+                throw new OpenIdProviderException(
+                    $"The response from '{request.RequestUri}' is larger than {Options.MaxResponseSizeBytes} bytes."
+                );
+
+            var content = body.AsReadOnlySequence;
 
             var dpopNonce = response.Headers.TryGetValues(
                 OpenIdProtocol.DPoP.NonceHeaderName,
@@ -81,7 +90,7 @@ internal class ProviderHttpClient(
                     : null;
             var mediaType = response.Content.Headers.ContentType?.MediaType;
 
-            if (bytes.Length == 0)
+            if (content.IsEmpty)
                 return new ProviderHttpResponse((int)response.StatusCode, null)
                 {
                     DPoPNonce = dpopNonce,
@@ -101,7 +110,7 @@ internal class ProviderHttpClient(
                     DPoPNonce = dpopNonce,
                     MediaType = mediaType,
                     WwwAuthenticate = wwwAuthenticate,
-                    Jwt = SecureEncoding.UTF8.GetString(bytes).Trim(),
+                    Jwt = SecureEncoding.UTF8.GetString(content).Trim(),
                 };
 
             if (
@@ -123,7 +132,7 @@ internal class ProviderHttpClient(
                     WwwAuthenticate = wwwAuthenticate,
                 };
 
-            var jsonElement = JsonElement.Parse(bytes);
+            var jsonElement = JsonElement.Parse(content);
             return new ProviderHttpResponse((int)response.StatusCode, jsonElement)
             {
                 DPoPNonce = dpopNonce,
@@ -142,7 +151,7 @@ internal class ProviderHttpClient(
         catch (HttpRequestException exception)
         {
             throw new OpenIdProviderException(
-                $"The OpenID provider at '{request.RequestUri}' could not be reached or returned a response that is too large.",
+                $"The OpenID provider at '{request.RequestUri}' could not be reached.",
                 exception
             );
         }
@@ -159,6 +168,34 @@ internal class ProviderHttpClient(
                 $"The response from '{request.RequestUri}' is not valid UTF-8.",
                 exception
             );
+        }
+    }
+
+    private async ValueTask<bool> TryReadBodyAsync(
+        HttpContent content,
+        Sequence<byte> destination,
+        CancellationToken cancellationToken
+    )
+    {
+        if (content.Headers.ContentLength > Options.MaxResponseSizeBytes)
+            return false;
+
+        await using var stream = await content.ReadAsStreamAsync(cancellationToken);
+
+        var total = 0;
+        while (true)
+        {
+            var memory = destination.GetMemory(sizeHint: 0);
+            var read = await stream.ReadAsync(memory, cancellationToken);
+            if (read == 0)
+                return true;
+
+            // Enforce the cap before committing the chunk, so overflow bytes are never exposed to the caller.
+            if (total + read > Options.MaxResponseSizeBytes)
+                return false;
+
+            total += read;
+            destination.Advance(read);
         }
     }
 }

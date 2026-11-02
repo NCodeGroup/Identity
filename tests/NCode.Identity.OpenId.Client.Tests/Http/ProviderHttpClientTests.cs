@@ -128,14 +128,59 @@ public class ProviderHttpClientTests : BaseTests
     }
 
     [Fact]
-    public async Task SendAsync_WithBodyOverCap_Throws()
+    public async Task SendAsync_WithContentLengthOverCap_ThrowsWithTheLimit()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, new string('a', 2048));
         var client = CreateClient(handler, new OpenIdClientOptions { MaxResponseSizeBytes = 1024 });
 
-        await Assert.ThrowsAsync<OpenIdProviderException>(() =>
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(() =>
             client.SendAsync(CreateRequest(), CancellationToken.None).AsTask()
         );
+
+        Assert.Contains("larger than 1024 bytes", exception.Message);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithBodyOverCapAndShortContentLength_ThrowsWithTheLimit()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) =>
+            {
+                var content = new StringContent(
+                    new string('a', 2048),
+                    SecureEncoding.UTF8,
+                    "application/json"
+                );
+                content.Headers.ContentLength = 10;
+                return Task.FromResult(
+                    new HttpResponseMessage(HttpStatusCode.OK) { Content = content }
+                );
+            }
+        );
+        var client = CreateClient(handler, new OpenIdClientOptions { MaxResponseSizeBytes = 1024 });
+
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(() =>
+            client.SendAsync(CreateRequest(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Contains("larger than 1024 bytes", exception.Message);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithJsonLargerThanOneBufferSegment_ParsesJson()
+    {
+        var padding = new string('a', 100_000);
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.OK,
+            $$"""{"issuer":"x","padding":"{{padding}}"}"""
+        );
+        var client = CreateClient(handler);
+
+        var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.NotNull(response.Json);
+        Assert.Equal("x", response.Json.Value.GetProperty("issuer").GetString());
+        Assert.Equal(100_000, response.Json.Value.GetProperty("padding").GetString()?.Length);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Buffers;
 using NCode.Identity.SharedState;
 
 namespace NCode.Identity.Bff.Sessions;
@@ -231,7 +232,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> TryAcquireRefreshLeaseAsync(
+    public async ValueTask<BffRefreshLease?> TryAcquireRefreshLeaseAsync(
         string leaseKey,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
@@ -240,8 +241,10 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var key = BffStoreKeys.Lease(leaseKey);
-            var marker = "1"u8.ToArray();
-            return await values.TryAddAsync(key, marker, expiresWhen, cancellationToken);
+            var owner = BffKeyDerivation.CreateSecret();
+            using var lease = RentOwnerBytes(owner, out var value);
+            var added = await values.TryAddAsync(key, value, expiresWhen, cancellationToken);
+            return added ? new BffRefreshLease(leaseKey, owner) : null;
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {
@@ -269,19 +272,35 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
     /// <inheritdoc />
     public async ValueTask ReleaseRefreshLeaseAsync(
-        string leaseKey,
+        BffRefreshLease lease,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            var key = BffStoreKeys.Lease(leaseKey);
-            await values.RemoveAsync(key, cancellationToken);
+            var key = BffStoreKeys.Lease(lease.LeaseKey);
+            using var ownerLease = RentOwnerBytes(lease.Owner, out var owner);
+            await values.TryRemoveAsync(key, owner, cancellationToken);
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {
             throw Unavailable(exception);
         }
+    }
+
+    /// <summary>
+    /// Encodes a refresh lease's owner token as UTF-8 into sensitive pooled memory that is zeroed when the returned
+    /// lease is disposed. The bytes live in <see cref="Memory{T}"/> because they cross an <c>await</c>.
+    /// </summary>
+    /// <param name="owner">The owner token to encode.</param>
+    /// <param name="bytes">The owner token's UTF-8 bytes.</param>
+    /// <returns>The lease that returns the memory to the pool.</returns>
+    private static IDisposable RentOwnerBytes(string owner, out Memory<byte> bytes)
+    {
+        var byteCount = SecureEncoding.UTF8.GetByteCount(owner);
+        var lease = BufferFactory.Rent(byteCount, isSensitive: true, out bytes);
+        SecureEncoding.UTF8.GetBytes(owner, bytes.Span);
+        return lease;
     }
 
     private static DateTimeOffset GetExpiresWhen(BffSessionMetadata metadata) =>

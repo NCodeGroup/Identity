@@ -1314,6 +1314,18 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
+  `TryRemoveAsync(key, expectedValue, cancellationToken)`, an atomic compare-and-remove that deletes a value only while
+  it still holds the expected bytes; the in-process and Valkey adapters implement it, and the Valkey script is
+  recorded as the `value_set.try_remove` operation. `IBffSessionStore.TryAcquireRefreshLeaseAsync` returns a
+  `BffRefreshLease` that names a fresh random owner token, or `null` when the lease is held, and
+  `ReleaseRefreshLeaseAsync` takes that lease and removes it only while its owner still holds it. The winner of a
+  refresh therefore always releases its own lease as soon as it finishes, instead of only when it finished 5 seconds
+  before the lease expired, and never removes a lease another replica took after its own expired. A custom
+  `IExpiringValueSet` adapter or `IBffSessionStore` implements the new members
+  ([#422](https://github.com/NCodeGroup/Identity/issues/422),
+  [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
+
 - **The C# conventions and the refining decision records keep only NCode.Identity's own content.**
   `.github/instructions/csharp-production.instructions.md` and `csharp-testing.instructions.md` no longer restate the
   rules of the project template's `csharp.instructions.md` and `csharp-tests.instructions.md`: each such bullet keeps
@@ -4156,6 +4168,13 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   (supersedes ADR-1177).
 
 ### Security
+
+- **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body,
+  under `OpenIdClientOptions.MaxResponseSizeBytes`, into a sensitive pooled buffer that is zeroed when released,
+  instead of copying it into `HttpContent`'s buffer and then a fresh `byte[]`, because a body may carry tokens. It
+  parses JSON from that buffer with `JsonElement.Parse(ReadOnlySequence<byte>)` and decodes an `application/jwt`
+  body from it. A body larger than the limit, whatever its `Content-Length` says, fails with an
+  `OpenIdProviderException` that names the limit ([#423](https://github.com/NCodeGroup/Identity/issues/423)).
 
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use

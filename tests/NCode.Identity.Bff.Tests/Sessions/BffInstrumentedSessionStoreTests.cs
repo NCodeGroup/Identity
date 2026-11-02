@@ -108,12 +108,13 @@ public sealed class BffInstrumentedSessionStoreTests : BaseTests
     [Fact]
     public async Task ReleaseRefreshLeaseAsync_WhenTheStoreCompletes_RecordsTheOperation()
     {
+        var lease = new BffRefreshLease("lease-key", "owner-1");
         MockStore
-            .Setup(x => x.ReleaseRefreshLeaseAsync("lease-key", It.IsAny<CancellationToken>()))
+            .Setup(x => x.ReleaseRefreshLeaseAsync(lease, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Store.ReleaseRefreshLeaseAsync("lease-key", CancellationToken.None);
+        await Store.ReleaseRefreshLeaseAsync(lease, CancellationToken.None);
 
         AssertOperationRecorded(BffMetrics.ReleaseRefreshLeaseOperation, errorType: null);
     }

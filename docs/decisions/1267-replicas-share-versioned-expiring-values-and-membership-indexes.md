@@ -1,6 +1,8 @@
 # 1267. Replicas share versioned expiring values and membership indexes
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1308](1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md): the value port gains
+  `TryRemoveAsync`, an atomic compare-and-remove by value)
 - **Date:** 2026-10-26
 - **Deciders:** NCode Group
 

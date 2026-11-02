@@ -54,8 +54,6 @@ internal sealed class DefaultClientKeyResolver(
     ISecretKeyCollectionFactory secretKeyCollectionFactory
 ) : IClientKeyResolver
 {
-    internal const string HttpClientName = "NCode.Identity.OpenId.ClientJwks";
-
     private ILogger<DefaultClientKeyResolver> Logger { get; } = logger;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
@@ -175,7 +173,7 @@ internal sealed class DefaultClientKeyResolver(
 
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
+            using var httpClient = HttpClientFactory.CreateClient(GuardedHttpClient.Name);
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
 
             using var response = await httpClient.SendAsync(

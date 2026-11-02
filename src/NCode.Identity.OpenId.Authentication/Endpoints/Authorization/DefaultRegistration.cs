@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Serialization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
-using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Serialization;
@@ -56,22 +55,6 @@ internal static class DefaultRegistration
             builder.AddMessageFactory<AuthorizationTicket>();
 
             var serviceCollection = builder.ServiceCollection;
-
-            // The JAR request_uri fetch (RFC 9101) targets a client-supplied URL, so it uses a dedicated HTTP client
-            // whose connections are pinned away from private/loopback/link-local addresses (SSRF floor) and which never
-            // follows redirects, so a redirect cannot bounce the fetch to an internal host.
-            serviceCollection
-                .AddHttpClient(DefaultLoadAuthorizationRequestHandler.HttpClientName)
-                .ConfigurePrimaryHttpMessageHandler(
-                    serviceProvider => new System.Net.Http.SocketsHttpHandler
-                    {
-                        AllowAutoRedirect = false,
-                        ConnectCallback = serviceProvider
-                            .GetRequiredService<IOutboundHttpForgeryGuard>()
-                            .ConnectAsync,
-                        AutomaticDecompression = System.Net.DecompressionMethods.All,
-                    }
-                );
 
             // Request processing
             serviceCollection.TryAddSingleton<

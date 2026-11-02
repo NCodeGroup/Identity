@@ -93,7 +93,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
 
     private void SetupHttpResponse(HttpResponseMessage response) =>
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(DefaultSectorIdentifierValidator.HttpClientName))
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
             .Returns(new HttpClient(new StubHttpMessageHandler(response)));
 
     private static HttpResponseMessage JsonResponse(string json)

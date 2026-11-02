@@ -42,8 +42,6 @@ internal class DefaultSectorIdentifierValidator(
     IOutboundHttpContentReader outboundHttpContentReader
 ) : ISectorIdentifierValidator
 {
-    internal const string HttpClientName = "NCode.Identity.OpenId.SectorIdentifier";
-
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
@@ -100,7 +98,7 @@ internal class DefaultSectorIdentifierValidator(
         using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
         try
         {
-            using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
+            using var httpClient = HttpClientFactory.CreateClient(GuardedHttpClient.Name);
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
 
             using var response = await httpClient.SendAsync(

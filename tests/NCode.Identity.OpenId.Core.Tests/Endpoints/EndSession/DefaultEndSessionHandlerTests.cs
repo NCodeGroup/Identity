@@ -28,6 +28,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     private const string SessionId = "sid-1";
     private const string ClientId = "client-1";
     private const string RedirectUri = "https://rp.example/after-logout";
+    private const string LoginScheme = "op-login";
 
     private Mock<IOpenIdClientResolver> MockClientResolver { get; }
     private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
@@ -144,7 +145,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
                 .Setup(x =>
                     x.SignOutAsync(
                         It.IsAny<HttpContext>(),
-                        It.IsAny<string?>(),
+                        subject.LoginScheme,
                         It.IsAny<AuthenticationProperties?>()
                     )
                 )
@@ -188,7 +189,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     }
 
     private static EndSessionSubject CreateSubject(string? clientId) =>
-        new(SubjectId, SessionId, clientId, [ClientId], RequiresConfirmation: false);
+        new(SubjectId, SessionId, clientId, [ClientId], RequiresConfirmation: false, LoginScheme);
 
     private List<int> LogEventIds =>
         Logger.Collector.GetSnapshot().Select(record => record.Id.Id).ToList();
@@ -201,7 +202,14 @@ public class DefaultEndSessionHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheLogoutNamesNoSession_DispatchesTheTerminationForTheSubject()
     {
         var scaffold = CreateScaffold(
-            new EndSessionSubject(SubjectId, null, ClientId, [], RequiresConfirmation: false),
+            new EndSessionSubject(
+                SubjectId,
+                null,
+                ClientId,
+                [],
+                RequiresConfirmation: false,
+                LoginScheme
+            ),
             postLogoutRedirectUri: null,
             state: null
         );
@@ -215,7 +223,14 @@ public class DefaultEndSessionHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheLogoutNamesNoSubjectOrSession_LeavesTheLoginCookie()
     {
         var scaffold = CreateScaffold(
-            new EndSessionSubject(null, null, ClientId, [], RequiresConfirmation: false),
+            new EndSessionSubject(
+                null,
+                null,
+                ClientId,
+                [],
+                RequiresConfirmation: false,
+                LoginScheme
+            ),
             postLogoutRedirectUri: null,
             state: null
         );

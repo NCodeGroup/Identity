@@ -46,11 +46,18 @@ internal class DefaultKeyWrapperCatalog(
     {
         var name = ProtectionOptions.Value.RootKeyProvider;
 
+        // Worded like the host's start-up check of the same key, but naming the providers actually registered, which
+        // that check cannot resolve.
         if (string.IsNullOrWhiteSpace(name))
+        {
+            var actual = name is null ? "it is not set" : $"it is blank ('{name}')";
+
             throw new InvalidOperationException(
-                "No root key provider is selected. Set 'SecretProtection:RootKeyProvider' to the name of a registered provider: "
+                $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.RootKeyProvider)} is "
+                    + $"required, but {actual}. Name one of the registered root key providers: "
                     + $"{FormatNames(ProvidersByName.Keys)}."
             );
+        }
 
         return Get(name);
     }

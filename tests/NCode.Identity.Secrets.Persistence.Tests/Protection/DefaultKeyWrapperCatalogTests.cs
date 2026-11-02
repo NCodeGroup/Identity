@@ -96,7 +96,10 @@ public class DefaultKeyWrapperCatalogTests : IDisposable
 
         var exception = Assert.Throws<InvalidOperationException>(() => catalog.GetConfigured());
 
-        Assert.Contains("SecretProtection:RootKeyProvider", exception.Message);
+        Assert.Contains(
+            "SecretProtection:RootKeyProvider is required, but it is not set.",
+            exception.Message
+        );
         Assert.Contains($"'{KeyWrapperNames.Local}'", exception.Message);
     }
 
@@ -114,7 +117,10 @@ public class DefaultKeyWrapperCatalogTests : IDisposable
 
         var exception = Assert.Throws<InvalidOperationException>(() => catalog.GetConfigured());
 
-        Assert.Contains("SecretProtection:RootKeyProvider", exception.Message);
+        Assert.Contains(
+            $"SecretProtection:RootKeyProvider is required, but it is blank ('{rootKeyProvider}').",
+            exception.Message
+        );
         Assert.Contains($"'{KeyWrapperNames.Local}'", exception.Message);
     }
 

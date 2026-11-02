@@ -244,16 +244,17 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
+        var batches = 0;
         MockTenantUsageStore
-            .SetupSequence(x =>
+            .Setup(x =>
                 x.RemoveBeforeAsync(
                     Today.AddDays(-10),
                     TenantUsagePruneService.BatchSize,
                     cancellationToken
                 )
             )
-            .ReturnsAsync(TenantUsagePruneService.BatchSize)
-            .ReturnsAsync(5);
+            .ReturnsAsync(() => ++batches == 1 ? TenantUsagePruneService.BatchSize : 5)
+            .Verifiable(Times.Exactly(2));
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(cancellationToken))
             .Returns(ValueTask.CompletedTask)

@@ -64,6 +64,21 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
+    private void SetupSaveChangesFailingOnce(
+        Exception exception,
+        Times times,
+        CancellationToken cancellationToken
+    )
+    {
+        var saves = 0;
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(() =>
+                ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask
+            )
+            .Verifiable(times);
+    }
+
     private static IReadOnlyCollection<PersistedTenantUsage> IsUsage(
         string tenantId,
         string meter,
@@ -130,10 +145,11 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        SetupSaveChangesFailingOnce(
+            new InvalidOperationException("conflict"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.FlushAsync(cancellationToken);
         await Service.FlushAsync(cancellationToken);
@@ -240,11 +256,11 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(3));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("conflict"))
-            .Returns(ValueTask.CompletedTask)
-            .Returns(ValueTask.CompletedTask);
+        SetupSaveChangesFailingOnce(
+            new InvalidOperationException("conflict"),
+            Times.Exactly(3),
+            cancellationToken
+        );
 
         await Service.FlushAsync(cancellationToken);
         await Service.FlushAsync(cancellationToken);

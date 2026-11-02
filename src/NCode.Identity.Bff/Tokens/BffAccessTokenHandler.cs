@@ -13,12 +13,20 @@ namespace NCode.Identity.Bff.Tokens;
 /// <summary>
 /// Attaches the access token of the current session, and its DPoP proof when the token is DPoP-bound, to outbound requests.
 /// </summary>
+/// <param name="accessor">The accessor of the current request.</param>
+/// <param name="tokens">The accessor of the BFF's tokens.</param>
+/// <param name="proofs">The factory of DPoP proofs.</param>
+/// <param name="registrations">The provider of the BFF's client registration.</param>
+/// <param name="tokenRequest">
+/// The token request to resolve when a request carries no <see cref="ResolvedTokenKey"/>, or <see langword="null"/> to
+/// send such a request unchanged, as a YARP cluster does for a route that is not a BFF remote API.
+/// </param>
 internal class BffAccessTokenHandler(
     IHttpContextAccessor accessor,
     IBffTokenAccessor tokens,
     IDPoPProofFactory proofs,
     BffClientRegistrationProvider registrations,
-    BffTokenRequest tokenRequest
+    BffTokenRequest? tokenRequest
 ) : DelegatingHandler
 {
     /// <summary>
@@ -34,9 +42,14 @@ internal class BffAccessTokenHandler(
         CancellationToken cancellationToken
     )
     {
-        var result = request.Options.TryGetValue(ResolvedTokenKey, out var resolved)
-            ? resolved
-            : await ResolveTokenAsync(cancellationToken);
+        BffTokenResult result;
+        if (request.Options.TryGetValue(ResolvedTokenKey, out var resolved))
+            result = resolved;
+        else if (tokenRequest is not null)
+            result = await ResolveTokenAsync(tokenRequest, cancellationToken);
+        else
+            return await base.SendAsync(request, cancellationToken);
+
         if (!result.IsSuccess)
             throw new BffTokenUnavailableException(result.StatusCode, result.Reason);
 
@@ -108,7 +121,10 @@ internal class BffAccessTokenHandler(
         return await SendRecordingNonceAsync(request, cancellationToken);
     }
 
-    private async ValueTask<BffTokenResult> ResolveTokenAsync(CancellationToken cancellationToken)
+    private async ValueTask<BffTokenResult> ResolveTokenAsync(
+        BffTokenRequest request,
+        CancellationToken cancellationToken
+    )
     {
         var httpContext =
             accessor.HttpContext
@@ -116,7 +132,7 @@ internal class BffAccessTokenHandler(
                 "The BFF access token handler requires a current HttpContext."
             );
 
-        return await tokens.GetAccessTokenAsync(httpContext, tokenRequest, cancellationToken);
+        return await tokens.GetAccessTokenAsync(httpContext, request, cancellationToken);
     }
 
     private async Task<HttpResponseMessage> SendRecordingNonceAsync(

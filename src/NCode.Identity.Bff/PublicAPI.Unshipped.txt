@@ -130,6 +130,16 @@ NCode.Identity.Bff.Options.BffTokenOptions.RefreshBeforeExpiry.get -> System.Tim
 NCode.Identity.Bff.Options.BffTokenOptions.RefreshBeforeExpiry.set -> void
 NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.get -> System.TimeSpan
 NCode.Identity.Bff.Options.BffTokenOptions.RefreshLeaseDuration.set -> void
+NCode.Identity.Bff.RemoteApis.BffReverseProxyBuilderExtensions
+NCode.Identity.Bff.RemoteApis.BffReverseProxyBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IReverseProxyBuilder!)
+NCode.Identity.Bff.RemoteApis.BffReverseProxyBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IReverseProxyBuilder!).AddBffTransforms() -> Microsoft.Extensions.DependencyInjection.IReverseProxyBuilder!
+NCode.Identity.Bff.RemoteApis.BffReverseProxyConventionBuilderExtensions
+NCode.Identity.Bff.RemoteApis.BffReverseProxyConventionBuilderExtensions.extension(Microsoft.AspNetCore.Builder.ReverseProxyConventionBuilder!)
+NCode.Identity.Bff.RemoteApis.BffReverseProxyConventionBuilderExtensions.extension(Microsoft.AspNetCore.Builder.ReverseProxyConventionBuilder!).AsBffRemoteApis() -> Microsoft.AspNetCore.Builder.ReverseProxyConventionBuilder!
+NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys
+const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.Resource = "BffResource" -> string!
+const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.Scope = "BffScope" -> string!
+const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.TokenRequirement = "BffTokenRequirement" -> string!
 NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions
 NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!)
 NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!).AddBffAccessTokenHandler(NCode.Identity.Bff.BffTokenRequest! request) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!

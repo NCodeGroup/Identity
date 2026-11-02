@@ -83,17 +83,7 @@ internal class BffMiddleware(
         }
         catch (BffTokenUnavailableException exception) when (!context.Response.HasStarted)
         {
-            var type =
-                exception.StatusCode == StatusCodes.Status401Unauthorized
-                    ? BffProblemTypes.SessionRequired
-                    : BffProblemTypes.TokenUnavailable;
-
-            await BffResponses.WriteProblemAsync(
-                context,
-                exception.StatusCode,
-                type,
-                "An access token is unavailable."
-            );
+            await BffResponses.WriteTokenUnavailableAsync(context, exception.StatusCode);
         }
     }
 

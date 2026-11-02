@@ -40,4 +40,20 @@ internal static class BffResponses
             httpContext.RequestAborted
         );
     }
+
+    /// <summary>
+    /// Writes the problem that answers a token requirement's failure: <c>session_required</c> for a <c>401</c>, and
+    /// <c>token_unavailable</c> for any other status.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="status">The HTTP status code of the failure.</param>
+    public static Task WriteTokenUnavailableAsync(HttpContext httpContext, int status)
+    {
+        var type =
+            status == StatusCodes.Status401Unauthorized
+                ? BffProblemTypes.SessionRequired
+                : BffProblemTypes.TokenUnavailable;
+
+        return WriteProblemAsync(httpContext, status, type, "An access token is unavailable.");
+    }
 }

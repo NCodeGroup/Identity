@@ -65,7 +65,7 @@ the server does not control.
   body; the capped reader and the per-scope fetch timeouts bound a fetch's body, which the pipeline's timeouts do not
   cover once the headers have arrived.
 - The `jwks_uri` fetch is not yet single-flight and does not remember a failure, as the template's decisions 4 and 5
-  ask; a follow-up issue tracks it.
+  ask; issue [#466](https://github.com/NCodeGroup/Identity/issues/466) tracks it.
 - The retry of a revocation-list `GET` runs within `FetchTimeout`, and the remembered failure stays the back-off between
   retrievals ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
 

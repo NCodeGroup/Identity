@@ -1033,6 +1033,17 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
+        if (
+            request.SecretType == SecretTypes.Symmetric
+            && request.KeySizeBits < SharedSecretPolicy.MinimumEntropyBits
+        )
+        {
+            return TypedResults.Problem(
+                detail: $"A client secret must have at least {SharedSecretPolicy.MinimumEntropyBits} bits of entropy.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
         if (HasJwksUri(client.Settings.Value) && IsPublicKeyType(request.SecretType))
         {
             return KeySourceConflict();

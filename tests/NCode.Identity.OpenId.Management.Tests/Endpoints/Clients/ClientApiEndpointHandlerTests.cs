@@ -1656,6 +1656,41 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenSharedSecretIsBelowTheMinimumEntropy_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            new CreateSecretRequest
+            {
+                SecretType = SecretTypes.Symmetric,
+                KeySizeBits = 128,
+                Use = "sig",
+                Algorithm = "RS256",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndKeyIsAsymmetric_ReturnsConflict()
     {
         SetupStore();

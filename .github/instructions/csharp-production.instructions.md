@@ -36,6 +36,11 @@ than inlining the rationale.
   applies to all of them; `CA2007` is disabled, not required.
 - 👁 **Request-abort cancellation is a disconnect, not an error** — template
   [Language and Async](csharp.instructions.md#language-and-async).
+- 👁 **A form body that cannot be read is the client's error.** `ReadFormAsync` throws `InvalidDataException` for a
+  malformed body or one over the form limits, which the OpenID exception handler answers with `500`. An OpenID endpoint
+  reads its form once, first — before client authentication — through `TryReadFormAsync` (`FormRequestExtensions`) and
+  answers `UnreadableForm.CreateError` (`400 invalid_request`) when it returns `null`; a later reader gets the cached
+  form. The BFF reads through `BffForms.TryReadFormAsync`.
 - 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
   cancelled** — template [Language and Async](csharp.instructions.md#language-and-async) (`JobDispatchWorker`,
   [ADR-1232](../../docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).

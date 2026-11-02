@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Messages.Commands;
 using NCode.Identity.OpenId.Errors;
 using NCode.Mediator;
@@ -51,7 +52,10 @@ internal class DefaultLoadRequestValuesHandler
                     .AsException();
             }
 
-            var form = await httpRequest.ReadFormAsync(cancellationToken);
+            var form = await httpRequest.TryReadFormAsync(cancellationToken);
+            if (form is null)
+                throw UnreadableForm.CreateError(errorFactory).AsException();
+
             return new RequestValuesUsingForm(form);
         }
 

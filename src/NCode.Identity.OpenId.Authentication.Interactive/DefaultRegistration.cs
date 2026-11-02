@@ -206,8 +206,10 @@ public static class DefaultRegistration
         }
     }
 
-    // Mirrors the cookie handler's own login redirect — an absolute URI whose return URL is the challenge's redirect URI,
-    // or the challenged request itself — with the login page of the request's tenant in place of a fixed login path.
+    // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed
+    // login path, as a root-relative URL so the request's Host contributes nothing; its return URL is the challenge's
+    // redirect URI, or the challenged request itself.
+    // See ADR-1365.
     private static string BuildLoginRedirectUri(
         RedirectContext<CookieAuthenticationOptions> context,
         InteractiveSurfacePaths surfacePaths
@@ -225,7 +227,7 @@ public static class DefaultRegistration
             InteractiveAuthenticationDefaults.LoginPath
         );
         var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
-        return $"{request.Scheme}://{request.Host}{loginPath}{query}";
+        return $"{loginPath}{query}";
     }
 
     private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>

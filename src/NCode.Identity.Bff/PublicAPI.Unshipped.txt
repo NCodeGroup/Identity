@@ -78,6 +78,8 @@ NCode.Identity.Bff.Options.BffOptions.LoginParameters.get -> System.Collections.
 NCode.Identity.Bff.Options.BffOptions.LoginParameters.set -> void
 NCode.Identity.Bff.Options.BffOptions.PathPrefix.get -> string!
 NCode.Identity.Bff.Options.BffOptions.PathPrefix.set -> void
+NCode.Identity.Bff.Options.BffOptions.PublicOrigin.get -> string!
+NCode.Identity.Bff.Options.BffOptions.PublicOrigin.set -> void
 NCode.Identity.Bff.Options.BffOptions.Resources.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffOptions.Resources.set -> void
 NCode.Identity.Bff.Options.BffOptions.ReturnUrls.get -> System.Collections.Generic.List<string!>!

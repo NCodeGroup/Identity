@@ -212,5 +212,55 @@ public class BffEndToEndTests
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousApi.StatusCode);
     }
 
+    [Fact]
+    public async Task Login_WithAForgedHost_RedirectsToTheConfiguredCallback()
+    {
+        using var factory = new HostApplicationFactory();
+        await SeedAsync(factory);
+        var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
+        await using var host = await BffTestHost.StartAsync(factory, keySet, valueSet, indexSet);
+
+        var browser = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+        var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+
+        // The request names another host; the redirect_uri still comes from Bff:PublicOrigin, so the provider accepts it
+        // and sends the browser back to the registered callback.
+        var loginUri =
+            $"https://attacker.example{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";
+        using var login = await host.SendAsync(HttpMethod.Get, loginUri);
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        var authorizeUri = login.Headers.Location;
+        Assert.NotNull(authorizeUri);
+        Assert.DoesNotContain(
+            "attacker.example",
+            authorizeUri.OriginalString,
+            StringComparison.Ordinal
+        );
+
+        using var authorizeRequest = new HttpRequestMessage(HttpMethod.Get, authorizeUri);
+        authorizeRequest.Headers.Add(
+            "Cookie",
+            $"{InteractiveLogin.SessionCookieName}={providerSession}"
+        );
+        using var authorize = await browser.SendAsync(authorizeRequest);
+        var callbackUri = authorize.Headers.Location;
+        Assert.NotNull(callbackUri);
+        Assert.StartsWith(
+            BffTestHost.CallbackUri,
+            callbackUri.OriginalString,
+            StringComparison.Ordinal
+        );
+
+        using var callback = await host.SendAsync(HttpMethod.Get, callbackUri.PathAndQuery);
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
+        Assert.Equal("/", callback.Headers.Location?.OriginalString);
+    }
+
     #endregion
 }

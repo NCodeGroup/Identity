@@ -80,8 +80,16 @@ internal class DefaultDeviceVerificationEndpointHandler(
 
         var isPostVerb = httpContext.Request.Method == HttpMethods.Post;
 
-        var userCodeRaw = isPostVerb
-            ? httpContext.Request.Form[OpenIdProtocol.Parameters.UserCode].ToString()
+        IFormCollection? form = null;
+        if (isPostVerb)
+        {
+            form = await httpContext.Request.TryReadFormAsync(cancellationToken);
+            if (form is null)
+                return UnreadableForm.CreateError(errorFactory).AsHttpResult();
+        }
+
+        var userCodeRaw = form is not null
+            ? form[OpenIdProtocol.Parameters.UserCode].ToString()
             : httpContext.Request.Query[OpenIdProtocol.Parameters.UserCode].ToString();
 
         if (string.IsNullOrEmpty(userCodeRaw))
@@ -159,7 +167,7 @@ internal class DefaultDeviceVerificationEndpointHandler(
             );
         }
 
-        var action = httpContext.Request.Form[ActionParameter].ToString();
+        var action = form?[ActionParameter].ToString() ?? string.Empty;
         var approved = string.Equals(action, ApproveAction, StringComparison.OrdinalIgnoreCase);
         var denied = string.Equals(action, DenyAction, StringComparison.OrdinalIgnoreCase);
 

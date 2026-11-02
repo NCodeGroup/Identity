@@ -1,6 +1,7 @@
 # 1350. A shared fetch is single-flight through one helper
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1366](1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md):
+  the revocation retrieval checks its caches again inside the shared retrieval)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)

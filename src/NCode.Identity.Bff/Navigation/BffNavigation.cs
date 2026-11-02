@@ -7,17 +7,18 @@ using NCode.Identity.Bff.Options;
 namespace NCode.Identity.Bff.Navigation;
 
 /// <summary>
-/// Builds the absolute and local URLs that the BFF endpoints redirect to.
+/// Builds the absolute and local URLs that the BFF endpoints redirect to. An absolute URL comes from
+/// <see cref="BffOptions.PublicOrigin"/>, never from the request; a local URL takes the request's path base.
 /// </summary>
+// See ADR-1365.
 internal static class BffNavigation
 {
     /// <summary>
     /// Gets the absolute redirect URI of the callback endpoint.
     /// </summary>
-    /// <param name="request">The current request.</param>
     /// <param name="options">The BFF options.</param>
-    public static string CallbackUri(HttpRequest request, BffOptions options) =>
-        $"{request.Scheme}://{request.Host}{request.PathBase}{options.PathPrefix}/callback";
+    public static string CallbackUri(BffOptions options) =>
+        $"{options.PublicOrigin}{options.PathPrefix}/callback";
 
     /// <summary>
     /// Gets a local URL for a path, prefixed with the path base.
@@ -40,10 +41,10 @@ internal static class BffNavigation
     }
 
     /// <summary>
-    /// Gets an absolute URL for a path.
+    /// Gets an absolute URL for a path under the public origin.
     /// </summary>
-    /// <param name="request">The current request.</param>
+    /// <param name="options">The BFF options.</param>
     /// <param name="path">The local path.</param>
-    public static string AbsoluteUrl(HttpRequest request, string path) =>
-        $"{request.Scheme}://{request.Host}{request.PathBase}{path}";
+    public static string AbsoluteUrl(BffOptions options, string path) =>
+        $"{options.PublicOrigin}{path}";
 }

@@ -25,9 +25,10 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Locates the interactive surface for a request. The surface is served under the tenant route, like the protocol
-/// endpoints (ADR-1138), so every redirect it issues and the session cookie it scopes start from the path the request's
+/// endpoints, so every redirect it issues and the session cookie it scopes start from the path the request's
 /// tenant is served under.
 /// </summary>
+// See ADR-1138.
 internal sealed class InteractiveSurfacePaths(
     ITenantResolver tenantResolver,
     TemplateBinderFactory templateBinderFactory

@@ -65,6 +65,23 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task PostPar_WithSeededPublicClient_MarksTheResponseNoStore()
+    {
+        const string clientId = "it-par-no-store";
+        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = BuildAuthorizationForm(clientId, []);
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        NoStoreAssert.IsNoStore(response);
+    }
+
+    [Fact]
     public async Task PostPar_WithoutCodeChallenge_ReturnsInvalidRequest()
     {
         // The pushed request is validated as the authorization endpoint would validate it, so a missing

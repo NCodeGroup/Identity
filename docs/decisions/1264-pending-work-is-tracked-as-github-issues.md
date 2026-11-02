@@ -1,9 +1,8 @@
 # 1264. Pending work is tracked as GitHub issues
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)
 - **Date:** 2026-10-25
 - **Deciders:** NCode.Identity maintainers
-- **Conflicts with:** [project-template ADR-0007](project-template/0007-pending-work-is-tracked-as-issues.md); tracked in [#439](https://github.com/NCodeGroup/Identity/issues/439)
 
 ## Context
 

@@ -123,7 +123,7 @@ ADR-1261 stands.
   strict up-to-date requirement this supersedes.
 - [ADR-1262](1262-minimal-api-request-delegates-are-generated-at-compile-time.md) — the compile-time delegates that
   shorten the test stage.
-- [ADR-1125](1125-trunk-based-development-on-main.md) — trunk-based development and the release lines.
+- [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) — trunk-based development and the release lines.
 - [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) — how CI presents test results and coverage.
 - [ADR-1185](1185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md) — the coverage scope.
 - [`build/dod.ps1`](../../build/dod.ps1) and [`build/affected-tests.ps1`](../../build/affected-tests.ps1) — the gate and

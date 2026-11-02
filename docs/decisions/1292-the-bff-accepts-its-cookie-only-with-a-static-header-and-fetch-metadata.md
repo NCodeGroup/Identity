@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md) keeps session
+cookies host-only and has every cookie-authenticated write prove it is not cross-site. This record decides how the BFF
+does that for the API calls a script sends with its cookie.
+
 A backend-for-frontend authenticates API calls with a cookie the browser attaches on its own
 ([ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)), so every
 endpoint that accepts the cookie is a cross-site request forgery target. The design (§5.6, §5.9 and D3) chose a static
@@ -77,7 +81,6 @@ unguarded.**
   `UseCors()` applied, and a second copy of it would drift; `TrustedOrigins` is an explicit, separate allow-list.
 - **A startup check of the pipeline order.** Rejected: an ASP.NET Core host cannot see the built pipeline, so a check
   would be a guess; the per-request checks are exact and cannot be bypassed.
-- **`SameSite` alone (D3 (c)).** Rejected: it does not stop same-site subdomains.
 
 ## Consequences
 

@@ -74,6 +74,30 @@ in-memory database: its stored secrets do not survive a restart. After pulling a
 protected, existing development tenants lose
 their unreadable keys automatically and are provisioned again; reset the database if client secrets matter.
 
+### Development credentials
+
+No development credential is committed
+([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
+On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` beside `root-key` in
+`LocalApplicationData/NCode.Identity/LocalDev` (`%LOCALAPPDATA%` on Windows, `~/.local/share` on Linux,
+`~/Library/Application Support` on macOS) and hands them to the hosts. Sign in to the management console as `admin`
+with the text of `admin-password`. The `bootstrap-admin` client authenticates with `client_secret_basic` and the text of
+`bootstrap-admin-secret`, which the Development API reference prefills. Delete a file and restart the AppHost to get a
+new value.
+
+A host run without the AppHost has no credential in its launch profiles, so set them in its user secrets (loaded in
+Development only):
+
+```pwsh
+$secret = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+$encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($secret)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+dotnet user-secrets set BootstrapAdmin:ClientSecret $encoded --project src/NCode.Identity.OpenId.Host
+dotnet user-secrets set DeveloperInteractiveSeed:AdminPassword '<at least 15 characters>' --project src/NCode.Identity.OpenId.Host
+```
+
+`$secret` is the client secret to present. Without a value neither administrator is seeded. The `Conformance` profile
+reads `BootstrapAdmin__ClientSecret` from the environment, because user secrets load only in Development.
+
 ## Schema management (EF Core migrations)
 
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`

@@ -4,10 +4,11 @@
   read-path `DeveloperSigningKeyOpenIdTenantFactory` to a seed handler by
   [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md); the persistent mode keeps the keys every tenant is
   provisioned with and only prunes undecryptable ones, by
-  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md))
+  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md); the developer key mode is replaced by the
+  `DeveloperKeys:PruneUnreadableKeys` opt-in, with no ephemeral default, by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md))
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 

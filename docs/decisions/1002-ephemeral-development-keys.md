@@ -1,10 +1,9 @@
 # 1002. Ephemeral development keys are an explicit opt-in, never a silent default
 
-- **Status:** Accepted (amended by [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md): every tenant is
-  provisioned with persisted keys by default; ephemeral keys remain the explicit development opt-in decided here)
+- **Status:** Superseded by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)
 - **Date:** 2026-09-27
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 

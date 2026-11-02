@@ -76,6 +76,11 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
                 .AsHttpResult();
         }
 
+        // The form is read before client authentication, so an unreadable body is the client's error (400).
+        var formData = await httpContext.Request.TryReadFormAsync(cancellationToken);
+        if (formData is null)
+            return UnreadableForm.CreateError(errorFactory).AsHttpResult();
+
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
             cancellationToken
@@ -98,7 +103,6 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
 
         var openIdClient = authResult.Client;
 
-        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var request = BackchannelAuthenticationRequest.Load(openIdEnvironment, formData);
 
         // A signed request object, when present, supersedes the form parameters (CIBA §7.1.1).

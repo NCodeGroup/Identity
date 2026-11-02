@@ -2,18 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
 /// <summary>
-/// Provides the extension methods that mark a response as non-cacheable, so that no client or intermediary stores a
+/// Provides the extension method that marks a response as non-cacheable, so that no client or intermediary stores a
 /// response that can carry secret material.
 /// </summary>
 // See ADR-1345.
 [PublicAPI]
-public static class NoStoreExtensions
+public static class NoStoreResponseExtensions
 {
     private const string NoStoreCacheControl = "no-store, no-cache, max-age=0";
     private const string NoCachePragma = "no-cache";
@@ -33,18 +32,5 @@ public static class NoStoreExtensions
             response.Headers.CacheControl = NoStoreCacheControl;
             response.Headers.Pragma = NoCachePragma;
         }
-    }
-
-    /// <param name="builder">The <see cref="IEndpointConventionBuilder"/> instance.</param>
-    /// <typeparam name="TBuilder">The type of the <see cref="IEndpointConventionBuilder"/> instance.</typeparam>
-    extension<TBuilder>(TBuilder builder)
-        where TBuilder : IEndpointConventionBuilder
-    {
-        /// <summary>
-        /// Adds a filter that marks every response of the endpoint with <c>SetNoStore</c> before the endpoint runs, for
-        /// an endpoint whose response can carry secret material.
-        /// </summary>
-        /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
-        public TBuilder WithNoStore() => builder.AddEndpointFilter(NoStoreEndpointFilter.Instance);
     }
 }

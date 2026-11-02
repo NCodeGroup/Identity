@@ -7,7 +7,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints;
 
-public class NoStoreExtensionsTests : BaseTests
+public class NoStoreResponseExtensionsTests : BaseTests
 {
     #region SetNoStore Tests
 

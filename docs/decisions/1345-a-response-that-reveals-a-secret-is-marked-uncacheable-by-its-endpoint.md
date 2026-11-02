@@ -24,9 +24,9 @@ Six routes reveal a secret:
   registration, which carries the same credentials. RFC 7591 §3.2.1 and RFC 7592 §3 show these responses with
   `Cache-Control: no-store` and `Pragma: no-cache`.
 
-The token endpoint and the authorization response already send `Cache-Control: no-store, no-cache, max-age=0` and
-`Pragma: no-cache` (RFC 6749 §5.1). The management routes and the registration endpoint sent nothing, so a cache was
-free to keep their responses.
+The token endpoint and the authorization response send `Cache-Control: no-store, no-cache, max-age=0` and
+`Pragma: no-cache` (RFC 6749 §5.1). Without `no-store`, RFC 9111 §3 leaves storing a response to the cache, so a route
+that reveals a secret carries the directive itself.
 
 The tenant and server secret creates, and every import, read and list, return metadata only: a tenant's or a server's
 key never crosses the API, and the other routes never repeat material
@@ -42,10 +42,11 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 - **Responses written before the filter carry no secret.** A `400` for a body that fails to bind, or a `401` or `403`
   from an outer filter, is produced before the filter runs and is not marked.
 - **`no-store` is not alone.** `no-cache, max-age=0` and `Pragma: no-cache` accompany it for HTTP/1.0 caches and for
-  caches that ignore `no-store`, as the token endpoint already does.
+  caches that ignore `no-store`, as they do on the token endpoint.
 - **A new secret-revealing endpoint opts in the same way**, whether it lives in this family or in an extending package.
-  `HttpResponse.SetNoStore()` is public in `NCode.Identity.OpenId.Authentication.Abstractions` so that the management
-  package, which does not reference the authentication package, can use the one mechanism.
+  `.WithNoStore()`, its filter and `HttpResponse.SetNoStore()` live in
+  `NCode.Identity.OpenId.Authentication.Abstractions` so that the management package, which does not reference the
+  authentication package, uses the one mechanism.
 
 ## Options considered
 
@@ -61,14 +62,15 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 
 - The secret-revealing responses are never cached by a client or an intermediary.
 - `HttpResponse.SetNoStore()` is public in `NCode.Identity.OpenId.Authentication.Abstractions`; the token endpoint and
-  the authorization response writer keep calling it.
+  the authorization response writer call it too.
 - Smell: a route that returns a `CreatedSecretResource`, a token or a `client_secret` without `.WithNoStore()`.
-- The pushed authorization, device authorization and backchannel authentication endpoints are not yet marked; that is a
-  follow-up.
+- Marking the pushed authorization, device authorization and backchannel authentication endpoints, whose responses carry
+  one-time values, is tracked in [#488](https://github.com/NCodeGroup/Identity/issues/488).
 
 ## References
 
-- [`NoStoreExtensions`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreExtensions.cs)
+- [`NoStoreEndpointConventionBuilderExtensions`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreEndpointConventionBuilderExtensions.cs)
+- [`NoStoreResponseExtensions`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreResponseExtensions.cs)
 - [`NoStoreEndpointFilter`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreEndpointFilter.cs)
 - [`ClientApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs)
 - [`ResourceServerApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers/ResourceServerApiEndpointHandler.cs)

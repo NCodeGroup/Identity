@@ -37,6 +37,8 @@ same surface ([ADR-1076](../decisions/1076-consent-persistence-and-enforcement.m
 [ADR-1081](../decisions/1081-granular-consent-and-authorized-applications.md)). The remaining conformance
 prerequisite is the reachable HTTPS host with a byte-matched `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
+The logout confirmation page (`/account/logout/confirm`, [ADR-1380](../decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)) is served the same way and exposes `logout-confirm` and `logout-cancel`.
+
 The rest of this document is the original planning-time plan, retained as a record.
 
 ## Goal

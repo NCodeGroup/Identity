@@ -317,6 +317,56 @@ public class InteractiveAuthenticationPageRendererTests
 
     #endregion
 
+    #region RenderLogoutConfirmationPage Tests
+
+    [Fact]
+    public void RenderLogoutConfirmationPage_Always_ContainsStableConfirmAndCancelIds()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            returnUrl: "/continue",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t"
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains("id=\"logout-confirm\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"logout-cancel\"", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "method=\"post\" action=\"logout/confirm\"",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("value=\"logout\"", html, StringComparison.Ordinal);
+        Assert.Contains("value=\"cancel\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLogoutConfirmationPage_WhenHostileReturnUrl_EncodesIt()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            returnUrl: "\"><script>alert(1)</script>",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t"
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);
+    }
+
+    #endregion
+
     #region RenderErrorPage Tests
 
     [Fact]

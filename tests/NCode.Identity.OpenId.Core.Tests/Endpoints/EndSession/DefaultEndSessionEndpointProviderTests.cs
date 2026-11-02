@@ -10,8 +10,10 @@ using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Mediator;
+using NCode.Registration.AspNetCore;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.EndSession;
@@ -48,6 +50,14 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
 
     private void SetupMediator(EndSessionDisposition disposition)
     {
+        SetupLoadAndResolve(
+            new EndSessionSubject("subject-1", "sid-1", null, [], RequiresConfirmation: false)
+        );
+        SetupEndSession(disposition);
+    }
+
+    private void SetupLoadAndResolve(EndSessionSubject subject)
+    {
         MockMediator
             .Setup(x =>
                 x.SendAsync<LoadEndSessionRequestCommand, IEndSessionRequest>(
@@ -60,6 +70,18 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
 
         MockMediator
             .Setup(x =>
+                x.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
+                    It.IsAny<ResolveEndSessionSubjectCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(subject)
+            .Verifiable();
+    }
+
+    private void SetupEndSession(EndSessionDisposition disposition) =>
+        MockMediator
+            .Setup(x =>
                 x.SendAsync<EndSessionCommand, EndSessionDisposition>(
                     It.IsAny<EndSessionCommand>(),
                     It.IsAny<CancellationToken>()
@@ -67,11 +89,66 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
             )
             .ReturnsAsync(disposition)
             .Verifiable();
+
+    private void SetupChallenge(ReadOnlyEndpointDisposition challenge)
+    {
+        MockMediator
+            .Setup(x =>
+                x.SendAsync<ParkEndSessionRequestCommand, string>(
+                    It.Is<ParkEndSessionRequestCommand>(c =>
+                        c.OpenIdContext == OpenIdContext && c.Subject.SessionId == "sid-1"
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("https://op.example/oauth2/continue?state=k")
+            .Verifiable();
+
+        MockMediator
+            .Setup(x =>
+                x.SendAsync<EndSessionConfirmationChallengeCommand, ReadOnlyEndpointDisposition>(
+                    It.Is<EndSessionConfirmationChallengeCommand>(c =>
+                        c.ContinueUrl == "https://op.example/oauth2/continue?state=k"
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(challenge)
+            .Verifiable();
     }
 
     #endregion
 
     #region HandleRouteAsync Tests
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheLogoutRequiresConfirmation_ReturnsTheChallengeWithoutEndingTheSession()
+    {
+        SetupLoadAndResolve(
+            new EndSessionSubject("subject-1", "sid-1", null, [], RequiresConfirmation: true)
+        );
+        var challengeResult = TypedResults.Redirect("/account/logout/confirm");
+        SetupChallenge(ReadOnlyEndpointDisposition.Handled(challengeResult));
+
+        var result = await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.Same(challengeResult, result);
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheChallengeIsUnhandled_EndsTheSessionUnprompted()
+    {
+        SetupLoadAndResolve(
+            new EndSessionSubject("subject-1", "sid-1", null, [], RequiresConfirmation: true)
+        );
+        SetupChallenge(ReadOnlyEndpointDisposition.UnHandled());
+        SetupEndSession(new EndSessionDisposition(null, []));
+
+        var result = await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        var content = Assert.IsType<ContentHttpResult>(result);
+        Assert.Equal("You have been logged out.", content.ResponseContent);
+    }
 
     [Fact]
     public async Task HandleRouteAsync_WhenThePostLogoutRedirectIsPermitted_RendersTheIframesAndTheEncodedRedirect()

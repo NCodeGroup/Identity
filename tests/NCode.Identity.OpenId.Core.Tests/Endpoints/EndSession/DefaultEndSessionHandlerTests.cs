@@ -81,6 +81,8 @@ public class DefaultEndSessionHandlerTests : BaseTests
             RequestServices = serviceCollection.BuildServiceProvider(),
         };
 
+        var namesALogin = subject.SubjectId is not null || subject.SessionId is not null;
+
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
 
@@ -90,10 +92,14 @@ public class DefaultEndSessionHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
         mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
         mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object);
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.SessionManagementSupported))
-            .Returns(false)
-            .Verifiable();
+        if (namesALogin)
+        {
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.SessionManagementSupported))
+                .Returns(false)
+                .Verifiable();
+        }
+
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSupported))
             .Returns(false)
@@ -104,16 +110,6 @@ public class DefaultEndSessionHandlerTests : BaseTests
             .Returns(postLogoutRedirectUri)
             .Verifiable();
         mockRequest.SetupGet(x => x.State).Returns(state).Verifiable();
-
-        mockMediator
-            .Setup(x =>
-                x.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
-                    It.IsAny<ResolveEndSessionSubjectCommand>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<EndSessionSubject>(subject))
-            .Verifiable();
 
         if (subject.SessionId is { Length: > 0 } sessionId)
         {
@@ -142,18 +138,21 @@ public class DefaultEndSessionHandlerTests : BaseTests
                 .Verifiable();
         }
 
-        mockAuthService
-            .Setup(x =>
-                x.SignOutAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<AuthenticationProperties?>()
+        if (namesALogin)
+        {
+            mockAuthService
+                .Setup(x =>
+                    x.SignOutAsync(
+                        It.IsAny<HttpContext>(),
+                        It.IsAny<string?>(),
+                        It.IsAny<AuthenticationProperties?>()
+                    )
                 )
-            )
-            .Returns(Task.CompletedTask)
-            .Verifiable();
+                .Returns(Task.CompletedTask)
+                .Verifiable();
+        }
 
-        var command = new EndSessionCommand(mockContext.Object, mockRequest.Object);
+        var command = new EndSessionCommand(mockContext.Object, mockRequest.Object, subject);
         return new Scaffold(command, mockContext, mockMediator, mockAuthService);
     }
 
@@ -189,7 +188,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     }
 
     private static EndSessionSubject CreateSubject(string? clientId) =>
-        new(SubjectId, SessionId, clientId, [ClientId]);
+        new(SubjectId, SessionId, clientId, [ClientId], RequiresConfirmation: false);
 
     private List<int> LogEventIds =>
         Logger.Collector.GetSnapshot().Select(record => record.Id.Id).ToList();
@@ -202,7 +201,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheLogoutNamesNoSession_DispatchesTheTerminationForTheSubject()
     {
         var scaffold = CreateScaffold(
-            new EndSessionSubject(SubjectId, null, ClientId, []),
+            new EndSessionSubject(SubjectId, null, ClientId, [], RequiresConfirmation: false),
             postLogoutRedirectUri: null,
             state: null
         );
@@ -210,6 +209,29 @@ public class DefaultEndSessionHandlerTests : BaseTests
         var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
 
         Assert.Null(disposition.RedirectUri);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheLogoutNamesNoSubjectOrSession_LeavesTheLoginCookie()
+    {
+        var scaffold = CreateScaffold(
+            new EndSessionSubject(null, null, ClientId, [], RequiresConfirmation: false),
+            postLogoutRedirectUri: null,
+            state: null
+        );
+
+        var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
+
+        Assert.Null(disposition.RedirectUri);
+        scaffold.AuthenticationService.Verify(
+            x =>
+                x.SignOutAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<AuthenticationProperties?>()
+                ),
+            Times.Never
+        );
     }
 
     [Fact]

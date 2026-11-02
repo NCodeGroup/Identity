@@ -75,4 +75,22 @@ public class ProtocolPackageDependencyTests : BaseTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    public void ClientPackage_DependsOnPollyCore()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Polly.Core.dll");
+
+        Assert.True(File.Exists(path), path);
+    }
+
+    [Theory]
+    [InlineData("Microsoft.Extensions.Http.Resilience")]
+    [InlineData("Microsoft.Extensions.Telemetry.Abstractions")]
+    public void ClientPackage_DoesNotDependOn(string assemblyName)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, assemblyName + ".dll");
+
+        Assert.False(File.Exists(path), path);
+    }
 }

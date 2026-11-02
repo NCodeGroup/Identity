@@ -296,6 +296,8 @@ NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterPar
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.AttemptTimeout.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.AttemptTimeout.set -> void
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.FailureCacheDuration.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.FailureCacheDuration.set -> void
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.MaxRetryAttempts.get -> int
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.MaxRetryAttempts.set -> void
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.OutboundHttpOptions() -> void

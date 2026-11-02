@@ -4,7 +4,9 @@
   [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's stored public
   keys and its `jwks_uri` keys are never merged, and a published key set is imported under the client-key policy; and by
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): every fetch and delivery
-  goes through one guarded client with per-attempt and total timeouts and bounded retries)
+  goes through one guarded client with per-attempt and total timeouts and bounded retries; and by
+  [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md): concurrent
+  fetches of one `jwks_uri` share one fetch, and a failed fetch is remembered)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 

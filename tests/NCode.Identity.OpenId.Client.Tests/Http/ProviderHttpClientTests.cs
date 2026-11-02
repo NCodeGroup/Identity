@@ -194,7 +194,7 @@ public class ProviderHttpClientTests : BaseTests
         );
         var client = CreateClient(
             handler,
-            new OpenIdClientOptions { RequestTimeout = TimeSpan.FromMilliseconds(100) }
+            new OpenIdClientOptions { TotalTimeout = TimeSpan.FromMilliseconds(100) }
         );
 
         await Assert.ThrowsAsync<OpenIdProviderException>(() =>

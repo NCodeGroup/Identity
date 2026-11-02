@@ -11,8 +11,10 @@ namespace NCode.Identity.OpenId.Client.Options;
 /// </summary>
 internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClientOptions>
 {
-    private static readonly TimeSpan MaxRequestTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan MinTimeout = TimeSpan.FromMilliseconds(10);
+    private static readonly TimeSpan MaxTimeout = TimeSpan.FromMinutes(5);
 
+    private const int MaxRetryAttemptsLimit = 10;
     private const int MinMaxResponseSizeBytes = 1024;
 
     /// <inheritdoc />
@@ -43,18 +45,7 @@ internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClie
             );
         }
 
-        if (options.RequestTimeout <= TimeSpan.Zero)
-        {
-            failures.Add(
-                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.RequestTimeout)} must be greater than zero; it is {options.RequestTimeout}."
-            );
-        }
-        else if (options.RequestTimeout > MaxRequestTimeout)
-        {
-            failures.Add(
-                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.RequestTimeout)} must be at most {MaxRequestTimeout}; it is {options.RequestTimeout}."
-            );
-        }
+        AddHttpFailures(options, failures);
 
         if (options.StaleLifetime < options.MetadataRefreshInterval)
         {
@@ -96,5 +87,43 @@ internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClie
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void AddHttpFailures(OpenIdClientOptions options, List<string> failures)
+    {
+        if (options.AttemptTimeout < MinTimeout || options.AttemptTimeout > MaxTimeout)
+        {
+            failures.Add(
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.AttemptTimeout)} must be between {MinTimeout} and {MaxTimeout}; it is {options.AttemptTimeout}."
+            );
+        }
+
+        if (options.TotalTimeout < MinTimeout || options.TotalTimeout > MaxTimeout)
+        {
+            failures.Add(
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.TotalTimeout)} must be between {MinTimeout} and {MaxTimeout}; it is {options.TotalTimeout}."
+            );
+        }
+
+        if (options.AttemptTimeout > options.TotalTimeout)
+        {
+            failures.Add(
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.AttemptTimeout)} must not be greater than {nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.TotalTimeout)}; it is {options.AttemptTimeout} and the total is {options.TotalTimeout}."
+            );
+        }
+
+        if (options.MaxRetryAttempts < 0 || options.MaxRetryAttempts > MaxRetryAttemptsLimit)
+        {
+            failures.Add(
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.MaxRetryAttempts)} must be between 0 and {MaxRetryAttemptsLimit}; it is {options.MaxRetryAttempts}."
+            );
+        }
+
+        if (options.RetryDelay < TimeSpan.Zero || options.RetryDelay > MaxTimeout)
+        {
+            failures.Add(
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.RetryDelay)} must be between {TimeSpan.Zero} and {MaxTimeout}; it is {options.RetryDelay}."
+            );
+        }
     }
 }

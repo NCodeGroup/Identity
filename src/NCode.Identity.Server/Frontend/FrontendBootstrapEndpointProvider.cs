@@ -73,11 +73,11 @@ internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
             );
         }
 
-        // The API base defaults to the serving origin, so no shared cache may serve one host's document for another.
+        // The issuer depends on the tenant the request names, so no shared cache may serve one host's document for
+        // another.
         httpContext.Response.Headers.CacheControl = "no-store";
 
         var request = httpContext.Request;
-        var requestOrigin = $"{request.Scheme}://{request.Host}";
 
         // Every surface shares this one endpoint and names itself via the `surface` query parameter so the host can
         // return that surface's own coordinates (for example, each SPA's public client id); absent, the default is served.
@@ -85,7 +85,7 @@ internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
         var document = FrontendBootstrapDocument.Create(
             options,
             issuer,
-            requestOrigin,
+            request.PathBase,
             string.IsNullOrEmpty(surface) ? null : surface
         );
 

@@ -25,8 +25,8 @@ namespace NCode.Identity.Server.Frontend;
 /// bundles. A single bundle is built once and discovers its deployment coordinates at boot by fetching
 /// this document from the serving host, so every value here is per-deployment and none is baked at build time.
 /// When <see cref="Issuer"/> is left unset, the issuer of the tenant that serves the surface is used; when
-/// <see cref="ApiBaseUrl"/> is left unset, the serving request's own origin (<c>scheme://host</c>) is used. A host
-/// therefore needs no configuration at all.
+/// <see cref="ApiBaseUrl"/> is left unset, the host's root-relative path base (<c>/</c> at the root) is published,
+/// never the request's origin. A host therefore needs no configuration at all.
 /// </summary>
 // See ADR-1064.
 [PublicAPI]
@@ -38,8 +38,8 @@ public sealed class FrontendBootstrapOptions
     public const string DefaultSectionName = "Frontend";
 
     /// <summary>
-    /// Gets or sets the base URL of the Management/OpenID REST API the bundle calls. When unset, the serving
-    /// request's own origin is used.
+    /// Gets or sets the base URL of the Management/OpenID REST API the bundle calls. When unset, the host's
+    /// root-relative path base (<c>/</c> at the root) is published, never the request's origin.
     /// </summary>
     public string? ApiBaseUrl { get; set; }
 

@@ -4,7 +4,8 @@
   [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md): the `jwks_uri`
   fetch is single-flight and a failed fetch is remembered; amended by
   [ADR-1385](1385-no-shipping-package-switches-off-its-consumers-logging-generator.md): the pipeline runs on Polly.Core
-  through GuardedResilienceHandler, and only a GET or HEAD without a body is retried)
+  through GuardedResilienceHandler and GuardedResiliencePipelines, which replace the GuardedHttpTimeoutHandler named
+  under References, and only a GET or HEAD without a body is retried)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)

@@ -25,18 +25,19 @@ generators emit a different logged-state type for `[LoggerMessage]`. The reposit
    connection or name-resolution error is never retried, because the guard's refusal is deterministic. `Retry-After` is
    ignored. Only a GET or HEAD without a body is retried; any other request still gets both timeouts, so a POST delivery
    stays bounded by `AttemptTimeout` and is never sent twice. A timeout surfaces as a `TaskCanceledException` with a
-   `TimeoutException` inner exception, as `HttpClient.Timeout` produces. The limits and options of
-   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) are unchanged.
+   `TimeoutException` inner exception, as `HttpClient.Timeout` produces. Both pipelines read time from the registered
+   `TimeProvider`. The limits and options are those of
+   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md).
 
-2. **`NCode.Identity.OpenId.Authentication` references `Polly.Core` directly.** `Microsoft.Extensions.Http.Resilience`,
-   `Polly.Extensions` and `Polly.RateLimiting` leave `Directory.Packages.props`, because no project references them any
-   longer.
+2. **`NCode.Identity.OpenId.Authentication` references `Polly.Core` directly.** `Directory.Packages.props` pins no
+   `Microsoft.Extensions.Http.Resilience`, `Polly.Extensions` or `Polly.RateLimiting`, because no project references
+   them.
 
 3. **The build rejects a replacement of the logging generator.** The `RejectLoggingGeneratorReplacement` target of
    `Directory.Build.targets` fails the build of every packable project that carries a
-   `Microsoft.Extensions.Telemetry.Abstractions` analyzer or sets `DisableMicrosoftExtensionsLoggingSourceGenerator`. The
-   old override is removed. A test project may still get the package from `Microsoft.Extensions.Diagnostics.Testing`; it
-   declares no `[LoggerMessage]`.
+   `Microsoft.Extensions.Telemetry.Abstractions` analyzer or sets `DisableMicrosoftExtensionsLoggingSourceGenerator`. No
+   target turns the generator back on after a swap; the build fails instead. A test project may still get the package
+   from `Microsoft.Extensions.Diagnostics.Testing`; it declares no `[LoggerMessage]`.
 
 ## Options considered
 
@@ -49,9 +50,12 @@ generators emit a different logged-state type for `[LoggerMessage]`. The reposit
 ## Consequences
 
 - Consumers keep their own `[LoggerMessage]` generator.
-- Polly's `Polly` meter and resilience-event logs are no longer emitted for the guarded client, as they never were for
-  the protocol client.
-- A retry of an OPTIONS or TRACE request, or of a GET with a body, no longer happens; the server sends none.
+- The guarded client emits no `Polly` meter or resilience-event logs, as the protocol client emits none.
+- The server retries no OPTIONS or TRACE request and no GET with a body; it sends none.
+- `NCode.Identity.OpenId.Authentication` and `NCode.Identity.Server` bring none of
+  `Microsoft.Extensions.Http.Resilience`, `Microsoft.Extensions.Resilience`, `Microsoft.Extensions.Http.Diagnostics`,
+  `Microsoft.Extensions.Telemetry`, `Microsoft.Extensions.Telemetry.Abstractions`, `Polly.Extensions` or
+  `Polly.RateLimiting` to a consumer, which references any of them it uses itself.
 - A new shipping dependency that brings `Microsoft.Extensions.Telemetry.Abstractions` fails the build instead of
   reaching the consumers.
 

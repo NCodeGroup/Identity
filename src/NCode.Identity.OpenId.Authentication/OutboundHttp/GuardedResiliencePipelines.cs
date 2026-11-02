@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Net;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
@@ -18,20 +19,6 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 // See ADR-1385.
 internal sealed class GuardedResiliencePipelines(IOptions<OutboundHttpOptions> options)
 {
-    private ResiliencePipeline<HttpResponseMessage> Retrying { get; } =
-        Build(options.Value, options.Value.MaxRetryAttempts);
-
-    private ResiliencePipeline<HttpResponseMessage> Bounded { get; } =
-        Build(options.Value, maxRetryAttempts: 0);
-
-    /// <summary>
-    /// Selects the pipeline that bounds <paramref name="request"/>.
-    /// </summary>
-    /// <param name="request">The request that is about to be sent.</param>
-    /// <returns>The pipeline that runs the request.</returns>
-    public ResiliencePipeline<HttpResponseMessage> Select(HttpRequestMessage request) =>
-        IsRetryable(request) ? Retrying : Bounded;
-
     /// <summary>
     /// Determines whether <paramref name="request"/> may be sent again after a failed attempt. A request with a body is
     /// never resent, because a body's content may be a stream that one attempt consumes.
@@ -72,8 +59,10 @@ internal sealed class GuardedResiliencePipelines(IOptions<OutboundHttpOptions> o
         if (outcome.Result is not { } response)
             return false;
 
-        var statusCode = (int)response.StatusCode;
-        return statusCode is 408 or 429 or >= 500;
+        return response.StatusCode
+            is HttpStatusCode.RequestTimeout
+                or HttpStatusCode.TooManyRequests
+                or >= HttpStatusCode.InternalServerError;
     }
 
     private static ResiliencePipeline<HttpResponseMessage> Build(
@@ -111,4 +100,18 @@ internal sealed class GuardedResiliencePipelines(IOptions<OutboundHttpOptions> o
 
         return builder.Build();
     }
+
+    private ResiliencePipeline<HttpResponseMessage> Retrying { get; } =
+        Build(options.Value, options.Value.MaxRetryAttempts);
+
+    private ResiliencePipeline<HttpResponseMessage> Bounded { get; } =
+        Build(options.Value, maxRetryAttempts: 0);
+
+    /// <summary>
+    /// Selects the pipeline that bounds <paramref name="request"/>.
+    /// </summary>
+    /// <param name="request">The request that is about to be sent.</param>
+    /// <returns>The pipeline that runs the request.</returns>
+    public ResiliencePipeline<HttpResponseMessage> Select(HttpRequestMessage request) =>
+        IsRetryable(request) ? Retrying : Bounded;
 }

@@ -14,6 +14,7 @@ public sealed class GuardedResiliencePipelinesTests
     #region IsTransient Tests
 
     [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
     [InlineData(HttpStatusCode.ServiceUnavailable)]
     [InlineData(HttpStatusCode.TooManyRequests)]
     [InlineData(HttpStatusCode.RequestTimeout)]
@@ -29,6 +30,7 @@ public sealed class GuardedResiliencePipelinesTests
 
     [Theory]
     [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.UnavailableForLegalReasons)]
     [InlineData(HttpStatusCode.OK)]
     public void IsTransient_WhenTheResponseIsNotTransient_ReturnsFalse(HttpStatusCode statusCode)
     {

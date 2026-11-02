@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Requests;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -51,7 +52,13 @@ internal class BffBackChannelLogoutHandler(
             return;
         }
 
-        var form = await request.ReadFormAsync(cancellationToken);
+        var form = await BffForms.TryReadFormAsync(request, cancellationToken);
+        if (form is null)
+        {
+            await RejectAsync(httpContext, OpenIdProtocol.ErrorCodes.InvalidRequest);
+            return;
+        }
+
         var tokenValues = form[OpenIdProtocol.Parameters.LogoutToken];
         var logoutToken = tokenValues.Count == 1 ? tokenValues[0] : null;
         if (string.IsNullOrEmpty(logoutToken))

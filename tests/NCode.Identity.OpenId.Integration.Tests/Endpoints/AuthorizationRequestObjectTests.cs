@@ -24,8 +24,9 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Exercises request objects (RFC 9101) at the authorization endpoint: the algorithms a request object may use are those
 /// the requesting client's effective settings permit, which a client narrows by registering a
-/// <c>request_object_signing_alg</c> (ADR-1155).
+/// <c>request_object_signing_alg</c>.
 /// </summary>
+// See ADR-1155.
 public sealed class AuthorizationRequestObjectTests : IDisposable
 {
     private const string UserName = "jar-user";

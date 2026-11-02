@@ -9,6 +9,10 @@
 
 ## Context
 
+[project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md) writes a persisted
+JSON document whose shape will evolve through one versioned seam: a self-describing envelope, step-by-step upcasters,
+unknown members kept across a rewrite, and additive change by default. This record applies it to grant payloads.
+
 Every persisted grant stores its domain payload as a JSON blob: `GrantEntity.PayloadJson` holds the serialized
 `PersistedGrant<TPayload>.Payload` for authorization codes, refresh tokens, device/CIBA requests, pushed authorization
 requests, DCR registration/initial-access tokens, the end-user `session` grant, continue envelopes, and requested-claims
@@ -18,10 +22,6 @@ pointers. `DefaultPersistedGrantService` serialized these with a bare `JsonSeria
 That round-trip is forward-read tolerant by luck of the defaults (unknown members are skipped; enums are snake_case
 strings, not ordinals) but has no story for **deliberate schema evolution** of data already written to a store:
 
-- There is no version marker on a stored document, so there is no place for a migration to hook — a non-additive change
-  (renaming, removing, or retyping a member; removing an enum value) silently mis-reads or throws on old rows.
-- Adding a **`required`** member is a latent breaking change: `System.Text.Json` enforces `required` on deserialize, so
-  every previously-written row without that member throws `JsonException` on read.
 - During a mixed-version deployment, an older node that reads a payload written by a newer node and then rewrites it
   (the in-place `UpdatePayloadAsync` path used by `session`, device, and CIBA grants) **silently drops** the members it
   did not recognize, because nothing captures them.
@@ -72,16 +72,11 @@ long-lived, in-place-mutated payloads.** Concretely:
 
 ## Options considered
 
-- **Keep the bare `JsonSerializer` round-trip.** Rejected: no version marker means no migration hook, a new `required`
-  member silently breaks old rows, and mixed-version rewrites drop unknown members.
 - **A per-column `PayloadSchemaVersion` on `GrantEntity`.** Rejected: it couples the version to the relational schema
   (a migration to add it, and a second one per store that adopts the pattern) and does not travel with the JSON if the
   document is copied elsewhere. A self-describing envelope carries its own version and needs no storage migration.
 - **Embed the version as a member of each payload DTO.** Rejected: it pollutes every domain record with a transport
   concern and makes the version subject to the same deserialization it is meant to govern.
-- **Rely solely on `[JsonExtensionData]` round-tripping, no versioning.** Rejected: extension data preserves _unknown_
-  members but cannot rename, remove, retype, or restructure _known_ ones — it is a complement to upcasting, not a
-  substitute.
 - **Self-describing envelope + upcaster pipeline + extension-data capture (chosen).** Stamps a version from day one,
   localizes all future migration to one seam, needs no storage migration, and closes the mixed-version-rewrite gap.
 

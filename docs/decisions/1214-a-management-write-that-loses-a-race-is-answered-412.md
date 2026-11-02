@@ -8,6 +8,10 @@
 
 ## Context
 
+[project-template ADR-0125](project-template/0125-a-write-that-loses-a-race-is-answered-412.md) answers an API write that
+loses a concurrency race with `412 Precondition Failed`, from one endpoint filter on the API's root route group. This
+record applies it to the management API.
+
 A store reports a lost concurrency race as a `StoreConcurrencyException`
 ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)). The management endpoints let the
 exception reach the client as `500`, although the caller can recover by reading the resource again (issue [#261](https://github.com/NCodeGroup/Identity/issues/261)).
@@ -20,9 +24,6 @@ endpoints that a package adds under the tenant group. It answers a `StoreConcurr
 ("The resource was changed by another request after this request read it. Read it again and retry.") and logs it at
 Debug (event 3005). No endpoint catches the exception itself.
 
-`412` is the answer because a lost race is the condition that a stale `If-Match` reports: the resource changed after the
-view of the caller, and the caller recovers the same way, by reading it again and retrying.
-
 The filter covers the management API only. A protocol endpoint answers a lost race as its specification requires where a
 spend or rotation handles it
 ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md),
@@ -31,8 +32,6 @@ spend or rotation handles it
 
 ## Options considered
 
-- **`409 Conflict`.** Rejected: it reports a state that the caller must change, such as dependents that block a delete,
-  whereas a lost race resolves on a retry.
 - **A catch in each handler.** Rejected: every handler, including the handlers of a package, would repeat it, and a
   handler that forgets it answers `500`.
 - **A retry in the server.** Rejected: the write was computed from a stale read, and the caller decides whether it still
@@ -40,7 +39,6 @@ spend or rotation handles it
 
 ## Consequences
 
-- No management write reaches its client as `500` for a lost race.
 - Work that a write starts after its own save, such as the key seed of a tenant, is answered `412` as well when it loses
   a race, and the re-read of the caller shows the change that was committed.
 - This implements issue [#261](https://github.com/NCodeGroup/Identity/issues/261).

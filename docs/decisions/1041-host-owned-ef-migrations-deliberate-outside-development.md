@@ -12,6 +12,10 @@
 
 ## Context
 
+[project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md) has the host own
+its migrations and apply them in a deliberate step before the rollout, never at startup outside Development. This record
+holds how the family's reference host does it.
+
 The persistence layer is Entity Framework Core (`OpenIdDbContext` in the published
 `NCode.Identity.OpenId.Persistence.EntityFramework` package). The `Host` reference host previously created its
 schema with `DbContext.Database.EnsureCreated()`. `EnsureCreated()` is all-or-nothing: it builds the full schema only
@@ -48,8 +52,6 @@ finds them.
 - **Keep `EnsureCreated()`.** Rejected: cannot evolve an existing schema, which is the entire failure mode.
 - **`EnsureDeleted()` + `EnsureCreated()` on each model change.** Rejected: rebuilds the database and loses local data,
   which is exactly what we set out to avoid.
-- **Auto-migrate on startup in production.** Rejected: schema changes against a shared production database must be
-  deliberate and observable, not a side effect of a rolling deploy (and unsafe with multiple instances starting at once).
 - **Put migrations in the published EF library.** Rejected: couples the package to a provider and to consumer schema
   lifecycle; consumers should generate their own.
 

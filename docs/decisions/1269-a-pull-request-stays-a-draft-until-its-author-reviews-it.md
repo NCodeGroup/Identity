@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0006](project-template/0006-a-person-merges-every-pull-request.md) has a person decide every
+merge: an agent opens and updates pull requests and never merges one, marks it ready or turns on auto-merge. It leaves
+opening every pull request as a draft to the project; this record takes that option.
+
 `main` accepts changes only through pull requests that pass the gate
 ([ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
 [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). The repository has one
@@ -40,15 +44,9 @@ The ruleset is unchanged: a draft cannot enter the merge queue, so the existing 
 - **A workflow that submits an approving or requesting review when a label is applied.** Gives visible review states,
   but it is a ritual the author triggers on themselves and needs the Actions setting that lets workflows approve pull
   requests. Deferred: it can be added later without changing this decision.
-- **A second account that reviews.** Gives the real buttons, but GitHub's terms allow one free personal account per
-  person, with an exception for machine accounts that does not clearly cover a person reviewing by hand. Rejected.
-- **Require one approving review in the ruleset.** The sole maintainer could not satisfy it. Rejected.
 
 ## Consequences
 
-- An agent's pull request never enters the merge queue without a person's explicit action.
-- Opening the pull request and merging it are two steps, so the author clicks **Ready for review** and enables
-  auto-merge after reviewing.
 - A review comment on a pull request that is already in the queue does not stop its merge until the pull request is
   removed from the queue.
 

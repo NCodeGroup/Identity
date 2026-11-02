@@ -5,12 +5,14 @@ applyTo: "src/**/*.cs"
 
 # NCode.Identity coding conventions (production)
 
-The **authoritative source** for production coding standards in this repository, mirrored for orientation in
-[`AGENTS.md`](../../AGENTS.md). Test-project rules live in
+NCode.Identity's own production coding rules. The project template's
+[`csharp.instructions.md`](csharp.instructions.md) holds the general C# rules and applies to every `.cs` file; this
+file keeps what the family adds to them or decides differently, and a bullet that names a template rule links its
+section there. Where the two differ, this file wins. Test-project rules live in
 [`csharp-testing.instructions.md`](csharp-testing.instructions.md). The `.editorconfig`, CSharpier, and analyzers
-enforce the machine-checkable subset. When a convention changes, change it **here** first. The _reasoning_ behind a
-non-obvious rule or seam lives in an ADR under [`docs/decisions/`](../../docs/decisions/) — link to it rather than inlining the
-rationale.
+enforce the machine-checkable subset. When a family convention changes, change it **here** first. The _reasoning_
+behind a non-obvious rule or seam lives in an ADR under [`docs/decisions/`](../../docs/decisions/) — link to it rather
+than inlining the rationale.
 
 **Legend** — how each rule is enforced:
 
@@ -22,103 +24,59 @@ rationale.
 
 ## 1. Language & async
 
-- 👁 Use `ValueTask` / `ValueTask<T>` for async methods (not `Task`), with an `Async` suffix, and a
-  `CancellationToken` as the **last** parameter. `Task` is allowed only at framework boundaries the library does not
-  own — an ASP.NET Core middleware `InvokeAsync`, a minimal-API endpoint handler, or a mediator handler whose contract
-  returns `Task`.
-- ✅ **No sync-over-async.** Blocking on a `Task`/`ValueTask` — `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`,
-  `Task.WaitAll` / `Task.WaitAny` — is banned by `BannedApiAnalyzers` (`RS0030`, see
-  [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt), from the project template, which bans it in every project,
-  tests included). Always `await`.
-- 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate.** `StartNew`
-  over an `async` lambda returns an unobserved `Task<Task>` and drops the inner task's exceptions; `Task.Run` unwraps it.
-  Prefer not offloading at all — offload only when the work must leave the calling thread (e.g. disposing an evicted
-  cache entry off the eviction callback): `_ = Task.Run(async () => await x.DisposeAsync());`.
-- ✅ **No `ConfigureAwait(false)`.** This is an ASP.NET-Core-oriented library, and ASP.NET Core installs no
-  `SynchronizationContext` (nor a custom `TaskScheduler`), so `ConfigureAwait(false)` is a runtime no-op — the
-  deadlock/marshalling reason for it belonged to classic ASP.NET (Framework) and UI apps. `CA2007` is disabled, not required.
-- 👁 **Request-abort cancellation is a disconnect, not an error.** An `OperationCanceledException` whose token is the
-  request's `HttpContext.RequestAborted` means the client went away; at an endpoint/middleware boundary rethrow it so
-  the framework abandons the request — never convert it into a rendered error response, a retry, or an audit write (the
-  aborted token would fail those writes anyway).
+- 👁 **Async methods return `ValueTask`, end in `Async` and take the `CancellationToken` last** — template
+  [Language and Async](csharp.instructions.md#language-and-async); a mediator handler whose contract returns `Task` is
+  a framework boundary too.
+- ✅ **No sync-over-async** — template [Language and Async](csharp.instructions.md#language-and-async);
+  [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt) bans it in every project, tests included (`RS0030`).
+- 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate** — template
+  [Language and Async](csharp.instructions.md#language-and-async).
+- ✅ **No `ConfigureAwait(false)`.** The family's libraries are ASP.NET-Core-oriented, so the template's
+  [Language and Async](csharp.instructions.md#language-and-async) rule for code that runs only under ASP.NET Core
+  applies to all of them; `CA2007` is disabled, not required.
+- 👁 **Request-abort cancellation is a disconnect, not an error** — template
+  [Language and Async](csharp.instructions.md#language-and-async).
 - 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
-  cancelled.** An `HttpClient` timeout throws `TaskCanceledException` while the loop's token is untouched, so a filter
-  `when (exception is not OperationCanceledException)` lets one slow endpoint end the loop and, under the host's default
-  `BackgroundServiceExceptionBehavior.StopHost`, stop the process. Catch the failure of one unit of work with
-  `when (!stoppingToken.IsCancellationRequested)` and end the loop quietly only when that token is cancelled
-  (`JobDispatchWorker`,
+  cancelled** — template [Language and Async](csharp.instructions.md#language-and-async) (`JobDispatchWorker`,
   [ADR-1232](../../docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
-- ✅ **Prefer C# 12+ collection expressions** over `new[] { … }` / `new List<T> { … }` / `Array.Empty<T>()`:
-  `byte[] data = [1, 2, 3];`, `List<string> names = ["a", "b"];`, `int[] empty = [];`. Cast when a target type needs
-  it for generic inference, e.g. `(byte[])[1, 2, 3]` for a `ReadOnlyMemory<T>` parameter.
-- ✅ **Use `const` for compile-time literal values** of any type instead of `var`/`readonly` locals:
-  `const string Expected = "hello";`, `const int Count = 5;`, `const char Separator = ',';`.
-- ✅ **Use UTF-8 string literals (`u8`)** when building `byte[]`/`ReadOnlySpan<byte>` from valid UTF-8 text:
-  `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests. A fixed
-  protocol label — an HKDF `info`, a hash prefix — is a `static ReadOnlySpan<byte> Name => "…"u8` property, never a
-  `const string` encoded on each call.
-- ✅ Nullable reference types are **on** and nullable warnings are **errors**. 🚫 The **null-forgiving operator (`!`)
-  is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
-  `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
-  justification comment, **do not use that escape hatch**: eliminate the `!`, never annotate it.
-- ⚠️ **`T?` under a `where T : notnull` constraint is NOT `Nullable<T>` for a value type** — it is the
-  non-nullable `T`, so `field is not null` / `field is null` on such a member is always `true` / `false` for value
-  types and silently misdetects "has a value". Never use a `T?` field (or the `x is null` test on one) as the
-  presence flag for an optional value-type slot under a `notnull` constraint; track presence with an explicit `bool`
-  flag (or constrain the API to `where T : struct` so `T?` really is `Nullable<T>`). This bit the settings lattice:
-  see [ADR-1010](../../docs/decisions/1010-supported-settings-unset-means-unrestricted.md).
-- ✅ **`Debug.Assert` is for internal invariants only — never to validate untrusted or external input.** It is
-  compiled out in Release (`DEBUG`-gated), so any check written as an assertion silently disappears in shipped
-  builds. Validating a parsed/decoded value (e.g. a `TryDecode`/`TryParse` result on caller- or wire-supplied data)
-  with `Debug.Assert` is a security bug: the malformed value is accepted in Release. Use an explicit `if (!ok) throw`
-  for anything derived from input; reserve `Debug.Assert` for facts the surrounding code already guarantees (a buffer
-  length you just allocated, an unreachable `default` branch).
-- 👁 **Validate untrusted text as written, not only as parsed.** Anchor a validating regular expression with `\z`,
-  never `$`: .NET's `$` also matches before a trailing newline, so `^[a-z]+$` accepts `"acme\n"`. When the value is an
-  identifier compared byte for byte — an issuer, a redirect URI — check the raw string as well as the parsed `Uri`:
-  `Uri` trims surrounding whitespace and reports an empty query (`?`) or fragment (`#`) as absent, so a string it
-  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`). Carry such an
-  identifier as a `string` wherever it is stored, serialized, compared, or delivered, and parse a `Uri` only to inspect
-  a part: `Uri` equality ignores the case of the host, the user information, and the fragment, and `AbsoluteUri`,
-  `ToString()`, `UriBuilder`, and `UriJsonConverter` normalize it (`myapp://callback` becomes `myapp://callback/`)
+- ✅ **Collection expressions** — template [Collection Expressions](csharp.instructions.md#collection-expressions).
+- ✅ **`const` for compile-time literal values** — template
+  [Constants for Literals](csharp.instructions.md#constants-for-literals).
+- ✅ **UTF-8 string literals (`u8`)** — template [UTF-8 String Literals](csharp.instructions.md#utf-8-string-literals);
+  a fixed protocol label, such as an HKDF `info` or a hash prefix, is a `static ReadOnlySpan<byte>` property.
+- ✅ **Nullable reference types are on, nullable warnings are errors, and the null-forgiving operator (`!`) is
+  banned** — template [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants).
+- ⚠️ **`T?` under a `where T : notnull` constraint is not `Nullable<T>` for a value type** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants); it bit the settings lattice
+  ([ADR-1010](../../docs/decisions/1010-supported-settings-unset-means-unrestricted.md)).
+- ✅ **`Debug.Assert` is for internal invariants only, never for input** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants).
+- 👁 **Validate untrusted text as written, not only as parsed** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants). `TenantAddressRules.TryParseIssuer`
+  checks an issuer's raw string, and an identifier compared byte for byte, such as a redirect URI, is never normalized
+  through `UriBuilder` or `UriJsonConverter` either
   ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
-- 👁 Prefer **auto-properties over fields** for state (static or instance) — **including `private` members**. Use a
-  field only for a low-level need a property cannot express (a `ref` / `Interlocked` / `fixed` / `stackalloc` target).
-  **A `System.Threading.Lock` does _not_ qualify** — declare it as a get-only auto-property
-  (`private Lock Gate { get; } = new();`): the property compiles to a `readonly` backing field and `lock(Gate)` still
-  lowers to `Gate.EnterScope()`.
-- 👁 **Pick the narrowest accessor shape:** `{ get; }` for read-only state, `{ get; init; }` for immutable DTOs, and
-  `{ get; set; }` only when mutation is genuinely required. Use an **expression-bodied member** for a simple computed
-  property (`internal TokenGeneratorSettings Settings => SettingsOrNull ??= LoadSettings();`).
-- 👁 Use **primary constructors** wherever possible — including converting existing single-purpose constructors.
-  When a constructor's body only assigns its parameters to members, hoist the parameters onto the type declaration
-  and feed them directly into get-only / `init` auto-properties (`public Foo Bar { get; } = bar;`); delete the now-empty
-  constructor and move its `<param>` doc tags onto the **type**. Keep a traditional constructor only when a primary one
-  genuinely can't express the intent — a member initializer that must reference **another** instance member, multiple
-  public constructors, or constructor-body logic that can't be reduced to member initializers (buffering a collection
-  with `[.. param]` or a guard folded into an initializer is fine; branching, loops, or `out`/`ref` work is not).
+- 👁 **Auto-properties over fields, `private` members and a `Lock` included** — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors).
+- 👁 **The narrowest accessor shape** — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors).
+- 👁 **Primary constructors wherever they can express the type**, converting single-purpose constructors too — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors); buffering a collection with `[.. param]`
+  or a guard folded into an initializer still fits a primary constructor.
 
-- 👁 Put constants / statics / `static readonly` at the **top** of the file or class, before instance members.
+- 👁 **Constants and statics at the top of the type** — template [Layout](csharp.instructions.md#layout).
 
 ## 2. Public API discipline
 
-- 👁 **`public` is a deliberate decision, never a default.** Start every type and member at the **narrowest visibility
-  that works** (`private`, then `internal`) and widen **only** with a conscious reason — a contract a consumer
-  implements or resolves, a headline entry point, developer-facing data. "It compiled" or "a test needed it" are not
-  reasons: test access uses `InternalsVisibleTo` (§7), not a widened surface, and a concrete implementation a consumer
-  reaches through DI stays `internal` (the **interface** is the surface; the `DefaultFoo` impl is never named by
-  consumers). The asymmetry is the argument — an accidental `internal` is a one-line widen, but an accidental `public`
-  is a SemVer contract you must support and can only walk back with an `[Obsolete]` cycle across a **major** version.
-- 👁 **Correct-by-default.** There is **no public API** to disable issuer / audience / signature / lifetime / algorithm
-  validation, or to weaken a security control below its safe baseline. A knob may only supply values or swap a control
-  for an equal-or-stronger one.
-- 👁 **A policy that a replaceable public service must apply is itself a public seam.** When a public interface a
-  consumer may replace (`ITokenService`) has to enforce a security policy, put the policy behind its own public
-  interface with an internal default (`IAccessTokenPolicyService`, `IClientJwtCredentialSelector`), so a replacement
-  resolves the policy instead of reimplementing it or silently skipping it; keeping it internal makes the secure path
-  unreachable for exactly the code that needs it. See
-  [ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) and
-  [ADR-1181](../../docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md).
+- 👁 **`public` is a deliberate decision, never a default** — template [Public API](csharp.instructions.md#public-api);
+  the `DefaultFoo` implementation behind a public interface stays `internal` (§3).
+- 👁 **Correct-by-default** — template [Security Defaults](csharp.instructions.md#security-defaults): no public API
+  disables issuer, audience, signature, lifetime or algorithm validation.
+- 👁 **A policy that a replaceable public service must apply is itself a public seam** — template
+  [Public API](csharp.instructions.md#public-api): a replacement of `ITokenService` resolves
+  `IAccessTokenPolicyService` and `IClientJwtCredentialSelector`
+  ([ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
+  [ADR-1181](../../docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
 - 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
   `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
   tenant's algorithm allow-lists, keys, `typ`, issuer, lifetime, and session check in one place, and hand-built copies
@@ -126,12 +84,11 @@ rationale.
   only what it owns — the audiences it requires and the decryption keys of the resource server it acts for — through
   `AccessTokenValidationOptions`. See
   [ADR-1167](../../docs/decisions/1167-the-server-validates-the-tokens-it-issued-under-one-policy.md).
-- 👁 **Restrict a caller to some endpoints with opt-in endpoint metadata that fails closed.** When a kind of client may
-  use only some endpoints, refuse it everywhere by default where it is resolved, and let each permitted endpoint opt in
-  through route metadata (`AcceptResourceServerClients()` adds `IOpenIdEndpointResourceServerClientMetadata`, which
-  `DefaultOpenIdClientResolver` checks). A per-endpoint deny check would be missing from the next endpoint someone
-  adds, and a request with no endpoint, such as background work, must resolve nothing. See
-  [ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md).
+- 👁 **Restrict a caller to some endpoints with opt-in endpoint metadata that fails closed** — template
+  [Security Defaults](csharp.instructions.md#security-defaults): `AcceptResourceServerClients()` adds
+  `IOpenIdEndpointResourceServerClientMetadata`, which `DefaultOpenIdClientResolver` checks, and a request with no
+  endpoint, such as background work, resolves no such client
+  ([ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
 - 👁 **Keep CORS off a front-channel endpoint with `WithOpenIdFrontChannel()`, never CORS metadata.** An endpoint the
   user agent navigates to (authorization, continue, end-session, the interactive surface) carries
   `IOpenIdEndpointFrontChannelMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same
@@ -177,21 +134,17 @@ rationale.
     shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
     data. See [ADR-1150](../../docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md).
 
-- 👁 **No secret material on the public surface.**
-- 👁 Data / options / context / event types are `sealed`, with `init` / get-only members and **concrete, buffered**
-  collections (`List<T>`, not `IList<T>`) — AOT-friendly, cheap to re-enumerate, free of deferred-execution surprises.
-  Interfaces appear only for a replaceable DI seam or a read-only slice.
-- 👁 **Seal by derivation intent, not by visibility.** A public **data / options / context / event / result / DTO** type
-  is `sealed` (above) — it is a leaf and sealing says so. A public type that is a **deliberate extension point** — an
-  abstract base or a class consumers subclass (the Abstractions surface: `SecretKey`, `Algorithm`, `OpenIdContext`,
-  `OpenIdClient`, `KnownParameter`, …) — is **not** sealed. A public **concrete leaf** with no extension point is
-  sealed too; if it only needs to be _test_-mockable, demote it to `internal` (left unsealed, §7) or mock its
-  interface — never keep it `public` **and** unsealed just for tests. `CA1852` (seal internal types) is **disabled**
-  precisely so internal impls can stay unsealed for mocking; that exemption does not license unsealed public leaves.
-- 👁 **Prefer a `readonly record struct` for a small, immutable value-like type** — an id, key, command, or disposition,
-  the established shape across the family (`SettingKey<T>`, `UriDescriptor`, the `*Command` / `*Disposition` types) — so
-  value equality and immutability come for free. Reach for a `class` / `record class` only for reference identity or a
-  larger/mutable payload.
+- 👁 **No secret material on the public surface** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Data, options, context and event types are `sealed`**, with `init` or get-only members and concrete collections
+  (`List<T>`, never `IList<T>`) — template [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Seal by derivation intent, not by visibility** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections). The Abstractions extension points
+  (`SecretKey`, `Algorithm`, `OpenIdContext`, `OpenIdClient`, `KnownParameter`) stay unsealed, and `CA1852` being
+  disabled for internal implementations (§7) never licenses an unsealed public leaf.
+- 👁 **A `readonly record struct` for a small, immutable value** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections) (`SettingKey<T>`, `UriDescriptor`, the
+  `*Command` and `*Disposition` types).
 - 👁 **A JSON-deserialized DTO captures unknown fields** with a
   `[JsonExtensionData] public Dictionary<string, JsonElement>? ExtensionData { get; set; }` member, so an unrecognized
   wire member round-trips instead of being silently dropped.
@@ -205,32 +158,17 @@ rationale.
   A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) also carries the `[JsonExtensionData]` bag above
   so a mixed-version node cannot drop members on a read-modify-write. Payload members never begin with `$` (reserved for
   the envelope).
-- 👁 **Buffer by default; stream deliberately.** Reach for a lazy `IEnumerable<T>` / `IAsyncEnumerable<T>` only when the
-  sequence is genuinely large/unbounded, I/O-backed, or usually short-circuited. Never return a deferred sequence that
-  **captures request/ambient context** (it goes stale off-request — see §7), and never hand back as lazy a sequence a
-  caller will enumerate more than once or need `Count` on.
-- 👁 **Own every stored collection; pick the concrete type by usage.** A constructor or method that keeps a collection
-  parameter — including a DI-injected `IEnumerable<T>` or a sequence a deferred closure will capture — **buffers it once
-  into an owned, immutable copy**; never store the caller's reference through (they can mutate it, and a lazy sequence
-  re-enumerates on every read). Choose the type by how it is read: a set-once membership/lookup table read many times is
-  a `FrozenSet<T>` / `FrozenDictionary<K,V>` (concrete, immutable, O(1) — **not** `IReadOnlyDictionary<K,V>`, which is an
-  interface); a set-once sequence you iterate is an `ImmutableArray<T>` (`Foo { get; } = [.. items];`); a genuinely
-  mutable working set stays a `List<T>`. Prefer `params IEnumerable<T>` over `params T[]` (C# 13) and buffer inside.
-- 👁 **Signatures speak in read-only interfaces; storage stays concrete.** A method **parameter** or a computed method
-  **return value** that does not hand back ownership takes / returns the narrowest read-only interface
-  (`IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IReadOnlySet<T>`), so callers aren't coupled to a concrete type. This
-  does **not** relax the rule above: a set-once collection **property** on a data type still exposes its concrete
-  immutable type (`FrozenSet<T>` / `ImmutableArray<T>`), and the backing storage is always concrete. Locals stay
-  concrete via `var` over an explicit initializer (`var map = new Dictionary<string, T>();`).
-- 👁 **No behavior-selecting flag arguments** (the "boolean trap"). A `bool`/`enum` parameter whose only job is to
-  switch a method between two behaviors becomes **two intention-revealing methods**. A `bool` carried as data the
-  method does not branch on is fine.
-- 👁 **A configuration callback takes one growable type.** An `Action<T>` passed to a wire-up method uses a single
-  sealed options/configurator `T`, never bare parameters — so a new configurable aspect is a **non-breaking
-  property-add** on `T`, not a new callback parameter that breaks every caller.
-- 👁 **No cross-assembly `InternalsVisibleTo` in production.** It is for **test projects only** (plus
-  `DynamicProxyGenAssembly2` for mocking). Packages collaborate through **public** contracts, never internals. See
-  [project-template ADR-0104](../../docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md).
+- 👁 **Buffer by default; stream deliberately** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Own every stored collection; pick the concrete type by usage** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Signatures speak in read-only interfaces; storage stays concrete** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections); a local stays concrete through `var` over an
+  explicit initializer.
+- 👁 **No behavior-selecting flag arguments** — template [Public API](csharp.instructions.md#public-api).
+- 👁 **A configuration callback takes one growable type** — template [Public API](csharp.instructions.md#public-api).
+- 👁 **No cross-assembly `InternalsVisibleTo` in production** — template [Public API](csharp.instructions.md#public-api)
+  and [project-template ADR-0104](../../docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md).
 - 👁 **An implementation package references only `*.Abstractions` packages — never another implementation package.**
   Cross-implementation collaboration flows through an interface owned by an `*.Abstractions` package, resolved from DI;
   the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
@@ -238,10 +176,8 @@ rationale.
   new capability shared by more than one implementation therefore ships as an abstraction/implementation **pair**. An
   implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. See
   [ADR-1016](../../docs/decisions/1016-implementation-packages-depend-only-on-abstractions.md).
-- 👁 **Mark infrastructure-public types.** A type that is public **only** for cross-assembly collaboration — never for
-  application code — is marked `[EditorBrowsable(EditorBrowsableState.Never)]` and its `<summary>` opens with the
-  standard boilerplate: _"This API supports the NCode.Identity infrastructure and is not intended to be used directly
-  from your code."_ (the EF Core / ASP.NET Core pattern).
+- 👁 **Mark infrastructure-public types** — template [Public API](csharp.instructions.md#public-api), with the summary
+  _"This API supports the NCode.Identity infrastructure and is not intended to be used directly from your code."_
 - ⏳ The public surface is deliberate and tracked by `PublicApiAnalyzers` (`RS0016` / `RS0017` / `RS0024`): a public
   change not recorded in the sibling `PublicAPI.{Shipped,Unshipped}.txt` fails the build. A breaking change is a
   **major** version bump. See [ADR-1005](../../docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md).
@@ -256,22 +192,13 @@ rationale.
   An `abstract override` member is recorded as `override abstract …`. `dotnet format analyzers` can rewrite a
   `PublicAPI.Unshipped.txt` it edits with CRLF line endings; the repository's files are LF, so restore LF before
   committing (`git diff --stat` shows the whole file changed when this happens).
-- ⏳ **At most one overload per method name may carry optional parameters (`RS0026`).** The public-API analyzer fails
-  the build when two overloads of the same name each declare a defaulted parameter (even when their other parameters
-  differ in type, so there is no call ambiguity). When a family of overloads needs an optional tail argument (e.g. a
-  `JsonSerializerOptions? jsonOptions`), do **not** give several of them `= null` defaults; express them as explicit
-  no-argument / with-argument overload pairs (the trailing parameter is present but **not** defaulted), which reads
-  unambiguously and satisfies the analyzer. `IJoseSerializer.Deserialize<T>` / `VerifyJws<T>` follow this shape.
-- 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
-  as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
-  property, model "unspecified" as nullable, and resolve the default **inside the library**.
-- 👁 **An evolving set of optional selection criteria is a DTO, not positional parameters.** When a method takes a
-  growing set of optional filters (the way `IGrantStore` kept gaining `sessionId`, then `grantType`), model them as a
-  dedicated `readonly record struct` with **init-only, non-`required`** properties (e.g. `GrantFilter`), constructed by
-  object initializer — so a new criterion is a source-compatible add, not a breaking signature change. The
-  `(cursor, limit)` pagination pair follows the same shape via the shared `PageRequest` DTO (every store `GetPageAsync`
-  takes `PageRequest`), so pagination can grow (e.g. a sort direction) non-breakingly too. Keep **required identity
-  keys** positional. See [ADR-1099](../../docs/decisions/1099-forward-compatible-evolving-parameters.md).
+- ⏳ **At most one overload per method name carries optional parameters (`RS0026`)** — template
+  [Public API](csharp.instructions.md#public-api) (`IJoseSerializer.Deserialize<T>` and `VerifyJws<T>`).
+- 👁 **Required inputs are constructor parameters; optional inputs are `init` properties** — template
+  [Public API](csharp.instructions.md#public-api).
+- 👁 **An evolving set of optional selection criteria is a DTO, not positional parameters** — template
+  [Public API](csharp.instructions.md#public-api): `GrantFilter`, and the shared `PageRequest` that every store
+  `GetPageAsync` takes ([ADR-1099](../../docs/decisions/1099-forward-compatible-evolving-parameters.md)).
 - 👁 **Annotate a reflection-/DI-/serializer-consumed public type with `[PublicAPI]`** (JetBrains.Annotations) — the
   house pattern across the packages. Members of a public type touched only by the JSON serializer, the options binder,
   or the DI container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the
@@ -281,92 +208,56 @@ rationale.
 
 ## 3. File & code organization
 
-- ✅ **One type per file.** An interface and its implementation are two files. (A generic interface and its
-  strongly-typed sibling of the same name — `IFoo` + `IFoo<T>` — may share a file, as they are one contract in two arities.)
-- 👁 **The single canonical implementation of an `IFoo` that a consumer resolves through DI and never names directly
-  is named `DefaultFoo`** — strip the `I`, prepend `Default` (`IJoseSerializer` → `DefaultJoseSerializer`,
-  `IJsonWebTokenService` → `DefaultJsonWebTokenService`, `ITokenService` → `DefaultTokenService`). This is the ASP.NET
-  Core idiom (`DefaultHttpContextFactory`): it keeps the bare concept name free, separates interface from
-  implementation, and signals a replaceable default. The rule is about the **implementation**, which therefore stays
-  `internal` (§2) and is reached only through the interface; the `IFoo` itself may be `public` or `internal` — that is
-  what "regardless of the interface's visibility" means. **Three carve-outs, when the class is _not_ "the one canonical
-  DI impl":** (a) one of several variants named for what makes it specific (`DefaultAuthorizationCodeGrantHandler`,
-  `DefaultClientCredentialsGrantHandler` — each a distinct `ITokenGrantHandler`); (b) an implementation of a
-  **framework** interface follows that framework's own pattern name; (c) a **public, developer-facing
-  data / message / model / result type a consumer constructs and names directly** keeps the bare concept name
-  (`AuthorizationTicket`, `TokenRequest`, `ResourceNode` — never `Default*`), even when it implements an `IFoo` seam.
-  See [project-template ADR-0105](../../docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md).
-- 👁 **No nested types**, with two exceptions: (a) a private nested type that must **close over the enclosing type's
-  generic type parameter**; (b) a nested `static` class that groups a related **constant vocabulary** (only `const`
-  fields — no behavior, no state). Everything else is its own top-level file.
-- 👁 **A type's folder is decided by _what the type is_, organized by purpose.** Group interfaces/contracts, options,
-  events, developer-facing models, extension-method classes, and internal infrastructure so a reader can find "the
-  serializers" or "the endpoints" by folder. Public headline entry points a consumer uses by name live at the package
-  root. A single-purpose package (all abstractions) stays flat with no subfolders. **Avoid a vague catch-all folder /
-  namespace (`Logic`, `Helpers`, `Misc`, `Common`) — it is a grab-bag that grows without cohesion.** Name the group for
-  the purpose it serves (`KeyTypes`, `Collections`, `KeyMaterial`, `Algorithms`, `Stores`, `Pkce`, `OutboundHttp`,
-  `ResourceServers`, `Cryptography`); if a bucket has accreted several unrelated purposes, split it (no `Logic`
-  namespace remains in the family — see the issue [#27](https://github.com/NCodeGroup/Identity/issues/27) entry in [`CHANGELOG.md`](../../CHANGELOG.md)). A contract,
-  its DTOs, and its `Default*` implementation share one purpose namespace across the `.Abstractions`/implementation
-  pair, and that folder registers its own services (`AddPkceServices()`), never a catch-all registration. **An
-  endpoint's own replaceable services live at that endpoint's root namespace** (`…Endpoints.Registration`, beside its
-  handler and `DefaultRegistration`), and a service used by a single grant lives with that grant
-  (`…Endpoints.Token.TokenExchange`) — never in a per-endpoint sub-bucket.
-- ✅ **The _public_ namespace is a stable contract and does not have to mirror folders.** `IDE0130` /
-  namespace-match-folder is opted out in [`.editorconfig`](../../.editorconfig), and `RootNamespace` pins a package's
-  base namespace, so you can reorganize public types across folders **without churning their namespace** — the public
-  surface stays flat under the package root (public options are the established exception: an `Options/` folder carries a
-  `.Options` sub-namespace). **Internal implementation types, by contrast, carry no contract, so prefer traditional
-  folder-matching organization for them** — when you group internals into a folder, give them the matching
-  sub-namespace (e.g. `…Logging` for `Logging/`, `…InProcess` for a built-in strategy's `InProcess/` folder) so the
-  namespace reflects the structure. Reserve the flat-namespace rule for the public surface, where stability matters;
-  do not flatten internal helpers that live in a dedicated folder.
-- 👁 **Interface names state the role; the namespace supplies the brand.** Name an interface for its role
-  (`ITokenGrantHandler`, `IEndpointProvider`, `IClaimsService`) and add a qualifier only when the bare role noun would
-  collide with a well-known BCL/framework type or be too generic to stand alone.
+- ✅ **One type per file** — template [File and Code Organization](csharp.instructions.md#file-and-code-organization).
+- 👁 **The single canonical implementation of an `IFoo` is `DefaultFoo`** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization) and
+  [project-template ADR-0105](../../docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)
+  (`IJoseSerializer` → `DefaultJoseSerializer`, `ITokenService` → `DefaultTokenService`).
+- 👁 **No nested types**, except the template's two — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization).
+- 👁 **A type's folder is decided by what the type is, organized by purpose** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization). A single-purpose package (all
+  abstractions) stays flat. Name a group for its purpose (`KeyTypes`, `Algorithms`, `Stores`, `Pkce`, `OutboundHttp`,
+  `ResourceServers`, `Cryptography`); a contract, its DTOs and its `Default*` implementation share one purpose
+  namespace across the `.Abstractions`/implementation pair, and that folder registers its own services
+  (`AddPkceServices()`). An endpoint's own replaceable services live at that endpoint's root namespace
+  (`…Endpoints.Registration`), and a service used by a single grant lives with that grant
+  (`…Endpoints.Token.TokenExchange`).
+- ✅ **The public namespace is a stable contract and does not have to mirror folders** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization). `IDE0130` is opted out in
+  [`.editorconfig`](../../.editorconfig) and `RootNamespace` pins a package's base namespace; public options are the
+  exception, whose `Options/` folder carries a `.Options` sub-namespace.
+- 👁 **Interface names state the role; the namespace supplies the brand** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization).
 
 ## 4. Extension methods & DI registration
 
-- 👁 **A host `Program.cs` is composition-only — reusable or developer-only startup code never lives there.** This is
-  the single most-repeated review miss, so treat it as a hard rule. The reference host and every other host must read
-  as a flat list of turnkey calls (`serviceCollection.AddX(...)`, `app.UseX()`, `app.MapX()`) — **no** reusable logic,
-  policy builders, config-section parsing, `new`-ing of options, loops, consts, or dev/test helpers inline. **Tripwire:**
-  the moment host startup needs more than a single wiring call — an `if`, a `foreach`, a CORS/auth policy builder, a
-  `new`, reading a configuration section — stop and move that logic into the **owning package** as an `Add*`/`Use*`/`Map*`
-  extension, then call the one-liner from the host. Developer/dev-only helpers for the OpenID server live beside their
-  siblings in [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
-  (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
-  turnkey surface so a host opts in with one call. Default to "it goes in the package"; only the genuinely host-specific,
-  unsafe-to-default inputs called out below (database provider/connection string, production signing key) stay in
-  `Program.cs`. Kestrel's HTTPS defaults are one of them: `ConfigureHttpsDefaults` keeps only its last action, so a
-  package that called it would silently replace, or be replaced by, the host's own TLS settings. A package never calls
-  it; the host makes one `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default,
-  such as the reference host's `AllowAnyClientCertificate()` for mutual TLS
+- 👁 **A host `Program.cs` is composition-only** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods), and the
+  most-repeated review miss here. Developer-only helpers for the OpenID server live beside their siblings in
+  [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
+  (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) behind the server's turnkey
+  surface, the production signing key is a host input, and the host makes one
+  `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default, such as the reference
+  host's `AllowAnyClientCertificate()` for mutual TLS
   ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
-- ✅ Use the **C# 14 `extension` member syntax** (`extension(ReceiverType r) { … }` blocks), not classic
-  `this`-parameter static methods — matching the `DefaultRegistration.cs` composition pattern
-  (`extension(IServiceBuilder<IdentityLibrary> builder) { … }`).
-- ✅ **One receiver-type per static class.** Multiple `extension(...)` blocks with different receiver types in one class
-  trip `CA1708` — split them (which also fits one-type-per-file).
-- 👁 **When two receiver interfaces are unrelated but a concrete type implements both, target their common base — do
-  not write one overload per interface.** `IDictionary<,>` and `IReadOnlyDictionary<,>` don't derive from one another,
-  yet a concrete `Dictionary<,>` implements both, so an overload on each makes every concrete-dictionary call site
-  **`CS0121` ambiguous** — and splitting the two into separate classes does **not** help, because the ambiguity is
-  between the methods, not their containers. Provide a **single** member on the common base
-  (`extension(IEnumerable<KeyValuePair<TKey,TValue>>)`) and fast-path the dictionary receivers to an O(1) lookup inside
-  (`switch` on `IReadOnlyDictionary<,>` / `IDictionary<,>`, else scan). Exemplar:
-  `NCode.Json.ObjectGraphExtensions.TryGetValue<T>`.
-- 👁 Keep null-guards on the receiver (extension members can be invoked on `null`).
-- 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects.** When an `extension(...)` member
-  throws `ArgumentException` about its receiver, still pass `nameof(receiver)` — the receiver _is_ the offending argument.
-  `CA2208` does not yet treat an extension-block receiver as a parameter, so wrap only those throws in a tight
-  `#pragma warning disable/restore CA2208` with a one-line reason; never drop the `paramName` to silence it.
-- 👁 **Choose the DI shape deliberately** per [ADR-1001](../../docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md):
-  a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
-  (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
-  only for a genuine pipeline seam where the sender must stay ignorant of the handlers. `TryAddEnumerable`
-  keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
-  vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
+- ✅ **C# 14 `extension` member syntax** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
+  (`extension(IServiceBuilder<IdentityLibrary> builder) { … }` in `DefaultRegistration.cs`).
+- ✅ **One receiver type per static class (`CA1708`)** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
+- 👁 **When two receiver interfaces are unrelated but a concrete type implements both, target their common base** —
+  template [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
+  (`NCode.Json.ObjectGraphExtensions.TryGetValue<T>`).
+- 👁 **Null-guard the receiver** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
+- 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
+- 👁 **Choose the DI shape deliberately** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods) and
+  [ADR-1001](../../docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). The mediator is
+  `NCode.Mediator`'s `ICommandHandler<T>`, and each built-in strategy of an open vocabulary is its own class (the
+  redirect URI kinds).
 - 👁 **A relationship between a client's settings is a registered coherence rule.** When a value a client registers must
   be permitted by another of its effective settings, or may require one, add an `IClientCoherenceRule` with
   `TryAddEnumerable`. The rule reads a `ClientCoherenceContext` (the client's registered and its effective settings; a
@@ -462,34 +353,17 @@ rationale.
   `OpenIdClient.IsConfidential`, which agrees with it. Never treat a client registered as confidential as having
   authenticated. See [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md) and
   [ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md).
-- 👁 **Bind configuration strictly and validate it when the host starts.** An options type bound from configuration is
-  bound with the binder's `ErrorOnUnknownConfiguration` (through `NCode.Registration`'s `BindStrictly`, which names the
-  section in the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an
-  `IValidateOptions<T>`. A key that maps to no option must stop the host — a misspelled or misplaced key is otherwise
-  indistinguishable from an absent one. Bind a whole section rather than reading single keys (`configuration["A:B"]`),
-  which leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. A collection
-  option the binder fills starts **empty**: the binder appends the configured values to an array or list that already
-  holds some, so a default set in the initializer can never be narrowed by configuration — apply the default when
-  nothing is configured instead. A host's own identifiers are not a library default at all: a collection that would
-  default to them (a seeded client's id and redirect URIs) has none, and the host's environment overlay declares the
-  entries beside the configuration that publishes them
+- 👁 **Bind configuration strictly and validate it when the host starts** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Registration`'s
+  `BindStrictly`, which names the section in the error. A seeded client's id and redirect URIs have no library default:
+  the host's environment overlay declares them beside the configuration that publishes them
   ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
-  Each section
-  has one owner that declares its whole shape; an extension binds its own section rather than adding keys to one the
-  server owns. Validate only what is in force (for example the selected tenant strategy's options), since a JSON overlay
-  cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
-  a different value instead of an error (`IPAddress.TryParse("10.0.0")` is `10.0.0.0`; `IPNetwork.TryParse` masks
-  `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
-  Unix, `C:\path` on Windows — and trims surrounding whitespace, so parse an absolute URI with
+  An extension binds its own section rather than adding keys to one the server owns. Parse an absolute URI with
   `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
-  `Uri.TryCreate` alone; a test that passes on Windows can fail on the Linux CI runner otherwise), and a value compared
-  verbatim (a CORS origin) must be in the form it is compared
-  in — reject anything that parses to something other than what was written. The binder reads an enum option from a
-  number as well as from a name and accepts a number that names no member (`"7"`), so the options validator refuses a
-  value `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
-  [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). A setting the
-  server cannot honor in an environment (a development-only section in Production) is a startup error, not an inert
-  key. See [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  `Uri.TryCreate` alone, and keep a value compared verbatim, such as a CORS origin, in the form it is compared in. An
+  options validator refuses an enum value that `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
+  [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). See
+  [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md),
   [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md), and
   [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a
@@ -631,30 +505,24 @@ rationale.
   or drop it to a naked collection. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
-- 👁 **The package that owns a consumer registers that consumer's ambient dependencies**, so composing the server
-  (`AddIdentityServer()`) is turnkey and a host wires **no** framework plumbing. Register the framework services your
-  endpoints/handlers depend on (routing, `IHttpClientFactory`, `AddAuthentication()`, a default `IIdGenerator<long>`,
-  …) from the owning package via `TryAdd*`, as an **overridable default** rather than a host requirement; a host
-  overrides by registering its own before the composition call (or last-wins after). Only genuinely host-specific,
-  unsafe-to-default inputs stay host-only — the database provider/connection string and the production signing key (per
-  [ADR-1002](../../docs/decisions/1002-ephemeral-development-keys.md)). Dead host wiring that only "works" by accidentally
-  pulling in a framework service (for example `AddControllers` dragging in authentication) is a smell: register the
-  real dependency explicitly from the package that needs it.
-- 👁 **A singleton service must be stateless — never memoize per-request state in an instance field.** A singleton is
-  shared by every request, so a cached result on the instance (`_result ??= await …`) leaks one request's answer to all
-  others — a correctness and security hole (a client-authentication result that sticks after the first call let any
-  later request reuse it regardless of its credentials). Memoize per-request state on the **request** instead
-  (`HttpContext.Items`, the `OpenIdContext`), or keep the service genuinely stateless. Making the service scoped is not
-  a fix when a singleton consumer captures it (captive dependency re-singletons it), so prefer request-scoped storage.
-- 👁 **Correctness never depends on process-local state.** The host runs as several interchangeable, disposable
-  replicas ([ADR-1134](../../docs/decisions/1134-cloud-native-operating-principles.md)), and any replica may serve the next
-  request. State that must outlive a request or be seen by another replica goes to the database or to the shared-state
-  port; in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and
-  must tolerate eviction and restarts. Never write durable data to the local filesystem.
-- 👁 **A hosted service whose `StopAsync` does work runs it once and never throws.** A host can be stopped twice at
-  once (`StopAsync` called while `RunAsync` stops it too), and the stop that returns first lets its caller dispose
-  the service provider under the other's work. Memoize the stop task under a `Lock`, serialize it with the
-  service's periodic work, and log what it could not finish (`TenantUsageFlushService.StopAsync`,
+- 👁 **The package that owns a consumer registers that consumer's ambient dependencies** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods), so composing
+  the server (`AddIdentityServer()`) is turnkey: the owning package registers routing, `IHttpClientFactory`,
+  `AddAuthentication()` and a default `IIdGenerator<long>` with `TryAdd*`. Only the database provider and connection
+  string and the production signing key stay host inputs
+  ([ADR-1002](../../docs/decisions/1002-ephemeral-development-keys.md)); host wiring that works only by pulling in a
+  framework service by accident, such as `AddControllers` dragging in authentication, is a smell.
+- 👁 **A singleton service is stateless** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods); a
+  client-authentication result memoized on a singleton let a later request reuse it whatever its credentials. Keep
+  per-request state on the request (`HttpContext.Items`, the `OpenIdContext`).
+- 👁 **Correctness never depends on process-local state** — template
+  [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work): the host runs
+  as interchangeable replicas ([ADR-1134](../../docs/decisions/1134-cloud-native-operating-principles.md)), and state
+  another replica must see goes to the database or the shared-state port.
+- 👁 **A hosted service whose `StopAsync` does work runs it once and never throws** — template
+  [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work)
+  (`TenantUsageFlushService.StopAsync`,
   [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
   `IMaterializedServerAccessor.GetServerAsync`, public so a package other than the core waits the same way, which
@@ -668,16 +536,13 @@ rationale.
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
   Protection's hosted service
   ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
-- 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
-  `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
-  (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,
-  Valkey for several. `IDistributedCache` cannot express it: a read followed by a write lets two concurrent requests
-  both pass. Build the key with the tenant and a digest of the length-prefixed, request-supplied components
-  (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
-  ambiguous or unbounded. `ExpiringKeys.Create` puts the tenant in braces, the key's hash tag, so one script may touch
-  one tenant's keys on a clustered Valkey and never several tenants'; and every Valkey adapter call goes through
-  `ValkeySharedStateMetrics.MeasureAsync`. A library never registers a host-wide cache. See
-  [ADR-1164](../../docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set** — template
+  [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state). A replay guard (a `jti`) or a
+  server-issued nonce is an atomic add-if-absent on the shared-state port (`NCode.Identity.SharedState.Abstractions`),
+  in process for one replica and Valkey for several. Build the key with `ExpiringKeys.Create`, which puts the tenant in
+  braces, the key's hash tag, so one script touches one tenant's keys on a clustered Valkey, and every Valkey adapter
+  call goes through `ValkeySharedStateMetrics.MeasureAsync`
+  ([ADR-1164](../../docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
 - 👁 **A record every replica must read and update is an `IExpiringValueSet` value, and a lookup by an attribute is an
   `IExpiringIndexSet`.** Take a single-use record with `TryTakeAsync`, never `GetAsync` then `RemoveAsync`. Update a
   record with `TryReplaceAsync`, naming the version you read; on `false` reload the record rather than overwrite it.
@@ -800,12 +665,10 @@ rationale.
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
   `IClientCertificateRevocationChecker`. See
   [ADR-1173](../../docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
-- 👁 **A retrieval that concurrent requests share runs once, on its own terms.** Key it in a `ConcurrentDictionary` of
-  `Lazy<Task<T>>` that the retrieval removes itself from; bound it by its own timeout, never a caller's token (a caller
-  stops waiting with `WaitAsync`); give it its own copy of any disposable input a caller owns, such as a chain's
-  certificates; remember a failed retrieval for a configured time so an unreachable source does not cost every request
-  a timeout (`DefaultClientCertificateRevocationChecker`). See
-  [ADR-1252](../../docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md).
+- 👁 **A retrieval that concurrent requests share runs once, on its own terms** — template
+  [Outbound Calls](csharp.instructions.md#outbound-calls); it also takes its own copy of any disposable input a caller
+  owns, such as a chain's certificates (`DefaultClientCertificateRevocationChecker`,
+  [ADR-1252](../../docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
 - 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A counter is
   incremented with the port's atomic `IncrementAsync`, which starts a counter for one fixed window, or, for the limits
   of a rate-limit stage, with `IncrementUntilExceededAsync`; a read followed by a write loses concurrent requests. Read
@@ -851,10 +714,9 @@ rationale.
   ([ADR-1238](../../docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
   [ADR-1239](../../docs/decisions/1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md),
   [ADR-1243](../../docs/decisions/1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
-- 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
-  acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
-  unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,
-  [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md).
+- 👁 **A write that a background loop retries is idempotent** — template
+  [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state): the usage ledger's per-replica
+  batch checkpoint ([ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **Deleting an owner removes what it owns, in the same unit of work, through the change tracker.** A client's
   removal takes its secrets, client grants, consents and grants; a client's or a resource server's removal also takes
   the role assignments at its node, ownership included; a tenant's takes every `ISupportTenantEntity` row of
@@ -893,13 +755,12 @@ rationale.
   endings are **LF** ([`.gitattributes`](../../.gitattributes), [`.editorconfig`](../../.editorconfig)), and the check
   fails a file with CRLF endings ("different line endings than formatting it would result in") — which a file created
   on Windows by a tool that ignores `.editorconfig` gets; `dotnet csharpier format <file>` fixes it.
-- ⏳ **Code-style analyzers run on build.** `EnforceCodeStyleInBuild` makes the `IDExxxx` rules execute during
-  `dotnet build`; combined with warnings-as-errors, rules set to `warning` in [`.editorconfig`](../../.editorconfig)
-  become build errors on shipping code.
-- ✅ **No unused `using` directives** — `IDE0005` is raised to `warning` solution-wide in
-  [`.editorconfig`](../../.editorconfig), so an unused `using` fails the build. It is hidden by default under
-  `AnalysisLevel` `latest-recommended`, and Roslyn only evaluates it when `GenerateDocumentationFile` is `true`
-  (dotnet/roslyn#41640). Clean violations with `dotnet format style --diagnostics IDE0005`, then re-run CSharpier.
+- ⏳ **Code-style analyzers run on build** — the template's build settings
+  ([project-template ADR-0100](../../docs/decisions/project-template/0100-warnings-are-errors-in-every-project.md)); a
+  rule [`.editorconfig`](../../.editorconfig) raises to `warning` fails the build.
+- ✅ **No unused `using` directives (`IDE0005`)** — template [Build](csharp.instructions.md#build);
+  [`.editorconfig`](../../.editorconfig) raises it solution-wide, and CSharpier runs again after
+  `dotnet format style --diagnostics IDE0005`.
 - ✅ **Every C# file starts with the two-line license header** `// Copyright © NCode Group` and
   `// SPDX-License-Identifier: Apache-2.0`, then a blank line — no `#region`, no year.
   [`.editorconfig`](../../.editorconfig) sets it as `file_header_template` and raises `IDE0073` to `warning`, so a
@@ -914,11 +775,9 @@ rationale.
   house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
   encodings in every project, tests included
   ([ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
-- ⏳ **Warnings-as-errors in _every_ project — including tests and the host projects** — and **NuGet vulnerability
-  advisories (`NU190x`) as errors in CI**. See
-  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md): the criterion is "code we maintain", not
-  "code we ship". Relax an individual rule via a justified [`.editorconfig`](../../.editorconfig) entry or a tight
-  `#pragma`; 🚫 never by setting `TreatWarningsAsErrors=false`.
+- ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
+  errors in CI** — template [Build](csharp.instructions.md#build) and
+  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
 - ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
   model contributor that changes a host context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
   MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
@@ -929,25 +788,21 @@ rationale.
   re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
   See [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md).
-- ✅ **A migration keeps the previous release working.** The previous release serves while a migration runs and after a
-  rollback, so a migration adds tables, nullable or defaulted columns, and indexes, and never drops, renames, or
-  tightens what the previous release reads. A column made required (with or without a default: EF Core writes an
-  explicit NULL for a column the previous release maps as nullable), a unique index, unique constraint, primary key,
-  check constraint or foreign key added to an existing table, and a foreign key that restricts deleting rows of an
-  existing table all tighten it. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous release
-  still reads every row they write, with the same meaning or a restriction this release applies too) or
+- ✅ **A migration keeps the previous release working** — template
+  [Entity Framework Core](csharp.instructions.md#entity-framework-core). A foreign key that restricts deleting rows of
+  an existing table tightens it too. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous
+  release still reads every row they write, with the same meaning or a restriction this release applies too) or
   `[ContractMigration("why")]` (it fails on, or loses, a value it reads). `ExpandOnlyRule.Check` judges every migration
   in `ExpandOnlyRuleTests`, which fails any other migration in the Definition of Done. A deliberate contract step ships
   a release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
   `Migrations/`, which `.editorconfig` treats as generated code. See
   [ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
   [ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).
-- ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
-  `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
-  `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema
-  uses PascalCase), so an unquoted fragment compiles and passes the SQLite tests but fails at runtime against Postgres
-  (`column "…" does not exist`). The drift gate cannot catch this — only applying the migration to Postgres does.
-- ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
+- ✅ **Raw SQL in the EF model quotes identifiers** — template
+  [Entity Framework Core](csharp.instructions.md#entity-framework-core):
+  `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`. The schema uses PascalCase, and only applying the migration to
+  Postgres catches an unquoted fragment; the drift gate cannot.
+- ✅ **The whole gate is [`build/dod.ps1`](../../build/dod.ps1)** — template [Build](csharp.instructions.md#build).
 - 👁 **`dod.ps1` prints its stage markers and the final `Definition of Done: PASSED` verdict via `Write-Host`,** which
   bypasses the PowerShell pipeline. `./build/dod.ps1 2>&1 | Out-File run.log` therefore captures the nested tool output
   but **silently drops the verdict line**, making a passing run look inconclusive. To capture everything, tee the
@@ -957,60 +812,41 @@ rationale.
   `Get-Help ./build/<script>.ps1` shows only the generated syntax. The DoD's `build script help` stage
   ([`build/tests/script-help.tests.ps1`](../../build/tests/script-help.tests.ps1)) fails a script whose help does not
   parse.
-- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`, narrowed with `-Filter`.** It parallelizes project builds and skips
-  the non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
-  analyzers, and compile warnings-as-errors; test assemblies run in parallel in every mode.
-  `./build/dod.ps1 -Fast -Affected` (only the test projects the change reaches since its merge base with
-  `origin/main`) is the **local pre-push gate** (the push protocol's final check); the plain `./build/dod.ps1` is the
-  full gate, which runs in the merge queue, on `main` and on release lines (ADR-1263).
-- 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone.** They share every project's
-  `obj/` output, and Nerdbank.GitVersioning rewrites `obj/<config>/<tfm>/<Project>.Version.cs.new` on each build, so
-  concurrent runs fail with `MSB4018` (the file is in use by another process) — a spurious build error, not a code
-  defect. Run test projects one after another, or let a single `./build/dod.ps1` invocation parallelize them.
-- 👁 **Run the full `dod.ps1` (no `-Fast`, a clean Release build over the whole solution) before calling a structural
-  change done —
-  an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file
-  that is open in the editor can be silently undone by the editor re-saving its stale buffer to the old path, leaving a
-  duplicate type definition that only a clean/Release build (i.e. the DoD) surfaces.
+- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`, narrowed with `-Filter`** — template
+  [Build](csharp.instructions.md#build). `./build/dod.ps1 -Fast -Affected` (only the test projects the change reaches
+  since its merge base with `origin/main`) is the **local pre-push gate**, and the plain `./build/dod.ps1` is the full
+  gate, which runs in the merge queue, on `main` and on release lines
+  ([ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+- 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone** — template
+  [Build](csharp.instructions.md#build); here they fail with `MSB4018` on Nerdbank.GitVersioning's
+  `obj/<config>/<tfm>/<Project>.Version.cs.new`.
+- 👁 **Run the full `dod.ps1` before calling a structural change done** — template
+  [Build](csharp.instructions.md#build); a `git mv` of a file open in the editor can be undone by the editor
+  re-saving its stale buffer, leaving a duplicate type that only a clean Release build surfaces.
 
 ## 6. Clean Code / Refactoring (review-only)
 
 Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All 👁:
 
-- Small functions that do **one thing** at a single level of abstraction.
-- **Few parameters** (0–2; avoid >3); a recurring parameter group (data clump) becomes a type. **I/O-channel
-  parameters don't count toward the budget** — a trailing `CancellationToken` and a Try-pattern `out` result are
-  plumbing, not data. A clump that mirrors a well-known BCL shape (e.g. `ClaimsIdentity(authenticationType,
-nameType, roleType)`) is acceptable, and a private single-call-site helper isn't worth a parameter object.
-- **Command–Query Separation** — a method acts _or_ answers, never both; a query does not mutate.
-- **Push store filtering into the DBMS.** A reader that needs a **filtered** subset of a store's entities calls a
-  discrete, intent-named store method (`FindEnabledByScopesAsync`, `GetEnabledIdentifiersAsync`, …) that pushes the
-  predicate to the database — never page the whole set via `GetPageAsync` and filter in memory. Keep the store contract
-  ORM-agnostic (no `IQueryable` / `Expression` in the interface), project to only the columns the caller needs, and
-  reserve `GetPageAsync` for genuine **unfiltered** pagination. See
-  [ADR-1080](../../docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md).
-- **Don't pass or return `null`** where an empty/absent form exists (empty collections; model absence).
-- **Intention-revealing, honest, searchable names** — no `Manager` / `Helper` catch-alls, no encodings.
-- **No repeated magic string literals.** A string used in more than one place — a claim type, an algorithm code, a
-  shared-dictionary key — is a named `const` in **one** place. Sentinels living in a shared dictionary
-  (`HttpContext.Items`, `AuthenticationProperties.Items`) are namespaced with a package prefix so they cannot collide.
-- **Exceptions, not error codes**, typed to the caller and carrying context; **never** an empty `catch`, never `async void`.
-- **Comments justify _why_, never restate _what_.** No commented-out code (Git remembers).
-- **Primitive Obsession** — model a concept that carries invariants as a type, not a bare `string`/`bool`/`int`.
-- **Law of Demeter** — talk to immediate collaborators; avoid `a.B().C().D()` chains and Feature Envy.
-- **Never nest a function call inside another call's arguments.** Hoist the inner call into an intention-revealing
-  local first — `var value = GetValue(); Process(value, "foo");`, never `Process(GetValue(), "foo")` — so each step is
-  named, debuggable, and readable.
-- **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
-  (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
-  Never leave a `HttpResponseMessage`, `Stream`, or `IHttpClientFactory`-created client undisposed.
-  **Parse JSON into a detached `JsonElement`, never a `JsonDocument`.** `JsonElement.Parse` (a `string`, a UTF-8
-  `ReadOnlySpan<byte>`, or, through `NCode.Json`, a `ReadOnlySequence<byte>`) and `JsonElement.ParseValue` own nothing
-  to dispose, so a token segment decoded into a rented buffer parses straight from the span; a `Stream` is read with
-  `JsonSerializer.Deserialize<JsonElement>` / `DeserializeAsync<JsonElement>`. `JsonDocument.Parse`, `ParseAsync`,
-  `ParseValue` and `TryParseValue` are banned (`build/BannedSymbols.txt`, RS0030) in production and test code alike: a
-  `JsonDocument` rents pooled buffers that leak when it is not disposed, and an element read from it fails once it is.
-  Name a parsed `JsonElement` for what it holds, or `jsonElement`, never `document`, which names a `JsonDocument`.
+The template's [Clean Code](csharp.instructions.md#clean-code) rules: small functions that do one thing, few
+parameters, command-query separation, no `null` where an empty form exists, intention-revealing names, typed exceptions
+and no empty `catch` or `async void`, comments that say why and no commented-out code, a type for a concept with
+invariants, the Law of Demeter, and no call nested in another call's arguments. The family adds:
+
+- **Few parameters**: a clump that mirrors a well-known BCL shape
+  (`ClaimsIdentity(authenticationType, nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
+  worth a parameter object.
+- **Push store filtering into the DBMS** — template [Clean Code](csharp.instructions.md#clean-code) and
+  [ADR-1080](../../docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md): an intent-named store method
+  (`FindEnabledByScopesAsync`, `GetEnabledIdentifiersAsync`), with `GetPageAsync` kept for genuine unfiltered
+  pagination.
+- **No repeated magic string literals** — template [Clean Code](csharp.instructions.md#clean-code); a sentinel in
+  `HttpContext.Items` or `AuthenticationProperties.Items` carries a package prefix.
+- **Dispose what you own** — template [Clean Code](csharp.instructions.md#clean-code); never leave an
+  `HttpResponseMessage`, a `Stream` or an `IHttpClientFactory`-created client undisposed. **Parse JSON into a detached
+  `JsonElement`** — template [Serialized and Stored Data](csharp.instructions.md#serialized-and-stored-data);
+  `NCode.Json` also parses a `ReadOnlySequence<byte>`, so a token segment decoded into a rented buffer parses straight
+  from the span, and a parsed `JsonElement` is named for what it holds, or `jsonElement`, never `document`.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare
@@ -1105,43 +941,29 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
 
 Production code **must** be unit-test-friendly. These are 👁 review-only except the `InternalsVisibleTo` wiring.
 
-- 👁 **Prefer instance members behind an interface, registered as a DI singleton**, over a `static` utility class — a
-  singleton gives static-like performance and testability (tests mock the interface).
-- 👁 **Minimize `static`.** Reserve it for pure functions with no swappable dependency, `const` / `static readonly`
-  constants, an expensive immutable thread-safe shared instance, and extension-method entry points. **Never** static
-  _mutable_ or _ambient_ state.
-- 👁 **Never capture request/ambient context in stored state.** Do not hold a captured `HttpContext`, a request-scoped
-  `IServiceProvider`, or a `ClaimsPrincipal` snapshot in a field or property — it goes stale and becomes a
-  use-after-request footgun. Model a read-over-ambient type as a **live view** over `IHttpContextAccessor`, or take the
-  request-scoped dependency as a **method parameter** / resolve it at the point of use.
-- 👁 **Constructor-inject every dependency** (no `new`-ing a collaborator inside a method, no service-location) —
-  **except** a singleton resolving collaborators it genuinely cannot inject (a scoped service, or one selected by an
-  open generic type parameter at call time), which it resolves from `HttpContext.RequestServices` /
-  `IServiceProvider` at the point of use and stays testable via a real `ServiceProvider`. When the collaborators are a
-  closed set of singletons, constructor-inject `IEnumerable<T>` instead.
-- 👁 **Facade un-mockable dependencies.** A static or framework/external dependency that cannot be easily mocked — the
-  clock (`DateTimeOffset.UtcNow`), `Guid.NewGuid()`, crypto RNG, `Activity` — gets a thin `internal interface`
-  facade + `internal sealed` forwarding impl **under a `Facades/` folder**, registered in DI and injected, so callers
-  become unit-testable by mocking the facade. Mark the passthrough impl `[ExcludeFromCodeCoverage]` (it only delegates).
-- 👁 **`internal virtual` is the sanctioned local override seam.** When extracting a collaborator behind an interface is
-  overkill, mark a helper whose logic needs isolation — or a **factory method** that allocates an object handed to a
-  dependency — `internal virtual`, so a test subclass can stub/override it (`DynamicProxyGenAssembly2` lets Moq proxy
-  it). Reach for an extracted interface collaborator when the seam is reused or substantial; use `internal virtual` for
-  a one-off override point.
-- 👁 **Internal implementations stay unsealed so tests can mock them; public types are mocked through their interface.**
-  A concrete `internal` impl is left **unsealed** (and its test-relevant members `internal virtual`) so Moq/Castle can
-  subclass it — `CA1852` ("seal internal types") is therefore **disabled** ([`.editorconfig`](../../.editorconfig)):
-  the micro devirtualization win loses to mockability. Do **not** reach for `public virtual` to make a public class
-  mockable — a `public virtual` member is a permanent, SemVer-bound override point (fragile base class) and can let a
-  subclass weaken a security control; mock the **interface** the class implements instead. `sealed` remains correct for
-  data/options/event types (§2) and facade impls, where nothing needs to derive.
-- ✅/👁 **`internal` for test access.** Each package exposes its internals to its `.Tests` project via
-  `InternalsVisibleTo` **plus `DynamicProxyGenAssembly2`** (so Moq/Castle can proxy `internal` types and members).
-  Keep test-only reach `internal`, never widen the public surface for tests.
-- 👁 **Test the unit through its public surface; privates are covered transitively.** A `private` method is not a seam;
-  drive it through the public method that uses it. A `private` branch the public tests cannot reach is dead code to
-  delete. If a private grows complex enough to isolate, **extract a collaborator** behind an interface — or promote it
-  to an `internal virtual` override seam (see above) — and test that.
+- 👁 **Prefer an instance service behind an interface, registered as a singleton, to a `static` utility class, and
+  minimize `static`** — template [Testability](csharp.instructions.md#testability).
+- 👁 **Never capture request or ambient context in stored state** — template
+  [Testability](csharp.instructions.md#testability); a read-over-ambient type is a **live view** over
+  `IHttpContextAccessor`.
+- 👁 **Constructor-inject every dependency** — template [Testability](csharp.instructions.md#testability); the
+  sanctioned singleton case resolves a scoped or open-generic collaborator from `HttpContext.RequestServices` or
+  `IServiceProvider` at the point of use and stays testable through a real `ServiceProvider`.
+- 👁 **Facade un-mockable dependencies** — template [Testability](csharp.instructions.md#testability): the
+  `internal interface` and its `internal sealed` forwarding implementation live under a `Facades/` folder, and the
+  passthrough implementation is `[ExcludeFromCodeCoverage]`.
+- 👁 **`internal virtual` is the sanctioned local override seam** — template
+  [Testability](csharp.instructions.md#testability), for a helper or a factory method that allocates an object handed
+  to a dependency; reach for an extracted interface when the seam is reused or substantial.
+- 👁 **Internal implementations stay unsealed so tests can mock them; public types are mocked through their
+  interface** — template [Testability](csharp.instructions.md#testability), except that `CA1852` is **disabled** in
+  [`.editorconfig`](../../.editorconfig) rather than left on. Never reach for `public virtual` to make a public class
+  mockable; `sealed` stays correct for data, options and event types (§2) and facade implementations.
+- ✅/👁 **`internal` for test access** — the test template's
+  [InternalsVisibleTo](csharp-tests.instructions.md#internalsvisibleto): each package grants its `.Tests` project and
+  `DynamicProxyGenAssembly2`.
+- 👁 **Test the unit through its public surface; privates are covered transitively** — the test template's
+  [What a Test Proves](csharp-tests.instructions.md#what-a-test-proves).
 - 👁 **Tested-or-excluded.** Every type/member that can carry `[ExcludeFromCodeCoverage]` is **either** exercised by
   tests **or** annotated with it (with a one-line reason when non-obvious). Exclude thin passthrough infrastructure
   (facades), pure DI/registration wiring, and framework-event adapters; **test** anything with behavior.
@@ -1160,64 +982,37 @@ organization) live in [`csharp-testing.instructions.md`](csharp-testing.instruct
   See [ADR-1003](../../docs/decisions/1003-central-package-management-and-lockstep-versioning.md).
 - ✅ Packages are **source-linked to GitHub** and ship a portable symbol package (`.snupkg`) so consumers can step into
   the exact released source. See [ADR-1007](../../docs/decisions/1007-provenance-sourcelink-and-symbols.md).
-- ✅ Package **versions live centrally** in [`Directory.Packages.props`](../../Directory.Packages.props) (Central
-  Package Management); a `PackageReference` never carries an inline `Version`.
+- ✅ **Package versions live centrally** — template [Build](csharp.instructions.md#build).
 
 ## 9. Change intake (open source)
 
-This is an open-source project. A change starts as a GitHub issue describing the problem or proposal; a design-affecting
-change (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded
-as an ADR under [`docs/decisions/`](../../docs/decisions/) — before the pull request. Bug fixes, patches, and small changes go
-straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) under `## [Unreleased]`.
+A change starts as a GitHub issue, and a change consumers can observe is decided and recorded as an ADR before or with
+its pull request, as
+[project-template ADR-0010](../../docs/decisions/project-template/0010-a-change-consumers-can-observe-is-decided-before-it-is-built.md)
+says. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) under `## [Unreleased]`.
 
 ## 10. XML documentation
 
-- 👁 **New or changed API carries XML doc.** Any type or member you add — or whose signature/behavior you change — gets
-  a `///` doc comment. Pre-existing undocumented code is grandfathered: do **not** add doc comments to code you are not
-  otherwise touching, but when you rename or update a member, add or update its doc to match.
-- 👁 **Prefer a substantive `<summary>`** that explains purpose, behavior, and context over a terse one-liner, and use
-  `<param>` / `<returns>` / `<remarks>` where they add clarity.
-- 👁 **Documentation describes the timeless present, never the change.** A `///` or `//` comment states what the code
-  _is_ and _does_, not how it came to be: no temporal or change-relative wording (`now`, `new`, `previously`,
-  `no longer`, `used to`, `renamed`/`moved`, `rather than before`), and it **never names a removed or renamed
-  artifact** — referring to a deleted or superseded type/member by its old identifier (`IFooOldThing`) is itself
-  temporal content. Describing an anti-pattern (_what not to do_ and _why_) is fine; just name the rejected shape by its
-  **role**, not by a no-longer-existing identifier. The same discipline applies to ADR prose (Context/Decision/
-  Consequences describe the end-state design and its rationale, not a diff). History lives in Git and the `CHANGELOG`;
-  the text must read correctly to someone who never saw the prior version.
-- 👁 **A `<summary>` tag is multi-line** — the opening tag, content, and closing tag on separate lines, even for a short
-  summary; never collapse them onto one line.
-- 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**
-  according to its accessors. An **`init`-only** property (`{ get; init; }`) opens with **"Gets"**: it is read-only
-  after construction, so it reads as a get-only property, not "Gets or sets". Reserve "Gets or sets" for a genuinely
-  mutable `{ get; set; }` property.
+- 👁 **New or changed API carries an XML doc comment with a substantive `<summary>`** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation).
+- 👁 **Documentation describes the timeless present, never the change** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation); the same discipline applies to ADR prose.
+- 👁 **A `<summary>` tag is multi-line, and a property summary opens with "Gets or sets", "Gets" or "Sets" by its
+  accessors** — template [XML Documentation](csharp.instructions.md#xml-documentation).
 - 👁 **Prose spells protocol terms the spec way, not the .NET-type way.** In `///` and `//` text write **"JSON Web
   Token (JWT)"** (and likewise JSON/JOSE/OAuth/OpenID in their canonical casing); do not carry the `JsonWebToken` type's
   Pascal casing into documentation. This applies only to prose — a `<see cref="JsonWebToken"/>` or an identifier keeps
   its real casing.
-- ✅ **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
-  XML-doc file (IntelliSense) and, for any type on an HTTP API surface, is surfaced into the generated **OpenAPI**
-  document (.NET's XML-comment integration turns a DTO/property `<summary>` into a schema `description`). So a `///`
-  comment must read as a clean, self-contained **public** description: never an ADR number (`ADR-1011`) or a
-  `<see href="../../../docs/decisions/…">` link (a broken relative path for a consumer). Keep the behavioral prose;
-  drop the citation. When the _why_ is worth recording in code, put the ADR reference in a **`//` code comment**
-  (which never ships) — this is what "link to the ADR rather than inlining the rationale" (file header) means: the
-  link lives in `//`, the ADR doc, or the `CHANGELOG`, **never** in consumer-facing `///`. Put that `//` line directly
-  after the doc comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
+- ✅ **No internal citations in `///` doc comments** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation). Put the citation in a `//` line directly after the doc
+  comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
   [`build/dod.ps1`](../../build/dod.ps1) runs
   [`build/doc-comment-citations.ps1`](../../build/doc-comment-citations.ps1), which fails on any `///` line under
   `src/` that matches `ADR-\d{4}` or `docs/decisions/`.
-- 👁 **No internal implementation names in `///` doc comments.** For the same reason, a `///` comment never names an
-  internal implementation detail a consumer cannot see, such as a persistence column or an internal type.
-- 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions.** `<summary>` /
-  `<remarks>` become the operation description and `<param>` / `<response code="NNN">desc</response>` annotate it, but
-  only when **all** hold: (1) the handler's **defining** project references `Microsoft.AspNetCore.OpenApi` and calls
-  `AddOpenApi(...)` (which turns on the per-assembly XML-comment source generator); (2) the handler method is
-  `internal` or more visible — a `private` handler's XML is silently ignored; and (3) the endpoint carries **no** fluent
-  `.WithSummary()` / `.WithDescription()` — fluent metadata makes the generator skip that operation entirely (use
-  fluent **or** XML, never both). A `<response code="NNN">` only _describes_ a response entry that already exists (the
-  default `200`, or one declared via `.Produces`); to add a non-200 entry (`400`/`401`/`204`/`302`…) call
-  `.Produces(StatusCodes.StatusNNN)` / `.Produces<T>()` in the map and let the `<response>` attach its description.
+- 👁 **No internal implementation names in `///` doc comments** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation).
+- 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation).
 - 👁 **OpenAPI document contributions belong in the composition layer, not the host.** The document describes the
   server's own endpoints, so register document transformers (security schemes, tag groups, request/response examples)
   in the composition root's `AddOpenApi(...)`, and expose the document and the API-reference UI through the server's
@@ -1299,15 +1094,10 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   interface implementation writes the characters, check `writer.WrittenCount == chars.Length`, so no `'\0'` remainder
   is ever persisted. See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md) and
   [ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
-- 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations.** Pass the
-  capacity (`new HashSet<T>(source.Count)`, `new List<T>(n)`, `new Dictionary<TKey, TValue>(n)`) whenever the final or
-  maximum count is known; return a shared empty instance (`FrozenSet<T>.Empty`, a `[]` collection expression) rather
-  than allocating an empty one — but `list ?? []` types the `[]` as the list and allocates one, so write
-  `list ?? (IReadOnlyCollection<T>)[]` to get the shared empty array; create a collection lazily when it may stay
-  empty; and on a path that runs per request replace LINQ (`All`, `Any`, `Where(…).ToHashSet()`) with a `foreach` —
-  each LINQ call allocates a delegate and an enumerator — testing `Count == 0` first so an interface's boxed
-  enumerator is not created for nothing. See
-  [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+- 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations** —
+  template [Memory and Performance](csharp.instructions.md#memory-and-performance); test `Count == 0` before a
+  `foreach` over an interface, so its boxed enumerator is not created for nothing
+  ([ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
 - 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
   Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
   should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |
@@ -1323,23 +1113,17 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 ## 11. Logging & metrics
 
-- 👁 **A library never registers or removes a logging provider; the host's composition root chooses its sinks.** The
-  reference hosts log to standard output on every platform, with
-  `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`, and never to the Windows Event Log
+- 👁 **A library never registers or removes a logging provider** — template [Logging](csharp.instructions.md#logging);
+  the reference hosts log with `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`
   ([project-template ADR-0115](../../docs/decisions/project-template/0115-a-host-logs-to-standard-output.md)).
-- 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
-  message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
-  package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**
-  (`Logger.SubjectValidationFailed(reason)`), and mark the class `[ExcludeFromCodeCoverage]` (generated plumbing).
-- 👁 **A message template is a constant with named placeholders** (`"… {DisplayName}"`), never string interpolation or
-  concatenation; a value that also feeds an error/response is defined **once** (§6) and passed to the log method as a
-  structured argument. Pass a value as its own type, never a pre-built `ToString()` — the generated method formats it
-  only when the level is enabled.
-- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — an `internal static class EventIds`
-  with a `private const int Base` set to the package's band (below) and one `public const int` per event defined as
-  `Base + n`. **Each constant is named _exactly_ as the `[LoggerMessage]` method it identifies**
-  (`EventIds.SubjectValidationFailed` ↔ `Log.SubjectValidationFailed(…)`), and the attribute references it
-  (`EventId = EventIds.SubjectValidationFailed`) — never a bare magic number at the call site or in the attribute.
+- 👁 **Log through source-generated `[LoggerMessage]` methods** in `Logging/Log.cs` — template
+  [Logging](csharp.instructions.md#logging); mark the `Log` class `[ExcludeFromCodeCoverage]` (generated plumbing).
+- 👁 **A message template is a constant with named placeholders** — template
+  [Logging](csharp.instructions.md#logging); a value that also feeds an error or a response is defined once (§6).
+- 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — template
+  [Logging](csharp.instructions.md#logging): an `internal static class EventIds` with a `private const int Base` set to
+  the package's band (below) and one `public const int` per event, `Base + n`, named exactly as its `[LoggerMessage]`
+  method.
 - 👁 **Every runtime package is pre-assigned a disjoint 1000-wide Event-ID band** in the registry below; a package
   starts using its band when it adds its first log. An `EventId` only has to be unique within an `ILogger<T>` category,
   but a family-wide band makes it **globally unique across packages**, so an operator's log filter or alert keys on a
@@ -1372,64 +1156,53 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 ### Metrics
 
-- 👁 **Measure a signal once, through its owner**
-  ([ADR-1197](../../docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)): request
-  count, latency, and status belong to ASP.NET Core's `http.server.request.duration` (enrich it through
-  `IHttpMetricsTagsFeature`), outbound calls to `System.Net.Http`, and domain outcomes to the event seam's counter.
-  Add a family instrument only for a mechanism that is none of these, such as rate limiting or shared state.
-- 👁 **Create meters through `IMeterFactory`, never `new Meter(…)`**: one meter per package, named after the package
-  as a public constant, with its instruments in one internal `…Metrics` singleton that call sites use. A meter name
-  starts with `NCode.Identity.`, so the host's `AddOpenTelemetryMetrics` subscribes to it without a change.
+- 👁 **Measure a signal once, through its owner** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces) and
+  [ADR-1197](../../docs/decisions/1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md):
+  enrich `http.server.request.duration` through `IHttpMetricsTagsFeature`, count domain outcomes through the event
+  seam's counter, and add a family instrument only for a mechanism such as rate limiting or shared state.
+- 👁 **Create meters through `IMeterFactory`** — template [Metrics and Traces](csharp.instructions.md#metrics-and-traces);
+  a package's instruments live in one internal `…Metrics` singleton, and a meter name starts with `NCode.Identity.`, so
+  the host's `AddOpenTelemetryMetrics` subscribes to it without a change.
 - 👁 **An event adds metric dimensions by implementing `ISupportMetricAttributes`**, never through a counter at its
   call site; an endpoint tags the request through `OpenIdMetricAttributes.Add`.
-- 👁 **Name instruments and attributes `ncode.identity.{area}.…`**, keep an OpenTelemetry semantic-convention name
-  (`error.type`) where one exists, and use UCUM units: durations as histograms in seconds, counts as `{noun}`.
-- 👁 **A metric attribute's value comes from a vocabulary the server controls**: a registered name, a server-chosen
-  error code, or `_OTHER`. Never a tenant, client, subject, or address, and never a value echoed from the request;
-  those belong to traces and logs.
-- 👁 **Test every instrument with `MetricCollector<T>`**, asserting its name, unit, and attributes.
+- 👁 **Name instruments and attributes `ncode.identity.{area}.…`** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces); counts use a `{noun}` unit.
+- 👁 **A metric attribute's value comes from a vocabulary the server controls** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces); a tenant, client, subject or address is never one.
+- 👁 **Test every instrument with `MetricCollector<T>`** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces).
 - 👁 **A new or renamed instrument or attribute updates [`docs/metrics.md`](../../docs/metrics.md)** in the same
-  change; the catalog is the contract dashboards and alerts are built against.
+  change — template [Metrics and Traces](csharp.instructions.md#metrics-and-traces).
 
 ### Traces
 
-- 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter**
-  ([ADR-1298](../../docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md)):
-  a public name constant beside the meter's, a static source, and no span for what ASP.NET Core or `System.Net.Http`
-  already traces. A span mirrors one of the package's duration histograms — its name without `.duration`, the same
-  bounded attributes, `Error` status and `error.type` on failure — and never carries a token, handle, cookie, key,
-  subject, client id or path. Test it with an `ActivityListener` filtered to a parent activity the test started.
+- 👁 **Trace only your own mechanisms, through one `ActivitySource` named like your meter** — template
+  [Metrics and Traces](csharp.instructions.md#metrics-and-traces) and
+  [ADR-1298](../../docs/decisions/1298-a-package-traces-its-own-mechanisms-through-one-activity-source-named-like-its-meter.md);
+  a span never carries a handle, subject or client id either.
+
 ## 12. Configuration & options
 
-- 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with
-  `services.Configure<T>(configuration.GetSection(...))` — never `IConfiguration` read ad hoc deep in the code.
-- 👁 **Inject `IOptions<T>` for start-up-fixed configuration and `IOptionsMonitor<T>` for values that may change at
-  runtime.** An options class is a data type (§2): `sealed`, `init` / get-only members, concrete collections,
-  correct-by-default (§2 — no knob weakens a security control below its safe baseline).
-- 👁 **A rule that validates configured data also validates the same data written at runtime.** When startup validation
-  checks a value that another path can also write — the management API, dynamic registration, a seeder — both paths
-  apply one implementation of the rule, shared through the seam that owns the concept (the tenant-selection seam judges a
-  tenant's address for configuration and the management API alike). A check that exists only for configuration lets the
-  runtime path store exactly what startup refuses. An options validator never resolves the services that read the
-  options it validates; share a stateless rule set with them instead. See
-  [ADR-1160](../../docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md).
-- 👁 **Each strategy validates its own options.** An `IValidateOptions<T>` for a strategy's section is registered beside
-  the strategy and skips when another strategy is selected; a shared validator never branches on the strategy code, so a
-  strategy registered by another package brings its own validation (§2, open vocabularies).
+- 👁 **Configuration is a strongly-typed options class in an `Options/` folder** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options), bound through `BindStrictly` (§4).
+- 👁 **`IOptions<T>` for start-up-fixed values and `IOptionsMonitor<T>` for values that change at runtime; an options
+  class is a data type (§2)** — template [Configuration and Options](csharp.instructions.md#configuration-and-options).
+- 👁 **A rule that validates configured data also validates the same data written at runtime** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants) and
+  [Configuration and Options](csharp.instructions.md#configuration-and-options); the tenant-selection seam judges a
+  tenant's address for configuration and the management API alike
+  ([ADR-1160](../../docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+- 👁 **Each strategy validates its own options** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options).
 - 👁 **A default for runtime-written data is derived through the seam that judges it, then judged and stored like an
-  explicit value.** When configuration can supply a value a write omits — a tenant's issuer from its strategy's issuer
-  template — every write path asks the owning seam for the default (`ITenantResolver.GetDefaultIssuerAsync`) before it
-  validates, and persists the result, so a later configuration change never silently moves existing data. Never fill
-  the gap at read time from the request or other ambient state: that is a second, unvalidated source of the same value.
-  See [ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md).
-- 👁 **A configuration seeder names exactly the target it seeds.** A seeder that writes credentials or accounts into a
-  tenant (`BootstrapAdmin`, `DeveloperInteractiveSeed`, `ConformanceSeed`) requires its `TenantId` whenever it has
-  something to seed, and an unset target never means "every tenant": every tenant created at runtime would inherit the
-  credential. Validate the requirement when the host starts. See
-  [ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).
+  explicit value** — template [Configuration and Options](csharp.instructions.md#configuration-and-options): every write
+  path asks the owning seam (`ITenantResolver.GetDefaultIssuerAsync`) before it validates
+  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+- 👁 **A configuration seeder names exactly the target it seeds** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options): `BootstrapAdmin`,
+  `DeveloperInteractiveSeed` and `ConformanceSeed` require their `TenantId`
+  ([ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
 - 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
-  (`NCode.Time`): between one millisecond, the shortest a `PeriodicTimer` accepts, and `TimerPeriod.MaxValue`,
-  4,294,967,294 milliseconds, the longest any .NET timer or `CancellationTokenSource` delay accepts. The options type's
-  `IValidateOptions<T>` names the option and its configuration key, so a period a timer refuses stops the host instead
-  of faulting a hosted service after it started. See
+  (`NCode.Time`) — template [Configuration and Options](csharp.instructions.md#configuration-and-options) and
   [ADR-1221](../../docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md).

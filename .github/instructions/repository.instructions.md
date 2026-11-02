@@ -53,8 +53,10 @@ moment; a locally installed or remembered version says nothing about what is cur
 Repo orientation and the build / contributing workflow are in [`AGENTS.md`](../../AGENTS.md). All coding conventions are
 the single source of truth in the scoped instruction files, auto-applied by path:
 
-- Production code: [`instructions/csharp-production.instructions.md`](csharp-production.instructions.md)
-- Test code (`*Tests` projects): [`instructions/csharp-testing.instructions.md`](csharp-testing.instructions.md)
+- Production code: [`instructions/csharp-production.instructions.md`](csharp-production.instructions.md), which refines
+  the project template's [`csharp.instructions.md`](csharp.instructions.md)
+- Test code (`*Tests` projects): [`instructions/csharp-testing.instructions.md`](csharp-testing.instructions.md), which
+  refines the project template's [`csharp-tests.instructions.md`](csharp-tests.instructions.md)
 
 The _reasoning_ behind a non-obvious decision lives in an ADR under [`docs/decisions/`](../../docs/decisions/).
 

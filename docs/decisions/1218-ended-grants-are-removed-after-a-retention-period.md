@@ -12,6 +12,10 @@
 
 ## Context
 
+[project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md) gives data
+that grows with use a configured retention after it ends, and prunes it in bounded batches from a hosted service, each
+batch its own unit of work. This record applies it to grants.
+
 No grant row was ever removed. Every authorization code, token, rotation of a refresh token, and session left a row, so
 the grants table grew without bound. Deleting a client or a tenant loads all of its grants into one unit of work
 ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), so the growth also made the delete a larger unit of work
@@ -80,7 +84,6 @@ supports.**
   an abandoned session is removed after the retention.
 - An operator sets the retention and the interval through configuration
   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
-- A long backlog of ended grants is removed in many small units of work, on every provider.
 - **Breaking:** `IGrantStore.RemoveEndedBeforeAsync` is added, so every implementation of the store implements it.
 - This implements issue [#267](https://github.com/NCodeGroup/Identity/issues/267).
 

@@ -247,9 +247,14 @@ public class JwtSecuredAuthorizationResponseTests
     public async Task Authorize_WhenTheTenantHasNoKeyForTheResponseAlgorithm_RefusesBeforeTheUserSignsIn()
     {
         const string clientId = "it-jarm-no-key";
-        using var factory = new HostApplicationFactory();
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
+            }
+        );
 
-        // The test host's key signs only RS256, so the tenant holds no key for PS256.
+        // The test provisions an RS256 key only (ADR-1169), so the tenant holds no key for PS256.
         await factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>

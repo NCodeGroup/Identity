@@ -15,7 +15,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IOpenIdClientResolver"/> that loads the persisted client, applies
-/// the tenant-merged effective settings and deserialized secrets, and builds the public <see cref="OpenIdClient"/>. A
+/// the tenant-merged effective settings and deserialized unexpired secrets, and builds the public
+/// <see cref="OpenIdClient"/>. A
 /// client bound to a resource server is resolved only at an endpoint that accepts such clients
 /// (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its credentials
 /// serve only the calls the resource server needs.
@@ -26,7 +27,8 @@ internal class DefaultOpenIdClientResolver(
     IOpenIdClientFactory clientFactory,
     ISecretSerializer secretSerializer,
     ISecretProtectorProvider secretProtectorProvider,
-    IEffectiveSettingsResolver effectiveSettingsResolver
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    TimeProvider timeProvider
 ) : IOpenIdClientResolver
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -35,6 +37,7 @@ internal class DefaultOpenIdClientResolver(
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
     public async ValueTask<OpenIdClient?> ResolveClientOrDefaultAsync(
@@ -64,12 +67,19 @@ internal class DefaultOpenIdClientResolver(
             OpenIdSettingScopes.Client,
             persistedClient.Settings.Value
         );
+
+        // A credential past its expiry no longer authenticates the client (ADR-1320).
+        var now = TimeProvider.GetUtcNow();
+        var liveSecrets = persistedClient
+            .Secrets.Value.Where(secret => secret.ExpiresWhen > now)
+            .ToList();
+
         var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
             SecretOwner.ForTenant(tenantId),
-            persistedClient.Secrets.Value,
+            liveSecrets,
             cancellationToken
         );
-        var secrets = SecretSerializer.DeserializeSecrets(protector, persistedClient.Secrets.Value);
+        var secrets = SecretSerializer.DeserializeSecrets(protector, liveSecrets);
 
         var definition = new OpenIdClientDefinition
         {

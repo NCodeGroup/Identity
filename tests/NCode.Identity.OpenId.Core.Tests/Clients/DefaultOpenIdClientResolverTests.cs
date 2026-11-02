@@ -27,6 +27,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private const string ClientId = "client-1";
     private const string ResourceServerId = "rs-1";
 
+    private static readonly DateTimeOffset Now = DateTimeOffset.UnixEpoch.AddYears(50);
+
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
@@ -34,6 +36,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private Mock<ISecretSerializer> MockSecretSerializer { get; }
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
+    private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdTenant> MockTenant { get; }
     private DefaultHttpContext HttpContext { get; } = new();
@@ -48,6 +51,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         MockSecretSerializer = CreateStrictMock<ISecretSerializer>();
         MockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockTenant = CreateStrictMock<OpenIdTenant>();
 
@@ -68,7 +72,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             MockClientFactory.Object,
             MockSecretSerializer.Object,
             MockSecretProtectorProvider.Object,
-            MockEffectiveSettingsResolver.Object
+            MockEffectiveSettingsResolver.Object,
+            MockTimeProvider.Object
         );
     }
 
@@ -77,7 +82,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private static PersistedClient CreatePersistedClient(
         string? resourceServerId = null,
         string tenantId = TenantId,
-        bool isDisabled = false
+        bool isDisabled = false,
+        IReadOnlyCollection<PersistedSecret>? secrets = null
     ) =>
         new()
         {
@@ -98,8 +104,26 @@ public class DefaultOpenIdClientResolverTests : BaseTests
                 TenantId = tenantId,
                 ClientId = ClientId,
                 ConcurrencyToken = "ct",
-                Value = [],
+                Value = secrets ?? [],
             },
+        };
+
+    private static PersistedSecret CreatePersistedSecret(
+        string secretId,
+        DateTimeOffset expiresWhen
+    ) =>
+        new()
+        {
+            SecretId = secretId,
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = expiresWhen,
+            SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
+            KeySizeBits = 256,
+            EncodedValue = "encoded",
         };
 
     private void SetupStoredClient(PersistedClient? persistedClient) =>
@@ -124,6 +148,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var effectiveSettings = CreateLooseMock<ISettingCollection>().Object;
         var client = CreateStrictMock<OpenIdClient>().Object;
 
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockTenant
             .SetupGet(x => x.SettingsProvider)
             .Returns(mockSettingsProvider.Object)
@@ -227,6 +252,29 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var client = await ResolveAsync();
 
         Assert.Same(expected, client);
+    }
+
+    [Fact]
+    public async Task ResolveClientOrDefaultAsync_WhenASecretHasExpired_DeserializesOnlyTheUnexpiredSecrets()
+    {
+        var expired = CreatePersistedSecret("expired", Now);
+        var live = CreatePersistedSecret("live", Now.AddDays(1));
+        SetupStoredClient(CreatePersistedClient(secrets: [expired, live]));
+        var expected = SetupClientCreation(expectedResourceServerId: null);
+
+        var client = await ResolveAsync();
+
+        Assert.Same(expected, client);
+        MockSecretSerializer.Verify(
+            x =>
+                x.DeserializeSecrets(
+                    It.IsAny<ISecretProtector>(),
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(s =>
+                        s.Count == 1 && s.Single().SecretId == "live"
+                    )
+                ),
+            Times.Once
+        );
     }
 
     [Fact]

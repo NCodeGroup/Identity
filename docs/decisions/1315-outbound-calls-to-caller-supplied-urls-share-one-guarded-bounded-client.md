@@ -30,7 +30,9 @@ the server does not control.
 
 2. **A pipeline bounds each call.** The pipeline is a total timeout, then a retry, then a per-attempt timeout, read from
    `OutboundHttpOptions` (`OpenId:OutboundHttp`: `AttemptTimeout` 10 s, `TotalTimeout` 30 s, `MaxRetryAttempts` 2,
-   `RetryDelay` 1 s), which are validated when the host starts. The timeouts end when the response headers arrive,
+   `RetryDelay` 1 s), which are validated when the host starts. The client's `HttpClient.Timeout` is
+   `Timeout.InfiniteTimeSpan`, so these options are the only bound on a call; the default of 100 seconds would
+   silently cut a longer `TotalTimeout`. The timeouts end when the response headers arrive,
    because the callers send with `HttpCompletionOption.ResponseHeadersRead`. The retry is exponential with jitter,
    ignores `Retry-After` because the endpoint chooses that delay, and never retries an unsafe method or a connection or
    name-resolution error. A timeout surfaces as a `TaskCanceledException` with a `TimeoutException` inner exception,

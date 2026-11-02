@@ -992,52 +992,26 @@ says. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) un
 
 ## 10. XML documentation
 
-- 👁 **New or changed API carries XML doc.** Any type or member you add — or whose signature/behavior you change — gets
-  a `///` doc comment. Pre-existing undocumented code is grandfathered: do **not** add doc comments to code you are not
-  otherwise touching, but when you rename or update a member, add or update its doc to match.
-- 👁 **Prefer a substantive `<summary>`** that explains purpose, behavior, and context over a terse one-liner, and use
-  `<param>` / `<returns>` / `<remarks>` where they add clarity.
-- 👁 **Documentation describes the timeless present, never the change.** A `///` or `//` comment states what the code
-  _is_ and _does_, not how it came to be: no temporal or change-relative wording (`now`, `new`, `previously`,
-  `no longer`, `used to`, `renamed`/`moved`, `rather than before`), and it **never names a removed or renamed
-  artifact** — referring to a deleted or superseded type/member by its old identifier (`IFooOldThing`) is itself
-  temporal content. Describing an anti-pattern (_what not to do_ and _why_) is fine; just name the rejected shape by its
-  **role**, not by a no-longer-existing identifier. The same discipline applies to ADR prose (Context/Decision/
-  Consequences describe the end-state design and its rationale, not a diff). History lives in Git and the `CHANGELOG`;
-  the text must read correctly to someone who never saw the prior version.
-- 👁 **A `<summary>` tag is multi-line** — the opening tag, content, and closing tag on separate lines, even for a short
-  summary; never collapse them onto one line.
-- 👁 **A property summary follows the Microsoft convention** — open with **"Gets or sets"**, **"Gets"**, or **"Sets"**
-  according to its accessors. An **`init`-only** property (`{ get; init; }`) opens with **"Gets"**: it is read-only
-  after construction, so it reads as a get-only property, not "Gets or sets". Reserve "Gets or sets" for a genuinely
-  mutable `{ get; set; }` property.
+- 👁 **New or changed API carries an XML doc comment with a substantive `<summary>`** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation).
+- 👁 **Documentation describes the timeless present, never the change** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation); the same discipline applies to ADR prose.
+- 👁 **A `<summary>` tag is multi-line, and a property summary opens with "Gets or sets", "Gets" or "Sets" by its
+  accessors** — template [XML Documentation](csharp.instructions.md#xml-documentation).
 - 👁 **Prose spells protocol terms the spec way, not the .NET-type way.** In `///` and `//` text write **"JSON Web
   Token (JWT)"** (and likewise JSON/JOSE/OAuth/OpenID in their canonical casing); do not carry the `JsonWebToken` type's
   Pascal casing into documentation. This applies only to prose — a `<see cref="JsonWebToken"/>` or an identifier keeps
   its real casing.
-- ✅ **No internal citations in `///` doc comments.** A `///` comment ships to consumers — it lands in the package's
-  XML-doc file (IntelliSense) and, for any type on an HTTP API surface, is surfaced into the generated **OpenAPI**
-  document (.NET's XML-comment integration turns a DTO/property `<summary>` into a schema `description`). So a `///`
-  comment must read as a clean, self-contained **public** description: never an ADR number (`ADR-1011`) or a
-  `<see href="../../../docs/decisions/…">` link (a broken relative path for a consumer). Keep the behavioral prose;
-  drop the citation. When the _why_ is worth recording in code, put the ADR reference in a **`//` code comment**
-  (which never ships) — this is what "link to the ADR rather than inlining the rationale" (file header) means: the
-  link lives in `//`, the ADR doc, or the `CHANGELOG`, **never** in consumer-facing `///`. Put that `//` line directly
-  after the doc comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
+- ✅ **No internal citations in `///` doc comments** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation). Put the citation in a `//` line directly after the doc
+  comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
   [`build/dod.ps1`](../../build/dod.ps1) runs
   [`build/doc-comment-citations.ps1`](../../build/doc-comment-citations.ps1), which fails on any `///` line under
   `src/` that matches `ADR-\d{4}` or `docs/decisions/`.
-- 👁 **No internal implementation names in `///` doc comments.** For the same reason, a `///` comment never names an
-  internal implementation detail a consumer cannot see, such as a persistence column or an internal type.
-- 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions.** `<summary>` /
-  `<remarks>` become the operation description and `<param>` / `<response code="NNN">desc</response>` annotate it, but
-  only when **all** hold: (1) the handler's **defining** project references `Microsoft.AspNetCore.OpenApi` and calls
-  `AddOpenApi(...)` (which turns on the per-assembly XML-comment source generator); (2) the handler method is
-  `internal` or more visible — a `private` handler's XML is silently ignored; and (3) the endpoint carries **no** fluent
-  `.WithSummary()` / `.WithDescription()` — fluent metadata makes the generator skip that operation entirely (use
-  fluent **or** XML, never both). A `<response code="NNN">` only _describes_ a response entry that already exists (the
-  default `200`, or one declared via `.Produces`); to add a non-200 entry (`400`/`401`/`204`/`302`…) call
-  `.Produces(StatusCodes.StatusNNN)` / `.Produces<T>()` in the map and let the `<response>` attach its description.
+- 👁 **No internal implementation names in `///` doc comments** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation).
+- 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions** — template
+  [XML Documentation](csharp.instructions.md#xml-documentation).
 - 👁 **OpenAPI document contributions belong in the composition layer, not the host.** The document describes the
   server's own endpoints, so register document transformers (security schemes, tag groups, request/response examples)
   in the composition root's `AddOpenApi(...)`, and expose the document and the API-reference UI through the server's
@@ -1116,15 +1090,10 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   interface implementation writes the characters, check `writer.WrittenCount == chars.Length`, so no `'\0'` remainder
   is ever persisted. See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md) and
   [ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
-- 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations.** Pass the
-  capacity (`new HashSet<T>(source.Count)`, `new List<T>(n)`, `new Dictionary<TKey, TValue>(n)`) whenever the final or
-  maximum count is known; return a shared empty instance (`FrozenSet<T>.Empty`, a `[]` collection expression) rather
-  than allocating an empty one — but `list ?? []` types the `[]` as the list and allocates one, so write
-  `list ?? (IReadOnlyCollection<T>)[]` to get the shared empty array; create a collection lazily when it may stay
-  empty; and on a path that runs per request replace LINQ (`All`, `Any`, `Where(…).ToHashSet()`) with a `foreach` —
-  each LINQ call allocates a delegate and an enumerator — testing `Count == 0` first so an interface's boxed
-  enumerator is not created for nothing. See
-  [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+- 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations** —
+  template [Memory and Performance](csharp.instructions.md#memory-and-performance); test `Count == 0` before a
+  `foreach` over an interface, so its boxed enumerator is not created for nothing
+  ([ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
 - 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
   Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
   should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |

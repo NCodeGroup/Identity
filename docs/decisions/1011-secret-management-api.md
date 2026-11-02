@@ -50,8 +50,9 @@ implementation); the tenant and client secret endpoints adopt the identical shap
   that `(secretType, keySizeBits)`, data-protects it, base64url-encodes it into `EncodedValue`, and
   persists it. The response is a `SecretResource` (metadata only). Symmetric key material never leaves
   the server; asymmetric public material is not returned yet (a deliberate, additive future option).
-- **`PUT api/servers/{serverId}/secrets/{secretId}`** is **metadata-only** — it rotates `expiresWhen`,
-  `use`, and `algorithm`. Key material is immutable once generated; rotation is create-new + delete-old.
+- **`PUT api/servers/{serverId}/secrets/{secretId}`** is **metadata-only** — it changes `expiresWhen`,
+  `use`, and `algorithm`. Key material is immutable once generated, so a secret is rotated by creating a new one and
+  deleting the old, as the template record decides.
 - **`GET api/servers/{serverId}/secrets/{secretId}`** returns one `SecretResource`;
   **`DELETE`** removes it. Both honor the resource-based authorization and `ETag`/concurrency model the
   other management endpoints use.
@@ -89,11 +90,8 @@ carries a `// Future:` note rather than an implementation.
 
 ## Consequences
 
-- The common, safe path (operator asks the server to mint a key) works end-to-end with no private key
-  material crossing the API boundary in either direction.
-- `SecretResource` stays metadata-only; there is still no public API that returns `EncodedValue`.
-- Rotation is create-new + delete-old, which is auditable but requires two calls; a client secret is also rotated
-  in one call that keeps the rotated secret until it expires or is deleted
+- A rotation takes two calls, a create and a delete; a client secret is also rotated in one call that keeps the
+  rotated secret until it expires or is deleted
   ([ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.

@@ -112,6 +112,8 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.RotateSecretRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.RotatedExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.RotatedExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateUpdate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?

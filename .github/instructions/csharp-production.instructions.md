@@ -1125,6 +1125,11 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   ([project-template ADR-0115](../../docs/decisions/project-template/0115-a-host-logs-to-standard-output.md)).
 - 👁 **Log through source-generated `[LoggerMessage]` methods** in `Logging/Log.cs` — template
   [Logging](csharp.instructions.md#logging); mark the `Log` class `[ExcludeFromCodeCoverage]` (generated plumbing).
+- ✅ **A shipping package never switches off its consumers' `[LoggerMessage]` generator** — `Directory.Build.targets`
+  fails the build of a packable project that depends on `Microsoft.Extensions.Telemetry.Abstractions` (which
+  `Microsoft.Extensions.Http.Resilience` brings) or sets `DisableMicrosoftExtensionsLoggingSourceGenerator`; bound
+  outbound calls with `Polly.Core` instead. See
+  [ADR-1385](../../docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md).
 - 👁 **A message template is a constant with named placeholders** — template
   [Logging](csharp.instructions.md#logging); a value that also feeds an error or a response is defined once (§6).
 - 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — template

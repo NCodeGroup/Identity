@@ -827,40 +827,25 @@ than inlining the rationale.
 
 Drawn from _Clean Code_ (R. C. Martin) and _Refactoring_ (Fowler / Beck). All 👁:
 
-- Small functions that do **one thing** at a single level of abstraction.
-- **Few parameters** (0–2; avoid >3); a recurring parameter group (data clump) becomes a type. **I/O-channel
-  parameters don't count toward the budget** — a trailing `CancellationToken` and a Try-pattern `out` result are
-  plumbing, not data. A clump that mirrors a well-known BCL shape (e.g. `ClaimsIdentity(authenticationType,
-nameType, roleType)`) is acceptable, and a private single-call-site helper isn't worth a parameter object.
-- **Command–Query Separation** — a method acts _or_ answers, never both; a query does not mutate.
-- **Push store filtering into the DBMS.** A reader that needs a **filtered** subset of a store's entities calls a
-  discrete, intent-named store method (`FindEnabledByScopesAsync`, `GetEnabledIdentifiersAsync`, …) that pushes the
-  predicate to the database — never page the whole set via `GetPageAsync` and filter in memory. Keep the store contract
-  ORM-agnostic (no `IQueryable` / `Expression` in the interface), project to only the columns the caller needs, and
-  reserve `GetPageAsync` for genuine **unfiltered** pagination. See
-  [ADR-1080](../../docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md).
-- **Don't pass or return `null`** where an empty/absent form exists (empty collections; model absence).
-- **Intention-revealing, honest, searchable names** — no `Manager` / `Helper` catch-alls, no encodings.
-- **No repeated magic string literals.** A string used in more than one place — a claim type, an algorithm code, a
-  shared-dictionary key — is a named `const` in **one** place. Sentinels living in a shared dictionary
-  (`HttpContext.Items`, `AuthenticationProperties.Items`) are namespaced with a package prefix so they cannot collide.
-- **Exceptions, not error codes**, typed to the caller and carrying context; **never** an empty `catch`, never `async void`.
-- **Comments justify _why_, never restate _what_.** No commented-out code (Git remembers).
-- **Primitive Obsession** — model a concept that carries invariants as a type, not a bare `string`/`bool`/`int`.
-- **Law of Demeter** — talk to immediate collaborators; avoid `a.B().C().D()` chains and Feature Envy.
-- **Never nest a function call inside another call's arguments.** Hoist the inner call into an intention-revealing
-  local first — `var value = GetValue(); Process(value, "foo");`, never `Process(GetValue(), "foo")` — so each step is
-  named, debuggable, and readable.
-- **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
-  (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
-  Never leave a `HttpResponseMessage`, `Stream`, or `IHttpClientFactory`-created client undisposed.
-  **Parse JSON into a detached `JsonElement`, never a `JsonDocument`.** `JsonElement.Parse` (a `string`, a UTF-8
-  `ReadOnlySpan<byte>`, or, through `NCode.Json`, a `ReadOnlySequence<byte>`) and `JsonElement.ParseValue` own nothing
-  to dispose, so a token segment decoded into a rented buffer parses straight from the span; a `Stream` is read with
-  `JsonSerializer.Deserialize<JsonElement>` / `DeserializeAsync<JsonElement>`. `JsonDocument.Parse`, `ParseAsync`,
-  `ParseValue` and `TryParseValue` are banned (`build/BannedSymbols.txt`, RS0030) in production and test code alike: a
-  `JsonDocument` rents pooled buffers that leak when it is not disposed, and an element read from it fails once it is.
-  Name a parsed `JsonElement` for what it holds, or `jsonElement`, never `document`, which names a `JsonDocument`.
+The template's [Clean Code](csharp.instructions.md#clean-code) rules: small functions that do one thing, few
+parameters, command-query separation, no `null` where an empty form exists, intention-revealing names, typed exceptions
+and no empty `catch` or `async void`, comments that say why and no commented-out code, a type for a concept with
+invariants, the Law of Demeter, and no call nested in another call's arguments. The family adds:
+
+- **Few parameters**: a clump that mirrors a well-known BCL shape
+  (`ClaimsIdentity(authenticationType, nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
+  worth a parameter object.
+- **Push store filtering into the DBMS** — template [Clean Code](csharp.instructions.md#clean-code) and
+  [ADR-1080](../../docs/decisions/1080-store-query-methods-push-filtering-to-dbms.md): an intent-named store method
+  (`FindEnabledByScopesAsync`, `GetEnabledIdentifiersAsync`), with `GetPageAsync` kept for genuine unfiltered
+  pagination.
+- **No repeated magic string literals** — template [Clean Code](csharp.instructions.md#clean-code); a sentinel in
+  `HttpContext.Items` or `AuthenticationProperties.Items` carries a package prefix.
+- **Dispose what you own** — template [Clean Code](csharp.instructions.md#clean-code); never leave an
+  `HttpResponseMessage`, a `Stream` or an `IHttpClientFactory`-created client undisposed. **Parse JSON into a detached
+  `JsonElement`** — template [Serialized and Stored Data](csharp.instructions.md#serialized-and-stored-data);
+  `NCode.Json` also parses a `ReadOnlySequence<byte>`, so a token segment decoded into a rented buffer parses straight
+  from the span, and a parsed `JsonElement` is named for what it holds, or `jsonElement`, never `document`.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare

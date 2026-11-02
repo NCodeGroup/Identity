@@ -72,103 +72,56 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 
 ## Isolation & mocking
 
-- 👁 Tests are **true unit tests**: isolate the code under test by mocking its collaborators (Moq).
-- 👁 **Isolate the unit, but use the real engine where the engine _is_ the unit.** Mock the **external** collaborators a
-  type depends on; drive the composition itself (registration, dispatch, serialization end-to-end) through the real DI
-  container (`new ServiceCollection().Add…().BuildServiceProvider()`) when that wiring is what you are testing. Share
-  small builders rather than re-standing-up the container in every test.
-- 👁 **Every Moq setup MUST end with `.Verifiable()`**, use `x` as the lambda parameter, and be **auto-verified** — do
-  not sprinkle manual `mock.Verify(...)` calls. Use a `UnitTestBase` that owns a `MockRepository(MockBehavior.Strict)`
-  and verifies it on dispose, so an unmet or unexpected call fails the test:
-
-    ```csharp
-    public abstract class UnitTestBase : IDisposable
-    {
-        private readonly MockRepository _mocks = new(MockBehavior.Strict);
-
-        protected Mock<T> CreateMock<T>() where T : class => _mocks.Create<T>();
-
-        public void Dispose() => _mocks.Verify();
-    }
-
-    mockService
-        .Setup(x => x.DoSomething(It.IsAny<string>()))
-        .Returns("result")
-        .Verifiable();
-    ```
-
-- 👁 **`MockBehavior.Strict`** so an unexpected call fails loudly (a real isolation guarantee).
-- 👁 **`MockBehavior.Loose` is the sanctioned exception for two narrow cases**, via a shared `CreateLooseMock<T>` /
-  `CreatePartialMock<T>` base helper: (a) a **partial mock** of an abstract base class where unset members must fall
-  through to the real base (`CreatePartialMock<KeyManagementAlgorithm>()`), which Moq only supports under Loose; and
-  (b) a pure **value-provider stub** whose members return data the test never asserts on (an `IReadOnlySettingCollection`
-  or `IOpenIdError` shim), where strict setup adds ceremony but no isolation value. Default to `Strict`; reach for Loose
-  only in these two cases.
-- 👁 **Hermetic — no network, no ambient host.** Use `DefaultHttpContext` with a test `RequestServices`, in-memory
-  fakes, and constructed `ClaimsPrincipal`s. A resource/principal/stub a single test needs is a small local
-  `private sealed` type in the test file.
-- 👁 **A test that listens to a framework meter sees the whole process.** A `MeterListener` or OpenTelemetry reader
-  subscribed to `System.Net.Http` (or any shared meter name) also collects the instruments other tests record in
-  parallel, so assert the property on **every** collected point and look for this test's own point with
-  `Assert.Contains` — never `Assert.Single` over a shared instrument.
-- 👁 **Dispose a test's real service provider asynchronously.** A test that resolves the real algorithms or key types
-  (`AddSecretsLibrary().AddJoseLibrary()`) owns a container holding a service that implements only
-  `IAsyncDisposable` (the algorithm-collection provider), so a synchronous `ServiceProvider.Dispose()` throws
-  `InvalidOperationException` from every test in the class. Implement `IAsyncLifetime` and `await` its
-  `DisposeAsync()` instead of implementing `IDisposable`.
-- 👁 **Keep test-only reach through `InternalsVisibleTo`** (`internal`), never by widening the production surface. The
-  project under test exposes internals with:
-
-    ```csharp
-    [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]  // lets Moq proxy internal types/members
-    [assembly: InternalsVisibleTo("NCode.Identity.Jose.Tests")] // the matching test assembly
-    ```
-
-- 👁 **A strict `.Verifiable()` setup must be consumed on every path that uses the shared scaffold.** If a collaborator
-  member is read only on _some_ code paths, move its setup **out** of the shared fixture and into just the tests that
-  exercise that path (have the fixture hand back the mock). Do **not** drop `.Verifiable()` to dodge an "unmet setup"
-  failure — that discards the isolation guarantee.
+- 👁 Tests are **true unit tests** that isolate the code under test with Moq, and use the real engine where the engine
+  is the unit — template [Real Collaborators](csharp-tests.instructions.md#real-collaborators).
+- 👁 **Every Moq setup ends with `.Verifiable()`, names its lambda parameter `x`, and is verified by a `UnitTestBase`
+  that owns a `MockRepository(MockBehavior.Strict)`** — template
+  [Strict Mocks, Verified Automatically](csharp-tests.instructions.md#strict-mocks-verified-automatically).
+- 👁 **`MockBehavior.Loose` only in the template's two cases** — template
+  [Strict Mocks, Verified Automatically](csharp-tests.instructions.md#strict-mocks-verified-automatically): a partial
+  mock of an abstract base (`CreatePartialMock<KeyManagementAlgorithm>()`) and a value-provider stub (an
+  `IReadOnlySettingCollection` or `IOpenIdError` shim).
+- 👁 **Hermetic: no network, no ambient host** — template [Isolation](csharp-tests.instructions.md#isolation); a stub a
+  single test needs is a small local `private sealed` type in the test file.
+- 👁 **A test that listens to a framework meter sees the whole process** — template
+  [Isolation](csharp-tests.instructions.md#isolation).
+- 👁 **Dispose a test's real service provider asynchronously** — template
+  [Real Collaborators](csharp-tests.instructions.md#real-collaborators): a test that resolves the real algorithms or
+  key types (`AddSecretsLibrary().AddJoseLibrary()`) implements `IAsyncLifetime` and awaits its `DisposeAsync()`.
+- 👁 **Keep test-only reach through `InternalsVisibleTo`** — template
+  [InternalsVisibleTo](csharp-tests.instructions.md#internalsvisibleto).
+- 👁 **A strict `.Verifiable()` setup is consumed on every path that uses the shared scaffold** — template
+  [Strict Mocks, Verified Automatically](csharp-tests.instructions.md#strict-mocks-verified-automatically).
 - 👁 **A source-generated `ILogger<T>` needs only a loose mock.** `[LoggerMessage]` methods check `IsEnabled` first, and
   a loose mock returns `false`, so `Log` is never called and no setup is needed — a sanctioned value-provider loose mock
   (`CreateLooseMock<ILogger<T>>()`). When the log entry **is** the behavior under test (an error logged instead of
   thrown), use a strict mock with `IsEnabled(level)` returning `true` and a `.Verifiable()`
   `Log(level, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), …, It.IsAny<Func<It.IsAnyType, Exception?, string>>())`
   setup; `It.IsAnyType` matches the generated state struct.
-- 👁 **Mock the enumerator the code actually calls.** `OfType<T>()` and `Cast<T>()` enumerate through the
-  **non-generic** `IEnumerable.GetEnumerator()`, so a strict mock of a collection interface consumed that way needs
-  `mock.As<IEnumerable>().Setup(x => x.GetEnumerator())`; a setup of the generic `GetEnumerator()` is never hit and the
-  strict mock throws.
-- 👁 **Moq cannot match a `ReadOnlySpan<T>` / `Span<T>` argument.** A ref struct cannot be an `It.IsAny<T>()` type
-  argument, so a collaborator member that takes a span (for example `ISecretGenerator.ImportSharedSecret`) cannot be
-  set up. Exercise the code that calls it through an integration test against the real collaborator instead of
-  widening the member's signature for the mock.
-- 👁 **Compute a setup's expected value outside the Moq expression.** A setup lambda is an expression tree, which cannot
-  hold a ref struct or the expanded form of a `params ReadOnlySpan<T>` call (`CS8640`, `CS9226`) — so
-  `Setup(x => x.ContainsAsync(ExpiringKeys.Create("p", tenant, nonce), ct))` does not compile. Build the value into a
-  local first (`var expectedKey = ExpiringKeys.Create(…);`) and match it in the setup; this also keeps the matched value
-  visible in the test.
-- 👁 **Stop the unit at the mediator to inspect a command it builds midway.** When the behavior under test is the
-  content of a command the unit sends before more work (the subject a token exchange validates), capture the command in
-  the setup's callback and return `ValueTask.FromException(...)`, so the unit stops there and the test mocks nothing
-  after it (`DefaultTokenExchangeGrantHandlerTests`).
+- 👁 **Mock the enumerator the code actually calls** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
+- 👁 **Moq cannot match a `ReadOnlySpan<T>` / `Span<T>` argument** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ISecretGenerator.ImportSharedSecret`).
+- 👁 **Compute a setup's expected value outside the Moq expression** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`CS8640`, `CS9226`):
+  `var expectedKey = ExpiringKeys.Create(…);`.
+- 👁 **Stop the unit at the mediator to inspect a command it builds midway** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`DefaultTokenExchangeGrantHandlerTests`).
 - 👁 **Run a function argument through a strict setup.** When the unit passes a function that the collaborator calls
   midway (the `isRefusedAsync` of `ILocalAccountStore.VerifyCredentialAsync`), set up
   `.Returns((T1 _, T2 _, Func<…> callback, CancellationToken cancellationToken) => HelperAsync(callback, …,
   cancellationToken))` with a static `async` helper rather than an `async` lambda, so the delegate returns the member's
   own `ValueTask<T>` (`LocalAccountStoreSetup.SetupVerification`).
-- 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
-  expression tree that cannot contain `out _`, so call a static helper
-  (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
-- 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one.** Moq uses the last
-  setup that matches, so a `.Throws(...)` setup matched by `It.Is<JsonElement>(e => HasProperty(e, "retired"))`
-  after the general setup fails only that document, and both setups are consumed
-  (`ServerApiEndpointHandlerTests`, `DefaultTenantClientCoherenceCheckerTests`).
-- 👁 **Capture an event handler a strict mock receives and invoke it directly.**
-  `SetupAdd(x => x.Event += It.IsAny<EventHandler<TArgs>>()).Callback<EventHandler<TArgs>>(h => captured = h)`, plus a
-  `SetupRemove` when the unit detaches when it stops (`ValkeyReplicaBroadcastSubscriberTests`).
-- 👁 **A change-token producer in a test returns a fresh token after each change.** `ChangeToken.OnChange` asks the
-  producer for a new token after its callback; a producer that returns the cancelled token again fires forever. Swap in
-  a new `CancellationTokenSource` before cancelling the old one (`ServerSettingsReconciliationServiceTests`).
+- 👁 **Match a `JsonElement` argument by content** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
+- 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ServerApiEndpointHandlerTests`,
+  `DefaultTenantClientCoherenceCheckerTests`).
+- 👁 **Capture an event handler a strict mock receives and invoke it directly** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ValkeyReplicaBroadcastSubscriberTests`).
+- 👁 **A change-token producer in a test returns a fresh token after each change** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques): swap in a new `CancellationTokenSource` before
+  cancelling the old one (`ServerSettingsReconciliationServiceTests`).
 - 👁 **Test the rate limiter with descriptors of the test's own.** `DefaultRequestRateLimiterTests` mocks
   `IRateLimitDescriptorCatalog` and declares sliding and fixed descriptors, so the built-in table is tested only in
   `DefaultRateLimitDescriptorDataSourceTests`; match the batch with

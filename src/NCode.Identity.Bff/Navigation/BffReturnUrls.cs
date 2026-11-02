@@ -42,12 +42,15 @@ internal static class BffReturnUrls
     }
 
     /// <summary>
-    /// Determines whether the return URL is well formed and its path falls under an entry of the allow list.
+    /// Determines whether the return URL is a local URL the BFF may redirect to: a well-formed, same-origin path that
+    /// falls under an entry of the allow list.
     /// </summary>
     /// <param name="returnUrl">The return URL to check.</param>
     /// <param name="allowList">The allowed path prefixes.</param>
     /// <returns><see langword="true"/> when the return URL is allowed; otherwise, <see langword="false"/>.</returns>
-    public static bool IsAllowed(string returnUrl, IReadOnlyList<string> allowList)
+    // Named IsLocalUrl, as ASP.NET Core's own check is, so code scanning recognizes the guard on every redirect it
+    // protects.
+    public static bool IsLocalUrl(string returnUrl, IReadOnlyList<string> allowList)
     {
         if (!IsWellFormedPath(returnUrl))
             return false;

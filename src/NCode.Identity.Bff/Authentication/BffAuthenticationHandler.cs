@@ -77,7 +77,7 @@ internal class BffAuthenticationHandler(
         var bffOptions = _options.Value;
         var request = Request;
         var returnUrl = $"{request.Path}{request.QueryString}";
-        if (!BffReturnUrls.IsAllowed(returnUrl, bffOptions.ReturnUrls))
+        if (!BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
             returnUrl = "/";
 
         var loginUrl = BffNavigation.LocalUrl(request, bffOptions.PathPrefix + LoginPath);

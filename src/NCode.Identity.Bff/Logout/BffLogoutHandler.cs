@@ -90,7 +90,7 @@ internal class BffLogoutHandler
         }
 
         var returnUrl = returnUrlValues.Count == 0 ? DefaultReturnUrl : returnUrlValues[0];
-        if (returnUrl is null || !BffReturnUrls.IsAllowed(returnUrl, bffOptions.ReturnUrls))
+        if (returnUrl is null || !BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
         {
             await WriteInvalidRequestAsync(httpContext, "The returnUrl parameter is not allowed.");
             return;

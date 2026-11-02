@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Dispatch;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
 
@@ -13,17 +14,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// issued tokens, or the error payload of a denied push request per CIBA Core §12) to the client's
 /// <c>client_notification_endpoint</c>, authenticated with the client notification token. A delivery failure throws so
 /// the <see cref="IJobDispatcher"/> retries the job (up to its attempt limit), giving CIBA push and ping delivery
-/// at-least-once semantics rather than the former best-effort single attempt.
+/// at-least-once semantics rather than the former best-effort single attempt. The response body is never read: the
+/// delivery waits for the status line and headers only, so a hostile endpoint cannot make the server buffer a body.
 /// </summary>
 internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactory)
     : IDispatchJobHandler<CibaDeliveryJob>
 {
-    /// <summary>
-    /// The name of the SSRF-guarded HTTP client used to POST the CIBA client notification to the client-registered
-    /// <c>client_notification_endpoint</c>.
-    /// </summary>
-    internal const string HttpClientName = "NCode.Identity.OpenId.CibaDelivery";
-
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
 
     /// <inheritdoc />
@@ -78,8 +74,12 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
             );
         }
 
-        var httpClient = HttpClientFactory.CreateClient(HttpClientName);
-        using var response = await httpClient.SendAsync(requestMessage, cancellationToken);
+        var httpClient = HttpClientFactory.CreateClient(GuardedHttpClient.Name);
+        using var response = await httpClient.SendAsync(
+            requestMessage,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken
+        );
 
         // A non-success status throws, signaling the dispatcher to retry with back-off.
         response.EnsureSuccessStatusCode();

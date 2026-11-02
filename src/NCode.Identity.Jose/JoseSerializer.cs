@@ -12,7 +12,6 @@ using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
-using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose;
 
@@ -151,7 +150,7 @@ internal partial class JoseSerializer(
     /// <inheritdoc />
     public string Decode(JoseToken token, SecretKey secretKey)
     {
-        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var payloadBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
         Decode(token, secretKey, payloadBuffer);
         return DecodeUtf8(payloadBuffer.AsReadOnlySequence);
     }
@@ -161,7 +160,7 @@ internal partial class JoseSerializer(
 
     private static string DecodeUtf8(ReadOnlySequence<byte> byteSequence)
     {
-        using var charBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        using var charBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: true);
         SecureEncoding.UTF8.GetChars(byteSequence, charBuffer);
         return charBuffer.AsReadOnlySequence.ToString();
     }
@@ -177,7 +176,7 @@ internal partial class JoseSerializer(
         JsonSerializerOptions? jsonOptions
     )
     {
-        using var payloadBuffer = new Sequence<byte>(ArrayPool<byte>.Shared);
+        using var payloadBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true);
         Decode(token, secretKey, payloadBuffer);
         return Deserialize<T>(payloadBuffer.AsReadOnlySequence, jsonOptions);
     }
@@ -295,11 +294,8 @@ internal partial class JoseSerializer(
             return Encode(SecureEncoding.UTF8, stringValue, out bytes);
         }
 
-        var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
-        {
-            // increase our chances of getting a single-segment buffer
-            MinimumSpanLength = 1024,
-        };
+        // increase our chances of getting a single-segment buffer
+        var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, 1024);
 
         try
         {
@@ -310,7 +306,7 @@ internal partial class JoseSerializer(
                 options ?? JoseSerializerOptions.JsonSerializerOptions
             );
 
-            return buffer.ConsumeAsContiguousSpan(isSensitive: false, out bytes);
+            return buffer.ConsumeAsContiguousSpan(isSensitive: true, out bytes);
         }
         catch
         {
@@ -395,7 +391,7 @@ internal partial class JoseSerializer(
     )
     {
         var byteCount = encoding.GetByteCount(chars);
-        var byteLease = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> span);
+        var byteLease = BufferFactory.Rent(byteCount, isSensitive: true, out Span<byte> span);
         try
         {
             var bytesWritten = encoding.GetBytes(chars, span);

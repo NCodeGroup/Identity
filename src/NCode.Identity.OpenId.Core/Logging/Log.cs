@@ -146,6 +146,16 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ServerMaterializationAtStartFailed,
+        Level = LogLevel.Warning,
+        Message = "Materializing the server when the replica started failed; its settings are reconciled once a request materializes it"
+    )]
+    internal static partial void ServerMaterializationAtStartFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ReconciledServerSettingsUnreadable,
         Level = LogLevel.Warning,
         Message = "The settings that the server '{ServerId}' was last reconciled against cannot be read, so every tenant and client is reconciled"

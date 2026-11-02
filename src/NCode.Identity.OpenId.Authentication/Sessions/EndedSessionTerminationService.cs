@@ -65,7 +65,8 @@ internal sealed class EndedSessionTerminationService(
     {
         try
         {
-            // The pass waits for the replica's first request, so it never reads the store while the host starts.
+            // The pass waits until the replica materializes its server: when it starts, or, when the store cannot be
+            // read then, at its first request.
             await MaterializedServerAccessor.GetServerAsync(stoppingToken);
 
             using var timer = new PeriodicTimer(Options.Interval, TimeProvider);

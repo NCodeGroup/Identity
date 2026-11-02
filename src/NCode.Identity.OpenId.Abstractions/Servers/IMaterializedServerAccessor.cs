@@ -13,8 +13,8 @@ namespace NCode.Identity.OpenId.Servers;
 public interface IMaterializedServerAccessor
 {
     /// <summary>
-    /// Gets the <see cref="OpenIdServer"/> that this replica materialized, waiting until the replica materializes it at
-    /// its first request, so background work never reads the store while the host starts.
+    /// Gets the <see cref="OpenIdServer"/> that this replica materialized, waiting until the replica materializes it:
+    /// when the replica starts, or, when the store cannot be read then, at its first request.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to stop waiting.</param>
     /// <returns>A <see cref="ValueTask{TResult}"/> that represents the materialized <see cref="OpenIdServer"/>.</returns>

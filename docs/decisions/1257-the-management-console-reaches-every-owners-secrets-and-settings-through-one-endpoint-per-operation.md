@@ -12,9 +12,11 @@ per owner: 29 endpoints, each with its own hook and its own cache-tag scheme, an
 settings tabs. A fix to one copy, such as the cache tags that keep one scope's data apart from another's
 ([ADR-1064](1064-frontend-presentation-platform.md)), reaches one owner and misses the other three (issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
-The operations are the same for every owner except one: the Management API maps the one-call rotation of a secret
+The operations are the same for every owner except one: the Management API maps the rotation of a secret
 (`/secrets/{secretId}/rotate`) for clients alone
-([ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
+([ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md), superseded by
+[ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md), which keeps the
+rotated secret beside its replacement).
 
 ## Decision
 
@@ -72,8 +74,9 @@ The operations are the same for every owner except one: the Management API maps 
   tenant scopes are distinct browsing contexts.
 - [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md): the management console's URL is its
   navigation state; the scope derives from the route.
-- [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md): a client secret is rotated by replacing
-  it in one change.
+- [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md), superseded by
+  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md): a client secret
+  is rotated by adding a replacement beside the rotated secret, which stays until it expires or is deleted.
 - Code: `src/frontend/packages/api/src/owner.ts`, `src/frontend/packages/api/src/scope.ts`,
   `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/apps/mgmt/src/containers/OwnerSecretsTab.tsx`,
   `src/frontend/apps/mgmt/src/containers/OwnerSettingsTab.tsx`,

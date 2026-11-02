@@ -8,7 +8,7 @@
  */
 
 /** The server-set, JavaScript-readable cookie whose value is echoed back as the antiforgery token. */
-export const ANTIFORGERY_COOKIE = 'XSRF-TOKEN';
+export const ANTIFORGERY_COOKIE = '__Host-XSRF-TOKEN';
 
 /** The antiforgery form field the ASP.NET Core antiforgery middleware validates on POST. */
 export const ANTIFORGERY_FIELD = '__RequestVerificationToken';

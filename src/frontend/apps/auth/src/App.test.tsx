@@ -30,7 +30,7 @@ describe('App login surface', () => {
     const { container } = renderApp({
       pathname: '/account/login',
       search: '?ReturnUrl=%2Fauthorize%3Fx%3D1',
-      cookie: 'XSRF-TOKEN=the-token',
+      cookie: '__Host-XSRF-TOKEN=the-token',
     });
 
     expect(container.querySelector('#username')).not.toBeNull();
@@ -64,7 +64,7 @@ describe('App consent surface', () => {
     const { container } = renderApp({
       pathname: '/account/consent',
       search: '?ReturnUrl=%2Fauthorize',
-      cookie: 'XSRF-TOKEN=tok',
+      cookie: '__Host-XSRF-TOKEN=tok',
     });
 
     expect(container.querySelector('#consent-allow')).not.toBeNull();
@@ -78,7 +78,7 @@ describe('App account surface', () => {
     const { container } = renderApp({
       pathname: '/account',
       search: '',
-      cookie: 'XSRF-TOKEN=the-token',
+      cookie: '__Host-XSRF-TOKEN=the-token',
     });
 
     const logout = container.querySelector('#logout');

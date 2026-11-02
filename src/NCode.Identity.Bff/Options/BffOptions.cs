@@ -17,6 +17,14 @@ public sealed class BffOptions
     public string Authority { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the absolute URL the BFF is published at — scheme, host, optional port and path base, such as
+    /// <c>https://app.example.com</c> or <c>https://example.com/app</c>. The BFF builds the <c>redirect_uri</c> and
+    /// the <c>post_logout_redirect_uri</c> from it, never from the request. The configuration key is
+    /// <c>Bff:PublicOrigin</c>.
+    /// </summary>
+    public string PublicOrigin { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the client identifier of the BFF at the OpenID Provider. The configuration key is
     /// <c>Bff:ClientId</c>.
     /// </summary>

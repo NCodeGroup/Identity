@@ -5,12 +5,14 @@ applyTo: "src/**/*.cs"
 
 # NCode.Identity coding conventions (production)
 
-The **authoritative source** for production coding standards in this repository, mirrored for orientation in
-[`AGENTS.md`](../../AGENTS.md). Test-project rules live in
+NCode.Identity's own production coding rules. The project template's
+[`csharp.instructions.md`](csharp.instructions.md) holds the general C# rules and applies to every `.cs` file; this
+file keeps what the family adds to them or decides differently, and a bullet that names a template rule links its
+section there. Where the two differ, this file wins. Test-project rules live in
 [`csharp-testing.instructions.md`](csharp-testing.instructions.md). The `.editorconfig`, CSharpier, and analyzers
-enforce the machine-checkable subset. When a convention changes, change it **here** first. The _reasoning_ behind a
-non-obvious rule or seam lives in an ADR under [`docs/decisions/`](../../docs/decisions/) — link to it rather than inlining the
-rationale.
+enforce the machine-checkable subset. When a family convention changes, change it **here** first. The _reasoning_
+behind a non-obvious rule or seam lives in an ADR under [`docs/decisions/`](../../docs/decisions/) — link to it rather
+than inlining the rationale.
 
 **Legend** — how each rule is enforced:
 
@@ -22,83 +24,47 @@ rationale.
 
 ## 1. Language & async
 
-- 👁 Use `ValueTask` / `ValueTask<T>` for async methods (not `Task`), with an `Async` suffix, and a
-  `CancellationToken` as the **last** parameter. `Task` is allowed only at framework boundaries the library does not
-  own — an ASP.NET Core middleware `InvokeAsync`, a minimal-API endpoint handler, or a mediator handler whose contract
-  returns `Task`.
-- ✅ **No sync-over-async.** Blocking on a `Task`/`ValueTask` — `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`,
-  `Task.WaitAll` / `Task.WaitAny` — is banned by `BannedApiAnalyzers` (`RS0030`, see
-  [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt), from the project template, which bans it in every project,
-  tests included). Always `await`.
-- 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate.** `StartNew`
-  over an `async` lambda returns an unobserved `Task<Task>` and drops the inner task's exceptions; `Task.Run` unwraps it.
-  Prefer not offloading at all — offload only when the work must leave the calling thread (e.g. disposing an evicted
-  cache entry off the eviction callback): `_ = Task.Run(async () => await x.DisposeAsync());`.
-- ✅ **No `ConfigureAwait(false)`.** This is an ASP.NET-Core-oriented library, and ASP.NET Core installs no
-  `SynchronizationContext` (nor a custom `TaskScheduler`), so `ConfigureAwait(false)` is a runtime no-op — the
-  deadlock/marshalling reason for it belonged to classic ASP.NET (Framework) and UI apps. `CA2007` is disabled, not required.
-- 👁 **Request-abort cancellation is a disconnect, not an error.** An `OperationCanceledException` whose token is the
-  request's `HttpContext.RequestAborted` means the client went away; at an endpoint/middleware boundary rethrow it so
-  the framework abandons the request — never convert it into a rendered error response, a retry, or an audit write (the
-  aborted token would fail those writes anyway).
+- 👁 **Async methods return `ValueTask`, end in `Async` and take the `CancellationToken` last** — template
+  [Language and Async](csharp.instructions.md#language-and-async); a mediator handler whose contract returns `Task` is
+  a framework boundary too.
+- ✅ **No sync-over-async** — template [Language and Async](csharp.instructions.md#language-and-async);
+  [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt) bans it in every project, tests included (`RS0030`).
+- 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate** — template
+  [Language and Async](csharp.instructions.md#language-and-async).
+- ✅ **No `ConfigureAwait(false)`.** The family's libraries are ASP.NET-Core-oriented, so the template's
+  [Language and Async](csharp.instructions.md#language-and-async) rule for code that runs only under ASP.NET Core
+  applies to all of them; `CA2007` is disabled, not required.
+- 👁 **Request-abort cancellation is a disconnect, not an error** — template
+  [Language and Async](csharp.instructions.md#language-and-async).
 - 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
-  cancelled.** An `HttpClient` timeout throws `TaskCanceledException` while the loop's token is untouched, so a filter
-  `when (exception is not OperationCanceledException)` lets one slow endpoint end the loop and, under the host's default
-  `BackgroundServiceExceptionBehavior.StopHost`, stop the process. Catch the failure of one unit of work with
-  `when (!stoppingToken.IsCancellationRequested)` and end the loop quietly only when that token is cancelled
-  (`JobDispatchWorker`,
+  cancelled** — template [Language and Async](csharp.instructions.md#language-and-async) (`JobDispatchWorker`,
   [ADR-1232](../../docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
-- ✅ **Prefer C# 12+ collection expressions** over `new[] { … }` / `new List<T> { … }` / `Array.Empty<T>()`:
-  `byte[] data = [1, 2, 3];`, `List<string> names = ["a", "b"];`, `int[] empty = [];`. Cast when a target type needs
-  it for generic inference, e.g. `(byte[])[1, 2, 3]` for a `ReadOnlyMemory<T>` parameter.
-- ✅ **Use `const` for compile-time literal values** of any type instead of `var`/`readonly` locals:
-  `const string Expected = "hello";`, `const int Count = 5;`, `const char Separator = ',';`.
-- ✅ **Use UTF-8 string literals (`u8`)** when building `byte[]`/`ReadOnlySpan<byte>` from valid UTF-8 text:
-  `"Hello"u8.ToArray()`. Use explicit byte arrays only for invalid UTF-8 sequences or error-condition tests. A fixed
-  protocol label — an HKDF `info`, a hash prefix — is a `static ReadOnlySpan<byte> Name => "…"u8` property, never a
-  `const string` encoded on each call.
-- ✅ Nullable reference types are **on** and nullable warnings are **errors**. 🚫 The **null-forgiving operator (`!`)
-  is banned** — always restructure so the compiler proves non-null (`?? throw`, `[MemberNotNullWhen]`, an
-  `is { } local` pattern, early-out narrowing) instead of asserting it. Even though the analyzer accepts a `// !`
-  justification comment, **do not use that escape hatch**: eliminate the `!`, never annotate it.
-- ⚠️ **`T?` under a `where T : notnull` constraint is NOT `Nullable<T>` for a value type** — it is the
-  non-nullable `T`, so `field is not null` / `field is null` on such a member is always `true` / `false` for value
-  types and silently misdetects "has a value". Never use a `T?` field (or the `x is null` test on one) as the
-  presence flag for an optional value-type slot under a `notnull` constraint; track presence with an explicit `bool`
-  flag (or constrain the API to `where T : struct` so `T?` really is `Nullable<T>`). This bit the settings lattice:
-  see [ADR-1010](../../docs/decisions/1010-supported-settings-unset-means-unrestricted.md).
-- ✅ **`Debug.Assert` is for internal invariants only — never to validate untrusted or external input.** It is
-  compiled out in Release (`DEBUG`-gated), so any check written as an assertion silently disappears in shipped
-  builds. Validating a parsed/decoded value (e.g. a `TryDecode`/`TryParse` result on caller- or wire-supplied data)
-  with `Debug.Assert` is a security bug: the malformed value is accepted in Release. Use an explicit `if (!ok) throw`
-  for anything derived from input; reserve `Debug.Assert` for facts the surrounding code already guarantees (a buffer
-  length you just allocated, an unreachable `default` branch).
-- 👁 **Validate untrusted text as written, not only as parsed.** Anchor a validating regular expression with `\z`,
-  never `$`: .NET's `$` also matches before a trailing newline, so `^[a-z]+$` accepts `"acme\n"`. When the value is an
-  identifier compared byte for byte — an issuer, a redirect URI — check the raw string as well as the parsed `Uri`:
-  `Uri` trims surrounding whitespace and reports an empty query (`?`) or fragment (`#`) as absent, so a string it
-  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`). Carry such an
-  identifier as a `string` wherever it is stored, serialized, compared, or delivered, and parse a `Uri` only to inspect
-  a part: `Uri` equality ignores the case of the host, the user information, and the fragment, and `AbsoluteUri`,
-  `ToString()`, `UriBuilder`, and `UriJsonConverter` normalize it (`myapp://callback` becomes `myapp://callback/`)
+- ✅ **Collection expressions** — template [Collection Expressions](csharp.instructions.md#collection-expressions).
+- ✅ **`const` for compile-time literal values** — template
+  [Constants for Literals](csharp.instructions.md#constants-for-literals).
+- ✅ **UTF-8 string literals (`u8`)** — template [UTF-8 String Literals](csharp.instructions.md#utf-8-string-literals);
+  a fixed protocol label, such as an HKDF `info` or a hash prefix, is a `static ReadOnlySpan<byte>` property.
+- ✅ **Nullable reference types are on, nullable warnings are errors, and the null-forgiving operator (`!`) is
+  banned** — template [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants).
+- ⚠️ **`T?` under a `where T : notnull` constraint is not `Nullable<T>` for a value type** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants); it bit the settings lattice
+  ([ADR-1010](../../docs/decisions/1010-supported-settings-unset-means-unrestricted.md)).
+- ✅ **`Debug.Assert` is for internal invariants only, never for input** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants).
+- 👁 **Validate untrusted text as written, not only as parsed** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants). `TenantAddressRules.TryParseIssuer`
+  checks an issuer's raw string, and an identifier compared byte for byte, such as a redirect URI, is never normalized
+  through `UriBuilder` or `UriJsonConverter` either
   ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
-- 👁 Prefer **auto-properties over fields** for state (static or instance) — **including `private` members**. Use a
-  field only for a low-level need a property cannot express (a `ref` / `Interlocked` / `fixed` / `stackalloc` target).
-  **A `System.Threading.Lock` does _not_ qualify** — declare it as a get-only auto-property
-  (`private Lock Gate { get; } = new();`): the property compiles to a `readonly` backing field and `lock(Gate)` still
-  lowers to `Gate.EnterScope()`.
-- 👁 **Pick the narrowest accessor shape:** `{ get; }` for read-only state, `{ get; init; }` for immutable DTOs, and
-  `{ get; set; }` only when mutation is genuinely required. Use an **expression-bodied member** for a simple computed
-  property (`internal TokenGeneratorSettings Settings => SettingsOrNull ??= LoadSettings();`).
-- 👁 Use **primary constructors** wherever possible — including converting existing single-purpose constructors.
-  When a constructor's body only assigns its parameters to members, hoist the parameters onto the type declaration
-  and feed them directly into get-only / `init` auto-properties (`public Foo Bar { get; } = bar;`); delete the now-empty
-  constructor and move its `<param>` doc tags onto the **type**. Keep a traditional constructor only when a primary one
-  genuinely can't express the intent — a member initializer that must reference **another** instance member, multiple
-  public constructors, or constructor-body logic that can't be reduced to member initializers (buffering a collection
-  with `[.. param]` or a guard folded into an initializer is fine; branching, loops, or `out`/`ref` work is not).
+- 👁 **Auto-properties over fields, `private` members and a `Lock` included** — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors).
+- 👁 **The narrowest accessor shape** — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors).
+- 👁 **Primary constructors wherever they can express the type**, converting single-purpose constructors too — template
+  [Members and Constructors](csharp.instructions.md#members-and-constructors); buffering a collection with `[.. param]`
+  or a guard folded into an initializer still fits a primary constructor.
 
-- 👁 Put constants / statics / `static readonly` at the **top** of the file or class, before instance members.
+- 👁 **Constants and statics at the top of the type** — template [Layout](csharp.instructions.md#layout).
 
 ## 2. Public API discipline
 

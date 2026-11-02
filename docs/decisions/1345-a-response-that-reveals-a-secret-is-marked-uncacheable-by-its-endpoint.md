@@ -1,6 +1,8 @@
 # 1345. A response that reveals a secret is marked uncacheable by its endpoint
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md): `.WithNoStore()` and
+  `HttpResponse.SetNoStore()` live in the dependency-free `NCode.AspNetCore` package)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)
@@ -61,25 +63,40 @@ handler runs, so success and error responses alike carry `Cache-Control: no-stor
 ## Consequences
 
 - The secret-revealing responses are never cached by a client or an intermediary.
-- `HttpResponse.SetNoStore()` is public in `NCode.Identity.OpenId.Authentication.Abstractions`; the token endpoint and
-  the authorization response writer call it too.
-- Smell: a route that returns a `CreatedSecretResource`, a token or a `client_secret` without `.WithNoStore()`.
-- Marking the pushed authorization, device authorization and backchannel authentication endpoints, whose responses carry
-  one-time values, is tracked in [#488](https://github.com/NCodeGroup/Identity/issues/488).
+- `.WithNoStore()` and `HttpResponse.SetNoStore()` are public in the dependency-free `NCode.AspNetCore` package
+  ([ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)); the token endpoint and the
+  authorization response writer call `SetNoStore()` too.
+- The pushed authorization (`DefaultPushedAuthorizationRequestEndpointHandler`), device authorization
+  (`DefaultDeviceAuthorizationEndpointHandler`) and backchannel authentication
+  (`DefaultBackchannelAuthenticationEndpointHandler`) endpoints are mapped `.WithNoStore()` too: their responses carry
+  a one-time credential (`request_uri`; `device_code` and `user_code`; `auth_req_id`), and RFC 9126 §2.2, RFC 8628
+  §3.2 and CIBA Core §7.3 show those responses with `Cache-Control: no-store`.
+- Smell: a route that returns a `CreatedSecretResource`, a token, a `client_secret`, a `request_uri`, a `device_code`,
+  a `user_code` or an `auth_req_id` without `.WithNoStore()`.
 
 ## References
 
-- [`NoStoreEndpointConventionBuilderExtensions`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreEndpointConventionBuilderExtensions.cs)
-- [`NoStoreResponseExtensions`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreResponseExtensions.cs)
-- [`NoStoreEndpointFilter`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/NoStoreEndpointFilter.cs)
+- [`NoStoreEndpointConventionBuilderExtensions`](../../src/NCode.AspNetCore/NoStoreEndpointConventionBuilderExtensions.cs)
+- [`NoStoreResponseExtensions`](../../src/NCode.AspNetCore/NoStoreResponseExtensions.cs)
+- [`NoStoreEndpointFilter`](../../src/NCode.AspNetCore/NoStoreEndpointFilter.cs)
 - [`ClientApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs)
 - [`ResourceServerApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/ResourceServers/ResourceServerApiEndpointHandler.cs)
 - [`GrantApiEndpointHandler`](../../src/NCode.Identity.OpenId.Management/Endpoints/Grants/GrantApiEndpointHandler.cs)
 - [`DefaultClientRegistrationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs)
+- [`DefaultPushedAuthorizationRequestEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/PushedAuthorization/DefaultPushedAuthorizationRequestEndpointHandler.cs)
+- [`DefaultDeviceAuthorizationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/DeviceAuthorization/DefaultDeviceAuthorizationEndpointHandler.cs)
+- [`DefaultBackchannelAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/DefaultBackchannelAuthenticationEndpointHandler.cs)
 - [`SecretRevealingManagementResponseTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/SecretRevealingManagementResponseTests.cs)
 - [`ClientRegistrationEndpointTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/ClientRegistrationEndpointTests.cs)
+- [`PushedAuthorizationEndpointTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/PushedAuthorizationEndpointTests.cs),
+  [`DeviceAuthorizationEndpointTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/DeviceAuthorizationEndpointTests.cs) and
+  [`BackchannelAuthenticationEndpointTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/BackchannelAuthenticationEndpointTests.cs)
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md),
-  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
-- Issue [#473](https://github.com/NCodeGroup/Identity/issues/473)
-- RFC [7591](https://www.rfc-editor.org/rfc/rfc7591), [7592](https://www.rfc-editor.org/rfc/rfc7592) and
-  [9111](https://www.rfc-editor.org/rfc/rfc9111)
+  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
+  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
+- Issues [#473](https://github.com/NCodeGroup/Identity/issues/473), [#488](https://github.com/NCodeGroup/Identity/issues/488)
+  and [#492](https://github.com/NCodeGroup/Identity/issues/492)
+- RFC [7591](https://www.rfc-editor.org/rfc/rfc7591), [7592](https://www.rfc-editor.org/rfc/rfc7592),
+  [8628](https://www.rfc-editor.org/rfc/rfc8628), [9111](https://www.rfc-editor.org/rfc/rfc9111) and
+  [9126](https://www.rfc-editor.org/rfc/rfc9126);
+  [CIBA Core](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)

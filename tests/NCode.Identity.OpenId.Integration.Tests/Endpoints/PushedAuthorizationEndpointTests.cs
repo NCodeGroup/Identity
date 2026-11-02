@@ -65,6 +65,23 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task PostPar_WithSeededPublicClient_MarksTheResponseNoStore()
+    {
+        const string clientId = "it-par-no-store";
+        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = BuildAuthorizationForm(clientId, []);
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        NoStoreAssert.IsNoStore(response);
+    }
+
+    [Fact]
     public async Task PostPar_WithoutCodeChallenge_ReturnsInvalidRequest()
     {
         // The pushed request is validated as the authorization endpoint would validate it, so a missing
@@ -90,6 +107,31 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("invalid_request", jsonElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostPar_WhenRefused_MarksTheErrorResponseNoStore()
+    {
+        const string clientId = "it-par-no-store-error";
+        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["redirect_uri"] = RedirectUri,
+                ["response_type"] = "code",
+                ["scope"] = "openid",
+            }
+        );
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        NoStoreAssert.IsNoStore(response);
     }
 
     [Fact]

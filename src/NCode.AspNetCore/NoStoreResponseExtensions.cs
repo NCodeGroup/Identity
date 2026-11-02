@@ -4,7 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides the extension method that marks a response as non-cacheable, so that no client or intermediary stores a

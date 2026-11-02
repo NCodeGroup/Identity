@@ -1840,12 +1840,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.ToContentS
 NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions
 NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
 NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetHtmlPageSecurity(NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy! policy) -> void
-NCode.Identity.OpenId.Authentication.Endpoints.NoStoreEndpointConventionBuilderExtensions
-NCode.Identity.OpenId.Authentication.Endpoints.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
-NCode.Identity.OpenId.Authentication.Endpoints.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithNoStore() -> TBuilder
-NCode.Identity.OpenId.Authentication.Endpoints.NoStoreResponseExtensions
-NCode.Identity.OpenId.Authentication.Endpoints.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
-NCode.Identity.OpenId.Authentication.Endpoints.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetNoStore() -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken
 NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.IssuedRefreshToken() -> void
 NCode.Identity.OpenId.Authentication.Tokens.Models.IssuedRefreshToken.LineageExpiresWhen.get -> System.DateTimeOffset

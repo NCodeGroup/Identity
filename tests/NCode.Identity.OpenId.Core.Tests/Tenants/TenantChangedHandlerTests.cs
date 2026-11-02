@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -22,6 +23,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IReplicaBroadcaster> MockReplicaBroadcaster { get; }
     private Mock<ITenantProvisioner> MockTenantProvisioner { get; }
+    private Mock<TimeProvider> MockTimeProvider { get; }
     private ServiceProvider ServiceProvider { get; }
     private TenantChangedHandler Handler { get; }
 
@@ -31,6 +33,14 @@ public sealed class TenantChangedHandlerTests : IDisposable
         MockSecretProtectorProvider = Mocks.Create<ISecretProtectorProvider>();
         MockReplicaBroadcaster = Mocks.Create<IReplicaBroadcaster>();
         MockTenantProvisioner = Mocks.Create<ITenantProvisioner>();
+        MockTimeProvider = Mocks.Create<TimeProvider>();
+        MockTimeProvider
+            .Setup(CreateTimerExpression)
+            .Returns(
+                (TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) =>
+                    TimeProvider.System.CreateTimer(callback, state, dueTime, period)
+            )
+            .Verifiable();
 
         ServiceProvider = new ServiceCollection()
             .AddScoped(_ => MockTenantProvisioner.Object)
@@ -41,6 +51,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
             MockSecretProtectorProvider.Object,
             MockReplicaBroadcaster.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
+            MockTimeProvider.Object,
             NullLogger<TenantChangedHandler>.Instance
         );
     }
@@ -50,6 +61,15 @@ public sealed class TenantChangedHandlerTests : IDisposable
         ServiceProvider.Dispose();
         Mocks.Verify();
     }
+
+    private static Expression<Func<TimeProvider, ITimer>> CreateTimerExpression =>
+        x =>
+            x.CreateTimer(
+                It.IsAny<TimerCallback>(),
+                It.IsAny<object?>(),
+                TenantChangedHandler.PostCommitTimeout,
+                Timeout.InfiniteTimeSpan
+            );
 
     private void SetupEviction() =>
         MockTenantCache
@@ -278,6 +298,21 @@ public sealed class TenantChangedHandlerTests : IDisposable
                 ),
             Times.Once
         );
+    }
+
+    [Fact]
+    public async Task HandleAsync_BoundsTheEvictionAndTheAnnouncementByThePostCommitTimeout()
+    {
+        SetupEviction();
+        SetupMasterKeyEviction();
+        SetupBroadcast();
+
+        await Handler.HandleAsync(
+            new TenantChangedCommand(TenantId, SettingsChanged: false),
+            CancellationToken.None
+        );
+
+        MockTimeProvider.Verify(CreateTimerExpression, Times.Exactly(2));
     }
 
     #endregion

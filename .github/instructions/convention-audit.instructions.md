@@ -49,7 +49,7 @@ Scan production code only (test projects are exempt from several rules). Check e
   a new member would need a library change anyway), and an open vocabulary is `public const string` names plus
   registered descriptors/strategies — never `[Flags]`, never a `switch`/mask encoding relationships among members; no
   secret material on the surface; no behavior-selecting `bool`/`enum` flag arguments; data/options/event types are
-  `sealed` with concrete collections; **no cross-assembly `InternalsVisibleTo`** (only `*Tests` + `DynamicProxyGenAssembly2`).
+  `sealed` with concrete collections; **no cross-assembly `InternalsVisibleTo`** (only `*Tests`, `*.Benchmarks` + `DynamicProxyGenAssembly2`).
 - **§3 organization** — one type per file; **no nested types** except a private type closing over the enclosing generic
   parameter or a nested `static` constant-vocabulary class; the single canonical impl of `IFoo` is `DefaultFoo`;
   namespaces flat per package.

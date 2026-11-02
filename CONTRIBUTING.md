@@ -65,8 +65,25 @@ point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The
 nodes tore that file and failed the job
 ([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)).
 
-When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**` and `/tests/`
-for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) — never at the solution root.
+When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**`, `/tests/`
+for `tests/**` and `/benchmarks/` for `benchmarks/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`)
+— never at the solution root.
+
+## Benchmarks
+
+The EdDsa primitives are measured by `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` (BenchmarkDotNet). Its results go
+to `BenchmarkDotNet.Artifacts/` (gitignored). A pull request that optimizes a primitive quotes the before and after
+tables from the same machine. CI and the Definition of Done only compile the project
+([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
+
+```pwsh
+# Measure one class (any class-name pattern):
+dotnet run -c Release --project benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks -- --filter '*Fe25519*'
+# List the benchmarks without running them:
+dotnet run -c Release --project benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks -- --list flat
+# A quick smoke run of every benchmark (exits non-zero when one fails):
+dotnet run -c Release --project benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks -- --filter '*' --job Dry
+```
 
 ## Coding standards
 
@@ -83,7 +100,8 @@ marked tool-enforced or review-only. Every rule lives in one of them, once. The 
   descriptors or strategies — and an `enum` only for a provably closed set
   ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
 - No behavior-selecting flag arguments; split into intention-revealing methods instead.
-- **No cross-assembly `InternalsVisibleTo`** in production — packages compose through public contracts
+- **No cross-assembly `InternalsVisibleTo`** in production — packages compose through public contracts; a package
+  grants only its `.Tests` project, `DynamicProxyGenAssembly2` and its `.Benchmarks` project
   ([project-template ADR-0104](docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md)).
 - One type per file; the single canonical implementation of `IFoo` is `DefaultFoo`
   ([project-template ADR-0105](docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)); C# 14 `extension` syntax.

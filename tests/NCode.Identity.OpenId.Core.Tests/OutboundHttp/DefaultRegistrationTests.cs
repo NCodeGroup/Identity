@@ -82,12 +82,12 @@ public sealed class DefaultRegistrationTests
 
         var handler = factory.CreateHandler(GuardedHttpClient.Name);
 
-        var hasTimeoutHandler = false;
+        var hasResilienceHandler = false;
         var current = handler;
         while (true)
         {
-            if (current is GuardedHttpTimeoutHandler)
-                hasTimeoutHandler = true;
+            if (current is GuardedResilienceHandler)
+                hasResilienceHandler = true;
 
             if (current is not DelegatingHandler { InnerHandler: { } inner })
                 break;
@@ -98,7 +98,7 @@ public sealed class DefaultRegistrationTests
         var socketsHandler = Assert.IsType<SocketsHttpHandler>(current);
         Assert.False(socketsHandler.AllowAutoRedirect);
         Assert.NotNull(socketsHandler.ConnectCallback);
-        Assert.True(hasTimeoutHandler);
+        Assert.True(hasResilienceHandler);
     }
 
     [Fact]

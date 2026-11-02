@@ -30,9 +30,9 @@ public sealed class OutboundHttpOptions
     public TimeSpan TotalTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    /// Gets or sets how many times a failed attempt of a call is retried; zero turns the retries off. Only a safe
-    /// request method is retried, and never after a connection or name-resolution error. The default is two. It is
-    /// between zero and ten.
+    /// Gets or sets how many times a failed attempt of a call is retried; zero turns the retries off. Only a GET or
+    /// HEAD request without a body is retried, and never after a connection or name-resolution error. The default is
+    /// two. It is between zero and ten.
     /// </summary>
     public int MaxRetryAttempts { get; set; } = 2;
 

@@ -1,6 +1,8 @@
 # 1336. The protocol client bounds its calls with a Polly.Core pipeline
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1385](1385-no-shipping-package-switches-off-its-consumers-logging-generator.md): Polly.Extensions and
+  Polly.RateLimiting are no longer pinned, because no package brings them)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)

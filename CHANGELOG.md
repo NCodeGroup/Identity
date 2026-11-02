@@ -1324,6 +1324,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking:** `EndSessionCommand` takes the resolved `EndSessionSubject`, so send `ResolveEndSessionSubjectCommand` first; `EndSessionSubject` gains `RequiresConfirmation`, the new `EndSessionConfirmationChallengeCommand` asks for the confirmation, and when an OP login is present its session takes precedence over the `id_token_hint`'s `sid` ([#494](https://github.com/NCodeGroup/Identity/issues/494), [ADR-1380](docs/decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).
 - **Breaking:** `OpenIdClientOptions.RequestTimeout` is renamed `TotalTimeout`; set `TotalTimeout` instead, and when it is below 10 seconds also set `AttemptTimeout` no higher, because the host does not start while the default 10-second `AttemptTimeout` exceeds `TotalTimeout`. It still bounds a whole request, the response body included, and the BFF checks its refresh lease against it ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 - **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
   `TryRemoveAsync(key, expectedValue, cancellationToken)`, an atomic compare-and-remove that deletes a value only while
@@ -4224,6 +4225,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **A logout without a valid `id_token_hint` for the current session asks the end-user first.** When an OP login is present and the end-session request carries no valid `id_token_hint` whose `sid` names that login's session, the `end_session_endpoint` parks the request as a one-time continuation bound to that session and asks the end-user to confirm (OpenID Connect RP-Initiated Logout 1.0 §2): the interactive surface shows its confirmation page at `/account/logout/confirm` beneath the tenant route (`logout-confirm`, `logout-cancel`, antiforgery-protected), and a host without it gets a minimal page from the core. A logout that names no subject or session no longer clears the login cookie, so a cross-site request cannot sign the end-user out ([#494](https://github.com/NCodeGroup/Identity/issues/494), [ADR-1380](docs/decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).
 - **Responses that reveal a secret are never cached.** Creating or rotating a client secret, creating a resource
   server key, minting an initial access token, and dynamic client registration (the RFC 7591 registration and the
   RFC 7592 read and update) answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so no

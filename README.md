@@ -139,7 +139,7 @@ annotated in place, and coverage history and pull-request diff coverage live on
 [Codecov](https://codecov.io/gh/NCodeGroup/Identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)).
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
-([ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md)).
+([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md)).
 
 ## Documentation
 

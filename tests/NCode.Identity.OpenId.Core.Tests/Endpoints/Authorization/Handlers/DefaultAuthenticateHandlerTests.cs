@@ -77,7 +77,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         return (command, mockAuthService, mockError);
     }
 
-    private void SetupAuthenticate(
+    private static void SetupAuthenticate(
         Mock<IAuthenticationService> mockAuthService,
         AuthenticateResult result
     ) =>

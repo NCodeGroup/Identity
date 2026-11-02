@@ -81,7 +81,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         return (mockContext, mockClient, mockMediator, mockTokenRequest, mockError);
     }
 
-    private void SetupAuthenticate(
+    private static void SetupAuthenticate(
         Mock<IMediator> mockMediator,
         AuthenticateSubjectDisposition disposition
     ) =>

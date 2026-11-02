@@ -24,7 +24,7 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             GrantKey = Token,
         };
 
-    private void SetupGrantId(Mock<IPersistedGrantService> mockGrantService) =>
+    private static void SetupGrantId(Mock<IPersistedGrantService> mockGrantService) =>
         mockGrantService
             .Setup(x =>
                 x.CreateGrantId(

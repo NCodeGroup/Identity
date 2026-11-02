@@ -14,7 +14,7 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
 
     #region Scaffolding
 
-    private AuthenticationContextReferenceRequest CreateRequest(
+    private static AuthenticationContextReferenceRequest CreateRequest(
         IReadOnlyCollection<string> methods,
         IReadOnlySettingCollection settings
     ) =>

@@ -85,7 +85,7 @@ public class JoseSerializerTests : BaseTests
         return (eccKey, secretKey);
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomEcdhKey(
+    private static (object controlKey, SecretKey secretKey) CreateRandomEcdhKey(
         string keyId,
         JweEncryption jweEncryption
     )
@@ -125,7 +125,7 @@ public class JoseSerializerTests : BaseTests
         return (password, secretKey);
     }
 
-    private (object? controlKey, SecretKey secretKey) CreateRandomKey(
+    private static (object? controlKey, SecretKey secretKey) CreateRandomKey(
         string keyId,
         JwsAlgorithm jwsAlgorithm
     )
@@ -163,7 +163,7 @@ public class JoseSerializerTests : BaseTests
         }
     }
 
-    private (object controlKey, SecretKey secretKey) CreateRandomKey(
+    private static (object controlKey, SecretKey secretKey) CreateRandomKey(
         string keyId,
         JweAlgorithm jweAlgorithm,
         JweEncryption jweEncryption
@@ -232,14 +232,13 @@ public class JoseSerializerTests : BaseTests
     {
         const string keyId = nameof(keyId);
 
-        var controlSettings = new JwtSettings();
         var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
         using var disposableNativeKey = controlKey as IDisposable ?? Disposable.Empty;
 
-        var keyManagementAlgorithmCode = controlSettings.JwaHeaderValue(jweAlgorithm);
-        var encryptionAlgorithmCode = controlSettings.JweHeaderValue(jweEncryption);
+        var keyManagementAlgorithmCode = JwtSettings.JwaHeaderValue(jweAlgorithm);
+        var encryptionAlgorithmCode = JwtSettings.JweHeaderValue(jweEncryption);
         var compressionAlgorithmCode = jweCompression.HasValue
-            ? controlSettings.CompressionHeader(jweCompression.Value)
+            ? JwtSettings.CompressionHeader(jweCompression.Value)
             : null;
 
         var originalPayload = new Dictionary<string, object>
@@ -418,15 +417,15 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal("JWT", typ);
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", headerToVerify));
-        Assert.Equal(jwtSettings.JwaHeaderValue(jweAlgorithm), alg);
+        Assert.Equal(JwtSettings.JwaHeaderValue(jweAlgorithm), alg);
 
         var enc = Assert.IsType<string>(Assert.Contains("enc", headerToVerify));
-        Assert.Equal(jwtSettings.JweHeaderValue(jweEncryption), enc);
+        Assert.Equal(JwtSettings.JweHeaderValue(jweEncryption), enc);
 
         if (jweCompression.HasValue)
         {
             var zip = Assert.IsType<string>(Assert.Contains("zip", headerToVerify));
-            Assert.Equal(jwtSettings.CompressionHeader(jweCompression.Value), zip);
+            Assert.Equal(JwtSettings.CompressionHeader(jweCompression.Value), zip);
         }
         else
         {
@@ -600,7 +599,7 @@ public class JoseSerializerTests : BaseTests
         Assert.Equal("JWT", typ);
 
         var alg = Assert.IsType<string>(Assert.Contains("alg", headerToVerify));
-        Assert.Equal(jwtSettings.JwsHeaderValue(jwsAlgorithm), alg);
+        Assert.Equal(JwtSettings.JwsHeaderValue(jwsAlgorithm), alg);
 
         var kid = Assert.IsType<string>(Assert.Contains("kid", headerToVerify));
         Assert.Equal(keyId, kid);
@@ -612,9 +611,8 @@ public class JoseSerializerTests : BaseTests
     {
         const string keyId = nameof(keyId);
 
-        var controlSettings = new JwtSettings();
         var (controlKey, secretKey) = CreateRandomKey(keyId, jwsAlgorithm);
-        var signatureAlgorithmCode = controlSettings.JwsHeaderValue(jwsAlgorithm);
+        var signatureAlgorithmCode = JwtSettings.JwsHeaderValue(jwsAlgorithm);
 
         if (
             !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(

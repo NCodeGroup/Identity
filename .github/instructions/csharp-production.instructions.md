@@ -739,11 +739,14 @@ than inlining the rationale.
   [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **A response that reveals a secret is marked `.WithNoStore()`.** Map every endpoint whose response can carry
   secret material (a generated secret or key, an initial access token, a `client_secret` or
-  `registration_access_token`) with `.WithNoStore()` (`NCode.Identity.OpenId.Authentication.Endpoints`), which writes
+  `registration_access_token`, or a one-time credential: a `request_uri`, a `device_code` and `user_code`, or an
+  `auth_req_id`) with `.WithNoStore()` (`NCode.AspNetCore`), which writes
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` before the handler runs, so the mapping shows
   which routes reveal a secret and no handler path can forget it. `HttpResponse.SetNoStore()` writes the same headers
-  where a response rather than a route carries the secret, as the authorization response writer does. See
-  [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md).
+  where a response rather than a route carries the secret, as the authorization response writer does. Reference the
+  dependency-free `NCode.AspNetCore` package, the home for general ASP.NET Core helpers. See
+  [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md) and
+  [ADR-1355](../../docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.
@@ -1160,6 +1163,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `17000`–`17999` | `NCode.Identity.SharedState.Valkey`                 |
     | `18000`–`18999` | `NCode.Identity.OpenId.Client`                      |
     | `19000`–`19999` | `NCode.Identity.Bff`                                |
+    | `20000`–`20999` | `NCode.Identity.OpenId.Host.MigrationService`       |
 
 ### Metrics
 

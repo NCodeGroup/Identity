@@ -11,6 +11,10 @@
 
 ## Context
 
+[project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md) has a
+guard that protects correctness fail closed and a guard that protects only capacity fail open, behind a short timeout
+and a breaker. This record builds the family's rate limiter, a capacity guard, on a shared counter set.
+
 Customers run their dev, test, and prod environments as separate tenants on one production platform
 ([hosting analysis](../hosting-analysis.md#environment-model)), so a load test against one tenant shares hardware with
 every other tenant's production traffic. Nothing limits a tenant's request rate, so one tenant can exhaust the capacity
@@ -122,8 +126,6 @@ client, against per-minute limits that are settings bounded by the merge lattice
   accurate enough for capacity protection and reuses one simple primitive.
 - **Counting only admitted requests.** Rejected: a client that retries without backing off would be admitted again at
   the start of every window, so the limit would not slow it down.
-- **Failing closed when the store is unreachable.** Rejected: it turns a cache outage into a full outage for every
-  tenant, which is the harm the limiter exists to prevent.
 
 ## Consequences
 

@@ -46,10 +46,11 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
    names the same list.
 2. **Concurrent checks share one retrieval**, as project-template ADR-0145 says. The checker keeps a
    `ConcurrentDictionary` of `Lazy<Task<CertificateRevocationList?>>` keyed by the location and the SHA-256
-   thumbprint of the issuing certificate, bounds the retrieval by `FetchTimeout`, and runs it on its own copy of the
-   issuing certificate, loaded from its raw data, so a caller that disposes the certificates of its chain does not
-   break the retrieval for the others. The retrieval stores its result in the cache and removes its own entry when it
-   ends.
+   thumbprint of the issuing certificate. The retrieval runs with `CancellationToken.None`, bounded by `FetchTimeout`,
+   on its own copy of the issuing certificate, loaded from its raw data, so a caller that disposes the certificates of
+   its chain does not break the retrieval for the others. It stores its result in the cache and removes its own entry
+   when it ends. Each caller waits with `WaitAsync(cancellationToken)`, so a caller that cancels stops waiting without
+   cancelling the retrieval the others share.
 3. **A failed retrieval is remembered.** A retrieval that yields no usable list stores `{cacheKey}:unavailable` in
    `IMemoryCache` for `FailureCacheDuration`. While the entry exists, the checker does not retrieve the list, logs
    `CertificateRevocationListRetrievalSuppressed` at the debug level, and treats the list as unavailable, so a

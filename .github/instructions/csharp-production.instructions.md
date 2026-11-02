@@ -955,8 +955,10 @@ Production code **must** be unit-test-friendly. These are 👁 review-only excep
   [Testability](csharp.instructions.md#testability), for a helper or a factory method that allocates an object handed
   to a dependency; reach for an extracted interface when the seam is reused or substantial.
 - 👁 **Internal implementations stay unsealed so tests can mock them; public types are mocked through their
-  interface** — template [Testability](csharp.instructions.md#testability). Never reach for `public virtual` to make a
-  public class mockable; `sealed` stays correct for data, options and event types (§2) and facade implementations.
+  interface** — template [Testability](csharp.instructions.md#testability). `CA1852` doesn't ask to seal them: it skips
+  every assembly with `InternalsVisibleTo`, which each package grants its tests, and flags only internal types in an
+  assembly that grants none. Never reach for `public virtual` to make a public class mockable; `sealed` stays correct
+  for data, options and event types (§2) and facade implementations.
 - ✅/👁 **`internal` for test access** — the test template's
   [InternalsVisibleTo](csharp-tests.instructions.md#internalsvisibleto): each package grants its `.Tests` project and
   `DynamicProxyGenAssembly2`.

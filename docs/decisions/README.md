@@ -366,4 +366,5 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1320](./1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md) | A rotated client secret overlaps its replacement until it expires or is deleted | Accepted |
 | [1335](./1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md) | A client's `jwks_uri` is fetched single-flight and a failed fetch is remembered | Accepted |
 | [1336](./1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) | The protocol client bounds its calls with a Polly.Core pipeline | Accepted |
-| [1345](./1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md) | A response that reveals a secret is marked uncacheable by its endpoint | Accepted |
+| [1345](./1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md) | A response that reveals a secret is marked uncacheable by its endpoint | Accepted (amended by [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)) |
+| [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Accepted |

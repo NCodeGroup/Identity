@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
@@ -32,7 +31,6 @@ internal class BffLoginHandler
     private readonly BffLoginTransactionService _transactionService;
     private readonly BffCookies _cookies;
     private readonly IBffAuditRecorder _auditRecorder;
-    private readonly IHostEnvironment _environment;
     private readonly TimeProvider _timeProvider;
 
     /// <summary>
@@ -45,7 +43,6 @@ internal class BffLoginHandler
         BffLoginTransactionService transactionService,
         BffCookies cookies,
         IBffAuditRecorder auditRecorder,
-        IHostEnvironment environment,
         TimeProvider timeProvider
     )
     {
@@ -55,7 +52,6 @@ internal class BffLoginHandler
         _transactionService = transactionService;
         _cookies = cookies;
         _auditRecorder = auditRecorder;
-        _environment = environment;
         _timeProvider = timeProvider;
     }
 
@@ -131,10 +127,7 @@ internal class BffLoginHandler
             parsedMaxAge = maxAgeSeconds;
         }
 
-        var redirectUri = BffNavigation.CallbackUri(request, bffOptions);
-        var isHttps = redirectUri.StartsWith(Uri.UriSchemeHttps + "://", StringComparison.Ordinal);
-        if (!isHttps && !_environment.IsDevelopment())
-            throw new InvalidOperationException("The BFF callback URI must use https.");
+        var redirectUri = BffNavigation.CallbackUri(bffOptions);
 
         var state = BffKeyDerivation.CreateSecret();
         var initiator = BffKeyDerivation.CreateSecret();

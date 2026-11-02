@@ -139,7 +139,7 @@ internal class BffLogoutHandler
             return;
         }
 
-        var postLogoutRedirectUri = BffNavigation.AbsoluteUrl(request, returnUrl);
+        var postLogoutRedirectUri = BffNavigation.AbsoluteUrl(bffOptions, returnUrl);
         var state = BffKeyDerivation.CreateSecret();
         var parameters = new Dictionary<string, string?>
         {

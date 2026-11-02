@@ -36,9 +36,9 @@ describe('parseBootstrapDocument', () => {
     expect(
       parseBootstrapDocument({ apiBaseUrl: '/identity/', issuer: 'https://op.example' }).apiBaseUrl,
     ).toBe('/identity');
-    expect(parseBootstrapDocument({ apiBaseUrl: '/', issuer: 'https://op.example' }).apiBaseUrl).toBe(
-      '',
-    );
+    expect(
+      parseBootstrapDocument({ apiBaseUrl: '/', issuer: 'https://op.example' }).apiBaseUrl,
+    ).toBe('');
   });
 
   it('preserves features and branding', () => {

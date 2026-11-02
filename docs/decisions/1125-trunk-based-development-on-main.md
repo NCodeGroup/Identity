@@ -1,9 +1,8 @@
 # 1125. Trunk-based development on a single `main` trunk
 
-- **Status:** Accepted (protection superseded by [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md))
+- **Status:** Superseded by [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md)
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0004](project-template/0004-trunk-based-development-on-the-default-branch.md); tracked in [#439](https://github.com/NCodeGroup/Identity/issues/439)
 
 ## Context
 

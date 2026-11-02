@@ -1,7 +1,9 @@
 # Architecture Decision Records
 
 This directory records the **architecturally significant decisions** made for the
-**NCode.Identity** library family, using lightweight
+**NCode.Identity** library family and for the hosted platform's infrastructure in
+[`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform)
+([ADR-1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)), using lightweight
 [Architecture Decision Records (ADRs)](https://adr.github.io/).
 
 An ADR captures a single decision: the context that forced it, the decision itself, and the
@@ -177,7 +179,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1122](./1122-jwt-claim-values-map-to-json-by-declared-type.md)                           | JWT claim values map to and from JSON by declared type, in one symmetric mapper                                            | Accepted                                                                                                                             |
 | [1123](./1123-numeric-date-is-read-strictly-and-range-guarded.md)                         | RFC 7519 NumericDate is read strictly, range-guarded, through `DateCoercion`                                               | Accepted                                                                                                                             |
 | [1124](./1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)                      | JWT lifetime is capped from its earliest asserted start; client assertions default to five minutes                         | Accepted                                                                                                                             |
-| [1125](./1125-trunk-based-development-on-main.md)                                         | Trunk-based development on a single `main` trunk                                                                           | Accepted (protection superseded by [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)) |
+| [1125](./1125-trunk-based-development-on-main.md)                                         | Trunk-based development on a single `main` trunk                                                                           | Superseded by [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) (protection by [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)) |
 | [1126](./1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md) | ECDH-ES Concat KDF digest is SHA-256; control oracles must be RFC-conforming                                               | Accepted                                                                                                                             |
 | [1127](./1127-warnings-are-errors-in-every-project.md)                                    | Warnings are errors in every project, including tests                                                                      | Accepted                                                                                                                             |
 | [1128](./1128-commits-are-attributed-to-people-not-agents.md)                             | Commits are attributed to people, not agents                                                                               | Accepted                                                                                                                             |
@@ -312,7 +314,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted (strict up-to-date superseded by [1263](./1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
 | [1263](./1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) | Feature branches run a fast gate and the merge queue runs the full gate | Accepted |
-| [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Accepted |
+| [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded by [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) |
 | [1265](./1265-grant-payloads-are-protected-under-the-tenant-master-key.md) | Grant payloads are protected under the tenant master key | Accepted |
 | [1266](./1266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
 | [1267](./1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted (amended by [1308](./1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)) |
@@ -353,4 +355,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1302](./1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |
 | [1304](./1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) | Pull requests into main merge by squash through the merge queue | Accepted |
+| [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) | Shipped versions are serviced from release lines beside the trunk | Accepted |
+| [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
+| [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
 | [1308](./1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md) | A refresh lease is released only by the owner token its winner holds | Accepted |

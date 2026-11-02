@@ -59,9 +59,12 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. One family record overrides a template record:
+so a bare ADR number names one record. Two family records override a template record:
 [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
-project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
+project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue, and
+[ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
+project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
+file.
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
 
@@ -80,10 +83,13 @@ those two files win. Claude Code ignores `applyTo`, so
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
-([ADR-1264](docs/decisions/1264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue labeled by
+([ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue labeled by
 its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
-closes it with `Closes #<number>`.
+closes it with `Closes #<number>`. The same issues and [`docs/decisions/`](docs/decisions/) also hold the pending work
+and decisions of [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform), whose pull
+requests close an issue here with `Closes NCodeGroup/Identity#<number>`
+([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)).
 
 ## Plan-and-execute workflow
 
@@ -257,7 +263,7 @@ from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTI
 [`/audit-conventions`](.github/prompts/audit-conventions.prompt.md) prompt.
 
 This family is **greenfield and pre-release**: all work lands on the single `main` trunk through pull requests
-([ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md),
+([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md),
 [ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
 acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and the design
 follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls. See

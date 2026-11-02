@@ -11,6 +11,7 @@ using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Validation;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
@@ -18,6 +19,9 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Settings;
 using NCode.PropertyBag;
 using Xunit;
 
@@ -30,17 +34,22 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     private const string PairwisePseudonym = "ppid-opaque-pseudonym";
     private const string SessionId = "sid-1";
     private const string ClientId = "client-1";
+    private const string TenantLoginScheme = "tenant-login";
+    private const string ClientLoginScheme = "client-login";
 
     private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
+    private Mock<IOpenIdClientResolver> MockClientResolver { get; }
     private Mock<ISessionService> MockSessionService { get; }
     private DefaultResolveEndSessionSubjectHandler Handler { get; }
 
     public DefaultResolveEndSessionSubjectHandlerTests()
     {
         MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
+        MockClientResolver = CreateStrictMock<IOpenIdClientResolver>();
         MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultResolveEndSessionSubjectHandler(
             MockIssuedTokenValidator.Object,
+            MockClientResolver.Object,
             MockSessionService.Object,
             NullLogger<DefaultResolveEndSessionSubjectHandler>.Instance
         );
@@ -152,6 +161,56 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             )
             .Verifiable();
 
+    private void SetupTenantLoginScheme(Mock<OpenIdContext> mockContext)
+    {
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.AuthorizationAuthenticateScheme))
+            .Returns(TenantLoginScheme)
+            .Verifiable();
+        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object).Verifiable();
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        mockTenant
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+    }
+
+    private void SetupClientLoginScheme(Mock<OpenIdContext> mockContext, string clientId)
+    {
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.AuthorizationAuthenticateScheme))
+            .Returns(ClientLoginScheme)
+            .Verifiable();
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        MockClientResolver
+            .Setup(x =>
+                x.ResolveClientOrDefaultAsync(
+                    mockContext.Object,
+                    clientId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(mockClient.Object)
+            .Verifiable();
+    }
+
+    private void SetupUnknownClient(Mock<OpenIdContext> mockContext, string clientId) =>
+        MockClientResolver
+            .Setup(x =>
+                x.ResolveClientOrDefaultAsync(
+                    mockContext.Object,
+                    clientId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((OpenIdClient?)null)
+            .Verifiable();
+
     private static JsonElement CreatePayload(string json) =>
         JsonSerializer.Deserialize<JsonElement>(json);
 
@@ -170,7 +229,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     {
         var mockAuthService = CreateStrictMock<IAuthenticationService>();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), ClientLoginScheme))
             .ReturnsAsync(AuthenticateResult.NoResult())
             .Verifiable();
         var mockContext = CreateContext(CreateHttpContext(mockAuthService));
@@ -182,6 +241,13 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             )
         );
         SetupSession(mockContext.Object, SessionId, [ClientId, "client-2"]);
+
+        SetupClientLoginScheme(mockContext, ClientId);
+        SetupTenantLoginScheme(mockContext);
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
 
         var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
 
@@ -196,6 +262,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(ClientId, result.ClientId);
         Assert.Equal(new[] { ClientId, "client-2" }, result.ParticipatingClientIds);
         Assert.False(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme, ClientLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -203,7 +270,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     {
         var mockAuthService = CreateStrictMock<IAuthenticationService>();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), ClientLoginScheme))
             .ReturnsAsync(AuthenticateResult.NoResult())
             .Verifiable();
         var mockContext = CreateContext(CreateHttpContext(mockAuthService));
@@ -215,6 +282,13 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             )
         );
         SetupSessionNotFound(mockContext.Object, SessionId);
+
+        SetupClientLoginScheme(mockContext, ClientId);
+        SetupTenantLoginScheme(mockContext);
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
 
         var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
 
@@ -228,6 +302,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(ClientId, result.ClientId);
         Assert.Empty(result.ParticipatingClientIds);
         Assert.False(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme, ClientLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -243,10 +318,12 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             .Returns(SubjectId)
             .Verifiable();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
             .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
             .Verifiable();
         SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        SetupTenantLoginScheme(mockContext);
 
         var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
 
@@ -259,6 +336,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(SessionId, result.SessionId);
         Assert.Equal(new[] { ClientId }, result.ParticipatingClientIds);
         Assert.True(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -273,10 +351,17 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             .Returns(SubjectId)
             .Verifiable();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), ClientLoginScheme))
             .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
             .Verifiable();
         SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        SetupClientLoginScheme(mockContext, ClientId);
+        SetupTenantLoginScheme(mockContext);
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
 
         var request = CreateRequest(idTokenHint: null, clientId: ClientId);
 
@@ -290,6 +375,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(ClientId, result.ClientId);
         Assert.Equal(new[] { ClientId }, result.ParticipatingClientIds);
         Assert.True(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme, ClientLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -304,10 +390,12 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             .Returns(SubjectId)
             .Verifiable();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
             .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
             .Verifiable();
         SetupSessionNotFound(mockContext.Object, SessionId);
+
+        SetupTenantLoginScheme(mockContext);
 
         var request = CreateRequest(idTokenHint: null, clientId: null);
 
@@ -318,6 +406,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
 
         Assert.Equal(SessionId, result.SessionId);
         Assert.Empty(result.ParticipatingClientIds);
+        Assert.Equal<string?>([TenantLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -328,9 +417,11 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         var mockContext = CreateContext(httpContext);
 
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
             .ReturnsAsync(AuthenticateResult.NoResult())
             .Verifiable();
+
+        SetupTenantLoginScheme(mockContext);
 
         var request = CreateRequest(idTokenHint: null, clientId: null);
 
@@ -343,6 +434,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Null(result.SessionId);
         Assert.Empty(result.ParticipatingClientIds);
         Assert.False(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -362,10 +454,17 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             .Returns(SubjectId)
             .Verifiable();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), ClientLoginScheme))
             .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
             .Verifiable();
         SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        SetupClientLoginScheme(mockContext, ClientId);
+        SetupTenantLoginScheme(mockContext);
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
 
         var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
 
@@ -376,6 +475,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
 
         Assert.Equal(SessionId, result.SessionId);
         Assert.False(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme, ClientLoginScheme], result.LoginSchemes);
     }
 
     [Fact]
@@ -395,10 +495,17 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             .Returns(SubjectId)
             .Verifiable();
         mockAuthService
-            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), ClientLoginScheme))
             .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
             .Verifiable();
         SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        SetupClientLoginScheme(mockContext, ClientId);
+        SetupTenantLoginScheme(mockContext);
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
 
         var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
 
@@ -409,6 +516,74 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
 
         Assert.Equal(SessionId, result.SessionId);
         Assert.True(result.RequiresConfirmation);
+        Assert.Equal<string?>([TenantLoginScheme, ClientLoginScheme], result.LoginSchemes);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheLogoutNamesAnUnknownClient_ReadsTheLoginFromTheTenantsScheme()
+    {
+        var mockAuthService = CreateStrictMock<IAuthenticationService>();
+        var httpContext = CreateHttpContext(mockAuthService);
+        var mockContext = CreateContext(httpContext);
+
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
+        SetupUnknownClient(mockContext, "unknown-client");
+        SetupTenantLoginScheme(mockContext);
+
+        var request = CreateRequest(idTokenHint: null, clientId: "unknown-client");
+
+        var result = await Handler.HandleAsync(
+            new ResolveEndSessionSubjectCommand(mockContext.Object, request.Object),
+            CancellationToken.None
+        );
+
+        Assert.Equal<string?>([TenantLoginScheme], result.LoginSchemes);
+        Assert.Null(result.SubjectId);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheLogoutNamesAClientWithAnotherSchemeAndTheTenantSchemeHoldsAnotherSession_RequiresConfirmation()
+    {
+        var mockAuthService = CreateStrictMock<IAuthenticationService>();
+        var httpContext = CreateHttpContext(mockAuthService);
+        var mockContext = CreateContext(httpContext);
+        // The hint names its own session, and the request names a client whose scheme holds no login; the end-user's
+        // login lives in the tenant's scheme, so the logout must not end anything without the end-user's consent.
+        SetupValidHint(
+            CreatePayload(
+                $$"""{"sub":"{{PairwisePseudonym}}","sid":"sid-hint","azp":"{{ClientId}}"}"""
+            )
+        );
+        SetupClientLoginScheme(mockContext, ClientId);
+        SetupTenantLoginScheme(mockContext);
+
+        mockContext
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns(SubjectId)
+            .Verifiable();
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), TenantLoginScheme))
+            .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
+            .Verifiable();
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), ClientLoginScheme))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
+        SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: ClientId);
+
+        var result = await Handler.HandleAsync(
+            new ResolveEndSessionSubjectCommand(mockContext.Object, request.Object),
+            CancellationToken.None
+        );
+
+        Assert.True(result.RequiresConfirmation);
+        Assert.Equal(SessionId, result.SessionId);
+        Assert.Equal<string?>([TenantLoginScheme, ClientLoginScheme], result.LoginSchemes);
     }
 
     #endregion

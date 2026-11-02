@@ -46,12 +46,6 @@ internal class BffBackChannelLogoutHandler(
 
         BffResponses.SetNoStore(httpContext.Response);
 
-        if (!request.HasFormContentType)
-        {
-            await RejectAsync(httpContext, OpenIdProtocol.ErrorCodes.InvalidRequest);
-            return;
-        }
-
         var form = await BffForms.TryReadFormAsync(request, cancellationToken);
         if (form is null)
         {

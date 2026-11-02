@@ -109,5 +109,28 @@ public sealed class DefaultInProcessReplicaBroadcasterTests : BaseTests
         mockSucceeding.Verify(x => x.HandleAsync("acme", CancellationToken.None), Times.Once);
     }
 
+    [Fact]
+    public async Task PublishAsync_WhenThePublisherCancels_Throws()
+    {
+        using var source = new CancellationTokenSource();
+        await source.CancelAsync();
+        var token = source.Token;
+
+        var mockCancelling = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockCancelling.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockCancelling
+            .Setup(x => x.HandleAsync("acme", token))
+            .ThrowsAsync(new OperationCanceledException(token))
+            .Verifiable();
+
+        var mockSecond = CreateStrictMock<IReplicaBroadcastHandler>();
+
+        var broadcaster = CreateBroadcaster(mockCancelling.Object, mockSecond.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await broadcaster.PublishAsync("tenant-changed", "acme", token)
+        );
+    }
+
     #endregion
 }

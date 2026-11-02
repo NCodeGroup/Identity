@@ -30,7 +30,9 @@ standards.
   yours (file name, title, index row, and links) if it was taken in the meantime. The `adr index` stage of
   `./build/dod.ps1` (`build/adr-index.ps1`) fails when a file is numbered below 1000, when two files share a number,
   when the index misses a file or links a missing one, or when a row's number is not its file's, so a collision that
-  slips past a textual merge still fails the merge queue.
+  slips past a textual merge still fails the merge queue. It also fails when a tracked file names a `NNNN-<slug>.md`
+  record that is in neither this folder nor `project-template/`, or points a `docs/decisions/0NNN` path at this
+  folder, so a link that a rename or renumber breaks fails the gate too.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
 - **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`. A record that builds on
   one of the project template's decisions says so on a metadata line under `**Deciders:**` (see

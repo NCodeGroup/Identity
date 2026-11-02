@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
 
@@ -30,9 +15,10 @@ public readonly record struct CreateSessionRequest
 {
     /// <summary>
     /// Gets the subject the session belongs to: the stable, server-owned principal identifier resolved for the
-    /// end-user (ADR-1035), not the raw upstream/local subject. The session, and every grant issued under it, key on
+    /// end-user, not the raw upstream/local subject. The session, and every grant issued under it, key on
     /// this single value so the same user is referenced consistently regardless of how they authenticated.
     /// </summary>
+    // See ADR-1035.
     public required string SubjectId { get; init; }
 
     /// <summary>

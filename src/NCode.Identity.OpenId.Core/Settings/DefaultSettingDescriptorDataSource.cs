@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2024 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -43,7 +28,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// principal resolution, federation, dynamic registration policy) read a tenant's effective settings, so every
 /// discoverable setting applies to tenants; the protocol endpoints read the effective settings of the client making the
 /// request; and access-token issuance combines the client's effective settings with those of every resource server the
-/// token targets, so every setting that applies to resource servers merges with a lattice operation (ADR-1158).
+/// token targets, so every setting that applies to resource servers merges with a lattice operation.
 /// </para>
 /// </remarks>
 // See ADR-1140 (domains), ADR-1149 (scopes), and ADR-1158 (resource-server bounds).

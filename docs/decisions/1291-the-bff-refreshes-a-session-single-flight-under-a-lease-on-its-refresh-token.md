@@ -1,6 +1,8 @@
 # 1291. The BFF refreshes a session single-flight under a lease on its refresh token
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1308](1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md): the winner always releases
+  its lease by the owner token it holds, instead of only when it finished 5 s before the lease expires)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

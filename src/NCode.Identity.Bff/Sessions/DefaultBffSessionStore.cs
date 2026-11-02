@@ -1,21 +1,7 @@
-#region Copyright Preamble
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
-
+using NCode.Buffers;
 using NCode.Identity.SharedState;
 
 namespace NCode.Identity.Bff.Sessions;
@@ -246,7 +232,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> TryAcquireRefreshLeaseAsync(
+    public async ValueTask<BffRefreshLease?> TryAcquireRefreshLeaseAsync(
         string leaseKey,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
@@ -255,8 +241,10 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var key = BffStoreKeys.Lease(leaseKey);
-            var marker = "1"u8.ToArray();
-            return await values.TryAddAsync(key, marker, expiresWhen, cancellationToken);
+            var owner = BffKeyDerivation.CreateSecret();
+            var value = SecureEncoding.UTF8.GetBytes(owner);
+            var added = await values.TryAddAsync(key, value, expiresWhen, cancellationToken);
+            return added ? new BffRefreshLease(leaseKey, owner) : null;
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {
@@ -284,14 +272,15 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
     /// <inheritdoc />
     public async ValueTask ReleaseRefreshLeaseAsync(
-        string leaseKey,
+        BffRefreshLease lease,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            var key = BffStoreKeys.Lease(leaseKey);
-            await values.RemoveAsync(key, cancellationToken);
+            var key = BffStoreKeys.Lease(lease.LeaseKey);
+            var owner = SecureEncoding.UTF8.GetBytes(lease.Owner);
+            await values.TryRemoveAsync(key, owner, cancellationToken);
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {

@@ -3,7 +3,8 @@
 
 <#
 .SYNOPSIS
-    Checks the ADR index in docs/decisions/README.md against the ADR files on disk.
+    Checks the ADR index in docs/decisions/README.md against the ADR files on disk, and checks that tracked files link
+    only to decision records that exist.
 
 .DESCRIPTION
     The index is maintained by hand, and hand-maintenance demonstrably fails: ten ADRs once sat unindexed, a malformed
@@ -17,23 +18,30 @@
     - an ADR file numbered below 1000, the range the project template's records use (project-template ADR-0012);
     - an ADR file that the index does not list, or an index link to a file that does not exist;
     - an index row whose link text number is not the number of the file it links;
-    - a file listed by more than one index row.
+    - a file listed by more than one index row;
+    - a tracked file that names a NNNN-<slug>.md record found in neither docs/decisions/ nor
+      docs/decisions/project-template/ (a link that a rename or renumber broke);
+    - a tracked file that points a docs/decisions/0NNN path at docs/decisions/, because the family's records are
+      numbered from 1000 and the project template's records live in docs/decisions/project-template/.
 
-    0000-template.md is the template, not a decision, so it is deliberately absent from the index.
+    0000-template.md is the template, not a decision, so it is deliberately absent from the index, and the one
+    docs/decisions/ path numbered below 1000 that a link may use.
 
-.PARAMETER Directory
-    The ADR directory that holds README.md and the ADR files. Defaults to docs/decisions under the repository root.
+.PARAMETER Root
+    The repository root, whose docs/decisions folder holds README.md and the ADR files. Defaults to the folder above
+    this script's.
 
 .EXAMPLE
     ./build/adr-index.ps1
 #>
 [CmdletBinding()]
 param(
-    [string]$Directory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'docs/decisions')
+    [string]$Root = (Split-Path -Parent $PSScriptRoot)
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$Directory = Join-Path $Root 'docs/decisions'
 
 $indexPath = Join-Path $Directory 'README.md'
 $indexLines = @(Get-Content -LiteralPath $indexPath)
@@ -91,5 +99,44 @@ $rows |
     ForEach-Object {
         $problems.Add("docs/decisions/README.md lists ./$($_.Name) on more than one row (lines $(($_.Group | ForEach-Object { $_.Line }) -join ', ')).")
     }
+
+# Searches the tracked text files (never bin/, obj/ or node_modules/, which are untracked) for a pattern. The build
+# scripts' fixture tests under build/tests/ are excluded because their fixtures name records that exist only in the
+# fixtures. A line that repeats a match (an index row names its file in the link and in the title) is reported once.
+function Find-TrackedText([string]$Pattern) {
+    $output = @(git -C $Root grep -I -n -o -z -E $Pattern -- . ':(exclude)build/tests/*.tests.ps1')
+    if ($LASTEXITCODE -gt 1) {
+        throw "git grep failed with exit code $LASTEXITCODE."
+    }
+    $global:LASTEXITCODE = 0
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($line in $output) {
+        $path, $number, $text = ([string]$line).Split([char]0, 3)
+        if ($seen.Add("$path|$number|$text")) {
+            [pscustomobject]@{ Path = $path; Line = $number; Text = $text }
+        }
+    }
+}
+
+# A link that a rename or renumber broke is otherwise found only by a reader who follows it. Records are looked up by
+# file name, in this folder and in the project template's.
+$known = @(foreach ($folder in $Directory, (Join-Path $Directory 'project-template')) {
+        if (Test-Path -LiteralPath $folder -PathType Container) {
+            Get-ChildItem -LiteralPath $folder -Filter '*.md' -File | ForEach-Object { $_.Name }
+        }
+    })
+foreach ($match in Find-TrackedText '[0-9]{4}-[a-z0-9][a-z0-9-]*\.md') {
+    if ($match.Text -notin $known) {
+        $problems.Add("$($match.Path)($($match.Line)) names $($match.Text), which is in neither docs/decisions/ nor docs/decisions/project-template/.")
+    }
+}
+
+# The family's records are numbered from 1000 and the template's live in project-template/, so a docs/decisions/0NNN
+# path is a template record linked at the wrong folder; only the template (0000-template.md) is in this folder.
+foreach ($match in Find-TrackedText 'docs/decisions/0[0-9]{3}[a-z0-9.-]*') {
+    if ($match.Text -cne 'docs/decisions/0000-template.md') {
+        $problems.Add("$($match.Path)($($match.Line)) points $($match.Text) at docs/decisions/, where the family's records are numbered from 1000; the template's records are in docs/decisions/project-template/.")
+    }
+}
 
 $problems

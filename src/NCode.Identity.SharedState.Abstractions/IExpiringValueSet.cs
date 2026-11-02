@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
 
@@ -29,7 +14,7 @@ namespace NCode.Identity.SharedState;
 /// runs several replicas registers a shared adapter (for example Valkey) so a value written by one replica is seen by
 /// all of them.
 /// </summary>
-// See ADR-1267.
+// See ADR-1267 and ADR-1308.
 [PublicAPI]
 public interface IExpiringValueSet
 {
@@ -98,6 +83,26 @@ public interface IExpiringValueSet
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The value and its version that this call removed; or <see langword="null"/> if it is absent or expired.</returns>
     ValueTask<ExpiringValue?> TryTakeAsync(string key, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Atomically removes the value named <paramref name="key"/> only when its bytes equal
+    /// <paramref name="expectedValue"/>, so a caller removes only a value it wrote. Of any number of concurrent calls
+    /// that name the same value, across every replica that shares the set, at most one succeeds.
+    /// </summary>
+    /// <param name="key">The name of the value. Keys are compared ordinally.</param>
+    /// <param name="expectedValue">
+    /// The bytes the value must hold, compared byte for byte; the version is not compared.
+    /// </param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>
+    /// <see langword="true"/> if the value was removed; or <see langword="false"/>, leaving any value unchanged, if it
+    /// is absent or expired or its bytes differ from <paramref name="expectedValue"/>.
+    /// </returns>
+    ValueTask<bool> TryRemoveAsync(
+        string key,
+        ReadOnlyMemory<byte> expectedValue,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Removes the value named <paramref name="key"/> regardless of its version. Removing a value that is absent or

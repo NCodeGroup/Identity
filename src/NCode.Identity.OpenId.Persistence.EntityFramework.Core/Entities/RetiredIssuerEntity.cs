@@ -1,20 +1,5 @@
-﻿#region Copyright Preamble
-
-// Copyright @ 2024 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +11,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// <summary>
 /// Represents an entity framework data contract for an issuer a tenant gave up, by changing its issuer or by being
 /// deleted. Relying parties that trusted the issuer would trust any tenant that took it, so only the tenant that held it
-/// can take it back (ADR-1189).
+/// can take it back.
 /// </summary>
+// See ADR-1189.
 [Index(nameof(NormalizedIssuer), IsUnique = true)]
 public sealed class RetiredIssuerEntity
 {

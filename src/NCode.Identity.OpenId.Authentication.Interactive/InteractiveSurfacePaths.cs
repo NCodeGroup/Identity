@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -25,9 +10,10 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Locates the interactive surface for a request. The surface is served under the tenant route, like the protocol
-/// endpoints (ADR-1138), so every redirect it issues and the session cookie it scopes start from the path the request's
+/// endpoints, so every redirect it issues and the session cookie it scopes start from the path the request's
 /// tenant is served under.
 /// </summary>
+// See ADR-1138.
 internal sealed class InteractiveSurfacePaths(
     ITenantResolver tenantResolver,
     TemplateBinderFactory templateBinderFactory

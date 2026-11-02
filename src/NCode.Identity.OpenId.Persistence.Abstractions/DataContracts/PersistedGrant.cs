@@ -1,21 +1,5 @@
-#region Copyright Preamble
-
-//
-//    Copyright @ 2023 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
@@ -69,9 +53,10 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
 
     /// <summary>
     /// Gets the subject identifier this grant belongs to: the stable, server-owned principal identifier resolved for
-    /// the end-user (ADR-1035), not the raw upstream/local subject. This is the single value grant enumeration and
+    /// the end-user, not the raw upstream/local subject. This is the single value grant enumeration and
     /// subject-wide revocation key on, so a user's grants are findable regardless of how they authenticated.
     /// </summary>
+    // See ADR-1035.
     [MaxLength(OpenIdMaxLengths.SubjectId)]
     public required string? SubjectId { get; init; }
 
@@ -112,7 +97,8 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the payload, protected under the tenant's master key (ADR-1265).
+    /// Gets or sets the payload, protected under the tenant's master key.
     /// </summary>
+    // See ADR-1265.
     public required string ProtectedPayload { get; set; }
 }

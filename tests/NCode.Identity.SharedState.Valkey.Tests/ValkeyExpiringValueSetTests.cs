@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
@@ -140,6 +125,25 @@ public sealed class ValkeyExpiringValueSetTests : BaseTests
             .Setup(x =>
                 x.ScriptEvaluateAsync(
                     ValkeyExpiringValueSet.ReplaceScript,
+                    It.Is<RedisKey[]>(keys =>
+                        keys.SequenceEqual(new RedisKey[] { KeyPrefix + "key" })
+                    ),
+                    It.Is<RedisValue[]>(values => values.SequenceEqual(expectedValues)),
+                    CommandFlags.None
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupRemove(RedisResult result)
+    {
+        RedisValue[] expectedValues = [Payload];
+
+        MockDatabase
+            .Setup(x =>
+                x.ScriptEvaluateAsync(
+                    ValkeyExpiringValueSet.RemoveScript,
                     It.Is<RedisKey[]>(keys =>
                         keys.SequenceEqual(new RedisKey[] { KeyPrefix + "key" })
                     ),
@@ -371,6 +375,36 @@ public sealed class ValkeyExpiringValueSetTests : BaseTests
         var result = await ValueSet.TryTakeAsync("key", CancellationToken.None);
 
         Assert.Null(result);
+    }
+
+    #endregion
+
+    #region TryRemoveAsync Tests
+
+    [Fact]
+    public async Task TryRemoveAsync_RunsTheScriptWithTheValueAndReturnsTrue()
+    {
+        SetupDatabase();
+        SetupRemove(RedisResult.Create(1L));
+
+        var removed = await ValueSet.TryRemoveAsync("key", Payload, CancellationToken.None);
+
+        Assert.True(removed);
+        AssertOperationRecorded(
+            ValkeySharedStateMetrics.ValueSetTryRemoveOperation,
+            errorType: null
+        );
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenScriptReturnsZero_ReturnsFalse()
+    {
+        SetupDatabase();
+        SetupRemove(RedisResult.Create(0L));
+
+        var removed = await ValueSet.TryRemoveAsync("key", Payload, CancellationToken.None);
+
+        Assert.False(removed);
     }
 
     #endregion

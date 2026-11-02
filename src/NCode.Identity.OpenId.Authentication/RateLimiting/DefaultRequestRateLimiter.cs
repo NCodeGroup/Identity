@@ -1,20 +1,5 @@
-#region Copyright Preamble
-
-// Copyright @ 2026 NCode Group
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-
-#endregion
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
 
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
@@ -43,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// request wait for it. After a failure the store is not called again for <see cref="StoreRetryInterval"/>, so an
 /// outage costs one bounded wait per interval per replica rather than one per check; a warning is logged when the store
 /// first fails and an information message when it answers again, so an outage is logged once rather than once per
-/// request (ADR-1196). Every judged limit is counted in <c>ncode.identity.rate_limiting.requests</c> with its result,
+/// request. Every judged limit is counted in <c>ncode.identity.rate_limiting.requests</c> with its result,
 /// so the fail-open path is as visible as a refusal.
 /// </summary>
 // See ADR-1196, ADR-1198 and ADR-1246.

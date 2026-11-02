@@ -70,6 +70,13 @@ NCode.Identity.Bff.BffLoginGateContext.Issuer.get -> string!
 NCode.Identity.Bff.BffLoginGateContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
 NCode.Identity.Bff.IBffLoginGate
 NCode.Identity.Bff.IBffLoginGate.AllowAsync(NCode.Identity.Bff.BffLoginGateContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.BffRefreshLease
+NCode.Identity.Bff.BffRefreshLease.BffRefreshLease() -> void
+NCode.Identity.Bff.BffRefreshLease.BffRefreshLease(string! LeaseKey, string! Owner) -> void
+NCode.Identity.Bff.BffRefreshLease.LeaseKey.get -> string!
+NCode.Identity.Bff.BffRefreshLease.LeaseKey.init -> void
+NCode.Identity.Bff.BffRefreshLease.Owner.get -> string!
+NCode.Identity.Bff.BffRefreshLease.Owner.init -> void
 NCode.Identity.Bff.BffSessionMetadata
 NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.get -> System.DateTimeOffset
 NCode.Identity.Bff.BffSessionMetadata.AbsoluteExpiresAt.init -> void
@@ -114,9 +121,9 @@ NCode.Identity.Bff.IBffSessionStore.FindBySessionIdAsync(string! issuer, string!
 NCode.Identity.Bff.IBffSessionStore.FindBySubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.Bff.IBffSessionStore.GetAsync(string! storeKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffSessionRecord?>
 NCode.Identity.Bff.IBffSessionStore.IsRefreshLeaseHeldAsync(string! leaseKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
-NCode.Identity.Bff.IBffSessionStore.ReleaseRefreshLeaseAsync(string! leaseKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Bff.IBffSessionStore.ReleaseRefreshLeaseAsync(NCode.Identity.Bff.BffRefreshLease lease, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Bff.IBffSessionStore.RemoveAsync(string! storeKey, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.Bff.IBffSessionStore.TryAcquireRefreshLeaseAsync(string! leaseKey, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Bff.IBffSessionStore.TryAcquireRefreshLeaseAsync(string! leaseKey, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffRefreshLease?>
 NCode.Identity.Bff.IBffSessionStore.TryAddTransactionAsync(string! transactionKey, System.ReadOnlyMemory<byte> protectedTransaction, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.TryCreateAsync(NCode.Identity.Bff.BffSessionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.TryReplaceAsync(NCode.Identity.Bff.BffSessionRecord! record, long expectedVersion, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

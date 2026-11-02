@@ -58,8 +58,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     IClientCoherenceValidator clientCoherenceValidator
 ) : IEndpointProvider
 {
-    private const int ClientSecretKeySizeBits = 256;
-
     // The request-object metadata (OpenID Connect Dynamic Client Registration 1.0 §2) is stored as the client's own
     // algorithm lists, each narrowed to the one registered value, which the authorization endpoint enforces (ADR-1155).
     private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
@@ -1345,7 +1343,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 {
                     SecretId = CryptoService.GenerateResourceId(),
                     SecretType = SecretTypes.Symmetric,
-                    KeySizeBits = ClientSecretKeySizeBits,
+                    KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
                     Use = null,
                     Algorithm = null,
                     CreatedWhen = createdWhen,

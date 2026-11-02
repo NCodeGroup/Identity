@@ -7,14 +7,15 @@
 
 ## Context
 
+[project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)
+checks the Data Protection key ring when the host starts: outside Development a live key the host cannot decrypt stops
+it with the key ids to revoke, rather than letting Data Protection write a default key of its own, and revoking them by
+id is the recovery. This record holds the family's gate and its option.
+
 The Data Protection key ring is encrypted under the server's master key
 ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). The master key is a
 row of the same database, wrapped by the root key. If the master key rows are lost and recreated while the key ring
 survives, such as after restoring part of a backup, the server's master key cannot decrypt the keys of the ring.
-
-Data Protection does not stop on such a ring. It treats the keys it cannot decrypt as ineligible, silently writes a
-default key of its own, and carries on. What the old keys protected, the sign-in cookies and the anti-forgery tokens, is
-unreadable, and the operator learns it from the users who are signed out, not from the host (issue [#239](https://github.com/NCodeGroup/Identity/issues/239)).
 
 ## Decision
 
@@ -57,8 +58,6 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 ## Options considered
 
 - **`ValidateOnStart`.** Rejected: it runs before the protector loads, so it cannot decrypt a key.
-- **Let Data Protection carry on.** Rejected: it writes a default key and logs a failure, and what the old keys
-  protected is lost without the host saying so.
 - **Revoke an undecryptable key in every environment.** Rejected: in Production it hides a lost master key, which the
   operator may be able to restore, and a revoked key never protects its data again.
 - **A management API endpoint that revokes keys.** Rejected: the host must start to serve it, and the failure is that

@@ -9,6 +9,10 @@
 
 ## Context
 
+[project-template ADR-0111](project-template/0111-failures-carry-a-machine-readable-code.md) gives a failure that
+callers act on a stable, snake_case machine-readable code, set where the failure is detected and passed through by the
+layers above. This record applies it to token validation.
+
 [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) and
 [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) report an invalid ID token or
 logout token only as `FailureReason` text. The backend-for-frontend design ([§5.2](../backend-for-frontend.md)) names a
@@ -96,16 +100,11 @@ one of its own from `TokenValidationFailureCodes`.**
 
 - **An enum of failure kinds.** The vocabulary is open: a custom handler names a code of its own
   ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). Rejected.
-- **Match the message text.** The text is for people and changes with wording; a caller that matches it breaks
-  silently. Rejected.
 - **Re-check `iss`, `aud` and `exp` in the client.** It duplicates the lifetime handler and bounds a lifetime outside
   the lifetime requirement, against the conventions
   ([ADR-1124](1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)). Rejected.
-- **Report which requirement failed.** The lifetime requirement fails for distinct reasons (expired, not yet valid,
-  malformed, too long), and a caller needs the reason, not the requirement. Rejected.
 - **A separate client vocabulary with a mapping table.** A hard-coded relationship between two vocabularies loses any
   code it does not list, including one a custom handler names. Rejected in favor of aliases and pass-through.
-- **Report the code of every failure.** A caller acts on one outcome, and the message keeps every reason. Rejected.
 
 ## Consequences
 

@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0110](project-template/0110-shared-state-is-changed-by-read-modify-write.md) changes stored state
+that concurrent requests change only through one read-modify-write operation, which applies a pure function of the
+caller to the value as stored and retries a lost race. This record applies it to grant payloads.
+
 A grant row carries a concurrency token that the unit of work checks when it saves
 ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)), and a write that changes a grant after another request
 read it fails as a `StoreConcurrencyException`
@@ -62,21 +66,11 @@ caller to the grant as it is stored and reads again when its write loses a race.
 
 ## Options considered
 
-- **Pass the concurrency token that the caller read.** Rejected: each caller would repeat the loop that reads again
-  and retries, and a caller that read without the token would still overwrite a concurrent write.
-- **A retry in each caller.** Rejected: every writer would repeat the loop and the check of its precondition, and one
-  that forgets either overwrites a concurrent write.
-- **Merge the members of the payload in the service.** Rejected: the service cannot know which member a caller
-  changed, whether it appended to a list, decided a status, or recorded a time, so a merge would keep the wrong value.
 - **Keep the replacement of the payload for the device and CIBA grants.** Rejected: its overwrites lose an approval and
   let two approvals both deliver.
 
 ## Consequences
 
-- No concurrent write to a grant's payload is lost: a function runs against the grant as stored, and the write is
-  guarded by the concurrency token of that read.
-- Each change costs a read and, for each attempt, a write; a change that the stored grant does not need writes
-  nothing.
 - A function runs up to three times, so it decides from its argument only. A change that loses every attempt reaches
   its caller as `StoreConcurrencyException`, except the touch of a session, which is dropped.
 - `ISessionService.AddClientAsync` reports whether this call added the client, and `ICibaRequestService.ApproveAsync`

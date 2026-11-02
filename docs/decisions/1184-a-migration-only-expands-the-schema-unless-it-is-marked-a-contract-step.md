@@ -9,17 +9,16 @@
 
 ## Context
 
+[project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md) has a migration
+only expand the schema unless it is marked a contract step, and enforces the marker with a test because contracting
+operations hide in generated files. This record holds the family's rule and test.
+
 The chart migrates the database before the rollout, while the previous release still serves, and a Helm rollback
 returns to the previous release without reversing a migration
 ([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Every migration must
 therefore keep the previous release working: a release expands the schema, and a later release contracts it once no
 running version reads the old shape. A migration that drops or renames a column breaks the serving release the moment
 the Job applies it.
-
-`dotnet ef migrations add` scaffolds a destructive operation as readily as an additive one. A rename of a property
-becomes a `RenameColumn`, and making a property required becomes an `AlterColumn` with `nullable: false`. A reviewer
-must notice the operation in a generated file, and the Definition of Done's model-drift gate checks only that a
-migration exists, not what it does.
 
 ## Decision
 

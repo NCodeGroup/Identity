@@ -46,6 +46,11 @@ The decision gains a third level, and the first two now cover Claude as well:
 
 ## Context
 
+[project-template ADR-0002](project-template/0002-commits-are-attributed-to-people-not-agents.md) decides that a commit
+records the people who wrote it, never an AI agent, and enforces that in layers from agent settings to a required
+server-side check. This record keeps how the rule reached this repository, its layers here, and the recipes that repair
+its history.
+
 Coding agents append a co-author trailer to the commits they help write:
 
 ```
@@ -56,28 +61,15 @@ The repository host reads that trailer as authorship. GitHub derives the contrib
 the repository landing page, and the contributors API — from commit authors **and** their `Co-authored-by` trailers, so
 the agent account was listed as one of this repository's two contributors.
 
-Three properties make this worth a decision rather than a cleanup:
-
-1. **The only remedy is rewriting published history.** The trailer is part of the immutable commit object, so removing
-   it re-SHAs that commit and every descendant, and the corrected trunk has to be force-pushed. On 2026-10-17 the
-   trailer had reached 10 commits; stripping it rewrote 183 commits.
-2. **The failure mode is self-restoring.** Thirty minutes after that rewrite, a concurrently running agent session —
-   one that had started before the preference was expressed — put the trailer back on 7 new commits, forcing a second
-   rewrite and a second force-push. One unaware session re-taints the trunk, and each recurrence costs another rewrite.
-3. **A per-session instruction cannot bind the next session.** Telling one agent, or storing the preference in an
-   agent's volatile memory, does not reach a session that started earlier, a different tool, a different machine, or a
-   human typing `git commit`. By [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) the guard has to be
-   a versioned artifact in the repository.
+In this repository the trailer reached 10 commits by 2026-10-17, and stripping it rewrote 183 commits. Thirty minutes
+after that rewrite, a concurrently running agent session that had started before the preference was expressed put the
+trailer back on 7 new commits, forcing a second rewrite and a second force-push.
 
 ## Decision
 
-**A commit records the people who authored it. Agent accounts are never co-authors.**
-
-This is not a claim that agents did not contribute — it is that the repository's contributor graph is a roster of
-**accountable humans**, not a tooling manifest. Which tools produced a change is visible in the change itself, in the
-pull request, and in this ADR; it does not belong in the commit's authorship record.
-
-The rule is enforced at two levels, because prevention and enforcement fail differently:
+The rule of [project-template ADR-0002](project-template/0002-commits-are-attributed-to-people-not-agents.md) holds
+here: a commit records the people who authored it, and agent accounts are never co-authors. Its first two layers in
+this repository are:
 
 - **Prevention — an instruction.**
   [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) states
@@ -93,7 +85,6 @@ fail a batch, and leaves a message that is already correct untouched.
 
 ## Consequences
 
-- The contributor graph lists only people, and stays that way without anyone remembering to check it.
 - Enabling the hook is a one-time, per-clone step. A clone that skips it is unprotected, which is precisely why the
   instruction file — not the hook — is the primary control; the hook is the safety net for the case where an agent
   ignores or never loads the instruction.

@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0124](project-template/0124-collection-endpoints-use-keyset-pagination.md) has each resource
+family's collection `GET` return one keyset-paginated page, with no general query protocol and authorization decided
+once per family and scope. This record applies it to the management API.
+
 The management API exposes per-resource CRUD (`POST` / `GET {id}` / `PATCH {id}` / `DELETE {id}`) for clients,
 servers, and tenants, but no way to **enumerate** a family — there is no `GET /clients`, `GET /servers`, or
 `GET /tenants`, and the stores expose only `GetOrDefaultAsync(id)`. An administrator cannot discover what exists
@@ -56,18 +60,11 @@ no ad-hoc query protocol.**
   if ever needed, is added later as an explicit query parameter backed by an explicit store method — a non-breaking
   addition — and a genuine ad-hoc query need can be met by a separate, opt-in read model rather than by coupling the
   core contract to a protocol.
-- **Offset/limit pagination (`?page=&pageSize=`).** Rejected: it drifts under concurrent writes (rows shift between
-  pages, so items are skipped or repeated) and degrades to a scan-and-discard at high offsets.
-- **Per-item authorization filtering of the page.** Rejected: dropping unauthorized items makes a page return fewer
-  than `limit` and breaks the "more pages" signal. The `GlobalAdmin` / `TenantAdmin` model authorizes the **ability to
-  enumerate a family in a scope**, which a single coarse check expresses correctly.
 
 ## Consequences
 
 - Every family lists through one uniform, safe shape; a future tenant-bound family inherits pagination and scoping by
   adding its `GetPageAsync` and a `List` endpoint — the keyset mechanics and tenant isolation are already centralized.
-- The cursor is stable and seek-based, so paging a large, actively-changing family is correct and cheap.
-- The read surface stays small and predictable; there is no expression language to secure, version, or performance-tune.
 - A list reuses the full resource mapping (it loads each owner with its `Include`d children), which is more than a
   metadata-only projection strictly needs; for bounded admin pages this is an acceptable simplicity trade, and a
   lighter projection can be introduced later without changing the contract.

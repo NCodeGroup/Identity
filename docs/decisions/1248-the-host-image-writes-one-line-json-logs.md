@@ -46,14 +46,9 @@ so every log entry is one JSON object on one line.**
 - **Set the format in the chart.** Rejected: the same image run another way, with `docker run` or on another
   orchestrator, would write text, and the artifact that is shipped would differ from the one that is run
   ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)).
-- **A package extension that chooses the format.** Rejected: a library never chooses the sinks of its host
-  ([project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md)), and the format is part of the sink.
-- **OTLP log export.** Not decided here: the OpenTelemetry pipeline exports metrics, as project-template ADR-0115 records.
 
 ## Consequences
 
-- A collector that reads standard output keeps an entry and its exception in one record, and can index the level, the
-  category and the event ID as fields.
 - The output of `docker logs` for the image is JSON, which is harder to read by eye; an operator who reads it directly
   sets `Logging__Console__FormatterName=simple`.
 - The three settings are a contract of the image. A change that drops one fails the `Host image` workflow, and

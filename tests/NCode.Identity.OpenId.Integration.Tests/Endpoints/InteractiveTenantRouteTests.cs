@@ -16,7 +16,9 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,9 +46,12 @@ public class InteractiveTenantRouteTests
     private const string UserName = "alice";
     private const string Password = "alice-password";
     private const string SessionCookieName = InteractiveLogin.SessionCookieName;
-    private const string AntiforgeryRequestCookieName = "XSRF-TOKEN";
+    private const string AntiforgeryRequestCookieName = "__Host-XSRF-TOKEN";
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
-    private const string AntiforgeryCookiePrefix = ".AspNetCore.Antiforgery";
+    private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
+
+    private static readonly string AcmeSessionCookieName =
+        $"{SessionCookieName}.{Base64Url.EncodeToString(SHA256.HashData(SecureEncoding.UTF8.GetBytes("/acme")))}";
 
     private const string BundleIndexHtml =
         "<!doctype html><html><head><script type=\"module\" src=\"./assets/app.js\"></script></head>"
@@ -295,7 +300,7 @@ public class InteractiveTenantRouteTests
     #region Session Cookie Tests
 
     [Fact]
-    public async Task PostLogin_WhenTenantIsSelectedByPath_ScopesTheSessionToThatTenant()
+    public async Task PostLogin_WhenTenantIsSelectedByPath_NamesTheSessionForThatTenant()
     {
         using var factory = CreatePathFactory();
         await SeedTenantAsync(factory, "acme");
@@ -309,11 +314,14 @@ public class InteractiveTenantRouteTests
         Assert.Equal("/acme/foo", login.Headers.Location?.OriginalString);
         var setCookie = ReadSetCookie(login, SessionCookieName);
         Assert.NotNull(setCookie);
-        Assert.Contains("path=/acme", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith($"{AcmeSessionCookieName}=", setCookie, StringComparison.Ordinal);
+        Assert.Contains("path=/", ReadAttributes(setCookie));
 
         var sessionCookie = setCookie.Split(';')[0];
         using var acmeMe = await GetWithCookieAsync(client, "/acme/account/me", sessionCookie);
         Assert.Equal(HttpStatusCode.OK, acmeMe.StatusCode);
+        using var betaMe = await GetWithCookieAsync(client, "/beta/account/me", sessionCookie);
+        Assert.NotEqual(HttpStatusCode.OK, betaMe.StatusCode);
     }
 
     [Fact]
@@ -349,7 +357,8 @@ public class InteractiveTenantRouteTests
         Assert.Equal("/acme/account/login", logout.Headers.Location?.OriginalString);
         var clearing = ReadSetCookie(logout, SessionCookieName);
         Assert.NotNull(clearing);
-        Assert.Contains("path=/acme", clearing, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith($"{AcmeSessionCookieName}=", clearing, StringComparison.Ordinal);
+        Assert.Contains("path=/", ReadAttributes(clearing));
     }
 
     #endregion
@@ -549,6 +558,9 @@ public class InteractiveTenantRouteTests
                 cookie.StartsWith(namePrefix, StringComparison.Ordinal)
             )
             : null;
+
+    private static string[] ReadAttributes(string setCookie) =>
+        [.. setCookie.Split(';').Skip(1).Select(x => x.Trim().ToLowerInvariant())];
 
     private static string? ReadSetCookieValue(HttpResponseMessage response, string name)
     {

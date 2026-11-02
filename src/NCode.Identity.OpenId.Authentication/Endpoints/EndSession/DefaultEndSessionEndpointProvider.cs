@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Registration.AspNetCore;
 
@@ -70,8 +71,13 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             cancellationToken
         );
 
+        var subject = await mediator.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
+            new ResolveEndSessionSubjectCommand(openIdContext, request),
+            cancellationToken
+        );
+
         var disposition = await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
-            new EndSessionCommand(openIdContext, request),
+            new EndSessionCommand(openIdContext, request, subject),
             cancellationToken
         );
 

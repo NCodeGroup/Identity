@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
@@ -635,8 +636,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             httpContext.RequestAborted
         );
 
+        var subject = await mediator.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
+            new ResolveEndSessionSubjectCommand(openIdContext, request),
+            httpContext.RequestAborted
+        );
+
         await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
-            new EndSessionCommand(openIdContext, request),
+            new EndSessionCommand(openIdContext, request, subject),
             httpContext.RequestAborted
         );
 

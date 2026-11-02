@@ -10,6 +10,7 @@ using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Mediator;
 using Xunit;
@@ -56,6 +57,16 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
                 )
             )
             .ReturnsAsync(CreateLooseMock<IEndSessionRequest>().Object)
+            .Verifiable();
+
+        MockMediator
+            .Setup(x =>
+                x.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
+                    It.IsAny<ResolveEndSessionSubjectCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new EndSessionSubject("subject-1", "sid-1", null, []))
             .Verifiable();
 
         MockMediator

@@ -571,6 +571,64 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task GetAccessTokenAsync_RefreshWithoutTokenType_ReturnsBearerToken()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(
+                new TokenResult(new TokenResponse { AccessToken = "new-access", ExpiresIn = 300 })
+            )
+            .Verifiable();
+        BffSessionState? written = null;
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) =>
+                {
+                    written = update(current);
+                    return ValueTask.FromResult(written);
+                }
+            )
+            .Verifiable();
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        var token = Assert.IsType<BffAccessToken>(result.Token);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, token.TokenType);
+        var stored = Assert.Single(Assert.IsType<BffSessionState>(written).Payload.AccessTokens);
+        Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, stored.TokenType);
+    }
+
+    [Fact]
     public async Task GetAccessTokenAsync_LeaseReleaseFails_ReturnsTheRefreshedToken()
     {
         var state = CreateState("refresh-token");

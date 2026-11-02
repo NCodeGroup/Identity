@@ -486,7 +486,9 @@ internal class DefaultBffUserTokenService(
             Resource = resource,
             Scope = scope,
             Value = accessToken,
-            TokenType = response.TokenType ?? string.Empty,
+            TokenType = string.IsNullOrEmpty(response.TokenType)
+                ? OpenIdProtocol.TokenTypes.Bearer
+                : response.TokenType,
             ExpiresAt = expiresAt,
             DPoPJwkThumbprint = result.DPoPJwkThumbprint,
         };

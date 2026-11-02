@@ -190,3 +190,7 @@ NCode.Identity.Bff.IBffUserContributor.ContributeAsync(NCode.Identity.Bff.BffUse
 static NCode.Identity.Bff.BffSessionClaimContext.ReservedClaimTypes.get -> System.Collections.Generic.IReadOnlySet<string!>!
 static NCode.Identity.Bff.BffUserContext.ReservedFieldNames.get -> System.Collections.Generic.IReadOnlySet<string!>!
 const NCode.Identity.Bff.BffLoginFailureReasons.UserInfoFailed = "userinfo_failed" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.Client = "client" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.Exchange = "exchange" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.None = "none" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.UserOrClient = "user_or_client" -> string!

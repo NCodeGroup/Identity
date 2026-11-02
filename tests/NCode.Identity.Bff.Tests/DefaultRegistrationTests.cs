@@ -78,6 +78,29 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public void AddBffLibrary_RegistersEveryTokenRequirement()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        var names = provider
+            .GetServices<IBffTokenRequirement>()
+            .Select(requirement => requirement.Name)
+            .Order(StringComparer.Ordinal);
+        Assert.Equal(
+            [
+                BffTokenRequirementNames.Client,
+                BffTokenRequirementNames.Exchange,
+                BffTokenRequirementNames.None,
+                BffTokenRequirementNames.User,
+                BffTokenRequirementNames.UserOrClient,
+            ],
+            names
+        );
+    }
+
+    [Fact]
     public void AddBffLibrary_WhenCalledTwice_Throws()
     {
         ClientBuilder.AddBffLibrary(EventsBuilder);

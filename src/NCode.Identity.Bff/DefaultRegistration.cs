@@ -80,8 +80,29 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<BffRefreshLocks>();
             serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();
+            serviceCollection.TryAddSingleton<BffGrantClient>();
+            serviceCollection.TryAddSingleton<
+                IBffClientTokenService,
+                DefaultBffClientTokenService
+            >();
+            serviceCollection.TryAddSingleton<
+                IBffExchangeTokenService,
+                DefaultBffExchangeTokenService
+            >();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IBffTokenRequirement, BffUserTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffClientTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffUserOrClientTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffExchangeTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffNoneTokenRequirement>()
             );
             serviceCollection.TryAddSingleton<IBffTokenAccessor, DefaultBffTokenAccessor>();
 

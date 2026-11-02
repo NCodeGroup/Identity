@@ -8,8 +8,16 @@
   in-flight retrievals and the remembered failure are the shared `SingleFlight<TResult>`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md), [project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md)
 
 ## Context
+
+[project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)
+makes a fetch that many requests share single-flight, remembers a failed fetch for a short, configured time, and
+makes its limits options validated when the host starts, and
+[project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md) has a
+revocation check, a correctness guard, fail closed. This record applies them to the certificate revocation list
+retrieval of the `tls_client_auth` checker, and decides the one opt-in that relaxes the second.
 
 The checker of [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) (issue [#255](https://github.com/NCodeGroup/Identity/issues/255)) has
 four weaknesses:
@@ -37,12 +45,13 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
    The validator requires `FetchTimeout` to be a period that a timer accepts, `MaxResponseSizeBytes` to be at least one,
    and both durations to be above zero. They are options, not settings, because one retrieval serves every tenant that
    names the same list.
-2. **Concurrent checks share one retrieval.** The checker keeps a `ConcurrentDictionary` of
-   `Lazy<Task<CertificateRevocationList?>>` keyed by the cache key, which holds the location and the SHA-256 thumbprint
-   of the issuing certificate. The retrieval runs with `CancellationToken.None`, bounded by `FetchTimeout`, on its own
-   certificate that it loads from the raw data of the issuing certificate. A caller that cancels, or disposes the
-   certificates of its chain, does not break the retrieval for the others. The retrieval stores its result in the cache
-   and removes its own entry when it ends. Each caller waits with `WaitAsync(cancellationToken)`.
+2. **Concurrent checks share one retrieval**, as project-template ADR-0145 says. The checker keeps a
+   `ConcurrentDictionary` of `Lazy<Task<CertificateRevocationList?>>` keyed by the location and the SHA-256
+   thumbprint of the issuing certificate. The retrieval runs with `CancellationToken.None`, bounded by `FetchTimeout`,
+   on its own copy of the issuing certificate, loaded from its raw data, so a caller that disposes the certificates of
+   its chain does not break the retrieval for the others. It stores its result in the cache and removes its own entry
+   when it ends. Each caller waits with `WaitAsync(cancellationToken)`, so a caller that cancels stops waiting without
+   cancelling the retrieval the others share.
 3. **A failed retrieval is remembered.** A retrieval that yields no usable list stores `{cacheKey}:unavailable` in
    `IMemoryCache` for `FailureCacheDuration`. While the entry exists, the checker does not retrieve the list, logs
    `CertificateRevocationListRetrievalSuppressed` at the debug level, and treats the list as unavailable, so a

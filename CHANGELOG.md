@@ -1352,6 +1352,15 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   decision records with a `**Refines:**` line drop the general rule, options and consequences of the template record
   they refine and cite it instead ([#447](https://github.com/NCodeGroup/Identity/issues/447),
   [#450](https://github.com/NCodeGroup/Identity/issues/450)).
+- **Two more decision records cite the template records they build on, and the template's `CA1852`, `CA2012` and
+  `CA2215` analyzers are on again.** ADR-1011 cites project-template ADR-0146 instead of restating its
+  server-generated, shown-once and create-then-delete rules, and ADR-1252 refines project-template ADR-0145 and
+  ADR-0144 and keeps only the revocation checker's own choices. `.editorconfig` no longer turns off `CA1852` (seal
+  internal types) or, in tests, `CA2012` (use `ValueTask` correctly) and `CA2215` (call the base dispose): tests
+  arrange results with Moq's `ReturnsAsync` and `ThrowsAsync` and chain `base.DisposeAsyncCore()`, and the four
+  types the rule found unsealed in assemblies without `InternalsVisibleTo` are sealed
+  ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
+  [#477](https://github.com/NCodeGroup/Identity/issues/477)).
 
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`

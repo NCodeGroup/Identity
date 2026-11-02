@@ -14,8 +14,9 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <see cref="ImportSharedSecret(ISecretProtector, ImportSharedSecretRequest, ReadOnlySpan{byte})"/> method persists a
 /// <strong>caller-supplied</strong> shared-secret value in the same symmetric shape as
 /// <see cref="GenerateSharedSecret(ISecretProtector, GenerateSecretRequest)"/>, so the two share a single
-/// correct-by-default storage contract that cannot drift (see ADR-1110).
+/// correct-by-default storage contract that cannot drift.
 /// </summary>
+// See ADR-1110.
 [PublicAPI]
 public interface ISecretGenerator
 {

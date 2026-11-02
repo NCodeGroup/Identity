@@ -1104,14 +1104,14 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// with a registered certificate when given by value, for <c>self_signed_tls_client_auth</c>; and exactly one
     /// <c>tls_client_auth_*</c> certificate identity for <c>tls_client_auth</c>, which is refused for any other method.
     /// A registering client never supplies trust anchors: a <c>tls_client_auth</c> certificate chains to the tenant's
-    /// anchors, and with none configured the method fails closed (ADR-1173). Returns an <c>invalid_client_metadata</c>
+    /// anchors, and with none configured the method fails closed. Returns an <c>invalid_client_metadata</c>
     /// error, or <see langword="null"/> when the metadata is consistent.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
     /// <param name="request">The registration request.</param>
     /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
     /// <returns>The error, or <see langword="null"/> when the metadata is consistent.</returns>
-    // See ADR-1145.
+    // See ADR-1145 and ADR-1173.
     internal virtual IOpenIdError? ValidateAuthenticationMetadata(
         IOpenIdErrorFactory errorFactory,
         RegisterClientRequest request,

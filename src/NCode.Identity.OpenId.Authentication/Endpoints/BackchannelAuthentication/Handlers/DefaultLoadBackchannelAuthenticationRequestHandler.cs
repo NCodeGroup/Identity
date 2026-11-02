@@ -22,8 +22,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// client sends a signed <c>request</c> JWT (OpenID Connect CIBA §7.1.1), it validates the JWT against the client's keys
 /// and uses its claims as the authoritative request; otherwise the form-based request is returned as-is. The JWT must
 /// carry an asymmetric signature the client's effective settings permit, and is never encrypted: CIBA defines no
-/// encrypted authentication request (ADR-1155).
+/// encrypted authentication request.
 /// </summary>
+// See ADR-1155.
 internal class DefaultLoadBackchannelAuthenticationRequestHandler(
     ILogger<DefaultLoadBackchannelAuthenticationRequestHandler> logger,
     IJwtValidator jwtValidator,

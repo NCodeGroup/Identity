@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// The route group for the interactive login/consent/account surface. Like the protocol group, its prefix is the tenant
-/// route (ADR-1138, ADR-1193), so the surface is served beneath the tenant it signs in to (for example
+/// route, so the surface is served beneath the tenant it signs in to (for example
 /// <c>/{tenantId}/account/login</c> under the path strategy), and the shared
 /// <see cref="OpenIdEnvironmentEndpointFilter"/> — which materializes the request environment and opens the resolved
 /// tenant's ambient scope the credential verifier reads — resolves the same tenant the protocol endpoints do. Unlike the protocol group,
@@ -21,6 +21,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// It mirrors the protocol endpoints' registration so the surface flows through the same
 /// <c>MapEndpointGroups</c> discovery as every other endpoint instead of a bespoke mapping call.
 /// </summary>
+// See ADR-1138 and ADR-1193.
 internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
 {
     /// <summary>

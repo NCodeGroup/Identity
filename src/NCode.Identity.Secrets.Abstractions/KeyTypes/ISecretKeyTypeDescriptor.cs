@@ -33,8 +33,9 @@ public interface ISecretKeyTypeDescriptor
     /// Gets the JSON Web Key key type of keys of this type: its <c>kty</c> name, its RFC 7638 thumbprint members and
     /// its private members. Returns <c>null</c> when keys of this type have no JSON Web Key form. A key supplied as a
     /// JSON Web Key is matched to its descriptor by <see cref="JsonWebKeyTypeDescriptor.Name"/>. A key type a package
-    /// contributes supplies its own descriptor; see ADR-1271.
+    /// contributes supplies its own descriptor.
     /// </summary>
+    // See ADR-1271.
     JsonWebKeyTypeDescriptor? JwkKeyType { get; }
 
     /// <summary>

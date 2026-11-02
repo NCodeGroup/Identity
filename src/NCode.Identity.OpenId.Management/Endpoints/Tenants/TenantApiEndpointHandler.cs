@@ -108,8 +108,9 @@ internal class TenantApiEndpointHandler(
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
     /// <summary>
-    /// Gets the most days one read of a tenant's usage spans: a year of the ledger's retention (ADR-1199).
+    /// Gets the most days one read of a tenant's usage spans: a year of the ledger's retention.
     /// </summary>
+    // See ADR-1199.
     internal const int MaxUsageDays = 366;
 
     /// <summary>
@@ -981,14 +982,14 @@ internal class TenantApiEndpointHandler(
     /// Merges a tenant's persisted settings onto the server's effective settings through the
     /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
     /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
-    /// tenant selects (ADR-1204). A document that cannot be honored fails naming the tenant.
+    /// tenant selects. A document that cannot be honored fails naming the tenant.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings document.</param>
     /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
     /// <exception cref="UnreadableSettingsException">The tenant's document, or the server's, cannot be honored.</exception>
-    // See ADR-1245.
+    // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
         string tenantId,
         JsonElement tenantSettings,

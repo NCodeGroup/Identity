@@ -139,8 +139,9 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     /// <summary>
     /// Creates the delivery and, for a JWT-secured response mode, selects the credentials that secure the response
     /// when the delivery is derived, so a response that cannot be signed is refused before the user signs in or a code
-    /// is issued (ADR-1201).
+    /// is issued.
     /// </summary>
+    // See ADR-1201.
     private async ValueTask<AuthorizationResponseDelivery> CreateDeliveryAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
@@ -272,8 +273,9 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     /// <summary>
     /// Determines whether the specified response mode is permitted by the <c>response_modes_supported</c> setting,
     /// which permits every mode when it is not set. It is applied to the value as written (so <c>jwt</c> must be
-    /// listed to be requested) and to the resolved mode, the default included (ADR-1201).
+    /// listed to be requested) and to the resolved mode, the default included.
     /// </summary>
+    // See ADR-1201.
     private static bool IsListed(IReadOnlySettingCollection settings, string responseMode) =>
         !settings.TryGetValue(OpenIdSettingKeys.ResponseModesSupported, out var supported)
         || supported.Contains(responseMode, StringComparer.Ordinal);

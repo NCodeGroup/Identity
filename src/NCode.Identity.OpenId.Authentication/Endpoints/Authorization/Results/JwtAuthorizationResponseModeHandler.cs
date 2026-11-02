@@ -16,8 +16,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <c>authorization_signed_response_alg</c>, and encrypted when the client registers an encryption algorithm — in the
 /// single <c>response</c> parameter of the derived response mode. An error response is secured the same way. The
 /// credentials are the ones selected when the delivery was derived, before the user signed in, and travel on
-/// <see cref="AuthorizationResponseDelivery.SecuringCredentials"/>; this handler selects none. See ADR-1201.
+/// <see cref="AuthorizationResponseDelivery.SecuringCredentials"/>; this handler selects none.
 /// </summary>
+// See ADR-1201.
 internal abstract class JwtAuthorizationResponseModeHandler(
     TimeProvider timeProvider,
     IJwtEncoder jwtEncoder

@@ -336,8 +336,10 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 
         var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
 
-        SecretKey[] expected = [SharedSecret, publishedKey];
-        Assert.Equal(expected, keys);
+        // The collection orders keys by expiry only, so keys that never expire come back in no defined order.
+        Assert.Equal(2, keys.Count);
+        Assert.Contains(keys, key => ReferenceEquals(key, SharedSecret));
+        Assert.Contains(keys, key => ReferenceEquals(key, publishedKey));
         Assert.Equal(2, acceptedChecks);
     }
 

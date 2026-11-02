@@ -27,7 +27,7 @@ internal sealed class AuditRecordFlushService(
 ) : BackgroundService
 {
     /// <summary>
-    /// The number of audit records written or removed in one unit of work.
+    /// The number of audit records written in one unit of work.
     /// </summary>
     internal const int BatchSize = 256;
 

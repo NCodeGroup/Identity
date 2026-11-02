@@ -34,9 +34,7 @@ public sealed class AuditRecordFlushServiceTests : IDisposable
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockAuditRecordStore = MockRepository.Create<IAuditRecordStore>();
-        var options = Options.Create(
-            new AuditRecordOptions { Retention = TimeSpan.FromDays(90), QueueCapacity = 1000 }
-        );
+        var options = Options.Create(new AuditRecordOptions { QueueCapacity = 1000 });
         Queue = new AuditRecordQueue(options);
         Service = new AuditRecordFlushService(
             Queue,

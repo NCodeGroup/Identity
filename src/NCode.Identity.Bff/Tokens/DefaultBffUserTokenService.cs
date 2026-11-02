@@ -314,8 +314,13 @@ internal class DefaultBffUserTokenService(
         }
     }
 
-    // A lease that is not released expires on its own, so a store that cannot be reached never changes the refresh's
-    // result or hides its failure.
+    /// <summary>
+    /// Releases the refresh lease that <paramref name="lease"/> holds, logging a session store that cannot be reached
+    /// instead of failing. A lease that is not released expires on its own, so a store that cannot be reached never
+    /// changes the refresh's result or hides its failure.
+    /// </summary>
+    /// <param name="lease">The refresh lease to release.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     // See ADR-1308.
     private async ValueTask ReleaseLeaseAsync(BffRefreshLease lease)
     {

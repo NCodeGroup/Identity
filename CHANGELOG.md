@@ -18,6 +18,13 @@ change to the public API is a **major** version bump.
   agreement over P-256, P-384 and P-521. The `epk` header is written and read through the key type's
   `ISecretKeyTypeDescriptor` and JSON Web Key rules: it carries only the type's required members, its `kty` must be the
   recipient key's, and a received `epk` that holds any private member is refused ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+- **ECDH-ES over X25519 and X448.** `AddEdDsa()` in `NCode.Identity.Jose.EdDsa` now also registers clean-room,
+  constant-time X25519 and X448 (RFC 7748) as the `OKP` agreement of `ECDH-ES`, `ECDH-ES+A128KW`, `ECDH-ES+A192KW` and
+  `ECDH-ES+A256KW` (RFC 8037 §3.2). The `OKP` key type generates, imports, exports and stores `crv` `X25519` and
+  `X448` keys as it does the signing keys (PKCS#8 and SPKI of RFC 8410), and a curve's use keeps the two apart: an
+  X25519 or X448 key is never accepted for `EdDSA`, `Ed25519` or `Ed448`, and an Ed25519 or Ed448 key never for
+  `ECDH-ES`. An agreement whose shared secret is all zeros, from an `epk` or a recipient key of small order, is refused
+  on both sides ([#336](https://github.com/NCodeGroup/Identity/issues/336), [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 - **A tenant key can name its secret type.** `OpenId:Tenant:KeyProvisioning:Keys` entries take an optional
   `SecretType` that selects which of the algorithm's key types the key is generated as; unset, it is the algorithm's
   first key type that has a registered secret key type ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).

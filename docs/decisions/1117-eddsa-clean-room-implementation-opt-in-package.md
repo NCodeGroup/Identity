@@ -1,6 +1,9 @@
 # 1117. EdDSA (Ed25519 / Ed448) is a clean-room implementation in an opt-in package
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1390](1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md):
+  `AddEdDsa()` also registers `ECDH-ES` over X25519 and X448, and the internal curve set holds those curves, each
+  curve marked with its use)
 - **Date:** 2026-10-16
 - **Deciders:** NCode.Identity maintainers
 

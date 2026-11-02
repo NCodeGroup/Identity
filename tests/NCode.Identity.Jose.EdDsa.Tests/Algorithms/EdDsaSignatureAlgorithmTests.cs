@@ -80,6 +80,59 @@ public class EdDsaSignatureAlgorithmTests
         Assert.False(algorithm.IsKeyCompatible(secretKey));
     }
 
+    // A key-agreement curve never signs. X25519 shares Ed25519's size; the X448 stub declares Ed448's size, so only the
+    // curve's use refuses it.
+    [Theory]
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, null, OkpCurves.X25519Name, 256)]
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, null, OkpCurves.X448Name, 456)]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed25519,
+        OkpCurves.Ed25519Name,
+        OkpCurves.X25519Name,
+        256
+    )]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed448,
+        OkpCurves.Ed448Name,
+        OkpCurves.X448Name,
+        456
+    )]
+    public void IsKeyCompatible_WhenKeyAgreementCurve_ReturnsFalse(
+        string code,
+        string? algorithmCurveName,
+        string keyCurveName,
+        int keySizeBits
+    )
+    {
+        var algorithm = algorithmCurveName is null
+            ? new EdDsaSignatureAlgorithm(code, curve: null)
+            : CreateFixedAlgorithm(code, algorithmCurveName);
+        var secretKey = new StubOkpSecretKey(keyCurveName, keySizeBits);
+
+        Assert.True(algorithm.TryGetKeyType(secretKey.GetType(), out var keyType));
+        Assert.True(keyType.IsLegalSize(keySizeBits));
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void TrySign_WhenKeyAgreementCurve_Throws()
+    {
+        var algorithm = new EdDsaSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.EdDsa,
+            curve: null
+        );
+        var secretKey = new StubOkpSecretKey(OkpCurves.X25519Name, 256);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            algorithm.TrySign(secretKey, "x"u8, new byte[64], out _)
+        );
+
+        Assert.Equal(
+            "The OKP curve 'X25519' is not supported by the 'EdDSA' algorithm.",
+            exception.Message
+        );
+    }
+
     #endregion
 
     #region TrySign Tests

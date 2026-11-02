@@ -72,7 +72,8 @@ security-profile ceiling that tightens the lattice in one move.
 
 **JOSE / JWT** — a from-scratch JWS/JWE/JWT implementation (`NCode.Identity.Jose`) with first-class JWK/JWKS and
 thumbprints, requirement-and-handler style validation, strict RFC 7519 `NumericDate` handling, **EdDSA** (Ed25519 /
-Ed448) as a clean-room opt-in package, and **ML-DSA** post-quantum signatures through the BCL.
+Ed448) signatures and **ECDH-ES** over X25519 / X448 as a clean-room opt-in package, and **ML-DSA** post-quantum
+signatures through the BCL.
 
 **Encryption at rest:** every stored secret is encrypted under a root key held in AWS KMS, Azure Key Vault or Google
 Cloud KMS. That covers private keys, client secrets, grant payloads and the Data Protection key ring. Each tenant has

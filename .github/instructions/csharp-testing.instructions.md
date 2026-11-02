@@ -52,7 +52,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   removed. Use a same-size named curve where one exists (`brainpoolP256r1` for `ES256`, `brainpoolP384r1` for
   `ES384`); otherwise use a stub key that declares the algorithm's size on another curve, because no other named
   curve has 521 bits and Ed25519 and Ed448 differ in size (`StubEccSecretKey` in `EccSignatureAlgorithmTests`,
-  `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`).
+  `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`). An `OKP` key's use is tested the same way: an X25519 key
+  has an Ed25519 key's size, so it proves that the curve's use, not the size check, refuses it for `EdDSA` and an
+  Ed25519 key for `ECDH-ES`
+  ([ADR-1390](../../docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 - 👁 **Test a contributed key type's private members with a member no standard key type uses.** A JWK counts a
   member as private when it is a standard private name (`d`, `k`, `priv` and the RSA factors) or one of its key
   type's `JsonWebKeyTypeDescriptor.PrivateMembers`, so a contributed type that keeps its private half in `d` is

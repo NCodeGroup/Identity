@@ -219,7 +219,29 @@ internal struct Fe448
         r._l7 ^= mask & (r._l7 ^ a._l7);
     }
 
-    /// <summary>Loads a field element from 56 little-endian bytes (eight 7-byte limbs).</summary>
+    /// <summary>
+    /// Constant-time conditional swap of <paramref name="a"/> and <paramref name="b"/> when <paramref name="swap"/> is
+    /// 1, leaving both unchanged when 0.
+    /// </summary>
+    [MethodImpl(Opt)]
+    public static void CSwap(ref Fe448 a, ref Fe448 b, ulong swap)
+    {
+        var mask = 0UL - swap;
+        var al = LimbsOf(ref a);
+        var bl = LimbsOf(ref b);
+        for (var i = 0; i < 8; i++)
+        {
+            var t = mask & (al[i] ^ bl[i]);
+            al[i] ^= t;
+            bl[i] ^= t;
+        }
+    }
+
+    /// <summary>
+    /// Loads a field element from 56 little-endian bytes (eight 7-byte limbs). Every 56-byte value is accepted,
+    /// including the non-canonical ones in <c>[p, 2^448)</c>, which are processed as if reduced modulo <c>p</c>, as
+    /// RFC 7748 §5 requires of X448.
+    /// </summary>
     public static Fe448 FromBytes(ReadOnlySpan<byte> source)
     {
         // Limbs 0..6 overlap-read a full 64-bit word and mask to 56 bits; the final limb has only 7 bytes left.

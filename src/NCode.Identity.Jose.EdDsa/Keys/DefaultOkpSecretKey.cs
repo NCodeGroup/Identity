@@ -9,8 +9,8 @@ using NCode.Identity.Secrets.Keys;
 namespace NCode.Identity.Jose.EdDsa.Keys;
 
 /// <summary>
-/// An <see cref="OkpSecretKey"/> that holds the private seed, data-protected at rest in memory. Can both sign and
-/// verify.
+/// An <see cref="OkpSecretKey"/> that holds the private key, data-protected at rest in memory. On a signing curve it
+/// signs and verifies; on a key-agreement curve it agrees keys as either party.
 /// </summary>
 internal sealed class DefaultOkpSecretKey(
     IDataProtector dataProtector,

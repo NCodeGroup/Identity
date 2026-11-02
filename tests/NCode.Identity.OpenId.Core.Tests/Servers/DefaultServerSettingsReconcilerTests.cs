@@ -146,7 +146,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
                 (string _, DateTimeOffset expiresWhen, CancellationToken _) =>
                     leaseExpiresWhen = expiresWhen
             )
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
         MockMediator
             .Setup(x =>
@@ -297,7 +297,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.FromException(new StoreConcurrencyException("conflict")))
+            .ThrowsAsync(new StoreConcurrencyException("conflict"))
             .Verifiable();
 
         var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
@@ -311,7 +311,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         SetupStoreManager();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult<PersistedServer?>(null))
+            .ReturnsAsync((PersistedServer?)null)
             .Verifiable();
 
         var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
@@ -418,7 +418,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.FromResult(isAdded))
+            .ReturnsAsync(isAdded)
             .Verifiable();
 
     #endregion

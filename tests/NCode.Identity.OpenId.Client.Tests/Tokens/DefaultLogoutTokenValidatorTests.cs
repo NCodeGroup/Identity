@@ -825,17 +825,20 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         Assert.Equal("The logout token has already been handled.", result.FailureReason);
     }
 
-    private Mock<IExpiringKeySet> CreateRecordingKeySet(
-        List<string> lookups,
+    private static void SetupLookups(Mock<IExpiringKeySet> keySet, List<string> lookups) =>
+        keySet
+            .Setup(x => x.ContainsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((key, _) => lookups.Add(key))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+    private static void SetupRecords(
+        Mock<IExpiringKeySet> keySet,
         List<(string Key, DateTimeOffset ExpiresWhen)> records,
         bool added = true
-    )
-    {
-        var mock = CreateStrictMock<IExpiringKeySet>();
-        mock.Setup(x => x.ContainsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Callback<string, CancellationToken>((key, _) => lookups.Add(key))
-            .ReturnsAsync(false);
-        mock.Setup(x =>
+    ) =>
+        keySet
+            .Setup(x =>
                 x.TryAddAsync(
                     It.IsAny<string>(),
                     It.IsAny<DateTimeOffset>(),
@@ -845,9 +848,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             .Callback<string, DateTimeOffset, CancellationToken>(
                 (key, expiresWhen, _) => records.Add((key, expiresWhen))
             )
-            .ReturnsAsync(added);
-        return mock;
-    }
+            .ReturnsAsync(added)
+            .Verifiable();
 
     private DefaultLogoutTokenValidator CreateRecordingValidator(Mock<IExpiringKeySet> keySet) =>
         new(
@@ -863,11 +865,9 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     public async Task ValidateAsync_WhenValid_LooksUpTheScopedJtiWithoutRecordingIt()
     {
         var lookups = new List<string>();
-        var records = new List<(string Key, DateTimeOffset ExpiresWhen)>();
-        var validator = CreateValidator(
-            CreateKeySetMock(),
-            CreateRecordingKeySet(lookups, records)
-        );
+        var keySet = CreateStrictMock<IExpiringKeySet>();
+        SetupLookups(keySet, lookups);
+        var validator = CreateValidator(CreateKeySetMock(), keySet);
 
         var result = await ValidateAsync(validator, CreateLogoutToken());
 
@@ -875,7 +875,6 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var lookup = Assert.Single(lookups);
         Assert.StartsWith("logout_token_jti:", lookup);
         Assert.DoesNotContain("jti-1", lookup);
-        Assert.Empty(records);
     }
 
     [Fact]
@@ -917,10 +916,10 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var lookups = new List<string>();
         var records = new List<(string Key, DateTimeOffset ExpiresWhen)>();
-        var validator = CreateValidator(
-            CreateKeySetMock(),
-            CreateRecordingKeySet(lookups, records)
-        );
+        var keySet = CreateStrictMock<IExpiringKeySet>();
+        SetupLookups(keySet, lookups);
+        SetupRecords(keySet, records);
+        var validator = CreateValidator(CreateKeySetMock(), keySet);
         var result = await ValidateAsync(validator, CreateLogoutToken());
         Assert.True(result.IsValid, result.FailureReason);
 
@@ -941,10 +940,10 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var lookups = new List<string>();
         var records = new List<(string Key, DateTimeOffset ExpiresWhen)>();
-        var validator = CreateValidator(
-            CreateKeySetMock(),
-            CreateRecordingKeySet(lookups, records, added: false)
-        );
+        var keySet = CreateStrictMock<IExpiringKeySet>();
+        SetupLookups(keySet, lookups);
+        SetupRecords(keySet, records, added: false);
+        var validator = CreateValidator(CreateKeySetMock(), keySet);
         var result = await ValidateAsync(validator, CreateLogoutToken());
         Assert.True(result.IsValid, result.FailureReason);
 
@@ -960,9 +959,10 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task TryRecordHandledAsync_WhenJtiOrIssuerDiffers_RecordsADifferentKey()
     {
-        var lookups = new List<string>();
         var records = new List<(string Key, DateTimeOffset ExpiresWhen)>();
-        var validator = CreateRecordingValidator(CreateRecordingKeySet(lookups, records));
+        var keySet = CreateStrictMock<IExpiringKeySet>();
+        SetupRecords(keySet, records);
+        var validator = CreateRecordingValidator(keySet);
         var payload = JsonElement.Parse("{}");
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(2);
 
@@ -992,7 +992,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task TryRecordHandledAsync_WhenResultIsInvalid_ThrowsArgumentException()
     {
-        var validator = CreateRecordingValidator(CreateRecordingKeySet([], []));
+        var validator = CreateRecordingValidator(CreateStrictMock<IExpiringKeySet>());
         var result = new LogoutTokenValidationResult(
             TokenValidationFailureCodes.InvalidToken,
             "invalid"

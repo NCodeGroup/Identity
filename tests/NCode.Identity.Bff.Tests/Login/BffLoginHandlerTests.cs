@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
@@ -49,7 +48,6 @@ public class BffLoginHandlerTests : BaseTests
                 ?? new BffLoginTransactionService(BffTestTelemetry.Instrument(_store.Object)),
             new BffCookies(options, timeProvider),
             _auditRecorder.Object,
-            CreateLooseMock<IHostEnvironment>().Object,
             timeProvider
         );
     }
@@ -58,6 +56,7 @@ public class BffLoginHandlerTests : BaseTests
         new()
         {
             Authority = "https://op.example.com",
+            PublicOrigin = "https://app.example.com",
             ClientId = "bff",
             Scopes = ["profile"],
             ReturnUrls = ["/app"],
@@ -68,7 +67,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
-        httpContext.Request.Host = new HostString("app.example.com");
+        httpContext.Request.Host = new HostString("attacker.example");
         httpContext.Request.QueryString = new QueryString(query);
         httpContext.Response.Body = new MemoryStream();
         return httpContext;

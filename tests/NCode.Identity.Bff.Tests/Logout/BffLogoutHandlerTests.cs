@@ -54,6 +54,7 @@ public class BffLogoutHandlerTests : BaseTests
             new BffOptions
             {
                 Authority = "https://op.example",
+                PublicOrigin = "https://app.example",
                 ClientId = "bff",
                 ReturnUrls = ["/"],
             }
@@ -207,7 +208,7 @@ public class BffLogoutHandlerTests : BaseTests
         SetupResolve(state);
         var httpContext = CreateHttpContext("sid=guard-value&returnUrl=%2Fhome");
         httpContext.Request.Scheme = "https";
-        httpContext.Request.Host = new HostString("app.example");
+        httpContext.Request.Host = new HostString("attacker.example");
         SetupEnd(httpContext, state);
         _metadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))

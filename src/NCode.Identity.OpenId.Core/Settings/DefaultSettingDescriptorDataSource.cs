@@ -43,7 +43,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// principal resolution, federation, dynamic registration policy) read a tenant's effective settings, so every
 /// discoverable setting applies to tenants; the protocol endpoints read the effective settings of the client making the
 /// request; and access-token issuance combines the client's effective settings with those of every resource server the
-/// token targets, so every setting that applies to resource servers merges with a lattice operation (ADR-1158).
+/// token targets, so every setting that applies to resource servers merges with a lattice operation.
 /// </para>
 /// </remarks>
 // See ADR-1140 (domains), ADR-1149 (scopes), and ADR-1158 (resource-server bounds).

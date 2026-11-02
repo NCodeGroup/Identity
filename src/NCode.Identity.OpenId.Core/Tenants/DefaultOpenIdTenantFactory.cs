@@ -520,7 +520,7 @@ public class DefaultOpenIdTenantFactory(
     /// Used to get the tenant's base address, the <see cref="UriDescriptor"/> every absolute URL the server publishes for
     /// the tenant is built from — the discovery endpoint URLs, the <c>registration_client_uri</c>, the device
     /// <c>verification_uri</c>. The default implementation parses it from the tenant's issuer, which names exactly where
-    /// the tenant is served, tenant route included (ADR-1138).
+    /// the tenant is served, tenant route included.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
@@ -529,6 +529,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="UriDescriptor"/> instance.</returns>
+    // See ADR-1138.
     protected virtual ValueTask<UriDescriptor> GetTenantBaseAddressAsync(
         HttpContext httpContext,
         PersistedTenant persistedTenant,

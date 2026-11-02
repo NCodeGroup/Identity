@@ -236,7 +236,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1180](./1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) | Migrations run before the rollout and keep the previous release working | Accepted (amended by [1250](./1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)) |
 | [1181](./1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md) | Every issuer of a JWT addressed to a client resolves one public credential selector | Accepted |
 | [1182](./1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) | The frontend bootstrap issuer is the serving tenant's, not the request's | Accepted |
-| [1183](./1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Accepted |
+| [1183](./1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Superseded by [1320](./1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md) |
 | [1184](./1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) | A migration only expands the schema unless it is marked a contract step | Accepted (amended by [1250](./1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)) |
 | [1185](./1185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md) | Coverage measures hand-written code and counts a line that runs as covered | Accepted |
 | [1186](./1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) | Every owner's keys are imported and updated under the client-key policy | Accepted |
@@ -361,3 +361,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
 | [1309](./1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
+| [1320](./1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md) | A rotated client secret overlaps its replacement until it expires or is deleted | Accepted |

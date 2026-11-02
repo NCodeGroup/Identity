@@ -1,7 +1,8 @@
 # 1315. Outbound calls to caller-supplied URLs share one guarded, bounded client
 
-- **Status:** Accepted
-- **Date:** 2026-11-01
+- **Status:** Accepted (amended by
+  [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md): the `jwks_uri`
+  fetch is single-flight and a failed fetch is remembered)- **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)
 - **Supersedes:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md), decision 6 for the per-scope fetch limits and decision 3's https-only rule for revocation data
@@ -64,8 +65,9 @@ the server does not control.
 - A hostile endpoint costs at most the total timeout to answer with its headers, and the deliveries buffer no response
   body; the capped reader and the per-scope fetch timeouts bound a fetch's body, which the pipeline's timeouts do not
   cover once the headers have arrived.
-- The `jwks_uri` fetch is not yet single-flight and does not remember a failure, as the template's decisions 4 and 5
-  ask; issue [#466](https://github.com/NCodeGroup/Identity/issues/466) tracks it.
+- The `jwks_uri` fetch is single-flight and remembers a failed fetch for `FailureCacheDuration`, as the template's
+  decisions 4 and 5 ask
+  ([ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).
 - The retry of a revocation-list `GET` runs within `FetchTimeout`, and the remembered failure stays the back-off between
   retrievals ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
 

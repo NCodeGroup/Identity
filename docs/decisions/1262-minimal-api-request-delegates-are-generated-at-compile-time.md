@@ -8,9 +8,9 @@
 ## Context
 
 [project-template ADR-0120](project-template/0120-request-delegates-are-generated-at-compile-time.md) generates
-minimal-API request delegates at compile time in every project except one with form-bound endpoints, which binds at
-runtime because the generated form binding ignores a failed antiforgery validation. This record keeps the family's
-measurements, its opt-out and its tracking issue.
+minimal-API request delegates at compile time, through the Request Delegate Generator (RDG), in every project except
+one with form-bound endpoints, which binds at runtime because the generated form binding ignores a failed antiforgery
+validation. This record keeps the family's measurements, its opt-out and its tracking issue.
 
 The family maps about 170 minimal-API endpoints, as method groups, across 10 packages. With runtime binding, ASP.NET
 Core's `RequestDelegateFactory.Create` builds expression trees for each endpoint at every host start, and

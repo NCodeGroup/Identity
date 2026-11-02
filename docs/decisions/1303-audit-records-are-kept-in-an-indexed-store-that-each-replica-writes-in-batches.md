@@ -80,7 +80,7 @@ batches; the store keeps a record for 90 days by default.**
 
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) — the audit record
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger the writer mirrors
-- [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md) — the prune service the audit store's mirrors
+- [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md) — the usage-ledger prune service that the audit store's prune service mirrors
 - Issue [#468](https://github.com/NCodeGroup/Identity/issues/468) — the prune interval and its own hosted service
 - Issues [#383](https://github.com/NCodeGroup/Identity/issues/383) and
   [#384](https://github.com/NCodeGroup/Identity/issues/384)

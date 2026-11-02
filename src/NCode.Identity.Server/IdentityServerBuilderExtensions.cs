@@ -69,13 +69,15 @@ public static class IdentityServerBuilderExtensions
         /// the OCSP responses and revocation lists a mutual-TLS client certificate names are retrieved and
         /// cached.</description></item>
         /// <item><description><c>OutboundHttp</c> — <see cref="OutboundHttpOptions"/>: how long a call to a
-        /// caller-supplied URL may take and how often it is retried.</description></item>
+        /// caller-supplied URL may take, how often it is retried, and how long a failed <c>jwks_uri</c> fetch is
+        /// remembered.</description></item>
         /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
         /// kept and how often they are removed.</description></item>
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
         /// usage to the ledger and how long the ledger keeps it.</description></item>
         /// <item><description><c>AuditRecords</c> — <see cref="AuditRecordOptions"/>: whether audit records are kept in
-        /// the audit store, how often each replica writes them and how long the store keeps them.</description></item>
+        /// the audit store, how often each replica writes them, how long the store keeps them and how often each
+        /// replica removes the older ones.</description></item>
         /// <item><description><c>EndedSessionTermination</c> — <see cref="EndedSessionTerminationOptions"/>: how often
         /// the sessions that ended while unused are terminated.</description></item>
         /// <item><description><c>InProcessJobDispatcher</c> — <see cref="InProcessJobDispatcherOptions"/>: how many

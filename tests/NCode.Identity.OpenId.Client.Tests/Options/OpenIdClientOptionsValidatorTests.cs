@@ -21,27 +21,97 @@ public class OpenIdClientOptionsValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WithZeroRequestTimeout_Fails()
+    public void Validate_WithZeroTotalTimeout_Fails()
     {
         var result = Validator.Validate(
             null,
-            new OpenIdClientOptions { RequestTimeout = TimeSpan.Zero }
+            new OpenIdClientOptions { TotalTimeout = TimeSpan.Zero }
         );
 
         Assert.True(result.Failed);
-        Assert.Contains(nameof(OpenIdClientOptions.RequestTimeout), result.FailureMessage);
+        Assert.Contains(nameof(OpenIdClientOptions.TotalTimeout), result.FailureMessage);
     }
 
     [Fact]
-    public void Validate_WithRequestTimeoutOverTheMaximum_Fails()
+    public void Validate_WithTotalTimeoutOverTheMaximum_Fails()
     {
         var result = Validator.Validate(
             null,
-            new OpenIdClientOptions { RequestTimeout = TimeSpan.FromMinutes(6) }
+            new OpenIdClientOptions { TotalTimeout = TimeSpan.FromMinutes(6) }
         );
 
         Assert.True(result.Failed);
-        Assert.Contains(nameof(OpenIdClientOptions.RequestTimeout), result.FailureMessage);
+        Assert.Contains(nameof(OpenIdClientOptions.TotalTimeout), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithAttemptTimeoutBelowTenMilliseconds_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { AttemptTimeout = TimeSpan.FromMilliseconds(9) }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.AttemptTimeout), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithAttemptTimeoutGreaterThanTotalTimeout_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions
+            {
+                AttemptTimeout = TimeSpan.FromSeconds(20),
+                TotalTimeout = TimeSpan.FromSeconds(15),
+            }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.AttemptTimeout), result.FailureMessage);
+        Assert.Contains(nameof(OpenIdClientOptions.TotalTimeout), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithNegativeMaxRetryAttempts_Fails()
+    {
+        var result = Validator.Validate(null, new OpenIdClientOptions { MaxRetryAttempts = -1 });
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.MaxRetryAttempts), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithMaxRetryAttemptsOverTen_Fails()
+    {
+        var result = Validator.Validate(null, new OpenIdClientOptions { MaxRetryAttempts = 11 });
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.MaxRetryAttempts), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithNegativeRetryDelay_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { RetryDelay = TimeSpan.FromSeconds(-1) }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.RetryDelay), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithRetriesOff_Succeeds()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { MaxRetryAttempts = 0, RetryDelay = TimeSpan.Zero }
+        );
+
+        Assert.True(result.Succeeded);
     }
 
     [Fact]

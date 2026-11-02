@@ -5,7 +5,8 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 
 /// <summary>
 /// Contains the options that bound every call the server makes to a caller-supplied URL: how long one attempt and the
-/// whole call may take, and how often a failed attempt is retried.
+/// whole call may take, how often a failed attempt is retried, and how long a failed fetch of a shared document is
+/// remembered.
 /// </summary>
 // See ADR-1315.
 public sealed class OutboundHttpOptions
@@ -40,4 +41,11 @@ public sealed class OutboundHttpOptions
     /// default is one second. It is between zero and one day.
     /// </summary>
     public TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Gets or sets how long a failed fetch of a document that many requests share — a client's <c>jwks_uri</c> key
+    /// set — is remembered. During that time the document is not fetched again and the requests that need it go
+    /// without it. The default is one minute. It is greater than zero and at most one day.
+    /// </summary>
+    public TimeSpan FailureCacheDuration { get; set; } = TimeSpan.FromMinutes(1);
 }

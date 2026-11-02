@@ -59,6 +59,16 @@ internal sealed class OutboundHttpOptionsValidator : IValidateOptions<OutboundHt
             );
         }
 
+        if (
+            options.FailureCacheDuration <= TimeSpan.Zero
+            || options.FailureCacheDuration > MaxTimeout
+        )
+        {
+            failures.Add(
+                $"{nameof(OutboundHttpOptions)}.{nameof(OutboundHttpOptions.FailureCacheDuration)} ('{OutboundHttpOptions.SectionName}:{nameof(OutboundHttpOptions.FailureCacheDuration)}') must be greater than {TimeSpan.Zero} and at most {MaxTimeout}; it is {options.FailureCacheDuration}."
+            );
+        }
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

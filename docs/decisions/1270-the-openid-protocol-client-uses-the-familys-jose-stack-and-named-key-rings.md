@@ -1,6 +1,6 @@
 # 1270. The OpenID protocol client uses the family's JOSE stack and named key rings
 
-- **Status:** Accepted (phase 1b's mTLS client authentication: [ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md); phase 1b's ID-token validation: [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md); amended by [ADR-1285](1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md): the implementation package references no ASP.NET Core shared framework)
+- **Status:** Accepted (phase 1b's mTLS client authentication: [ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md); phase 1b's ID-token validation: [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md); amended by [ADR-1285](1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md): the implementation package references no ASP.NET Core shared framework; amended by [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md): every call is bounded by a total and a per-attempt timeout with bounded retries of safe requests, and `RequestTimeout` became `TotalTimeout`)
 - **Date:** 2026-10-26
 - **Deciders:** NCode Group
 

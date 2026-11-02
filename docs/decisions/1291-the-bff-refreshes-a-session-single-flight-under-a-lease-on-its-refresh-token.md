@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1308](1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md): the winner always releases
-  its lease by the owner token it holds, instead of only when it finished 5 s before the lease expires)
+  its lease by the owner token it holds, instead of only when it finished 5 s before the lease expires; and by
+  [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md): the lease is checked against
+  `OpenIdClientOptions.TotalTimeout`, which replaced `RequestTimeout`)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

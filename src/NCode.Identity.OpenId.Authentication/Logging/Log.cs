@@ -388,6 +388,18 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientJwksFetchSuppressed,
+        Level = LogLevel.Debug,
+        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' is not fetched, because a fetch that failed less than {FailureCacheDuration} ago is remembered; the client's published keys are unavailable."
+    )]
+    internal static partial void ClientJwksFetchSuppressed(
+        this ILogger logger,
+        string clientId,
+        string jwksUri,
+        TimeSpan failureCacheDuration
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ClientJwksKeyIgnored,
         Level = LogLevel.Debug,
         Message = "A '{KeyType}' key (kid '{KeyId}') in a client's published JSON Web Key Set was ignored: {Reason}"
@@ -603,7 +615,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.AuditRecordPruneFailed,
         Level = LogLevel.Warning,
-        Message = "The audit records past their retention could not be removed; the next flush tries again."
+        Message = "The audit records past their retention could not be removed; the removal is retried at the next prune."
     )]
     internal static partial void AuditRecordPruneFailed(this ILogger logger, Exception exception);
 }

@@ -49,7 +49,10 @@ closed ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-clo
 
 ## Coding conventions
 
-The coding-convention instruction files are the single source of truth, auto-applied by scope:
+The coding-convention instruction files are the single source of truth, auto-applied by scope: the project template's
+[`csharp.instructions.md`](.github/instructions/csharp.instructions.md) and
+[`csharp-tests.instructions.md`](.github/instructions/csharp-tests.instructions.md) hold the general C# rules, and this
+family's own rules are in
 [`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md) and
 [`csharp-testing.instructions.md`](.github/instructions/csharp-testing.instructions.md). The _reasoning_ behind
 non-obvious decisions lives in [`docs/decisions/`](docs/decisions/): the project template's general decisions in

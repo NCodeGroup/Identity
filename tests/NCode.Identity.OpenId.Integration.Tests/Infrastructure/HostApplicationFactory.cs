@@ -1289,37 +1289,38 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 serviceCollection.AddSingleton(new DeveloperInteractiveSeedOptions());
             }
 
-            // Replace the SSRF-guarded client jwks_uri HTTP client with a stub serving canned JSON, so a jwks_uri
-            // fetch can be exercised without a real outbound connection (which the guard would refuse).
-            if (ClientJwksResponder is { } responder)
+            // The stubs replace the SSRF-guarded client's primary handler (GuardedHttpClient.Name, ADR-1315), so a fetch or
+            // delivery runs without a real outbound connection, which the guard would refuse.
+            if (
+                ClientJwksResponder is not null
+                || CertificateRevocationListResponder is not null
+                || BackChannelLogoutExchanges is not null
+            )
             {
-                serviceCollection
-                    .AddHttpClient("NCode.Identity.OpenId.ClientJwks")
-                    .ConfigurePrimaryHttpMessageHandler(() =>
-                        new StubJsonHttpMessageHandler(responder)
+                if (
+                    ClientJwksResponder is not null
+                    && CertificateRevocationListResponder is not null
+                )
+                {
+                    throw new InvalidOperationException(
+                        "A host stubs either jwks_uri or revocation fetches, not both: both are GETs on the one guarded client."
                     );
-            }
+                }
 
-            // Replace the SSRF-guarded certificate revocation HTTP client with a stub serving a canned CRL, so a CRL
-            // fetch can be exercised without a real outbound connection (which the guard would refuse).
-            if (CertificateRevocationListResponder is { } crlResponder)
-            {
-                serviceCollection
-                    .AddHttpClient("NCode.Identity.OpenId.ClientCertificateRevocation")
-                    .ConfigurePrimaryHttpMessageHandler(() =>
-                        new StubBinaryHttpMessageHandler(crlResponder)
-                    );
-            }
+                HttpMessageHandler? getHandler = null;
+                if (ClientJwksResponder is { } responder)
+                    getHandler = new StubJsonHttpMessageHandler(responder);
+                else if (CertificateRevocationListResponder is { } crlResponder)
+                    getHandler = new StubBinaryHttpMessageHandler(crlResponder);
 
-            // Replace the SSRF-guarded back-channel logout HTTP client with a stub that records each delivery, so the
-            // logout token the OP posts to a client's backchannel_logout_uri can be captured without a real outbound
-            // connection (which the guard would refuse).
-            if (BackChannelLogoutExchanges is { } backChannelLogoutExchanges)
-            {
+                HttpMessageHandler? postHandler = null;
+                if (BackChannelLogoutExchanges is { } backChannelLogoutExchanges)
+                    postHandler = new StubRecordingHttpMessageHandler(backChannelLogoutExchanges);
+
                 serviceCollection
-                    .AddHttpClient("NCode.Identity.OpenId.BackChannelLogout")
+                    .AddHttpClient("NCode.Identity.OpenId.GuardedHttp")
                     .ConfigurePrimaryHttpMessageHandler(() =>
-                        new StubRecordingHttpMessageHandler(backChannelLogoutExchanges)
+                        new StubOutboundHttpMessageHandler(getHandler, postHandler)
                     );
             }
 

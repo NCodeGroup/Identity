@@ -16,15 +16,17 @@
 
 #endregion
 
+using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 
 /// <summary>
-/// Provides extension methods to configure the shared, SSRF-guarded outbound HTTP services used by every
+/// Provides extension methods to configure the shared, SSRF-guarded, bounded outbound HTTP services used by every
 /// server-initiated fetch of, or delivery to, a client-supplied URL.
 /// </summary>
 internal static class DefaultRegistration
@@ -33,7 +35,8 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the outbound HTTP forgery guard and the capped response-body reader.
+        /// Configures the outbound HTTP forgery guard, the capped response-body reader, and the one guarded client
+        /// with its timeouts and bounded retries.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -50,6 +53,41 @@ internal static class DefaultRegistration
                 IOutboundHttpContentReader,
                 DefaultOutboundHttpContentReader
             >();
+
+            serviceCollection.AddOptions<OutboundHttpOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OutboundHttpOptions>,
+                    OutboundHttpOptionsValidator
+                >()
+            );
+            serviceCollection.TryAddTransient<GuardedHttpTimeoutHandler>();
+
+            // This one client serves every fetch of, and delivery to, a caller-supplied URL (ADR-1315). Its
+            // connections are pinned away from private/loopback/link-local addresses and it never follows redirects,
+            // so a registered internal URL cannot turn the OP into a confused deputy; the pipeline bounds each attempt
+            // and the whole call, and retries a failed attempt a bounded number of times.
+            serviceCollection
+                .AddHttpClient(GuardedHttpClient.Name)
+                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    ConnectCallback = serviceProvider
+                        .GetRequiredService<IOutboundHttpForgeryGuard>()
+                        .ConnectAsync,
+                    AutomaticDecompression = DecompressionMethods.All,
+                })
+                .AddHttpMessageHandler<GuardedHttpTimeoutHandler>()
+                .AddResilienceHandler(
+                    "guarded",
+                    static (pipelineBuilder, context) =>
+                        GuardedHttpClient.ConfigurePipeline(
+                            pipelineBuilder,
+                            context
+                                .ServiceProvider.GetRequiredService<IOptions<OutboundHttpOptions>>()
+                                .Value
+                        )
+                );
 
             return builder;
         }

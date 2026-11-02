@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -164,10 +165,12 @@ internal class ResourceServerApiEndpointHandler(
         resourceServers
             .MapGet("/{resourceServerId}/secrets", GetSecretsAsync)
             .Produces<ResourceServerSecretsResource>();
+        // The response reveals a secret once, so no cache may keep it (ADR-1345).
         resourceServers
             .MapPost("/{resourceServerId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status409Conflict);
+            .Produces(StatusCodes.Status409Conflict)
+            .WithNoStore();
         resourceServers
             .MapPost("/{resourceServerId}/secrets/import", ImportSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created)

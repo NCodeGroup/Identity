@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
@@ -70,10 +71,12 @@ internal class GrantApiEndpointHandler(
             .MapDelete("", RevokeGrantsAsync)
             .Produces<GrantRevocationResult>()
             .Produces(StatusCodes.Status400BadRequest);
+        // The response reveals a secret once, so no cache may keep it (ADR-1345).
         grants
             .MapPost("/initial-access-tokens", CreateInitialAccessTokenAsync)
             .Produces<CreatedInitialAccessTokenResource>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status400BadRequest)
+            .WithNoStore();
         grants.MapGet("/{grantId}", GetGrantAsync).Produces<GrantResource>();
         grants.MapDelete("/{grantId}", RevokeGrantAsync).Produces(StatusCodes.Status204NoContent);
     }

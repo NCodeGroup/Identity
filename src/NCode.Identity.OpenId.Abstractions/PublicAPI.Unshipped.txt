@@ -38,6 +38,7 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems.TenantId = ".tenant" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.Authorization = "continue_authorization" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.EndSession = "continue_end_session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Continue = "continue_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.DeviceAuthorization = "device_authorization_endpoint" -> string!

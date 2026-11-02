@@ -5,81 +5,50 @@ applyTo: "tests/**/*.cs"
 
 # NCode.Identity test conventions
 
-Rules for test projects. Production code's testability rules — the seams, facades, and `InternalsVisibleTo` wiring that
-make code mockable — live in [`csharp-production.instructions.md`](csharp-production.instructions.md) §7.
+NCode.Identity's own rules for test projects. The project template's
+[`csharp-tests.instructions.md`](csharp-tests.instructions.md) holds the general test conventions and applies to every
+`*.Tests` project; this file keeps what the family adds to them or decides differently, and a bullet that names a
+template rule links its section there. Where the two differ, this file wins. Production code's testability rules — the
+seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live in
+[`csharp-production.instructions.md`](csharp-production.instructions.md) §7.
 
 ## Structure & naming
 
-- 👁 **Test files mirror the folder structure and namespace of the code under test**, with a `.Tests` suffix on the
-  namespace:
-
-    ```
-    // Production                              // Test
-    NCode.Identity.Jose/JoseSerializer.cs      NCode.Identity.Jose.Tests/JoseSerializerTests.cs
-    namespace NCode.Identity.Jose;             namespace NCode.Identity.Jose.Tests;
-    ```
-
-- 👁 **Test method names use the `Method_State_Expected` underscore idiom**
-  (`Encode_WhenGivenValidPayload_ReturnsCompactJws`). The analyzer rules that are legitimate on shipping code but noise
-  in tests (`CA1707`, `CA1816`, `CA1859`, `CA1861`, `CA1869`, `CA2012`, `CA2215`) are disabled for test projects in
-  [`.editorconfig`](../../.editorconfig); they stay active on production code.
-- ⏳ **Warnings are errors in test projects too**, inherited from the root `TreatWarningsAsErrors`
-  ([ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md)). The criterion is "code we maintain", not
-  "code we ship" — and the `xunit.analyzers` rules in particular report real defects *in the tests themselves*, which
-  is the worst class of warning to ignore. To relax a rule that is genuine noise in tests, add it to the
-  `[tests/**/*.cs]` block in [`.editorconfig`](../../.editorconfig) **with a one-line justification**; for a single
-  isolated site, use a tight `#pragma warning disable/restore` with a reason instead. 🚫 Never reintroduce
-  `TreatWarningsAsErrors=false` or reach for a project-level `NoWarn`.
-- ✅ **Prefer a real fix over a suppression for nullable warnings.** Test projects are exempt from the production ban on
-  the null-forgiving operator (`build/ProjectTemplate.props` references `Nullable.Extended.Analyzer` in
-  every project whose name does not end in `.Tests`), so `null!` is available — but a `[MaybeNullWhen(false)]` `out`
-  argument should be given a **nullable local** (`IReadOnlyCollection<string>? supported = …`) and a maybe-null
-  result should be narrowed with `Assert.NotNull(x)` before dereferencing.
-- 👁 **Organize tests with `#region` directives** grouping tests by the member under test:
-    - `Constructor Tests` for constructors
-    - `{MethodName} Tests` for methods (e.g. `Dispose Tests`)
-    - `{PropertyName} Property Tests` for properties (e.g. `Span Property Tests`)
-    - `Generic Type Tests` for generic-type-parameter behavior
+- 👁 **Test files mirror the folder structure and namespace of the code under test** — template
+  [File Location and Namespace](csharp-tests.instructions.md#file-location-and-namespace)
+  (`NCode.Identity.Jose/JoseSerializer.cs` → `NCode.Identity.Jose.Tests/JoseSerializerTests.cs`).
+- 👁 **Test method names use the `Method_State_Expected` idiom** — template
+  [Test Style](csharp-tests.instructions.md#test-style). Beyond the template's own list, the `[tests/**/*.cs]` block of
+  [`.editorconfig`](../../.editorconfig) also disables `CA2012` and `CA2215` for test projects; both stay active on
+  production code.
+- ⏳ **Warnings are errors in test projects too** — template
+  [Warnings and Analyzers](csharp-tests.instructions.md#warnings-and-analyzers) and
+  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md); relax a rule that is noise in tests in
+  the `[tests/**/*.cs]` block of [`.editorconfig`](../../.editorconfig) with a one-line justification, never with a
+  project-level `NoWarn`.
+- ✅ **Prefer a real fix over a suppression for nullable warnings** — template
+  [Warnings and Analyzers](csharp-tests.instructions.md#warnings-and-analyzers); `build/ProjectTemplate.props`
+  references `Nullable.Extended.Analyzer` only in projects whose name does not end in `.Tests`.
+- 👁 **Organize tests with `#region` directives** by the member under test — template
+  [Regions](csharp-tests.instructions.md#regions).
 
 ## Style
 
-- 👁 **Do NOT use `// Arrange`, `// Act`, `// Assert` comments.** Separate the logical sections of a test with blank
-  lines instead. One behavior per test.
-
-    ```csharp
-    [Fact]
-    public void MyMethod_WhenCondition_ExpectedBehavior()
-    {
-        const string input = "test";
-
-        var result = MyMethod(input);
-
-        Assert.Equal("expected", result);
-    }
-    ```
-
-- 👁 The production code-style rules also apply in tests: **collection expressions** (`byte[] data = [1, 2, 3];`),
-  **`const` for literals**, and **UTF-8 string literals** (`"Hello"u8.ToArray()`) — except inline literal arrays passed
-  straight to assertion helpers, which stay inline (`CA1861` is off for tests).
-- 👁 **Prefer the size-specific xUnit assertions**: `Assert.Empty(x)` for count 0 and `Assert.Single(x)` for count 1,
-  not `Assert.Equal(0/1, x.Count)`. `Assert.Equal(n, x.Count)` is fine for n > 1.
-- 👁 **Compare an `ImmutableArray<T>` by its elements: `Assert.Equal<T>(expected, actual)`.** `ImmutableArray<T>` is
-  `IEquatable<ImmutableArray<T>>` by **reference** to its backing array, so `Assert.Equal(["a"], immutableArray)` binds
-  the collection expression to a new `ImmutableArray<T>` and fails on equal elements; the explicit element type selects
-  the sequence overload.
-- 👁 **Assert on the exception type the contract guarantees, not the one a platform happens to throw.**
-  `Assert.Throws<T>` demands an **exact** type match, so it fails on a derived exception. When the concrete type is an
-  implementation detail that varies by platform or provider, assert the documented base type with
-  `Assert.ThrowsAny<T>`. Signing with a public-only RSA key is the canonical case: Windows raises
-  `CryptographicException` itself, while OpenSSL-backed platforms raise a derived
-  `Interop+Crypto+OpenSslCryptographicException`, so only `Assert.ThrowsAny<CryptographicException>` holds on both.
-  Keep `Assert.Throws<T>` where the exact type **is** the contract (a library's own
-  `JoseException`/`OpenIdException`, `ArgumentNullException`, and similar).
-- 👁 **A test that a rule refuses an alternative must make the alternative viable.** When the behavior under test is
-  "refuse rather than fall back" (encrypt to a resource server's key or fail, never to the tenant's), arrange the
-  fallback so it **would succeed** — give the tenant a key the policy permits — and pair the test with a control that
-  shows the same fallback succeeding when the rule does not apply. Otherwise the refusal also happens because the
-  fallback itself fails, the same error is asserted, and the test passes with the rule removed.
+- 👁 **No `// Arrange`, `// Act`, `// Assert` comments; one behavior per test** — template
+  [Test Style](csharp-tests.instructions.md#test-style).
+- 👁 **The production code-style rules apply in tests** — template
+  [Test Style](csharp-tests.instructions.md#test-style).
+- 👁 **Prefer the size-specific xUnit assertions** — template [Assertions](csharp-tests.instructions.md#assertions).
+- 👁 **Compare an `ImmutableArray<T>` by its elements** — template
+  [Assertions](csharp-tests.instructions.md#assertions).
+- 👁 **Assert on the exception type the contract guarantees** — template
+  [Assertions](csharp-tests.instructions.md#assertions). Signing with a public-only RSA key raises
+  `CryptographicException` on Windows and a derived `Interop+Crypto+OpenSslCryptographicException` on OpenSSL-backed
+  platforms, so only `Assert.ThrowsAny<CryptographicException>` holds on both; keep `Assert.Throws<T>` for the family's
+  own `JoseException` and `OpenIdException`.
+- 👁 **A test that a rule refuses an alternative makes the alternative viable** — template
+  [What a Test Proves](csharp-tests.instructions.md#what-a-test-proves): to prove a token is encrypted to a resource
+  server's key or not at all, give the tenant a key the policy permits, and pair the test with a control.
 - 👁 **Test a curve binding with a key whose size the algorithm accepts.** An algorithm checks a key's size before its
   curve, so a key on a curve of another size is refused by the size check, and the test passes with the curve rule
   removed. Use a same-size named curve where one exists (`brainpoolP256r1` for `ES256`, `brainpoolP384r1` for
@@ -93,10 +62,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   member of its own (`sk` on a made-up `XKP` type), assert that the key read without its descriptor
   (`new JsonWebKey(element)`) reports no private material, and assert the refusal's error text, because a later
   check, the descriptor's JWK import, refuses the same key with another message (`ContributedKeyTypeDPoPProofTests`).
-- 👁 **A fix that moves a refusal earlier is proven by a request the old code deferred.** When the change is *when* a
-  request is refused (credentials checked before sign-in rather than when the response is written), send a request the
-  old code accepts and parks, for example an authorization request without `prompt=none`, which the old code answers
-  with the login challenge (`302`). A request the old code also refuses at the end passes with the fix removed.
+- 👁 **A fix that moves a refusal earlier is proven by a request the old code deferred** — template
+  [What a Test Proves](csharp-tests.instructions.md#what-a-test-proves), such as an authorization request without
+  `prompt=none`, which the old code answers with the login challenge (`302`).
 - ✅ **Tests encode text through a strict encoding too.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`; the build
   enforces it with `RS0030`. A test that needs UTF-16 or a byte-order mark builds a strict encoding, such as
   `new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)`. See

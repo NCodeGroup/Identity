@@ -719,8 +719,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 Requirement = BffTokenRequirementNames.User,
                 Value = "winner-access",
                 TokenType = "Bearer",
-                // The waiting service runs on the system clock, because its backoff waits in real time.
-                ExpiresAt = System.TimeProvider.System.GetUtcNow().AddHours(1),
+                ExpiresAt = Now.AddHours(1),
             }
         );
         MockManager
@@ -729,11 +728,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .ReturnsAsync(fresh);
         SetupLeaseLost();
 
-        var result = await service.GetAccessTokenAsync(
-            httpContext,
-            null,
-            null,
-            CancellationToken.None
+        var result = await AdvanceUntilCompletedAsync(
+            service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
         );
 
         Assert.True(result.IsSuccess);
@@ -822,11 +818,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             )
             .Verifiable();
 
-        var result = await service.GetAccessTokenAsync(
-            httpContext,
-            null,
-            null,
-            CancellationToken.None
+        var result = await AdvanceUntilCompletedAsync(
+            service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
         );
 
         Assert.True(result.IsSuccess);
@@ -850,11 +843,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .ReturnsAsync(true)
             .Verifiable();
 
-        var result = await service.GetAccessTokenAsync(
-            httpContext,
-            null,
-            null,
-            CancellationToken.None
+        var result = await AdvanceUntilCompletedAsync(
+            service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
         );
 
         Assert.False(result.IsSuccess);
@@ -1066,6 +1056,19 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .ReturnsAsync((BffRefreshLease?)null)
             .Verifiable();
 
+    // The backoff waits on the fake clock: advance it in small steps until the call completes.
+    private async Task<BffTokenResult> AdvanceUntilCompletedAsync(ValueTask<BffTokenResult> call)
+    {
+        var task = call.AsTask();
+        while (!task.IsCompleted)
+        {
+            TimeProvider.Advance(TimeSpan.FromMilliseconds(10));
+            await Task.Yield();
+        }
+
+        return await task;
+    }
+
     private DefaultBffUserTokenService CreateWaitingService()
     {
         var options = Microsoft.Extensions.Options.Options.Create(
@@ -1076,7 +1079,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                 Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) },
             }
         );
-        var timeProvider = System.TimeProvider.System;
+        var timeProvider = TimeProvider;
         var cookies = new BffCookies(options, timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,

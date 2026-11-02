@@ -297,11 +297,8 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     /// <returns>The lease that returns the memory to the pool.</returns>
     private static IDisposable RentOwnerBytes(string owner, out Memory<byte> bytes)
     {
-        var lease = BufferFactory.Rent(
-            SecureEncoding.UTF8.GetByteCount(owner),
-            isSensitive: true,
-            out bytes
-        );
+        var byteCount = SecureEncoding.UTF8.GetByteCount(owner);
+        var lease = BufferFactory.Rent(byteCount, isSensitive: true, out bytes);
         SecureEncoding.UTF8.GetBytes(owner, bytes.Span);
         return lease;
     }

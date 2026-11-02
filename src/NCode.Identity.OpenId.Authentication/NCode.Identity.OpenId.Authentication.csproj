@@ -23,13 +23,13 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Http" />
-        <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
         <PackageReference Include="Microsoft.OpenApi" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Buffers" />
         <PackageReference Include="NCode.Collections.Providers" />
         <PackageReference Include="NCode.Mediator" />
         <PackageReference Include="Nerdbank.Streams" />
+        <PackageReference Include="Polly.Core" />
     </ItemGroup>
 
     <ItemGroup>

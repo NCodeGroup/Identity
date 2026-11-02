@@ -69,7 +69,6 @@
       Version="10.0.13"
     />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
@@ -79,11 +78,9 @@
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.13" />
   </ItemGroup>
 
-  <!-- Resilience strategies. NCode.Identity.OpenId.Client references Polly.Core directly (ADR-1336); Polly.Extensions and Polly.RateLimiting, which Microsoft.Extensions.Http.Resilience brings to the server, are transitive-pinned to the same version so the Polly packages stay in lockstep. -->
+  <!-- Resilience strategies. NCode.Identity.OpenId.Client and NCode.Identity.OpenId.Authentication reference Polly.Core directly (ADR-1336, ADR-1385). -->
   <ItemGroup>
     <PackageVersion Include="Polly.Core" Version="8.9.0" />
-    <PackageVersion Include="Polly.Extensions" Version="8.9.0" />
-    <PackageVersion Include="Polly.RateLimiting" Version="8.9.0" />
   </ItemGroup>
 
   <!-- OpenID / JOSE / token stack -->

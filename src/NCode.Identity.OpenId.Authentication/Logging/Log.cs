@@ -303,9 +303,16 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.EndSessionSubjectUnresolved,
         Level = LogLevel.Information,
-        Message = "RP-initiated logout: no subject or session could be resolved; only the OP login cookie was cleared."
+        Message = "RP-initiated logout: no subject or session could be resolved; the OP login cookie was left in place."
     )]
     internal static partial void EndSessionSubjectUnresolved(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.EndSessionContinuationSessionMismatch,
+        Level = LogLevel.Warning,
+        Message = "RP-initiated logout: a confirmed logout was resumed by a session other than the one it was parked for and was refused."
+    )]
+    internal static partial void EndSessionContinuationSessionMismatch(this ILogger logger);
 
     [LoggerMessage(
         EventId = EventIds.EndSessionPostLogoutRedirectUriRejected,

@@ -3,10 +3,12 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -19,8 +21,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 /// Provides a default implementation of the <see cref="IContinueProvider"/> abstraction for resuming an RP-Initiated
 /// Logout once the end-user has confirmed it.
 /// </summary>
-internal class DefaultEndSessionContinueProvider : IContinueProvider
+internal class DefaultEndSessionContinueProvider(ILogger<DefaultEndSessionContinueProvider> logger)
+    : IContinueProvider
 {
+    private ILogger<DefaultEndSessionContinueProvider> Logger { get; } = logger;
+
     /// <inheritdoc />
     public string ContinueCode => OpenIdConstants.ContinueCodes.EndSession;
 
@@ -55,6 +60,8 @@ internal class DefaultEndSessionContinueProvider : IContinueProvider
         // See ADR-1380.
         if (!string.Equals(subject.SessionId, continuation.SessionId, StringComparison.Ordinal))
         {
+            Logger.EndSessionContinuationSessionMismatch();
+
             var error = openIdContext.ErrorFactory.InvalidRequest(
                 "The session changed before the logout was confirmed."
             );

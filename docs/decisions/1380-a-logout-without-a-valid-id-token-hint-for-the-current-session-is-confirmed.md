@@ -43,7 +43,8 @@ OP session with the RP and/or currently logged in End-User"
 
 5. **A resumed logout is bound to the session.** Resuming (`DefaultEndSessionContinueProvider`) re-resolves the subject
    and refuses with a 400 `invalid_request` when its `SessionId` differs from the parked one, so a continuation
-   obtained in one browser cannot log out another. Refusing (cancel) returns `ReadOnlyEndpointDisposition.Handled()`
+   obtained in one browser cannot log out another; it logs the warning EndSessionContinuationSessionMismatch, without
+   the session or the continuation. Refusing (cancel) returns `ReadOnlyEndpointDisposition.Handled()`
    with no result: the continuation is spent and nothing is answered to the relying party.
 
 6. **The core asks through a mediator command.** The new `EndSessionConfirmationChallengeCommand(OpenIdContext,

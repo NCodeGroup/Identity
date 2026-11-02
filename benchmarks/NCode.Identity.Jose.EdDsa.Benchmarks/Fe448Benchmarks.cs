@@ -17,6 +17,9 @@ public class Fe448Benchmarks
 
     private Fe448 Result { get; set; }
 
+    /// <summary>
+    /// Decodes two random field elements.
+    /// </summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -29,15 +32,27 @@ public class Fe448Benchmarks
         _b = Fe448.FromBytes(b);
     }
 
+    /// <summary>
+    /// Adds two field elements.
+    /// </summary>
     [Benchmark]
     public void Add() => Result = Fe448.Add(_a, _b);
 
+    /// <summary>
+    /// Multiplies two field elements.
+    /// </summary>
     [Benchmark]
     public void Mul() => Result = Fe448.Mul(_a, _b);
 
+    /// <summary>
+    /// Squares a field element.
+    /// </summary>
     [Benchmark]
     public void Sqr() => Result = Fe448.Sqr(_a);
 
+    /// <summary>
+    /// Inverts a field element.
+    /// </summary>
     [Benchmark]
     public void Invert() => Result = Fe448.Invert(_a);
 }

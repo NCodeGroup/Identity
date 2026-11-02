@@ -22,6 +22,9 @@ public class Sc448Benchmarks
 
     private byte[] Result { get; set; } = [];
 
+    /// <summary>
+    /// Generates a random wide value to reduce and three random scalars below the group order.
+    /// </summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -40,9 +43,15 @@ public class Sc448Benchmarks
         C[^1] = 0;
     }
 
+    /// <summary>
+    /// Reduces a 114-byte value modulo the group order.
+    /// </summary>
     [Benchmark]
     public void Reduce() => Sc448.Reduce(Wide, Result);
 
+    /// <summary>
+    /// Computes a × b + c modulo the group order.
+    /// </summary>
     [Benchmark]
     public void MulAdd() => Sc448.MulAdd(A, B, C, Result);
 }

@@ -24,6 +24,9 @@ public class Ge448Benchmarks
 
     private Ge448 Result { get; set; }
 
+    /// <summary>
+    /// Derives two points from random scalars and encodes the first.
+    /// </summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -42,21 +45,40 @@ public class Ge448Benchmarks
         _p.ToBytes(Encoded);
     }
 
+    /// <summary>
+    /// Adds two points.
+    /// </summary>
     [Benchmark]
     public void Add() => Result = Ge448.Add(_p, _q);
 
+    /// <summary>
+    /// Doubles a point.
+    /// </summary>
     [Benchmark]
     public void Dbl() => Result = Ge448.Dbl(_p);
 
+    /// <summary>
+    /// Multiplies the base point by a scalar.
+    /// </summary>
     [Benchmark]
     public void ScalarMultBase() => Result = Ge448.ScalarMultBase(Scalar);
 
+    /// <summary>
+    /// Multiplies an arbitrary point by a scalar.
+    /// </summary>
     [Benchmark]
     public void ScalarMult() => Result = Ge448.ScalarMult(Scalar, _q);
 
+    /// <summary>
+    /// Encodes a point.
+    /// </summary>
     [Benchmark]
     public void Encode() => _p.ToBytes(Output);
 
+    /// <summary>
+    /// Decodes an encoded point.
+    /// </summary>
+    /// <returns><c>true</c> when the encoding is a valid point; otherwise, <c>false</c>.</returns>
     [Benchmark]
     public bool Decode() => Ge448.TryFromBytes(Encoded, out _decoded);
 }

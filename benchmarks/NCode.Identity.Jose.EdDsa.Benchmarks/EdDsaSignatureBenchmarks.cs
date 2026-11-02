@@ -26,6 +26,9 @@ public class EdDsaSignatureBenchmarks
 
     private byte[] Ed448Signature { get; set; } = [];
 
+    /// <summary>
+    /// Generates the message, the Ed25519 and Ed448 key pairs, and a signature of the message under each key.
+    /// </summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -47,15 +50,29 @@ public class EdDsaSignatureBenchmarks
         Ed448.Sign(Ed448PrivateKey, Message, Ed448Signature);
     }
 
+    /// <summary>
+    /// Signs the message with the Ed25519 private key.
+    /// </summary>
     [Benchmark]
     public void SignEd25519() => Ed25519.Sign(Ed25519PrivateKey, Message, Ed25519Signature);
 
+    /// <summary>
+    /// Verifies the Ed25519 signature of the message.
+    /// </summary>
+    /// <returns><c>true</c> when the signature is valid; otherwise, <c>false</c>.</returns>
     [Benchmark]
     public bool VerifyEd25519() => Ed25519.Verify(Ed25519PublicKey, Message, Ed25519Signature);
 
+    /// <summary>
+    /// Signs the message with the Ed448 private key.
+    /// </summary>
     [Benchmark]
     public void SignEd448() => Ed448.Sign(Ed448PrivateKey, Message, Ed448Signature);
 
+    /// <summary>
+    /// Verifies the Ed448 signature of the message.
+    /// </summary>
+    /// <returns><c>true</c> when the signature is valid; otherwise, <c>false</c>.</returns>
     [Benchmark]
     public bool VerifyEd448() => Ed448.Verify(Ed448PublicKey, Message, Ed448Signature);
 }

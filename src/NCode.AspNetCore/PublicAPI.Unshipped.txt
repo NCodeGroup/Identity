@@ -1,1 +1,7 @@
 #nullable enable
+NCode.AspNetCore.NoStoreEndpointConventionBuilderExtensions
+NCode.AspNetCore.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.AspNetCore.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithNoStore() -> TBuilder
+NCode.AspNetCore.NoStoreResponseExtensions
+NCode.AspNetCore.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
+NCode.AspNetCore.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetNoStore() -> void

@@ -940,43 +940,29 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
 
 Production code **must** be unit-test-friendly. These are 👁 review-only except the `InternalsVisibleTo` wiring.
 
-- 👁 **Prefer instance members behind an interface, registered as a DI singleton**, over a `static` utility class — a
-  singleton gives static-like performance and testability (tests mock the interface).
-- 👁 **Minimize `static`.** Reserve it for pure functions with no swappable dependency, `const` / `static readonly`
-  constants, an expensive immutable thread-safe shared instance, and extension-method entry points. **Never** static
-  _mutable_ or _ambient_ state.
-- 👁 **Never capture request/ambient context in stored state.** Do not hold a captured `HttpContext`, a request-scoped
-  `IServiceProvider`, or a `ClaimsPrincipal` snapshot in a field or property — it goes stale and becomes a
-  use-after-request footgun. Model a read-over-ambient type as a **live view** over `IHttpContextAccessor`, or take the
-  request-scoped dependency as a **method parameter** / resolve it at the point of use.
-- 👁 **Constructor-inject every dependency** (no `new`-ing a collaborator inside a method, no service-location) —
-  **except** a singleton resolving collaborators it genuinely cannot inject (a scoped service, or one selected by an
-  open generic type parameter at call time), which it resolves from `HttpContext.RequestServices` /
-  `IServiceProvider` at the point of use and stays testable via a real `ServiceProvider`. When the collaborators are a
-  closed set of singletons, constructor-inject `IEnumerable<T>` instead.
-- 👁 **Facade un-mockable dependencies.** A static or framework/external dependency that cannot be easily mocked — the
-  clock (`DateTimeOffset.UtcNow`), `Guid.NewGuid()`, crypto RNG, `Activity` — gets a thin `internal interface`
-  facade + `internal sealed` forwarding impl **under a `Facades/` folder**, registered in DI and injected, so callers
-  become unit-testable by mocking the facade. Mark the passthrough impl `[ExcludeFromCodeCoverage]` (it only delegates).
-- 👁 **`internal virtual` is the sanctioned local override seam.** When extracting a collaborator behind an interface is
-  overkill, mark a helper whose logic needs isolation — or a **factory method** that allocates an object handed to a
-  dependency — `internal virtual`, so a test subclass can stub/override it (`DynamicProxyGenAssembly2` lets Moq proxy
-  it). Reach for an extracted interface collaborator when the seam is reused or substantial; use `internal virtual` for
-  a one-off override point.
-- 👁 **Internal implementations stay unsealed so tests can mock them; public types are mocked through their interface.**
-  A concrete `internal` impl is left **unsealed** (and its test-relevant members `internal virtual`) so Moq/Castle can
-  subclass it — `CA1852` ("seal internal types") is therefore **disabled** ([`.editorconfig`](../../.editorconfig)):
-  the micro devirtualization win loses to mockability. Do **not** reach for `public virtual` to make a public class
-  mockable — a `public virtual` member is a permanent, SemVer-bound override point (fragile base class) and can let a
-  subclass weaken a security control; mock the **interface** the class implements instead. `sealed` remains correct for
-  data/options/event types (§2) and facade impls, where nothing needs to derive.
-- ✅/👁 **`internal` for test access.** Each package exposes its internals to its `.Tests` project via
-  `InternalsVisibleTo` **plus `DynamicProxyGenAssembly2`** (so Moq/Castle can proxy `internal` types and members).
-  Keep test-only reach `internal`, never widen the public surface for tests.
-- 👁 **Test the unit through its public surface; privates are covered transitively.** A `private` method is not a seam;
-  drive it through the public method that uses it. A `private` branch the public tests cannot reach is dead code to
-  delete. If a private grows complex enough to isolate, **extract a collaborator** behind an interface — or promote it
-  to an `internal virtual` override seam (see above) — and test that.
+- 👁 **Prefer an instance service behind an interface, registered as a singleton, to a `static` utility class, and
+  minimize `static`** — template [Testability](csharp.instructions.md#testability).
+- 👁 **Never capture request or ambient context in stored state** — template
+  [Testability](csharp.instructions.md#testability); a read-over-ambient type is a **live view** over
+  `IHttpContextAccessor`.
+- 👁 **Constructor-inject every dependency** — template [Testability](csharp.instructions.md#testability); the
+  sanctioned singleton case resolves a scoped or open-generic collaborator from `HttpContext.RequestServices` or
+  `IServiceProvider` at the point of use and stays testable through a real `ServiceProvider`.
+- 👁 **Facade un-mockable dependencies** — template [Testability](csharp.instructions.md#testability): the
+  `internal interface` and its `internal sealed` forwarding implementation live under a `Facades/` folder, and the
+  passthrough implementation is `[ExcludeFromCodeCoverage]`.
+- 👁 **`internal virtual` is the sanctioned local override seam** — template
+  [Testability](csharp.instructions.md#testability), for a helper or a factory method that allocates an object handed
+  to a dependency; reach for an extracted interface when the seam is reused or substantial.
+- 👁 **Internal implementations stay unsealed so tests can mock them; public types are mocked through their
+  interface** — template [Testability](csharp.instructions.md#testability), except that `CA1852` is **disabled** in
+  [`.editorconfig`](../../.editorconfig) rather than left on. Never reach for `public virtual` to make a public class
+  mockable; `sealed` stays correct for data, options and event types (§2) and facade implementations.
+- ✅/👁 **`internal` for test access** — the test template's
+  [InternalsVisibleTo](csharp-tests.instructions.md#internalsvisibleto): each package grants its `.Tests` project and
+  `DynamicProxyGenAssembly2`.
+- 👁 **Test the unit through its public surface; privates are covered transitively** — the test template's
+  [What a Test Proves](csharp-tests.instructions.md#what-a-test-proves).
 - 👁 **Tested-or-excluded.** Every type/member that can carry `[ExcludeFromCodeCoverage]` is **either** exercised by
   tests **or** annotated with it (with a one-line reason when non-obvious). Exclude thin passthrough infrastructure
   (facades), pure DI/registration wiring, and framework-event adapters; **test** anything with behavior.
@@ -995,15 +981,14 @@ organization) live in [`csharp-testing.instructions.md`](csharp-testing.instruct
   See [ADR-1003](../../docs/decisions/1003-central-package-management-and-lockstep-versioning.md).
 - ✅ Packages are **source-linked to GitHub** and ship a portable symbol package (`.snupkg`) so consumers can step into
   the exact released source. See [ADR-1007](../../docs/decisions/1007-provenance-sourcelink-and-symbols.md).
-- ✅ Package **versions live centrally** in [`Directory.Packages.props`](../../Directory.Packages.props) (Central
-  Package Management); a `PackageReference` never carries an inline `Version`.
+- ✅ **Package versions live centrally** — template [Build](csharp.instructions.md#build).
 
 ## 9. Change intake (open source)
 
-This is an open-source project. A change starts as a GitHub issue describing the problem or proposal; a design-affecting
-change (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded
-as an ADR under [`docs/decisions/`](../../docs/decisions/) — before the pull request. Bug fixes, patches, and small changes go
-straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) under `## [Unreleased]`.
+A change starts as a GitHub issue, and a change consumers can observe is decided and recorded as an ADR before or with
+its pull request, as
+[project-template ADR-0010](../../docs/decisions/project-template/0010-a-change-consumers-can-observe-is-decided-before-it-is-built.md)
+says. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) under `## [Unreleased]`.
 
 ## 10. XML documentation
 

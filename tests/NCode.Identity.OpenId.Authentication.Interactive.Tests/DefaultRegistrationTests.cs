@@ -17,11 +17,15 @@
 #endregion
 
 using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
 using Xunit;
 
@@ -152,5 +156,51 @@ public sealed class DefaultRegistrationTests : IDisposable
         Assert.Equal(InteractivePasswordChangeResult.NotSupported, result);
     }
 
+    [Fact]
+    public void AddInteractiveAuthentication_ConfiguresAHostOnlySessionCookie()
+    {
+        using var serviceProvider = BuildCookieServiceProvider();
+
+        var cookie = serviceProvider
+            .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
+            .Get(InteractiveAuthenticationDefaults.CookieSchemeName)
+            .Cookie;
+
+        Assert.Equal(InteractiveAuthenticationDefaults.SessionCookieName, cookie.Name);
+        Assert.Equal("/", cookie.Path);
+        Assert.Equal(CookieSecurePolicy.Always, cookie.SecurePolicy);
+        Assert.True(cookie.HttpOnly);
+        Assert.Equal(SameSiteMode.Lax, cookie.SameSite);
+    }
+
+    [Fact]
+    public void AddInteractiveAuthentication_ConfiguresAHostOnlyAntiforgeryCookie()
+    {
+        using var serviceProvider = BuildCookieServiceProvider();
+
+        var cookie = serviceProvider
+            .GetRequiredService<IOptions<AntiforgeryOptions>>()
+            .Value.Cookie;
+
+        Assert.Equal(InteractiveAuthenticationDefaults.AntiforgeryCookieName, cookie.Name);
+        Assert.Equal("/", cookie.Path);
+        Assert.Equal(CookieSecurePolicy.SameAsRequest, cookie.SecurePolicy);
+    }
+
     #endregion
+
+    private ServiceProvider BuildCookieServiceProvider()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging().AddRouting();
+        serviceCollection.AddSingleton(MockRepository.Create<ITenantResolver>().Object);
+        serviceCollection
+            .NewBuilder<OpenIdAuthenticationLibrary>()
+            .AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        return serviceCollection.BuildServiceProvider();
+    }
 }

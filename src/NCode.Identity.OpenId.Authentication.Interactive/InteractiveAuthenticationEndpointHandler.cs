@@ -1132,6 +1132,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 new CookieOptions
                 {
                     HttpOnly = false,
+                    Path = "/",
                     SameSite = SameSiteMode.Strict,
                     Secure = httpContext.Request.IsHttps,
                 }

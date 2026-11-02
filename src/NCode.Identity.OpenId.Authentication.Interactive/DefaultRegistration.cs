@@ -47,7 +47,6 @@ public static class DefaultRegistration
 {
     private const string ConfigurationSectionName = "InteractiveAuthentication";
     private const string AntiforgeryHeaderName = "X-XSRF-TOKEN";
-    private const string CookieName = "NCode.Identity.Interactive";
 
     /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdAuthenticationLibrary"/>.</param>
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
@@ -158,8 +157,14 @@ public static class DefaultRegistration
             );
 
             serviceCollection.AddAntiforgery(antiforgery =>
-                antiforgery.HeaderName = AntiforgeryHeaderName
-            );
+            {
+                antiforgery.HeaderName = AntiforgeryHeaderName;
+                antiforgery.Cookie.Name = InteractiveAuthenticationDefaults.AntiforgeryCookieName;
+                antiforgery.Cookie.Path = "/";
+                // 'Always' would make antiforgery refuse every non-HTTPS request, and the '__Host-' prefix already
+                // makes a browser refuse the cookie without 'Secure' (ADR-1310).
+                antiforgery.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            });
 
             // Register the cookie as a NAMED scheme only; it must not become the host's default authenticate scheme,
             // which the bearer-oriented subject-authentication seam (userinfo/introspection) resolves by default.
@@ -171,13 +176,17 @@ public static class DefaultRegistration
                     {
                         cookie.LoginPath = InteractiveAuthenticationDefaults.LoginPath;
                         cookie.LogoutPath = InteractiveAuthenticationDefaults.LogoutPath;
-                        cookie.Cookie.Name = CookieName;
+                        cookie.Cookie.Name = InteractiveAuthenticationDefaults.SessionCookieName;
+                        cookie.Cookie.Path = "/";
+                        cookie.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                        cookie.Cookie.HttpOnly = true;
+                        cookie.Cookie.SameSite = SameSiteMode.Lax;
                         cookie.SlidingExpiration = true;
                     }
                 );
 
-            // The surface is served under the tenant route (ADR-1193): the session cookie is scoped to the tenant's
-            // path, and a challenge redirects to the login page of the tenant that issued it.
+            // The surface is served under the tenant route (ADR-1193): the session cookie is host-only and named for
+            // the tenant (ADR-1310), and a challenge redirects to the login page of the tenant that issued it.
             serviceCollection
                 .AddOptions<CookieAuthenticationOptions>(
                     InteractiveAuthenticationDefaults.CookieSchemeName

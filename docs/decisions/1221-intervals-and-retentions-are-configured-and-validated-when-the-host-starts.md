@@ -1,9 +1,15 @@
 # 1221. Intervals and retentions are configured and validated when the host starts
 
 - **Status:** Accepted (amended by
-  [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): `OpenId:EndedSessionTermination`;
-  and by [ADR-1242](1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md):
-  `OpenId:InProcessJobDispatcher`)
+  [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md): `TenantUsageOptions.PruneInterval` is a timer
+  period; [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md):
+  `OpenId:EndedSessionTermination`;
+  [ADR-1242](1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md): `OpenId:InProcessJobDispatcher`;
+  [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md):
+  `OpenId:ClientCertificateRevocation`;
+  [ADR-1303](1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md):
+  `OpenId:AuditRecords`; and by
+  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): `OpenId:OutboundHttp`)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md), [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md)

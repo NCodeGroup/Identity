@@ -658,9 +658,10 @@ rationale.
   [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
   `IMaterializedServerAccessor.GetServerAsync`, public so a package other than the core waits the same way, which
-  completes at the replica's first request, never at host start: a
-  host starts while its database may still be migrating, and the integration factory seeds the server's settings before
-  the first request (`HostApplicationFactory.SeedServerSettingsAsync`)
+  completes once the replica materializes its server: `ServerSettingsReconciliationService` materializes it when the
+  replica starts and, when that fails because the database may still be migrating, the replica's first request does.
+  An integration test that needs a persisted server document sets `HostApplicationFactory.PersistedServerSettings`,
+  which `PersistedServerSeedService` writes in `StartingAsync`, before any hosted service starts
   ([ADR-1219](../../docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 - 👁 **A start check that needs the server's protector is a hosted service after the warmup.** `ValidateOnStart` and
   every startup validator run before any hosted service starts, so before `ServerSecretProtectorWarmup` loads the

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amended by [ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md): a replica
   numbers its batches and the ledger adds each once; [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md):
-  the days past retention are removed in bounded batches;
+  the days past retention are removed in bounded batches every `TenantUsageOptions.PruneInterval`;
   [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): `TenantUsageOptions`
   is bound from `OpenId:TenantUsage` and validated when the host starts;
   [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): rate-limit descriptors
@@ -53,8 +53,9 @@ default and the management API reads it.**
    ([ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)). A graceful stop flushes once more, so an
    abrupt stop loses at most one interval of one replica's usage.
 4. **The ledger keeps 400 days by default.** That covers a full year with a margin for a late invoice or dispute.
-   `TenantUsageOptions.Retention` changes it. Each replica removes the days past retention once per UTC day; it removes
-   them in bounded batches, and a batch another replica removed first is skipped, so replicas need not coordinate
+   `TenantUsageOptions.Retention` changes it. Each replica removes the days past retention every
+   `TenantUsageOptions.PruneInterval`, one hour by default; it removes them in bounded batches, and a batch another
+   replica removed first is skipped, so replicas need not coordinate
    ([ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md)). `TenantUsageOptions` is bound from
    `OpenId:TenantUsage` and validated when the host starts
    ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).

@@ -96,21 +96,15 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_Session_ReturnsUserToken()
     {
         var httpContext = CreateHttpContext(true);
+        var request = CreateRequest();
         MockUserService
-            .Setup(x =>
-                x.GetAccessTokenAsync(
-                    httpContext,
-                    "https://api.example",
-                    "read",
-                    CancellationToken.None
-                )
-            )
+            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
             .ReturnsAsync(Token)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
             httpContext,
-            CreateRequest(),
+            request,
             CancellationToken.None
         );
 
@@ -121,22 +115,19 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_SessionUserTokenFails_DoesNotFallBackToClient()
     {
         var httpContext = CreateHttpContext(true);
-        var failure = BffTokenResult.Failure(401, BffTokenFailureReasons.RefreshFailed);
+        var request = CreateRequest();
+        var failure = BffTokenResult.Failure(
+            StatusCodes.Status401Unauthorized,
+            BffTokenFailureReasons.RefreshFailed
+        );
         MockUserService
-            .Setup(x =>
-                x.GetAccessTokenAsync(
-                    httpContext,
-                    "https://api.example",
-                    "read",
-                    CancellationToken.None
-                )
-            )
+            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
             .ReturnsAsync(failure)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
             httpContext,
-            CreateRequest(),
+            request,
             CancellationToken.None
         );
 
@@ -146,16 +137,15 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     [Fact]
     public async Task GetAccessTokenAsync_NoSession_ReturnsClientToken()
     {
+        var request = CreateRequest();
         MockClientService
-            .Setup(x =>
-                x.GetAccessTokenAsync("https://api.example", "read", CancellationToken.None)
-            )
+            .Setup(x => x.GetAccessTokenAsync(request, CancellationToken.None))
             .ReturnsAsync(Token)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
             CreateHttpContext(false),
-            CreateRequest(),
+            request,
             CancellationToken.None
         );
 

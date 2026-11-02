@@ -21,6 +21,7 @@ internal class DefaultBffExchangeTokenService(
     IBffSessionManager sessionManager,
     IBffUserTokenService userTokenService,
     BffGrantClient grantClient,
+    BffRefreshLocks locks,
     IOptions<BffOptions> options,
     TimeProvider timeProvider
 ) : IBffExchangeTokenService
@@ -29,87 +30,101 @@ internal class DefaultBffExchangeTokenService(
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly IBffUserTokenService _userTokenService = userTokenService;
     private readonly BffGrantClient _grantClient = grantClient;
+    private readonly BffRefreshLocks _locks = locks;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
 
-    // separate from the user token service's locks, which the subject token's refresh takes inside this one
-    private BffRefreshLocks Locks { get; } = new();
+    // the subject token is the user's token for the provider's default resource and scope
+    private static BffTokenRequest SubjectTokenRequest { get; } =
+        new(BffTokenRequirementNames.User);
 
     /// <inheritdoc />
     public async ValueTask<BffTokenResult> GetAccessTokenAsync(
         HttpContext httpContext,
-        string? resource,
-        string? scope,
+        BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(request);
 
         var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
         if (state is null)
-            return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
+            return BffTokenResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                BffTokenFailureReasons.SessionRequired
+            );
 
-        var fresh = TryGetFresh(state.Payload, resource, scope);
+        var fresh = TryGetFresh(state.Payload, request);
         if (fresh is not null)
             return fresh;
 
-        using var held = await Locks.TryEnterAsync(
+        // the subject token's refresh takes the user token service's lock on the same session inside this one
+        using var held = await _locks.TryEnterAsync(
+            BffRefreshLocks.ExchangePurpose,
             state.StoreKey,
             _options.Value.Tokens.RefreshLeaseDuration,
             cancellationToken
         );
         if (held is null)
-            return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
+            return BffTokenResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                BffTokenFailureReasons.RefreshWaitTimeout
+            );
 
         var current = await _sessionManager.LoadAsync(state.Handle, cancellationToken);
         if (current is null)
-            return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
+            return BffTokenResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                BffTokenFailureReasons.SessionRequired
+            );
 
-        fresh = TryGetFresh(current.Payload, resource, scope);
+        fresh = TryGetFresh(current.Payload, request);
         if (fresh is not null)
             return fresh;
 
-        return await ExchangeAsync(httpContext, current, resource, scope, cancellationToken);
+        return await ExchangeAsync(httpContext, current, request, cancellationToken);
     }
 
     private async ValueTask<BffTokenResult> ExchangeAsync(
         HttpContext httpContext,
         BffSessionState current,
-        string? resource,
-        string? scope,
+        BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
         // a failure to get the user's token, such as a refresh that ended the session, is the exchange's failure
         var subject = await _userTokenService.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            SubjectTokenRequest,
             cancellationToken
         );
         if (subject.Token is not { } subjectToken)
             return subject.IsSuccess
-                ? BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired)
+                ? BffTokenResult.Failure(
+                    StatusCodes.Status401Unauthorized,
+                    BffTokenFailureReasons.SessionRequired
+                )
                 : subject;
 
-        var request = new TokenExchangeTokenRequest(
+        var grantRequest = new TokenExchangeTokenRequest(
             subjectToken.Value,
             OpenIdProtocol.TokenTypeIdentifiers.AccessToken
         )
         {
-            Resources = resource is null ? [] : [resource],
-            Scope = scope,
+            Resources = request.Resource is null ? [] : [request.Resource],
+            Scope = request.Scope,
             DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
         };
-        var result = await _grantClient.RequestAsync(request, cancellationToken);
+        var result = await _grantClient.RequestAsync(grantRequest, cancellationToken);
         if (result.Token is not { } token)
             return result;
 
         var entry = new BffStoredAccessToken
         {
             Requirement = BffTokenRequirementNames.Exchange,
-            Resource = resource,
-            Scope = scope,
+            Resource = request.Resource,
+            Scope = request.Scope,
             Value = token.Value,
             TokenType = token.TokenType,
             ExpiresAt = token.ExpiresAt,
@@ -123,18 +138,21 @@ internal class DefaultBffExchangeTokenService(
             CancellationToken.None
         );
         return updated is null
-            ? BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired)
+            ? BffTokenResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                BffTokenFailureReasons.SessionRequired
+            )
             : result;
     }
 
-    private BffTokenResult? TryGetFresh(BffSessionPayload payload, string? resource, string? scope)
+    private BffTokenResult? TryGetFresh(BffSessionPayload payload, BffTokenRequest request)
     {
         if (
             !BffTokenCache.TryGetFresh(
                 payload,
                 BffTokenRequirementNames.Exchange,
-                resource,
-                scope,
+                request.Resource,
+                request.Scope,
                 _timeProvider.GetUtcNow(),
                 _options.Value.Tokens.RefreshBeforeExpiry,
                 out var cached

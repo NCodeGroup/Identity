@@ -29,7 +29,10 @@ internal class BffNoneTokenRequirement(BffSessionResolver sessionResolver) : IBf
 
         var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
         return state is null
-            ? BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired)
+            ? BffTokenResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                BffTokenFailureReasons.SessionRequired
+            )
             : BffTokenResult.Success(null);
     }
 }

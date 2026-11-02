@@ -33,28 +33,22 @@ public class BffExchangeTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_Valid_ReturnsExchangedToken()
     {
         var httpContext = new DefaultHttpContext();
+        var request = new BffTokenRequest(BffTokenRequirementNames.Exchange)
+        {
+            Resource = "https://api.example",
+            Scope = "read",
+        };
         var expected = BffTokenResult.Success(
             new BffAccessToken("exchanged", "Bearer", DateTimeOffset.UnixEpoch)
         );
         MockService
-            .Setup(x =>
-                x.GetAccessTokenAsync(
-                    httpContext,
-                    "https://api.example",
-                    "read",
-                    CancellationToken.None
-                )
-            )
+            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
             .ReturnsAsync(expected)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
             httpContext,
-            new BffTokenRequest(BffTokenRequirementNames.Exchange)
-            {
-                Resource = "https://api.example",
-                Scope = "read",
-            },
+            request,
             CancellationToken.None
         );
 

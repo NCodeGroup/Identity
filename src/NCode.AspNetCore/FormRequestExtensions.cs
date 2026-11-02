@@ -10,7 +10,7 @@ namespace NCode.AspNetCore;
 /// Provides the extension method that reads a request's form body without turning a malformed body into a server
 /// error.
 /// </summary>
-// One contract for every package that reads a form post, the OpenID endpoints and the BFF alike. See ADR-1345.
+// One contract for every package that reads a form post, the OpenID endpoints and the BFF alike. See ADR-1355.
 [PublicAPI]
 public static class FormRequestExtensions
 {

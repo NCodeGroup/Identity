@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -16,25 +17,67 @@ public class DefaultBffClientTokenServiceTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
+    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(30);
+
+    private static BffTokenRequest DefaultRequest { get; } = new(BffTokenRequirementNames.Client);
+
     private Mock<ITokenClient> MockTokenClient { get; }
     private FakeTimeProvider TimeProvider { get; }
+    private BffRefreshLocks Locks { get; } = new();
     private DefaultBffClientTokenService Service { get; }
 
     public DefaultBffClientTokenServiceTests()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Authority = "https://op.example", ClientId = "bff" }
-        );
         MockTokenClient = CreateStrictMock<ITokenClient>();
         TimeProvider = new FakeTimeProvider(Now);
+        Service = CreateService(TimeSpan.FromSeconds(40));
+    }
+
+    private DefaultBffClientTokenService CreateService(TimeSpan refreshLeaseDuration)
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(
+            new BffOptions
+            {
+                Authority = "https://op.example",
+                ClientId = "bff",
+                Tokens = { RefreshLeaseDuration = refreshLeaseDuration },
+            }
+        );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,
             new BffClientRegistrationProvider(options),
             TimeProvider,
             CreateLooseMock<ILogger<BffGrantClient>>().Object
         );
-        Service = new DefaultBffClientTokenService(grantClient, options, TimeProvider);
+        return new DefaultBffClientTokenService(grantClient, Locks, options, TimeProvider);
     }
+
+    private static BffTokenRequest CreateRequest(string? resource, string? scope) =>
+        new(BffTokenRequirementNames.Client) { Resource = resource, Scope = scope };
+
+    private TaskCompletionSource<TokenResult> SetupBlockedIssue(Times times)
+    {
+        var release = new TaskCompletionSource<TokenResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (ClientRegistration _, TokenRequest _, CancellationToken cancellationToken) =>
+                    new ValueTask<TokenResult>(release.Task.WaitAsync(cancellationToken))
+            )
+            .Verifiable(times);
+        return release;
+    }
+
+    private static TokenResult IssuedToken(string accessToken) =>
+        new(new TokenResponse { AccessToken = accessToken, ExpiresIn = 300 });
 
     private void SetupIssue(string? resource, string? scope, string accessToken, int times) =>
         MockTokenClient
@@ -71,8 +114,7 @@ public class DefaultBffClientTokenServiceTests : BaseTests
         SetupIssue("https://api.example", "read", "client-access", 1);
 
         var result = await Service.GetAccessTokenAsync(
-            "https://api.example",
-            "read",
+            CreateRequest("https://api.example", "read"),
             CancellationToken.None
         );
 
@@ -84,9 +126,9 @@ public class DefaultBffClientTokenServiceTests : BaseTests
     public async Task GetAccessTokenAsync_FreshCachedToken_ReturnsItWithoutRequesting()
     {
         SetupIssue(null, null, "client-access", 1);
-        await Service.GetAccessTokenAsync(null, null, CancellationToken.None);
+        await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
 
-        var result = await Service.GetAccessTokenAsync(null, null, CancellationToken.None);
+        var result = await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
 
         Assert.Equal("client-access", result.Token?.Value);
     }
@@ -95,11 +137,11 @@ public class DefaultBffClientTokenServiceTests : BaseTests
     public async Task GetAccessTokenAsync_StaleCachedToken_RequestsAgain()
     {
         SetupIssue(null, null, "client-access", 2);
-        await Service.GetAccessTokenAsync(null, null, CancellationToken.None);
+        await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
         // inside the default refresh-before-expiry window of the 300 second token
         TimeProvider.Advance(TimeSpan.FromSeconds(290));
 
-        var result = await Service.GetAccessTokenAsync(null, null, CancellationToken.None);
+        var result = await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
 
         Assert.Equal("client-access", result.Token?.Value);
     }
@@ -111,13 +153,11 @@ public class DefaultBffClientTokenServiceTests : BaseTests
         SetupIssue("https://b.example", null, "access-b", 1);
 
         var a = await Service.GetAccessTokenAsync(
-            "https://a.example",
-            null,
+            CreateRequest("https://a.example", null),
             CancellationToken.None
         );
         var b = await Service.GetAccessTokenAsync(
-            "https://b.example",
-            null,
+            CreateRequest("https://b.example", null),
             CancellationToken.None
         );
 
@@ -139,11 +179,11 @@ public class DefaultBffClientTokenServiceTests : BaseTests
             .ReturnsAsync(new TokenResult(new ProtocolError("invalid_client", 401)))
             .Verifiable(Times.Exactly(2));
 
-        var first = await Service.GetAccessTokenAsync(null, null, CancellationToken.None);
-        var second = await Service.GetAccessTokenAsync(null, null, CancellationToken.None);
+        var first = await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
+        var second = await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
 
-        Assert.Equal(502, first.StatusCode);
-        Assert.Equal(502, second.StatusCode);
+        Assert.Equal(StatusCodes.Status502BadGateway, first.StatusCode);
+        Assert.Equal(StatusCodes.Status502BadGateway, second.StatusCode);
     }
 
     [Fact]
@@ -163,14 +203,84 @@ public class DefaultBffClientTokenServiceTests : BaseTests
             .Returns(() => new ValueTask<TokenResult>(release.Task))
             .Verifiable(Times.Once);
 
-        var first = Service.GetAccessTokenAsync(null, null, CancellationToken.None).AsTask();
-        var second = Service.GetAccessTokenAsync(null, null, CancellationToken.None).AsTask();
+        var first = Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None).AsTask();
+        var second = Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None).AsTask();
         release.SetResult(
             new TokenResult(new TokenResponse { AccessToken = "shared", ExpiresIn = 300 })
         );
         var results = await Task.WhenAll(first, second);
 
         Assert.All(results, r => Assert.Equal("shared", r.Token?.Value));
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_LockHeldPastLeaseDuration_ReturnsRefreshWaitTimeout()
+    {
+        var service = CreateService(TimeSpan.FromMilliseconds(50));
+        var release = SetupBlockedIssue(Times.Once());
+        var first = service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None).AsTask();
+
+        var second = await service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
+
+        Assert.False(second.IsSuccess);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, second.StatusCode);
+        Assert.Equal(BffTokenFailureReasons.RefreshWaitTimeout, second.Reason);
+
+        release.SetResult(IssuedToken("client-access"));
+        var result = await first.WaitAsync(WaitTimeout);
+
+        Assert.Equal("client-access", result.Token?.Value);
+        Assert.Equal(0, Locks.Count);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_HolderCanceled_NextCallerRequestsItself()
+    {
+        var release = SetupBlockedIssue(Times.Exactly(2));
+        using var cts = new CancellationTokenSource();
+        var first = Service.GetAccessTokenAsync(DefaultRequest, cts.Token).AsTask();
+        var second = Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None).AsTask();
+
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first.WaitAsync(WaitTimeout));
+        Assert.False(second.IsCompleted);
+
+        release.SetResult(IssuedToken("client-access"));
+        var result = await second.WaitAsync(WaitTimeout);
+
+        Assert.Equal("client-access", result.Token?.Value);
+        Assert.Equal(0, Locks.Count);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_WaiterCanceled_ThrowsAndLeavesTheLockUsable()
+    {
+        var release = SetupBlockedIssue(Times.Once());
+        var first = Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None).AsTask();
+        using var cts = new CancellationTokenSource();
+        var waiter = Service.GetAccessTokenAsync(DefaultRequest, cts.Token).AsTask();
+
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            waiter.WaitAsync(WaitTimeout)
+        );
+
+        release.SetResult(IssuedToken("client-access"));
+        await first.WaitAsync(WaitTimeout);
+        var cached = await Service.GetAccessTokenAsync(DefaultRequest, CancellationToken.None);
+
+        Assert.Equal("client-access", cached.Token?.Value);
+        Assert.Equal(0, Locks.Count);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_NullRequest_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            Service.GetAccessTokenAsync(null!, CancellationToken.None).AsTask()
+        );
     }
 
     #endregion

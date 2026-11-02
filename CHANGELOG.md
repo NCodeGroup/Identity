@@ -10,6 +10,26 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The BFF serves more token requirements and forwards remote APIs.** Besides `user`, an endpoint or remote API can name
+  `client` (the BFF's own `client_credentials` token, served only to a request with a session and cached in memory on
+  each replica per resource and scope), `user_or_client` (the user's token when a session resolves, otherwise the BFF's
+  own, never falling back from a failed user token), `exchange` (an RFC 8693 token exchange that presents the user's
+  token, cached in the session per resource and scope and bound to its DPoP key) and `none` (a session but no token);
+  the names are in `BffTokenRequirementNames`. `MapBffRemoteApi(path, destination, configure)` and `MapBffRemoteApis()`
+  over the `Bff:RemoteApis` section (`BffRemoteApiOptions`: `Path`, `Destination`, `TokenRequirement`, `Resource`,
+  `Scope`, `AllowedMethods`, `Timeout`) forward a BFF API's requests to a remote API through YARP's `IHttpForwarder`
+  with the token attached, DPoP-bound when the token is. The forwarder answers `400` for a path that could leave the
+  destination's base path and `405` (`BffProblemTypes.MethodNotAllowed`) for a method outside `AllowedMethods`, never
+  forwards the browser's cookies, credentials or forwarding headers, drops the upstream `Set-Cookie`, and never follows
+  a redirect; `NCode.Identity.Bff` now depends on `Yarp.ReverseProxy`
+  ([#395](https://github.com/NCodeGroup/Identity/issues/395),
+  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
+
+- **One public form reader.** `NCode.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or
+  returns `null` when it has none or its body is malformed or over the form limits; the OpenID endpoints and the BFF
+  share it instead of keeping copies ([#517](https://github.com/NCodeGroup/Identity/issues/517),
+  [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+
 - **The protocol client's calls are bounded and retried.** Every call of `NCode.Identity.OpenId.Client`, mutual-TLS clients included, runs through a total and a per-attempt timeout, and a GET or HEAD without a body or a DPoP proof is retried up to twice with jittered backoff after a connection failure, a timed-out attempt or a 408, 429 or 5xx response, set by `OpenIdClientOptions.AttemptTimeout`, `TotalTimeout`, `MaxRetryAttempts` and `RetryDelay` and validated when the host starts; the package depends on `Polly.Core` alone, not on `Microsoft.Extensions.Http.Resilience` ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 
 - **A client's `jwks_uri` is fetched once for concurrent requests, and a failed fetch is remembered.** Concurrent token requests share one fetch of a client's key set, and a fetch that yields no key is not repeated for `OutboundHttpOptions.FailureCacheDuration` (`OpenId:OutboundHttp:FailureCacheDuration`, one minute), validated when the host starts ([#466](https://github.com/NCodeGroup/Identity/issues/466), [ADR-1335](docs/decisions/1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).
@@ -1323,6 +1343,14 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   (set in `launchSettings.json`). See [ADR-1021](docs/decisions/1021-developer-signing-keys-seeded-through-persistence.md).
 
 ### Changed
+
+- **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
+  `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`, instead of
+  `no-store` alone ([#512](https://github.com/NCodeGroup/Identity/issues/512),
+  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+- **A BFF token whose response named no `token_type` is a `Bearer` token.** `BffAccessToken.TokenType` is `Bearer`,
+  not empty, when the provider's token response omitted `token_type`, which RFC 6749 §5.1 requires
+  ([#395](https://github.com/NCodeGroup/Identity/issues/395)).
 
 - **Breaking: a host names its root key provider.** An unset or blank `SecretProtection:RootKeyProvider` no longer falls back to `ephemeral`: the host stops when it starts, with an error naming the setting. Set `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or another registered provider, or `ephemeral` for local development and tests; the reference host's `appsettings.Development.json` and `appsettings.Conformance.json` select `ephemeral`, Production still refuses it, and the Helm chart refuses an empty `secretProtection.rootKeyProvider` in every environment ([#495](https://github.com/NCodeGroup/Identity/issues/495), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **Breaking:** `EndSessionCommand` takes the resolved `EndSessionSubject`, so send `ResolveEndSessionSubjectCommand` first; `EndSessionSubject` takes a positional `RequiresConfirmation`, so a replacement subject resolver states whether the end-user must confirm, the new `ParkEndSessionRequestCommand` parks a logout that needs confirmation and the new `EndSessionConfirmationChallengeCommand` asks for it, and when an OP login is present its session takes precedence over the `id_token_hint`'s `sid` ([#494](https://github.com/NCodeGroup/Identity/issues/494), [ADR-1380](docs/decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).

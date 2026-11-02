@@ -37,17 +37,8 @@ internal class BffUserOrClientTokenRequirement(
 
         var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
         if (state is not null)
-            return await _userService.GetAccessTokenAsync(
-                httpContext,
-                request.Resource,
-                request.Scope,
-                cancellationToken
-            );
+            return await _userService.GetAccessTokenAsync(httpContext, request, cancellationToken);
 
-        return await _clientService.GetAccessTokenAsync(
-            request.Resource,
-            request.Scope,
-            cancellationToken
-        );
+        return await _clientService.GetAccessTokenAsync(request, cancellationToken);
     }
 }

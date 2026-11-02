@@ -35,12 +35,11 @@ internal class BffClientTokenRequirement(
 
         var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
         if (state is null)
-            return BffTokenResult.Failure(401, BffTokenFailureReasons.SessionRequired);
+            return BffTokenResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                BffTokenFailureReasons.SessionRequired
+            );
 
-        return await _service.GetAccessTokenAsync(
-            request.Resource,
-            request.Scope,
-            cancellationToken
-        );
+        return await _service.GetAccessTokenAsync(request, cancellationToken);
     }
 }

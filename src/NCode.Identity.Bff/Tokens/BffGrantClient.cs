@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Logging;
@@ -58,13 +59,19 @@ internal class BffGrantClient(
                 BffTokenFailureReasons.ProviderUnavailable,
                 exception
             );
-            return BffTokenResult.Failure(503, BffTokenFailureReasons.ProviderUnavailable);
+            return BffTokenResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                BffTokenFailureReasons.ProviderUnavailable
+            );
         }
 
         if (!result.IsSuccess)
         {
             _logger.TokenRequestFailed(request.GrantType, result.Error.Error, null);
-            return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+            return BffTokenResult.Failure(
+                StatusCodes.Status502BadGateway,
+                BffTokenFailureReasons.ProviderError
+            );
         }
 
         var response = result.Response;
@@ -76,7 +83,10 @@ internal class BffGrantClient(
                 BffTokenFailureReasons.ProviderError,
                 null
             );
-            return BffTokenResult.Failure(502, BffTokenFailureReasons.ProviderError);
+            return BffTokenResult.Failure(
+                StatusCodes.Status502BadGateway,
+                BffTokenFailureReasons.ProviderError
+            );
         }
 
         var expiresAt = response.ExpiresIn is { } expiresIn

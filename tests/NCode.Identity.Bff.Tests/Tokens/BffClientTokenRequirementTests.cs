@@ -97,20 +97,19 @@ public class BffClientTokenRequirementTests : BaseTests
     [Fact]
     public async Task GetAccessTokenAsync_Session_ReturnsClientToken()
     {
+        var request = new BffTokenRequest(BffTokenRequirementNames.Client)
+        {
+            Resource = "https://api.example",
+            Scope = "read",
+        };
         MockService
-            .Setup(x =>
-                x.GetAccessTokenAsync("https://api.example", "read", CancellationToken.None)
-            )
+            .Setup(x => x.GetAccessTokenAsync(request, CancellationToken.None))
             .ReturnsAsync(Token)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
             CreateHttpContext(true),
-            new BffTokenRequest(BffTokenRequirementNames.Client)
-            {
-                Resource = "https://api.example",
-                Scope = "read",
-            },
+            request,
             CancellationToken.None
         );
 

@@ -25,11 +25,6 @@ internal class BffUserTokenRequirement(IBffUserTokenService service) : IBffToken
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(request);
 
-        return _service.GetAccessTokenAsync(
-            httpContext,
-            request.Resource,
-            request.Scope,
-            cancellationToken
-        );
+        return _service.GetAccessTokenAsync(httpContext, request, cancellationToken);
     }
 }

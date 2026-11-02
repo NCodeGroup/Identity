@@ -34,6 +34,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
     private static readonly BffRefreshLease Lease = new(LeaseKey, "owner-1");
 
+    // the wall-clock time a fake-clock call may take before the test gives up
+    private static readonly TimeSpan AdvanceDeadline = TimeSpan.FromSeconds(30);
+
+    private static BffTokenRequest UserRequest { get; } = new(BffTokenRequirementNames.User);
+
     private Mock<IBffSessionManager> MockManager { get; }
     private Mock<IBffSessionStore> MockStore { get; }
     private Mock<ITokenClient> MockTokenClient { get; }
@@ -194,8 +199,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -219,8 +223,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -255,8 +258,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -334,8 +336,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            resource,
-            "read",
+            CreateRequest(resource),
             CancellationToken.None
         );
 
@@ -431,7 +432,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var result = await Service.GetAccessTokenAsync(httpContext, resource, "read", cts.Token);
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            CreateRequest(resource),
+            cts.Token
+        );
 
         Assert.True(cts.IsCancellationRequested);
         Assert.True(result.IsSuccess);
@@ -497,8 +502,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -558,8 +562,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -617,8 +620,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -682,8 +684,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -736,7 +737,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
-            await Service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
+            await Service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
         );
 
         Assert.Same(writeBackFailure, exception);
@@ -754,8 +755,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -787,7 +787,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         SetupLeaseLost();
 
         var result = await AdvanceUntilCompletedAsync(
-            service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
+            service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
         );
 
         Assert.True(result.IsSuccess);
@@ -877,7 +877,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await AdvanceUntilCompletedAsync(
-            service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
+            service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
         );
 
         Assert.True(result.IsSuccess);
@@ -902,7 +902,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await AdvanceUntilCompletedAsync(
-            service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
+            service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
         );
 
         Assert.False(result.IsSuccess);
@@ -941,8 +941,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -965,8 +964,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -1022,8 +1020,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -1066,8 +1063,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
         var result = await Service.GetAccessTokenAsync(
             httpContext,
-            null,
-            null,
+            UserRequest,
             CancellationToken.None
         );
 
@@ -1114,12 +1110,21 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .ReturnsAsync((BffRefreshLease?)null)
             .Verifiable();
 
-    // The backoff waits on the fake clock: advance it in small steps until the call completes.
+    private static BffTokenRequest CreateRequest(string resource) =>
+        new(BffTokenRequirementNames.User) { Resource = resource, Scope = "read" };
+
+    // The backoff waits on the fake clock: advance it in small steps until the call completes. The
+    // continuations run on the thread pool, so a step count says nothing about progress; a wall-clock
+    // deadline turns a call that never completes into a failure instead of a hung test run.
     private async Task<BffTokenResult> AdvanceUntilCompletedAsync(ValueTask<BffTokenResult> call)
     {
         var task = call.AsTask();
+        var started = Stopwatch.GetTimestamp();
         while (!task.IsCompleted)
         {
+            if (Stopwatch.GetElapsedTime(started) > AdvanceDeadline)
+                Assert.Fail($"The call did not complete within {AdvanceDeadline}.");
+
             TimeProvider.Advance(TimeSpan.FromMilliseconds(10));
             await Task.Yield();
         }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.OpenId.Client;
@@ -17,50 +18,57 @@ namespace NCode.Identity.Bff.Tokens;
 // configuration, never from the request, so the cache holds one entry per configured pair. See ADR-1381.
 internal class DefaultBffClientTokenService(
     BffGrantClient grantClient,
+    BffRefreshLocks locks,
     IOptions<BffOptions> options,
     TimeProvider timeProvider
 ) : IBffClientTokenService
 {
     private readonly BffGrantClient _grantClient = grantClient;
+    private readonly BffRefreshLocks _locks = locks;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
 
-    private BffRefreshLocks Locks { get; } = new();
-
-    private ConcurrentDictionary<string, BffAccessToken> Tokens { get; } =
-        new(StringComparer.Ordinal);
+    private ConcurrentDictionary<
+        (string? Resource, string? Scope),
+        BffAccessToken
+    > Tokens { get; } = [];
 
     /// <inheritdoc />
     public async ValueTask<BffTokenResult> GetAccessTokenAsync(
-        string? resource,
-        string? scope,
+        BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
-        var key = $"{resource}\n{scope}";
+        ArgumentNullException.ThrowIfNull(request);
+
+        var key = (request.Resource, request.Scope);
         var fresh = TryGetFresh(key);
         if (fresh is not null)
             return fresh;
 
-        using var held = await Locks.TryEnterAsync(
-            key,
+        using var held = await _locks.TryEnterAsync(
+            BffRefreshLocks.ClientPurpose,
+            $"{request.Resource}\n{request.Scope}",
             _options.Value.Tokens.RefreshLeaseDuration,
             cancellationToken
         );
         if (held is null)
-            return BffTokenResult.Failure(503, BffTokenFailureReasons.RefreshWaitTimeout);
+            return BffTokenResult.Failure(
+                StatusCodes.Status503ServiceUnavailable,
+                BffTokenFailureReasons.RefreshWaitTimeout
+            );
 
         // another request may have requested the token while this one waited
         fresh = TryGetFresh(key);
         if (fresh is not null)
             return fresh;
 
-        var request = new ClientCredentialsTokenRequest
+        var grantRequest = new ClientCredentialsTokenRequest
         {
-            Resources = resource is null ? [] : [resource],
-            Scope = scope,
+            Resources = request.Resource is null ? [] : [request.Resource],
+            Scope = request.Scope,
         };
-        var result = await _grantClient.RequestAsync(request, cancellationToken);
+        var result = await _grantClient.RequestAsync(grantRequest, cancellationToken);
         if (result.Token is { } token)
         {
             Tokens[key] = token;
@@ -69,7 +77,7 @@ internal class DefaultBffClientTokenService(
         return result;
     }
 
-    private BffTokenResult? TryGetFresh(string key)
+    private BffTokenResult? TryGetFresh((string? Resource, string? Scope) key)
     {
         if (!Tokens.TryGetValue(key, out var token))
             return null;

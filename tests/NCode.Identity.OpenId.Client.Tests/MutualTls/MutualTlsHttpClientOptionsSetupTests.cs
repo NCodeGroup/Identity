@@ -3,7 +3,9 @@
 
 using Microsoft.Extensions.Http;
 using Moq;
+using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.MutualTls;
+using NCode.Identity.OpenId.Client.Options;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.MutualTls;
@@ -20,7 +22,9 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
             mockKeyRingProvider.Object,
             TimeProvider.System
         );
-        Setup = new MutualTlsHttpClientOptionsSetup(MockProvider.Object);
+        var clientOptions = Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions());
+        var resiliencePipelines = new ProviderResiliencePipelines(clientOptions);
+        Setup = new MutualTlsHttpClientOptionsSetup(MockProvider.Object, resiliencePipelines);
     }
 
     private sealed class TestHttpMessageHandlerBuilder : HttpMessageHandlerBuilder
@@ -44,6 +48,7 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
         Setup.Configure("other", options);
 
         Assert.Empty(options.HttpMessageHandlerBuilderActions);
+        Assert.Empty(options.HttpClientActions);
     }
 
     [Fact]
@@ -57,7 +62,7 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
     }
 
     [Fact]
-    public void Configure_WithPrefixedName_SetsThePrimaryHandler()
+    public void Configure_WithPrefixedName_SetsThePrimaryAndResilienceHandlers()
     {
         using var handler = new SocketsHttpHandler();
         MockProvider.Setup(x => x.CreatePrimaryHandler("ABC")).Returns(handler).Verifiable();
@@ -69,6 +74,20 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
         var builder = new TestHttpMessageHandlerBuilder();
         action(builder);
         Assert.Same(handler, builder.PrimaryHandler);
+        Assert.IsType<ProviderResilienceHandler>(Assert.Single(builder.AdditionalHandlers));
+    }
+
+    [Fact]
+    public void Configure_WithPrefixedName_DisablesTheHttpClientTimeout()
+    {
+        var options = new HttpClientFactoryOptions();
+
+        Setup.Configure(OpenIdClientDefaults.MutualTlsHttpClientNamePrefix + "ABC", options);
+
+        var action = Assert.Single(options.HttpClientActions);
+        using var client = new HttpClient();
+        action(client);
+        Assert.Equal(Timeout.InfiniteTimeSpan, client.Timeout);
     }
 
     #endregion

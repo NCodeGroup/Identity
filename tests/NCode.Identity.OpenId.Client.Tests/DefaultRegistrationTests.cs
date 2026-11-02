@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
+using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.Secrets;
@@ -138,6 +139,38 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         var socketsHandler = Assert.IsType<SocketsHttpHandler>(handler);
         Assert.False(socketsHandler.AllowAutoRedirect);
         Assert.False(socketsHandler.UseCookies);
+    }
+
+    [Fact]
+    public void AddOpenIdClientLibrary_BoundsTheNamedClient()
+    {
+        JwtBuilder.AddOpenIdClientLibrary();
+
+        var provider = BuildProvider();
+
+        var handler = provider
+            .GetRequiredService<IHttpMessageHandlerFactory>()
+            .CreateHandler(OpenIdClientDefaults.HttpClientName);
+        var isBounded = false;
+        while (handler is DelegatingHandler delegating)
+        {
+            isBounded |= delegating is ProviderResilienceHandler;
+            handler = delegating.InnerHandler!;
+        }
+
+        Assert.True(isBounded);
+    }
+
+    [Fact]
+    public void AddOpenIdClientLibrary_DisablesTheHttpClientTimeout()
+    {
+        JwtBuilder.AddOpenIdClientLibrary();
+
+        var provider = BuildProvider();
+
+        var factory = provider.GetRequiredService<IHttpClientFactory>();
+        using var client = factory.CreateClient(OpenIdClientDefaults.HttpClientName);
+        Assert.Equal(Timeout.InfiniteTimeSpan, client.Timeout);
     }
 
     [Fact]

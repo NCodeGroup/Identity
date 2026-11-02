@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amended by
   [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md): the `jwks_uri`
-  fetch is single-flight and a failed fetch is remembered)- **Date:** 2026-11-01
+  fetch is single-flight and a failed fetch is remembered)
+- **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)
 - **Supersedes:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md), decision 6 for the per-scope fetch limits and decision 3's https-only rule for revocation data

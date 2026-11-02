@@ -119,9 +119,12 @@ public sealed class BffJwksHandlerTests : BaseTests
         Assert.Equal("application/json; charset=utf-8", httpContext.Response.ContentType);
         Assert.Contains("no-store", httpContext.Response.Headers.CacheControl.ToString());
 
-        var keys = (await ReadBodyAsync(httpContext))["keys"]!.AsArray();
-        Assert.Equal(["ec-1", "rsa-1"], keys.Select(x => x!["kid"]!.GetValue<string>()));
-        Assert.Equal(["EC", "RSA"], keys.Select(x => x!["kty"]!.GetValue<string>()));
+        // A key set has no order, and the key ring does not promise one.
+        var keys = (await ReadBodyAsync(httpContext))["keys"]!
+            .AsArray()
+            .Select(x => (Kid: x!["kid"]!.GetValue<string>(), Kty: x!["kty"]!.GetValue<string>()))
+            .OrderBy(x => x.Kid, StringComparer.Ordinal);
+        Assert.Equal<(string, string)>([("ec-1", "EC"), ("rsa-1", "RSA")], keys);
     }
 
     [Fact]

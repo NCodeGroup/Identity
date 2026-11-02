@@ -220,7 +220,7 @@ override NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ToStri
 static NCode.Identity.Server.ProductionSafetyRegistration.FindViolations(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation!>!
 NCode.Identity.Server.DevelopmentEnvironmentRegistration
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.TelemetryRegistration
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddOpenTelemetryMetrics(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

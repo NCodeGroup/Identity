@@ -18,20 +18,18 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using NCode.Registration;
 
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Wires every development-only convenience behind a single, self-gating call.
+/// Wires every development-only convenience behind a single call.
 /// </summary>
 /// <remarks>
-/// Previously a host opted into the developer CORS policy, the developer and conformance seeders, and the developer
-/// signing keys as four separate calls, each gated only by its own configuration section. That spread the decision
-/// "is this a development host?" across four places in the composition root, and a host that added a fifth
-/// convenience had to remember to gate it the same way. Collapsing them means a reviewer reads one line, and the
-/// environment check cannot be forgotten for one of them.
+/// A host opts into the developer CORS policy, the developer and conformance seeders, and the developer key pruning
+/// with one call. Each convenience does nothing unless its configuration section is present, and
+/// <c>AddProductionSafety</c> is the one place that refuses each of those sections in Production (ADR-1313), so this
+/// registration never decides the environment.
 /// </remarks>
 [PublicAPI]
 public static class DevelopmentEnvironmentRegistration
@@ -39,34 +37,20 @@ public static class DevelopmentEnvironmentRegistration
     extension(IServiceBuilder<IdentityServer> builder)
     {
         /// <summary>
-        /// Registers the development-only conveniences — the developer CORS policy, the developer and conformance
-        /// seeders, and the developer signing keys — and does nothing at all in a Production environment.
+        /// Registers the development-only conveniences: the developer CORS policy, the developer and conformance
+        /// seeders, and the developer key pruning. Every one does nothing unless its section is configured, and
+        /// <c>AddProductionSafety</c> refuses each configured section in Production (ADR-1313).
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> each convenience reads its own section from.</param>
-        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that gates the whole block.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         /// <remarks>
-        /// Safe to leave wired unconditionally. Each convenience remains individually inert when its configuration
-        /// section is absent, so a non-Production host that configures none of them still gets nothing beyond the
-        /// ephemeral signing keys that make a zero-setup host work.
-        /// <para>
-        /// In Production this returns without registering anything, including the developer signing keys — a Production
-        /// deployment uses the persisted keys every tenant is provisioned with, or keys its operator imports. That is a
-        /// second line of defence rather than the primary one: <c>AddProductionSafety</c> already refuses to start such a
-        /// deployment, and it reports the problem instead of silently changing behaviour. This guard matters when a host
-        /// has not called it.
-        /// </para>
+        /// Safe to leave wired unconditionally: a host that configures none of the sections gets nothing from it.
         /// </remarks>
         public IServiceBuilder<IdentityServer> AddDevelopmentEnvironment(
-            IConfiguration configuration,
-            IHostEnvironment hostEnvironment
+            IConfiguration configuration
         )
         {
             ArgumentNullException.ThrowIfNull(configuration);
-            ArgumentNullException.ThrowIfNull(hostEnvironment);
-
-            if (hostEnvironment.IsProduction())
-                return builder;
 
             builder.ServiceCollection.AddDeveloperCors(configuration);
 

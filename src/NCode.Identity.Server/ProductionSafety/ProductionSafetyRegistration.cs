@@ -172,12 +172,10 @@ public static class ProductionSafetyRegistration
             "prunes signing keys that can no longer be read and provisions new ones, which in Production hides a lost root key behind a silent key change."
         );
 
-        // The developer CORS policy is never registered in Production, so a Cors section there is configuration the
-        // server accepts without honoring — and, when it names loopback origins, one that would be unsafe if it were.
         AddSectionViolationIfPresent(
             DeveloperCorsOptions.DefaultSectionName,
-            "configures the developer CORS policy, which is development-only and not registered in Production, so "
-                + "it has no effect."
+            "configures the developer CORS policy, a development-only convenience that admits cross-origin calls from "
+                + "the origins it lists."
         );
 
         // Both seeders create accounts and clients with known, published credentials.

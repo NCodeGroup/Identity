@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
@@ -25,7 +26,8 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     private const string ClientAuthOid = "1.3.6.1.5.5.7.3.2";
 
     private ServiceProvider ServiceProvider { get; }
-    private MutableTimeProvider TimeProvider { get; } = new(DateTimeOffset.UtcNow);
+    private FakeTimeProvider TimeProvider { get; } =
+        new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     private List<IDisposable> Disposables { get; } = [];
 
     public ClientCertificateProviderTests()
@@ -99,8 +101,8 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
         DateTimeOffset? notAfter
     ) =>
         request.CreateSelfSigned(
-            notBefore ?? TimeProvider.UtcNow.AddDays(-1),
-            notAfter ?? TimeProvider.UtcNow.AddDays(30)
+            notBefore ?? TimeProvider.GetUtcNow().AddDays(-1),
+            notAfter ?? TimeProvider.GetUtcNow().AddDays(30)
         );
 
     private ClientCertificateProvider CreateProvider(params SecretKey[] keys)
@@ -227,8 +229,8 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     public void SelectHttpClientName_WithExpiredCertificate_Throws()
     {
         var (rsa, certificate) = CreateRsaCertificate(
-            notBefore: TimeProvider.UtcNow.AddDays(-10),
-            notAfter: TimeProvider.UtcNow.AddDays(-1)
+            notBefore: TimeProvider.GetUtcNow().AddDays(-10),
+            notAfter: TimeProvider.GetUtcNow().AddDays(-1)
         );
         var key = KeyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, rsa, certificate);
         var provider = CreateProvider(key);
@@ -242,8 +244,8 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     public void SelectHttpClientName_WithNotYetValidCertificate_SkipsItUntilItIsValid()
     {
         var (rsa, certificate) = CreateRsaCertificate(
-            notBefore: TimeProvider.UtcNow.AddDays(1),
-            notAfter: TimeProvider.UtcNow.AddDays(30)
+            notBefore: TimeProvider.GetUtcNow().AddDays(1),
+            notAfter: TimeProvider.GetUtcNow().AddDays(30)
         );
         var key = KeyFactory.CreateRsa(new KeyMetadata { KeyId = "k1" }, rsa, certificate);
         var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
@@ -261,7 +263,7 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
             provider.SelectHttpClientName(CreateRegistration())
         );
 
-        TimeProvider.UtcNow = TimeProvider.UtcNow.AddDays(2);
+        TimeProvider.Advance(TimeSpan.FromDays(2));
 
         var name = provider.SelectHttpClientName(CreateRegistration());
         Assert.Equal(
@@ -274,17 +276,21 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     public void SelectHttpClientName_WithExpiredAndValidCertificates_SelectsTheValidOne()
     {
         var (expiredRsa, expiredCertificate) = CreateRsaCertificate(
-            notBefore: TimeProvider.UtcNow.AddDays(-10),
-            notAfter: TimeProvider.UtcNow.AddDays(-1)
+            notBefore: TimeProvider.GetUtcNow().AddDays(-10),
+            notAfter: TimeProvider.GetUtcNow().AddDays(-1)
         );
         var (validRsa, validCertificate) = CreateRsaCertificate();
         var expiredKey = KeyFactory.CreateRsa(
-            new KeyMetadata { KeyId = "expired", ExpiresWhen = TimeProvider.UtcNow.AddDays(100) },
+            new KeyMetadata
+            {
+                KeyId = "expired",
+                ExpiresWhen = TimeProvider.GetUtcNow().AddDays(100),
+            },
             expiredRsa,
             expiredCertificate
         );
         var validKey = KeyFactory.CreateRsa(
-            new KeyMetadata { KeyId = "valid", ExpiresWhen = TimeProvider.UtcNow.AddDays(10) },
+            new KeyMetadata { KeyId = "valid", ExpiresWhen = TimeProvider.GetUtcNow().AddDays(10) },
             validRsa,
             validCertificate
         );
@@ -499,8 +505,8 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     // A root, an intermediate it issued, and a client certificate the intermediate issued, with its private key.
     private (X509Certificate2 Leaf, X509Certificate2 Intermediate) CreateIssuedRsaCertificate()
     {
-        var notBefore = TimeProvider.UtcNow.AddDays(-1);
-        var notAfter = TimeProvider.UtcNow.AddDays(30);
+        var notBefore = TimeProvider.GetUtcNow().AddDays(-1);
+        var notAfter = TimeProvider.GetUtcNow().AddDays(30);
 
         using var rootKey = RSA.Create(2048);
         var rootRequest = new CertificateRequest(

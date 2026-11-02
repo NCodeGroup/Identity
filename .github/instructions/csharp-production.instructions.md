@@ -208,92 +208,56 @@ than inlining the rationale.
 
 ## 3. File & code organization
 
-- ✅ **One type per file.** An interface and its implementation are two files. (A generic interface and its
-  strongly-typed sibling of the same name — `IFoo` + `IFoo<T>` — may share a file, as they are one contract in two arities.)
-- 👁 **The single canonical implementation of an `IFoo` that a consumer resolves through DI and never names directly
-  is named `DefaultFoo`** — strip the `I`, prepend `Default` (`IJoseSerializer` → `DefaultJoseSerializer`,
-  `IJsonWebTokenService` → `DefaultJsonWebTokenService`, `ITokenService` → `DefaultTokenService`). This is the ASP.NET
-  Core idiom (`DefaultHttpContextFactory`): it keeps the bare concept name free, separates interface from
-  implementation, and signals a replaceable default. The rule is about the **implementation**, which therefore stays
-  `internal` (§2) and is reached only through the interface; the `IFoo` itself may be `public` or `internal` — that is
-  what "regardless of the interface's visibility" means. **Three carve-outs, when the class is _not_ "the one canonical
-  DI impl":** (a) one of several variants named for what makes it specific (`DefaultAuthorizationCodeGrantHandler`,
-  `DefaultClientCredentialsGrantHandler` — each a distinct `ITokenGrantHandler`); (b) an implementation of a
-  **framework** interface follows that framework's own pattern name; (c) a **public, developer-facing
-  data / message / model / result type a consumer constructs and names directly** keeps the bare concept name
-  (`AuthorizationTicket`, `TokenRequest`, `ResourceNode` — never `Default*`), even when it implements an `IFoo` seam.
-  See [project-template ADR-0105](../../docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md).
-- 👁 **No nested types**, with two exceptions: (a) a private nested type that must **close over the enclosing type's
-  generic type parameter**; (b) a nested `static` class that groups a related **constant vocabulary** (only `const`
-  fields — no behavior, no state). Everything else is its own top-level file.
-- 👁 **A type's folder is decided by _what the type is_, organized by purpose.** Group interfaces/contracts, options,
-  events, developer-facing models, extension-method classes, and internal infrastructure so a reader can find "the
-  serializers" or "the endpoints" by folder. Public headline entry points a consumer uses by name live at the package
-  root. A single-purpose package (all abstractions) stays flat with no subfolders. **Avoid a vague catch-all folder /
-  namespace (`Logic`, `Helpers`, `Misc`, `Common`) — it is a grab-bag that grows without cohesion.** Name the group for
-  the purpose it serves (`KeyTypes`, `Collections`, `KeyMaterial`, `Algorithms`, `Stores`, `Pkce`, `OutboundHttp`,
-  `ResourceServers`, `Cryptography`); if a bucket has accreted several unrelated purposes, split it (no `Logic`
-  namespace remains in the family — see the issue [#27](https://github.com/NCodeGroup/Identity/issues/27) entry in [`CHANGELOG.md`](../../CHANGELOG.md)). A contract,
-  its DTOs, and its `Default*` implementation share one purpose namespace across the `.Abstractions`/implementation
-  pair, and that folder registers its own services (`AddPkceServices()`), never a catch-all registration. **An
-  endpoint's own replaceable services live at that endpoint's root namespace** (`…Endpoints.Registration`, beside its
-  handler and `DefaultRegistration`), and a service used by a single grant lives with that grant
-  (`…Endpoints.Token.TokenExchange`) — never in a per-endpoint sub-bucket.
-- ✅ **The _public_ namespace is a stable contract and does not have to mirror folders.** `IDE0130` /
-  namespace-match-folder is opted out in [`.editorconfig`](../../.editorconfig), and `RootNamespace` pins a package's
-  base namespace, so you can reorganize public types across folders **without churning their namespace** — the public
-  surface stays flat under the package root (public options are the established exception: an `Options/` folder carries a
-  `.Options` sub-namespace). **Internal implementation types, by contrast, carry no contract, so prefer traditional
-  folder-matching organization for them** — when you group internals into a folder, give them the matching
-  sub-namespace (e.g. `…Logging` for `Logging/`, `…InProcess` for a built-in strategy's `InProcess/` folder) so the
-  namespace reflects the structure. Reserve the flat-namespace rule for the public surface, where stability matters;
-  do not flatten internal helpers that live in a dedicated folder.
-- 👁 **Interface names state the role; the namespace supplies the brand.** Name an interface for its role
-  (`ITokenGrantHandler`, `IEndpointProvider`, `IClaimsService`) and add a qualifier only when the bare role noun would
-  collide with a well-known BCL/framework type or be too generic to stand alone.
+- ✅ **One type per file** — template [File and Code Organization](csharp.instructions.md#file-and-code-organization).
+- 👁 **The single canonical implementation of an `IFoo` is `DefaultFoo`** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization) and
+  [project-template ADR-0105](../../docs/decisions/project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)
+  (`IJoseSerializer` → `DefaultJoseSerializer`, `ITokenService` → `DefaultTokenService`).
+- 👁 **No nested types**, except the template's two — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization).
+- 👁 **A type's folder is decided by what the type is, organized by purpose** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization). A single-purpose package (all
+  abstractions) stays flat. Name a group for its purpose (`KeyTypes`, `Algorithms`, `Stores`, `Pkce`, `OutboundHttp`,
+  `ResourceServers`, `Cryptography`); a contract, its DTOs and its `Default*` implementation share one purpose
+  namespace across the `.Abstractions`/implementation pair, and that folder registers its own services
+  (`AddPkceServices()`). An endpoint's own replaceable services live at that endpoint's root namespace
+  (`…Endpoints.Registration`), and a service used by a single grant lives with that grant
+  (`…Endpoints.Token.TokenExchange`).
+- ✅ **The public namespace is a stable contract and does not have to mirror folders** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization). `IDE0130` is opted out in
+  [`.editorconfig`](../../.editorconfig) and `RootNamespace` pins a package's base namespace; public options are the
+  exception, whose `Options/` folder carries a `.Options` sub-namespace.
+- 👁 **Interface names state the role; the namespace supplies the brand** — template
+  [File and Code Organization](csharp.instructions.md#file-and-code-organization).
 
 ## 4. Extension methods & DI registration
 
-- 👁 **A host `Program.cs` is composition-only — reusable or developer-only startup code never lives there.** This is
-  the single most-repeated review miss, so treat it as a hard rule. The reference host and every other host must read
-  as a flat list of turnkey calls (`serviceCollection.AddX(...)`, `app.UseX()`, `app.MapX()`) — **no** reusable logic,
-  policy builders, config-section parsing, `new`-ing of options, loops, consts, or dev/test helpers inline. **Tripwire:**
-  the moment host startup needs more than a single wiring call — an `if`, a `foreach`, a CORS/auth policy builder, a
-  `new`, reading a configuration section — stop and move that logic into the **owning package** as an `Add*`/`Use*`/`Map*`
-  extension, then call the one-liner from the host. Developer/dev-only helpers for the OpenID server live beside their
-  siblings in [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
-  (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
-  turnkey surface so a host opts in with one call. Default to "it goes in the package"; only the genuinely host-specific,
-  unsafe-to-default inputs called out below (database provider/connection string, production signing key) stay in
-  `Program.cs`. Kestrel's HTTPS defaults are one of them: `ConfigureHttpsDefaults` keeps only its last action, so a
-  package that called it would silently replace, or be replaced by, the host's own TLS settings. A package never calls
-  it; the host makes one `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default,
-  such as the reference host's `AllowAnyClientCertificate()` for mutual TLS
+- 👁 **A host `Program.cs` is composition-only** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods), and the
+  most-repeated review miss here. Developer-only helpers for the OpenID server live beside their siblings in
+  [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
+  (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) behind the server's turnkey
+  surface, the production signing key is a host input, and the host makes one
+  `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default, such as the reference
+  host's `AllowAnyClientCertificate()` for mutual TLS
   ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
-- ✅ Use the **C# 14 `extension` member syntax** (`extension(ReceiverType r) { … }` blocks), not classic
-  `this`-parameter static methods — matching the `DefaultRegistration.cs` composition pattern
-  (`extension(IServiceBuilder<IdentityLibrary> builder) { … }`).
-- ✅ **One receiver-type per static class.** Multiple `extension(...)` blocks with different receiver types in one class
-  trip `CA1708` — split them (which also fits one-type-per-file).
-- 👁 **When two receiver interfaces are unrelated but a concrete type implements both, target their common base — do
-  not write one overload per interface.** `IDictionary<,>` and `IReadOnlyDictionary<,>` don't derive from one another,
-  yet a concrete `Dictionary<,>` implements both, so an overload on each makes every concrete-dictionary call site
-  **`CS0121` ambiguous** — and splitting the two into separate classes does **not** help, because the ambiguity is
-  between the methods, not their containers. Provide a **single** member on the common base
-  (`extension(IEnumerable<KeyValuePair<TKey,TValue>>)`) and fast-path the dictionary receivers to an O(1) lookup inside
-  (`switch` on `IReadOnlyDictionary<,>` / `IDictionary<,>`, else scan). Exemplar:
-  `NCode.Json.ObjectGraphExtensions.TryGetValue<T>`.
-- 👁 Keep null-guards on the receiver (extension members can be invoked on `null`).
-- 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects.** When an `extension(...)` member
-  throws `ArgumentException` about its receiver, still pass `nameof(receiver)` — the receiver _is_ the offending argument.
-  `CA2208` does not yet treat an extension-block receiver as a parameter, so wrap only those throws in a tight
-  `#pragma warning disable/restore CA2208` with a one-line reason; never drop the `paramName` to silence it.
-- 👁 **Choose the DI shape deliberately** per [ADR-1001](../../docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md):
-  a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
-  (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
-  only for a genuine pipeline seam where the sender must stay ignorant of the handlers. `TryAddEnumerable`
-  keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
-  vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
+- ✅ **C# 14 `extension` member syntax** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
+  (`extension(IServiceBuilder<IdentityLibrary> builder) { … }` in `DefaultRegistration.cs`).
+- ✅ **One receiver type per static class (`CA1708`)** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
+- 👁 **When two receiver interfaces are unrelated but a concrete type implements both, target their common base** —
+  template [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
+  (`NCode.Json.ObjectGraphExtensions.TryGetValue<T>`).
+- 👁 **Null-guard the receiver** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
+- 👁 **Name the receiver in a receiver-argument exception even though `CA2208` objects** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods).
+- 👁 **Choose the DI shape deliberately** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods) and
+  [ADR-1001](../../docs/decisions/1001-mediator-vs-dependency-injection-logic-classes.md). The mediator is
+  `NCode.Mediator`'s `ICommandHandler<T>`, and each built-in strategy of an open vocabulary is its own class (the
+  redirect URI kinds).
 - 👁 **A relationship between a client's settings is a registered coherence rule.** When a value a client registers must
   be permitted by another of its effective settings, or may require one, add an `IClientCoherenceRule` with
   `TryAddEnumerable`. The rule reads a `ClientCoherenceContext` (the client's registered and its effective settings; a

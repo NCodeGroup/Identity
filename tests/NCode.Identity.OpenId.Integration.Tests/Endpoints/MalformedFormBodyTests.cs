@@ -123,6 +123,15 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task PostUserInfo_WithAMalformedForm_AnswersInvalidRequest()
+    {
+        // Without an Authorization header, the access token may come in the form body (RFC 6750 §2.2).
+        using var response = await PostMalformedFormAsync("/oauth2/userinfo");
+
+        await AssertInvalidRequestAsync(response);
+    }
+
+    [Fact]
     public async Task PostDeviceVerification_WhenSignedIn_AnswersInvalidRequest()
     {
         const string userName = "malformed-form-user";

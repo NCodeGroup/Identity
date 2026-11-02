@@ -4724,7 +4724,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
-- **An unreadable form answers 400, not 500.** A form body that is malformed or over the form limits answers `400 invalid_request` at the token, revocation, introspection, pushed authorization, device authorization, CIBA, authorization, end-session and device verification endpoints and at the BFF's back-channel logout, and device verification no longer reads its form synchronously ([#497](https://github.com/NCodeGroup/Identity/issues/497)).
+- **An unreadable form answers 400, not 500.** A form body that is malformed or over the form limits answers `400 invalid_request` at the token, revocation, introspection, pushed authorization, device authorization, CIBA, authorization, end-session, device verification and UserInfo endpoints (UserInfo reads a form body for its access token) and at the BFF's back-channel logout, and device verification no longer reads its form synchronously ([#497](https://github.com/NCodeGroup/Identity/issues/497)).
 
 - **The revocation retrieval checks its caches again.** A certificate check that missed a CRL or OCSP result recorded a moment earlier no longer downloads it once more ([#500](https://github.com/NCodeGroup/Identity/issues/500), [ADR-1350](docs/decisions/1350-a-shared-fetch-is-single-flight-through-one-helper.md)).
 

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
@@ -63,18 +64,41 @@ internal class DefaultAuthenticateSubjectHandler(
     )
     {
         var (openIdContext, requiredAudiences) = command;
+        var request = openIdContext.Http.Request;
 
         // A protected resource is reached only with an access token (OpenID Connect Core 1.0 §5.3.1); an interactive
         // session never authenticates it, so a request without a token is undefined (ADR-1155).
-        var accessToken = await ResolveBearerTokenAsync(openIdContext.Http);
-        if (string.IsNullOrEmpty(accessToken))
+        if (TryGetAuthorizationHeaderToken(request, out var headerToken))
+        {
+            return await AuthenticateAccessTokenAsync(
+                openIdContext,
+                headerToken,
+                requiredAudiences,
+                cancellationToken
+            );
+        }
+
+        if (!CanCarryFormBodyToken(request))
+        {
+            return Undefined();
+        }
+
+        // A body that cannot be read is a malformed request (RFC 6750 §3.1), not a request without a token.
+        var form = await request.TryReadFormAsync(cancellationToken);
+        if (form is null)
+        {
+            return Failed(UnreadableForm.CreateError(openIdContext.ErrorFactory));
+        }
+
+        var bodyToken = form[OpenIdProtocol.Parameters.AccessToken].ToString();
+        if (string.IsNullOrEmpty(bodyToken))
         {
             return Undefined();
         }
 
         return await AuthenticateAccessTokenAsync(
             openIdContext,
-            accessToken,
+            bodyToken,
             requiredAudiences,
             cancellationToken
         );
@@ -237,43 +261,10 @@ internal class DefaultAuthenticateSubjectHandler(
         return Authenticated(ticket);
     }
 
-    private static async ValueTask<string?> ResolveBearerTokenAsync(HttpContext httpContext)
+    // RFC 6750 §2.1: the 'Authorization' header is the preferred (and here, primary) transport.
+    private static bool TryGetAuthorizationHeaderToken(HttpRequest request, out string token)
     {
-        // RFC 6750 §2.1: the 'Authorization' header is the preferred (and here, primary) transport.
-        if (TryGetAuthorizationHeaderToken(httpContext, out var headerToken))
-        {
-            return headerToken;
-        }
-
-        // RFC 6750 §2.2: a client MAY send the access token as a form-encoded body parameter. Honor it only for a
-        // non-GET request whose body is exactly 'application/x-www-form-urlencoded' (the spec's single-part body
-        // requirement, which excludes multipart). The URI-query form (§2.3) is intentionally unsupported because
-        // RFC 9700 deprecates passing access tokens in the query string.
-        var request = httpContext.Request;
-        if (
-            !HttpMethods.IsGet(request.Method)
-            && request.HasFormContentType
-            && request.ContentType is { } contentType
-            && contentType.StartsWith(
-                "application/x-www-form-urlencoded",
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            var form = await request.ReadFormAsync();
-            var bodyToken = form[OpenIdProtocol.Parameters.AccessToken].ToString();
-            if (!string.IsNullOrEmpty(bodyToken))
-            {
-                return bodyToken;
-            }
-        }
-
-        return null;
-    }
-
-    private static bool TryGetAuthorizationHeaderToken(HttpContext httpContext, out string token)
-    {
-        var authorization = httpContext.Request.Headers.Authorization.ToString();
+        var authorization = request.Headers.Authorization.ToString();
 
         // Accept both the Bearer scheme and the DPoP scheme (RFC 9449 §7.1); the DPoP proof itself is validated when
         // the sender-constrained token's cnf claim is checked.
@@ -289,6 +280,19 @@ internal class DefaultAuthenticateSubjectHandler(
         token = string.Empty;
         return false;
     }
+
+    // RFC 6750 §2.2: a client MAY send the access token as a form-encoded body parameter. Honor it only for a non-GET
+    // request whose body is exactly 'application/x-www-form-urlencoded' (the spec's single-part body requirement, which
+    // excludes multipart). The URI-query form (§2.3) is intentionally unsupported because RFC 9700 deprecates passing
+    // access tokens in the query string.
+    private static bool CanCarryFormBodyToken(HttpRequest request) =>
+        !HttpMethods.IsGet(request.Method)
+        && request.HasFormContentType
+        && request.ContentType is { } contentType
+        && contentType.StartsWith(
+            "application/x-www-form-urlencoded",
+            StringComparison.OrdinalIgnoreCase
+        );
 
     private async ValueTask<string> ResolvePrincipalIdAsync(
         OpenIdContext openIdContext,

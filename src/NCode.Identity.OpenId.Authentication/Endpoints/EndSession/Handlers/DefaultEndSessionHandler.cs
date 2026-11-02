@@ -62,8 +62,11 @@ internal class DefaultEndSessionHandler(
         // See ADR-1380.
         if (subject.SubjectId is { Length: > 0 } || subject.SessionId is { Length: > 0 })
         {
-            // Clear the OP login cookie.
-            await httpContext.SignOutAsync();
+            // Clear the OP login from every scheme the authorize endpoint may authenticate it with.
+            foreach (var loginScheme in subject.LoginSchemes)
+            {
+                await httpContext.SignOutAsync(loginScheme);
+            }
 
             // Removing the OP browser-state cookie lets session-management relying parties observe the login-state
             // change.

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -135,7 +136,9 @@ internal class DefaultProofOfPossessionService(
                     .WithStatusCode(StatusCodes.Status401Unauthorized);
             }
 
-            var httpUri = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
+            // The htu is compared with the URL the tenant publishes for this endpoint, never one built from the request's
+            // Host (ADR-1387).
+            var httpUri = TenantRequestUri.GetPublishedUri(openIdContext);
             string proofJwkThumbprint;
             try
             {
@@ -256,7 +259,9 @@ internal class DefaultProofOfPossessionService(
             return null;
         }
 
-        var httpUri = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
+        // The htu is compared with the URL the tenant publishes for this endpoint, never one built from the request's
+        // Host (ADR-1387).
+        var httpUri = TenantRequestUri.GetPublishedUri(openIdContext);
 
         return await DPoPProofValidator.ValidateAsync(
             openIdContext,

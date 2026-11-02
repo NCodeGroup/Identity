@@ -31,9 +31,13 @@ OP session with the RP and/or currently logged in End-User"
    validates the hint once; callers send `ResolveEndSessionSubjectCommand` first. The first-party
    `POST /account/logout` is unprompted: its antiforgery-protected form is the end-user's own confirmation.
 
-4. **The request is parked as a one-time continuation.** The request is parked with `IContinueService` under the new
-   continue code `OpenIdConstants.ContinueCodes.EndSession` (`"continue_end_session"`) for 10 minutes, with
-   `clientId: null` (the request's `client_id` is unauthenticated). The payload is
+4. **The request is parked as a one-time continuation, through a mediator command.** The endpoint sends
+   `ParkEndSessionRequestCommand(OpenIdContext, IEndSessionRequest Request, EndSessionSubject Subject)`, which returns
+   the continue URL, so a deployment changes the lifetime, payload or binding by replacing one handler rather than the
+   endpoint ([ADR-1086](1086-canonical-openid-endpoint-shape.md)). Its default handler,
+   `DefaultParkEndSessionRequestHandler`, parks the request with `IContinueService` under the new continue code
+   `OpenIdConstants.ContinueCodes.EndSession` (`"continue_end_session"`) for 10 minutes, with `clientId: null` (the
+   request's `client_id` is unauthenticated). The payload is
    `EndSessionContinuation(IdTokenHint, ClientId, PostLogoutRedirectUri, State, SessionId)`: the four parameters the
    pipeline reads plus the session it was asked for. Plain strings avoid message JSON polymorphism.
 

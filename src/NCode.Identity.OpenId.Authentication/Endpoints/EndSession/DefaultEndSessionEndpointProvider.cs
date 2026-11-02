@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
@@ -20,16 +19,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 /// (<see href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html">RP-Initiated Logout 1.0</see>). The
 /// endpoint is a thin HTTP shell that dispatches the <see cref="EndSessionCommand"/> and either redirects to the
 /// validated <c>post_logout_redirect_uri</c> or renders a logged-out confirmation. A logout that requires the
-/// end-user's confirmation is parked as a one-time continuation and the end-user is asked through
-/// <see cref="EndSessionConfirmationChallengeCommand"/> instead.
+/// end-user's confirmation is parked through <see cref="ParkEndSessionRequestCommand"/> and the end-user is asked
+/// through <see cref="EndSessionConfirmationChallengeCommand"/> instead.
 /// </summary>
-internal class DefaultEndSessionEndpointProvider(IContinueService continueService)
-    : IEndpointProvider
+internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 {
-    private static TimeSpan ConfirmationLifetime { get; } = TimeSpan.FromMinutes(10);
-
-    private IContinueService ContinueService { get; } = continueService;
-
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
         endpoints
@@ -82,19 +76,8 @@ internal class DefaultEndSessionEndpointProvider(IContinueService continueServic
         // See ADR-1380.
         if (subject.RequiresConfirmation)
         {
-            var continueUrl = await ContinueService.GetContinueUrlAsync(
-                openIdContext,
-                OpenIdConstants.ContinueCodes.EndSession,
-                clientId: null,
-                subject.SubjectId,
-                ConfirmationLifetime,
-                new EndSessionContinuation(
-                    request.IdTokenHint,
-                    request.ClientId,
-                    request.PostLogoutRedirectUri,
-                    request.State,
-                    subject.SessionId
-                ),
+            var continueUrl = await mediator.SendAsync<ParkEndSessionRequestCommand, string>(
+                new ParkEndSessionRequestCommand(openIdContext, request, subject),
                 cancellationToken
             );
 

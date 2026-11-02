@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
 using NCode.Buffers;
-using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
@@ -29,7 +28,6 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
     public DefaultEndSessionEndpointProviderTests()
     {
         MockMediator = CreateStrictMock<IMediator>();
-        MockContinueService = CreateStrictMock<IContinueService>();
 
         var mockContext = CreateStrictMock<OpenIdContext>();
         mockContext.SetupGet(x => x.Mediator).Returns(MockMediator.Object);
@@ -40,11 +38,10 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
             Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == OpenIdContext)
         );
 
-        Provider = new DefaultEndSessionEndpointProvider(MockContinueService.Object);
+        Provider = new DefaultEndSessionEndpointProvider();
     }
 
     private Mock<IMediator> MockMediator { get; }
-    private Mock<IContinueService> MockContinueService { get; }
     private OpenIdContext OpenIdContext { get; }
     private DefaultHttpContext HttpContext { get; }
     private DefaultEndSessionEndpointProvider Provider { get; }
@@ -95,15 +92,12 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
 
     private void SetupChallenge(ReadOnlyEndpointDisposition challenge)
     {
-        MockContinueService
+        MockMediator
             .Setup(x =>
-                x.GetContinueUrlAsync(
-                    OpenIdContext,
-                    OpenIdConstants.ContinueCodes.EndSession,
-                    null,
-                    "subject-1",
-                    TimeSpan.FromMinutes(10),
-                    It.Is<EndSessionContinuation>(c => c.SessionId == "sid-1"),
+                x.SendAsync<ParkEndSessionRequestCommand, string>(
+                    It.Is<ParkEndSessionRequestCommand>(c =>
+                        c.OpenIdContext == OpenIdContext && c.Subject.SessionId == "sid-1"
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )

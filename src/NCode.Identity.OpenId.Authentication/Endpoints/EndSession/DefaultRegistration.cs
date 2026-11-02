@@ -54,6 +54,11 @@ internal static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<ParkEndSessionRequestCommand, string>,
+                DefaultParkEndSessionRequestHandler
+            >();
+
+            serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<
                     EndSessionConfirmationChallengeCommand,
                     ReadOnlyEndpointDisposition

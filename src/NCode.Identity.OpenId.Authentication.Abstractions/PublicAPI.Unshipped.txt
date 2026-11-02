@@ -1385,6 +1385,15 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionCon
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionConfirmationChallengeCommand.OpenIdContext.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionConfirmationChallengeCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest!
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.EndSessionConfirmationChallengeCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.ParkEndSessionRequestCommand() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.ParkEndSessionRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest! Request, NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject Subject) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest!
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.Request.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.Subject.get -> NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.ParkEndSessionRequestCommand.Subject.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessionRequestCommand
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessionRequestCommand.LoadEndSessionRequestCommand() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands.LoadEndSessionRequestCommand.LoadEndSessionRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext) -> void

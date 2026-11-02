@@ -4,7 +4,8 @@
   [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md): OCSP and every CRL form; and
   by [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): a retrieval goes
   through the guarded client, which retries a failed GET within `FetchTimeout`, and a remembered failure stays the
-  back-off between retrievals)
+  back-off between retrievals; and by [ADR-1350](1350-a-shared-fetch-is-single-flight-through-one-helper.md): the
+  in-flight retrievals and the remembered failure are the shared `SingleFlight<TResult>`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

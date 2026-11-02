@@ -573,5 +573,111 @@ public class BffOptionsValidatorTests : BaseTests
         Assert.True(result.Succeeded);
     }
 
+    [Fact]
+    public void Validate_WhenRemoteApisValid_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/api/orders",
+            Destination = "https://api.example.com/v1",
+        };
+        options.RemoteApis["customers"] = new BffRemoteApiOptions
+        {
+            Path = "/api/customers",
+            Destination = "https://api.example.com/v1",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApisNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:RemoteApis must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApiInvalid_FailsWithItsKey()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/api/orders",
+            Destination = "http://api.example.com",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.StartsWith("Bff:RemoteApis:orders:Destination", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApiEntryNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:RemoteApis:orders must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApiOverlapsThePathPrefix_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/bff/orders",
+            Destination = "https://api.example.com",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:RemoteApis:orders:Path '/bff/orders' must not overlap Bff:PathPrefix '/bff'.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApisOverlap_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["api"] = new BffRemoteApiOptions
+        {
+            Path = "/api",
+            Destination = "https://api.example.com",
+        };
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/api/orders",
+            Destination = "https://api.example.com",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:RemoteApis:orders:Path '/api/orders' must not overlap Bff:RemoteApis:api:Path '/api'.",
+            result.Failures ?? []
+        );
+    }
+
     #endregion
 }

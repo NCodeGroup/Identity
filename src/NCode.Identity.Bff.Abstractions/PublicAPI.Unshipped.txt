@@ -23,6 +23,7 @@ const NCode.Identity.Bff.BffProblemTypes.StoreUnavailable = "urn:ncode:identity:
 const NCode.Identity.Bff.BffProblemTypes.TokenUnavailable = "urn:ncode:identity:bff:token_unavailable" -> string!
 const NCode.Identity.Bff.BffProblemTypes.InvalidRequest = "urn:ncode:identity:bff:invalid_request" -> string!
 const NCode.Identity.Bff.BffProblemTypes.UnsafeMethod = "urn:ncode:identity:bff:unsafe_method" -> string!
+const NCode.Identity.Bff.BffProblemTypes.MethodNotAllowed = "urn:ncode:identity:bff:method_not_allowed" -> string!
 NCode.Identity.Bff.BffSessionEndReasons
 const NCode.Identity.Bff.BffSessionEndReasons.LoggedOut = "logged_out" -> string!
 const NCode.Identity.Bff.BffSessionEndReasons.IdleTimeout = "idle_timeout" -> string!

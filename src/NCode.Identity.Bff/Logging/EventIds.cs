@@ -19,4 +19,5 @@ internal static class EventIds
     public const int RefreshTokenRevocationFailed = Base + 3;
     public const int RefreshLeaseReleaseFailed = Base + 4;
     public const int TokenRequestFailed = Base + 5;
+    public const int RemoteApiForwardFailed = Base + 6;
 }

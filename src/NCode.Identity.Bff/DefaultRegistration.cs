@@ -16,6 +16,7 @@ using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Events;
@@ -105,6 +106,11 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IBffTokenRequirement, BffNoneTokenRequirement>()
             );
             serviceCollection.TryAddSingleton<IBffTokenAccessor, DefaultBffTokenAccessor>();
+
+            serviceCollection.AddHttpForwarder();
+            serviceCollection.TryAddSingleton<BffRemoteApiInvokerFactory>();
+            serviceCollection.TryAddSingleton<BffRemoteApiRegistry>();
+            serviceCollection.TryAddSingleton<BffRemoteApiHandler>();
 
             serviceCollection
                 .AddAuthentication()

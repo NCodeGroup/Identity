@@ -120,4 +120,11 @@ public sealed class BffOptions
     /// Gets or sets the token refresh options. The configuration section is <c>Bff:Tokens</c>.
     /// </summary>
     public BffTokenOptions Tokens { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the remote APIs that <c>MapBffRemoteApis()</c> forwards, by name. The configuration section is
+    /// <c>Bff:RemoteApis</c>.
+    /// </summary>
+    public Dictionary<string, BffRemoteApiOptions> RemoteApis { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase);
 }

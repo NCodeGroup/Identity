@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Navigation;
+using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
 
@@ -54,6 +55,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateUserClaims(options.UserClaims, failures);
         ValidateLoginParameters(options.LoginParameters, failures);
+        ValidateRemoteApis(options.RemoteApis, options.PathPrefix, isDevelopment, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
@@ -371,6 +373,51 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
                     $"Bff:LoginParameters entry '{parameter}' is not allowed; use only prompt, max_age, acr_values, login_hint and ui_locales."
                 );
             }
+        }
+    }
+
+    private static void ValidateRemoteApis(
+        Dictionary<string, BffRemoteApiOptions>? remoteApis,
+        string? pathPrefix,
+        bool isDevelopment,
+        List<string> failures
+    )
+    {
+        if (remoteApis is null)
+        {
+            failures.Add("Bff:RemoteApis must be set.");
+            return;
+        }
+
+        List<(string Name, string Path)> paths = [];
+        foreach (var (name, api) in remoteApis)
+        {
+            var key = $"Bff:RemoteApis:{name}";
+            BffRemoteApiValidation.Validate(key, api, isDevelopment, failures);
+            if (string.IsNullOrEmpty(api?.Path))
+                continue;
+
+            if (
+                !string.IsNullOrEmpty(pathPrefix)
+                && BffRemoteApiValidation.Overlaps(api.Path, pathPrefix)
+            )
+            {
+                failures.Add(
+                    $"{key}:Path '{api.Path}' must not overlap Bff:PathPrefix '{pathPrefix}'."
+                );
+            }
+
+            foreach (var (otherName, otherPath) in paths)
+            {
+                if (BffRemoteApiValidation.Overlaps(api.Path, otherPath))
+                {
+                    failures.Add(
+                        $"{key}:Path '{api.Path}' must not overlap Bff:RemoteApis:{otherName}:Path '{otherPath}'."
+                    );
+                }
+            }
+
+            paths.Add((name, api.Path));
         }
     }
 

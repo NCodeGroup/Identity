@@ -17,6 +17,8 @@ NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TB
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffEndpoints() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
+NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffRemoteApi(string! path, string! destination, System.Action<NCode.Identity.Bff.Options.BffRemoteApiOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffRemoteApis() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
 NCode.Identity.Bff.Options.BffAntiforgeryOptions
 NCode.Identity.Bff.Options.BffAntiforgeryOptions.BffAntiforgeryOptions() -> void
 NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderName.get -> string!
@@ -90,6 +92,24 @@ NCode.Identity.Bff.Options.BffOptions.Session.get -> NCode.Identity.Bff.Options.
 NCode.Identity.Bff.Options.BffOptions.Session.set -> void
 NCode.Identity.Bff.Options.BffOptions.Tokens.get -> NCode.Identity.Bff.Options.BffTokenOptions!
 NCode.Identity.Bff.Options.BffOptions.Tokens.set -> void
+NCode.Identity.Bff.Options.BffOptions.RemoteApis.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffRemoteApiOptions!>!
+NCode.Identity.Bff.Options.BffOptions.RemoteApis.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions
+NCode.Identity.Bff.Options.BffRemoteApiOptions.BffRemoteApiOptions() -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Path.get -> string!
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Path.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Destination.get -> string!
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Destination.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.TokenRequirement.get -> string!
+NCode.Identity.Bff.Options.BffRemoteApiOptions.TokenRequirement.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Resource.get -> string?
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Resource.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Scope.get -> string?
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Scope.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.AllowedMethods.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffRemoteApiOptions.AllowedMethods.set -> void
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Timeout.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffRemoteApiOptions.Timeout.set -> void
 NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.set -> void
 NCode.Identity.Bff.Options.BffOptions.UserClaims.get -> System.Collections.Generic.List<string!>!

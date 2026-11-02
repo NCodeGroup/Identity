@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
@@ -19,6 +20,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.SharedState;
 using NCode.Registration;
 using Xunit;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace NCode.Identity.Bff.Tests;
 
@@ -98,6 +100,19 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
             ],
             names
         );
+    }
+
+    [Fact]
+    public void AddBffLibrary_RegistersTheRemoteApiServices()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IHttpForwarder>());
+        Assert.NotNull(provider.GetRequiredService<BffRemoteApiInvokerFactory>());
+        Assert.NotNull(provider.GetRequiredService<BffRemoteApiRegistry>());
+        Assert.NotNull(provider.GetRequiredService<BffRemoteApiHandler>());
     }
 
     [Fact]

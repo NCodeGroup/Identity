@@ -21,19 +21,22 @@ internal class BffAccessTokenHandler(
     BffTokenRequest tokenRequest
 ) : DelegatingHandler
 {
+    /// <summary>
+    /// The request option that carries a token the caller already resolved, so a forwarder that must answer a token
+    /// failure itself, before it starts the upstream request, does not resolve the token twice.
+    /// </summary>
+    internal static HttpRequestOptionsKey<BffTokenResult> ResolvedTokenKey { get; } =
+        new("NCode.Identity.Bff.ResolvedToken");
+
     /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken
     )
     {
-        var httpContext =
-            accessor.HttpContext
-            ?? throw new InvalidOperationException(
-                "The BFF access token handler requires a current HttpContext."
-            );
-
-        var result = await tokens.GetAccessTokenAsync(httpContext, tokenRequest, cancellationToken);
+        var result = request.Options.TryGetValue(ResolvedTokenKey, out var resolved)
+            ? resolved
+            : await ResolveTokenAsync(cancellationToken);
         if (!result.IsSuccess)
             throw new BffTokenUnavailableException(result.StatusCode, result.Reason);
 
@@ -103,6 +106,17 @@ internal class BffAccessTokenHandler(
         request.Headers.Add(OpenIdProtocol.DPoP.HeaderName, retryProof);
 
         return await SendRecordingNonceAsync(request, cancellationToken);
+    }
+
+    private async ValueTask<BffTokenResult> ResolveTokenAsync(CancellationToken cancellationToken)
+    {
+        var httpContext =
+            accessor.HttpContext
+            ?? throw new InvalidOperationException(
+                "The BFF access token handler requires a current HttpContext."
+            );
+
+        return await tokens.GetAccessTokenAsync(httpContext, tokenRequest, cancellationToken);
     }
 
     private async Task<HttpResponseMessage> SendRecordingNonceAsync(

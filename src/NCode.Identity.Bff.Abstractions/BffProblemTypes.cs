@@ -55,4 +55,9 @@ public static class BffProblemTypes
     /// The request to a page uses a method other than <c>GET</c> or <c>HEAD</c>.
     /// </summary>
     public const string UnsafeMethod = "urn:ncode:identity:bff:unsafe_method";
+
+    /// <summary>
+    /// The request to a remote API uses a method that the remote API does not accept.
+    /// </summary>
+    public const string MethodNotAllowed = "urn:ncode:identity:bff:method_not_allowed";
 }

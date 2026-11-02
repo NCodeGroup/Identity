@@ -103,6 +103,51 @@ public class BffAccessTokenHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task SendAsync_ResolvedToken_UsesItWithoutTheAccessor()
+    {
+        var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
+        using var client = CreateClient(inner);
+        using var request = new HttpRequestMessage(HttpMethod.Get, RequestUri);
+        request.Options.Set(
+            BffAccessTokenHandler.ResolvedTokenKey,
+            BffTokenResult.Success(
+                new BffAccessToken(
+                    "resolved",
+                    OpenIdProtocol.TokenTypes.Bearer,
+                    DateTimeOffset.MaxValue
+                )
+            )
+        );
+
+        using var response = await client.SendAsync(request);
+
+        var recorded = Assert.Single(inner.Requests);
+        Assert.Equal($"{OpenIdProtocol.TokenTypes.Bearer} resolved", recorded.Authorization);
+    }
+
+    [Fact]
+    public async Task SendAsync_ResolvedTokenFailure_Throws()
+    {
+        var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
+        using var client = CreateClient(inner);
+        using var request = new HttpRequestMessage(HttpMethod.Get, RequestUri);
+        request.Options.Set(
+            BffAccessTokenHandler.ResolvedTokenKey,
+            BffTokenResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                BffTokenFailureReasons.SessionRequired
+            )
+        );
+
+        var exception = await Assert.ThrowsAsync<BffTokenUnavailableException>(() =>
+            client.SendAsync(request)
+        );
+
+        Assert.Equal(BffTokenFailureReasons.SessionRequired, exception.Reason);
+        Assert.Empty(inner.Requests);
+    }
+
+    [Fact]
     public async Task SendAsync_BearerToken_ReplacesCallerHeaders()
     {
         SetupResult(

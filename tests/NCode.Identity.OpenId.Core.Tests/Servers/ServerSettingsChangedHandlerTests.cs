@@ -44,7 +44,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
             x.CreateTimer(
                 It.IsAny<TimerCallback>(),
                 It.IsAny<object?>(),
-                ServerSettingsChangedHandler.PostCommitTimeout,
+                PostCommitWork.Timeout,
                 Timeout.InfiniteTimeSpan
             );
 

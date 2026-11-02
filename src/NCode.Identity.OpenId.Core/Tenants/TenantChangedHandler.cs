@@ -32,11 +32,6 @@ internal sealed class TenantChangedHandler(
     ILogger<TenantChangedHandler> logger
 ) : ICommandHandler<TenantChangedCommand>
 {
-    /// <summary>
-    /// Gets the time the eviction and the announcement that follow a committed change may each take.
-    /// </summary>
-    internal static TimeSpan PostCommitTimeout => TimeSpan.FromSeconds(30);
-
     private IOpenIdTenantCache TenantCache { get; } = tenantCache;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IReplicaBroadcaster ReplicaBroadcaster { get; } = replicaBroadcaster;
@@ -55,7 +50,7 @@ internal sealed class TenantChangedHandler(
         // See ADR-1351.
         try
         {
-            await EvictAsync(command.TenantId);
+            await PostCommitWork.RunAsync(TimeProvider, EvictAsync, command.TenantId);
 
             // Only a settings change can make the tenant need a key it lacks. Seeding after any other change would, say,
             // provision again at once the key a secret delete just removed.
@@ -73,21 +68,19 @@ internal sealed class TenantChangedHandler(
         }
         finally
         {
-            await BroadcastAsync(command.TenantId);
+            await PostCommitWork.RunAsync(TimeProvider, BroadcastAsync, command.TenantId);
         }
     }
 
     /// <summary>
     /// Evicts the tenant from this replica's cache, and its master keys from this replica's memory.
     /// </summary>
-    private async ValueTask EvictAsync(string tenantId)
+    private async ValueTask EvictAsync(string tenantId, CancellationToken cancellationToken)
     {
-        using var timeoutSource = new CancellationTokenSource(PostCommitTimeout, TimeProvider);
-
         // Evict first: a request that misses the cache from here on materializes the tenant, which seeds it too, so the
         // eviction never serves a state older than the change.
         var propertyBag = PropertyBagFactory.Create();
-        await TenantCache.RemoveAsync(tenantId, propertyBag, timeoutSource.Token);
+        await TenantCache.RemoveAsync(tenantId, propertyBag, cancellationToken);
 
         // A deleted tenant's master keys must not stay usable on any replica, so they leave this replica's memory with
         // the tenant.
@@ -99,16 +92,14 @@ internal sealed class TenantChangedHandler(
     /// Announces the changed tenant to every replica, this one included. A failure is logged and swallowed, because the
     /// change is already committed.
     /// </summary>
-    private async ValueTask BroadcastAsync(string tenantId)
+    private async ValueTask BroadcastAsync(string tenantId, CancellationToken cancellationToken)
     {
-        using var timeoutSource = new CancellationTokenSource(PostCommitTimeout, TimeProvider);
-
         try
         {
             await ReplicaBroadcaster.PublishAsync(
                 TenantChangeBroadcastHandler.ChannelName,
                 tenantId,
-                timeoutSource.Token
+                cancellationToken
             );
         }
         catch (Exception exception)

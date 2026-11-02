@@ -20,9 +20,10 @@ such inline effects on `CancellationToken.None` with their own timeout
 ## Decision
 
 1. **Each step after the commit runs on its own bounded token.** `TenantChangedHandler`'s eviction (the tenant cache
-   and the master keys) and announcement, and `ServerSettingsChangedHandler`'s refresh and announcement, each run on
-   `CancellationToken.None` bounded by `PostCommitTimeout`, 30 seconds, through the injected `TimeProvider`. The
-   request's token reaches none of them.
+   and the master keys) and announcement, and `ServerSettingsChangedHandler`'s refresh and announcement, each run
+   through `PostCommitWork.RunAsync`, on `CancellationToken.None` bounded by `PostCommitWork.Timeout`, 30 seconds,
+   through the injected `TimeProvider`. The one helper holds the one bound, and each step takes the token it creates as
+   its last parameter. The request's token reaches none of them.
 
 2. **A failed refresh or announcement is logged, and the write succeeds.** Whatever it threw, it is logged
    (`ServerSettingsChangeRefreshFailed`, `ServerSettingsChangeBroadcastFailed`, `TenantChangeBroadcastFailed`), because
@@ -65,5 +66,5 @@ such inline effects on `CancellationToken.None` with their own timeout
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)
 - Issue [#485](https://github.com/NCodeGroup/Identity/issues/485)
-- `TenantChangedHandler.cs` and `ServerSettingsChangedHandler.cs` in `NCode.Identity.OpenId.Core`, and
-  `DefaultInProcessReplicaBroadcaster.cs` in `NCode.Identity.SharedState`
+- `PostCommitWork.cs`, `TenantChangedHandler.cs` and `ServerSettingsChangedHandler.cs` in `NCode.Identity.OpenId.Core`,
+  and `DefaultInProcessReplicaBroadcaster.cs` in `NCode.Identity.SharedState`

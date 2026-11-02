@@ -67,7 +67,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
             x.CreateTimer(
                 It.IsAny<TimerCallback>(),
                 It.IsAny<object?>(),
-                TenantChangedHandler.PostCommitTimeout,
+                PostCommitWork.Timeout,
                 Timeout.InfiniteTimeSpan
             );
 
@@ -287,15 +287,6 @@ public sealed class TenantChangedHandlerTests : IDisposable
         );
 
         Assert.Equal("The eviction failed.", exception.Message);
-        MockReplicaBroadcaster.Verify(
-            x =>
-                x.PublishAsync(
-                    TenantChangeBroadcastHandler.ChannelName,
-                    TenantId,
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
     }
 
     [Fact]

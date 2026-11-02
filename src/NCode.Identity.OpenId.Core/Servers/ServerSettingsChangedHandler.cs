@@ -26,11 +26,6 @@ internal sealed class ServerSettingsChangedHandler(
     ILogger<ServerSettingsChangedHandler> logger
 ) : ICommandHandler<ServerSettingsChangedCommand>
 {
-    /// <summary>
-    /// Gets the time the refresh and the announcement that follow a committed change may each take.
-    /// </summary>
-    internal static TimeSpan PostCommitTimeout => TimeSpan.FromSeconds(30);
-
     private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
         materializedServerRegistry;
     private IReplicaBroadcaster ReplicaBroadcaster { get; } = replicaBroadcaster;
@@ -45,21 +40,19 @@ internal sealed class ServerSettingsChangedHandler(
     {
         // The change is committed, so neither step takes the request's token: each runs on its own bounded token, and a
         // client that disconnects cannot skip them. See ADR-1351.
-        await RefreshAsync(command.ServerId);
-        await BroadcastAsync(command.ServerId);
+        await PostCommitWork.RunAsync(TimeProvider, RefreshAsync, command.ServerId);
+        await PostCommitWork.RunAsync(TimeProvider, BroadcastAsync, command.ServerId);
     }
 
     /// <summary>
     /// Reads the server's committed settings again on this replica. A failure is logged and swallowed, because the
     /// change is already committed.
     /// </summary>
-    private async ValueTask RefreshAsync(string serverId)
+    private async ValueTask RefreshAsync(string serverId, CancellationToken cancellationToken)
     {
-        using var timeoutSource = new CancellationTokenSource(PostCommitTimeout, TimeProvider);
-
         try
         {
-            await MaterializedServerRegistry.RefreshSettingsAsync(serverId, timeoutSource.Token);
+            await MaterializedServerRegistry.RefreshSettingsAsync(serverId, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -74,16 +67,14 @@ internal sealed class ServerSettingsChangedHandler(
     /// Announces the changed server settings to every replica, this one included. A failure is logged and swallowed,
     /// because the change is already committed.
     /// </summary>
-    private async ValueTask BroadcastAsync(string serverId)
+    private async ValueTask BroadcastAsync(string serverId, CancellationToken cancellationToken)
     {
-        using var timeoutSource = new CancellationTokenSource(PostCommitTimeout, TimeProvider);
-
         try
         {
             await ReplicaBroadcaster.PublishAsync(
                 ServerSettingsChangeBroadcastHandler.ChannelName,
                 serverId,
-                timeoutSource.Token
+                cancellationToken
             );
         }
         catch (Exception exception)

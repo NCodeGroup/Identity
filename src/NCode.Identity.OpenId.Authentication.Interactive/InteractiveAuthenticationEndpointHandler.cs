@@ -1120,7 +1120,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                     HttpOnly = false,
                     Path = "/",
                     SameSite = SameSiteMode.Strict,
-                    Secure = httpContext.Request.IsHttps,
+                    Secure = true,
                 }
             );
         }

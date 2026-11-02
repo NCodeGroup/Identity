@@ -73,6 +73,33 @@ public class InteractiveLoginAntiforgeryTests
         Assert.Equal(ReturnUrl, secondLogin.Headers.Location?.OriginalString);
     }
 
+    [Fact]
+    public async Task GetLogin_OnPlainHttp_AppendsTheRequestTokenCookieAsSecure()
+    {
+        using var factory = new HostApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+
+        using var response = await client.GetAsync(
+            $"/account/login?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}"
+        );
+
+        // A __Host- cookie without Secure is dropped by a browser, so it is Secure even on a plain-HTTP request.
+        Assert.True(response.Headers.TryGetValues("Set-Cookie", out var cookies));
+        var setCookie = Assert.Single(
+            cookies,
+            cookie =>
+                cookie.StartsWith($"{AntiforgeryRequestCookieName}=", StringComparison.Ordinal)
+        );
+        var attributes = setCookie.Split(';').Skip(1).Select(x => x.Trim().ToLowerInvariant());
+        Assert.Contains("secure", attributes);
+    }
+
     private static async Task<(
         string? RequestToken,
         string? CookieToken

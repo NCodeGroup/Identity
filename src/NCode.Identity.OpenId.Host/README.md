@@ -44,11 +44,15 @@ A **Production** host refuses to start without a real root key, and a root key m
 
 | Setting                                           | Meaning                                                                                            |
 |---------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| `SecretProtection:RootKeyProvider`                | `ephemeral`, `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms`, or another registered name |
+| `SecretProtection:RootKeyProvider`                | Required: `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms`, `ephemeral` or another name   |
 | `SecretProtection:RootKeyProviders:Local:KeyPath` | File with a base64url 32-byte key (the `local` provider)                                           |
 | `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                                                    |
 | `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys                                     |
 | `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key                                          |
+
+The setting is required: a host that leaves it unset stops when it starts, naming it. `ephemeral` keeps the root key in
+memory, so it suits only development and tests, and Production refuses it
+([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 
 Further providers ship as packages that register themselves by name. The reference host registers the three below, and
 each stays inert until `SecretProtection:RootKeyProvider` selects it. `aws-kms` takes
@@ -64,8 +68,10 @@ Default Credentials. None of them reads a credential from configuration. The
 `LocalApplicationData/NCode.Identity/LocalDev/root-key` (owner-only on Unix) and hands it to both OP instances it
 starts, the `api` and the conformance instance, which share the one database. That key lives outside the repository.
 `build/dev-db-reset.ps1` resets the database and keeps the key; to replace the key, stop the AppHost, delete the file
-and reset the database together. A Development host started without the AppHost uses `ephemeral`, which suits tests and
-throwaway databases. After pulling a change that alters how secrets are protected, existing development tenants lose
+and reset the database together. A host started without the AppHost selects `ephemeral` in
+`appsettings.Development.json`, and in `appsettings.Conformance.json` for the `Conformance` profile, which suits its
+in-memory database: its stored secrets do not survive a restart. After pulling a change that alters how secrets are
+protected, existing development tenants lose
 their unreadable keys automatically and are provisioned again; reset the database if client secrets matter.
 
 ## Schema management (EF Core migrations)

@@ -374,6 +374,12 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         }
     }
 
+    // A URL with user info may carry a password, which a failure message never quotes.
+    private static string QuoteUrl(string? url) =>
+        url is not null && url.Contains('@', StringComparison.Ordinal)
+            ? "(withheld because it contains '@')"
+            : $"'{url}'";
+
     private static void ValidateAuthority(
         string? authority,
         bool isDevelopment,
@@ -396,8 +402,8 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         {
             failures.Add(
                 isDevelopment
-                    ? "Bff:Authority must be an absolute 'https:' or 'http:' URI without whitespace."
-                    : "Bff:Authority must be an absolute 'https:' URI without whitespace."
+                    ? $"Bff:Authority {QuoteUrl(authority)} must be an absolute 'https:' or 'http:' URI without whitespace."
+                    : $"Bff:Authority {QuoteUrl(authority)} must be an absolute 'https:' URI without whitespace."
             );
         }
     }
@@ -428,7 +434,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         if (!isValid)
         {
             failures.Add(
-                "Bff:PublicOrigin must be the absolute URL the BFF is published at — scheme, host, optional port and path base, without user info, a query, a fragment or a trailing '/' — and must use 'https' outside Development."
+                $"Bff:PublicOrigin {QuoteUrl(publicOrigin)} must be the absolute URL the BFF is published at — scheme, host, optional port and path base, without user info, a query, a fragment or a trailing '/' — and must use 'https' outside Development."
             );
         }
     }

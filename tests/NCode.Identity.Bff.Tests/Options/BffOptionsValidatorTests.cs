@@ -85,6 +85,63 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Fact]
+    public void Validate_WhenPublicOriginInvalid_NamesTheValue()
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = "https://app.example.com/";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith(
+                    "Bff:PublicOrigin 'https://app.example.com/' must",
+                    StringComparison.Ordinal
+                )
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenPublicOriginHasUserInfo_WithholdsTheValue()
+    {
+        var options = CreateValidOptions();
+        options.PublicOrigin = "https://user:secret@app.example.com";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:PublicOrigin"));
+        Assert.DoesNotContain(result.Failures ?? [], x => x.Contains("secret"));
+    }
+
+    [Fact]
+    public void Validate_WhenAuthorityInvalid_NamesTheValue()
+    {
+        var options = CreateValidOptions();
+        options.Authority = "http://op.example.com";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith("Bff:Authority 'http://op.example.com' must", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenAuthorityHasUserInfo_WithholdsTheValue()
+    {
+        var options = CreateValidOptions();
+        options.Authority = "http://user:secret@op.example.com";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Authority"));
+        Assert.DoesNotContain(result.Failures ?? [], x => x.Contains("secret"));
+    }
+
+    [Fact]
     public void Validate_WhenPublicOriginHasAPathBase_Succeeds()
     {
         var options = CreateValidOptions();

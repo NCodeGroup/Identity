@@ -10,12 +10,12 @@ namespace NCode.Identity.Bff.Server.Tests;
 
 public class BffRefreshLeaseValidatorTests : BaseTests
 {
-    private BffRefreshLeaseValidator CreateValidator(TimeSpan requestTimeout)
+    private BffRefreshLeaseValidator CreateValidator(TimeSpan totalTimeout)
     {
         var mockClientOptions = CreateStrictMock<IOptions<OpenIdClientOptions>>();
         mockClientOptions
             .Setup(x => x.Value)
-            .Returns(new OpenIdClientOptions { RequestTimeout = requestTimeout })
+            .Returns(new OpenIdClientOptions { TotalTimeout = totalTimeout })
             .Verifiable();
         return new BffRefreshLeaseValidator(mockClientOptions.Object);
     }

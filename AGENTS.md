@@ -62,7 +62,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Three family records override template records:
+so a bare ADR number names one record. Four family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -72,6 +72,10 @@ so a bare ADR number names one record. Three family records override template re
 - [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
   two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
   client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
+- [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) supersedes
+  project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for the OpenID protocol client, which
+  bounds its calls with the same Polly strategies through `Polly.Core` alone, so it does not carry the telemetry
+  dependency that replaces consumers' logging generator.
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.

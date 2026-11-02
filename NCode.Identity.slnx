@@ -73,6 +73,7 @@
         <Project Path="src/NCode.Time/NCode.Time.csproj" />
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="tests/NCode.AspNetCore.Tests/NCode.AspNetCore.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Server.Tests/NCode.Identity.Bff.Server.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Tests/NCode.Identity.Bff.Tests.csproj" />

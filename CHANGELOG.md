@@ -4664,6 +4664,21 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
+- **The guarded client's `TotalTimeout` is no longer cut at 100 seconds.** The one client that serves every fetch of,
+  and delivery to, a caller-supplied URL kept `HttpClient`'s default 100-second timeout, so an
+  `OutboundHttpOptions.TotalTimeout` above 100 seconds was silently cut short; the client's own timeout is now off,
+  and the options are its only time bound
+  ([#481](https://github.com/NCodeGroup/Identity/issues/481),
+  [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+- **A committed tenant or server settings change no longer fails when its announcement times out.**
+  `TenantChangedHandler` and `ServerSettingsChangedHandler` evicted, read back and announced a committed change with
+  the request's token and let an `OperationCanceledException` through, so a client that disconnected skipped the
+  announcement and a store or Valkey timeout that surfaced as `TaskCanceledException` failed a write that had already
+  committed; each of those steps now runs on its own 30-second token, a failed refresh or announcement is logged, and
+  a failed eviction is still announced. The in-process replica broadcaster now lets a handler's
+  `OperationCanceledException` through only when the publisher cancelled
+  ([#485](https://github.com/NCodeGroup/Identity/issues/485),
+  [ADR-1351](docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
 - **A store timeout no longer stops the grant prune.** `GrantPruneService` let an `OperationCanceledException` through,
   so a store timeout that surfaced as `TaskCanceledException` ended the service and, under
   `BackgroundServiceExceptionBehavior.StopHost`, the host; it now logs the failure (`GrantPruneFailed`) and prunes

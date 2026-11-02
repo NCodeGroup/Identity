@@ -1361,6 +1361,10 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   types the rule found unsealed in assemblies without `InternalsVisibleTo` are sealed
   ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
   [#477](https://github.com/NCodeGroup/Identity/issues/477)).
+- **The template's `CA1848` and, in tests, `CA1822` analyzers are on again.** `.editorconfig` no longer turns off
+  `CA1848` (use `LoggerMessage` delegates) or, in tests, `CA1822` (mark members as static): the migration worker
+  logs through source-generated `[LoggerMessage]` methods with event IDs in its own `20000`–`20999` band, and the
+  test helpers that read no instance state are `static` ([#490](https://github.com/NCodeGroup/Identity/issues/490)).
 
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`

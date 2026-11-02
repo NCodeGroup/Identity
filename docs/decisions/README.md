@@ -375,3 +375,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1350](./1350-a-shared-fetch-is-single-flight-through-one-helper.md) | A shared fetch is single-flight through one helper | Accepted |
 | [1351](./1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) | A committed change is applied and announced on its own bounded token | Accepted |
 | [1385](./1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) | No shipping package switches off its consumers' logging generator | Accepted |
+| [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |

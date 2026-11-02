@@ -1330,6 +1330,19 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   `.github/instructions/convention-audit.instructions.md`.
 - **Dependabot waits three days before it offers a new NuGet package, action or base image**, and gives NCode Review's
   pin bump a group of its own.
+- **The process decisions follow the project template's.** Release lines are a decision of their own,
+  [ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md), which refines
+  project-template ADR-0004 and supersedes ADR-1125: no integration branch returns with a second contributor or the
+  first stable release.
+  [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
+  project-template ADR-0007 and ADR-1264: pending work stays in GitHub issues, and a Markdown file still links an issue
+  by its address, because GitHub doesn't autolink `#123` in a file. ADR-1125 and ADR-1264 no longer carry a
+  `**Conflicts with:**` line ([#439](https://github.com/NCodeGroup/Identity/issues/439)).
+- **identity-platform's template overrides have a decision record.**
+  [ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)
+  records that `NCodeGroup/identity-platform` keeps its decisions in this repository's `docs/decisions/` and its pending
+  work in this repository's issues, and that its `main` takes only squash merges: the three project-template records it
+  overrides ([#438](https://github.com/NCodeGroup/Identity/issues/438)).
 
 - **JSON is parsed into detached elements only.** `JsonDocument.Parse`, `ParseAsync`, `ParseValue` and `TryParseValue`
   are banned (`BannedSymbols.txt`, RS0030) in production and test code, which now parse with `JsonElement.Parse` and

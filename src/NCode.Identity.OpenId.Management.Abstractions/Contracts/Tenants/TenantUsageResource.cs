@@ -23,8 +23,9 @@ namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 
 /// <summary>
 /// Represents the REST resource for a tenant's usage on a range of UTC calendar days, read from the durable daily
-/// ledger the platform bills a plan by (ADR-1199).
+/// ledger the platform bills a plan by.
 /// </summary>
+// See ADR-1199.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class TenantUsageResource

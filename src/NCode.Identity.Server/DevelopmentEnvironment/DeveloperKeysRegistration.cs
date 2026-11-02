@@ -16,10 +16,11 @@ namespace NCode.Identity.Server;
 /// master key, or the root key that wraps it, is lost or changed.
 /// </summary>
 /// <remarks>
-/// It is not needed for a server to have keys: every tenant is provisioned with persisted keys (ADR-1169). It changes
+/// It is not needed for a server to have keys: every tenant is provisioned with persisted keys. It changes
 /// only what development needs: keys are replaced rather than failing the tenant when the master key that protected them
 /// can no longer be unwrapped. It may not be used in production.
 /// </remarks>
+// See ADR-1169.
 [PublicAPI]
 public static class DeveloperKeysRegistration
 {

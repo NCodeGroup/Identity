@@ -20,9 +20,10 @@ namespace NCode.Identity.Server;
 /// <remarks>
 /// Allowed origins come from <see cref="DeveloperCorsOptions"/>, bound from the <c>Cors</c> configuration section. The
 /// section is the opt-in: without it no policy is registered, and the library carries no origins of its own. The host's
-/// Development overlay lists the origins it allows (ADR-1313). This is intentionally NOT part of the default
+/// Development overlay lists the origins it allows. This is intentionally NOT part of the default
 /// registrations.
 /// </remarks>
+// See ADR-1313.
 [PublicAPI]
 public static class DeveloperCorsRegistration
 {
@@ -36,7 +37,7 @@ public static class DeveloperCorsRegistration
         /// <summary>
         /// Registers the development CORS policy (<see cref="PolicyName"/>) whose allowed origins come from
         /// <see cref="DeveloperCorsOptions"/>. It registers nothing without a <c>Cors</c> section: the library carries no
-        /// origins, and the host's Development overlay lists them (ADR-1313). Apply the policy to the request pipeline
+        /// origins, and the host's Development overlay lists them. Apply the policy to the request pipeline
         /// with <c>UseDeveloperCors</c>. It must not be used to grant production cross-origin access implicitly.
         /// </summary>
         /// <remarks>
@@ -46,6 +47,7 @@ public static class DeveloperCorsRegistration
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the <c>Cors</c> section.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
+        // See ADR-1313.
         public IServiceCollection AddDeveloperCors(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(configuration);

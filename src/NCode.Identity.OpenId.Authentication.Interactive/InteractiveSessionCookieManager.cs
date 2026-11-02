@@ -12,8 +12,9 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <summary>
 /// The <see cref="ICookieManager"/> of the interactive session cookie. The cookie is host-only (<c>Path=/</c>, no
 /// <c>Domain</c>, <c>Secure</c>), and tenants that share an origin under the path strategy are separated by name: a
-/// tenant served under a path gets a cookie name qualified by a hash of that path (ADR-1310).
+/// tenant served under a path gets a cookie name qualified by a hash of that path.
 /// </summary>
+// See ADR-1310.
 internal sealed class InteractiveSessionCookieManager(InteractiveSurfacePaths surfacePaths)
     : ICookieManager
 {

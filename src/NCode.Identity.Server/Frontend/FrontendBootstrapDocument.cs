@@ -38,12 +38,13 @@ internal sealed record FrontendBootstrapDocument
     /// Builds the bootstrap document from the configured <paramref name="options"/> and the resolved
     /// <paramref name="issuer"/>. When <see cref="FrontendBootstrapOptions.ApiBaseUrl"/> is not configured, the API base
     /// is the host's <paramref name="pathBase"/>, root-relative (<c>/</c> at the root), so the browser resolves it
-    /// against the origin that served the bundle and the request's <c>Host</c> contributes nothing (ADR-1312). When
+    /// against the origin that served the bundle and the request's <c>Host</c> contributes nothing. When
     /// <paramref name="surface"/> names a
     /// configured <see cref="FrontendBootstrapOptions.Surfaces"/> entry, that surface's coordinates (client id,
     /// scopes, feature flags, branding) are published instead of the host default; an unknown or absent surface
     /// receives the default.
     /// </summary>
+    // See ADR-1312.
     public static FrontendBootstrapDocument Create(
         FrontendBootstrapOptions options,
         string issuer,

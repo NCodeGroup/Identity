@@ -15,8 +15,12 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management;
 
-public class OwnershipHandlerTests
+public class OwnershipHandlerTests : IDisposable
 {
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
+    public void Dispose() => MockRepository.Verify();
+
     private const string RootTenantId = "root";
     private const string TenantId = "tenant-1";
     private const string Subject = "subject-1";
@@ -47,24 +51,62 @@ public class OwnershipHandlerTests
             ConcurrencyToken = string.Empty,
         };
 
-    private static async Task<bool> HandleAsync(
+    // A requirement the handler does not decide reads nothing, and a caller without a principal reads no assignments.
+    private async Task<bool> HandleAsync(
+        IAuthorizationRequirement requirement,
+        IResourceNode resource,
+        ClaimsPrincipal user,
+        PersistedRoleAssignment[] assignments,
+        bool decides = true,
+        bool readsAssignments = true
+    )
+    {
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
+        var accessor = MockRepository.Create<IHttpContextAccessor>();
+        if (decides)
+        {
+            SetupDecision(factory, resolver, accessor, assignments, readsAssignments);
+        }
+
+        var options = Options.Create(
+            new TenantResolutionOptions { Root = { TenantId = RootTenantId } }
+        );
+        var handler = new OwnershipHandler(
+            factory.Object,
+            resolver.Object,
+            accessor.Object,
+            options
+        );
+        var context = new AuthorizationHandlerContext([requirement], user, resource);
+
+        await handler.HandleAsync(context);
+
+        return context.HasSucceeded;
+    }
+
+    private Task<bool> HandleAsync(
         IAuthorizationRequirement requirement,
         IResourceNode resource,
         ClaimsPrincipal user,
         params PersistedRoleAssignment[] assignments
+    ) => HandleAsync(requirement, resource, user, assignments, decides: true);
+
+    private void SetupDecision(
+        Mock<IStoreManagerFactory> factory,
+        Mock<IPrincipalResolver> resolver,
+        Mock<IHttpContextAccessor> accessor,
+        PersistedRoleAssignment[] assignments,
+        bool readsAssignments
     )
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var factory = mocks.Create<IStoreManagerFactory>();
-        var manager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
-        var resolver = mocks.Create<IPrincipalResolver>();
+        var manager = MockRepository.Create<IStoreManager>();
 
         factory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manager.Object);
-        manager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+            .ReturnsAsync(manager.Object)
+            .Verifiable();
+        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         // The resolver maps the caller to a stable principal id; mirror the token's subject claim (ADR-1035).
         resolver
             .Setup(x =>
@@ -82,34 +124,30 @@ public class OwnershipHandlerTests
                     IStoreManager _,
                     CancellationToken _
                 ) => callerUser.FindFirstValue("sub")
-            );
-        store
-            .Setup(x => x.GetByPrincipalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(assignments.ToList());
+            )
+            .Verifiable();
+        if (readsAssignments)
+        {
+            var store = MockRepository.Create<IRoleAssignmentStore>();
+            manager
+                .Setup(x => x.GetStore<IRoleAssignmentStore>())
+                .Returns(store.Object)
+                .Verifiable();
+            store
+                .Setup(x =>
+                    x.GetByPrincipalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
+                )
+                .ReturnsAsync(assignments.ToList())
+                .Verifiable();
+        }
 
         // OwnershipHandler reads the ambient OpenIdContext from the request (the one blessed async-local seam).
-        var openIdContext = mocks.Create<OpenIdContext>();
-        var feature = mocks.Create<IOpenIdContextFeature>();
-        feature.Setup(x => x.OpenIdContext).Returns(openIdContext.Object);
+        var openIdContext = MockRepository.Create<OpenIdContext>();
+        var feature = MockRepository.Create<IOpenIdContextFeature>();
+        feature.Setup(x => x.OpenIdContext).Returns(openIdContext.Object).Verifiable();
         var httpContext = new DefaultHttpContext();
         httpContext.Features.Set(feature.Object);
-        var accessor = mocks.Create<IHttpContextAccessor>();
-        accessor.Setup(x => x.HttpContext).Returns(httpContext);
-
-        var options = Options.Create(
-            new TenantResolutionOptions { Root = { TenantId = RootTenantId } }
-        );
-        var handler = new OwnershipHandler(
-            factory.Object,
-            resolver.Object,
-            accessor.Object,
-            options
-        );
-        var context = new AuthorizationHandlerContext([requirement], user, resource);
-
-        await handler.HandleAsync(context);
-
-        return context.HasSucceeded;
+        accessor.Setup(x => x.HttpContext).Returns(httpContext).Verifiable();
     }
 
     #region HandleRequirementAsync Tests
@@ -160,7 +198,8 @@ public class OwnershipHandlerTests
             Operations.Create,
             ClientNode(),
             CreateSubject(),
-            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")
+            [Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")],
+            decides: false
         );
 
         Assert.False(succeeded);
@@ -199,7 +238,8 @@ public class OwnershipHandlerTests
             Operations.Delete,
             ClientNode(),
             CreateUser(),
-            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")
+            [Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")],
+            readsAssignments: false
         );
 
         Assert.False(succeeded);

@@ -41,7 +41,12 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     }
 
     // The actor id is derived through the host-configured environment seam; mirror the default `sub` extraction.
-    private DefaultManagementAuditRecorder CreateRecorder(IEventPublisher eventPublisher)
+    // A change in a tenant whose event carries no environment type resolves the tenant's; a server change or an event
+    // already stamped with one does not.
+    private DefaultManagementAuditRecorder CreateRecorder(
+        IEventPublisher eventPublisher,
+        bool resolvesTenantEnvironment = true
+    )
     {
         var mockEnvironment = MockRepository.Create<OpenIdEnvironment>();
         mockEnvironment
@@ -51,22 +56,27 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(
                 (ClaimsPrincipal principal, IReadOnlyCollection<string> _) =>
                     principal.FindFirst("sub")?.Value
-            );
+            )
+            .Verifiable();
 
         var mockEnvironmentProvider = MockRepository.Create<IOpenIdEnvironmentProvider>();
-        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object);
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
 
         var mockTenantEnvironmentResolver =
             MockRepository.Create<IManagementTenantEnvironmentResolver>();
-        mockTenantEnvironmentResolver
-            .Setup(x =>
-                x.GetEnvironmentTypeAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()
+        if (resolvesTenantEnvironment)
+        {
+            mockTenantEnvironmentResolver
+                .Setup(x =>
+                    x.GetEnvironmentTypeAsync(
+                        It.IsAny<HttpContext>(),
+                        It.IsAny<string>(),
+                        It.IsAny<CancellationToken>()
+                    )
                 )
-            )
-            .ReturnsAsync(TenantEnvironmentType);
+                .ReturnsAsync(TenantEnvironmentType)
+                .Verifiable();
+        }
 
         return new DefaultManagementAuditRecorder(
             eventPublisher,
@@ -488,7 +498,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = CreateRecorder(mockPublisher.Object);
+        var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
 
         var httpContext = CreateHttpContext("admin-1");
         var resourceValues = JsonSerializer.SerializeToElement(new { displayName = "My Server" });
@@ -547,7 +557,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var recorder = CreateRecorder(mockPublisher.Object);
+        var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
 
         var httpContext = CreateHttpContext("admin-1");
 
@@ -823,7 +833,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        var recorder = CreateRecorder(mockPublisher.Object);
+        var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
 
         await recorder.RecordResourceChangeAsync(
             CreateHttpContext("admin-1"),

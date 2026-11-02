@@ -1465,14 +1465,15 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Rotates a client secret: generates a replacement of the same type, size, use, and algorithm, and removes the
-    /// rotated secret in the same change.
+    /// Rotates a client secret: generates a replacement of the same type, use, and algorithm and adds it beside the
+    /// rotated secret.
     /// </summary>
     /// <remarks>
     /// Only a client's shared secret is rotated; a key is the client's to hold and is replaced by importing a new one.
-    /// The rotated secret stops being accepted at once, so a client that needs both to overlap creates the replacement
-    /// and deletes the rotated secret in two calls. Rotation is authorized as those two calls are. The replacement's
-    /// material is revealed in the response only.
+    /// Both secrets are accepted until the rotated one expires or is deleted, so its holder can switch without an
+    /// outage; the optional <see cref="RotateSecretRequest.RotatedExpiresWhen"/> bounds that overlap by shortening the
+    /// rotated secret's expiry, never extending it. Rotation is authorized as the create and the update it performs.
+    /// The replacement's material is revealed in the response only.
     /// </remarks>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
@@ -1482,7 +1483,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the rotated secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The replacement secret.</response>
-    // See ADR-1183.
+    // See ADR-1320.
     [EndpointName("api/clients/secrets/rotate")]
     internal virtual async ValueTask<IResult> RotateSecretAsync(
         HttpContext httpContext,
@@ -1516,12 +1517,12 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var deleteResult = await AuthorizationService.AuthorizeAsync(
+        var updateResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             TenantOwnedResource.For(client.TenantId, secret),
-            Operations.Delete
+            Operations.Update
         );
-        if (!deleteResult.Succeeded)
+        if (!updateResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
         }
@@ -1546,7 +1547,7 @@ internal class ClientApiEndpointHandler(
         var createRequest = new CreateSecretRequest
         {
             SecretType = secret.SecretType,
-            KeySizeBits = secret.KeySizeBits,
+            KeySizeBits = GetReplacementEntropyBits(secret.KeySizeBits),
             Use = secret.Use,
             Algorithm = secret.Algorithm,
             ExpiresWhen = request.ExpiresWhen,
@@ -1593,10 +1594,13 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        var rotatedValues = ToResourceValues(ToSecretResource(secret));
+        // The replacement is added beside the rotated secret in one unit of work; the rotated secret keeps
+        // authenticating until its (possibly shortened) expiry passes or it is deleted (ADR-1320).
+        var rotatedExpiresWhen =
+            request.RotatedExpiresWhen is { } requested && requested < secret.ExpiresWhen
+                ? requested
+                : secret.ExpiresWhen;
 
-        // The replacement is added and the rotated secret removed in one unit of work, so the client is never left
-        // with both or with neither.
         try
         {
             await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
@@ -1610,7 +1614,27 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        await store.RemoveSecretAsync(clientId, secretId, cancellationToken);
+        PersistedSecret? shortened = null;
+        if (rotatedExpiresWhen != secret.ExpiresWhen)
+        {
+            shortened = new PersistedSecret
+            {
+                SecretId = secret.SecretId,
+                KeyId = secret.KeyId,
+                ConcurrencyToken = secret.ConcurrencyToken,
+                Use = secret.Use,
+                Algorithm = secret.Algorithm,
+                CreatedWhen = secret.CreatedWhen,
+                ExpiresWhen = rotatedExpiresWhen,
+                SecretType = secret.SecretType,
+                SecretEncoding = secret.SecretEncoding,
+                KeySizeBits = secret.KeySizeBits,
+                EncodedValue = secret.EncodedValue,
+                PublicKey = secret.PublicKey,
+            };
+            await store.UpdateSecretAsync(clientId, shortened, cancellationToken);
+        }
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var replacementResource = ToSecretResource(generatedSecret.Secret);
@@ -1624,15 +1648,18 @@ internal class ClientApiEndpointHandler(
             ToResourceValues(replacementResource),
             cancellationToken
         );
-        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
-            httpContext,
-            client.TenantId,
-            clientId,
-            secretId,
-            ResourceChangeTypes.Deleted,
-            rotatedValues,
-            cancellationToken
-        );
+        if (shortened is not null)
+        {
+            await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+                httpContext,
+                client.TenantId,
+                clientId,
+                secretId,
+                ResourceChangeTypes.Updated,
+                ToResourceValues(ToSecretResource(shortened)),
+                cancellationToken
+            );
+        }
 
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
 
@@ -1642,6 +1669,11 @@ internal class ClientApiEndpointHandler(
             ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
         );
     }
+
+    // A shared secret stores the UTF-8 length of its base64url string as KeySizeBits, so this recovers the entropy of
+    // the rotated secret; the replacement never grows with each rotation and is never below the floor.
+    internal static int GetReplacementEntropyBits(int storedKeySizeBits) =>
+        Math.Max(SharedSecretPolicy.MinimumEntropyBits, storedKeySizeBits / 8 * 3 / 4 * 8);
 
     /// <summary>
     /// Lists a client's owners.

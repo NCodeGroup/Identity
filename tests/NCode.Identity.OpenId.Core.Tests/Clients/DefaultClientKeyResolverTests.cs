@@ -48,6 +48,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             TimeProvider.System,
             CreateStrictMock<IHttpClientFactory>().Object,
             CreateStrictMock<IOutboundHttpContentReader>().Object,
+            Microsoft.Extensions.Options.Options.Create(new OutboundHttpOptions()),
             CreateStrictMock<IMemoryCache>().Object,
             CreateStrictMock<IClientKeyImporter>().Object,
             CreateStrictMock<ISecretSerializer>().Object,

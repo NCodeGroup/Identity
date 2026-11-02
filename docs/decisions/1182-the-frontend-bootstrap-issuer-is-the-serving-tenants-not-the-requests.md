@@ -1,9 +1,10 @@
 # 1182. The frontend bootstrap issuer is the serving tenant's, not the request's
 
-- **Status:** Accepted
+- **Status:** Accepted (the `apiBaseUrl` default amended by
+  [ADR-1312](1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md): root-relative, never the
+  request's origin)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

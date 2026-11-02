@@ -66,6 +66,16 @@ describe('resolveRoute', () => {
     );
   });
 
+  it('renders the logout confirmation surface for the logout confirmation path', () => {
+    const { container } = renderRoute({ ...baseContext, pathname: '/account/logout/confirm' });
+    expect(container.querySelector('#logout-confirm')).not.toBeNull();
+    expect(container.querySelector('#logout-cancel')).not.toBeNull();
+    expect(
+      (container.querySelector('input[name="ReturnUrl"]') as HTMLInputElement | null)?.value,
+    ).toBe('/authorize');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('renders the change-password surface for the password path', () => {
     const { container } = renderRoute({ ...baseContext, pathname: '/account/password' });
     expect(container.querySelector('#change-password')).not.toBeNull();

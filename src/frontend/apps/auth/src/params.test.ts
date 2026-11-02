@@ -6,6 +6,7 @@ import {
   isAccountPath,
   isApplicationsPath,
   isConsentPath,
+  isLogoutConfirmPath,
   isPasswordPath,
   isSessionsPath,
   readCookie,
@@ -56,6 +57,7 @@ describe('surface page matching beneath a tenant', () => {
     expect(isAccountPath('/acme/account/', TENANT_BASE)).toBe(true);
     expect(isApplicationsPath('/acme/account/applications', TENANT_BASE)).toBe(true);
     expect(isSessionsPath('/acme/account/sessions/', TENANT_BASE)).toBe(true);
+    expect(isLogoutConfirmPath('/acme/account/logout/confirm', TENANT_BASE)).toBe(true);
   });
 
   it('does not match a page of another tenant', () => {
@@ -108,6 +110,18 @@ describe('isPasswordPath', () => {
   it('does not match the account root or other paths', () => {
     expect(isPasswordPath('/account')).toBe(false);
     expect(isPasswordPath('/account/sessions')).toBe(false);
+  });
+});
+
+describe('isLogoutConfirmPath', () => {
+  it('matches the logout confirmation path with trailing slashes', () => {
+    expect(isLogoutConfirmPath('/account/logout/confirm')).toBe(true);
+    expect(isLogoutConfirmPath('/account/logout/confirm/')).toBe(true);
+  });
+
+  it('does not match the logout action or other paths', () => {
+    expect(isLogoutConfirmPath('/account/logout')).toBe(false);
+    expect(isLogoutConfirmPath('/account')).toBe(false);
   });
 });
 

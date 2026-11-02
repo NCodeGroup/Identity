@@ -25,6 +25,9 @@ export const CONSENT_DETAILS_ENDPOINT = 'consent/details';
 /** The surface path the account page's sign-out form posts to (first-party RP-Initiated Logout). */
 export const LOGOUT_ACTION = 'logout';
 
+/** The logout confirmation page, which an end-session request that needs the end-user's confirmation redirects to; its form posts to the same path. */
+export const LOGOUT_CONFIRM_PATH = 'logout/confirm';
+
 /** The account/session ("me") page, served at the interactive surface root. */
 export const ACCOUNT_PATH = './';
 
@@ -116,6 +119,11 @@ export function isSessionsPath(pathname: string, baseUri: string = document.base
 /** True when the given path should render the change-password page. */
 export function isPasswordPath(pathname: string, baseUri: string = document.baseURI): boolean {
   return isSurfacePath(pathname, PASSWORD_PATH, baseUri);
+}
+
+/** True when the given path should render the logout confirmation page. */
+export function isLogoutConfirmPath(pathname: string, baseUri: string = document.baseURI): boolean {
+  return isSurfacePath(pathname, LOGOUT_CONFIRM_PATH, baseUri);
 }
 
 /** Maps a login error code to a human-readable message. */

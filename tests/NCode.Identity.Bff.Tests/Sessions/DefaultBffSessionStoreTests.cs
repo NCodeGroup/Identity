@@ -149,20 +149,25 @@ public class DefaultBffSessionStoreTests : BaseTests
     [Fact]
     public async Task TryCreateAsync_Canceled_PropagatesTheCancellation()
     {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        await cancellationTokenSource.CancelAsync();
+        var cancellation = new OperationCanceledException(cancellationToken);
         MockValues
             .Setup(x =>
                 x.TryAddAsync(
                     It.IsAny<string>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<DateTimeOffset>(),
-                    CancellationToken.None
+                    cancellationToken
                 )
             )
-            .ThrowsAsync(new OperationCanceledException())
+            .ThrowsAsync(cancellation)
             .Verifiable();
+        var record = CreateRecord();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await Store.TryCreateAsync(CreateRecord(), CancellationToken.None)
+            await Store.TryCreateAsync(record, cancellationToken)
         );
     }
 
@@ -523,6 +528,55 @@ public class DefaultBffSessionStoreTests : BaseTests
             new BffRefreshLease("l1", "owner-1"),
             CancellationToken.None
         );
+    }
+
+    [Fact]
+    public async Task ReleaseRefreshLeaseAsync_WhenTheStoreTimesOut_ThrowsStoreUnavailable()
+    {
+        var timeout = new TaskCanceledException("timed out");
+        MockValues
+            .Setup(x =>
+                x.TryRemoveAsync(
+                    "bff:lease:l1",
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(timeout)
+            .Verifiable();
+        var lease = new BffRefreshLease("l1", "owner-1");
+
+        var exception = await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
+            await Store.ReleaseRefreshLeaseAsync(lease, CancellationToken.None)
+        );
+
+        Assert.Same(timeout, exception.InnerException);
+    }
+
+    [Fact]
+    public async Task ReleaseRefreshLeaseAsync_WhenTheCallerCancels_ThrowsOperationCanceled()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        await cancellationTokenSource.CancelAsync();
+        var cancellation = new OperationCanceledException(cancellationToken);
+        MockValues
+            .Setup(x =>
+                x.TryRemoveAsync(
+                    "bff:lease:l1",
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    cancellationToken
+                )
+            )
+            .ThrowsAsync(cancellation)
+            .Verifiable();
+        var lease = new BffRefreshLease("l1", "owner-1");
+
+        var exception = await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Store.ReleaseRefreshLeaseAsync(lease, cancellationToken)
+        );
+
+        Assert.Same(cancellation, exception);
     }
 
     #endregion

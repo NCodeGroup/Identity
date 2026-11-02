@@ -18,6 +18,8 @@ change to the public API is a **major** version bump.
 
 - **The usage ledger's prune interval is an option.** `TenantUsageOptions.PruneInterval` (`OpenId:TenantUsage:PruneInterval`, one hour) sets how often `TenantUsagePruneService` removes the days past retention ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
 
+- **The audit store's prune interval is an option.** `AuditRecordOptions.PruneInterval` (`OpenId:AuditRecords:PruneInterval`, one hour, validated as a timer period when the host starts) sets how often the new `AuditRecordPruneService` removes the audit records past `Retention`; it replaces the hourly prune inside `AuditRecordFlushService`, a batch another replica removed first now counts as progress, and every `OpenId:AuditRecords` validation failure names its option and key ([#468](https://github.com/NCodeGroup/Identity/issues/468), [ADR-1303](docs/decisions/1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)).
+
 - **Project template v0.53.0.** The repository moves from project-template v0.41.1 to v0.53.0. It gains the
   `/address-feedback` command; the weekly `template-update` workflow, which keeps an issue open while a newer template
   version is out; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first
@@ -4702,6 +4704,18 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
+- **A store timeout no longer stops the grant prune.** `GrantPruneService` let an `OperationCanceledException` through,
+  so a store timeout that surfaced as `TaskCanceledException` ended the service and, under
+  `BackgroundServiceExceptionBehavior.StopHost`, the host; it now logs the failure (`GrantPruneFailed`) and prunes
+  again at the next tick, and only the host's stopping token ends it
+  ([#472](https://github.com/NCodeGroup/Identity/issues/472),
+  [ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md)).
+- **A failed refresh-lease release no longer fails a finished BFF refresh.** When the session store could not be
+  reached as the winner released its refresh lease, a refresh whose tokens were already written answered `503`, and a
+  failure of the refresh itself was hidden behind the release's; the release failure is now logged
+  (`RefreshLeaseReleaseFailed`, event 19004) and the lease expires on its own
+  ([#462](https://github.com/NCodeGroup/Identity/issues/462),
+  [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
 - **The changelog's `[Unreleased]` link names `main`.** It linked the commit history of the `dev` branch, which no
   longer exists ([#454](https://github.com/NCodeGroup/Identity/issues/454),
   [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md)).

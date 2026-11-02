@@ -40,4 +40,14 @@ internal static partial class Log
         string reason,
         Exception? exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RefreshLeaseReleaseFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not release a refresh lease; the lease expires on its own"
+    )]
+    internal static partial void RefreshLeaseReleaseFailed(
+        this ILogger logger,
+        Exception exception
+    );
 }

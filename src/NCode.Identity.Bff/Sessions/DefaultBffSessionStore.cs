@@ -55,7 +55,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
             return true;
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -85,7 +85,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
             return new BffSessionRecord(storeKey, found.Version, metadata, protectedPayload);
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -117,7 +117,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
                 cancellationToken
             );
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -144,7 +144,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             var subjectIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
             await indexes.RemoveMemberAsync(subjectIndex, storeKey, cancellationToken);
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -162,7 +162,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             var indexKey = BffStoreKeys.SessionIdIndex(issuer, sessionId);
             return await indexes.GetMembersAsync(indexKey, cancellationToken);
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -180,7 +180,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             var indexKey = BffStoreKeys.SubjectIndex(issuer, subject);
             return await indexes.GetMembersAsync(indexKey, cancellationToken);
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -204,7 +204,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
                 cancellationToken
             );
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -225,7 +225,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
             return found.Value;
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -246,7 +246,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             var added = await values.TryAddAsync(key, value, expiresWhen, cancellationToken);
             return added ? new BffRefreshLease(leaseKey, owner) : null;
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -264,7 +264,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             var stored = await values.GetAsync(key, cancellationToken);
             return stored is not null;
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -282,7 +282,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             using var ownerLease = RentOwnerBytes(lease.Owner, out var owner);
             await values.TryRemoveAsync(key, owner, cancellationToken);
         }
-        catch (Exception exception) when (IsStoreFailure(exception))
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
             throw Unavailable(exception);
         }
@@ -308,8 +308,12 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             ? metadata.IdleExpiresAt
             : metadata.AbsoluteExpiresAt;
 
-    private static bool IsStoreFailure(Exception exception) =>
-        exception is not (OperationCanceledException or BffStoreUnavailableException);
+    private static bool IsStoreFailure(Exception exception, CancellationToken cancellationToken) =>
+        exception is not BffStoreUnavailableException
+        && (
+            exception is not OperationCanceledException
+            || !cancellationToken.IsCancellationRequested
+        );
 
     private static BffStoreUnavailableException Unavailable(Exception exception) =>
         new("The BFF session store is unavailable.", exception);

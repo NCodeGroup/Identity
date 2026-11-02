@@ -87,6 +87,11 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
                 .AsHttpResult();
         }
 
+        // The form is read before client authentication, so an unreadable body is the client's error (400).
+        var formData = await httpContext.Request.TryReadFormAsync(cancellationToken);
+        if (formData is null)
+            return UnreadableForm.CreateError(errorFactory).AsHttpResult();
+
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
             cancellationToken
@@ -109,7 +114,6 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
 
         var openIdClient = authResult.Client;
 
-        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var requestValues = new RequestValuesUsingForm(formData);
 
         // RFC 9126 §2.1: the request_uri authorization request parameter must not be provided to the PAR endpoint.

@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Client.Options;
 /// </summary>
 internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClientOptions>
 {
-    private static readonly TimeSpan MaxRequestTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan MaxTotalTimeout = TimeSpan.FromMinutes(5);
 
     private const int MinMaxResponseSizeBytes = 1024;
 
@@ -43,16 +43,16 @@ internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClie
             );
         }
 
-        if (options.RequestTimeout <= TimeSpan.Zero)
+        if (options.TotalTimeout <= TimeSpan.Zero)
         {
             failures.Add(
-                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.RequestTimeout)} must be greater than zero; it is {options.RequestTimeout}."
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.TotalTimeout)} must be greater than zero; it is {options.TotalTimeout}."
             );
         }
-        else if (options.RequestTimeout > MaxRequestTimeout)
+        else if (options.TotalTimeout > MaxTotalTimeout)
         {
             failures.Add(
-                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.RequestTimeout)} must be at most {MaxRequestTimeout}; it is {options.RequestTimeout}."
+                $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.TotalTimeout)} must be at most {MaxTotalTimeout}; it is {options.TotalTimeout}."
             );
         }
 

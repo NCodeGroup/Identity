@@ -40,7 +40,7 @@ internal class ProviderHttpClient(
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken
         );
-        timeoutSource.CancelAfter(Options.RequestTimeout);
+        timeoutSource.CancelAfter(Options.TotalTimeout);
         var token = timeoutSource.Token;
 
         try

@@ -21,27 +21,27 @@ public class OpenIdClientOptionsValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WithZeroRequestTimeout_Fails()
+    public void Validate_WithZeroTotalTimeout_Fails()
     {
         var result = Validator.Validate(
             null,
-            new OpenIdClientOptions { RequestTimeout = TimeSpan.Zero }
+            new OpenIdClientOptions { TotalTimeout = TimeSpan.Zero }
         );
 
         Assert.True(result.Failed);
-        Assert.Contains(nameof(OpenIdClientOptions.RequestTimeout), result.FailureMessage);
+        Assert.Contains(nameof(OpenIdClientOptions.TotalTimeout), result.FailureMessage);
     }
 
     [Fact]
-    public void Validate_WithRequestTimeoutOverTheMaximum_Fails()
+    public void Validate_WithTotalTimeoutOverTheMaximum_Fails()
     {
         var result = Validator.Validate(
             null,
-            new OpenIdClientOptions { RequestTimeout = TimeSpan.FromMinutes(6) }
+            new OpenIdClientOptions { TotalTimeout = TimeSpan.FromMinutes(6) }
         );
 
         Assert.True(result.Failed);
-        Assert.Contains(nameof(OpenIdClientOptions.RequestTimeout), result.FailureMessage);
+        Assert.Contains(nameof(OpenIdClientOptions.TotalTimeout), result.FailureMessage);
     }
 
     [Fact]

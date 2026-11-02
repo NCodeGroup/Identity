@@ -114,7 +114,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     public void AddOpenIdClientLibrary_WithInvalidOptions_ThrowsOnValue()
     {
         JwtBuilder.AddOpenIdClientLibrary();
-        Services.Configure<OpenIdClientOptions>(options => options.RequestTimeout = TimeSpan.Zero);
+        Services.Configure<OpenIdClientOptions>(options => options.TotalTimeout = TimeSpan.Zero);
 
         var provider = BuildProvider();
 

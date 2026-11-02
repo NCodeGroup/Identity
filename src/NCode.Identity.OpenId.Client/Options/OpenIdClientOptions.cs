@@ -30,9 +30,10 @@ public sealed class OpenIdClientOptions
     public TimeSpan StaleLifetime { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
-    /// Gets or sets the timeout of a single HTTP request to an OpenID Provider. The default is 15 seconds.
+    /// Gets or sets the time a whole HTTP request to an OpenID Provider may take: every attempt, the delays between
+    /// retries, and reading the response body. The default is 15 seconds.
     /// </summary>
-    public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(15);
+    public TimeSpan TotalTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
     /// <summary>
     /// Gets or sets the maximum size, in bytes, of an HTTP response body that is read from an OpenID Provider.

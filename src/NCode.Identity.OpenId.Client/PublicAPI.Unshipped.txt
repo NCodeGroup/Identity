@@ -15,7 +15,7 @@ NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MetadataRefreshInterval
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MinimumRefreshInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MinimumRefreshInterval.set -> void
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.OpenIdClientOptions() -> void
-NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.RequestTimeout.get -> System.TimeSpan
-NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.RequestTimeout.set -> void
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.StaleLifetime.get -> System.TimeSpan
 NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.StaleLifetime.set -> void
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.TotalTimeout.get -> System.TimeSpan
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.TotalTimeout.set -> void

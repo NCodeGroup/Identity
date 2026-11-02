@@ -355,3 +355,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1304](./1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) | Pull requests into main merge by squash through the merge queue | Accepted |
 | [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) | Shipped versions are serviced from release lines beside the trunk | Accepted |
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
+| [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |

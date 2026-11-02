@@ -319,7 +319,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded by [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) |
 | [1265](./1265-grant-payloads-are-protected-under-the-tenant-master-key.md) | Grant payloads are protected under the tenant master key | Accepted |
 | [1266](./1266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
-| [1267](./1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted |
+| [1267](./1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted (amended by [1308](./1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)) |
 | [1268](./1268-a-generated-private-key-stores-its-public-key-beside-it.md) | A generated private key stores its public key beside it | Accepted |
 | [1269](./1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md) | A pull request stays a draft until its author reviews it | Accepted |
 | [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted (amended by [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md), [1288](./1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md)) |
@@ -343,7 +343,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1288](./1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |
 | [1289](./1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |
 | [1290](./1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |
-| [1291](./1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) | The BFF refreshes a session single-flight under a lease on its refresh token | Accepted |
+| [1291](./1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) | The BFF refreshes a session single-flight under a lease on its refresh token | Accepted (amended by [1308](./1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)) |
 | [1292](./1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) | The BFF accepts its cookie only with a static header and Fetch Metadata | Accepted |
 | [1293](./1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted |
 | [1294](./1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md) | A BFF client is registered with explicit metadata, not a bff security profile | Accepted |
@@ -360,5 +360,6 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) | Shipped versions are serviced from release lines beside the trunk | Accepted |
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
+| [1308](./1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md) | A refresh lease is released only by the owner token its winner holds | Accepted |
 | [1309](./1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1320](./1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md) | A rotated client secret overlaps its replacement until it expires or is deleted | Accepted |

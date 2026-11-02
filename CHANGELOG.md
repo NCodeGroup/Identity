@@ -1314,6 +1314,18 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
+  `TryRemoveAsync(key, expectedValue, cancellationToken)`, an atomic compare-and-remove that deletes a value only while
+  it still holds the expected bytes; the in-process and Valkey adapters implement it, and the Valkey script is
+  recorded as the `value_set.try_remove` operation. `IBffSessionStore.TryAcquireRefreshLeaseAsync` returns a
+  `BffRefreshLease` that names a fresh random owner token, or `null` when the lease is held, and
+  `ReleaseRefreshLeaseAsync` takes that lease and removes it only while its owner still holds it. The winner of a
+  refresh therefore always releases its own lease as soon as it finishes, instead of only when it finished 5 seconds
+  before the lease expired, and never removes a lease another replica took after its own expired. A custom
+  `IExpiringValueSet` adapter or `IBffSessionStore` implements the new members
+  ([#422](https://github.com/NCodeGroup/Identity/issues/422),
+  [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
+
 - **Rotating a client secret keeps the rotated secret.** **Breaking:**
   `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate` adds a replacement of the same type, use
   and algorithm beside the rotated secret, so both authenticate while its holder switches; delete the rotated secret
@@ -1322,6 +1334,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   secret's entropy instead of growing with each rotation. The management console's rotate action keeps the current
   secret for up to seven days ([#445](https://github.com/NCodeGroup/Identity/issues/445),
   [ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
+
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`
   block with a dated Apache 2.0 notice in three layouts. `.editorconfig` sets the header as `file_header_template` and
@@ -4157,12 +4170,20 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body,
+  under `OpenIdClientOptions.MaxResponseSizeBytes`, into a sensitive pooled buffer that is zeroed when released,
+  instead of copying it into `HttpContent`'s buffer and then a fresh `byte[]`, because a body may carry tokens. It
+  parses JSON from that buffer with `JsonElement.Parse(ReadOnlySequence<byte>)` and decodes an `application/jwt`
+  body from it. A body larger than the limit, whatever its `Content-Length` says, fails with an
+  `OpenIdProviderException` that names the limit ([#423](https://github.com/NCodeGroup/Identity/issues/423)).
+
 - **Client credentials stop authenticating at their expiry, and client secrets have at least 256 bits.** A client
   secret or registered key whose `expiresWhen` has passed no longer authenticates its client.
   `SharedSecretPolicy.MinimumEntropyBits` (256) is the floor for every generated shared secret:
   `ISecretGenerator.GenerateSharedSecret` throws below it, and creating a client secret below it answers `400`
   ([#445](https://github.com/NCodeGroup/Identity/issues/445),
   [ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
+
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
   it, so `/\t/evil.example` no longer redirects off-site after sign-in.

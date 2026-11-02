@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.SharedState;
 using Xunit;
@@ -407,15 +408,61 @@ public class DefaultBffSessionStoreTests : BaseTests
     #region Lease Tests
 
     [Fact]
-    public async Task TryAcquireRefreshLeaseAsync_Called_AddsTheMarker()
+    public async Task TryAcquireRefreshLeaseAsync_WhenAdded_ReturnsTheLeaseWithTheStoredOwner()
+    {
+        byte[]? stored = null;
+        MockValues
+            .Setup(x =>
+                x.TryAddAsync(
+                    "bff:lease:l1",
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    Idle,
+                    CancellationToken.None
+                )
+            )
+            .Callback(
+                (string _, ReadOnlyMemory<byte> value, DateTimeOffset _, CancellationToken _) =>
+                    stored = value.ToArray()
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await Store.TryAcquireRefreshLeaseAsync("l1", Idle, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("l1", result.Value.LeaseKey);
+        Assert.Equal(43, result.Value.Owner.Length);
+        Assert.Equal(SecureEncoding.UTF8.GetBytes(result.Value.Owner), stored);
+    }
+
+    [Fact]
+    public async Task TryAcquireRefreshLeaseAsync_WhenHeld_ReturnsNull()
     {
         MockValues
             .Setup(x =>
                 x.TryAddAsync(
                     "bff:lease:l1",
-                    It.Is<ReadOnlyMemory<byte>>(v =>
-                        v.ToArray().SequenceEqual(new byte[] { 0x31 })
-                    ),
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    Idle,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var result = await Store.TryAcquireRefreshLeaseAsync("l1", Idle, CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task TryAcquireRefreshLeaseAsync_CalledTwice_UsesDistinctOwners()
+    {
+        MockValues
+            .Setup(x =>
+                x.TryAddAsync(
+                    "bff:lease:l1",
+                    It.IsAny<ReadOnlyMemory<byte>>(),
                     Idle,
                     CancellationToken.None
                 )
@@ -423,9 +470,12 @@ public class DefaultBffSessionStoreTests : BaseTests
             .ReturnsAsync(true)
             .Verifiable();
 
-        var result = await Store.TryAcquireRefreshLeaseAsync("l1", Idle, CancellationToken.None);
+        var first = await Store.TryAcquireRefreshLeaseAsync("l1", Idle, CancellationToken.None);
+        var second = await Store.TryAcquireRefreshLeaseAsync("l1", Idle, CancellationToken.None);
 
-        Assert.True(result);
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.NotEqual(first.Value.Owner, second.Value.Owner);
     }
 
     [Fact]
@@ -455,14 +505,24 @@ public class DefaultBffSessionStoreTests : BaseTests
     }
 
     [Fact]
-    public async Task ReleaseRefreshLeaseAsync_Called_RemovesTheLease()
+    public async Task ReleaseRefreshLeaseAsync_Called_RemovesOnlyTheOwnersValue()
     {
+        var expected = "owner-1"u8.ToArray();
         MockValues
-            .Setup(x => x.RemoveAsync("bff:lease:l1", CancellationToken.None))
-            .Returns(ValueTask.CompletedTask)
+            .Setup(x =>
+                x.TryRemoveAsync(
+                    "bff:lease:l1",
+                    It.Is<ReadOnlyMemory<byte>>(v => v.ToArray().SequenceEqual(expected)),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(true)
             .Verifiable();
 
-        await Store.ReleaseRefreshLeaseAsync("l1", CancellationToken.None);
+        await Store.ReleaseRefreshLeaseAsync(
+            new BffRefreshLease("l1", "owner-1"),
+            CancellationToken.None
+        );
     }
 
     #endregion

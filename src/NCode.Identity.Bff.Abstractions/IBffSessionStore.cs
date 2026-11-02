@@ -108,13 +108,13 @@ public interface IBffSessionStore
     );
 
     /// <summary>
-    /// Acquires a refresh lease when none is held under the key.
+    /// Acquires a refresh lease under a new owner token when none is held under the key.
     /// </summary>
     /// <param name="leaseKey">The key of the lease.</param>
     /// <param name="expiresWhen">The instant after which the lease is gone.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns><see langword="true"/> if the lease was acquired; or <see langword="false"/> if it is held.</returns>
-    ValueTask<bool> TryAcquireRefreshLeaseAsync(
+    /// <returns>The acquired lease, which names its owner; or <see langword="null"/> if the lease is held.</returns>
+    ValueTask<BffRefreshLease?> TryAcquireRefreshLeaseAsync(
         string leaseKey,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
@@ -129,10 +129,11 @@ public interface IBffSessionStore
     ValueTask<bool> IsRefreshLeaseHeldAsync(string leaseKey, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Releases a refresh lease. Releasing a lease that is not held does nothing.
+    /// Releases a refresh lease only while the owner that acquired it still holds it. Releasing a lease that expired,
+    /// that another owner holds, or that is not held does nothing.
     /// </summary>
-    /// <param name="leaseKey">The key of the lease.</param>
+    /// <param name="lease">The lease that <see cref="TryAcquireRefreshLeaseAsync"/> returned.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ValueTask"/> that completes when the lease is released.</returns>
-    ValueTask ReleaseRefreshLeaseAsync(string leaseKey, CancellationToken cancellationToken);
+    ValueTask ReleaseRefreshLeaseAsync(BffRefreshLease lease, CancellationToken cancellationToken);
 }

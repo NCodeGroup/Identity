@@ -42,6 +42,7 @@ NCode.Identity.SharedState.IExpiringValueSet
 NCode.Identity.SharedState.IExpiringValueSet.GetAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.SharedState.ExpiringValue?>
 NCode.Identity.SharedState.IExpiringValueSet.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.SharedState.IExpiringValueSet.TryAddAsync(string! key, System.ReadOnlyMemory<byte> value, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.SharedState.IExpiringValueSet.TryRemoveAsync(string! key, System.ReadOnlyMemory<byte> expectedValue, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.SharedState.IExpiringValueSet.TryReplaceAsync(string! key, long expectedVersion, System.ReadOnlyMemory<byte> value, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.SharedState.IExpiringValueSet.TryTakeAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.SharedState.ExpiringValue?>
 NCode.Identity.SharedState.IReplicaBroadcastHandler

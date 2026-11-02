@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
@@ -19,7 +20,7 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
 
     private Mock<IExpiringKeySet> MockKeySet { get; }
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private Mock<OpenIdContext> MockContext { get; }
 
@@ -28,9 +29,8 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     public DefaultDPoPNonceServiceTests()
     {
         MockKeySet = CreateStrictMock<IExpiringKeySet>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
-        Service = new DefaultDPoPNonceService(MockKeySet.Object, MockTimeProvider.Object);
+        Service = new DefaultDPoPNonceService(MockKeySet.Object, TimeProvider);
     }
 
     private void SetupTenant()
@@ -46,7 +46,6 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     public async Task IssueNonceAsync_RecordsTheTenantScopedNonceForFiveMinutes()
     {
         SetupTenant();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         string? recordedKey = null;
         MockKeySet
             .Setup(x =>
@@ -66,7 +65,6 @@ public sealed class DefaultDPoPNonceServiceTests : BaseTests
     public async Task IssueNonceAsync_WhenCalledTwice_IssuesDistinctNonces()
     {
         SetupTenant();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockKeySet
             .Setup(x =>
                 x.TryAddAsync(

@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -31,7 +32,7 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ICibaNotificationService> MockNotificationService { get; }
@@ -39,12 +40,11 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
 
     public DefaultCreateBackchannelAuthenticationRequestHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockNotificationService = CreateStrictMock<ICibaNotificationService>();
         Handler = new DefaultCreateBackchannelAuthenticationRequestHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
             MockNotificationService.Object
@@ -87,7 +87,6 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns("auth-req-id-value");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>

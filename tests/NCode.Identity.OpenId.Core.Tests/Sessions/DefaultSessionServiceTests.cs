@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -33,7 +34,7 @@ public class DefaultSessionServiceTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
@@ -43,14 +44,13 @@ public class DefaultSessionServiceTests : BaseTests
 
     public DefaultSessionServiceTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockEvictionPolicy = CreateStrictMock<ISessionEvictionPolicy>();
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
         Service = new DefaultSessionService(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
             new TestGrantPayloadProtector(),
@@ -144,7 +144,6 @@ public class DefaultSessionServiceTests : BaseTests
             )
             .Returns(grantId)
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         PersistedGrant<SessionGrant> capturedGrant = default;
         DateTimeOffset capturedCreatedWhen = default;
@@ -654,7 +653,6 @@ public class DefaultSessionServiceTests : BaseTests
     {
         var mockContext = CreateContext();
         SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var result = await Service.ValidateAndTouchAsync(
             mockContext.Object,
@@ -700,7 +698,6 @@ public class DefaultSessionServiceTests : BaseTests
                 Payload = session.Payload with { AbsoluteExpiresWhen = UtcNow.AddMinutes(-1) },
             }
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
 
@@ -727,7 +724,6 @@ public class DefaultSessionServiceTests : BaseTests
                 Payload = session.Payload with { AbsoluteExpiresWhen = UtcNow.AddDays(29) },
             }
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         SetupTermination(mockMediator, SessionTerminationReasons.IdleTimeout);
 
@@ -753,7 +749,6 @@ public class DefaultSessionServiceTests : BaseTests
                 Payload = session.Payload with { AbsoluteExpiresWhen = null },
             }
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
 
@@ -789,7 +784,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         mockMediator
             .Setup(x =>
@@ -821,7 +815,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: false);
 
         var result = await Service.ValidateAndTouchAsync(
@@ -839,7 +832,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-5));
         var grantId = SetupGetSession(mockContext, session);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         PersistedGrantUpdate<SessionGrant>? update = null;
         SetupTouch(mockContext, grantId, session, touch => update = touch);
@@ -868,7 +860,6 @@ public class DefaultSessionServiceTests : BaseTests
             Payload = session.Payload with { AbsoluteExpiresWhen = UtcNow.AddMinutes(10) },
         };
         var grantId = SetupGetSession(mockContext, stored);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         PersistedGrantUpdate<SessionGrant>? update = null;
         SetupTouch(mockContext, grantId, stored, touch => update = touch);
@@ -895,7 +886,6 @@ public class DefaultSessionServiceTests : BaseTests
             Payload = session.Payload with { AbsoluteExpiresWhen = null },
         };
         var grantId = SetupGetSession(mockContext, stored);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         PersistedGrantUpdate<SessionGrant>? update = null;
         SetupTouch(mockContext, grantId, stored, touch => update = touch);
@@ -922,7 +912,6 @@ public class DefaultSessionServiceTests : BaseTests
             Payload = session.Payload with { ClientIds = ["client-a", "client-b"] },
         };
         var grantId = SetupGetSession(mockContext, session);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         PersistedGrantUpdate<SessionGrant>? update = null;
         SetupTouch(mockContext, grantId, stored, touch => update = touch);
@@ -946,7 +935,6 @@ public class DefaultSessionServiceTests : BaseTests
         var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-5));
         var stored = session with { Payload = session.Payload with { LastActivityWhen = UtcNow } };
         var grantId = SetupGetSession(mockContext, session);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var applied = false;
         PersistedGrantUpdate<SessionGrant>? update = null;
@@ -978,7 +966,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-5));
         var grantId = SetupGetSession(mockContext, session);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockPersistedGrantService
             .Setup(x =>
                 x.UpdatePayloadAsync<SessionGrant>(
@@ -1010,7 +997,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddSeconds(-10))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         // No UpdatePayloadAsync setup exists; a strict mock would throw if the window were persisted.
         var result = await Service.ValidateAndTouchAsync(
@@ -1027,7 +1013,6 @@ public class DefaultSessionServiceTests : BaseTests
     {
         var mockContext = CreateContextWithMediator(out var mockMediator);
         var grantId = SetupGrantId();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         mockMediator
             .Setup(x =>
@@ -1059,7 +1044,6 @@ public class DefaultSessionServiceTests : BaseTests
     {
         var mockContext = CreateContext();
         var grantId = SetupGrantId();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: false);
 
         var result = await Service.RevokeAsync(
@@ -1077,7 +1061,6 @@ public class DefaultSessionServiceTests : BaseTests
     {
         var mockContext = CreateContext();
         var grantId = SetupGrantId();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: false);
 
         var result = await Service.RevokeAsync(
@@ -1102,7 +1085,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         SetupTermination(mockMediator, SessionTerminationReasons.IdleTimeout);
 
@@ -1121,7 +1103,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContextWithMediator(out var mockMediator);
         var session = CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1));
         var grantId = SetupGetSession(mockContext, session);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(
             mockContext,
             grantId,
@@ -1167,7 +1148,6 @@ public class DefaultSessionServiceTests : BaseTests
                 Payload = session.Payload with { AbsoluteExpiresWhen = null },
             }
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
 
@@ -1188,7 +1168,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-5))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         // No RevokeSessionOnceAsync setup exists; a strict mock would throw if the session were claimed.
         var result = await Service.TerminateIfEndedAsync(
@@ -1229,7 +1208,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: false);
 
         var result = await Service.TerminateIfEndedAsync(
@@ -1249,7 +1227,6 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext,
             CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1))
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         mockMediator
             .Setup(x =>
@@ -1441,7 +1418,6 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task GetSessionsAsync_ReturnsActiveNewestFirst_SkippingRevoked()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionEnumeration(
             mockContext,
             CreateEnvelope("older", UtcNow.AddMinutes(-20)),
@@ -1462,7 +1438,6 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task GetSessionsAsync_SkipsIdleExpiredSessions()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionEnumeration(
             mockContext,
             CreateEnvelope(
@@ -1487,7 +1462,6 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task GetSessionsAsync_SkipsSessionsWhosePayloadIsUnreadable()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         var unreadable = CreateEnvelope("unreadable", UtcNow.AddMinutes(-5));
         unreadable.ProtectedPayload = "unreadable";
         SetupSessionEnumeration(
@@ -1509,7 +1483,6 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task GetSessionsAsync_SkipsSessionsPastTheirAbsoluteEnd()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionEnumeration(
             mockContext,
             CreateEnvelope(
@@ -1533,7 +1506,6 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task GetSessionsAsync_SkipsSessionsStoredWithoutAnEnd()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         var withoutEnd = CreateEnvelope("without-end", UtcNow.AddMinutes(-5));
         withoutEnd.ExpiresWhen = null;
         withoutEnd.ProtectedPayload = TestGrantPayloadProtector.Protect(
@@ -1564,7 +1536,6 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task GetSessionsAsync_ReportsWhenTheSessionEndsUnlessItIsUsedAgain()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionEnumeration(
             mockContext,
             CreateEnvelope(
@@ -1591,7 +1562,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1", "c2"]),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5), clientIds: ["c2", "c3"])
@@ -1634,7 +1604,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]));
         SetupSessionGrantIds();
         SetupSessionClaim(mockContext, "s1", "c1", "c9");
@@ -1671,7 +1640,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope(
                 "s1",
@@ -1716,7 +1684,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1", "c2"]),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5), clientIds: ["c2", "c3"])
@@ -1759,7 +1726,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]));
         SetupSessionGrantIds();
         SetupSessionClaim(mockContext, "s1", "c1");
@@ -1789,7 +1755,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]));
         SetupSessionGrantIds();
         SetupLostSessionClaim(mockContext, "s1");
@@ -1829,7 +1794,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration();
         SetupSubjectRevocation();
 
@@ -1880,7 +1844,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10)),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
@@ -1948,7 +1911,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10)),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
@@ -1989,7 +1951,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5))
@@ -2024,7 +1985,6 @@ public class DefaultSessionServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupSessionIdEnumeration(
             CreateEnvelope(
                 "s1",

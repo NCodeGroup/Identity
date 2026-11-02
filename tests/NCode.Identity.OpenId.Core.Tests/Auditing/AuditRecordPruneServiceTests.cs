@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -17,7 +18,7 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
     private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(1);
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IAuditRecordStore> MockAuditRecordStore { get; }
@@ -25,7 +26,6 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
 
     public AuditRecordPruneServiceTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockAuditRecordStore = CreateStrictMock<IAuditRecordStore>();
@@ -33,7 +33,7 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
         Service = new AuditRecordPruneService(
             MockStoreManagerFactory.Object,
             Options.Create(options),
-            MockTimeProvider.Object,
+            TimeProvider,
             NullLogger<AuditRecordPruneService>.Instance
         );
     }
@@ -48,14 +48,8 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private void SetupClock()
-    {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-    }
-
     private void SetupStores()
     {
-        SetupClock();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
@@ -90,7 +84,7 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
         using var service = new AuditRecordPruneService(
             MockStoreManagerFactory.Object,
             Options.Create(options),
-            MockTimeProvider.Object,
+            TimeProvider,
             NullLogger<AuditRecordPruneService>.Instance
         );
 
@@ -108,7 +102,8 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
         );
         var mockTimer = CreateStrictMock<ITimer>();
         mockTimer.Setup(x => x.Dispose()).Verifiable();
-        MockTimeProvider
+        var mockTimeProvider = CreateStrictMock<TimeProvider>();
+        mockTimeProvider
             .Setup(x =>
                 x.CreateTimer(
                     It.IsAny<TimerCallback>(),
@@ -123,6 +118,7 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
             )
             .Returns(mockTimer.Object)
             .Verifiable();
+        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         SetupStores();
         MockAuditRecordStore
             .Setup(x =>
@@ -164,7 +160,7 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
         using var service = new AuditRecordPruneService(
             MockStoreManagerFactory.Object,
             Options.Create(options),
-            MockTimeProvider.Object,
+            mockTimeProvider.Object,
             NullLogger<AuditRecordPruneService>.Instance
         );
 
@@ -236,7 +232,6 @@ public sealed class AuditRecordPruneServiceTests : BaseTests
         using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         await cancellationTokenSource.CancelAsync();
-        SetupClock();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(cancellationToken))
             .ThrowsAsync(new OperationCanceledException(cancellationToken))

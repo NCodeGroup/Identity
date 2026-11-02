@@ -4,6 +4,7 @@
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -22,7 +23,7 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
 
     private Mock<IDatabase> MockDatabase { get; }
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private ValkeyExpiringKeySet KeySet { get; }
 
@@ -34,7 +35,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
     {
         MockConnection = CreateStrictMock<IValkeyConnection>();
         MockDatabase = CreateStrictMock<IDatabase>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
 
         MetricsProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
         var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
@@ -49,7 +49,7 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
             Microsoft.Extensions.Options.Options.Create(
                 new ValkeyOptions { KeyPrefix = KeyPrefix }
             ),
-            MockTimeProvider.Object,
+            TimeProvider,
             new ValkeySharedStateMetrics(meterFactory)
         );
     }
@@ -84,8 +84,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
             Assert.Equal(errorType, measurement.Tags[ValkeySharedStateMetrics.ErrorTypeAttribute]);
     }
 
-    private void SetupNow() => MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-
     private void SetupDatabase() =>
         MockConnection
             .Setup(x => x.GetDatabaseAsync(It.IsAny<CancellationToken>()))
@@ -111,7 +109,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
     [Fact]
     public async Task TryAddAsync_WhenServerSetsTheKey_ReturnsTrue()
     {
-        SetupNow();
         SetupDatabase();
         SetupSet(TimeSpan.FromSeconds(30), result: true);
 
@@ -124,7 +121,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
     [Fact]
     public async Task TryAddAsync_WhenKeyAlreadyPresent_ReturnsFalse()
     {
-        SetupNow();
         SetupDatabase();
         SetupSet(TimeSpan.FromSeconds(30), result: false);
 
@@ -136,7 +132,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
     [Fact]
     public async Task TryAddAsync_WhenTimeToLiveHasAFractionalMillisecond_RoundsItUp()
     {
-        SetupNow();
         SetupDatabase();
         SetupSet(TimeSpan.FromMilliseconds(1), result: true);
 
@@ -152,8 +147,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
     [Fact]
     public async Task TryAddAsync_WhenExpiryNotInFuture_ReturnsFalseWithoutACommand()
     {
-        SetupNow();
-
         var added = await KeySet.TryAddAsync("key", Now, CancellationToken.None);
 
         Assert.False(added);
@@ -163,7 +156,6 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
     [Fact]
     public async Task TryAddAsync_WhenServerUnreachable_Throws()
     {
-        SetupNow();
         SetupDatabase();
         MockDatabase
             .Setup(x =>

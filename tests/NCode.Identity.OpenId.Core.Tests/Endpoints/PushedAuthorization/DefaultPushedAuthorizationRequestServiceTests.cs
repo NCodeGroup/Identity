@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -34,18 +35,17 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private DefaultPushedAuthorizationRequestService Service { get; }
 
     public DefaultPushedAuthorizationRequestServiceTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         Service = new DefaultPushedAuthorizationRequestService(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockCryptoService.Object,
             MockPersistedGrantService.Object
         );
@@ -74,7 +74,6 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
             .Returns(TimeSpan.FromSeconds(90))
             .Verifiable();
 
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(Reference)

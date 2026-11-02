@@ -1,11 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Moq;
+using Microsoft.Extensions.Time.Testing;
 
 namespace NCode.Time.Tests;
 
-public sealed class TimeProviderExtensionsTests : IDisposable
+public sealed class TimeProviderExtensionsTests
 {
     private static readonly DateTimeOffset UtcNow = new DateTimeOffset(
         2026,
@@ -27,24 +27,14 @@ public sealed class TimeProviderExtensionsTests : IDisposable
         TimeSpan.Zero
     );
 
-    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
-
-    private Mock<TimeProvider> MockTimeProvider { get; }
-
-    public TimeProviderExtensionsTests()
-    {
-        MockTimeProvider = MockRepository.Create<TimeProvider>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-    }
-
-    public void Dispose() => MockRepository.Verify();
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
 
     #region GetUtcNowWithPrecisionInSeconds Tests
 
     [Fact]
     public void GetUtcNowWithPrecisionInSeconds_WhenNowHasFractionalSeconds_ReturnsTruncatedUtcNow()
     {
-        var now = MockTimeProvider.Object.GetUtcNowWithPrecisionInSeconds();
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         Assert.Equal(UtcNowInSeconds, now);
         Assert.Equal(TimeSpan.Zero, now.Offset);
@@ -57,7 +47,7 @@ public sealed class TimeProviderExtensionsTests : IDisposable
     [Fact]
     public void GetTimestampWithPrecisionInSeconds_WhenNowHasFractionalSeconds_ReturnsTruncatedUtcTicks()
     {
-        var timestamp = MockTimeProvider.Object.GetTimestampWithPrecisionInSeconds();
+        var timestamp = TimeProvider.GetTimestampWithPrecisionInSeconds();
 
         Assert.Equal(UtcNowInSeconds.UtcTicks, timestamp);
     }

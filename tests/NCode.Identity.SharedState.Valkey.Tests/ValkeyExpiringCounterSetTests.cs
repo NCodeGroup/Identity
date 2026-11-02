@@ -4,6 +4,7 @@
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -22,7 +23,7 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
 
     private Mock<IDatabase> MockDatabase { get; }
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private ValkeyExpiringCounterSet CounterSet { get; }
 
@@ -34,7 +35,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     {
         MockConnection = CreateStrictMock<IValkeyConnection>();
         MockDatabase = CreateStrictMock<IDatabase>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
 
         MetricsProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
         var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
@@ -49,7 +49,7 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
             Microsoft.Extensions.Options.Options.Create(
                 new ValkeyOptions { KeyPrefix = KeyPrefix }
             ),
-            MockTimeProvider.Object,
+            TimeProvider,
             new ValkeySharedStateMetrics(meterFactory)
         );
     }
@@ -83,8 +83,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
         else
             Assert.Equal(errorType, measurement.Tags[ValkeySharedStateMetrics.ErrorTypeAttribute]);
     }
-
-    private void SetupNow() => MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
 
     private void SetupDatabase() =>
         MockConnection
@@ -131,7 +129,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementAsync_RunsTheScriptOnThePrefixedKeyAndReturnsItsCount()
     {
-        SetupNow();
         SetupDatabase();
         SetupIncrement(30_000, count: 3);
 
@@ -151,7 +148,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementAsync_WhenTimeToLiveHasAFractionalMillisecond_RoundsItUp()
     {
-        SetupNow();
         SetupDatabase();
         SetupIncrement(1, count: 1);
 
@@ -167,8 +163,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementAsync_WhenExpiryNotInFuture_ReturnsZeroWithoutACommand()
     {
-        SetupNow();
-
         var count = await CounterSet.IncrementAsync("key", Now, CancellationToken.None);
 
         Assert.Equal(0, count);
@@ -178,7 +172,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementAsync_WhenServerUnreachable_Throws()
     {
-        SetupNow();
         SetupDatabase();
         MockDatabase
             .Setup(x =>
@@ -214,7 +207,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementUntilExceededAsync_RunsOneScriptOverEveryKeyAndReturnsTheCounts()
     {
-        SetupNow();
         SetupDatabase();
         RedisKey[] expectedKeys =
         [
@@ -260,7 +252,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementUntilExceededAsync_WhenAnExpiryIsNotInTheFuture_PassesAZeroTimeToLive()
     {
-        SetupNow();
         SetupDatabase();
         RedisKey[] expectedKeys = [KeyPrefix + "key", KeyPrefix + "key"];
         RedisValue[] expectedValues = [0L, 0d, 3L];
@@ -297,7 +288,6 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     [Fact]
     public async Task IncrementUntilExceededAsync_WhenServerUnreachable_Throws()
     {
-        SetupNow();
         SetupDatabase();
         MockDatabase
             .Setup(x =>

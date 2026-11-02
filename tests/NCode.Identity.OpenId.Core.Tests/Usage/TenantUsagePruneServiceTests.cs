@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -18,7 +19,7 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
     private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(1);
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantUsageStore> MockTenantUsageStore { get; }
@@ -26,14 +27,13 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
 
     public TenantUsagePruneServiceTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantUsageStore = CreateStrictMock<ITenantUsageStore>();
         Service = new TenantUsagePruneService(
             MockStoreManagerFactory.Object,
             Options.Create(new TenantUsageOptions { Retention = TimeSpan.FromDays(10) }),
-            MockTimeProvider.Object,
+            TimeProvider,
             NullLogger<TenantUsagePruneService>.Instance
         );
     }
@@ -48,14 +48,8 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private void SetupClock()
-    {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-    }
-
     private void SetupStores()
     {
-        SetupClock();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
@@ -91,7 +85,8 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         );
         var mockTimer = CreateStrictMock<ITimer>();
         mockTimer.Setup(x => x.Dispose()).Verifiable();
-        MockTimeProvider
+        var mockTimeProvider = CreateStrictMock<TimeProvider>();
+        mockTimeProvider
             .Setup(x =>
                 x.CreateTimer(
                     It.IsAny<TimerCallback>(),
@@ -106,6 +101,7 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
             )
             .Returns(mockTimer.Object)
             .Verifiable();
+        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         SetupStores();
         MockTenantUsageStore
             .Setup(x =>
@@ -147,7 +143,7 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         using var service = new TenantUsagePruneService(
             MockStoreManagerFactory.Object,
             Options.Create(options),
-            MockTimeProvider.Object,
+            mockTimeProvider.Object,
             NullLogger<TenantUsagePruneService>.Instance
         );
 
@@ -219,7 +215,6 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         await cancellationTokenSource.CancelAsync();
-        SetupClock();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(cancellationToken))
             .ThrowsAsync(new OperationCanceledException(cancellationToken))

@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Dispatch;
@@ -39,7 +40,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IClientJwtCredentialSelector> MockClientJwtCredentialSelector { get; }
     private Mock<IJwtEncoder> MockJsonWebTokenService { get; }
@@ -52,7 +53,6 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
 
     public DefaultBackChannelLogoutNotifierTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockClientJwtCredentialSelector = CreateStrictMock<IClientJwtCredentialSelector>();
         MockJsonWebTokenService = CreateStrictMock<IJwtEncoder>();
@@ -61,7 +61,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
         MockLogger = CreateStrictMock<ILogger<DefaultBackChannelLogoutNotifier>>();
 
         Notifier = new DefaultBackChannelLogoutNotifier(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockCryptoService.Object,
             MockClientJwtCredentialSelector.Object,
             MockJsonWebTokenService.Object,
@@ -135,7 +135,6 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
 
     private void SetupTokenGeneration(JwtEncodingParameters[] captured)
     {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockCryptoService
             .Setup(x => x.GenerateKey(It.IsAny<int>(), BinaryEncodings.Base64Url))
             .Returns("jti-value")

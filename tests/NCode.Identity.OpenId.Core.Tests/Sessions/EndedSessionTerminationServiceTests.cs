@@ -4,6 +4,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Moq.Protected;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -41,7 +42,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
     private Mock<IOpenIdContextFactory> MockOpenIdContextFactory { get; }
     private Mock<ISessionService> MockSessionService { get; }
     private Mock<IExpiringKeySet> MockExpiringKeySet { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private ServiceProvider RootServiceProvider { get; }
     private EndedSessionTerminationService Service { get; }
 
@@ -54,7 +55,6 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         MockOpenIdContextFactory = CreateStrictMock<IOpenIdContextFactory>();
         MockSessionService = CreateStrictMock<ISessionService>();
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         RootServiceProvider = new ServiceCollection().BuildServiceProvider();
         Service = new EndedSessionTerminationService(
             MockMaterializedServerAccessor.Object,
@@ -64,7 +64,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
             MockSessionService.Object,
             MockExpiringKeySet.Object,
             Options.Create(new EndedSessionTerminationOptions()),
-            MockTimeProvider.Object,
+            TimeProvider,
             NullLogger<EndedSessionTerminationService>.Instance
         );
     }
@@ -112,7 +112,6 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
 
     private void SetupLease(bool acquired)
     {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockExpiringKeySet
             .Setup(x => x.TryAddAsync(LeaseKey, LeaseExpiresWhen, CancellationToken.None))
             .ReturnsAsync(acquired)

@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -45,7 +46,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
     private Mock<IExpiringCounterSet> MockCounterSet { get; }
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private Mock<OpenIdContext> MockContext { get; }
 
@@ -92,13 +93,12 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         MockCatalog = CreateStrictMock<IRateLimitDescriptorCatalog>();
         MockCounterSet = CreateStrictMock<IExpiringCounterSet>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockTenantSettings = CreateStrictMock<IReadOnlySettingCollection>();
         Limiter = new DefaultRequestRateLimiter(
             MockCatalog.Object,
             MockCounterSet.Object,
-            MockTimeProvider.Object,
+            TimeProvider,
             new AuthenticationMetrics(meterFactory),
             Logger
         );
@@ -163,7 +163,6 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     )
     {
         IReadOnlyList<ExpiringCounterCount> answer = counts;
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockCounterSet
             .Setup(x =>
                 x.IncrementUntilExceededAsync(
@@ -202,15 +201,23 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             PartitionValueSelector = selector ?? (static _ => PartitionValue),
         };
 
-    private static ExpiringCounterIncrement CreateSlidingIncrement(string name, long limit) =>
-        new()
+    // A sliding increment fifteen seconds into the window that starts at windowStart (WindowStart by default).
+    private static ExpiringCounterIncrement CreateSlidingIncrement(
+        string name,
+        long limit,
+        DateTimeOffset? windowStart = null
+    )
+    {
+        var start = windowStart ?? WindowStart;
+        return new()
         {
-            Key = CreateKey(name, PartitionValue, WindowStart),
-            ExpiresWhen = WindowStart.AddMinutes(2),
+            Key = CreateKey(name, PartitionValue, start),
+            ExpiresWhen = start.AddMinutes(2),
             Limit = limit,
-            ReferenceKey = CreateKey(name, PartitionValue, WindowStart.AddMinutes(-1)),
+            ReferenceKey = CreateKey(name, PartitionValue, start.AddMinutes(-1)),
             ReferenceWeight = 0.75,
         };
+    }
 
     private static SettingKey<int> GetOverageKey(string name) => new($"{name}_overage");
 
@@ -252,22 +259,8 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, descriptor.LimitKey, 1);
         SetupEnvironmentType(MockTenantSettings);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         return descriptor;
     }
-
-    private long Timestamp { get; set; } = 1_000;
-
-    // The breaker is timed on the monotonic timestamp, read only once the store has failed.
-    private void SetupTimestamp() =>
-        MockTimeProvider.Setup(x => x.GetTimestamp()).Returns(() => Timestamp).Verifiable();
-
-    // The elapsed time since a failure is read only by a call that finds the breaker open.
-    private void SetupTimestampFrequency() =>
-        MockTimeProvider
-            .Setup(x => x.TimestampFrequency)
-            .Returns(TimeSpan.TicksPerSecond)
-            .Verifiable();
 
     #endregion
 
@@ -570,7 +563,6 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     public async Task AcquireAsync_WhenTheStoreThrows_AdmitsEveryLimitUncountedAndLogsAWarning()
     {
         SetupLimitedStage();
-        SetupTimestamp();
         MockCounterSet
             .Setup(x =>
                 x.IncrementUntilExceededAsync(
@@ -595,8 +587,6 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     public async Task AcquireAsync_WhenTheStoreThrewWithinTheRetryInterval_AdmitsWithoutCallingIt()
     {
         SetupLimitedStage();
-        SetupTimestamp();
-        SetupTimestampFrequency();
         MockCounterSet
             .Setup(x =>
                 x.IncrementUntilExceededAsync(
@@ -628,14 +618,22 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     public async Task AcquireAsync_WhenTheStoreAnswersAfterTheRetryInterval_EnforcesAndLogsTheRecovery()
     {
         SetupLimitedStage();
-        SetupTimestamp();
-        SetupTimestampFrequency();
+        // The first call fails 50 seconds after Now; the retry interval then ends fifteen seconds into the next window.
+        TimeProvider.Advance(TimeSpan.FromSeconds(50));
         IReadOnlyList<ExpiringCounterIncrement> expected =
         [
-            CreateSlidingIncrement("limited", limit: 1),
+            CreateSlidingIncrement("limited", limit: 1, WindowStart.AddMinutes(1)),
         ];
         IReadOnlyList<ExpiringCounterCount> answer = [new ExpiringCounterCount(2, 0)];
-        var increments = 0;
+        MockCounterSet
+            .Setup(x =>
+                x.IncrementUntilExceededAsync(
+                    It.IsAny<IReadOnlyList<ExpiringCounterIncrement>>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
+            .Verifiable(Times.Once);
         MockCounterSet
             .Setup(x =>
                 x.IncrementUntilExceededAsync(
@@ -645,17 +643,11 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(() =>
-                ++increments == 1
-                    ? ValueTask.FromException<IReadOnlyList<ExpiringCounterCount>>(
-                        new InvalidOperationException("The store is unavailable.")
-                    )
-                    : ValueTask.FromResult(answer)
-            )
-            .Verifiable(Times.Exactly(2));
+            .ReturnsAsync(answer)
+            .Verifiable(Times.Once);
 
         await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
-        Timestamp += DefaultRequestRateLimiter.StoreRetryInterval.Ticks;
+        TimeProvider.Advance(DefaultRequestRateLimiter.StoreRetryInterval);
         var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
         var state = RateLimitRequestState.Get(HttpContext);
@@ -683,27 +675,6 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     public async Task AcquireAsync_WhenTheStoreDoesNotAnswerInTime_Admits()
     {
         SetupLimitedStage();
-        SetupTimestamp();
-        TimerCallback? timerCallback = null;
-        object? timerState = null;
-        MockTimeProvider
-            .Setup(x =>
-                x.CreateTimer(
-                    It.IsAny<TimerCallback>(),
-                    It.IsAny<object?>(),
-                    DefaultRequestRateLimiter.StoreTimeout,
-                    It.IsAny<TimeSpan>()
-                )
-            )
-            .Callback<TimerCallback, object?, TimeSpan, TimeSpan>(
-                (callback, state, _, _) =>
-                {
-                    timerCallback = callback;
-                    timerState = state;
-                }
-            )
-            .Returns(CreateLooseMock<ITimer>().Object)
-            .Verifiable();
         var unanswered = new TaskCompletionSource<IReadOnlyList<ExpiringCounterCount>>(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
@@ -718,10 +689,10 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             .Verifiable();
 
         var pending = Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+        TimeProvider.Advance(DefaultRequestRateLimiter.StoreTimeout - TimeSpan.FromTicks(1));
         Assert.False(pending.IsCompleted);
-        Assert.NotNull(timerCallback);
-        timerCallback(timerState);
-        var decision = await pending;
+        TimeProvider.Advance(TimeSpan.FromTicks(1));
+        var decision = await pending.AsTask().WaitAsync(TimeSpan.FromSeconds(10));
 
         // The abandoned call's eventual failure is observed rather than left unobserved.
         unanswered.SetException(new TimeoutException("The store timed out."));

@@ -4,6 +4,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Models;
@@ -39,7 +40,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<LinkGenerator> MockLinkGenerator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
@@ -48,13 +49,12 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
 
     public DefaultCreateDeviceAuthorizationRequestHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockLinkGenerator = CreateStrictMock<LinkGenerator>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockUserCodeGenerator = CreateStrictMock<IUserCodeGenerator>();
         Handler = new DefaultCreateDeviceAuthorizationRequestHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockLinkGenerator.Object,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
@@ -94,7 +94,6 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Returns("device-code-value");
         MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
         MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -255,7 +254,6 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Returns("device-code-value");
         MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
         MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow);
 
         MockPersistedGrantService
             .Setup(x => x.CreateGrantId(TenantId, It.IsAny<string>(), It.IsAny<string>()))
@@ -365,7 +363,6 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Returns("device-code-value");
         MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
         MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow);
 
         MockPersistedGrantService
             .Setup(x => x.CreateGrantId(TenantId, It.IsAny<string>(), It.IsAny<string>()))

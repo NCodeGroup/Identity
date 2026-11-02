@@ -3,6 +3,7 @@
 
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
@@ -29,7 +30,9 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 {
     private const string RequesterClientId = "requester";
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private static readonly DateTimeOffset UtcNow = new(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ITokenService> MockTokenService { get; }
     private Mock<ISubjectTokenValidator> MockSubjectTokenValidator { get; }
     private Mock<IPrincipalResolver> MockPrincipalResolver { get; }
@@ -39,14 +42,13 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 
     public DefaultTokenExchangeGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockTokenService = CreateStrictMock<ITokenService>();
         MockSubjectTokenValidator = CreateStrictMock<ISubjectTokenValidator>();
         MockPrincipalResolver = CreateStrictMock<IPrincipalResolver>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockClientScopeService = CreateStrictMock<IClientScopeService>();
         Handler = new DefaultTokenExchangeGrantHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockTokenService.Object,
             MockSubjectTokenValidator.Object,
             MockPrincipalResolver.Object,
@@ -333,8 +335,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenRefreshTokenRequestedAndAuthenticationIsPastTheHorizon_ReturnsError()
     {
-        var utcNow = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
-        var authTime = utcNow - TimeSpan.FromDays(31);
+        var authTime = UtcNow - TimeSpan.FromDays(31);
 
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = SetupConfidentialClient();
@@ -355,7 +356,6 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
             "subject.jwt",
             $$"""{"sub":"alice","client_id":"{{RequesterClientId}}","auth_time":{{authTime.ToUnixTimeSeconds()}}}"""
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(utcNow).Verifiable();
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -366,7 +366,6 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        MockTimeProvider.Verify();
         mockSettings.Verify();
     }
 
@@ -492,8 +491,6 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
             )
             .Returns(new ValueTask<string?>("principal-1"))
             .Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UnixEpoch).Verifiable();
 
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         mockTenant.SetupGet(x => x.TenantId).Returns("tenant-1").Verifiable();

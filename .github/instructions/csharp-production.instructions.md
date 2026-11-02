@@ -68,23 +68,15 @@ than inlining the rationale.
 
 ## 2. Public API discipline
 
-- 👁 **`public` is a deliberate decision, never a default.** Start every type and member at the **narrowest visibility
-  that works** (`private`, then `internal`) and widen **only** with a conscious reason — a contract a consumer
-  implements or resolves, a headline entry point, developer-facing data. "It compiled" or "a test needed it" are not
-  reasons: test access uses `InternalsVisibleTo` (§7), not a widened surface, and a concrete implementation a consumer
-  reaches through DI stays `internal` (the **interface** is the surface; the `DefaultFoo` impl is never named by
-  consumers). The asymmetry is the argument — an accidental `internal` is a one-line widen, but an accidental `public`
-  is a SemVer contract you must support and can only walk back with an `[Obsolete]` cycle across a **major** version.
-- 👁 **Correct-by-default.** There is **no public API** to disable issuer / audience / signature / lifetime / algorithm
-  validation, or to weaken a security control below its safe baseline. A knob may only supply values or swap a control
-  for an equal-or-stronger one.
-- 👁 **A policy that a replaceable public service must apply is itself a public seam.** When a public interface a
-  consumer may replace (`ITokenService`) has to enforce a security policy, put the policy behind its own public
-  interface with an internal default (`IAccessTokenPolicyService`, `IClientJwtCredentialSelector`), so a replacement
-  resolves the policy instead of reimplementing it or silently skipping it; keeping it internal makes the secure path
-  unreachable for exactly the code that needs it. See
-  [ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) and
-  [ADR-1181](../../docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md).
+- 👁 **`public` is a deliberate decision, never a default** — template [Public API](csharp.instructions.md#public-api);
+  the `DefaultFoo` implementation behind a public interface stays `internal` (§3).
+- 👁 **Correct-by-default** — template [Security Defaults](csharp.instructions.md#security-defaults): no public API
+  disables issuer, audience, signature, lifetime or algorithm validation.
+- 👁 **A policy that a replaceable public service must apply is itself a public seam** — template
+  [Public API](csharp.instructions.md#public-api): a replacement of `ITokenService` resolves
+  `IAccessTokenPolicyService` and `IClientJwtCredentialSelector`
+  ([ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
+  [ADR-1181](../../docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
 - 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
   `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
   tenant's algorithm allow-lists, keys, `typ`, issuer, lifetime, and session check in one place, and hand-built copies
@@ -92,12 +84,11 @@ than inlining the rationale.
   only what it owns — the audiences it requires and the decryption keys of the resource server it acts for — through
   `AccessTokenValidationOptions`. See
   [ADR-1167](../../docs/decisions/1167-the-server-validates-the-tokens-it-issued-under-one-policy.md).
-- 👁 **Restrict a caller to some endpoints with opt-in endpoint metadata that fails closed.** When a kind of client may
-  use only some endpoints, refuse it everywhere by default where it is resolved, and let each permitted endpoint opt in
-  through route metadata (`AcceptResourceServerClients()` adds `IOpenIdEndpointResourceServerClientMetadata`, which
-  `DefaultOpenIdClientResolver` checks). A per-endpoint deny check would be missing from the next endpoint someone
-  adds, and a request with no endpoint, such as background work, must resolve nothing. See
-  [ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md).
+- 👁 **Restrict a caller to some endpoints with opt-in endpoint metadata that fails closed** — template
+  [Security Defaults](csharp.instructions.md#security-defaults): `AcceptResourceServerClients()` adds
+  `IOpenIdEndpointResourceServerClientMetadata`, which `DefaultOpenIdClientResolver` checks, and a request with no
+  endpoint, such as background work, resolves no such client
+  ([ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
 - 👁 **Keep CORS off a front-channel endpoint with `WithOpenIdFrontChannel()`, never CORS metadata.** An endpoint the
   user agent navigates to (authorization, continue, end-session, the interactive surface) carries
   `IOpenIdEndpointFrontChannelMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same
@@ -143,21 +134,17 @@ than inlining the rationale.
     shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
     data. See [ADR-1150](../../docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md).
 
-- 👁 **No secret material on the public surface.**
-- 👁 Data / options / context / event types are `sealed`, with `init` / get-only members and **concrete, buffered**
-  collections (`List<T>`, not `IList<T>`) — AOT-friendly, cheap to re-enumerate, free of deferred-execution surprises.
-  Interfaces appear only for a replaceable DI seam or a read-only slice.
-- 👁 **Seal by derivation intent, not by visibility.** A public **data / options / context / event / result / DTO** type
-  is `sealed` (above) — it is a leaf and sealing says so. A public type that is a **deliberate extension point** — an
-  abstract base or a class consumers subclass (the Abstractions surface: `SecretKey`, `Algorithm`, `OpenIdContext`,
-  `OpenIdClient`, `KnownParameter`, …) — is **not** sealed. A public **concrete leaf** with no extension point is
-  sealed too; if it only needs to be _test_-mockable, demote it to `internal` (left unsealed, §7) or mock its
-  interface — never keep it `public` **and** unsealed just for tests. `CA1852` (seal internal types) is **disabled**
-  precisely so internal impls can stay unsealed for mocking; that exemption does not license unsealed public leaves.
-- 👁 **Prefer a `readonly record struct` for a small, immutable value-like type** — an id, key, command, or disposition,
-  the established shape across the family (`SettingKey<T>`, `UriDescriptor`, the `*Command` / `*Disposition` types) — so
-  value equality and immutability come for free. Reach for a `class` / `record class` only for reference identity or a
-  larger/mutable payload.
+- 👁 **No secret material on the public surface** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Data, options, context and event types are `sealed`**, with `init` or get-only members and concrete collections
+  (`List<T>`, never `IList<T>`) — template [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Seal by derivation intent, not by visibility** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections). The Abstractions extension points
+  (`SecretKey`, `Algorithm`, `OpenIdContext`, `OpenIdClient`, `KnownParameter`) stay unsealed, and `CA1852` being
+  disabled for internal implementations (§7) never licenses an unsealed public leaf.
+- 👁 **A `readonly record struct` for a small, immutable value** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections) (`SettingKey<T>`, `UriDescriptor`, the
+  `*Command` and `*Disposition` types).
 - 👁 **A JSON-deserialized DTO captures unknown fields** with a
   `[JsonExtensionData] public Dictionary<string, JsonElement>? ExtensionData { get; set; }` member, so an unrecognized
   wire member round-trips instead of being silently dropped.
@@ -171,32 +158,17 @@ than inlining the rationale.
   A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) also carries the `[JsonExtensionData]` bag above
   so a mixed-version node cannot drop members on a read-modify-write. Payload members never begin with `$` (reserved for
   the envelope).
-- 👁 **Buffer by default; stream deliberately.** Reach for a lazy `IEnumerable<T>` / `IAsyncEnumerable<T>` only when the
-  sequence is genuinely large/unbounded, I/O-backed, or usually short-circuited. Never return a deferred sequence that
-  **captures request/ambient context** (it goes stale off-request — see §7), and never hand back as lazy a sequence a
-  caller will enumerate more than once or need `Count` on.
-- 👁 **Own every stored collection; pick the concrete type by usage.** A constructor or method that keeps a collection
-  parameter — including a DI-injected `IEnumerable<T>` or a sequence a deferred closure will capture — **buffers it once
-  into an owned, immutable copy**; never store the caller's reference through (they can mutate it, and a lazy sequence
-  re-enumerates on every read). Choose the type by how it is read: a set-once membership/lookup table read many times is
-  a `FrozenSet<T>` / `FrozenDictionary<K,V>` (concrete, immutable, O(1) — **not** `IReadOnlyDictionary<K,V>`, which is an
-  interface); a set-once sequence you iterate is an `ImmutableArray<T>` (`Foo { get; } = [.. items];`); a genuinely
-  mutable working set stays a `List<T>`. Prefer `params IEnumerable<T>` over `params T[]` (C# 13) and buffer inside.
-- 👁 **Signatures speak in read-only interfaces; storage stays concrete.** A method **parameter** or a computed method
-  **return value** that does not hand back ownership takes / returns the narrowest read-only interface
-  (`IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IReadOnlySet<T>`), so callers aren't coupled to a concrete type. This
-  does **not** relax the rule above: a set-once collection **property** on a data type still exposes its concrete
-  immutable type (`FrozenSet<T>` / `ImmutableArray<T>`), and the backing storage is always concrete. Locals stay
-  concrete via `var` over an explicit initializer (`var map = new Dictionary<string, T>();`).
-- 👁 **No behavior-selecting flag arguments** (the "boolean trap"). A `bool`/`enum` parameter whose only job is to
-  switch a method between two behaviors becomes **two intention-revealing methods**. A `bool` carried as data the
-  method does not branch on is fine.
-- 👁 **A configuration callback takes one growable type.** An `Action<T>` passed to a wire-up method uses a single
-  sealed options/configurator `T`, never bare parameters — so a new configurable aspect is a **non-breaking
-  property-add** on `T`, not a new callback parameter that breaks every caller.
-- 👁 **No cross-assembly `InternalsVisibleTo` in production.** It is for **test projects only** (plus
-  `DynamicProxyGenAssembly2` for mocking). Packages collaborate through **public** contracts, never internals. See
-  [project-template ADR-0104](../../docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md).
+- 👁 **Buffer by default; stream deliberately** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Own every stored collection; pick the concrete type by usage** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections).
+- 👁 **Signatures speak in read-only interfaces; storage stays concrete** — template
+  [Types and Collections](csharp.instructions.md#types-and-collections); a local stays concrete through `var` over an
+  explicit initializer.
+- 👁 **No behavior-selecting flag arguments** — template [Public API](csharp.instructions.md#public-api).
+- 👁 **A configuration callback takes one growable type** — template [Public API](csharp.instructions.md#public-api).
+- 👁 **No cross-assembly `InternalsVisibleTo` in production** — template [Public API](csharp.instructions.md#public-api)
+  and [project-template ADR-0104](../../docs/decisions/project-template/0104-no-cross-assembly-internalsvisibleto.md).
 - 👁 **An implementation package references only `*.Abstractions` packages — never another implementation package.**
   Cross-implementation collaboration flows through an interface owned by an `*.Abstractions` package, resolved from DI;
   the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
@@ -204,10 +176,8 @@ than inlining the rationale.
   new capability shared by more than one implementation therefore ships as an abstraction/implementation **pair**. An
   implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. See
   [ADR-1016](../../docs/decisions/1016-implementation-packages-depend-only-on-abstractions.md).
-- 👁 **Mark infrastructure-public types.** A type that is public **only** for cross-assembly collaboration — never for
-  application code — is marked `[EditorBrowsable(EditorBrowsableState.Never)]` and its `<summary>` opens with the
-  standard boilerplate: _"This API supports the NCode.Identity infrastructure and is not intended to be used directly
-  from your code."_ (the EF Core / ASP.NET Core pattern).
+- 👁 **Mark infrastructure-public types** — template [Public API](csharp.instructions.md#public-api), with the summary
+  _"This API supports the NCode.Identity infrastructure and is not intended to be used directly from your code."_
 - ⏳ The public surface is deliberate and tracked by `PublicApiAnalyzers` (`RS0016` / `RS0017` / `RS0024`): a public
   change not recorded in the sibling `PublicAPI.{Shipped,Unshipped}.txt` fails the build. A breaking change is a
   **major** version bump. See [ADR-1005](../../docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md).
@@ -222,22 +192,13 @@ than inlining the rationale.
   An `abstract override` member is recorded as `override abstract …`. `dotnet format analyzers` can rewrite a
   `PublicAPI.Unshipped.txt` it edits with CRLF line endings; the repository's files are LF, so restore LF before
   committing (`git diff --stat` shows the whole file changed when this happens).
-- ⏳ **At most one overload per method name may carry optional parameters (`RS0026`).** The public-API analyzer fails
-  the build when two overloads of the same name each declare a defaulted parameter (even when their other parameters
-  differ in type, so there is no call ambiguity). When a family of overloads needs an optional tail argument (e.g. a
-  `JsonSerializerOptions? jsonOptions`), do **not** give several of them `= null` defaults; express them as explicit
-  no-argument / with-argument overload pairs (the trailing parameter is present but **not** defaulted), which reads
-  unambiguously and satisfies the analyzer. `IJoseSerializer.Deserialize<T>` / `VerifyJws<T>` follow this shape.
-- 👁 **Required inputs are constructor parameters; optional inputs are `init` properties.** Never add an optional value
-  as a new constructor parameter — once shipped that is a binary-breaking signature change. Add it as an `init`
-  property, model "unspecified" as nullable, and resolve the default **inside the library**.
-- 👁 **An evolving set of optional selection criteria is a DTO, not positional parameters.** When a method takes a
-  growing set of optional filters (the way `IGrantStore` kept gaining `sessionId`, then `grantType`), model them as a
-  dedicated `readonly record struct` with **init-only, non-`required`** properties (e.g. `GrantFilter`), constructed by
-  object initializer — so a new criterion is a source-compatible add, not a breaking signature change. The
-  `(cursor, limit)` pagination pair follows the same shape via the shared `PageRequest` DTO (every store `GetPageAsync`
-  takes `PageRequest`), so pagination can grow (e.g. a sort direction) non-breakingly too. Keep **required identity
-  keys** positional. See [ADR-1099](../../docs/decisions/1099-forward-compatible-evolving-parameters.md).
+- ⏳ **At most one overload per method name carries optional parameters (`RS0026`)** — template
+  [Public API](csharp.instructions.md#public-api) (`IJoseSerializer.Deserialize<T>` and `VerifyJws<T>`).
+- 👁 **Required inputs are constructor parameters; optional inputs are `init` properties** — template
+  [Public API](csharp.instructions.md#public-api).
+- 👁 **An evolving set of optional selection criteria is a DTO, not positional parameters** — template
+  [Public API](csharp.instructions.md#public-api): `GrantFilter`, and the shared `PageRequest` that every store
+  `GetPageAsync` takes ([ADR-1099](../../docs/decisions/1099-forward-compatible-evolving-parameters.md)).
 - 👁 **Annotate a reflection-/DI-/serializer-consumed public type with `[PublicAPI]`** (JetBrains.Annotations) — the
   house pattern across the packages. Members of a public type touched only by the JSON serializer, the options binder,
   or the DI container have no in-repo call site, so the unused-member analyzers flag them; `[PublicAPI]` states the

@@ -46,5 +46,21 @@ public class AuditRecordOptionsValidatorTests
         );
     }
 
+    [Fact]
+    public void Validate_WhenThePruneIntervalIsZero_FailsNamingItsKey()
+    {
+        var options = new AuditRecordOptions { PruneInterval = TimeSpan.Zero };
+        var validator = new AuditRecordOptionsValidator();
+
+        var result = validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "'AuditRecords:PruneInterval'",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
     #endregion
 }

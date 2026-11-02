@@ -30,7 +30,7 @@ public class JwksEndpointTests(HostApplicationFactory factory)
     private HostApplicationFactory Factory { get; } = factory;
 
     [Fact]
-    public async Task GetJwks_WithEphemeralDeveloperKeys_PublishesRsaSigningKey()
+    public async Task GetJwks_WithProvisionedKeys_PublishesAnRs256SigningKey()
     {
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -47,8 +47,9 @@ public class JwksEndpointTests(HostApplicationFactory factory)
         Assert.Equal(JsonValueKind.Array, keys.ValueKind);
         Assert.True(keys.GetArrayLength() >= 1);
 
-        // The host opts into an ephemeral RSA signing key, so a valid public JWK must be published.
-        var key = keys[0];
+        // The host provisions an RS256 signing key (ADR-1169), so a valid public JWK must be published.
+        var key = keys.EnumerateArray()
+            .Single(candidate => candidate.GetProperty("alg").GetString() == "RS256");
         Assert.Equal("RSA", key.GetProperty("kty").GetString());
         Assert.Equal("sig", key.GetProperty("use").GetString());
         Assert.Equal("RS256", key.GetProperty("alg").GetString());

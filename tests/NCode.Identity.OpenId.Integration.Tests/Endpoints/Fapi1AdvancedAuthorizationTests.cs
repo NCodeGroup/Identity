@@ -21,7 +21,6 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Web;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Buffers;
 using NCode.Encoders;
@@ -48,19 +47,6 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     public void Dispose() => ClientRsa.Dispose();
 
     #region Scaffolding
-
-    // The developer key signs only RS256, so the host provisions the tenant its own RS256, PS256 and ES256 keys, which
-    // FAPI needs to sign with PS256. The developer-key mode is read while the host registers services, before
-    // configuration overlays apply, so it is supplied as a host setting.
-    private sealed class ProvisionedKeysApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.UseSetting("DeveloperKeys:Mode", "None");
-        }
-    }
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(
@@ -231,7 +217,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     {
         const string clientId = "it-fapi1-par-jwt";
 
-        using var factory = new ProvisionedKeysApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await SeedFapiClientAsync(factory, clientId);
         var client = CreateClient(factory);
         var issuer = await GetIssuerAsync(client);
@@ -250,7 +236,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     {
         const string clientId = "it-fapi1-par-plain";
 
-        using var factory = new ProvisionedKeysApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await SeedFapiClientAsync(factory, clientId);
         var client = CreateClient(factory);
         var issuer = await GetIssuerAsync(client);
@@ -272,7 +258,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         const string clientId = "it-fapi1-par-http";
         const string httpRedirectUri = "http://client.example/callback";
 
-        using var factory = new ProvisionedKeysApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await SeedFapiClientAsync(factory, clientId, httpRedirectUri);
         var client = CreateClient(factory);
         var issuer = await GetIssuerAsync(client);
@@ -304,7 +290,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     {
         const string clientId = "it-fapi1-par-no-nbf";
 
-        using var factory = new ProvisionedKeysApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await SeedFapiClientAsync(factory, clientId);
         var client = CreateClient(factory);
         var issuer = await GetIssuerAsync(client);
@@ -334,7 +320,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     {
         const string clientId = "it-fapi1-authorize-jwt";
 
-        using var factory = new ProvisionedKeysApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
         await SeedFapiClientAsync(factory, clientId);
         var client = CreateClient(factory);
@@ -374,7 +360,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
     {
         const string clientId = "it-fapi1-public";
 
-        using var factory = new ProvisionedKeysApplicationFactory();
+        using var factory = new HostApplicationFactory();
         await factory.SeedPublicClientWithSettingsAsync(
             clientId,
             new Dictionary<string, object>

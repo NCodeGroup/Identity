@@ -25,11 +25,7 @@ public class DefaultDPoPProofFactoryTests : BaseTests, IAsyncLifetime
     {
         var mock = CreateStrictMock<IProviderMetadataResolver>();
         mock.Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata { DPoPSigningAlgValuesSupported = ["ES256"] }
-                )
-            );
+            .ReturnsAsync(new OpenIdProviderMetadata { DPoPSigningAlgValuesSupported = ["ES256"] });
         return mock;
     }
 

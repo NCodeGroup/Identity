@@ -175,7 +175,7 @@ public class DefaultSessionServiceTests : BaseTests
                     capturedLifetime = lifetime;
                 }
             )
-            .Returns(ValueTask.FromResult("grant-public-id"))
+            .ReturnsAsync("grant-public-id")
             .Verifiable();
 
         MockAuditEventRecorder
@@ -387,7 +387,7 @@ public class DefaultSessionServiceTests : BaseTests
                     CancellationToken _
                 ) => captured = update
             )
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Service.AddClientAsync(
@@ -437,7 +437,7 @@ public class DefaultSessionServiceTests : BaseTests
                     CancellationToken _
                 ) => captured = update
             )
-            .Returns(ValueTask.FromResult(false))
+            .ReturnsAsync(false)
             .Verifiable();
 
         var result = await Service.AddClientAsync(
@@ -486,7 +486,7 @@ public class DefaultSessionServiceTests : BaseTests
                     CancellationToken _
                 ) => captured = update
             )
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Service.AddClientAsync(
@@ -1255,7 +1255,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
             )
-            .Returns(ValueTask.FromException(new InvalidOperationException("boom")))
+            .ThrowsAsync(new InvalidOperationException("boom"))
             .Verifiable();
 
         // The claim has already revoked the grants of the session, so the failure leaves no token of it active.
@@ -1770,7 +1770,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
             )
-            .Returns(ValueTask.FromException(new InvalidOperationException("dispatch")))
+            .ThrowsAsync(new InvalidOperationException("dispatch"))
             .Verifiable();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -2004,7 +2004,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
             )
-            .Returns(ValueTask.FromException(new InvalidOperationException("dispatch")))
+            .ThrowsAsync(new InvalidOperationException("dispatch"))
             .Verifiable();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>

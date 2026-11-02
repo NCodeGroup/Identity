@@ -75,7 +75,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var mock = CreateStrictMock<IProviderKeySetResolver>();
         mock.Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys(RsaKey)))
+            .ReturnsAsync(CreateKeys(RsaKey))
             .Verifiable();
         return mock;
     }
@@ -91,7 +91,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var mock = CreateStrictMock<IExpiringKeySet>();
         mock.Setup(x => x.ContainsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(false))
+            .ReturnsAsync(false)
             .Verifiable();
         return mock;
     }
@@ -117,14 +117,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var mockMetadata = CreateStrictMock<IProviderMetadataResolver>();
         mockMetadata
             .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata
-                    {
-                        Issuer = Issuer,
-                        IdTokenSigningAlgValuesSupported = advertised,
-                    }
-                )
+            .ReturnsAsync(
+                new OpenIdProviderMetadata
+                {
+                    Issuer = Issuer,
+                    IdTokenSigningAlgValuesSupported = advertised,
+                }
             )
             .Verifiable();
 
@@ -816,7 +814,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var keySet = CreateStrictMock<IExpiringKeySet>();
         keySet
             .Setup(x => x.ContainsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
         var validator = CreateValidator(CreateKeySetMock(), keySet);
 
@@ -836,7 +834,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var mock = CreateStrictMock<IExpiringKeySet>();
         mock.Setup(x => x.ContainsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<string, CancellationToken>((key, _) => lookups.Add(key))
-            .Returns(ValueTask.FromResult(false));
+            .ReturnsAsync(false);
         mock.Setup(x =>
                 x.TryAddAsync(
                     It.IsAny<string>(),
@@ -847,7 +845,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             .Callback<string, DateTimeOffset, CancellationToken>(
                 (key, expiresWhen, _) => records.Add((key, expiresWhen))
             )
-            .Returns(ValueTask.FromResult(added));
+            .ReturnsAsync(added);
         return mock;
     }
 

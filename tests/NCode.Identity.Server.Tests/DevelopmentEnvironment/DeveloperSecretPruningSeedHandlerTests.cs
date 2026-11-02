@@ -47,11 +47,11 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var store = CreateStrictMock<ITenantStore>();
         store
             .Setup(x => x.RemoveSecretAsync(tenantId, "broken-a", It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
         store
             .Setup(x => x.RemoveSecretAsync(tenantId, "broken-b", It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
 
         // The master keys are readable, so the factory and the key store are never used: strict mock with no setups.
@@ -94,7 +94,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var store = CreateStrictMock<ITenantStore>();
         store
             .Setup(x => x.RemoveSecretAsync(tenantId, "broken", It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
 
         // The master keys are readable, so the factory and the key store are never used: strict mock with no setups.
@@ -147,7 +147,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         masterKeyStore
             .Setup(x => x.RemoveAllAsync(owner, It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add("remove"))
-            .Returns(ValueTask.FromResult(1))
+            .ReturnsAsync(1)
             .Verifiable();
 
         var keyStoreManager = CreateStrictMock<IStoreManager>();
@@ -165,7 +165,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         storeManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(keyStoreManager.Object))
+            .ReturnsAsync(keyStoreManager.Object)
             .Verifiable();
 
         // Nothing is deserialized: strict mock with no setups.
@@ -174,11 +174,11 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var store = CreateStrictMock<ITenantStore>();
         store
             .Setup(x => x.RemoveSecretAsync(tenantId, "private-a", It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
         store
             .Setup(x => x.RemoveSecretAsync(tenantId, "private-b", It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
 
         var handler = new DeveloperSecretPruningSeedHandler(
@@ -308,7 +308,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.FromResult(protector.Object))
+            .ReturnsAsync(protector.Object)
             .Verifiable();
 
         return protectorProvider;

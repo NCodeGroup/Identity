@@ -14,13 +14,18 @@
 
 ## Context
 
+[project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)
+has the server generate every credential it issues, return it in at most one response, answer every read with
+metadata only, and rotate a credential by creating a new one and deleting the old, never by changing it in place.
+This record applies it to the secrets the management API manages for an OpenID server, tenant and client, and to
+the lifecycle of those owners.
+
 The OpenID management API (`NCode.Identity.OpenId.Management`) exposes CRUD over the secrets owned by an
 OpenID **server**, **tenant**, and **client**. These decisions apply to **all** of those secret owners;
 server secrets are the first implementation and tenant/client secrets follow the same rules as their
-endpoint groups land. Reading secrets was already correct-by-default: `SecretResource` exposes only
-metadata (`Use`, `Algorithm`, `CreatedWhen`, `ExpiresWhen`, `SecretType`, `KeySizeBits`) and never the
-`EncodedValue`. But there was no write path — a secret collection could only be seeded through
-the persistence layer directly (`AddAsync`), not managed at runtime.
+endpoint groups land. `SecretResource`, the read model, exposes only metadata (`Use`, `Algorithm`, `CreatedWhen`,
+`ExpiresWhen`, `SecretType`, `KeySizeBits`). There was no write path — a secret collection could only be seeded
+through the persistence layer directly (`AddAsync`), not managed at runtime.
 
 Two facts constrain the write path:
 
@@ -30,10 +35,9 @@ Two facts constrain the write path:
 - **The stores had no per-secret operations** — only whole-collection reads and settings writes.
   Individual add/update/delete did not exist.
 
-Creating a secret therefore raises a security-design fork: does the operator **import** raw private key
-material over the wire (BYOK), or does the **server generate** it? Importing private keys means
-plaintext key material transits the API and the operator's tooling; generation keeps the private key
-inside the server's data-protection boundary from birth.
+The template record has the server **generate** what it issues; it leaves to the family whether an operator may also
+**import** key material it already holds (BYOK), which would put plaintext private keys on the wire and in the
+operator's tooling.
 
 ## Decision
 
@@ -46,8 +50,9 @@ implementation); the tenant and client secret endpoints adopt the identical shap
   that `(secretType, keySizeBits)`, data-protects it, base64url-encodes it into `EncodedValue`, and
   persists it. The response is a `SecretResource` (metadata only). Symmetric key material never leaves
   the server; asymmetric public material is not returned yet (a deliberate, additive future option).
-- **`PUT api/servers/{serverId}/secrets/{secretId}`** is **metadata-only** — it rotates `expiresWhen`,
-  `use`, and `algorithm`. Key material is immutable once generated; rotation is create-new + delete-old.
+- **`PUT api/servers/{serverId}/secrets/{secretId}`** is **metadata-only** — it changes `expiresWhen`,
+  `use`, and `algorithm`. Key material is immutable once generated, so a secret is rotated by creating a new one and
+  deleting the old, as the template record decides.
 - **`GET api/servers/{serverId}/secrets/{secretId}`** returns one `SecretResource`;
   **`DELETE`** removes it. Both honor the resource-based authorization and `ETag`/concurrency model the
   other management endpoints use.
@@ -85,11 +90,8 @@ carries a `// Future:` note rather than an implementation.
 
 ## Consequences
 
-- The common, safe path (operator asks the server to mint a key) works end-to-end with no private key
-  material crossing the API boundary in either direction.
-- `SecretResource` stays metadata-only; there is still no public API that returns `EncodedValue`.
-- Rotation is create-new + delete-old, which is auditable but requires two calls; a client secret is also rotated
-  in one call that keeps the rotated secret until it expires or is deleted
+- A rotation takes two calls, a create and a delete; a client secret is also rotated in one call that keeps the
+  rotated secret until it expires or is deleted
   ([ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.

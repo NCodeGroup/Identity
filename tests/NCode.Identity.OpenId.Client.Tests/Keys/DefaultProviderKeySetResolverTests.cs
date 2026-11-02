@@ -69,7 +69,7 @@ public class DefaultProviderKeySetResolverTests : BaseTests, IAsyncLifetime
         };
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(metadata))
+            .ReturnsAsync(metadata)
             .Verifiable();
 
         var options = Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions());

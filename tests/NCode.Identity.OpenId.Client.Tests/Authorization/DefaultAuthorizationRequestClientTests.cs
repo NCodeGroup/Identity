@@ -49,7 +49,7 @@ public class DefaultAuthorizationRequestClientTests : BaseTests, IAsyncLifetime
     {
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(metadata))
+            .ReturnsAsync(metadata)
             .Verifiable();
 
         var mockAuthenticator = CreateStrictMock<IClientAuthenticator>();

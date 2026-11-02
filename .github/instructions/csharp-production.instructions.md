@@ -1246,10 +1246,13 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   `AsymmetricSecretKey.ExportSubjectPublicKeyInfo`) — instead of returning a freshly-allocated `byte[]`; inputs are
   `ReadOnlySpan<byte>` / `ReadOnlyMemory<byte>`. Rent a pooled writer with
   `BufferFactory.CreatePooledBufferWriter(isSensitive:)` (`NCode.Buffers` over `Nerdbank.Streams`), not a bare
-  `ArrayBufferWriter<byte>` — `isSensitive: true` for secrets (pinned, zeroed `SecureMemoryPool`), `false` for
-  non-secret bytes — and flatten a multi-segment `Sequence<byte>` to a contiguous span via `GetSpanLease(isSensitive:)`,
-  never manual concatenation. This is the general convention for all byte-array/memory/buffer usage; existing `byte[]`
-  surfaces migrate incrementally. See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+  `ArrayBufferWriter<byte>`, `ArrayPool<T>.Shared` or `MemoryPool<T>.Shared` — `isSensitive: true` for secrets (pinned,
+  zeroed `SecureMemoryPool`), `false` for non-secret bytes. Read a multi-segment sequence segment by segment or with
+  `SequenceReader<byte>`, and take one contiguous span with `GetSpanLease(isSensitive:)` only when a consumer needs
+  it — never manual concatenation or `.ToArray()`. This is the general convention for all byte-array/memory/buffer
+  usage; existing `byte[]` surfaces migrate incrementally. See
+  [project-template ADR-0112](../../docs/decisions/project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)
+  and [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
 - 👁 **Allocate a `byte[]` only when an external API demands an array, and then rent or pin it.** A rented buffer
   (`BufferFactory.Rent(…, isSensitive:, out …)`, `CreatePooledBufferWriter(isSensitive:)`) or a small, fixed
   `stackalloc` is the default for every transient; a secret held by an object or across an `await` is a sensitive
@@ -1302,8 +1305,9 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   elision — even when the result is dense and harder to read, to minimize allocations and branches. **Two constraints override speed and are never traded away:** (1) constant-time
   code must not gain a data-dependent branch or memory access from any optimization; (2) correctness is pinned by
   test vectors / differential tests that must stay green. This is a deliberate, scoped exception to the clean-code
-  rules above, limited to performance-critical primitives. See
-  [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+  rules above, limited to performance-critical primitives. A new optimization of a primitive is justified by a benchmark
+  ([project-template ADR-0112](../../docs/decisions/project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)).
+  See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
 
 ## 11. Logging & metrics
 

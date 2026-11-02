@@ -1179,35 +1179,25 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 ## 12. Configuration & options
 
-- 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with
-  `services.Configure<T>(configuration.GetSection(...))` — never `IConfiguration` read ad hoc deep in the code.
-- 👁 **Inject `IOptions<T>` for start-up-fixed configuration and `IOptionsMonitor<T>` for values that may change at
-  runtime.** An options class is a data type (§2): `sealed`, `init` / get-only members, concrete collections,
-  correct-by-default (§2 — no knob weakens a security control below its safe baseline).
-- 👁 **A rule that validates configured data also validates the same data written at runtime.** When startup validation
-  checks a value that another path can also write — the management API, dynamic registration, a seeder — both paths
-  apply one implementation of the rule, shared through the seam that owns the concept (the tenant-selection seam judges a
-  tenant's address for configuration and the management API alike). A check that exists only for configuration lets the
-  runtime path store exactly what startup refuses. An options validator never resolves the services that read the
-  options it validates; share a stateless rule set with them instead. See
-  [ADR-1160](../../docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md).
-- 👁 **Each strategy validates its own options.** An `IValidateOptions<T>` for a strategy's section is registered beside
-  the strategy and skips when another strategy is selected; a shared validator never branches on the strategy code, so a
-  strategy registered by another package brings its own validation (§2, open vocabularies).
+- 👁 **Configuration is a strongly-typed options class in an `Options/` folder** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options), bound through `BindStrictly` (§4).
+- 👁 **`IOptions<T>` for start-up-fixed values and `IOptionsMonitor<T>` for values that change at runtime; an options
+  class is a data type (§2)** — template [Configuration and Options](csharp.instructions.md#configuration-and-options).
+- 👁 **A rule that validates configured data also validates the same data written at runtime** — template
+  [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants) and
+  [Configuration and Options](csharp.instructions.md#configuration-and-options); the tenant-selection seam judges a
+  tenant's address for configuration and the management API alike
+  ([ADR-1160](../../docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+- 👁 **Each strategy validates its own options** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options).
 - 👁 **A default for runtime-written data is derived through the seam that judges it, then judged and stored like an
-  explicit value.** When configuration can supply a value a write omits — a tenant's issuer from its strategy's issuer
-  template — every write path asks the owning seam for the default (`ITenantResolver.GetDefaultIssuerAsync`) before it
-  validates, and persists the result, so a later configuration change never silently moves existing data. Never fill
-  the gap at read time from the request or other ambient state: that is a second, unvalidated source of the same value.
-  See [ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md).
-- 👁 **A configuration seeder names exactly the target it seeds.** A seeder that writes credentials or accounts into a
-  tenant (`BootstrapAdmin`, `DeveloperInteractiveSeed`, `ConformanceSeed`) requires its `TenantId` whenever it has
-  something to seed, and an unset target never means "every tenant": every tenant created at runtime would inherit the
-  credential. Validate the requirement when the host starts. See
-  [ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).
+  explicit value** — template [Configuration and Options](csharp.instructions.md#configuration-and-options): every write
+  path asks the owning seam (`ITenantResolver.GetDefaultIssuerAsync`) before it validates
+  ([ADR-1165](../../docs/decisions/1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+- 👁 **A configuration seeder names exactly the target it seeds** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options): `BootstrapAdmin`,
+  `DeveloperInteractiveSeed` and `ConformanceSeed` require their `TenantId`
+  ([ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
 - 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
-  (`NCode.Time`): between one millisecond, the shortest a `PeriodicTimer` accepts, and `TimerPeriod.MaxValue`,
-  4,294,967,294 milliseconds, the longest any .NET timer or `CancellationTokenSource` delay accepts. The options type's
-  `IValidateOptions<T>` names the option and its configuration key, so a period a timer refuses stops the host instead
-  of faulting a hosted service after it started. See
+  (`NCode.Time`) — template [Configuration and Options](csharp.instructions.md#configuration-and-options) and
   [ADR-1221](../../docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md).

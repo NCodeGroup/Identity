@@ -19,8 +19,10 @@
   </PropertyGroup>
 
   <!-- The Definition of Done (dod.ps1) writes one JUnit report per test assembly to artifacts/test-results via the JUnit
-       test logger; build/test-report.ps1 presents them and CI uploads them to Codecov (ADR-1143). -->
+       test logger; build/test-report.ps1 presents them and CI uploads them to Codecov (ADR-1143). Every test project
+       reads time from FakeTimeProvider (Microsoft.Extensions.TimeProvider.Testing). -->
   <ItemGroup>
     <PackageReference Include="JunitXml.TestLogger" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 </Project>

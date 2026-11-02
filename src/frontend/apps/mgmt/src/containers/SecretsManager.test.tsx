@@ -333,7 +333,7 @@ describe('SecretsManager', () => {
 
       fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
       expect(screen.getByRole('dialog', { name: 'Rotate secret' })).toHaveTextContent(
-        'Replace secret “s-sym” with a new one that expires in a year?',
+        'Create a replacement for secret “s-sym” that expires in a year? The current secret keeps authenticating for up to 7 days',
       );
       fireEvent.click(screen.getByTestId('confirm-accept'));
 
@@ -345,6 +345,9 @@ describe('SecretsManager', () => {
       const [secretId, body] = onRotate.mock.calls[0]!;
       expect(secretId).toBe('s-sym');
       expect(new Date(body.expiresWhen).getFullYear()).toBe(new Date().getFullYear() + 1);
+      const graceDays = (Date.parse(body.rotatedExpiresWhen ?? '') - Date.now()) / 86_400_000;
+      expect(graceDays).toBeGreaterThan(6.9);
+      expect(graceDays).toBeLessThanOrEqual(7);
     });
 
     it('discards the rotate dialog on cancel without rotating', async () => {

@@ -274,11 +274,14 @@ export type CreateSecretRequest = {
 };
 
 /**
- * Mirror of `RotateSecretRequest`. The server generates a replacement of the rotated client secret's type, size,
- * use, and algorithm; `expiresWhen` is the replacement's ISO-8601 expiry. See ADR-1183.
+ * Mirror of `RotateSecretRequest`. The server adds a replacement of the rotated client secret's type, use, and
+ * algorithm and keeps the rotated secret, so both authenticate while its holder switches. `expiresWhen` is the
+ * replacement's ISO-8601 expiry and `rotatedExpiresWhen` the rotated secret's, never later than its current one.
+ * See ADR-1320.
  */
 export type RotateSecretRequest = {
   readonly expiresWhen: string;
+  readonly rotatedExpiresWhen?: string;
 };
 
 /**

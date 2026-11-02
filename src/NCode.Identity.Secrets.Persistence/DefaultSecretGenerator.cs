@@ -83,6 +83,14 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
             );
         }
 
+        if (request.KeySizeBits < SharedSecretPolicy.MinimumEntropyBits)
+        {
+            throw new ArgumentException(
+                $"A shared secret must have at least {SharedSecretPolicy.MinimumEntropyBits} bits of entropy.",
+                nameof(request)
+            );
+        }
+
         // The opaque secret string is what an external party holds and later presents; its UTF-8 bytes are stored as
         // the symmetric key material so a UTF-8 comparison of the presented secret against the stored material matches.
         var entropyByteLength = request.KeySizeBits >> 3;

@@ -38,7 +38,8 @@ public interface ISecretGenerator
     /// stored symmetric key material is the <strong>UTF-8 bytes of that string</strong>, protected under the owner's
     /// master key with the specified <paramref name="protector"/>. The stored material is exactly what a verifier
     /// compares against (the UTF-8 bytes of the presented secret), so the generated secret authenticates round-trip.
-    /// The request's <see cref="GenerateSecretRequest.KeySizeBits"/> sets the random entropy; its
+    /// The request's <see cref="GenerateSecretRequest.KeySizeBits"/> sets the random entropy; it must be a multiple of 8
+    /// and at least <see cref="SharedSecretPolicy.MinimumEntropyBits"/>; its
     /// <see cref="GenerateSecretRequest.SecretType"/> must be <c>Symmetric</c>.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>

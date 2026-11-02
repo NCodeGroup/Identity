@@ -85,7 +85,9 @@ Concretely:
   metadata and the **data-protected** `EncodedValue` only — never the unprotected `SecretMaterial` —
   preserving ADR-1011's audit posture and ADR-1049's funnel.
 - **Rotation inherits the same semantics.** Rotation stays create-new + delete-old (ADR-1011); the client's
-  "rotate" endpoint ([ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)) reveals its
+  "rotate" endpoint ([ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md), superseded by
+  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md), which keeps
+  the rotated secret beside its replacement) reveals its
   replacement identically, and server/tenant rotation never reveals. There is no reveal on `PUT` (metadata-only) or
   any other verb.
 

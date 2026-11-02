@@ -462,7 +462,8 @@ SharedState therefore gains a second primitive next to it:
 
 The in-process adapter implements both primitives and stays the default. As ADR-1164 decided for the OP, it is correct
 for a single replica, including a single-replica production deployment. Several replicas register the **Valkey**
-adapter, which implements the primitives with `SET NX PX`, `GETDEL`, and compare-and-swap and compare-and-remove scripts, and the index is a sorted set scored by member expiry
+adapter, which implements the primitives with `SET NX PX`, `GETDEL`, and compare-and-swap and compare-and-remove
+scripts, and the index is a sorted set scored by member expiry
 ([ADR-1267](decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). The BFF thus
 shares the OP's Valkey integration rather than adding its own. If the store fails, the BFF **fails closed with
 `503`**. It never treats the request as signed out, because a `401` would send the SPA into a login loop against a
@@ -491,9 +492,9 @@ theft. The NCode OP's default `refresh_token_reuse_policy=revoke_all` then **rev
    value is a random owner token, and `ReleaseRefreshLeaseAsync` removes the lease only while that owner holds it
    ([ADR-1308](decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
 3. The winner refreshes, then writes the rotated refresh token and the new access token with a version-checked
-   `TryReplace`. It then releases its own lease, however long the refresh took. The browser cannot cancel either step: once the lease is won, the token request and the write-back run
-   to completion, bounded by the client's request timeout, because dropping the rotated refresh token would make the
-   next refresh a reuse.
+   `TryReplace`. It then releases its own lease, however long the refresh took. The browser cannot cancel either
+   step: once the lease is won, the token request and the write-back run to completion, bounded by the client's
+   request timeout, because dropping the rotated refresh token would make the next refresh a reuse.
 4. The losers wait (with bounded backoff) for the session version to change, reload, and use the new token. If the
    wait times out, they answer `503`. They **never** retry the refresh with the old refresh token.
 

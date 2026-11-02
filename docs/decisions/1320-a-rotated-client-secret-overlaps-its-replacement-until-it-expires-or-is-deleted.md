@@ -14,8 +14,8 @@ delete: the holder switches to the replacement while the old secret still works,
 A rotation that removes the rotated secret in the same change breaks every caller that holds it until it is
 reconfigured. A rotation that keeps it needs a bound, or a forgotten delete leaves a stale credential accepted
 forever, and that bound only works when a credential past its `ExpiresWhen` stops authenticating. Signing-key
-rollover and tenant or server key expiry are tracked in issue [#166](https://github.com/NCodeGroup/Identity/issues/166);
-a client credential's expiry is the part rotation needs.
+rollover and the expiry of every other stored key, a tenant's, a server's or a resource server's, are tracked in issue
+[#166](https://github.com/NCodeGroup/Identity/issues/166); a client credential's expiry is the part rotation needs.
 
 A client's shared secret stores the UTF-8 length of its base64url string as `KeySizeBits`, not its entropy
 ([ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md)), so copying the stored size as the replacement's
@@ -36,7 +36,11 @@ secret. Both authenticate until the rotated secret expires or is deleted. This s
   value stops it at once. Omitted, the rotated secret keeps its expiry. The Management console sends seven days.
 - **A client credential past its expiry stops authenticating.** `DefaultOpenIdClientResolver` drops every persisted
   client secret whose `ExpiresWhen` is not after now before it deserializes the rest, so an expired secret or
-  by-value key stops authenticating through every client authentication method.
+  by-value key stops authenticating through every client authentication method. Only client authentication filters
+  by expiry. A resource server's keys protect the tokens issued for it and are not credentials a caller presents (a
+  resource server authenticates through its bound client), so their expiry, like every other stored key's, is issue
+  #166's. A dynamic client registration read reports every registered key, expired or not, because it describes what
+  is registered.
 - **A generated shared secret has at least 256 bits of entropy.** `SharedSecretPolicy.MinimumEntropyBits` is the
   floor. `ISecretGenerator.GenerateSharedSecret` throws below it, the client secret create endpoint answers `400`,
   and dynamic client registration uses the constant. Server, tenant, and resource-server symmetric keys are
@@ -45,10 +49,11 @@ secret. Both authenticate until the rotated secret expires or is deleted. This s
   `max(256, (KeySizeBits / 8 * 3 / 4) * 8)`, which inverts the base64url length of a generated secret exactly, so a
   secret does not grow with each rotation.
 - **Authorized and audited as the calls it performs.** The caller must be allowed to create a secret for the client
-  and to update the rotated secret; rotation no longer deletes. The audit trail records the replacement's `Created`
-  and, only when the expiry changed, the rotated secret's `Updated`, without material. An `If-Match` header, when
-  sent, must carry the rotated secret's concurrency token. The response is `201 Created` with the replacement's
-  `CreatedSecretResource`, the only place its material appears ([ADR-1050](1050-secret-material-revealed-once-on-create.md)).
+  and to update the rotated secret; rotation performs a create and an update and never deletes. The audit trail
+  records the replacement's `Created` and, only when the expiry changed, the rotated secret's `Updated`, without
+  material. An `If-Match` header, when sent, must carry the rotated secret's concurrency token. The response is
+  `201 Created` with the replacement's `CreatedSecretResource`, the only place its material appears
+  ([ADR-1050](1050-secret-material-revealed-once-on-create.md)).
 - **Only a shared secret is rotated.** A key is the client's to hold; rotating one answers `400`, and the client
   imports the new key and deletes the old one.
 

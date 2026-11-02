@@ -12,7 +12,12 @@ wired into the host
 ([`Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs)) and activated by the `Conformance`
 launch profile plus the
 [`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
-overlay, which seeds the three Basic-OP clients and the `conformance-user`. The remaining conformance
+overlay, which seeds the three Basic-OP clients and the `conformance-user`. Their client secrets and the test user's
+password are not in the overlay: they are generated once per machine, outside the repository, and passed to the host as
+`ConformanceSeed__` environment variables by the LocalDev AppHost and by
+[`run-conformance.ps1`](../../build/conformance/run-conformance.ps1), through
+[`Get-ConformanceSeedCredentials.ps1`](../../build/conformance/Get-ConformanceSeedCredentials.ps1)
+([#514](https://github.com/NCodeGroup/Identity/issues/514)). The remaining conformance
 prerequisite is the reachable HTTPS host with a byte-matched `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
 ## Goal
@@ -61,7 +66,7 @@ client registrations (all registering the suite callback as a redirect URI):
   `TokenEndpointAuthMethod` as its `token_endpoint_auth_method`, which makes it confidential and is the only method it
   authenticates with ([ADR-1145](../decisions/1145-a-client-authenticates-only-with-its-registered-method.md)).
 
-Plus a **deterministic test user** (e.g. `conformance-user` + fixed password) in the conformance tenant,
+Plus a **deterministic test user** (`conformance-user`, with a password generated per machine) in the conformance tenant,
 consumed by the [#125](https://github.com/NCodeGroup/Identity/issues/125) login page.
 
 ## Approach
@@ -71,8 +76,9 @@ admin seeder (idempotent, declarative, dev/conformance-only), reusing the same s
 test factory already exercises.
 
 - Introduce a `Conformance` seeding section (clients + user + redirect URIs) bound from
-  configuration, enabled only under the conformance profile from [#126](https://github.com/NCodeGroup/Identity/issues/126). Keep secrets as dev-only fixed
-  values.
+  configuration, enabled only under the conformance profile from [#126](https://github.com/NCodeGroup/Identity/issues/126). The
+  secrets and the password are generated per machine and supplied through the environment, never committed
+  ([#514](https://github.com/NCodeGroup/Identity/issues/514)).
 - Make seeding **idempotent**: on startup, upsert the tenant, the three clients, and the test user; a
   second run must not duplicate or fail.
 - Reuse the credential/store paths behind `SeedConfidentialClientAsync` / `SeedLocalAccountAsync` so the

@@ -98,6 +98,21 @@ dotnet user-secrets set DeveloperInteractiveSeed:AdminPassword '<at least 15 cha
 `$secret` is the client secret to present. Without a value neither administrator is seeded. The `Conformance` profile
 reads `BootstrapAdmin__ClientSecret` from the environment, because user secrets load only in Development.
 
+The conformance seed's credentials are generated the same way ([#514](https://github.com/NCodeGroup/Identity/issues/514)):
+`appsettings.Conformance.json` lists the conformance clients and the `conformance-user` test user without a secret or
+password. The AppHost and
+[`build/conformance/Get-ConformanceSeedCredentials.ps1`](../../build/conformance/Get-ConformanceSeedCredentials.ps1)
+write `conformance-secret-client`, `conformance-secret-client2`, `conformance-secret-client-secret-post` and
+`conformance-user-password` to the same directory and hand them to the conformance OP as `ConformanceSeed__` environment
+variables; each client secret's file text is the secret the client presents, and the password is the file's text.
+Without them the seed skips those clients and the test user. To start the `Conformance` profile by hand, set them in the
+shell first:
+
+```pwsh
+./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment
+dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
+```
+
 ## Schema management (EF Core migrations)
 
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`

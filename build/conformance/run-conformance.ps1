@@ -30,7 +30,10 @@
         pinned pnpm).
       - Hosts-file entries `127.0.0.1  localhost.emobix.co.uk` (the suite's external base URL) and
         `127.0.0.1  host.docker.internal` (the OP issuer, probed from the host).
-      - The seeded conformance clients / test user from `appsettings.Conformance.json` (issue #127).
+      - The seeded conformance clients / test user from `appsettings.Conformance.json` (issue #127). Their credentials
+        are never committed: `Get-ConformanceSeedCredentials.ps1` generates them once per machine, outside the
+        repository and beside the LocalDev AppHost's development secrets, and this script hands the same values to the
+        OP it launches, the pre-flight and the suite configurations (issue #514).
 
 .EXAMPLE
     ./build/conformance/run-conformance.ps1
@@ -83,7 +86,8 @@ param(
     # Skip the in-house probe-runner pre-flight (step 2).
     [switch] $SkipPreflight,
 
-    # Assume the OP is already running at $IssuerUrl; do not launch or stop it.
+    # Assume the OP is already running at $IssuerUrl; do not launch or stop it. Start that OP with the conformance seed's
+    # credentials (`./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment` in its shell first).
     [switch] $UseRunningOp,
 
     # Skip bootstrapping the frontend pnpm workspace before the pre-flight (assume it is already installed).
@@ -106,6 +110,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/../..").Path
+
+# ConvertTo-Base64Url (shared with Get-ConformanceSeedCredentials.ps1) and Expand-ConfigTemplate; build/tests tests both.
+. (Join-Path $PSScriptRoot 'ConformanceHelpers.ps1')
 $FrontendDir = Join-Path $RepoRoot 'src/frontend'
 $HostProject = Join-Path $RepoRoot 'src/NCode.Identity.OpenId.Host'
 $ComposeFile = Join-Path $SuiteRepo 'docker-compose-prebuilt.yml'
@@ -218,7 +225,7 @@ function Clear-OpPort([int] $Port) {
 }
 
 # The screenshot-review placeholders that oidcc-prompt-login / oidcc-max-age-1 park on (OIDCC-3.1.2.1) are filled
-# deterministically, inline in the scripted-browser flow, by the per-module `override` blocks in oidcc-basic.json
+# deterministically, inline in the scripted-browser flow, by the per-module `override` blocks in oidcc-basic.template.json
 # (the suite-native `update-image-placeholder-optional` action — mirrors the suite's own
 # .gitlab-ci/local-provider-oidcc-conformance-config.json). No out-of-band upload watcher is needed.
 
@@ -241,12 +248,15 @@ $Fapi1Configurations = @(
 )
 $Fapi1ResponseModes = @('plain_response', 'jarm')
 $Fapi1KeyDir = Join-Path $PSScriptRoot '.fapi1-keys'
-$Fapi1EnvironmentNames = [System.Collections.Generic.List[string]]::new()
-$Fapi1GeneratedConfigs = [System.Collections.Generic.List[string]]::new()
 
-function ConvertTo-Base64Url([byte[]] $Bytes) {
-    return [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-}
+# The environment variables this run sets (the OP inherits them) and the suite configurations it renders, both removed
+# when the run ends.
+$RunEnvironmentNames = [System.Collections.Generic.List[string]]::new()
+$GeneratedConfigs = [System.Collections.Generic.List[string]]::new()
+
+# The conformance seed's per-machine credentials (issue #514): the OP the run launches seeds them, the pre-flight
+# authenticates with the `client` secret, and the suite configurations sign the test user in with its password.
+$SeedCredentials = $null
 
 function Get-Fapi1ConfigFileName([hashtable] $Configuration) { "fapi1-advanced-$($Configuration.Name).json" }
 
@@ -297,9 +307,28 @@ function Get-Fapi1ClientCredential([string] $ClientId) {
     finally { $cert.Dispose() }
 }
 
-function Set-Fapi1Environment([string] $Name, [string] $Value) {
+function Set-RunEnvironment([string] $Name, [string] $Value) {
     Set-Item -Path "Env:$Name" -Value $Value
-    $Fapi1EnvironmentNames.Add($Name)
+    $RunEnvironmentNames.Add($Name)
+}
+
+function Get-TestUserTokens {
+    return [ordered]@{
+        test_user_name = $SeedCredentials.TestUserName
+        test_user_password = $SeedCredentials.TestUserPassword
+    }
+}
+
+function Initialize-ConfigFromTemplate([string] $ConfigFileName) {
+    # A suite configuration that signs the test user in is committed as `<name>.template.json` and rendered here, with
+    # the test user's credentials, as the `<name>.json` the plan runs (gitignored, deleted when the run ends).
+    $templatePath = Join-Path $ConfigDir "$([System.IO.Path]::GetFileNameWithoutExtension($ConfigFileName)).template.json"
+    if (-not (Test-Path $templatePath)) { return }
+    $generated = Join-Path $ConfigDir $ConfigFileName
+    if ($GeneratedConfigs.Contains($generated)) { return }
+    $text = Expand-ConfigTemplate (Get-Content $templatePath -Raw) (Get-TestUserTokens)
+    Set-Content -Path $generated -Value $text -NoNewline
+    $GeneratedConfigs.Add($generated)
 }
 
 function Initialize-Fapi1Run {
@@ -310,10 +339,10 @@ function Initialize-Fapi1Run {
 
     # Request client certificates at the handshake, and advertise certificate-bound access tokens and the hybrid
     # response type the plain_response variant uses; a FAPI client's security profile narrows both to itself.
-    Set-Fapi1Environment 'Kestrel__EndpointDefaults__ClientCertificateMode' 'AllowCertificate'
-    Set-Fapi1Environment 'OpenId__Server__Settings__tls_client_certificate_bound_access_tokens' 'true'
-    Set-Fapi1Environment 'OpenId__Server__Settings__response_types_supported__0' 'code'
-    Set-Fapi1Environment 'OpenId__Server__Settings__response_types_supported__1' 'code id_token'
+    Set-RunEnvironment 'Kestrel__EndpointDefaults__ClientCertificateMode' 'AllowCertificate'
+    Set-RunEnvironment 'OpenId__Server__Settings__tls_client_certificate_bound_access_tokens' 'true'
+    Set-RunEnvironment 'OpenId__Server__Settings__response_types_supported__0' 'code'
+    Set-RunEnvironment 'OpenId__Server__Settings__response_types_supported__1' 'code id_token'
 
     $templateText = Get-Content (Join-Path $ConfigDir $Fapi1Template) -Raw
     foreach ($configuration in $Fapi1Configurations) {
@@ -323,28 +352,27 @@ function Initialize-Fapi1Run {
             client_auth_method = $configuration.ClientAuthMethod
             client_id = "fapi1-$($configuration.Name)"
             client2_id = "fapi1-$($configuration.Name)-2"
-        }
-        $text = $templateText
-        foreach ($token in $tokens.GetEnumerator()) {
-            $text = $text.Replace("{{$($token.Key)}}", [System.Text.Json.JsonEncodedText]::Encode($token.Value).ToString())
-        }
-        $suiteConfig = $text | ConvertFrom-Json -AsHashtable
+        } + (Get-TestUserTokens)
+        $suiteConfig = Expand-ConfigTemplate $templateText $tokens | ConvertFrom-Json -AsHashtable
         $suiteConfig.Remove('comment:template')
         foreach ($pair in @(@('client', 'mtls'), @('client2', 'mtls2'))) {
             $clientId = $suiteConfig[$pair[0]].client_id
             if (-not $seededClients.Contains($clientId)) { throw "The FAPI client '$clientId' is not listed in $settingsPath." }
             $credential = Get-Fapi1ClientCredential $clientId
-            Set-Fapi1Environment "ConformanceSeed__Clients__${clientId}__Jwks" ($credential.PublicJwks | ConvertTo-Json -Depth 5 -Compress)
+            Set-RunEnvironment "ConformanceSeed__Clients__${clientId}__Jwks" ($credential.PublicJwks | ConvertTo-Json -Depth 5 -Compress)
             $suiteConfig[$pair[0]].jwks = $credential.PrivateJwks
             $suiteConfig[$pair[1]] = [ordered]@{ cert = $credential.CertPem; key = $credential.KeyPem }
         }
         $generated = Join-Path $ConfigDir (Get-Fapi1ConfigFileName $configuration)
         Set-Content -Path $generated -Value ($suiteConfig | ConvertTo-Json -Depth 10)
-        $Fapi1GeneratedConfigs.Add($generated)
+        $GeneratedConfigs.Add($generated)
     }
 }
 
 try {
+    Write-Step 'Reading the conformance seed''s per-machine credentials (generated on first use, never committed).'
+    $SeedCredentials = & (Join-Path $PSScriptRoot 'Get-ConformanceSeedCredentials.ps1')
+
     if ($Fapi1Advanced) {
         if ($UseRunningOp) { throw '-Fapi1Advanced launches the OP with the FAPI configuration; omit -UseRunningOp.' }
         if ($IncludeBrowserPlans) { throw '-Fapi1Advanced runs only the FAPI plans; omit -IncludeBrowserPlans.' }
@@ -362,10 +390,13 @@ try {
     $discoveryUrl = "$IssuerUrl/.well-known/openid-configuration"
     if ($UseRunningOp) {
         Write-Step "Using an already-running OP at $IssuerUrl."
+        Write-Host '    It must seed the same credentials: start it after Get-ConformanceSeedCredentials.ps1 -SetEnvironment.' -ForegroundColor Gray
     }
     else {
         Write-Step "Launching the OpenID host ($IssuerUrl, Conformance launch profile)."
         Test-Command 'dotnet'
+        # The OP inherits this process's environment, so the conformance seed reads the credentials from it.
+        foreach ($entry in $SeedCredentials.Environment.GetEnumerator()) { Set-RunEnvironment $entry.Key $entry.Value }
         # Clear any orphaned OP still holding the port so the fresh 'dotnet run' build is what actually serves the suite.
         Clear-OpPort ([uri] $IssuerUrl).Port
         $opProcess = Start-Process -FilePath 'dotnet' -PassThru -NoNewWindow -ArgumentList @(
@@ -397,7 +428,7 @@ try {
             # Dev TLS on the OP; let Node's fetch accept it for this local pre-flight only.
             $env:NODE_TLS_REJECT_UNAUTHORIZED = '0'
             $env:CONFORMANCE_CLIENT_ID = 'client'
-            $env:CONFORMANCE_CLIENT_SECRET = 'conformance-secret-client'
+            $env:CONFORMANCE_CLIENT_SECRET = $SeedCredentials.ClientSecrets['client']
             pnpm --filter '@ncode/app-conformance-runner' start -- --issuer $IssuerUrl
             if ($LASTEXITCODE -ne 0) {
                 throw "The in-house probe-runner pre-flight failed (exit $LASTEXITCODE); not starting the external suite."
@@ -462,6 +493,7 @@ try {
         if ($plansToRun.Count -ne $configsToRun.Count) {
             throw "Plans ($($plansToRun.Count)) and Configs ($($configsToRun.Count)) must have the same count."
         }
+        foreach ($configFileName in $configsToRun) { Initialize-ConfigFromTemplate $configFileName }
         New-Item -ItemType Directory -Force -Path $ExportDir | Out-Null
         $env:CONFORMANCE_SERVER = "$SuiteBase/"
         # Dev mode makes the suite's API token optional and relaxes TLS verification — the local self-hosted suite
@@ -553,8 +585,8 @@ finally {
         # Tree-kill: 'dotnet run' spawns the OP as a child, so Stop-Process on the wrapper alone would orphan it.
         Stop-ProcessTree $opProcess.Id
     }
-    foreach ($name in $Fapi1EnvironmentNames) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
-    foreach ($path in $Fapi1GeneratedConfigs) { Remove-Item $path -ErrorAction SilentlyContinue }
+    foreach ($name in $RunEnvironmentNames) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+    foreach ($path in $GeneratedConfigs) { Remove-Item $path -ErrorAction SilentlyContinue }
     Remove-Item Env:CONFORMANCE_SERVER, Env:CONFORMANCE_DEV_MODE, Env:DISABLE_SSL_VERIFY, Env:CONFORMANCE_RETRY_TIMEOUT, Env:CONFORMANCE_RESTART_RETRIES, Env:CONFORMANCE_MAX_CONSECUTIVE_FAILURES -ErrorAction SilentlyContinue
     Set-Location $OriginalLocation
 }

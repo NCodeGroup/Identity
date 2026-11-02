@@ -24,7 +24,8 @@ public sealed class ConformanceClientSeed
     /// <summary>
     /// Gets or sets the client secret, supplied <c>Base64Url</c>-encoded (not plaintext) so a raw process-memory
     /// snapshot does not expose it directly. The decoded bytes are the credential the conformance suite presents.
-    /// A client with neither a secret nor <see cref="Jwks"/> is skipped.
+    /// A client with neither a secret nor <see cref="Jwks"/> is skipped. The secret is a credential, so it comes from
+    /// a source outside the repository, such as an environment variable, and never from a committed file.
     /// </summary>
     public string? ClientSecret { get; set; }
 

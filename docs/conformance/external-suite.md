@@ -25,7 +25,7 @@ The committed harness is [`build/conformance/`](../../build/conformance):
   suite's `run-test-plan.py` gated on the committed baselines, and tears everything down — surfacing one
   non-zero exit code on any unexpected failure.
 - **Config templates** resolved against the deterministic seed ([#127](https://github.com/NCodeGroup/Identity/issues/127)):
-  [`oidcc-basic.json`](../../build/conformance/oidcc-basic.json) (with the `browser` automation block whose
+  [`oidcc-basic.template.json`](../../build/conformance/oidcc-basic.template.json) (with the `browser` automation block whose
   selectors — `username` / `password` / `login` / `consent-allow` — match the `apps/auth` surface, [#125](https://github.com/NCodeGroup/Identity/issues/125)) and
   [`oidcc-config.json`](../../build/conformance/oidcc-config.json).
 - **Baselines** [`expected-failures.json`](../../build/conformance/expected-failures.json) /
@@ -130,7 +130,7 @@ Config OP; the failure is the expected one, on `CheckIfAuthorizationEndpointErro
   `unauthorized_client`, but the exception handler logged that expected 4xx client error at Error level as "an
   unexpected error". 4xx `OpenIdException`s now log at Warning. The scripted-browser timeout (its `Verify Complete` step
   waited for a happy-path `submission_complete` callback that correctly never comes) is resolved with a per-module
-  `override` block in [`oidcc-basic.json`](../../build/conformance/oidcc-basic.json) that drops the callback wait and
+  `override` block in [`oidcc-basic.template.json`](../../build/conformance/oidcc-basic.template.json) that drops the callback wait and
   instead waits for the error page (matched by the `unauthorized_client` error code in the rendered body) and snapshots
   it as the review placeholder — so the module lands on the `REVIEW` the suite expects ("Show redirect URI error page",
   OIDCC-3.1.2.1) instead of `FAILED`, and its `expected-failures.json` baseline was removed.
@@ -195,7 +195,7 @@ secure default) — now in [`expected-skips.json`](../../build/conformance/expec
   the request "a little pointless" (`OIDCCPromptLogin.createPlaceholder()`). Headless, nobody uploads the screenshot, so
   each module burned the full 240 s module timeout and left the run `WAITING`/incomplete. Fixed with the
   **suite-native configuration knob**, not an out-of-band upload: per-module `override` blocks in
-  [`oidcc-basic.json`](../../build/conformance/oidcc-basic.json) add the suite's `update-image-placeholder-optional`
+  [`oidcc-basic.template.json`](../../build/conformance/oidcc-basic.template.json) add the suite's `update-image-placeholder-optional`
   action to the second login's scripted-browser `wait` command
   (`["wait","xpath","//*",10,"Sign in","update-image-placeholder-optional"]`), so `BrowserControl` snapshots the login
   page as the placeholder image inline while it drives the re-login — the regexp `Sign in` matches the OP's login page

@@ -16,7 +16,8 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 | [`run-conformance.ps1`](run-conformance.ps1)         | Orchestration: launch OP → pre-flight → suite up → run plans → report → teardown. |
 | [`New-ConformanceReport.ps1`](New-ConformanceReport.ps1) | Renders a self-contained HTML report (pass / warn / skip / fail) from the result zips. |
 | [`oidcc-config.json`](oidcc-config.json)             | Config OP plan config (discovery-metadata only).                              |
-| [`oidcc-basic.json`](oidcc-basic.json)               | Basic OP plan config, with the `browser` automation block (clients registered per module via DCR). |
+| [`oidcc-basic.template.json`](oidcc-basic.template.json) | Basic OP plan config, with the `browser` automation block (clients registered per module via DCR), rendered with the test user's credentials as `oidcc-basic.json`. |
+| [`Get-ConformanceSeedCredentials.ps1`](Get-ConformanceSeedCredentials.ps1) | Generates (once per machine) and reads the conformance seed's client secrets and test user password. |
 | [`expected-failures.json`](expected-failures.json)   | Baseline of documented, intentional failures (each entry explains its deviation). |
 | [`expected-skips.json`](expected-skips.json)         | Baseline of documented, intentional skips (each entry explains its skip).     |
 
@@ -24,7 +25,25 @@ The `conformance-user` login identity in the configs and the `client` credential
 deterministic seed in
 [`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
 (`AddConformanceSeed`, issue [#127](https://github.com/NCodeGroup/Identity/issues/127)); the Basic OP plan registers its own client per module via Dynamic Client
-Registration. Secrets are the dev-only conformance credentials — this is a local test harness, never production.
+Registration. This is a local test harness, never production.
+
+**Credentials.** No conformance credential is committed
+([#514](https://github.com/NCodeGroup/Identity/issues/514),
+[ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)):
+`appsettings.Conformance.json` lists the clients and the test user without a secret or password.
+[`Get-ConformanceSeedCredentials.ps1`](Get-ConformanceSeedCredentials.ps1) generates the client secrets of the clients
+the overlay registers with a `client_secret_*` method (`client`, `client2` and `client-secret-post`) and the test user's
+password once per machine, as owner-only files beside the
+LocalDev AppHost's development secrets in `LocalApplicationData/NCode.Identity/LocalDev` (`conformance-secret-<client_id>`
+and `conformance-user-password`), and the AppHost reads and generates the same files. The script hands them to the OP it
+launches as `ConformanceSeed__` environment variables, to the pre-flight as `CONFORMANCE_CLIENT_SECRET`, and to the
+suite: the configurations that sign the test user in are committed as `*.template.json` with `{{test_user_name}}` and
+`{{test_user_password}}` tokens, and each run renders them beside the template (gitignored, deleted when the run ends).
+Delete a file to get a new value; a persistent database keeps the clients and the test user it seeded first, so reset it
+too. One golden fixture,
+[`conformance-seed-golden.json`](../../tests/NCode.Identity.OpenId.LocalDev.Tests/DevelopmentSecrets/conformance-seed-golden.json),
+holds the script and the AppHost to the same file names, encoding and variable names; the Definition of Done runs
+[`build/tests/conformance-seed-credentials.tests.ps1`](../tests/conformance-seed-credentials.tests.ps1) against it.
 
 ## Prerequisites
 
@@ -81,7 +100,10 @@ shell-profile snippets in [`src/frontend/README.md`](../../src/frontend/README.m
 # Also run the browser-driven Basic OP profile:
 ./build/conformance/run-conformance.ps1 -IncludeBrowserPlans
 
-# Against an OP you already started (e.g. the Conformance launch profile in another terminal):
+# Against an OP you already started (e.g. the Conformance launch profile in another terminal), started with the
+# conformance seed's credentials in its environment:
+#   ./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment
+#   dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
 ./build/conformance/run-conformance.ps1 -UseRunningOp
 
 # Pre-flight only (launch OP + run the probe runner; no Docker/Python needed) — a fast local check:

@@ -60,7 +60,8 @@ public sealed class ConformanceSeedOptions
 
     /// <summary>
     /// Gets or sets the test user password. When empty, no user is seeded (there is intentionally no default
-    /// password).
+    /// password). The password is a credential, so it comes from a source outside the repository, such as an
+    /// environment variable, and never from a committed file.
     /// </summary>
     public string? TestUserPassword { get; set; }
 

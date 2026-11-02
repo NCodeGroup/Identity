@@ -38,6 +38,10 @@ var bootstrapAdminClientSecret = DevelopmentSecretFile.ReadBase64UrlEncoded(
 var adminPasswordPath = DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "admin-password");
 var adminPassword = DevelopmentSecretFile.ReadText(adminPasswordPath);
 
+// The conformance seed's client secrets and test user password are generated per machine too, beside the root key,
+// where the conformance runner (build/conformance/run-conformance.ps1) reads the same files.
+var conformanceSeedEnvironment = ConformanceSeedSecrets.GetEnvironment(developmentSecretsDirectory);
+
 // The dev database is Postgres in a container (ADR-1073). WithDataVolume gives it a STABLE, named volume so data
 // survives restarts (persistent by default); the matching build/dev-db-reset.ps1 removes exactly this volume for an
 // on-demand purge. Aspire auto-detects the container runtime (Docker or Podman), so the graph is portable across dev
@@ -94,7 +98,8 @@ var api = builder
 // cross-origin, and serves its own `conformance` tenant: every tenant is published under its own stored issuer
 // (ADR-1165), so the two instances cannot share the `default` tenant in the shared database — the launch profile pins
 // this one's issuer to https://localhost:5003. WaitForCompletion(migrations) holds it until the shared schema is
-// applied. It gets the same development root key as the `api`, because both unwrap the master keys in the one database.
+// applied. It gets the same development root key as the `api`, because both unwrap the master keys in the one database,
+// and the per-machine credentials of the conformance seed, which the overlay lists without them.
 var conformanceApi = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>(
         "conformanceapi",
@@ -106,6 +111,7 @@ var conformanceApi = builder
     .WithEnvironment("SecretProtection__RootKeyProvider", "local")
     .WithEnvironment("SecretProtection__RootKeyProviders__Local__KeyPath", rootKeyPath)
     .WithEnvironment("BootstrapAdmin__ClientSecret", bootstrapAdminClientSecret)
+    .WithConformanceSeedSecrets(conformanceSeedEnvironment)
     .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();

@@ -1,5 +1,5 @@
 {
-  "comment:template": "Template for run-conformance.ps1 -Fapi1Advanced, rendered once per client-authentication method. The script replaces each {{token}} (issuer, alias, client_auth_method, client_id, client2_id), adds each client's private 'jwks' and its 'mtls' certificate and key, generated at run time and never committed, and writes the result beside this file as fapi1-advanced-<method>.json (gitignored).",
+  "comment:template": "Template for run-conformance.ps1 -Fapi1Advanced, rendered once per client-authentication method. The script replaces each double-braced token (issuer, alias, client_auth_method, client_id, client2_id, test_user_name, test_user_password), adds each client's private 'jwks' and its 'mtls' certificate and key, generated at run time and never committed, and writes the result beside this file as fapi1-advanced-<method>.json (gitignored).",
   "description": "NCode.Identity OP — FAPI 1.0 Advanced Final ({{client_auth_method}} client authentication, pushed authorization requests, certificate-bound access tokens).",
   "alias": "{{alias}}",
   "server": {
@@ -29,13 +29,13 @@
               "text",
               "id",
               "username",
-              "conformance-user"
+              "{{test_user_name}}"
             ],
             [
               "text",
               "id",
               "password",
-              "conformance-password"
+              "{{test_user_password}}"
             ],
             [
               "click",

@@ -24,10 +24,11 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 
 /// <summary>
-/// Represents an entity framework data contract for a tenant's usage of one meter on one UTC calendar day (ADR-1199).
+/// Represents an entity framework data contract for a tenant's usage of one meter on one UTC calendar day.
 /// The tenant is referenced by identifier, not by a foreign key, so the ledger outlives a deleted tenant; replicas add
 /// to an entry under its concurrency token.
 /// </summary>
+// See ADR-1199.
 [Index(nameof(TenantId), nameof(Day), nameof(Meter), IsUnique = true)]
 [Index(nameof(Day))]
 public sealed class TenantUsageEntity : ISupportConcurrencyToken

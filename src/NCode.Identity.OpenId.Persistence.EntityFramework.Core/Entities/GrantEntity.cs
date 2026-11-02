@@ -162,8 +162,9 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the payload, protected under the tenant's master key (ADR-1265).
+    /// Gets or sets the payload, protected under the tenant's master key.
     /// </summary>
+    // See ADR-1265.
     [Unicode(false)]
     public required string ProtectedPayload { get; set; }
 

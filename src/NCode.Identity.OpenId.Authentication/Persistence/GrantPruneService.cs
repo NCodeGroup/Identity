@@ -78,7 +78,8 @@ internal sealed class GrantPruneService(
             var endedBefore = TimeProvider.GetUtcNow() - Options.Retention;
             while (await RemoveBatchAsync(endedBefore, cancellationToken) == BatchSize) { }
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        // A timeout throws OperationCanceledException with the token untouched; only a cancelled token is shutdown.
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             Logger.GrantPruneFailed(exception);
         }

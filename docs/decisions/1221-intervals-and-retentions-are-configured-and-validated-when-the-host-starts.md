@@ -8,7 +8,7 @@
   [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md):
   `OpenId:ClientCertificateRevocation`;
   [ADR-1303](1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md):
-  `OpenId:AuditRecords`; and by
+  `OpenId:AuditRecords`, whose `FlushInterval` and `PruneInterval` are timer periods; and by
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): `OpenId:OutboundHttp`)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group

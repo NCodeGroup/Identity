@@ -21,7 +21,8 @@ internal static class DefaultRegistration
     {
         /// <summary>
         /// Configures the audit event recorder and the audit store's writer: the handler that queues every audit event's
-        /// record and the service that writes the queued records to the store and removes the ones past their retention.
+        /// record and the service that writes the queued records to the store, and the service that removes the ones past
+        /// their retention.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -45,6 +46,7 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<IEventHandler<IAuditEvent>, AuditRecordHandler>()
             );
             serviceCollection.AddHostedService<AuditRecordFlushService>();
+            serviceCollection.AddHostedService<AuditRecordPruneService>();
 
             return builder;
         }

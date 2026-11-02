@@ -156,6 +156,32 @@ public sealed class GrantPruneServiceTests : IDisposable
         await Service.PruneAsync(cancellationToken);
     }
 
+    [Fact]
+    public async Task PruneAsync_WhenTheCommitTimesOut_LogsAndRetriesOnTheNextTick()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        MockGrantStore
+            .Setup(x =>
+                x.RemoveEndedBeforeAsync(
+                    Now - TimeSpan.FromDays(14),
+                    GrantPruneService.GrantTypesEndedByRevocation,
+                    GrantPruneService.BatchSize,
+                    cancellationToken
+                )
+            )
+            .ReturnsAsync(3)
+            .Verifiable(Times.Exactly(2));
+        var timeout = new TaskCanceledException("timed out");
+        MockStoreManager
+            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(timeout)
+            .Returns(ValueTask.CompletedTask);
+
+        await Service.PruneAsync(cancellationToken);
+        await Service.PruneAsync(cancellationToken);
+    }
+
     #endregion
 
     #region GrantTypesEndedByRevocation Property Tests

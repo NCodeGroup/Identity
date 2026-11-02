@@ -24,5 +24,6 @@
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Buffers" />
         <PackageReference Include="Nerdbank.Streams" />
+        <PackageReference Include="Polly.Core" />
     </ItemGroup>
 </Project>

@@ -312,7 +312,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted (strict up-to-date superseded by [1263](./1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
 | [1263](./1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) | Feature branches run a fast gate and the merge queue runs the full gate | Accepted |
-| [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Accepted |
+| [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded by [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) |
 | [1265](./1265-grant-payloads-are-protected-under-the-tenant-master-key.md) | Grant payloads are protected under the tenant master key | Accepted |
 | [1266](./1266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
 | [1267](./1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted |

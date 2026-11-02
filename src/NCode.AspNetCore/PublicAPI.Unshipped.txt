@@ -5,3 +5,6 @@ NCode.AspNetCore.NoStoreEndpointConventionBuilderExtensions.extension<TBuilder>(
 NCode.AspNetCore.NoStoreResponseExtensions
 NCode.AspNetCore.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
 NCode.AspNetCore.NoStoreResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetNoStore() -> void
+NCode.AspNetCore.FormRequestExtensions
+NCode.AspNetCore.FormRequestExtensions.extension(Microsoft.AspNetCore.Http.HttpRequest!)
+NCode.AspNetCore.FormRequestExtensions.extension(Microsoft.AspNetCore.Http.HttpRequest!).TryReadFormAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IFormCollection?>

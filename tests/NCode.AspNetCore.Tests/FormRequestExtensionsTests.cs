@@ -1,21 +1,25 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text;
 using Microsoft.AspNetCore.Http;
-using NCode.Buffers;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints;
+namespace NCode.AspNetCore.Tests;
 
 public class FormRequestExtensionsTests : BaseTests
 {
+    private static readonly UTF8Encoding StrictUtf8 = new(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true
+    );
+
     private static HttpRequest CreateRequest(string? contentType, string body)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = HttpMethods.Post;
         httpContext.Request.ContentType = contentType;
-        httpContext.Request.Body = new MemoryStream(SecureEncoding.UTF8.GetBytes(body));
+        httpContext.Request.Body = new MemoryStream(StrictUtf8.GetBytes(body));
         return httpContext.Request;
     }
 

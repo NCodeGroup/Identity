@@ -1,9 +1,10 @@
 # 1095. Registration-time `sector_identifier_uri` fetch and validation with an SSRF-guarded client
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): every fetch and delivery
+  goes through one guarded client with per-attempt and total timeouts and bounded retries)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md); tracked in [#444](https://github.com/NCodeGroup/Identity/issues/444)
 
 ## Context
 

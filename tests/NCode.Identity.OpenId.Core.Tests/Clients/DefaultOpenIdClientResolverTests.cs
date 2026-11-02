@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -36,7 +37,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private Mock<ISecretSerializer> MockSecretSerializer { get; }
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdTenant> MockTenant { get; }
     private DefaultHttpContext HttpContext { get; } = new();
@@ -51,7 +52,6 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         MockSecretSerializer = CreateStrictMock<ISecretSerializer>();
         MockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockTenant = CreateStrictMock<OpenIdTenant>();
 
@@ -73,7 +73,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             MockSecretSerializer.Object,
             MockSecretProtectorProvider.Object,
             MockEffectiveSettingsResolver.Object,
-            MockTimeProvider.Object
+            TimeProvider
         );
     }
 
@@ -152,7 +152,6 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var effectiveSettings = CreateLooseMock<ISettingCollection>().Object;
         var client = CreateStrictMock<OpenIdClient>().Object;
 
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockTenant
             .SetupGet(x => x.SettingsProvider)
             .Returns(mockSettingsProvider.Object)
@@ -296,6 +295,20 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var second = CreatePersistedSecret("second", Now.AddDays(-1));
         SetupStoredClient(CreatePersistedClient(secrets: [first, second]));
         var expected = SetupClientCreation(expectedResourceServerId: null);
+
+        var client = await ResolveAsync();
+
+        Assert.Same(expected, client);
+    }
+
+    [Fact]
+    public async Task ResolveClientOrDefaultAsync_WhenTimeAdvancesPastASecretsExpiry_DeserializesOnlyTheUnexpiredSecrets()
+    {
+        var expiring = CreatePersistedSecret("expiring", Now.AddMinutes(5));
+        var live = CreatePersistedSecret("live", Now.AddDays(1));
+        SetupStoredClient(CreatePersistedClient(secrets: [expiring, live]));
+        var expected = SetupClientCreation(expectedResourceServerId: null, "live");
+        TimeProvider.Advance(TimeSpan.FromMinutes(5));
 
         var client = await ResolveAsync();
 

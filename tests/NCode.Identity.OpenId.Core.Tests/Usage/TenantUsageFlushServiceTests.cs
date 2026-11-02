@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Usage;
@@ -20,7 +21,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     private static readonly DateOnly Today = new(2026, 10, 21);
 
     private MockRepository MockRepository { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantUsageStore> MockTenantUsageStore { get; }
@@ -30,17 +31,15 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     public TenantUsageFlushServiceTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockTimeProvider = MockRepository.Create<TimeProvider>();
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockTenantUsageStore = MockRepository.Create<ITenantUsageStore>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now);
-        Recorder = new DefaultTenantUsageRecorder(MockTimeProvider.Object);
+        Recorder = new DefaultTenantUsageRecorder(TimeProvider);
         Service = new TenantUsageFlushService(
             Recorder,
             MockStoreManagerFactory.Object,
             Options.Create(new TenantUsageOptions { Retention = TimeSpan.FromDays(10) }),
-            MockTimeProvider.Object,
+            TimeProvider,
             NullLogger<TenantUsageFlushService>.Instance
         );
     }
@@ -321,7 +320,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             Recorder,
             MockStoreManagerFactory.Object,
             Options.Create(new TenantUsageOptions()),
-            MockTimeProvider.Object,
+            TimeProvider,
             mockLogger.Object
         );
         SetupStores();
@@ -415,7 +414,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             Recorder,
             MockStoreManagerFactory.Object,
             Options.Create(new TenantUsageOptions()),
-            MockTimeProvider.Object,
+            TimeProvider,
             mockLogger.Object
         );
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);

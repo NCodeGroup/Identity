@@ -62,6 +62,8 @@ internal sealed class ValkeySharedStateMetrics
 
     internal const string ValueSetRemoveOperation = "value_set.remove";
 
+    internal const string ValueSetTryRemoveOperation = "value_set.try_remove";
+
     internal const string IndexSetAddMemberOperation = "index_set.add_member";
 
     internal const string IndexSetGetMembersOperation = "index_set.get_members";

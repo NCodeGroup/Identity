@@ -151,6 +151,25 @@ public sealed class ValkeyExpiringValueSetTests : BaseTests
             .Verifiable();
     }
 
+    private void SetupRemove(RedisResult result)
+    {
+        RedisValue[] expectedValues = [Payload];
+
+        MockDatabase
+            .Setup(x =>
+                x.ScriptEvaluateAsync(
+                    ValkeyExpiringValueSet.RemoveScript,
+                    It.Is<RedisKey[]>(keys =>
+                        keys.SequenceEqual(new RedisKey[] { KeyPrefix + "key" })
+                    ),
+                    It.Is<RedisValue[]>(values => values.SequenceEqual(expectedValues)),
+                    CommandFlags.None
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
     private static RedisConnectionException CreateDownException() =>
         new(ConnectionFailureType.UnableToConnect, CommandFlags.None, "down");
 
@@ -371,6 +390,36 @@ public sealed class ValkeyExpiringValueSetTests : BaseTests
         var result = await ValueSet.TryTakeAsync("key", CancellationToken.None);
 
         Assert.Null(result);
+    }
+
+    #endregion
+
+    #region TryRemoveAsync Tests
+
+    [Fact]
+    public async Task TryRemoveAsync_RunsTheScriptWithTheValueAndReturnsTrue()
+    {
+        SetupDatabase();
+        SetupRemove(RedisResult.Create(1L));
+
+        var removed = await ValueSet.TryRemoveAsync("key", Payload, CancellationToken.None);
+
+        Assert.True(removed);
+        AssertOperationRecorded(
+            ValkeySharedStateMetrics.ValueSetTryRemoveOperation,
+            errorType: null
+        );
+    }
+
+    [Fact]
+    public async Task TryRemoveAsync_WhenScriptReturnsZero_ReturnsFalse()
+    {
+        SetupDatabase();
+        SetupRemove(RedisResult.Create(0L));
+
+        var removed = await ValueSet.TryRemoveAsync("key", Payload, CancellationToken.None);
+
+        Assert.False(removed);
     }
 
     #endregion

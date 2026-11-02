@@ -30,7 +30,9 @@ namespace NCode.Identity.SharedState.Valkey;
 /// <c>SET</c> with <c>NX</c> and a millisecond expiry, so at most one concurrent add succeeds. A replace is one script
 /// that compares the stored version and, only when it matches, runs <c>SET</c> with <c>PX</c>; the server runs a script
 /// atomically, so at most one concurrent replace of a version succeeds. A take is <c>GETDEL</c>, so at most one
-/// concurrent take returns the value. <c>GetAsync</c> runs <c>GET</c> and <c>RemoveAsync</c> runs <c>DEL</c>. The
+/// concurrent take returns the value. A compare-and-remove is a second script that compares the bytes after the
+/// version prefix and, only when they match, runs <c>DEL</c>. <c>GetAsync</c> runs <c>GET</c> and <c>RemoveAsync</c>
+/// runs <c>DEL</c>. The
 /// time-to-live is computed from this replica's clock, so the expiry does not depend on the server's clock agreeing
 /// with it. A command against an unreachable server throws rather than reporting an absent value, so the caller fails
 /// closed.
@@ -52,6 +54,17 @@ internal class ValkeyExpiringValueSet(
         local current = redis.call('GET', KEYS[1])
         if not current or string.sub(current, 1, 8) ~= ARGV[1] then return 0 end
         redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
+        return 1
+        """;
+
+    /// <summary>
+    /// The script that deletes <c>KEYS[1]</c> only when the bytes after its 8-byte version prefix equal
+    /// <c>ARGV[1]</c>. It returns <c>1</c> when it deleted the value.
+    /// </summary>
+    internal const string RemoveScript = """
+        local current = redis.call('GET', KEYS[1])
+        if not current or string.sub(current, 9) ~= ARGV[1] then return 0 end
+        redis.call('DEL', KEYS[1])
         return 1
         """;
 
@@ -191,6 +204,31 @@ internal class ValkeyExpiringValueSet(
                     .WaitAsync(cancellationToken);
 
                 return value.IsNull ? (ExpiringValue?)null : Decode(ToBytes(value));
+            }
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> TryRemoveAsync(
+        string key,
+        ReadOnlyMemory<byte> expectedValue,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        var expected = expectedValue.ToArray();
+
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.ValueSetTryRemoveOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                var result = await database
+                    .ScriptEvaluateAsync(RemoveScript, [GetKey(key)], [expected])
+                    .WaitAsync(cancellationToken);
+
+                return (long)result == 1;
             }
         );
     }

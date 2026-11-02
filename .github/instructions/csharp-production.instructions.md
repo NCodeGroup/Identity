@@ -1160,6 +1160,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `17000`–`17999` | `NCode.Identity.SharedState.Valkey`                 |
     | `18000`–`18999` | `NCode.Identity.OpenId.Client`                      |
     | `19000`–`19999` | `NCode.Identity.Bff`                                |
+    | `20000`–`20999` | `NCode.Identity.OpenId.Host.MigrationService`       |
 
 ### Metrics
 

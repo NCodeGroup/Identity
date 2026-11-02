@@ -155,7 +155,7 @@ public class DefaultValidateLocalAccountSubjectHandlerTests : BaseTests
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 
-    private ValidateSubjectStandingCommand CreateCommand(
+    private static ValidateSubjectStandingCommand CreateCommand(
         Mock<OpenIdContext> mockContext,
         OperationDisposition<IOpenIdError> disposition,
         string? issuer = null

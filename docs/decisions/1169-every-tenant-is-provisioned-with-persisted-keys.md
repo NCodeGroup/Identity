@@ -6,7 +6,10 @@
   of the server's settings is part of one reconciliation; by
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): a key is unreadable
   when its tenant's master key, or the root key that wraps it, is lost or changed, no longer when the Data Protection
-  key ring is)
+  key ring is; by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): there
+  are no developer modes and no ephemeral keys, so every host provisions its keys, and the pruning contributor is
+  `AddDeveloperKeyPruning`, registered by `DeveloperKeys:PruneUnreadableKeys`)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

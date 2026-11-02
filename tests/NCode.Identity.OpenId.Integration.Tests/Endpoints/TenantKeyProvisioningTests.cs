@@ -482,9 +482,7 @@ public class TenantKeyProvisioningTests
     }
 
     /// <summary>
-    /// A factory whose host selects no developer keys, as a production deployment must, with the supplied configuration
-    /// overlaid. The composition root reads the developer key mode while it registers services, before configuration
-    /// overlays apply, so the mode is supplied as a host setting, which reaches the host's entry point.
+    /// A factory with the supplied configuration overlaid.
     /// </summary>
     private sealed class ProductionKeysApplicationFactory(
         IReadOnlyDictionary<string, string?> configuration
@@ -494,7 +492,6 @@ public class TenantKeyProvisioningTests
         {
             base.ConfigureWebHost(builder);
 
-            builder.UseSetting("DeveloperKeys:Mode", "None");
             builder.ConfigureAppConfiguration(configurationBuilder =>
                 configurationBuilder.AddInMemoryCollection(configuration)
             );

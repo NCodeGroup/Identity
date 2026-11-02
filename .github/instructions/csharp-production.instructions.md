@@ -235,7 +235,7 @@ than inlining the rationale.
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods), and the
   most-repeated review miss here. Developer-only helpers for the OpenID server live beside their siblings in
   [`NCode.Identity.Server/DevelopmentEnvironment/`](../../src/NCode.Identity.Server/DevelopmentEnvironment)
-  (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) behind the server's turnkey
+  (`AddDeveloperKeyPruning`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) behind the server's turnkey
   surface, the production signing key is a host input, and the host makes one
   `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default, such as the reference
   host's `AllowAnyClientCertificate()` for mutual TLS
@@ -490,8 +490,8 @@ than inlining the rationale.
   (e.g. `Endpoints` → `OpenIdAuthenticationEndpoints`). **The litmus for a naked `IServiceCollection` receiver is
   "would this registration do the right thing registered alone?":** a registration that **replaces, hooks, or consumes
   another marker-bearing library's services** is a bolt-on and **must** gate on that library's `IServiceBuilder<TMarker>`
-  (e.g. the dev-host `AddDeveloperKeys` / `AddDeveloperInteractiveSeed`, which replace the server's tenant factory and
-  hook its command handlers, extend `IServiceBuilder<IdentityServer>` — never the bare collection). Only a chain **root**
+  (e.g. the dev-host `AddDeveloperKeyPruning` / `AddDeveloperInteractiveSeed`, which hook the server's command handlers,
+  extend `IServiceBuilder<IdentityServer>` — never the bare collection). Only a chain **root**
   with no prerequisite (`AddIdentityLibrary`, `AddSecretsLibrary`, `AddEventServices` which mints `EventsLibrary`, and the
   persistence-framework root `AddEntityFrameworkCorePersistence` which mints `StoreManagerLibrary`), a **generic utility
   helper**, or **foundational marker-less cross-cutting infrastructure** (`AddPropertyBag`, `AddDataProtection`) takes a

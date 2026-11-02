@@ -25,10 +25,10 @@ public class InteractiveLogoutTests
     private const string MePath = "/account/me";
     private const string LogoutPath = "/account/logout";
     private const string LoginPath = "/account/login";
-    private const string InteractiveCookieName = "NCode.Identity.Interactive";
-    private const string AntiforgeryRequestCookieName = "XSRF-TOKEN";
+    private const string InteractiveCookieName = "__Host-NCode.Identity.Interactive";
+    private const string AntiforgeryRequestCookieName = "__Host-XSRF-TOKEN";
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
-    private const string AntiforgeryCookiePrefix = ".AspNetCore.Antiforgery";
+    private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
     [Fact]
     public async Task GetMe_WhenAnonymous_ReturnsUnauthorized()

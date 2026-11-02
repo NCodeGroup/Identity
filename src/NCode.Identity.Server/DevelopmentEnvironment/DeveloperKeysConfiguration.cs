@@ -19,14 +19,12 @@ public static class DeveloperKeysConfiguration
     {
         /// <summary>
         /// Binds <see cref="DeveloperKeysOptions"/> from the <c>DeveloperKeys</c> configuration section. The section is
-        /// read when the host composes its services, because the mode decides which services are registered, so it is
+        /// read when the host composes its services, because the option decides which services are registered, so it is
         /// bound strictly and checked right away.
         /// </summary>
         /// <returns>The bound <see cref="DeveloperKeysOptions"/>.</returns>
-        /// <exception cref="InvalidOperationException">The section contains a key that maps to no option, or a mode
-        /// that names no <see cref="DeveloperKeyMode"/>. A mode the server cannot honor must not fall back to a default
-        /// silently: a misspelled <c>PersistentSigningKey</c> would otherwise regenerate the signing key on every
-        /// restart.</exception>
+        /// <exception cref="InvalidOperationException">The section contains a key that maps to no option, or a value
+        /// that is not valid for its option.</exception>
         // See ADR-1137.
         public DeveloperKeysOptions GetDeveloperKeysOptions()
         {
@@ -35,15 +33,6 @@ public static class DeveloperKeysConfiguration
             var options = new DeveloperKeysOptions();
             var section = configuration.GetSection(DeveloperKeysOptions.DefaultSectionName);
             section.BindStrictly(options);
-
-            if (options.Mode is { } mode && !Enum.IsDefined(mode))
-            {
-                var modes = string.Join(", ", Enum.GetNames<DeveloperKeyMode>());
-                throw new InvalidOperationException(
-                    $"The configuration value '{section.Path}:{nameof(options.Mode)}' is '{mode}', which is not a "
-                        + $"developer key mode. Use one of: {modes}."
-                );
-            }
 
             return options;
         }

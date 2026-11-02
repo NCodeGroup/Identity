@@ -1,11 +1,14 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Text;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Tenants;
 using Xunit;
 
@@ -58,34 +61,71 @@ public sealed class InteractiveSessionCookieManagerTests : IDisposable
     private static string ReadSetCookie(HttpContext httpContext) =>
         Assert.Single(httpContext.Response.Headers.SetCookie.ToArray())!;
 
+    private static string[] ReadAttributes(string setCookie) =>
+        [.. setCookie.Split(';').Skip(1).Select(x => x.Trim())];
+
+    private static string ExpectedTenantSuffix(string tenantPath) =>
+        Base64Url.EncodeToString(SHA256.HashData(SecureEncoding.UTF8.GetBytes(tenantPath)));
+
     #region AppendResponseCookie Tests
 
     [Fact]
-    public void AppendResponseCookie_WhenTenantIsServedUnderAPath_ScopesTheCookieToIt()
+    public void AppendResponseCookie_WhenTenantIsServedUnderAPath_NamesTheCookieForTheTenant()
     {
         SetupTenantRoute("/{tenantId}");
         var httpContext = CreateHttpContext("acme");
-        var options = new CookieOptions { Path = "/", HttpOnly = true };
+        var options = new CookieOptions
+        {
+            Path = "/acme",
+            Domain = "example.com",
+            HttpOnly = true,
+        };
 
         CookieManager.AppendResponseCookie(httpContext, CookieName, "value", options);
 
         var setCookie = ReadSetCookie(httpContext);
-        Assert.StartsWith($"{CookieName}=value", setCookie, StringComparison.Ordinal);
-        Assert.Contains("path=/acme", setCookie, StringComparison.Ordinal);
-        Assert.Contains("httponly", setCookie, StringComparison.Ordinal);
+        Assert.StartsWith(
+            $"{CookieName}.{ExpectedTenantSuffix("/acme")}=value",
+            setCookie,
+            StringComparison.Ordinal
+        );
+        var attributes = ReadAttributes(setCookie);
+        Assert.Contains("path=/", attributes);
+        Assert.Contains("secure", attributes);
+        Assert.DoesNotContain("domain=", setCookie, StringComparison.Ordinal);
         // The caller's options are copied, not mutated.
-        Assert.Equal("/", options.Path);
+        Assert.Equal("/acme", options.Path);
+        Assert.Equal("example.com", options.Domain);
     }
 
     [Fact]
-    public void AppendResponseCookie_WhenTenantIsServedAtTheRoot_ScopesTheCookieToTheRoot()
+    public void AppendResponseCookie_WhenTenantIsServedAtTheRoot_KeepsTheName()
     {
         SetupTenantRoute("");
         var httpContext = CreateHttpContext();
 
         CookieManager.AppendResponseCookie(httpContext, CookieName, "value", new CookieOptions());
 
-        Assert.Contains("path=/", ReadSetCookie(httpContext), StringComparison.Ordinal);
+        var setCookie = ReadSetCookie(httpContext);
+        Assert.StartsWith($"{CookieName}=value", setCookie, StringComparison.Ordinal);
+        var attributes = ReadAttributes(setCookie);
+        Assert.Contains("path=/", attributes);
+        Assert.Contains("secure", attributes);
+    }
+
+    [Fact]
+    public void AppendResponseCookie_WhenTwoTenantsShareAnOrigin_GivesEachItsOwnName()
+    {
+        SetupTenantRoute("/{tenantId}");
+        var acmeContext = CreateHttpContext("acme");
+        var betaContext = CreateHttpContext("beta");
+
+        CookieManager.AppendResponseCookie(acmeContext, CookieName, "value", new CookieOptions());
+        CookieManager.AppendResponseCookie(betaContext, CookieName, "value", new CookieOptions());
+
+        var acmeName = ReadSetCookie(acmeContext).Split('=')[0];
+        var betaName = ReadSetCookie(betaContext).Split('=')[0];
+        Assert.NotEqual(acmeName, betaName);
     }
 
     #endregion
@@ -93,17 +133,21 @@ public sealed class InteractiveSessionCookieManagerTests : IDisposable
     #region DeleteCookie Tests
 
     [Fact]
-    public void DeleteCookie_WhenTenantIsServedUnderAPath_ExpiresTheCookieAtThatPath()
+    public void DeleteCookie_WhenTenantIsServedUnderAPath_ExpiresTheTenantsCookieAtTheRoot()
     {
         SetupTenantRoute("/{tenantId}");
         var httpContext = CreateHttpContext("acme");
 
-        CookieManager.DeleteCookie(httpContext, CookieName, new CookieOptions { Path = "/" });
+        CookieManager.DeleteCookie(httpContext, CookieName, new CookieOptions { Path = "/acme" });
 
         var setCookie = ReadSetCookie(httpContext);
-        Assert.StartsWith($"{CookieName}=;", setCookie, StringComparison.Ordinal);
+        Assert.StartsWith(
+            $"{CookieName}.{ExpectedTenantSuffix("/acme")}=;",
+            setCookie,
+            StringComparison.Ordinal
+        );
         Assert.Contains("expires=", setCookie, StringComparison.Ordinal);
-        Assert.Contains("path=/acme", setCookie, StringComparison.Ordinal);
+        Assert.Contains("path=/", ReadAttributes(setCookie));
     }
 
     #endregion
@@ -111,14 +155,29 @@ public sealed class InteractiveSessionCookieManagerTests : IDisposable
     #region GetRequestCookie Tests
 
     [Fact]
-    public void GetRequestCookie_WhenCookieIsPresent_ReturnsItsValue()
+    public void GetRequestCookie_WhenTenantIsServedUnderAPath_ReadsOnlyThatTenantsCookie()
     {
-        var httpContext = CreateHttpContext();
-        httpContext.Request.Headers.Cookie = $"{CookieName}=value";
+        SetupTenantRoute("/{tenantId}");
+        var httpContext = CreateHttpContext("acme");
+        httpContext.Request.Headers.Cookie =
+            $"{CookieName}=root; {CookieName}.{ExpectedTenantSuffix("/acme")}=acme";
 
         var value = CookieManager.GetRequestCookie(httpContext, CookieName);
 
-        Assert.Equal("value", value);
+        Assert.Equal("acme", value);
+    }
+
+    [Fact]
+    public void GetRequestCookie_WhenTenantIsServedAtTheRoot_ReadsTheBaseName()
+    {
+        SetupTenantRoute("");
+        var httpContext = CreateHttpContext();
+        httpContext.Request.Headers.Cookie =
+            $"{CookieName}=root; {CookieName}.{ExpectedTenantSuffix("/acme")}=acme";
+
+        var value = CookieManager.GetRequestCookie(httpContext, CookieName);
+
+        Assert.Equal("root", value);
     }
 
     #endregion

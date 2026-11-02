@@ -1,9 +1,10 @@
 # 1146. A development seeder registers only the clients its configuration declares
 
-- **Status:** Accepted (amends [ADR-1082](1082-playground-and-conformance-surfaces.md))
+- **Status:** Accepted (amends [ADR-1082](1082-playground-and-conformance-surfaces.md); amended by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): the
+  developer CORS origins move to the host's overlay)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md); tracked in [#441](https://github.com/NCodeGroup/Identity/issues/441)
 
 ## Context
 

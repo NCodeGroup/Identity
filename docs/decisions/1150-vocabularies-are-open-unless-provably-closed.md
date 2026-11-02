@@ -1,6 +1,9 @@
 # 1150. Vocabularies are open unless provably closed
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md):
+  `DeveloperKeyMode` is removed, and the one development key behavior is the `DeveloperKeys:PruneUnreadableKeys`
+  opt-in)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

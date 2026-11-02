@@ -20,8 +20,8 @@ public sealed class BffUserContext
     private readonly OrderedDictionary<string, JsonNode?> _fields = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Gets the names of the fields the BFF writes itself: <c>sub</c>, <c>name</c>, <c>claims</c>, <c>session</c> and
-    /// <c>logoutUrl</c>.
+    /// Gets the names of the fields the BFF writes itself: <c>sub</c>, <c>name</c>, <c>claims</c>, <c>session</c>,
+    /// <c>logoutUrl</c> and <c>logoutSid</c>.
     /// </summary>
     public static IReadOnlySet<string> ReservedFieldNames { get; } =
         new HashSet<string>(StringComparer.Ordinal)
@@ -31,6 +31,7 @@ public sealed class BffUserContext
             "claims",
             "session",
             "logoutUrl",
+            "logoutSid",
         };
 
     /// <summary>

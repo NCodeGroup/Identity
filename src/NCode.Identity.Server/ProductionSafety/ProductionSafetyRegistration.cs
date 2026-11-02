@@ -42,9 +42,6 @@ public static class ProductionSafetyRegistration
 
     private const string RecoveryDisabledConfigurationKey = "SecretProtection:Recovery:Disabled";
 
-    private const string DeveloperKeyModeConfigurationKey =
-        $"{DeveloperKeysOptions.DefaultSectionName}:{nameof(DeveloperKeysOptions.Mode)}";
-
     internal const string KeyRingRepositoryMissingMessage =
         "Refusing to start in the Production environment: the Data Protection key ring has no repository, so it "
         + "falls back to a local directory or to memory and is lost when the replica is replaced. Persist it to "
@@ -131,8 +128,6 @@ public static class ProductionSafetyRegistration
 
         var violations = new List<ProductionSafetyViolation>();
 
-        AddDeveloperKeysViolations(configuration, violations);
-
         // Stored secrets and the key ring are only as safe as the root key that protects them.
         AddSecretProtectionViolations(configuration, violations);
 
@@ -155,12 +150,17 @@ public static class ProductionSafetyRegistration
             );
         }
 
-        // The developer CORS policy is never registered in Production, so a Cors section there is configuration the
-        // server accepts without honoring — and, when it names loopback origins, one that would be unsafe if it were.
+        // Pruning discards a signing key whose master key, or the root key that wraps it, was lost or changed, and
+        // provisioning replaces it (ADR-1313).
+        AddSectionViolationIfPresent(
+            DeveloperKeysOptions.DefaultSectionName,
+            "prunes signing keys that can no longer be read and provisions new ones, which in Production hides a lost root key behind a silent key change."
+        );
+
         AddSectionViolationIfPresent(
             DeveloperCorsOptions.DefaultSectionName,
-            "configures the developer CORS policy, which is development-only and not registered in Production, so "
-                + "it has no effect."
+            "configures the developer CORS policy, a development-only convenience that admits cross-origin calls from "
+                + "the origins it lists."
         );
 
         // Both seeders create accounts and clients with known, published credentials.
@@ -249,52 +249,5 @@ public static class ProductionSafetyRegistration
                 )
             );
         }
-    }
-
-    private static void AddDeveloperKeysViolations(
-        IConfiguration configuration,
-        List<ProductionSafetyViolation> violations
-    )
-    {
-        const string remedy =
-            $"Set it to '{nameof(DeveloperKeyMode.None)}'; every tenant is then provisioned with persisted signing "
-            + "keys, or holds the keys its operator imports.";
-
-        DeveloperKeysOptions developerKeys;
-        try
-        {
-            developerKeys = configuration.GetDeveloperKeysOptions();
-        }
-        catch (InvalidOperationException exception)
-        {
-            violations.Add(
-                new ProductionSafetyViolation(
-                    DeveloperKeysOptions.DefaultSectionName,
-                    exception.Message,
-                    remedy
-                )
-            );
-            return;
-        }
-
-        // Developer keys are development-only in BOTH developer modes (ADR-1002, ADR-1021, ADR-1169): Ephemeral regenerates
-        // the signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
-        // PersistentSigningKey discards a key whose master key, or the root key that wraps it, was lost or changed and
-        // replaces it, which in production would hide a lost root key behind a silent key change. Absent configuration is
-        // not safe either, because the mode defaults to Ephemeral — so Production must state DeveloperKeyMode.None
-        // explicitly, under which tenants hold the persisted keys they are provisioned with.
-        if (developerKeys.Mode == DeveloperKeyMode.None)
-            return;
-
-        violations.Add(
-            new ProductionSafetyViolation(
-                DeveloperKeyModeConfigurationKey,
-                developerKeys.Mode is { } mode
-                    ? $"'{mode}' is a development-only signing key source."
-                    : $"is unset, which defaults to {nameof(DeveloperKeyMode.Ephemeral)} signing keys that are "
-                        + "regenerated on every restart.",
-                remedy
-            )
-        );
     }
 }

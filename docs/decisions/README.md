@@ -353,3 +353,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1302](./1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |
 | [1304](./1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) | Pull requests into main merge by squash through the merge queue | Accepted |
+| [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) | Shipped versions are serviced from release lines beside the trunk | Accepted |

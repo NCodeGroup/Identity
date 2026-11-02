@@ -103,7 +103,7 @@ public class BffLogoutHandlerTests : BaseTests
     private void SetupResolve(BffSessionState? state) =>
         _resolver
             .Setup(x => x.ResolveAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(state))
+            .ReturnsAsync(state)
             .Verifiable();
 
     #region HandleAsync Tests
@@ -211,10 +211,8 @@ public class BffLogoutHandlerTests : BaseTests
         SetupEnd(httpContext, state);
         _metadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata { EndSessionEndpoint = "https://op.example/logout" }
-                )
+            .ReturnsAsync(
+                new OpenIdProviderMetadata { EndSessionEndpoint = "https://op.example/logout" }
             )
             .Verifiable();
         var handler = CreateHandler();
@@ -243,7 +241,7 @@ public class BffLogoutHandlerTests : BaseTests
         SetupEnd(httpContext, state);
         _metadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(new OpenIdProviderMetadata()))
+            .ReturnsAsync(new OpenIdProviderMetadata())
             .Verifiable();
         var handler = CreateHandler();
 

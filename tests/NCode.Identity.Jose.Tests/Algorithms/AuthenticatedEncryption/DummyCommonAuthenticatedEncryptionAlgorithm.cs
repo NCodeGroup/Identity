@@ -6,7 +6,8 @@ using NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.AuthenticatedEncryption;
 
-internal class DummyCommonAuthenticatedEncryptionAlgorithm : CommonAuthenticatedEncryptionAlgorithm
+internal sealed class DummyCommonAuthenticatedEncryptionAlgorithm
+    : CommonAuthenticatedEncryptionAlgorithm
 {
     private AuthenticatedEncryptionAlgorithm Inner { get; }
 

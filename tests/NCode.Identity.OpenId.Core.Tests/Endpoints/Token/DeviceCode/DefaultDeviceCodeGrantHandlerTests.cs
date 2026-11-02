@@ -446,9 +446,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromException(new OpenIdException(CreateLooseMock<IOpenIdError>().Object))
-            )
+            .ThrowsAsync(new OpenIdException(CreateLooseMock<IOpenIdError>().Object))
             .Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>

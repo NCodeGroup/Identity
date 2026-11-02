@@ -48,16 +48,14 @@ public class DefaultTokenClientTests : BaseTests, IAsyncLifetime
     {
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata
-                    {
-                        Issuer = Authority,
-                        TokenEndpoint = "https://op.example.test/token",
-                        JwksUri = "https://op.example.test/jwks",
-                        DPoPSigningAlgValuesSupported = dpopAlgorithms,
-                    }
-                )
+            .ReturnsAsync(
+                new OpenIdProviderMetadata
+                {
+                    Issuer = Authority,
+                    TokenEndpoint = "https://op.example.test/token",
+                    JwksUri = "https://op.example.test/jwks",
+                    DPoPSigningAlgValuesSupported = dpopAlgorithms,
+                }
             )
             .Verifiable();
 

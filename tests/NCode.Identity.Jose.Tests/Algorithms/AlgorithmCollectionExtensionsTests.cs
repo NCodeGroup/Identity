@@ -28,6 +28,7 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
     protected override async ValueTask DisposeAsyncCore()
     {
         await ServiceProvider.DisposeAsync();
+        await base.DisposeAsyncCore();
     }
 
     private string? Validate(Type keyType, int keySizeBits, string? use, string algorithm) =>

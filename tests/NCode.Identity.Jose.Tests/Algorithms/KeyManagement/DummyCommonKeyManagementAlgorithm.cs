@@ -10,7 +10,7 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
-internal class DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner)
+internal sealed class DummyCommonKeyManagementAlgorithm(KeyManagementAlgorithm inner)
     : CommonKeyManagementAlgorithm
 {
     private KeyManagementAlgorithm Inner { get; } = inner;

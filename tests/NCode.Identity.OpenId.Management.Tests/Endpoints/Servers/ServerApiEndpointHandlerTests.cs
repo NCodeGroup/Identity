@@ -837,11 +837,9 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromException<IReadOnlySettingCollection>(
-                    new JsonException(
-                        "The settings are invalid: 'retired' is not a registered setting."
-                    )
+            .ThrowsAsync(
+                new JsonException(
+                    "The settings are invalid: 'retired' is not a registered setting."
                 )
             )
             .Verifiable();

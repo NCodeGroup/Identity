@@ -123,9 +123,7 @@ public class DefaultGrantPayloadProtectorTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromException<ISecretProtector>(new CryptographicException("no key"))
-            )
+            .ThrowsAsync(new CryptographicException("no key"))
             .Verifiable();
 
         var result = await UnprotectAsync(HashedKey, "fake.AAAA");

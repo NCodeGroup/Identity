@@ -515,7 +515,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
                 (ValidateTokenGrantCommand<TokenExchangeGrant> command, CancellationToken _) =>
                     captured = command
             )
-            .Returns(ValueTask.FromException(new InvalidOperationException("stop")))
+            .ThrowsAsync(new InvalidOperationException("stop"))
             .Verifiable();
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>

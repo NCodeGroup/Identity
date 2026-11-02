@@ -48,6 +48,7 @@ public class JoseSerializerTests : BaseTests
     protected override async ValueTask DisposeAsyncCore()
     {
         await ServiceProvider.DisposeAsync();
+        await base.DisposeAsyncCore();
     }
 
     private static (object controlKey, SecretKey secretKey) CreateRandomRsaKey(string keyId)

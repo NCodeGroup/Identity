@@ -11,7 +11,7 @@ namespace NCode.Registration.AspNetCore;
 /// <summary>
 /// Provides a default implementation of the <see cref="IEndpointTreeRouteBuilder"/> abstraction.
 /// </summary>
-internal class DefaultEndpointTreeRouteBuilder(
+internal sealed class DefaultEndpointTreeRouteBuilder(
     IEnumerable<IEndpointGroup> endpointGroups,
     IEnumerable<IEndpointProvider> endpointProviders
 ) : IEndpointTreeRouteBuilder

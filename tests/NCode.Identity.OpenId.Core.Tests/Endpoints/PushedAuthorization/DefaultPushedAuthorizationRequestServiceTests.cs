@@ -195,26 +195,24 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromResult<PersistedGrant<PushedAuthorizationGrant>?>(
-                    new PersistedGrant<PushedAuthorizationGrant>
+            .ReturnsAsync(
+                new PersistedGrant<PushedAuthorizationGrant>
+                {
+                    Status = PersistedGrantStatus.Active,
+                    TenantId = TenantId,
+                    ClientId = ClientId,
+                    SubjectId = null,
+                    SessionId = null,
+                    Payload = new PushedAuthorizationGrant
                     {
-                        Status = PersistedGrantStatus.Active,
-                        TenantId = TenantId,
                         ClientId = ClientId,
-                        SubjectId = null,
-                        SessionId = null,
-                        Payload = new PushedAuthorizationGrant
+                        Parameters = new Dictionary<string, IReadOnlyList<string>>
                         {
-                            ClientId = ClientId,
-                            Parameters = new Dictionary<string, IReadOnlyList<string>>
-                            {
-                                ["response_type"] = ["code"],
-                                ["scope"] = ["openid"],
-                            },
+                            ["response_type"] = ["code"],
+                            ["scope"] = ["openid"],
                         },
-                    }
-                )
+                    },
+                }
             )
             .Verifiable();
 
@@ -341,25 +339,23 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromResult<PersistedGrant<PushedAuthorizationGrant>?>(
-                    new PersistedGrant<PushedAuthorizationGrant>
+            .ReturnsAsync(
+                new PersistedGrant<PushedAuthorizationGrant>
+                {
+                    Status = PersistedGrantStatus.Active,
+                    TenantId = TenantId,
+                    ClientId = ClientId,
+                    SubjectId = null,
+                    SessionId = null,
+                    Payload = new PushedAuthorizationGrant
                     {
-                        Status = PersistedGrantStatus.Active,
-                        TenantId = TenantId,
                         ClientId = ClientId,
-                        SubjectId = null,
-                        SessionId = null,
-                        Payload = new PushedAuthorizationGrant
+                        Parameters = new Dictionary<string, IReadOnlyList<string>>
                         {
-                            ClientId = ClientId,
-                            Parameters = new Dictionary<string, IReadOnlyList<string>>
-                            {
-                                ["scope"] = ["openid"],
-                            },
+                            ["scope"] = ["openid"],
                         },
-                    }
-                )
+                    },
+                }
             );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>

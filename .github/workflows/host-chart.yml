@@ -74,6 +74,7 @@ jobs:
           refuse --set database.existingSecret=
           refuse --set secretProtection.rootKeyProvider=
           refuse --set secretProtection.rootKeyProvider=ephemeral
+          refuse --set environment=Staging --set secretProtection.rootKeyProvider=
           refuse --set secretProtection.local.keySecret=
           refuse --set secretProtection.rootKeyProvider=aws-kms
           refuse --set secretProtection.rootKeyProvider=aws-kms --set secretProtection.awsKms.keyArn=not-an-arn

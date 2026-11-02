@@ -38,11 +38,12 @@ public sealed class DefaultRegistrationTests
     {
         var hostBuilder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
 
-        // The static tenant is served only beneath its issuer, so a host that starts must configure one.
+        // The static tenant is served only beneath its issuer, and the host names its root key provider, so a host that starts must configure both.
         hostBuilder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
                 ["OpenId:TenantResolution:StaticSingle:Issuer"] = "https://op.example",
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
             }
         );
         hostBuilder.Configuration.AddInMemoryCollection(configurationData);

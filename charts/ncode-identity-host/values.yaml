@@ -68,7 +68,7 @@ valkey:
 # Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
 # protection" in the chart's README.
 secretProtection:
-  # Required in Production: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set.
+  # Required: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set; ephemeral only outside Production.
   rootKeyProvider: ""
   local:
     # Secret holding the root key under the key 'key' (base64url, 32 bytes).

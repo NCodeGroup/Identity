@@ -6,6 +6,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Persistence.Stores;
@@ -43,7 +44,9 @@ public class DefaultMasterKeyRingTests : IDisposable
     {
         var catalog = new DefaultKeyWrapperCatalog(
             [_provider],
-            Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
+            Microsoft.Extensions.Options.Options.Create(
+                new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
+            )
         );
         _factory = new MasterKeyFactory(catalog, _recovery, TimeProvider.System);
         _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();

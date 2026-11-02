@@ -12,7 +12,9 @@ NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOption
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.InteractiveAuthenticationOptions() -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors
-const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName = "XSRF-TOKEN" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName = "__Host-XSRF-TOKEN" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionCookieName = "__Host-NCode.Identity.Interactive" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AntiforgeryCookieName = "__Host-NCode.Identity.Antiforgery" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AccountPath = "/account" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.ApplicationsListPath = "/account/applications/list" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.ApplicationsPath = "/account/applications" -> string!

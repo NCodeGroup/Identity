@@ -122,5 +122,17 @@ public static class InteractiveAuthenticationDefaults
     /// The name of the JavaScript-readable cookie the login/consent pages echo back as the antiforgery request token,
     /// so the single-page surface can submit an antiforgery-protected form without the server rendering the token.
     /// </summary>
-    public const string AntiforgeryTokenCookieName = "XSRF-TOKEN";
+    public const string AntiforgeryTokenCookieName = "__Host-XSRF-TOKEN";
+
+    /// <summary>
+    /// The name of the interactive session cookie. It is host-only (<c>__Host-</c> prefix, <c>Path=/</c>, no
+    /// <c>Domain</c>), so a tenant that is served under a path gets a name qualified by that path.
+    /// </summary>
+    public const string SessionCookieName = "__Host-NCode.Identity.Interactive";
+
+    /// <summary>
+    /// The name of the antiforgery cookie of the interactive surface. It is host-only (<c>__Host-</c> prefix,
+    /// <c>Path=/</c>, no <c>Domain</c>).
+    /// </summary>
+    public const string AntiforgeryCookieName = "__Host-NCode.Identity.Antiforgery";
 }

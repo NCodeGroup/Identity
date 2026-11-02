@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -46,7 +45,6 @@ internal sealed class DefaultClientKeyResolver(
 {
     private const string CacheKeyPrefix =
         "NCode.Identity.OpenId.Authentication.Clients.DefaultClientKeyResolver";
-    private const string UnavailableKeySuffix = ":unavailable";
 
     private ILogger<DefaultClientKeyResolver> Logger { get; } = logger;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -60,8 +58,8 @@ internal sealed class DefaultClientKeyResolver(
     private ISecretKeyCollectionFactory SecretKeyCollectionFactory { get; } =
         secretKeyCollectionFactory;
 
-    private ConcurrentDictionary<string, Lazy<Task<IReadOnlyList<SecretKey>>>> Fetches { get; } =
-        new(StringComparer.Ordinal);
+    private SingleFlight<IReadOnlyList<SecretKey>> Fetches { get; } =
+        new(memoryCache, outboundHttpOptions.Value.FailureCacheDuration);
 
     /// <inheritdoc />
     public async ValueTask<ISecretKeyCollection> ResolveSecretKeysAsync(
@@ -135,14 +133,12 @@ internal sealed class DefaultClientKeyResolver(
             return remembered;
 
         // Concurrent misses share one fetch; it runs without the caller's token, so a caller that gives up does not
-        // break it for the others. See ADR-1335.
-        var fetch = Fetches.GetOrAdd(
+        // break it for the others. See ADR-1335 and ADR-1350.
+        return await Fetches.RunAsync(
             fetchKey,
-            _ => new Lazy<Task<IReadOnlyList<SecretKey>>>(() =>
-                RunFetchAsync(fetchKey, openIdClient, uri)
-            )
+            () => RunFetchAsync(fetchKey, openIdClient, uri),
+            cancellationToken
         );
-        return await fetch.Value.WaitAsync(cancellationToken);
     }
 
     // Returns the accepted key set or, for a remembered failure, an empty set; null when neither is cached.
@@ -163,7 +159,7 @@ internal sealed class DefaultClientKeyResolver(
 
         // A fetch that yielded no key is remembered, so an unreachable or misbehaving jwks_uri is not fetched again for
         // every request. See ADR-1335.
-        if (!MemoryCache.TryGetValue(fetchKey + UnavailableKeySuffix, out _))
+        if (!Fetches.IsFailureRemembered(fetchKey))
             return null;
 
         Logger.ClientJwksFetchSuppressed(
@@ -181,47 +177,34 @@ internal sealed class DefaultClientKeyResolver(
         Uri uri
     )
     {
-        try
+        // A caller that checked the cache just before a previous fetch recorded its result and left the in-flight
+        // dictionary starts this one, so the result is checked again before the jwks_uri is fetched. See ADR-1335.
+        var remembered = GetRememberedKeys(openIdClient, uri, fetchKey);
+        if (remembered is not null)
+            return remembered;
+
+        var keys = await FetchAndImportAsync(openIdClient, uri);
+
+        if (keys.Count == 0)
         {
-            // A caller that checked the cache just before a previous fetch recorded its result and left the in-flight
-            // dictionary starts this one, so the result is checked again before the jwks_uri is fetched. See ADR-1335.
-            var remembered = GetRememberedKeys(openIdClient, uri, fetchKey);
-            if (remembered is not null)
-                return remembered;
-
-            var keys = await FetchAndImportAsync(openIdClient, uri);
-
-            if (keys.Count == 0)
-            {
-                MemoryCache.Set(
-                    fetchKey + UnavailableKeySuffix,
-                    true,
-                    OutboundHttpOptions.FailureCacheDuration
-                );
-                return keys;
-            }
-
-            var cacheDuration = openIdClient.Settings.GetValue(
-                OpenIdSettingKeys.JwksUriCacheDuration
-            );
-            if (cacheDuration > TimeSpan.Zero)
-            {
-                // The cached keys hold only public key material (no native handles to dispose), so a plain absolute
-                // expiration is sufficient and there is no eviction cleanup to perform.
-                var cacheKey = GetCacheKey(uri);
-                MemoryCache.Set<IReadOnlyList<SecretKey>>(
-                    cacheKey,
-                    keys,
-                    new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = cacheDuration }
-                );
-            }
-
+            Fetches.RememberFailure(fetchKey);
             return keys;
         }
-        finally
+
+        var cacheDuration = openIdClient.Settings.GetValue(OpenIdSettingKeys.JwksUriCacheDuration);
+        if (cacheDuration > TimeSpan.Zero)
         {
-            Fetches.TryRemove(fetchKey, out _);
+            // The cached keys hold only public key material (no native handles to dispose), so a plain absolute
+            // expiration is sufficient and there is no eviction cleanup to perform.
+            var cacheKey = GetCacheKey(uri);
+            MemoryCache.Set<IReadOnlyList<SecretKey>>(
+                cacheKey,
+                keys,
+                new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = cacheDuration }
+            );
         }
+
+        return keys;
     }
 
     private async ValueTask<List<SecretKey>> FetchAndImportAsync(OpenIdClient openIdClient, Uri uri)

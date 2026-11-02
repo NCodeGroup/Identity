@@ -1,6 +1,7 @@
 # 1335. A client's `jwks_uri` is fetched single-flight and a failed fetch is remembered
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1350](1350-a-shared-fetch-is-single-flight-through-one-helper.md):
+  the in-flight fetches and the remembered failure are the shared `SingleFlight<TResult>`)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md) and [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)

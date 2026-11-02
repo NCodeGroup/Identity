@@ -59,20 +59,6 @@ public sealed class GrantPruneServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    private void SetupSaveChangesFailingOnce(
-        Exception exception,
-        CancellationToken cancellationToken
-    )
-    {
-        var saves = 0;
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(cancellationToken))
-            .Returns(() =>
-                ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask
-            )
-            .Verifiable(Times.Exactly(2));
-    }
-
     #region ExecuteAsync Tests
 
     [Fact]
@@ -221,7 +207,11 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        SetupSaveChangesFailingOnce(new StoreConcurrencyException("conflict"), cancellationToken);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
     }
@@ -242,8 +232,9 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        SetupSaveChangesFailingOnce(
+        MockStoreManager.SetupSaveChangesFailingOnce(
             new InvalidOperationException("unreachable"),
+            Times.Exactly(2),
             cancellationToken
         );
 
@@ -267,7 +258,11 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        SetupSaveChangesFailingOnce(new TaskCanceledException("timed out"), cancellationToken);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new TaskCanceledException("timed out"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);

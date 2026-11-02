@@ -81,20 +81,6 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
             .Verifiable(times);
     }
 
-    private void SetupSaveChangesFailingOnce(
-        Exception exception,
-        CancellationToken cancellationToken
-    )
-    {
-        var saves = 0;
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(cancellationToken))
-            .Returns(() =>
-                ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask
-            )
-            .Verifiable(Times.Exactly(2));
-    }
-
     #region ExecuteAsync Tests
 
     [Fact]
@@ -201,8 +187,9 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         var cancellationToken = CancellationToken.None;
         SetupStores();
         SetupRemoveBefore(3, Times.Exactly(2), cancellationToken);
-        SetupSaveChangesFailingOnce(
+        MockStoreManager.SetupSaveChangesFailingOnce(
             new InvalidOperationException("unreachable"),
+            Times.Exactly(2),
             cancellationToken
         );
 
@@ -216,7 +203,11 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         var cancellationToken = CancellationToken.None;
         SetupStores();
         SetupRemoveBefore(3, Times.Exactly(2), cancellationToken);
-        SetupSaveChangesFailingOnce(new TaskCanceledException("timed out"), cancellationToken);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new TaskCanceledException("timed out"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);
@@ -269,7 +260,11 @@ public sealed class TenantUsagePruneServiceTests : BaseTests
         var cancellationToken = CancellationToken.None;
         SetupStores();
         SetupRemoveBefore(3, Times.Exactly(2), cancellationToken);
-        SetupSaveChangesFailingOnce(new StoreConcurrencyException("conflict"), cancellationToken);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
     }

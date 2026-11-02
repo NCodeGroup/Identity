@@ -108,6 +108,11 @@ internal class DefaultTokenEndpointProvider(
                 .AsHttpResult();
         }
 
+        // The form is read before client authentication, so an unreadable body is the client's error (400).
+        var formData = await httpContext.Request.TryReadFormAsync(cancellationToken);
+        if (formData is null)
+            return UnreadableForm.CreateError(errorFactory).AsHttpResult();
+
         var authResult = await ClientAuthenticationService.AuthenticateClientAsync(
             openIdContext,
             cancellationToken
@@ -150,7 +155,6 @@ internal class DefaultTokenEndpointProvider(
                 return RateLimitErrors.Refuse(openIdContext, retryAfter).AsHttpResult();
         }
 
-        var formData = await httpContext.Request.ReadFormAsync(cancellationToken);
         var tokenRequest = TokenRequest.Load(openIdEnvironment, formData);
 
         var openIdClient = authResult.Client;

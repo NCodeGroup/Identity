@@ -10,7 +10,7 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **The protocol client's calls are bounded and retried.** Every call of `NCode.Identity.OpenId.Client`, mutual-TLS clients included, runs through a total and a per-attempt timeout, and a GET or HEAD without a DPoP proof is retried up to twice with jittered backoff after a connection failure, a timed-out attempt or a 408, 429 or 5xx response, set by `OpenIdClientOptions.AttemptTimeout`, `TotalTimeout`, `MaxRetryAttempts` and `RetryDelay` and validated when the host starts; the package depends on `Polly.Core` alone, not on `Microsoft.Extensions.Http.Resilience` ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
+- **The protocol client's calls are bounded and retried.** Every call of `NCode.Identity.OpenId.Client`, mutual-TLS clients included, runs through a total and a per-attempt timeout, and a GET or HEAD without a body or a DPoP proof is retried up to twice with jittered backoff after a connection failure, a timed-out attempt or a 408, 429 or 5xx response, set by `OpenIdClientOptions.AttemptTimeout`, `TotalTimeout`, `MaxRetryAttempts` and `RetryDelay` and validated when the host starts; the package depends on `Polly.Core` alone, not on `Microsoft.Extensions.Http.Resilience` ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 
 - **A client's `jwks_uri` is fetched once for concurrent requests, and a failed fetch is remembered.** Concurrent token requests share one fetch of a client's key set, and a fetch that yields no key is not repeated for `OutboundHttpOptions.FailureCacheDuration` (`OpenId:OutboundHttp:FailureCacheDuration`, one minute), validated when the host starts ([#466](https://github.com/NCodeGroup/Identity/issues/466), [ADR-1335](docs/decisions/1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).
 
@@ -1322,7 +1322,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
-- **Breaking:** `OpenIdClientOptions.RequestTimeout` is renamed `TotalTimeout`; set `TotalTimeout` instead. It still bounds a whole request, the response body included, and the BFF checks its refresh lease against it ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
+- **Breaking:** `OpenIdClientOptions.RequestTimeout` is renamed `TotalTimeout`; set `TotalTimeout` instead, and when it is below 10 seconds also set `AttemptTimeout` no higher, because the host does not start while the default 10-second `AttemptTimeout` exceeds `TotalTimeout`. It still bounds a whole request, the response body included, and the BFF checks its refresh lease against it ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 - **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
   `TryRemoveAsync(key, expectedValue, cancellationToken)`, an atomic compare-and-remove that deletes a value only while
   it still holds the expected bytes; the in-process and Valkey adapters implement it, and the Valkey script is

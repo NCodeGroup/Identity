@@ -615,7 +615,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.AuditRecordPruneFailed,
         Level = LogLevel.Warning,
-        Message = "The audit records past their retention could not be removed; the next flush tries again."
+        Message = "The audit records past their retention could not be removed; the removal is retried at the next prune."
     )]
     internal static partial void AuditRecordPruneFailed(this ILogger logger, Exception exception);
 }

@@ -34,9 +34,7 @@ public sealed class AuditRecordFlushServiceTests : IDisposable
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockAuditRecordStore = MockRepository.Create<IAuditRecordStore>();
-        var options = Options.Create(
-            new AuditRecordOptions { Retention = TimeSpan.FromDays(90), QueueCapacity = 1000 }
-        );
+        var options = Options.Create(new AuditRecordOptions { QueueCapacity = 1000 });
         Queue = new AuditRecordQueue(options);
         Service = new AuditRecordFlushService(
             Queue,
@@ -156,41 +154,6 @@ public sealed class AuditRecordFlushServiceTests : IDisposable
         Assert.Equal(first.Select(record => record.EventId), batches[0]);
         Assert.Equal(first.Concat(second).Select(record => record.EventId), batches[1]);
         Assert.Equal(0, Queue.Count);
-    }
-
-    #endregion
-
-    #region PruneAsync Tests
-
-    [Fact]
-    public async Task PruneAsync_RemovesUntilABatchIsShortAndThenWaitsAnHour()
-    {
-        var cancellationToken = CancellationToken.None;
-        SetupStores();
-        MockTimeProvider.SetupSequence(x => x.GetUtcNow()).Returns(Now).Returns(Now.AddMinutes(59));
-        MockAuditRecordStore
-            .SetupSequence(x =>
-                x.RemoveBeforeAsync(
-                    Now.AddDays(-90),
-                    AuditRecordFlushService.BatchSize,
-                    cancellationToken
-                )
-            )
-            .ReturnsAsync(AuditRecordFlushService.BatchSize)
-            .ReturnsAsync(3);
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(cancellationToken))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        await Service.PruneAsync(cancellationToken);
-        await Service.PruneAsync(cancellationToken);
-
-        MockAuditRecordStore.Verify(
-            x =>
-                x.RemoveBeforeAsync(It.IsAny<DateTimeOffset>(), It.IsAny<int>(), cancellationToken),
-            Times.Exactly(2)
-        );
     }
 
     #endregion

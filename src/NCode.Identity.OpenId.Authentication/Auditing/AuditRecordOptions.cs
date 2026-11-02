@@ -39,4 +39,10 @@ public sealed class AuditRecordOptions
     /// is at least one day.
     /// </summary>
     public TimeSpan Retention { get; set; } = TimeSpan.FromDays(90);
+
+    /// <summary>
+    /// Gets or sets how often each replica removes the audit records older than <see cref="Retention"/>. The default is
+    /// one hour. It is at least one millisecond and at most about 49.7 days, the periods a timer accepts.
+    /// </summary>
+    public TimeSpan PruneInterval { get; set; } = TimeSpan.FromHours(1);
 }

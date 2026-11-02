@@ -10,6 +10,10 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Outbound calls are bounded and retried.** Every fetch of, and delivery to, a caller-supplied URL goes through one guarded HTTP client with a per-attempt and a total timeout and up to two jittered retries of a safe request, set by the new `OpenId:OutboundHttp` section (`OutboundHttpOptions`: `AttemptTimeout`, `TotalTimeout`, `MaxRetryAttempts`, `RetryDelay`) and validated when the host starts ([#444](https://github.com/NCodeGroup/Identity/issues/444), [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+
+- **The usage ledger's prune interval is an option.** `TenantUsageOptions.PruneInterval` (`OpenId:TenantUsage:PruneInterval`, one hour) sets how often `TenantUsagePruneService` removes the days past retention ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
+
 - **Project template v0.53.0.** The repository moves from project-template v0.41.1 to v0.53.0. It gains the
   `/address-feedback` command; the weekly `template-update` workflow, which keeps an issue open while a newer template
   version is out; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first
@@ -1313,6 +1317,12 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   (set in `launchSettings.json`). See [ADR-1021](docs/decisions/1021-developer-signing-keys-seeded-through-persistence.md).
 
 ### Changed
+
+- **Breaking:** the six per-purpose outbound HTTP clients (`NCode.Identity.OpenId.SectorIdentifier`, `.ClientJwks`, `.RequestUri`, `.BackChannelLogout`, `.CibaDelivery`, `.ClientCertificateRevocation`) are one guarded client; configure its limits under `OpenId:OutboundHttp`. The back-channel logout and CIBA deliveries no longer read the response body ([#444](https://github.com/NCodeGroup/Identity/issues/444), [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+
+- **Server settings are reconciled when a replica starts**, not at its first request; a replica that cannot materialize its server at start falls back to its first request ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+
+- **The family's records settle their conflicts with the project template's.** ADR-1116, ADR-1213 and ADR-1219 refine project-template ADR-0112, ADR-0142 and ADR-0140; ADR-1315 supersedes two points of project-template ADR-0145; ADR-1090's conflict with project-template ADR-0141 is tracked in [#25](https://github.com/NCodeGroup/Identity/issues/25) ([#440](https://github.com/NCodeGroup/Identity/issues/440), [#443](https://github.com/NCodeGroup/Identity/issues/443), [#444](https://github.com/NCodeGroup/Identity/issues/444)).
 
 - **The build takes the template's analyzer settings.** `build/BannedSymbols.txt`, from the template, bans
   sync-over-async, every `JsonDocument.Parse` overload and Newtonsoft.Json in every project, test projects included,
@@ -4123,6 +4133,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   (supersedes ADR-1177).
 
 ### Security
+
+- **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release, instead of returning uncleared to the shared array pool ([#440](https://github.com/NCodeGroup/Identity/issues/440), [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
 
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use

@@ -9,6 +9,10 @@
 
 ## Context
 
+[project-template ADR-0109](project-template/0109-a-lost-concurrency-race-is-a-store-neutral-exception.md) surfaces a
+lost optimistic-concurrency race as one store-neutral exception that the unit of work translates, and answers the loser
+of a single-use operation as a second attempt. This record applies it to the family's stores and single-use grants.
+
 A single-use grant is spent by `IPersistedGrantService.ConsumeOnceOrDefault`: it reads the grant, refuses one that is
 unknown, expired, or already consumed, stamps `ConsumedWhen`, and saves. The grant row's concurrency token makes the
 spend atomic across replicas without a shared-state adapter
@@ -52,8 +56,6 @@ caller that wanted to handle the race would have to depend on the technology of 
 - **A conditional `ExecuteUpdateAsync` that spends the row.** Rejected: the Entity Framework InMemory provider does not
   support it, and it bypasses the interceptor-managed concurrency token
   ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)).
-- **Catch `DbUpdateConcurrencyException` in `NCode.Identity.OpenId.Authentication`.** Rejected: it couples the protocol
-  layer to one store technology, and another store would have to throw the Entity Framework type to be handled.
 - **Record the spend in an `IExpiringKeySet`.** Rejected: the grant already has a row, and a second record would have to
   agree with it
   ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
@@ -62,8 +64,6 @@ caller that wanted to handle the race would have to depend on the technology of 
 
 - Of two requests that spend one grant at the same moment, one receives the grant and the other receives the error of a
   second spend. No request reaches its client as `500` for it.
-- A store that is not built on Entity Framework reports a lost race by throwing `StoreConcurrencyException`, and a
-  caller handles it without a reference to the store technology.
 - A management write that loses a race is answered `412`
   ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)).
 - Refresh-token rotation spends the presented token with its successor in one unit of work, and a concurrent second

@@ -7,7 +7,7 @@
   jobs concurrently up to a limit, and a handler's own cancellation fails the attempt)
 - **Date:** 2026-10-13
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md); tracked in [#443](https://github.com/NCodeGroup/Identity/issues/443)
+- **Conflicts with:** [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md); tracked in [#25](https://github.com/NCodeGroup/Identity/issues/25)
 
 ## Context
 
@@ -140,6 +140,10 @@ JWE's key-management `alg` was previously checked against the _signing_ set.
   `ICibaNotificationService` loses its two HTTP methods; and four new CIBA encryption settings. The concrete delivery
   jobs (`CibaDeliveryJob`, `BackChannelLogoutDeliveryJob`) are **internal** implementation detail of the producing
   package — the dispatcher is generic over `IDispatchJob`, so no job type is part of the public surface.
+- Against [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md), the
+  in-process adapter loses a queued delivery on a crash, and a push job carries the issued tokens. The durable adapter
+  of issue [#25](https://github.com/NCodeGroup/Identity/issues/25) delivers from an outbox written with the change, and
+  its stored job carries no token it could read again.
 
 ## References
 

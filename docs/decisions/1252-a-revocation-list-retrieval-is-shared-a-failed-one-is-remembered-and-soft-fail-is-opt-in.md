@@ -1,10 +1,12 @@
 # 1252. A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in
 
 - **Status:** Accepted (amended by
-  [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md): OCSP and every CRL form)
+  [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md): OCSP and every CRL form; and
+  by [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): a retrieval goes
+  through the guarded client, which retries a failed GET within `FetchTimeout`, and a remembered failure stays the
+  back-off between retrievals)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md); tracked in [#444](https://github.com/NCodeGroup/Identity/issues/444)
 
 ## Context
 

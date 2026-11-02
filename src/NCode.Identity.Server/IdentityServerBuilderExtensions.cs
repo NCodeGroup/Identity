@@ -10,6 +10,7 @@ using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
@@ -40,6 +41,7 @@ public static class IdentityServerBuilderExtensions
             TenantResolutionSubsection,
             MutualTlsSubsection,
             ClientCertificateRevocationOptions.SectionName,
+            OutboundHttpOptions.SectionName,
             GrantRetentionOptions.SectionName,
             TenantUsageOptions.SectionName,
             AuditRecordOptions.SectionName,
@@ -53,7 +55,7 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds ten subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds eleven subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
@@ -66,6 +68,8 @@ public static class IdentityServerBuilderExtensions
         /// <item><description><c>ClientCertificateRevocation</c> — <see cref="ClientCertificateRevocationOptions"/>: how
         /// the OCSP responses and revocation lists a mutual-TLS client certificate names are retrieved and
         /// cached.</description></item>
+        /// <item><description><c>OutboundHttp</c> — <see cref="OutboundHttpOptions"/>: how long a call to a
+        /// caller-supplied URL may take and how often it is retried.</description></item>
         /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
         /// kept and how often they are removed.</description></item>
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
@@ -117,6 +121,7 @@ public static class IdentityServerBuilderExtensions
             var clientCertificateRevocationSection = openIdSection.GetSection(
                 ClientCertificateRevocationOptions.SectionName
             );
+            var outboundHttpSection = openIdSection.GetSection(OutboundHttpOptions.SectionName);
             var grantRetentionSection = openIdSection.GetSection(GrantRetentionOptions.SectionName);
             var tenantUsageSection = openIdSection.GetSection(TenantUsageOptions.SectionName);
             var auditRecordsSection = openIdSection.GetSection(AuditRecordOptions.SectionName);
@@ -163,6 +168,11 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<ClientCertificateRevocationOptions>()
                 .Configure(options => clientCertificateRevocationSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<OutboundHttpOptions>()
+                .Configure(options => outboundHttpSection.BindStrictly(options))
                 .ValidateOnStart();
 
             serviceCollection

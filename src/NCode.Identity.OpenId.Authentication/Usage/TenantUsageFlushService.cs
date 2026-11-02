@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 
 /// <summary>
 /// Adds the usage each replica recorded to the durable daily ledger every <see cref="TenantUsageOptions.FlushInterval"/>
-/// and once more on shutdown, and removes the days the ledger no longer keeps. Usage is added in numbered batches of up
+/// and once more on shutdown. Usage is added in numbered batches of up
 /// to <see cref="BatchSize"/> entries, each its own unit of work. A batch that cannot be added — the database is
 /// unreachable, or another replica updated one of its entries first — is held and retried under its number before any
 /// new usage is drained, so each batch is added to the ledger once.
@@ -31,8 +31,6 @@ internal sealed class TenantUsageFlushService(
     /// The number of ledger entries added or removed in one unit of work.
     /// </summary>
     internal const int BatchSize = 256;
-
-    private DateOnly? _lastPrunedDay;
 
     // The entries in PendingBatches, kept with Interlocked so a stop whose token ended the wait for FlushGate can count
     // them without reading the queue.
@@ -74,7 +72,6 @@ internal sealed class TenantUsageFlushService(
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
                 await FlushAsync(stoppingToken);
-                await PruneAsync(stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -224,59 +221,5 @@ internal sealed class TenantUsageFlushService(
 
             return false;
         }
-    }
-
-    /// <summary>
-    /// Removes the days older than <see cref="TenantUsageOptions.Retention"/> in batches of <see cref="BatchSize"/>
-    /// entries, each its own unit of work, once per UTC calendar day.
-    /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    internal async ValueTask PruneAsync(CancellationToken cancellationToken)
-    {
-        var now = TimeProvider.GetUtcNow().UtcDateTime;
-        var today = DateOnly.FromDateTime(now);
-        if (_lastPrunedDay == today)
-            return;
-
-        try
-        {
-            var firstKeptDay = DateOnly.FromDateTime(now - Options.Retention);
-            while (await RemoveBatchBeforeAsync(firstKeptDay, cancellationToken) == BatchSize) { }
-
-            _lastPrunedDay = today;
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            Logger.TenantUsagePruneFailed(exception);
-        }
-    }
-
-    /// <summary>
-    /// Removes one batch of the ledger's entries counted before <paramref name="firstKeptDay"/> in its own unit of work.
-    /// </summary>
-    /// <param name="firstKeptDay">The first UTC calendar day to keep.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of entries removed.</returns>
-    private async ValueTask<int> RemoveBatchBeforeAsync(
-        DateOnly firstKeptDay,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantUsageStore>();
-        var removed = await store.RemoveBeforeAsync(firstKeptDay, BatchSize, cancellationToken);
-
-        try
-        {
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (StoreConcurrencyException)
-        {
-            // Another replica removed rows of this batch first, which is progress, so read the next batch. See ADR-1213.
-            return BatchSize;
-        }
-
-        return removed;
     }
 }

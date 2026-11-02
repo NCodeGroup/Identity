@@ -437,6 +437,32 @@ public class JoseSerializerTests : BaseTests
     }
 
     [Fact]
+    public void DecodeString_WhenTheJweIsCompressed_ReturnsThePlaintext()
+    {
+        const string keyId = nameof(keyId);
+        const JweAlgorithm jweAlgorithm = JweAlgorithm.A256GCMKW;
+        const JweEncryption jweEncryption = JweEncryption.A256GCM;
+        var (controlKey, secretKey) = CreateRandomKey(keyId, jweAlgorithm, jweEncryption);
+
+        using var disposableNativeKey = controlKey as IDisposable ?? Disposable.Empty;
+
+        var originalPayload = new string('a', 4096);
+        var token = JWT.Encode(
+            originalPayload,
+            controlKey,
+            jweAlgorithm,
+            jweEncryption,
+            JweCompression.DEF,
+            new Dictionary<string, object> { ["kid"] = keyId },
+            new JwtSettings()
+        );
+
+        var actualPayload = JoseSerializer.Decode(token, secretKey);
+
+        Assert.Equal(originalPayload, actualPayload);
+    }
+
+    [Fact]
     public void Decode_WhenJweUsesRsa15_ThrowsJoseInvalidAlgorithmException()
     {
         const string keyId = nameof(keyId);

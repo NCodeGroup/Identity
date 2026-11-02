@@ -4,7 +4,9 @@
   [ADR-1227](1227-a-session-is-terminated-at-most-once-on-every-path.md): every other path that terminates a session
   claims it the same way;
   [ADR-1228](1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
-  a claim returns the session as it was revoked)
+  a claim returns the session as it was revoked;
+  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a replica materializes its
+  server when it starts, so a pass runs from then, or from the first request when the store cannot be read at start)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

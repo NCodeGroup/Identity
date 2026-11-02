@@ -110,6 +110,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/../..").Path
+
+# ConvertTo-Base64Url (shared with Get-ConformanceSeedCredentials.ps1) and Expand-ConfigTemplate; build/tests tests both.
+. (Join-Path $PSScriptRoot 'ConformanceHelpers.ps1')
 $FrontendDir = Join-Path $RepoRoot 'src/frontend'
 $HostProject = Join-Path $RepoRoot 'src/NCode.Identity.OpenId.Host'
 $ComposeFile = Join-Path $SuiteRepo 'docker-compose-prebuilt.yml'
@@ -255,10 +258,6 @@ $GeneratedConfigs = [System.Collections.Generic.List[string]]::new()
 # authenticates with the `client` secret, and the suite configurations sign the test user in with its password.
 $SeedCredentials = $null
 
-function ConvertTo-Base64Url([byte[]] $Bytes) {
-    return [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-}
-
 function Get-Fapi1ConfigFileName([hashtable] $Configuration) { "fapi1-advanced-$($Configuration.Name).json" }
 
 function Get-Fapi1ClientCredential([string] $ClientId) {
@@ -311,15 +310,6 @@ function Get-Fapi1ClientCredential([string] $ClientId) {
 function Set-RunEnvironment([string] $Name, [string] $Value) {
     Set-Item -Path "Env:$Name" -Value $Value
     $RunEnvironmentNames.Add($Name)
-}
-
-function Expand-ConfigTemplate([string] $TemplateText, [System.Collections.IDictionary] $Tokens) {
-    # Replace each {{token}} with its JSON-escaped value; the template quotes every token, so the result stays JSON.
-    $text = $TemplateText
-    foreach ($token in $Tokens.GetEnumerator()) {
-        $text = $text.Replace("{{$($token.Key)}}", [System.Text.Json.JsonEncodedText]::Encode($token.Value).ToString())
-    }
-    return $text
 }
 
 function Get-TestUserTokens {

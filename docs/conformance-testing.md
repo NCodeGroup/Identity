@@ -248,7 +248,14 @@ must register the suite callback as a redirect URI.
 > With DCR (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)) implemented, skip all of the above — remove `alias` from the config and the suite
 > registers clients itself and runs modules in parallel.
 
-## Appendix D — Config template: Basic OP (`oidcc-basic.json`)
+## Appendix D — Config template: Basic OP (`oidcc-basic.template.json`)
+
+The committed Basic OP configuration is
+[`build/conformance/oidcc-basic.template.json`](../build/conformance/oidcc-basic.template.json): it carries
+`{{test_user_name}}` and `{{test_user_password}}` tokens instead of the test user's credentials, and
+[`run-conformance.ps1`](../build/conformance/run-conformance.ps1) renders `oidcc-basic.json` from it at run time
+(gitignored, deleted when the run ends), filling in the per-machine credentials. The shape below is the reference it was
+lifted from.
 
 Issuer must match the host the suite reaches. Running the suite in Docker, the OP is reached at
 `host.docker.internal`; the host must therefore **issue discovery with that same host** (configure

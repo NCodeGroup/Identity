@@ -174,6 +174,12 @@ try {
         & (Join-Path $PSScriptRoot 'tests\script-help.tests.ps1')
         $global:LASTEXITCODE = 0
     }
+    # The conformance runner's credential script must generate what the LocalDev AppHost generates: both are held to one
+    # golden fixture, which the C# side's test reads too. Build-free, so it runs with the other script checks.
+    Invoke-Step 'conformance seed credentials' {
+        & (Join-Path $PSScriptRoot 'tests\conformance-seed-credentials.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
 
     Invoke-Step 'tool-restore' { dotnet tool restore }
     Invoke-Step 'format (csharpier check)' { dotnet csharpier check . }

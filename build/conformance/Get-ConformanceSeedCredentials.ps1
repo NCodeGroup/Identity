@@ -9,7 +9,10 @@
     clients that authenticate with one, and the test user's password, are development secret files kept outside the
     repository, beside the development root key in `LocalApplicationData/NCode.Identity/LocalDev`. The LocalDev AppHost
     (`src/NCode.Identity.OpenId.LocalDev/DevelopmentSecrets/ConformanceSeedSecrets.cs`) reads and generates the same
-    files, with the same names, so every launcher seeds the same credentials.
+    files, with the same names, so every launcher seeds the same credentials. The clients are the ones the conformance
+    overlay (`appsettings.Conformance.json`) registers with a `client_secret_*` token-endpoint authentication method,
+    and the shared fixture `tests/NCode.Identity.OpenId.LocalDev.Tests/DevelopmentSecrets/conformance-seed-golden.json`
+    pins the file names, the encoding and the variable names for both implementations.
 
     Each file's text is the base64url encoding of 32 random bytes. A missing file is generated: it is written to a
     temporary file readable only by the current user and moved into place without overwriting, so a crash never leaves
@@ -17,10 +20,14 @@
 
     The script returns the credentials the runner hands the suite and the pre-flight, and the environment variables
     (`ConformanceSeed__...`) that hand the same credentials to the OpenID host's conformance seed. A client secret is
-    configured base64url-encoded, so the file's text is the secret a client presents.
+    configured as the base64url encoding of the file's bytes, so the file's text is the secret a client presents.
 
 .PARAMETER Directory
     The directory that holds the development secret files. Defaults to the one the LocalDev AppHost uses.
+
+.PARAMETER SettingsPath
+    The conformance overlay that lists the seeded clients and the test user. Defaults to the reference host's
+    `appsettings.Conformance.json`.
 
 .PARAMETER SetEnvironment
     Set the `ConformanceSeed__...` environment variables in this PowerShell process instead of returning the
@@ -37,29 +44,39 @@ param(
                 [Environment+SpecialFolder]::LocalApplicationData,
                 [Environment+SpecialFolderOption]::Create)) 'NCode.Identity' 'LocalDev'),
 
+    [string] $SettingsPath = (Join-Path $PSScriptRoot '..' '..' 'src' 'NCode.Identity.OpenId.Host' 'appsettings.Conformance.json'),
+
     [switch] $SetEnvironment
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# The conformance clients that authenticate with a client secret, as appsettings.Conformance.json lists them, and the
-# test user it seeds. Keep both in step with ConformanceSeedSecrets.cs.
-$SecretClientIds = @('client', 'client2', 'client-secret-post')
-$TestUserName = 'conformance-user'
+. (Join-Path $PSScriptRoot 'ConformanceHelpers.ps1')
 
-function ConvertTo-Base64Url([byte[]] $Bytes) {
-    return [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-}
+$StrictUtf8 = [System.Text.UTF8Encoding]::new($false, $true)
 
-function Get-DevelopmentSecret([string] $FileName) {
+# The seeded clients that authenticate with a client secret, and the test user, as the conformance overlay lists them.
+# A client that names no method uses client_secret_basic, the seed's default.
+$seed = (Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json -AsHashtable)['ConformanceSeed']
+if ($null -eq $seed) { throw "$SettingsPath has no ConformanceSeed section." }
+$SecretClientIds = @(
+    foreach ($client in $seed['Clients'].GetEnumerator()) {
+        $method = $client.Value['TokenEndpointAuthMethod']
+        if ([string]::IsNullOrEmpty($method) -or $method.StartsWith('client_secret_', [StringComparison]::Ordinal)) {
+            $client.Key
+        }
+    }
+)
+$TestUserName = $seed['TestUserName']
+if ([string]::IsNullOrEmpty($TestUserName)) { throw "$SettingsPath names no ConformanceSeed:TestUserName." }
+
+function Get-DevelopmentSecretPath([string] $FileName) {
     New-Item -ItemType Directory -Force -Path $Directory | Out-Null
     $path = Join-Path $Directory $FileName
     if (Test-Path -LiteralPath $path) {
         # An empty file can only be left by an interrupted in-place write of an older run.
-        if ((Get-Item -LiteralPath $path).Length -gt 0) {
-            return [System.IO.File]::ReadAllText($path, [System.Text.UTF8Encoding]::new($false, $true))
-        }
+        if ((Get-Item -LiteralPath $path).Length -gt 0) { return $path }
         Remove-Item -LiteralPath $path
     }
 
@@ -98,18 +115,17 @@ function Get-DevelopmentSecret([string] $FileName) {
         Remove-Item -LiteralPath $temporaryPath -ErrorAction SilentlyContinue
     }
 
-    return [System.IO.File]::ReadAllText($path, [System.Text.UTF8Encoding]::new($false, $true))
+    return $path
 }
 
 $clientSecrets = [ordered]@{}
 $environment = [ordered]@{}
 foreach ($clientId in $SecretClientIds) {
-    $secret = Get-DevelopmentSecret "conformance-secret-$clientId"
-    $clientSecrets[$clientId] = $secret
-    $environment["ConformanceSeed__Clients__${clientId}__ClientSecret"] =
-    ConvertTo-Base64Url ([System.Text.UTF8Encoding]::new($false, $true).GetBytes($secret))
+    $bytes = [System.IO.File]::ReadAllBytes((Get-DevelopmentSecretPath "conformance-secret-$clientId"))
+    $clientSecrets[$clientId] = $StrictUtf8.GetString($bytes)
+    $environment["ConformanceSeed__Clients__${clientId}__ClientSecret"] = ConvertTo-Base64Url $bytes
 }
-$testUserPassword = Get-DevelopmentSecret 'conformance-user-password'
+$testUserPassword = $StrictUtf8.GetString([System.IO.File]::ReadAllBytes((Get-DevelopmentSecretPath 'conformance-user-password')))
 $environment['ConformanceSeed__TestUserPassword'] = $testUserPassword
 
 if ($SetEnvironment) {

@@ -24,6 +24,20 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The fixture shared with build/tests/conformance-seed-credentials.tests.ps1, and the reference host's
+             conformance overlay whose secret-authenticated clients ConformanceSeedSecrets lists. -->
+        <None
+            Update="DevelopmentSecrets\conformance-seed-golden.json"
+            CopyToOutputDirectory="PreserveNewest"
+        />
+        <None
+            Include="..\..\src\NCode.Identity.OpenId.Host\appsettings.Conformance.json"
+            Link="DevelopmentSecrets\appsettings.Conformance.json"
+            CopyToOutputDirectory="PreserveNewest"
+        />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.LocalDev\NCode.Identity.OpenId.LocalDev.csproj" />
     </ItemGroup>
 </Project>

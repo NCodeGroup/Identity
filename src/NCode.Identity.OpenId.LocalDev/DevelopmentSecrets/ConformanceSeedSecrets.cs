@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace NCode.Identity.OpenId.LocalDev.DevelopmentSecrets;
 
 /// <summary>
@@ -14,8 +16,9 @@ namespace NCode.Identity.OpenId.LocalDev.DevelopmentSecrets;
 /// that the host seeded. A client secret is configured <c>Base64Url</c>-encoded, so the file's text is the secret a
 /// client presents, and the password is the file's text.
 /// </remarks>
-// See ADR-1370. The runner's side is build/conformance/Get-ConformanceSeedCredentials.ps1, which keeps the same file
-// names and client ids.
+// See ADR-1370. The runner's side is build/conformance/Get-ConformanceSeedCredentials.ps1, which derives the same
+// clients from appsettings.Conformance.json; the fixture conformance-seed-golden.json in the tests pins the file names,
+// the encoding and the variable names for both, and a test checks ClientIds against the overlay.
 internal static class ConformanceSeedSecrets
 {
     /// <summary>
@@ -77,24 +80,26 @@ internal static class ConformanceSeedSecrets
         return environment;
     }
 
-    /// <summary>
-    /// Hands the conformance seed's credentials to a resource as environment variables.
-    /// </summary>
-    /// <param name="builder">The builder of the resource that runs the OpenID host.</param>
-    /// <param name="environment">The environment variables that <see cref="GetEnvironment"/> returned.</param>
-    /// <typeparam name="T">The type of the resource.</typeparam>
-    /// <returns>The <paramref name="builder"/>, for method chaining.</returns>
-    internal static IResourceBuilder<T> WithConformanceSeedSecrets<T>(
-        this IResourceBuilder<T> builder,
-        IReadOnlyDictionary<string, string> environment
-    )
+    extension<T>(IResourceBuilder<T> builder)
         where T : IResourceWithEnvironment
     {
-        foreach (var (name, value) in environment)
+        /// <summary>
+        /// Hands the conformance seed's credentials, as environment variables, to the resource that runs the OpenID
+        /// host.
+        /// </summary>
+        /// <param name="environment">The environment variables that <see cref="GetEnvironment"/> returned.</param>
+        /// <returns>The builder, for method chaining.</returns>
+        [ExcludeFromCodeCoverage(Justification = "Aspire resource wiring.")]
+        internal IResourceBuilder<T> WithConformanceSeedSecrets(
+            IReadOnlyDictionary<string, string> environment
+        )
         {
-            builder.WithEnvironment(name, value);
-        }
+            foreach (var (name, value) in environment)
+            {
+                builder.WithEnvironment(name, value);
+            }
 
-        return builder;
+            return builder;
+        }
     }
 }

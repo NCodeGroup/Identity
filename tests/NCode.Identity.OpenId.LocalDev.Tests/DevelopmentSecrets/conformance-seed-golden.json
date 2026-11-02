@@ -1,0 +1,15 @@
+{
+  "comment": "The contract between the two generators of the conformance seed's per-machine credentials: the LocalDev AppHost (ConformanceSeedSecrets.GetEnvironment, tested by ConformanceSeedSecretsTests) and build/conformance/Get-ConformanceSeedCredentials.ps1 (tested by build/tests/conformance-seed-credentials.tests.ps1). Given a development secrets directory that holds exactly these files, each returns exactly this environment: a client secret is the base64url of the file's bytes, and the password is the file's text. The values are fixtures, not credentials.",
+  "files": {
+    "conformance-secret-client": "fixture-secret-of-client",
+    "conformance-secret-client2": "fixture-secret-of-client2",
+    "conformance-secret-client-secret-post": "fixture-secret-of-client-secret-post",
+    "conformance-user-password": "fixture-password-of-conformance-user"
+  },
+  "environment": {
+    "ConformanceSeed__Clients__client__ClientSecret": "Zml4dHVyZS1zZWNyZXQtb2YtY2xpZW50",
+    "ConformanceSeed__Clients__client2__ClientSecret": "Zml4dHVyZS1zZWNyZXQtb2YtY2xpZW50Mg",
+    "ConformanceSeed__Clients__client-secret-post__ClientSecret": "Zml4dHVyZS1zZWNyZXQtb2YtY2xpZW50LXNlY3JldC1wb3N0",
+    "ConformanceSeed__TestUserPassword": "fixture-password-of-conformance-user"
+  }
+}

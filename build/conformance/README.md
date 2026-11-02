@@ -31,15 +31,19 @@ Registration. This is a local test harness, never production.
 ([#514](https://github.com/NCodeGroup/Identity/issues/514),
 [ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)):
 `appsettings.Conformance.json` lists the clients and the test user without a secret or password.
-[`Get-ConformanceSeedCredentials.ps1`](Get-ConformanceSeedCredentials.ps1) generates the client secrets of `client`,
-`client2` and `client-secret-post` and the test user's password once per machine, as owner-only files beside the
+[`Get-ConformanceSeedCredentials.ps1`](Get-ConformanceSeedCredentials.ps1) generates the client secrets of the clients
+the overlay registers with a `client_secret_*` method (`client`, `client2` and `client-secret-post`) and the test user's
+password once per machine, as owner-only files beside the
 LocalDev AppHost's development secrets in `LocalApplicationData/NCode.Identity/LocalDev` (`conformance-secret-<client_id>`
 and `conformance-user-password`), and the AppHost reads and generates the same files. The script hands them to the OP it
 launches as `ConformanceSeed__` environment variables, to the pre-flight as `CONFORMANCE_CLIENT_SECRET`, and to the
 suite: the configurations that sign the test user in are committed as `*.template.json` with `{{test_user_name}}` and
 `{{test_user_password}}` tokens, and each run renders them beside the template (gitignored, deleted when the run ends).
 Delete a file to get a new value; a persistent database keeps the clients and the test user it seeded first, so reset it
-too.
+too. One golden fixture,
+[`conformance-seed-golden.json`](../../tests/NCode.Identity.OpenId.LocalDev.Tests/DevelopmentSecrets/conformance-seed-golden.json),
+holds the script and the AppHost to the same file names, encoding and variable names; the Definition of Done runs
+[`build/tests/conformance-seed-credentials.tests.ps1`](../tests/conformance-seed-credentials.tests.ps1) against it.
 
 ## Prerequisites
 

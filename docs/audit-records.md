@@ -407,7 +407,8 @@ The server keeps each audit record in the `AuditRecords` table and its `AuditRec
 configured by `OpenId:AuditRecords` and read through `GET api/tenants/{tenantId}/audit-records`. `Record` holds the
 whole record as JSON text, so in PostgreSQL `"Record"::jsonb` reads it, with the record's own member names and no
 `audit.` prefix. A host that sends records to its own store through a [custom sink](#custom-sinks) queries that store
-instead.
+instead. Each replica removes the records older than `Retention` (90 days) every `PruneInterval` (one hour); both are
+keys of `OpenId:AuditRecords`.
 
 Every audit event of one session within a tenant, oldest first, found through the session's `AuditRecordResources` item:
 

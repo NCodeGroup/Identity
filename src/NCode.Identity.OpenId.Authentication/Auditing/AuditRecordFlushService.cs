@@ -13,10 +13,9 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 
 /// <summary>
 /// Writes the audit records each replica holds to the audit store every <see cref="AuditRecordOptions.FlushInterval"/>
-/// and once more on shutdown, and removes the records older than <see cref="AuditRecordOptions.Retention"/> once an hour.
-/// Records are written in batches of up to <see cref="BatchSize"/>, each its own unit of work. A batch that cannot be
-/// written is held and written first by the next flush; the store skips the records it already holds, so a batch whose
-/// save committed but reported a failure is not written twice.
+/// and once more on shutdown. Records are written in batches of up to <see cref="BatchSize"/>, each its own unit of
+/// work. A batch that cannot be written is held and written first by the next flush; the store skips the records it
+/// already holds, so a batch whose save committed but reported a failure is not written twice.
 /// </summary>
 // See ADR-1303.
 internal sealed class AuditRecordFlushService(
@@ -28,13 +27,9 @@ internal sealed class AuditRecordFlushService(
 ) : BackgroundService
 {
     /// <summary>
-    /// The number of audit records written or removed in one unit of work.
+    /// The number of audit records written in one unit of work.
     /// </summary>
     internal const int BatchSize = 256;
-
-    private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(1);
-
-    private DateTimeOffset? _lastPrunedTime;
 
     // The records in Batch, kept with Interlocked so a stop whose token ended the wait for FlushGate can count them
     // without reading the list.
@@ -72,7 +67,6 @@ internal sealed class AuditRecordFlushService(
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
                 await FlushAsync(stoppingToken);
-                await PruneAsync(stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -195,42 +189,6 @@ internal sealed class AuditRecordFlushService(
         {
             Logger.AuditRecordFlushFailed(Batch.Count, exception);
             return false;
-        }
-    }
-
-    /// <summary>
-    /// Removes the records older than <see cref="AuditRecordOptions.Retention"/> in batches of <see cref="BatchSize"/>,
-    /// each its own unit of work, at most once per hour.
-    /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    internal async ValueTask PruneAsync(CancellationToken cancellationToken)
-    {
-        var now = TimeProvider.GetUtcNow();
-        if (_lastPrunedTime is { } lastPrunedTime && now - lastPrunedTime < PruneInterval)
-            return;
-
-        var cutoff = now - Options.Retention;
-        try
-        {
-            int removed;
-            do
-            {
-                await using var storeManager = await StoreManagerFactory.CreateAsync(
-                    cancellationToken
-                );
-                var store = storeManager.GetStore<IAuditRecordStore>();
-                removed = await store.RemoveBeforeAsync(cutoff, BatchSize, cancellationToken);
-                await storeManager.SaveChangesAsync(cancellationToken);
-            } while (removed == BatchSize);
-
-            _lastPrunedTime = now;
-        }
-        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-        {
-            // Another replica that removed the same records first, or a store that is unreachable, is retried by the next
-            // flush.
-            Logger.AuditRecordPruneFailed(exception);
         }
     }
 }

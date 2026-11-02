@@ -491,9 +491,10 @@ theft. The NCode OP's default `refresh_token_reuse_policy=revoke_all` then **rev
    value is a random owner token, and `ReleaseRefreshLeaseAsync` removes the lease only while that owner holds it
    ([ADR-1308](decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
 3. The winner refreshes, then writes the rotated refresh token and the new access token with a version-checked
-   `TryReplace`. It then releases its own lease, however long the refresh took. The browser cannot cancel either
-   step: once the lease is won, the token request and the write-back run to completion, bounded by the client's
-   request timeout, because dropping the rotated refresh token would make the next refresh a reuse.
+   `TryReplace`. It then releases its own lease, however long the refresh took. A release that fails is logged and
+   changes nothing: the lease expires on its own. The browser cannot cancel either step: once the lease is won, the
+   token request and the write-back run to completion, bounded by the client's request timeout, because dropping the
+   rotated refresh token would make the next refresh a reuse.
 4. The losers wait (with bounded backoff) for the session version to change, reload, and use the new token. If the
    wait times out, they answer `503`. They **never** retry the refresh with the old refresh token.
 

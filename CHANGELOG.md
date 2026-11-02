@@ -1314,6 +1314,18 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
+  `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`
+  block with a dated Apache 2.0 notice in three layouts. `.editorconfig` sets the header as `file_header_template` and
+  raises `IDE0073` to `warning`, so a file whose header is missing or differs fails the build
+  ([#448](https://github.com/NCodeGroup/Identity/issues/448),
+  [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md)).
+
+- **The `adr index` stage checks decision-record links.** `build/adr-index.ps1` also fails a tracked file that names
+  a `NNNN-<slug>.md` record in neither `docs/decisions/` nor `docs/decisions/project-template/`, or points a
+  `docs/decisions/0NNN` path at the family's folder, where records are numbered from 1000
+  ([#455](https://github.com/NCodeGroup/Identity/issues/455)).
+
 - **The build takes the template's analyzer settings.** `build/BannedSymbols.txt`, from the template, bans
   sync-over-async, every `JsonDocument.Parse` overload and Newtonsoft.Json in every project, test projects included,
   through `Microsoft.CodeAnalysis.BannedApiAnalyzers` 5.6.0; the root `BannedSymbols.txt` keeps only this family's own
@@ -4592,6 +4604,9 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
+- **The changelog's `[Unreleased]` link names `main`.** It linked the commit history of the `dev` branch, which no
+  longer exists ([#454](https://github.com/NCodeGroup/Identity/issues/454),
+  [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md)).
 - **Doc comments no longer cite decision records.** 59 `///` lines in 49 files under `src/` named an ADR number or
   linked into `docs/decisions/`. Those comments ship in each package's XML documentation (IntelliSense) and, for the
   registration and management contracts, in the OpenAPI document, where the citation means nothing to a consumer.
@@ -5375,4 +5390,4 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of Done, CSharpier
   formatting, and scoped coding-convention instruction files. See [`docs/decisions/`](docs/decisions/).
 
-[Unreleased]: https://github.com/NCodeGroup/Identity/commits/dev
+[Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

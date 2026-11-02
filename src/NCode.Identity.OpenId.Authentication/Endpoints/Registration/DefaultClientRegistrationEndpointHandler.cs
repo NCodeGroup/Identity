@@ -98,7 +98,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        // RFC 7591 §3.2.1 and RFC 7592 §3: a registration response carries the client's credentials, so no cache may keep it (ADR-1345).
+        // RFC 7591 §3.2.1 and RFC 7592 §3: a registration response carries the client's credentials, so no cache may
+        // keep it (ADR-1345).
         endpoints
             .MapPost(OpenIdConstants.EndpointPaths.Registration, RegisterClientAsync)
             .WithName(OpenIdConstants.EndpointNames.Registration)

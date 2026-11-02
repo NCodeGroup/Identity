@@ -44,9 +44,10 @@ supports.**
    minus `GrantRetentionOptions.Retention`, in units of work of 256 grants, repeating while a batch is full. It passes
    the end-user session grant type as the grant type that ends by revocation, so a session that was not terminated is
    kept. A batch whose save loses a race, which is another replica that removed rows of it, counts as a full batch,
-   because it is progress, and the next batch is read. Any other failure is logged (`GrantPruneFailed`, event 2052,
-   Warning), and the prune runs again at the next tick. Every replica runs the service, and concurrent prunes waste at
-   most one batch.
+   because it is progress, and the next batch is read. Any other failure, a store timeout that throws an
+   `OperationCanceledException` included, is logged (`GrantPruneFailed`, event 2052, Warning), and the prune runs again
+   at the next tick; only the host's stopping token ends the service. Every replica runs the service, and concurrent
+   prunes waste at most one batch.
 4. **`GrantRetentionOptions` configures it.** The options type is `public sealed` with `Retention`, which defaults to 14
    days, and `PruneInterval`, which defaults to one hour. They are validated when the host starts: `Retention` is not
    negative, and `PruneInterval` is a period that a timer accepts. They are bound from `OpenId:GrantRetention`

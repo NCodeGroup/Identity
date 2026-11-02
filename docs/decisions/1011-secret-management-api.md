@@ -14,13 +14,18 @@
 
 ## Context
 
+[project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)
+has the server generate every credential it issues, return it in at most one response, answer every read with
+metadata only, and rotate a credential by creating a new one and deleting the old, never by changing it in place.
+This record applies it to the secrets the management API manages for an OpenID server, tenant and client, and to
+the lifecycle of those owners.
+
 The OpenID management API (`NCode.Identity.OpenId.Management`) exposes CRUD over the secrets owned by an
 OpenID **server**, **tenant**, and **client**. These decisions apply to **all** of those secret owners;
 server secrets are the first implementation and tenant/client secrets follow the same rules as their
-endpoint groups land. Reading secrets was already correct-by-default: `SecretResource` exposes only
-metadata (`Use`, `Algorithm`, `CreatedWhen`, `ExpiresWhen`, `SecretType`, `KeySizeBits`) and never the
-`EncodedValue`. But there was no write path — a secret collection could only be seeded through
-the persistence layer directly (`AddAsync`), not managed at runtime.
+endpoint groups land. `SecretResource`, the read model, exposes only metadata (`Use`, `Algorithm`, `CreatedWhen`,
+`ExpiresWhen`, `SecretType`, `KeySizeBits`). There was no write path — a secret collection could only be seeded
+through the persistence layer directly (`AddAsync`), not managed at runtime.
 
 Two facts constrain the write path:
 
@@ -30,10 +35,9 @@ Two facts constrain the write path:
 - **The stores had no per-secret operations** — only whole-collection reads and settings writes.
   Individual add/update/delete did not exist.
 
-Creating a secret therefore raises a security-design fork: does the operator **import** raw private key
-material over the wire (BYOK), or does the **server generate** it? Importing private keys means
-plaintext key material transits the API and the operator's tooling; generation keeps the private key
-inside the server's data-protection boundary from birth.
+The template record has the server **generate** what it issues; it leaves to the family whether an operator may also
+**import** key material it already holds (BYOK), which would put plaintext private keys on the wire and in the
+operator's tooling.
 
 ## Decision
 

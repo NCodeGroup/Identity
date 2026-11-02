@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -180,9 +181,11 @@ internal class ClientApiEndpointHandler(
             .Produces<ClientEffectiveSettingsResource>();
 
         clients.MapGet("/{clientId}/secrets", GetSecretsAsync).Produces<ClientSecretsResource>();
+        // The response reveals a secret once, so no cache may keep it (ADR-1345).
         clients
             .MapPost("/{clientId}/secrets", CreateSecretAsync)
-            .Produces<CreatedSecretResource>(StatusCodes.Status201Created);
+            .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
+            .WithNoStore();
         clients
             .MapPost("/{clientId}/secrets/import", ImportSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
@@ -196,10 +199,12 @@ internal class ClientApiEndpointHandler(
         clients
             .MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
+        // The response reveals a secret once, so no cache may keep it (ADR-1345).
         clients
             .MapPost("/{clientId}/secrets/{secretId}/rotate", RotateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .WithNoStore();
 
         clients
             .MapGet("/{clientId}/owners", ListOwnersAsync)

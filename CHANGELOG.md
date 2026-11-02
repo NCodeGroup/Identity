@@ -4224,6 +4224,13 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **Responses that reveal a secret are never cached.** Creating or rotating a client secret, creating a resource
+  server key, minting an initial access token, and dynamic client registration (the RFC 7591 registration and the
+  RFC 7592 read and update) answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so no
+  browser, proxy or gateway cache keeps the one-time secret. An endpoint opts in with the new `.WithNoStore()`
+  endpoint convention, and `HttpResponse.SetNoStore()` is public in `NCode.Identity.OpenId.Authentication.Abstractions`
+  ([#473](https://github.com/NCodeGroup/Identity/issues/473), [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+
 - **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body,
   under `OpenIdClientOptions.MaxResponseSizeBytes`, into a sensitive pooled buffer that is zeroed when released,
   instead of copying it into `HttpContent`'s buffer and then a fresh `byte[]`, because a body may carry tokens. It

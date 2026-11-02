@@ -1304,4 +1304,121 @@ public class ClientRegistrationEndpointTests
     }
 
     #endregion
+
+    #region Response Caching
+
+    private static Dictionary<string, object> CreateClientCredentialsRegistration() =>
+        new()
+        {
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = OpenIdProtocol
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+        };
+
+    private static Task<HttpResponseMessage> PostClientCredentialsRegistrationAsync(
+        HttpClient client
+    )
+    {
+        var registration = CreateClientCredentialsRegistration();
+        return client.PostAsJsonAsync("/oauth2/register", registration);
+    }
+
+    private static async Task<JsonElement> RegisterClientCredentialsClientAsync(HttpClient client)
+    {
+        using var response = await PostClientCredentialsRegistrationAsync(client);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        return JsonElement.Parse(body);
+    }
+
+    // Builds a request to the client's configuration endpoint (RFC 7592), authenticated with its registration access
+    // token.
+    private static HttpRequestMessage CreateClientConfigurationRequest(
+        HttpMethod method,
+        JsonElement registration
+    )
+    {
+        var registrationClientUri = registration.GetProperty("registration_client_uri").GetString();
+        var registrationAccessToken = registration
+            .GetProperty("registration_access_token")
+            .GetString();
+        var request = new HttpRequestMessage(method, registrationClientUri);
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            registrationAccessToken
+        );
+        return request;
+    }
+
+    [Fact]
+    public async Task PostRegister_Always_MarksTheResponseNoStore()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await PostClientCredentialsRegistrationAsync(client);
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        NoStoreAssert.IsNoStore(registrationResponse);
+    }
+
+    [Fact]
+    public async Task GetRegistration_Always_MarksTheResponseNoStore()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var registration = await RegisterClientCredentialsClientAsync(client);
+
+        using var readRequest = CreateClientConfigurationRequest(HttpMethod.Get, registration);
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        NoStoreAssert.IsNoStore(readResponse);
+    }
+
+    [Fact]
+    public async Task PutRegistration_Always_MarksTheResponseNoStore()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var registration = await RegisterClientCredentialsClientAsync(client);
+        var update = CreateClientCredentialsRegistration();
+        update["client_id"] = registration.GetProperty("client_id").GetString() ?? string.Empty;
+
+        using var updateRequest = CreateClientConfigurationRequest(HttpMethod.Put, registration);
+        updateRequest.Content = JsonContent.Create(update);
+        using var updateResponse = await client.SendAsync(updateRequest);
+
+        var updateBody = await updateResponse.Content.ReadAsStringAsync();
+        Assert.True(updateResponse.StatusCode == HttpStatusCode.OK, updateBody);
+        NoStoreAssert.IsNoStore(updateResponse);
+    }
+
+    [Fact]
+    public async Task DeleteRegistration_Always_MarksTheResponseNoStore()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var registration = await RegisterClientCredentialsClientAsync(client);
+
+        using var deleteRequest = CreateClientConfigurationRequest(HttpMethod.Delete, registration);
+        using var deleteResponse = await client.SendAsync(deleteRequest);
+
+        var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
+        Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
+        NoStoreAssert.IsNoStore(deleteResponse);
+    }
+
+    #endregion
 }

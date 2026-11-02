@@ -43,6 +43,28 @@ public sealed class GuardedHttpTimeoutHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_WhenTheCallerCancels_DoesNotReportATimeout()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        using var handler = new GuardedHttpTimeoutHandler
+        {
+            InnerHandler = new StubHttpMessageHandler(
+                async (_, _) =>
+                {
+                    await cancellationTokenSource.CancelAsync();
+                    throw new TimeoutRejectedException("timed out", TimeSpan.FromMilliseconds(50));
+                }
+            ),
+        };
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "https://example.test/");
+
+        await Assert.ThrowsAsync<TimeoutRejectedException>(async () =>
+            await invoker.SendAsync(request, cancellationTokenSource.Token)
+        );
+    }
+
+    [Fact]
     public async Task SendAsync_WhenTheInnerHandlerSucceeds_ReturnsItsResponse()
     {
         using var expected = new HttpResponseMessage(HttpStatusCode.Accepted);

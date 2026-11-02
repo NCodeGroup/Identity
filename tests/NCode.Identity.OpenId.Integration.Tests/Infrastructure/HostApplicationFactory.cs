@@ -1256,21 +1256,32 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     );
                 }
 
-                HttpMessageHandler? getHandler = null;
-                if (ClientJwksResponder is { } responder)
-                    getHandler = new StubJsonHttpMessageHandler(responder);
-                else if (CertificateRevocationListResponder is { } crlResponder)
-                    getHandler = new StubBinaryHttpMessageHandler(crlResponder);
+                var clientJwksResponder = ClientJwksResponder;
+                var crlResponder = CertificateRevocationListResponder;
+                var backChannelLogoutExchanges = BackChannelLogoutExchanges;
 
-                HttpMessageHandler? postHandler = null;
-                if (BackChannelLogoutExchanges is { } backChannelLogoutExchanges)
-                    postHandler = new StubRecordingHttpMessageHandler(backChannelLogoutExchanges);
+                // The factory disposes a primary handler when it rotates it, and the stub disposes its inner handlers,
+                // so each rotation builds its own.
+                StubOutboundHttpMessageHandler CreateStub()
+                {
+                    HttpMessageHandler? getHandler = null;
+                    if (clientJwksResponder is not null)
+                        getHandler = new StubJsonHttpMessageHandler(clientJwksResponder);
+                    else if (crlResponder is not null)
+                        getHandler = new StubBinaryHttpMessageHandler(crlResponder);
+
+                    HttpMessageHandler? postHandler = null;
+                    if (backChannelLogoutExchanges is not null)
+                        postHandler = new StubRecordingHttpMessageHandler(
+                            backChannelLogoutExchanges
+                        );
+
+                    return new StubOutboundHttpMessageHandler(getHandler, postHandler);
+                }
 
                 serviceCollection
                     .AddHttpClient("NCode.Identity.OpenId.GuardedHttp")
-                    .ConfigurePrimaryHttpMessageHandler(() =>
-                        new StubOutboundHttpMessageHandler(getHandler, postHandler)
-                    );
+                    .ConfigurePrimaryHttpMessageHandler(CreateStub);
             }
 
             // The reconciliation service materializes and persists the server when the host starts, so a persisted

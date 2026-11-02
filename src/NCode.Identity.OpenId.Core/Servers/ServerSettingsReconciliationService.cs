@@ -79,11 +79,12 @@ internal sealed class ServerSettingsReconciliationService(
 
     private void Trigger() => Triggers.Writer.TryWrite(true);
 
-    private async Task<OpenIdServer> GetServerAsync(CancellationToken stoppingToken)
+    private async ValueTask<OpenIdServer> GetServerAsync(CancellationToken stoppingToken)
     {
         try
         {
-            return await ServerProvider.GetAsync(EnvironmentProvider.Get(), stoppingToken);
+            var environment = EnvironmentProvider.Get();
+            return await ServerProvider.GetAsync(environment, stoppingToken);
         }
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {

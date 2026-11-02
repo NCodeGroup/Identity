@@ -30,31 +30,39 @@ public sealed class DefaultRegistrationTests
         }
     }
 
-    private static ServiceCollection CreateServices()
+    private static ServiceCollection CreateServiceCollection()
     {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        new ServiceBuilder<OpenIdAuthenticationLibrary>(services).AddOutboundHttpServices();
-        return services;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        new ServiceBuilder<OpenIdAuthenticationLibrary>(
+            serviceCollection
+        ).AddOutboundHttpServices();
+        return serviceCollection;
     }
 
     private static HttpClient CreateClient(
         CountingHttpMessageHandler stub,
         out ServiceProvider serviceProvider
+    ) => CreateClient(stub, maxRetryAttempts: 2, out serviceProvider);
+
+    private static HttpClient CreateClient(
+        CountingHttpMessageHandler stub,
+        int maxRetryAttempts,
+        out ServiceProvider serviceProvider
     )
     {
-        var services = CreateServices();
-        services.Configure<OutboundHttpOptions>(options =>
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.Configure<OutboundHttpOptions>(options =>
         {
             options.RetryDelay = TimeSpan.Zero;
-            options.MaxRetryAttempts = 2;
+            options.MaxRetryAttempts = maxRetryAttempts;
             options.AttemptTimeout = TimeSpan.FromMilliseconds(50);
         });
-        services
+        serviceCollection
             .AddHttpClient(GuardedHttpClient.Name)
             .ConfigurePrimaryHttpMessageHandler(() => stub);
 
-        serviceProvider = services.BuildServiceProvider();
+        serviceProvider = serviceCollection.BuildServiceProvider();
         return serviceProvider
             .GetRequiredService<IHttpClientFactory>()
             .CreateClient(GuardedHttpClient.Name);
@@ -68,8 +76,8 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public async Task AddOutboundHttpServices_GuardedClient_PinsConnectionsAndRefusesRedirects()
     {
-        var services = CreateServices();
-        await using var serviceProvider = services.BuildServiceProvider();
+        var serviceCollection = CreateServiceCollection();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>();
 
         var handler = factory.CreateHandler(GuardedHttpClient.Name);
@@ -104,6 +112,40 @@ public sealed class DefaultRegistrationTests
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal(3, stub.CallCount);
+    }
+
+    [Fact]
+    public async Task AddOutboundHttpServices_WhenRetriesAreOff_SendsAGetOnce()
+    {
+        var stub = new CountingHttpMessageHandler(ServiceUnavailable);
+        using var client = CreateClient(stub, maxRetryAttempts: 0, out var serviceProvider);
+        await using var _ = serviceProvider;
+
+        using var response = await client.GetAsync("https://example.test/", CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal(1, stub.CallCount);
+    }
+
+    [Fact]
+    public async Task AddOutboundHttpServices_WhenTheCallerCancels_ThrowsWithoutATimeout()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var stub = new CountingHttpMessageHandler(async token =>
+        {
+            await cancellationTokenSource.CancelAsync();
+            await Task.Delay(Timeout.Infinite, token);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+        using var client = CreateClient(stub, out var serviceProvider);
+        await using var _ = serviceProvider;
+
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await client.GetAsync("https://example.test/", cancellationTokenSource.Token)
+        );
+
+        Assert.IsNotType<TimeoutException>(exception.InnerException);
+        Assert.Equal(1, stub.CallCount);
     }
 
     [Fact]

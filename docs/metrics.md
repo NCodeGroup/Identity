@@ -28,6 +28,7 @@ opts in with `AddOpenTelemetryMetrics(configuration)` from `NCode.Identity.Serve
 | `NCode.Identity.Events`                | `NCode.Identity.Events`                | `EventMetrics.MeterName`                |
 | `NCode.Identity.SharedState.Valkey`    | `NCode.Identity.SharedState.Valkey`    | `ValkeyMetrics.MeterName`               |
 | `NCode.Identity.Bff`                   | `NCode.Identity.Bff`                   | `BffTelemetry.MeterName`                |
+| `NCode.Identity.OpenId.Client`         | `NCode.Identity.OpenId.Client`         | `OpenIdClientMetrics.MeterName`         |
 
 ## Protocol requests: `http.server.request.duration`
 
@@ -120,6 +121,34 @@ several round trips.
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ncode.identity.bff.session_store.operation` | `create`, `get`, `replace`, `remove`, `find_by_session_id`, `find_by_subject`, `add_transaction`, `take_transaction`, `acquire_refresh_lease`, `is_refresh_lease_held`, `release_refresh_lease` |
 | `error.type`                                 | On failure only: the full type name of the exception                                                                                                                                            |
+
+### `ncode.identity.outbound_http.retries` and `ncode.identity.openid_client.retries`
+
+Counters, unit `{retry}`. `ncode.identity.outbound_http.retries` (meter `NCode.Identity.OpenId.Authentication`) is
+recorded each time the guarded outbound client sends a call to a caller-supplied URL again after a transient failure
+([ADR-1315](decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
+[ADR-1385](decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md)), and
+`ncode.identity.openid_client.retries` (meter `NCode.Identity.OpenId.Client`) each time the OpenID protocol client sends
+a call to an OpenID Provider again
+([ADR-1336](decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)). Only a GET or HEAD
+without a body (or, for the protocol client, a DPoP proof) is ever retried. Each attempt is also `System.Net.Http`'s
+`http.client.request.duration`.
+
+| Attribute    | Values                                                                                                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `error.type` | The failure that is retried: the response's status code (`408`, `429` or a `5xx` code), `timeout` when the per-attempt timeout cancelled the attempt, or the `HttpRequestError` in snake case, such as `connection_error` |
+
+### `ncode.identity.outbound_http.timeouts` and `ncode.identity.openid_client.timeouts`
+
+Counters, unit `{timeout}`. Recorded each time the guarded outbound client (`ncode.identity.outbound_http.timeouts`,
+meter `NCode.Identity.OpenId.Authentication`) or the OpenID protocol client (`ncode.identity.openid_client.timeouts`,
+meter `NCode.Identity.OpenId.Client`) cancels an attempt or a whole call because a timeout passed. A call the caller
+cancels records nothing.
+
+| Attribute                                    | Values                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `ncode.identity.outbound_http.timeout_scope` | On `ncode.identity.outbound_http.timeouts`: `attempt` (`AttemptTimeout`) or `total` (`TotalTimeout`) |
+| `ncode.identity.openid_client.timeout_scope` | On `ncode.identity.openid_client.timeouts`: `attempt` (`AttemptTimeout`) or `total` (`TotalTimeout`) |
 
 ## Traces
 

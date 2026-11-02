@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
@@ -47,6 +48,9 @@ internal static class DefaultRegistration
                     OutboundHttpOptionsValidator
                 >()
             );
+            // The pipelines count their retries and timeouts on the package's meter (ADR-1197).
+            serviceCollection.AddMetrics();
+            serviceCollection.TryAddSingleton<AuthenticationMetrics>();
             serviceCollection.TryAddSingleton<GuardedResiliencePipelines>();
             serviceCollection.TryAddTransient<GuardedResilienceHandler>();
 

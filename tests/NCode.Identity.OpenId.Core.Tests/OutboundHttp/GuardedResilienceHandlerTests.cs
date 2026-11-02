@@ -1,14 +1,18 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.Metrics;
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Time.Testing;
+using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 
-public sealed class GuardedResilienceHandlerTests
+public sealed class GuardedResilienceHandlerTests : IDisposable
 {
     private static readonly DateTimeOffset Start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -25,13 +29,64 @@ public sealed class GuardedResilienceHandlerTests
 
     private FakeTimeProvider Time { get; } = new(Start);
 
+    // The meter factory scopes the meter to this test, so the collectors see only this handler's measurements.
+    private ServiceProvider MetricsProvider { get; } =
+        new ServiceCollection().AddMetrics().BuildServiceProvider();
+
+    private MetricCollector<long> RetryCollector { get; }
+
+    private MetricCollector<long> TimeoutCollector { get; }
+
+    private List<string?> Retries =>
+        RetryCollector
+            .GetMeasurementSnapshot()
+            .Select(measurement =>
+                measurement.Tags.GetValueOrDefault(AuthenticationMetrics.ErrorTypeAttribute)
+                as string
+            )
+            .ToList();
+
+    private List<string?> Timeouts =>
+        TimeoutCollector
+            .GetMeasurementSnapshot()
+            .Select(measurement =>
+                measurement.Tags.GetValueOrDefault(AuthenticationMetrics.TimeoutScopeAttribute)
+                as string
+            )
+            .ToList();
+
+    public GuardedResilienceHandlerTests()
+    {
+        var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
+        RetryCollector = new MetricCollector<long>(
+            meterFactory,
+            OpenIdAuthenticationMetrics.MeterName,
+            AuthenticationMetrics.OutboundRetriesName
+        );
+        TimeoutCollector = new MetricCollector<long>(
+            meterFactory,
+            OpenIdAuthenticationMetrics.MeterName,
+            AuthenticationMetrics.OutboundTimeoutsName
+        );
+    }
+
+    public void Dispose()
+    {
+        RetryCollector.Dispose();
+        TimeoutCollector.Dispose();
+        MetricsProvider.Dispose();
+    }
+
     private GuardedResilienceHandler CreateHandler(
         StubHttpMessageHandler stub,
         OutboundHttpOptions options
     )
     {
         var wrappedOptions = Microsoft.Extensions.Options.Options.Create(options);
-        var pipelines = new GuardedResiliencePipelines(wrappedOptions, Time);
+        var metrics = new AuthenticationMetrics(
+            MetricsProvider.GetRequiredService<IMeterFactory>()
+        );
+        var pipelines = new GuardedResiliencePipelines(wrappedOptions, Time, metrics);
         return new GuardedResilienceHandler(pipelines) { InnerHandler = stub };
     }
 
@@ -61,6 +116,7 @@ public sealed class GuardedResilienceHandlerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.CallCount);
+        Assert.Equal<string?>(["503"], Retries);
     }
 
     [Fact]
@@ -131,6 +187,7 @@ public sealed class GuardedResilienceHandlerTests
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal(1, stub.CallCount);
+        Assert.Empty(Retries);
     }
 
     [Fact]
@@ -149,6 +206,7 @@ public sealed class GuardedResilienceHandlerTests
         );
 
         Assert.Equal(1, stub.CallCount);
+        Assert.Empty(Retries);
     }
 
     [Fact]
@@ -194,6 +252,8 @@ public sealed class GuardedResilienceHandlerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.CallCount);
+        Assert.Equal<string?>(["timeout"], Retries);
+        Assert.Equal<string?>(["attempt"], Timeouts);
     }
 
     [Fact]
@@ -223,6 +283,7 @@ public sealed class GuardedResilienceHandlerTests
 
         Assert.IsType<TimeoutException>(exception.InnerException);
         Assert.Equal(1, stub.CallCount);
+        Assert.Equal<string?>(["attempt"], Timeouts);
     }
 
     [Fact]
@@ -248,6 +309,7 @@ public sealed class GuardedResilienceHandlerTests
 
         Assert.IsNotType<TimeoutException>(exception.InnerException);
         Assert.Equal(1, stub.CallCount);
+        Assert.Empty(Timeouts);
     }
 
     #endregion

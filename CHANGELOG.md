@@ -10,6 +10,8 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The outbound clients count their retries and timeouts.** The guarded outbound client records `ncode.identity.outbound_http.retries` (by `error.type`) and `ncode.identity.outbound_http.timeouts` (by `attempt` or `total` scope) on the `NCode.Identity.OpenId.Authentication` meter, and the OpenID protocol client records `ncode.identity.openid_client.retries` and `ncode.identity.openid_client.timeouts` on its new `NCode.Identity.OpenId.Client` meter (`OpenIdClientMetrics.MeterName`), so operators can see how often a call to a caller-supplied URL or an OpenID Provider is retried or times out; `docs/metrics.md` lists them ([#519](https://github.com/NCodeGroup/Identity/issues/519)).
+
 - **The BFF serves more token requirements and forwards remote APIs.** Besides `user`, an endpoint or remote API can name
   `client` (the BFF's own `client_credentials` token, served only to a request with a session and cached in memory on
   each replica per resource and scope), `user_or_client` (the user's token when a session resolves, otherwise the BFF's

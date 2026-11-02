@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.Metrics;
 using NCode.Identity.OpenId.Client.Options;
 using Xunit;
 
@@ -10,14 +12,56 @@ namespace NCode.Identity.OpenId.Client.Tests.Http;
 
 public class ProviderResilienceHandlerTests : BaseTests
 {
-    private static ProviderResilienceHandler CreateHandler(
+    private TestMetrics Metrics { get; } = new();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var collector in Collectors.Values)
+                collector.Dispose();
+            Metrics.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
+    private List<string?> Measured(string instrumentName, string attributeName) =>
+        CreateCollector(instrumentName)
+            .GetMeasurementSnapshot()
+            .Select(measurement => measurement.Tags.GetValueOrDefault(attributeName) as string)
+            .ToList();
+
+    private Dictionary<string, MetricCollector<long>> Collectors { get; } = [];
+
+    private MetricCollector<long> CreateCollector(string instrumentName)
+    {
+        if (!Collectors.TryGetValue(instrumentName, out var collector))
+        {
+            collector = new MetricCollector<long>(
+                Metrics.MeterFactory,
+                OpenIdClientMetrics.MeterName,
+                instrumentName
+            );
+            Collectors[instrumentName] = collector;
+        }
+
+        return collector;
+    }
+
+    private ProviderResilienceHandler CreateHandler(
         HttpMessageHandler innerHandler,
         OpenIdClientOptions? options = null
     )
     {
         var clientOptions = options ?? new OpenIdClientOptions { RetryDelay = TimeSpan.Zero };
         var wrappedOptions = Microsoft.Extensions.Options.Options.Create(clientOptions);
-        var pipelines = new ProviderResiliencePipelines(wrappedOptions);
+        // The collectors subscribe before the pipelines create their instruments, so they see every measurement.
+        CreateCollector(ProviderMetrics.RetriesName);
+        CreateCollector(ProviderMetrics.TimeoutsName);
+        var pipelines = new ProviderResiliencePipelines(
+            wrappedOptions,
+            Metrics.CreateProviderMetrics()
+        );
         return new ProviderResilienceHandler(pipelines) { InnerHandler = innerHandler };
     }
 
@@ -40,6 +84,10 @@ public class ProviderResilienceHandlerTests : BaseTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.Requests.Count);
+        Assert.Equal<string?>(
+            ["503"],
+            Measured(ProviderMetrics.RetriesName, ProviderMetrics.ErrorTypeAttribute)
+        );
     }
 
     [Fact]
@@ -71,6 +119,7 @@ public class ProviderResilienceHandlerTests : BaseTests
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Single(stub.Requests);
+        Assert.Empty(Measured(ProviderMetrics.RetriesName, ProviderMetrics.ErrorTypeAttribute));
     }
 
     [Fact]
@@ -147,6 +196,14 @@ public class ProviderResilienceHandlerTests : BaseTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.Requests.Count);
+        Assert.Equal<string?>(
+            ["timeout"],
+            Measured(ProviderMetrics.RetriesName, ProviderMetrics.ErrorTypeAttribute)
+        );
+        Assert.Equal<string?>(
+            ["attempt"],
+            Measured(ProviderMetrics.TimeoutsName, ProviderMetrics.TimeoutScopeAttribute)
+        );
     }
 
     [Fact]
@@ -173,6 +230,10 @@ public class ProviderResilienceHandlerTests : BaseTests
         );
 
         Assert.IsType<TimeoutException>(exception.InnerException);
+        Assert.Equal<string?>(
+            ["total"],
+            Measured(ProviderMetrics.TimeoutsName, ProviderMetrics.TimeoutScopeAttribute)
+        );
     }
 
     [Fact]
@@ -196,6 +257,7 @@ public class ProviderResilienceHandlerTests : BaseTests
         );
 
         Assert.IsNotType<TimeoutException>(exception.InnerException);
+        Assert.Empty(Measured(ProviderMetrics.TimeoutsName, ProviderMetrics.TimeoutScopeAttribute));
     }
 
     #endregion

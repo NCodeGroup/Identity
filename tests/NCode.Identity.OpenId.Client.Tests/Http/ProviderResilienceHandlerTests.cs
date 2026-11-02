@@ -16,9 +16,8 @@ public class ProviderResilienceHandlerTests : BaseTests
     )
     {
         var clientOptions = options ?? new OpenIdClientOptions { RetryDelay = TimeSpan.Zero };
-        var pipelines = new ProviderResiliencePipelines(
-            Microsoft.Extensions.Options.Options.Create(clientOptions)
-        );
+        var wrappedOptions = Microsoft.Extensions.Options.Options.Create(clientOptions);
+        var pipelines = new ProviderResiliencePipelines(wrappedOptions);
         return new ProviderResilienceHandler(pipelines) { InnerHandler = innerHandler };
     }
 
@@ -30,10 +29,9 @@ public class ProviderResilienceHandlerTests : BaseTests
     [Fact]
     public async Task SendAsync_WhenAGetFailsTransiently_RetriesIt()
     {
-        var stub = StubHttpMessageHandler.Sequence(
-            CreateResponse(HttpStatusCode.ServiceUnavailable),
-            CreateResponse(HttpStatusCode.OK)
-        );
+        var unavailable = CreateResponse(HttpStatusCode.ServiceUnavailable);
+        var ok = CreateResponse(HttpStatusCode.OK);
+        var stub = StubHttpMessageHandler.Sequence(unavailable, ok);
         using var handler = CreateHandler(stub);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://op.example/jwks");
@@ -48,7 +46,8 @@ public class ProviderResilienceHandlerTests : BaseTests
     public async Task SendAsync_WhenAGetIsRetried_DisposesTheFailedResponse()
     {
         using var failed = new TrackingResponse(HttpStatusCode.ServiceUnavailable);
-        var stub = StubHttpMessageHandler.Sequence(failed, CreateResponse(HttpStatusCode.OK));
+        var ok = CreateResponse(HttpStatusCode.OK);
+        var stub = StubHttpMessageHandler.Sequence(failed, ok);
         using var handler = CreateHandler(stub);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://op.example/jwks");
@@ -62,9 +61,8 @@ public class ProviderResilienceHandlerTests : BaseTests
     [Fact]
     public async Task SendAsync_WhenAPostFails_DoesNotRetryIt()
     {
-        var stub = StubHttpMessageHandler.Sequence(
-            CreateResponse(HttpStatusCode.ServiceUnavailable)
-        );
+        var unavailable = CreateResponse(HttpStatusCode.ServiceUnavailable);
+        var stub = StubHttpMessageHandler.Sequence(unavailable);
         using var handler = CreateHandler(stub);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://op.example/token");
@@ -78,9 +76,8 @@ public class ProviderResilienceHandlerTests : BaseTests
     [Fact]
     public async Task SendAsync_WhenAGetCarriesADPoPProof_DoesNotRetryIt()
     {
-        var stub = StubHttpMessageHandler.Sequence(
-            CreateResponse(HttpStatusCode.ServiceUnavailable)
-        );
+        var unavailable = CreateResponse(HttpStatusCode.ServiceUnavailable);
+        var stub = StubHttpMessageHandler.Sequence(unavailable);
         using var handler = CreateHandler(stub);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://op.example/userinfo");
@@ -95,7 +92,8 @@ public class ProviderResilienceHandlerTests : BaseTests
     [Fact]
     public async Task SendAsync_WhenAGetIsNotFound_DoesNotRetryIt()
     {
-        var stub = StubHttpMessageHandler.Sequence(CreateResponse(HttpStatusCode.NotFound));
+        var notFound = CreateResponse(HttpStatusCode.NotFound);
+        var stub = StubHttpMessageHandler.Sequence(notFound);
         using var handler = CreateHandler(stub);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://op.example/jwks");
@@ -109,9 +107,8 @@ public class ProviderResilienceHandlerTests : BaseTests
     [Fact]
     public async Task SendAsync_WhenRetriesAreOff_DoesNotRetry()
     {
-        var stub = StubHttpMessageHandler.Sequence(
-            CreateResponse(HttpStatusCode.ServiceUnavailable)
-        );
+        var unavailable = CreateResponse(HttpStatusCode.ServiceUnavailable);
+        var stub = StubHttpMessageHandler.Sequence(unavailable);
         var options = new OpenIdClientOptions { MaxRetryAttempts = 0, RetryDelay = TimeSpan.Zero };
         using var handler = CreateHandler(stub, options);
         using var invoker = new HttpMessageInvoker(handler);

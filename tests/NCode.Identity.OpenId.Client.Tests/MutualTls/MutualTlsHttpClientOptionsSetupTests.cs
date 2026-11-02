@@ -74,7 +74,8 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
         var builder = new TestHttpMessageHandlerBuilder();
         action(builder);
         Assert.Same(handler, builder.PrimaryHandler);
-        Assert.IsType<ProviderResilienceHandler>(Assert.Single(builder.AdditionalHandlers));
+        var additionalHandler = Assert.Single(builder.AdditionalHandlers);
+        Assert.IsType<ProviderResilienceHandler>(additionalHandler);
     }
 
     [Fact]

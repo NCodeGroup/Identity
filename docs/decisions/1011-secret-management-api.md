@@ -1,7 +1,9 @@
 # 1011. Secret management: server-side key generation, no material on the surface
 
 - **Status:** Accepted (create-response reveal refined by [ADR-1050](1050-secret-material-revealed-once-on-create.md);
-  client-secret rotation added by [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md);
+  client-secret rotation added by [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) and made
+  overlapping, with a 256-bit floor on client secrets, by
+  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md);
   client deletion amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its
   secrets, grants, and consents; the protection of stored secrets amended by
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
@@ -87,7 +89,8 @@ carries a `// Future:` note rather than an implementation.
   material crossing the API boundary in either direction.
 - `SecretResource` stays metadata-only; there is still no public API that returns `EncodedValue`.
 - Rotation is create-new + delete-old, which is auditable but requires two calls; a client secret is also rotated
-  in one call ([ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
+  in one call that keeps the rotated secret until it expires or is deleted
+  ([ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.
 - `ISecretGenerator` is new public surface in `NCode.Identity.Secrets.Persistence(.Abstractions)` and is

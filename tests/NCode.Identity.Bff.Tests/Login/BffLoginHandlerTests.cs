@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
@@ -39,7 +40,7 @@ public class BffLoginHandlerTests : BaseTests
     )
     {
         var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         return new BffLoginHandler(
             options,
             new BffClientRegistrationProvider(options),
@@ -202,7 +203,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var services = new ServiceCollection();
         // The in-process value set expires entries by its TimeProvider, so it shares the handler's fixed clock.
-        services.AddSingleton<TimeProvider>(new MutableTimeProvider(Now));
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         services
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()

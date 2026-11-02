@@ -63,7 +63,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         // Key provisioning, which runs after the pruner, generates the replacements.
         Assert.Empty(tenant.Secrets.Value);
@@ -106,7 +109,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         var remaining = Assert.Single(tenant.Secrets.Value);
         Assert.Same(usable, remaining);
@@ -187,7 +193,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         // The deletion is committed before the key ring forgets the master keys, so its next load sees the deletion.
         Assert.Equal(["remove", "save", "evict"], calls);
@@ -219,8 +228,8 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             .Returns(CreateLooseMock<SecretKey>().Object)
             .Verifiable();
 
-        // The tenant store and the store manager factory are strict with no setups: any call fails the test.
-        var store = CreateStrictMock<ITenantStore>();
+        // The store manager and the store manager factory are strict with no setups: any call fails the test.
+        var storeManager = CreateStrictMock<IStoreManager>();
         var storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
 
         var handler = new DeveloperSecretPruningSeedHandler(
@@ -229,7 +238,9 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
+        var command = CreateCommand(tenant, storeManager.Object);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Same(originalSecrets, tenant.Secrets);
     }
@@ -247,7 +258,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
 
         // DeserializeSecret is never called for an empty collection; strict mocks with no setups prove it.
         var secretSerializer = CreateStrictMock<ISecretSerializer>();
-        var store = CreateStrictMock<ITenantStore>();
+        var storeManager = CreateStrictMock<IStoreManager>();
         var storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
 
         var handler = new DeveloperSecretPruningSeedHandler(
@@ -256,7 +267,9 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
+        var command = CreateCommand(tenant, storeManager.Object);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Same(originalSecrets, tenant.Secrets);
     }
@@ -314,20 +327,25 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         return protectorProvider;
     }
 
-    private SeedTenantCommand CreateCommand(PersistedTenant tenant, Mock<ITenantStore> store)
+    private IStoreManager CreateStoreManager(Mock<ITenantStore> store)
     {
         var storeManager = CreateStrictMock<IStoreManager>();
-        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object);
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        return storeManager.Object;
+    }
 
-        return new SeedTenantCommand(
+    private static SeedTenantCommand CreateCommand(
+        PersistedTenant tenant,
+        IStoreManager storeManager
+    ) =>
+        new(
             new TenantSeedContext
             {
                 Tenant = tenant,
                 Plane = TenantPlane.Workload,
-                StoreManager = storeManager.Object,
+                StoreManager = storeManager,
             }
         );
-    }
 
     private static PersistedTenant CreateTenant(
         string tenantId,

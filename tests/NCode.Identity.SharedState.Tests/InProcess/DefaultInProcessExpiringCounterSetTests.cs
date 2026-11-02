@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.SharedState.InProcess;
 using Xunit;
 
@@ -10,14 +11,9 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
 {
     private static DateTimeOffset Start { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
-    private DateTimeOffset Now { get; set; } = Start;
+    private FakeTimeProvider TimeProvider { get; } = new(Start);
 
-    private DefaultInProcessExpiringCounterSet CreateCounterSet()
-    {
-        var mockTimeProvider = CreateStrictMock<TimeProvider>();
-        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(() => Now).Verifiable();
-        return new DefaultInProcessExpiringCounterSet(mockTimeProvider.Object);
-    }
+    private DefaultInProcessExpiringCounterSet CreateCounterSet() => new(TimeProvider);
 
     private static ExpiringCounterIncrement CreateIncrement(
         string key,
@@ -73,7 +69,7 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
         var counterSet = CreateCounterSet();
         await counterSet.IncrementAsync("key", Start.AddSeconds(10), CancellationToken.None);
         await counterSet.IncrementAsync("key", Start.AddMinutes(5), CancellationToken.None);
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
         var count = await counterSet.GetAsync("key", CancellationToken.None);
 
@@ -86,11 +82,11 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
         var counterSet = CreateCounterSet();
         await counterSet.IncrementAsync("key", Start.AddSeconds(10), CancellationToken.None);
         await counterSet.IncrementAsync("key", Start.AddSeconds(10), CancellationToken.None);
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
         var count = await counterSet.IncrementAsync(
             "key",
-            Now.AddMinutes(1),
+            TimeProvider.GetUtcNow().AddMinutes(1),
             CancellationToken.None
         );
 
@@ -152,9 +148,13 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
     {
         var counterSet = CreateCounterSet();
         await counterSet.IncrementAsync("old", Start.AddSeconds(10), CancellationToken.None);
-        Now = Start + DefaultInProcessExpiringCounterSet.SweepInterval;
+        TimeProvider.SetUtcNow(Start + DefaultInProcessExpiringCounterSet.SweepInterval);
 
-        await counterSet.IncrementAsync("new", Now.AddMinutes(1), CancellationToken.None);
+        await counterSet.IncrementAsync(
+            "new",
+            TimeProvider.GetUtcNow().AddMinutes(1),
+            CancellationToken.None
+        );
 
         Assert.Equal(1, counterSet.Count);
     }

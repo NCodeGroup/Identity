@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Options;
@@ -24,7 +25,7 @@ public class DefaultBffAuditRecorderTests : BaseTests
         MockPublisher = CreateStrictMock<IEventPublisher>();
         var bffOptions = new BffOptions { ClientId = "bff-client" };
         var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         Recorder = new DefaultBffAuditRecorder(MockPublisher.Object, options, timeProvider);
     }
 

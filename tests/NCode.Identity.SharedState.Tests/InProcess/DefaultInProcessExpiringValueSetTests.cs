@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.SharedState.InProcess;
 using Xunit;
 
@@ -10,14 +11,9 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
 {
     private static DateTimeOffset Start { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
-    private DateTimeOffset Now { get; set; } = Start;
+    private FakeTimeProvider TimeProvider { get; } = new(Start);
 
-    private DefaultInProcessExpiringValueSet CreateValueSet()
-    {
-        var mockTimeProvider = CreateStrictMock<TimeProvider>();
-        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(() => Now).Verifiable();
-        return new DefaultInProcessExpiringValueSet(mockTimeProvider.Object);
-    }
+    private DefaultInProcessExpiringValueSet CreateValueSet() => new(TimeProvider);
 
     private static async Task<bool[]> RunConcurrentlyAsync(Func<Task<bool>> operation)
     {
@@ -93,12 +89,12 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddSeconds(10),
             CancellationToken.None
         );
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
         var added = await valueSet.TryAddAsync(
             "key",
             new byte[] { 2 },
-            Now.AddMinutes(1),
+            TimeProvider.GetUtcNow().AddMinutes(1),
             CancellationToken.None
         );
 
@@ -166,12 +162,12 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddSeconds(10),
             CancellationToken.None
         );
-        Now = Start + DefaultInProcessExpiringValueSet.SweepInterval;
+        TimeProvider.SetUtcNow(Start + DefaultInProcessExpiringValueSet.SweepInterval);
 
         await valueSet.TryAddAsync(
             "live",
             new byte[] { 2 },
-            Now.AddMinutes(1),
+            TimeProvider.GetUtcNow().AddMinutes(1),
             CancellationToken.None
         );
 
@@ -202,7 +198,7 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddMinutes(1),
             CancellationToken.None
         );
-        Now = Start.AddMinutes(1);
+        TimeProvider.SetUtcNow(Start.AddMinutes(1));
 
         var result = await valueSet.GetAsync("key", CancellationToken.None);
 
@@ -291,13 +287,13 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddSeconds(10),
             CancellationToken.None
         );
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
         var replaced = await valueSet.TryReplaceAsync(
             "key",
             1,
             new byte[] { 2 },
-            Now.AddMinutes(1),
+            TimeProvider.GetUtcNow().AddMinutes(1),
             CancellationToken.None
         );
 
@@ -347,7 +343,7 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddMinutes(10),
             CancellationToken.None
         );
-        Now = Start.AddMinutes(5);
+        TimeProvider.SetUtcNow(Start.AddMinutes(5));
 
         var result = await valueSet.GetAsync("key", CancellationToken.None);
 
@@ -425,7 +421,7 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddMinutes(1),
             CancellationToken.None
         );
-        Now = Start.AddMinutes(1);
+        TimeProvider.SetUtcNow(Start.AddMinutes(1));
 
         var result = await valueSet.TryTakeAsync("key", CancellationToken.None);
 
@@ -522,11 +518,11 @@ public sealed class DefaultInProcessExpiringValueSetTests : BaseTests
             Start.AddSeconds(10),
             CancellationToken.None
         );
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
         await valueSet.TryAddAsync(
             "key",
             new byte[] { 2 },
-            Now.AddMinutes(1),
+            TimeProvider.GetUtcNow().AddMinutes(1),
             CancellationToken.None
         );
 

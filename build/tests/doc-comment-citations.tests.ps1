@@ -3,7 +3,7 @@
 
 <#
 .SYNOPSIS
-    Checks build/doc-comment-citations.ps1 against fixture source folders and against the repository's own src/.
+    Checks build/doc-comment-citations.ps1 against fixture source folders and against the repository's own src/ and tests/.
 #>
 [CmdletBinding()]
 param()
@@ -20,9 +20,9 @@ function Write-FixtureFile([string]$Path, [string]$Text) {
     [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($false))
 }
 
-# Builds a src folder with the given files (relative path -> text) and returns its path.
-function New-Fixture([string]$Name, [hashtable]$Files) {
-    $root = Join-Path $fixtureRoot $Name 'src'
+# Builds a folder (src by default) with the given files (relative path -> text) and returns its path.
+function New-Fixture([string]$Name, [hashtable]$Files, [string]$Folder = 'src') {
+    $root = Join-Path $fixtureRoot $Name $Folder
     $null = [System.IO.Directory]::CreateDirectory($root)
     foreach ($relative in $Files.Keys) {
         Write-FixtureFile (Join-Path $root $relative) $Files[$relative]
@@ -30,7 +30,7 @@ function New-Fixture([string]$Name, [hashtable]$Files) {
     return $root
 }
 
-function Assert-Problems([string]$Name, [string]$Root, [string[]]$ExpectedFragments) {
+function Assert-Problems([string]$Name, [string[]]$Root, [string[]]$ExpectedFragments) {
     $problems = @(& $checker -Root $Root)
     if ($problems.Count -ne $ExpectedFragments.Count) {
         throw "Test '$Name' expected $($ExpectedFragments.Count) problem(s), got $($problems.Count): $($problems -join ' | ')"
@@ -78,7 +78,28 @@ try {
     }
     Assert-Problems 'generated files under bin and obj are skipped' $fixture @()
 
-    Assert-Problems 'the repository source has no problems' (Join-Path $PSScriptRoot '..' '..' 'src') @()
+    $fixture = New-Fixture 'tests-adr' @{
+        'A/AdrTests.cs' = "namespace A;`n/// <summary>`n/// Proves the rule (ADR-1150).`n/// </summary>`npublic class AdrTests { }`n"
+    } 'tests'
+    Assert-Problems 'an ADR number in a /// line under tests is reported' $fixture @(
+        'tests/A/AdrTests.cs(3): a /// doc comment cites a decision record'
+    )
+
+    $src = New-Fixture 'both' @{
+        'A/Adr.cs' = "/// (ADR-1150)`n"
+    }
+    $tests = New-Fixture 'both' @{
+        'A/AdrTests.cs' = "/// (ADR-1150)`n"
+    } 'tests'
+    Assert-Problems 'src and tests are reported folder by folder' @($src, $tests) @(
+        'src/A/Adr.cs(1):',
+        'tests/A/AdrTests.cs(1):'
+    )
+
+    Assert-Problems 'the repository source and tests have no problems' @(
+        (Join-Path $PSScriptRoot '..' '..' 'src'),
+        (Join-Path $PSScriptRoot '..' '..' 'tests')
+    ) @()
 
     Write-Host "$testCount doc-comment-citations checks passed."
 }

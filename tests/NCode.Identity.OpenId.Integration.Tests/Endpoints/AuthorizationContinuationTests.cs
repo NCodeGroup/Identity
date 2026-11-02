@@ -15,8 +15,9 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Exercises the authorization continuation end to end: a request without a session is sent to the login page, and
 /// once the user has signed in, the continue URL issues the code and delivers the response in the requested response
-/// mode (ADR-1201).
+/// mode.
 /// </summary>
+// See ADR-1201.
 public class AuthorizationContinuationTests
 {
     private const string UserName = "continue-user";

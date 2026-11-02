@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Client;
@@ -30,7 +31,7 @@ public class BffLogoutHandlerTests : BaseTests
     public BffLogoutHandlerTests()
     {
         var options = CreateOptions();
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         _resolver = CreateStrictMock<BffSessionResolver>(
             CreateStrictMock<IBffSessionManager>().Object,

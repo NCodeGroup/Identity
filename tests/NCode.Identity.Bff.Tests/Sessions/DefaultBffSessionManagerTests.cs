@@ -319,7 +319,8 @@ public class DefaultBffSessionManagerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(false);
+            .ReturnsAsync(false)
+            .Verifiable(Times.Exactly(5));
         MockStore
             .SetupSequence(x => x.GetAsync(current.StoreKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync(BffSessionCodec.Encode(handle, 2, CreateMetadata(), CreatePayload()))
@@ -329,16 +330,6 @@ public class DefaultBffSessionManagerTests : BaseTests
 
         await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
             await Manager.UpdateAsync(current, state => state, CancellationToken.None)
-        );
-
-        MockStore.Verify(
-            x =>
-                x.TryReplaceAsync(
-                    It.IsAny<BffSessionRecord>(),
-                    It.IsAny<long>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Exactly(5)
         );
     }
 

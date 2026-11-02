@@ -33,16 +33,14 @@ public class DefaultTokenRevocationClientTests : BaseTests
     {
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata
-                    {
-                        Issuer = Authority,
-                        TokenEndpoint = "https://op.example.test/token",
-                        JwksUri = "https://op.example.test/jwks",
-                        RevocationEndpoint = revocationEndpoint,
-                    }
-                )
+            .ReturnsAsync(
+                new OpenIdProviderMetadata
+                {
+                    Issuer = Authority,
+                    TokenEndpoint = "https://op.example.test/token",
+                    JwksUri = "https://op.example.test/jwks",
+                    RevocationEndpoint = revocationEndpoint,
+                }
             )
             .Verifiable();
 

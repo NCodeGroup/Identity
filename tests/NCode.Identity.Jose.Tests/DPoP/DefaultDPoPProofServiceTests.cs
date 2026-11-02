@@ -46,6 +46,7 @@ public class DefaultDPoPProofServiceTests : BaseTests
     protected override async ValueTask DisposeAsyncCore()
     {
         await ServiceProvider.DisposeAsync();
+        await base.DisposeAsyncCore();
     }
 
     #region Scaffolding

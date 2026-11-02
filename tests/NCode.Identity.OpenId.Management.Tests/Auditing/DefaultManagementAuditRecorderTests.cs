@@ -66,7 +66,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.FromResult<string?>(TenantEnvironmentType));
+            .ReturnsAsync(TenantEnvironmentType);
 
         return new DefaultManagementAuditRecorder(
             eventPublisher,

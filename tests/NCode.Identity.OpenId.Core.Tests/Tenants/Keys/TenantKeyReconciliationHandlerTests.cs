@@ -154,10 +154,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
         SetupTenantSettings(FirstTenantId, ["RS256"]);
         SetupSecrets(FirstTenantId, [other]);
-        SetupAnnouncement(
-            FirstTenantId,
-            ValueTask.FromException(new InvalidOperationException("boom"))
-        );
+        SetupAnnouncement(FirstTenantId, new InvalidOperationException("boom"));
         SetupTenantSettings(SecondTenantId, ["RS256"]);
         SetupSecrets(SecondTenantId, [other]);
         SetupAnnouncement(SecondTenantId);
@@ -321,18 +318,26 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             )
             .Verifiable();
 
-    private void SetupAnnouncement(string tenantId, ValueTask? result = null) =>
-        MockMediator
-            .Setup(x =>
-                x.SendAsync(
-                    It.Is<TenantChangedCommand>(command =>
-                        command.TenantId == tenantId && command.SettingsChanged
-                    ),
-                    It.IsAny<CancellationToken>()
-                )
+    private void SetupAnnouncement(string tenantId, Exception? failure = null)
+    {
+        var setup = MockMediator.Setup(x =>
+            x.SendAsync(
+                It.Is<TenantChangedCommand>(command =>
+                    command.TenantId == tenantId && command.SettingsChanged
+                ),
+                It.IsAny<CancellationToken>()
             )
-            .Returns(result ?? ValueTask.CompletedTask)
-            .Verifiable();
+        );
+
+        if (failure is null)
+        {
+            setup.Returns(ValueTask.CompletedTask).Verifiable();
+        }
+        else
+        {
+            setup.ThrowsAsync(failure).Verifiable();
+        }
+    }
 
     private IReadOnlySettingCollection CreateSettings(string[] algorithms)
     {

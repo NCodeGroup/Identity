@@ -35,6 +35,7 @@ public class JoseSerializerJsonTests : BaseTests
     protected override async ValueTask DisposeAsyncCore()
     {
         await ServiceProvider.DisposeAsync();
+        await base.DisposeAsyncCore();
     }
 
     #region Helpers

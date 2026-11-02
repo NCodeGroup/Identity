@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Metrics;
 using NCode.Identity.OpenId.Client.Options;
@@ -17,36 +16,12 @@ public class ProviderResilienceHandlerTests : BaseTests
     protected override void Dispose(bool disposing)
     {
         if (disposing)
-        {
-            foreach (var collector in Collectors.Values)
-                collector.Dispose();
             Metrics.Dispose();
-        }
         base.Dispose(disposing);
     }
 
     private List<string?> Measured(string instrumentName, string attributeName) =>
-        CreateCollector(instrumentName)
-            .GetMeasurementSnapshot()
-            .Select(measurement => measurement.Tags.GetValueOrDefault(attributeName) as string)
-            .ToList();
-
-    private Dictionary<string, MetricCollector<long>> Collectors { get; } = [];
-
-    private MetricCollector<long> CreateCollector(string instrumentName)
-    {
-        if (!Collectors.TryGetValue(instrumentName, out var collector))
-        {
-            collector = new MetricCollector<long>(
-                Metrics.MeterFactory,
-                OpenIdClientMetrics.MeterName,
-                instrumentName
-            );
-            Collectors[instrumentName] = collector;
-        }
-
-        return collector;
-    }
+        Metrics.Measured(instrumentName, attributeName);
 
     private ProviderResilienceHandler CreateHandler(
         HttpMessageHandler innerHandler,
@@ -55,9 +30,6 @@ public class ProviderResilienceHandlerTests : BaseTests
     {
         var clientOptions = options ?? new OpenIdClientOptions { RetryDelay = TimeSpan.Zero };
         var wrappedOptions = Microsoft.Extensions.Options.Options.Create(clientOptions);
-        // The collectors subscribe before the pipelines create their instruments, so they see every measurement.
-        CreateCollector(ProviderMetrics.RetriesName);
-        CreateCollector(ProviderMetrics.TimeoutsName);
         var pipelines = new ProviderResiliencePipelines(
             wrappedOptions,
             Metrics.CreateProviderMetrics()

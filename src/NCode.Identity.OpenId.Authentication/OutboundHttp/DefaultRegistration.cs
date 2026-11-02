@@ -30,6 +30,7 @@ internal static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.AddHttpClient();
+            serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<
                 IOutboundHttpForgeryGuard,
                 DefaultOutboundHttpForgeryGuard
@@ -46,14 +47,15 @@ internal static class DefaultRegistration
                     OutboundHttpOptionsValidator
                 >()
             );
-            serviceCollection.TryAddTransient<GuardedHttpTimeoutHandler>();
+            serviceCollection.TryAddSingleton<GuardedResiliencePipelines>();
+            serviceCollection.TryAddTransient<GuardedResilienceHandler>();
 
             // This one client serves every fetch of, and delivery to, a caller-supplied URL (ADR-1315). Its
             // connections are pinned away from private/loopback/link-local addresses and it never follows redirects,
-            // so a registered internal URL cannot turn the OP into a confused deputy; the pipeline bounds each attempt
-            // and the whole call, and retries a failed attempt a bounded number of times. The pipeline is the only
-            // time bound, so the client's own timeout is switched off; its default of 100 seconds would silently cut
-            // a longer TotalTimeout.
+            // so a registered internal URL cannot turn the OP into a confused deputy; its handler bounds each attempt
+            // and the whole call with a Polly.Core pipeline (ADR-1385), and retries a failed attempt a bounded number
+            // of times. The pipeline is the only time bound, so the client's own timeout is switched off; its default
+            // of 100 seconds would silently cut a longer TotalTimeout.
             serviceCollection
                 .AddHttpClient(GuardedHttpClient.Name)
                 .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)
@@ -65,17 +67,7 @@ internal static class DefaultRegistration
                         .ConnectAsync,
                     AutomaticDecompression = DecompressionMethods.All,
                 })
-                .AddHttpMessageHandler<GuardedHttpTimeoutHandler>()
-                .AddResilienceHandler(
-                    "guarded",
-                    static (pipelineBuilder, context) =>
-                        GuardedHttpClient.ConfigurePipeline(
-                            pipelineBuilder,
-                            context
-                                .ServiceProvider.GetRequiredService<IOptions<OutboundHttpOptions>>()
-                                .Value
-                        )
-                );
+                .AddHttpMessageHandler<GuardedResilienceHandler>();
 
             return builder;
         }

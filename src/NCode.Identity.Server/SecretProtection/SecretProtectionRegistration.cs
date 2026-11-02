@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Registration;
 
@@ -17,6 +18,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// Protection key ring under the master key of the server.
 /// </summary>
 // See ADR-1235.
+// See ADR-1370.
 internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";
@@ -40,7 +42,8 @@ internal static class SecretProtectionRegistration
     /// <remarks>
     /// Binding is strict and checked when the host starts: a key that maps to no option stops the host with an error
     /// naming the key. The <see cref="DataProtectionKeyRingOptions.DefaultSectionName"/> section revokes Data
-    /// Protection keys by ID.
+    /// Protection keys by ID. An unset or blank <c>SecretProtection:RootKeyProvider</c> stops the host when it starts:
+    /// no root key provider is selected by default.
     /// </remarks>
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> whose services are configured.</param>
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
@@ -73,6 +76,13 @@ internal static class SecretProtectionRegistration
                 recoverySection.BindStrictly(options.Recovery);
             })
             .ValidateOnStart();
+
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IValidateOptions<SecretProtectionOptions>,
+                SecretProtectionOptionsValidator
+            >()
+        );
 
         serviceCollection
             .AddOptions<LocalKeyWrapperOptions>()

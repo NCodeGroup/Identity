@@ -93,7 +93,9 @@ public static class IdentityServerBuilderExtensions
         /// setting placed in the wrong subsection — stops the host with an error naming the key, rather than leaving
         /// the option at its default without any sign that the setting was ignored. The <c>SecretProtection</c>
         /// section is also checked immediately: a direct child other than <c>RootKeyProvider</c>, <c>Recovery</c> and
-        /// <c>RootKeyProviders</c> stops the host during composition.
+        /// <c>RootKeyProviders</c> stops the host during composition. An unset or blank
+        /// <c>SecretProtection:RootKeyProvider</c> stops the host when it starts: no root key provider is selected by
+        /// default.
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
         /// <param name="sectionName">The configuration section name that holds the OpenID options, or <c>null</c> to use

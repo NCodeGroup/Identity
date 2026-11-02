@@ -1324,6 +1324,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking: a host names its root key provider.** An unset or blank `SecretProtection:RootKeyProvider` no longer falls back to `ephemeral`: the host stops when it starts, with an error naming the setting. Set `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or another registered provider, or `ephemeral` for local development and tests; the reference host's `appsettings.Development.json` and `appsettings.Conformance.json` select `ephemeral`, Production still refuses it, and the Helm chart refuses an empty `secretProtection.rootKeyProvider` in every environment ([#495](https://github.com/NCodeGroup/Identity/issues/495), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **Doc comments in tests no longer cite decision records either.** The `doc comment citations` stage of `./build/dod.ps1` (`build/doc-comment-citations.ps1`) scans `tests/` as well as `src/`, and the 13 `///` lines under `tests/` that cited an ADR moved to `// See` comments ([#498](https://github.com/NCodeGroup/Identity/issues/498)).
 - **Breaking:** `OpenIdClientOptions.RequestTimeout` is renamed `TotalTimeout`; set `TotalTimeout` instead, and when it is below 10 seconds also set `AttemptTimeout` no higher, because the host does not start while the default 10-second `AttemptTimeout` exceeds `TotalTimeout`. It still bounds a whole request, the response body included, and the BFF checks its refresh lease against it ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 - **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
@@ -1362,6 +1363,11 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   types the rule found unsealed in assemblies without `InternalsVisibleTo` are sealed
   ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
   [#477](https://github.com/NCodeGroup/Identity/issues/477)).
+
+- **The template's `CA1848` and, in tests, `CA1822` analyzers are on again.** `.editorconfig` no longer turns off
+  `CA1848` (use `LoggerMessage` delegates) or, in tests, `CA1822` (mark members as static): the migration worker
+  logs through source-generated `[LoggerMessage]` methods with event IDs in its own `20000`–`20999` band, and the
+  test helpers that read no instance state are `static` ([#490](https://github.com/NCodeGroup/Identity/issues/490)).
 
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`
@@ -4202,6 +4208,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `.template/Test-CommitAttribution.ps1` and runs again when a pull request is edited
   ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
 
+- **Breaking:** `.WithNoStore()` and `HttpResponse.SetNoStore()` move from `NCode.Identity.OpenId.Authentication.Abstractions` (namespace `NCode.Identity.OpenId.Authentication.Endpoints`) to the new dependency-free `NCode.AspNetCore` package (namespace `NCode.AspNetCore`), because an Abstractions package holds contracts only; reference `NCode.AspNetCore` and add `using NCode.AspNetCore;` ([#492](https://github.com/NCodeGroup/Identity/issues/492), [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+
 ### Removed
 
 - **Breaking:** **Ephemeral developer keys.** `DeveloperKeyMode`, `AddDeveloperKeys(DeveloperKeyMode)`,
@@ -4225,12 +4233,15 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **No development secret is committed.** The reference host's `launchSettings.json` no longer holds `BootstrapAdmin__ClientSecret` or `DeveloperInteractiveSeed__AdminPassword`. The LocalDev AppHost generates both once per machine, beside the development root key in `LocalApplicationData/NCode.Identity/LocalDev`, and hands them to the hosts it starts; a host run without it reads them from its user secrets and otherwise seeds neither administrator ([#496](https://github.com/NCodeGroup/Identity/issues/496), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **Responses that reveal a secret are never cached.** Creating or rotating a client secret, creating a resource
   server key, minting an initial access token, and dynamic client registration (the RFC 7591 registration and the
   RFC 7592 read and update) answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so no
   browser, proxy or gateway cache keeps the one-time secret. An endpoint opts in with the new `.WithNoStore()`
-  endpoint convention, and `HttpResponse.SetNoStore()` is public in `NCode.Identity.OpenId.Authentication.Abstractions`
+  endpoint convention, and `HttpResponse.SetNoStore()` is public in the `NCode.AspNetCore` package
   ([#473](https://github.com/NCodeGroup/Identity/issues/473), [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+
+- **The pushed authorization, device authorization and backchannel authentication responses are never cached.** `POST /oauth2/par`, `POST /oauth2/device_authorization` and `POST /oauth2/bc-authorize` answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so no client or intermediary cache keeps the one-time `request_uri`, `device_code` and `user_code`, or `auth_req_id` (RFC 9126 §2.2, RFC 8628 §3.2, CIBA Core §7.3) ([#488](https://github.com/NCodeGroup/Identity/issues/488), [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
 
 - **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body,
   under `OpenIdClientOptions.MaxResponseSizeBytes`, into a sensitive pooled buffer that is zeroed when released,

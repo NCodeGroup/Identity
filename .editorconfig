@@ -93,8 +93,6 @@ indent_size = 2
 dotnet_diagnostic.CA1062.severity = none
 # Intention-revealing public API names (e.g. 'Error', 'Get') are deliberate; do not rename to dodge keywords.
 dotnet_diagnostic.CA1716.severity = none
-# LoggerMessage source-gen delegates are a micro-optimization not warranted on rarely-hit paths.
-dotnet_diagnostic.CA1848.severity = none
 # No ConfigureAwait(false): this is an ASP.NET-Core-only library. ASP.NET Core installs no
 # SynchronizationContext (and no custom TaskScheduler), so ConfigureAwait(false) is a no-op here.
 dotnet_diagnostic.CA2007.severity = none
@@ -131,8 +129,6 @@ dotnet_diagnostic.IDE0073.severity = warning
 dotnet_diagnostic.CA1707.severity = none
 # Test base classes have no finalizer, so Dispose() calling GC.SuppressFinalize would be pointless.
 dotnet_diagnostic.CA1816.severity = none
-# Test helper methods need not be static.
-dotnet_diagnostic.CA1822.severity = none
 # Tests deliberately hold collaborators via their (mocked/abstract) interface, not the concrete type.
 dotnet_diagnostic.CA1859.severity = none
 # Tests pass inline array literals straight to assertion helpers; hoisting each to a field hurts readability.

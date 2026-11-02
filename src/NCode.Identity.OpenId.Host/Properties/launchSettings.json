@@ -17,9 +17,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
-        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "DeveloperInteractiveSeed__AdminPassword": "dev-admin-password",
         "BootstrapAdmin__TenantId": "default",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:44369"
       }
@@ -33,9 +31,7 @@
         "DOTNET_ReadyToRun": "0",
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
-        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "DeveloperInteractiveSeed__AdminPassword": "dev-admin-password",
         "BootstrapAdmin__TenantId": "default",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5001"
       },
@@ -50,7 +46,6 @@
         "DOTNET_ReadyToRun": "0",
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
-        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
         "BootstrapAdmin__TenantId": "conformance",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://host.docker.internal:5001"
@@ -66,7 +61,6 @@
         "DOTNET_ReadyToRun": "0",
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
-        "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
         "BootstrapAdmin__TenantId": "conformance",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5003"

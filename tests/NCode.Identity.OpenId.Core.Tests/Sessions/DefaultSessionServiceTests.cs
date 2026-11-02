@@ -538,7 +538,7 @@ public class DefaultSessionServiceTests : BaseTests
             },
         };
 
-    private void SetupTermination(Mock<IMediator> mockMediator, string reason) =>
+    private static void SetupTermination(Mock<IMediator> mockMediator, string reason) =>
         mockMediator
             .Setup(x =>
                 x.SendAsync(

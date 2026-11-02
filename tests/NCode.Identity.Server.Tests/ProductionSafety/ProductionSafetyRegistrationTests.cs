@@ -422,6 +422,7 @@ public class ProductionSafetyRegistrationTests
         var violation = Assert.Single(violations);
         Assert.Equal("SecretProtection:RootKeyProvider", violation.ConfigurationKey);
         Assert.Contains("is not set", violation.Problem);
+        Assert.DoesNotContain("ephemeral", violation.Problem, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -437,6 +438,7 @@ public class ProductionSafetyRegistrationTests
         var violation = Assert.Single(violations);
         Assert.Equal("SecretProtection:RootKeyProvider", violation.ConfigurationKey);
         Assert.Contains("is not set", violation.Problem);
+        Assert.DoesNotContain("ephemeral", violation.Problem, StringComparison.Ordinal);
         Assert.Contains("'aws-kms'", violation.Resolution);
         Assert.Contains("'azure-key-vault'", violation.Resolution);
         Assert.Contains("'google-cloud-kms'", violation.Resolution);

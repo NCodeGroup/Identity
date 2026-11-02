@@ -68,7 +68,7 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         return (command, mockTokenRequest, mockSettings, mockError);
     }
 
-    private void SetupGrantTypesSupported(
+    private static void SetupGrantTypesSupported(
         Mock<IReadOnlySettingCollection> mockSettings,
         params string[] grantTypes
     )

@@ -58,7 +58,7 @@ public class DefaultGetRequestedUserInfoClaimsHandlerTests : BaseTests
         return new ClaimsPrincipal(identity);
     }
 
-    private void SetupGrant(
+    private static void SetupGrant(
         Mock<IPersistedGrantService> mockGrantService,
         GetUserInfoClaimsCommand command,
         IRequestClaims? payload

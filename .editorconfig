@@ -129,8 +129,6 @@ dotnet_diagnostic.IDE0073.severity = warning
 dotnet_diagnostic.CA1707.severity = none
 # Test base classes have no finalizer, so Dispose() calling GC.SuppressFinalize would be pointless.
 dotnet_diagnostic.CA1816.severity = none
-# Test helper methods need not be static.
-dotnet_diagnostic.CA1822.severity = none
 # Tests deliberately hold collaborators via their (mocked/abstract) interface, not the concrete type.
 dotnet_diagnostic.CA1859.severity = none
 # Tests pass inline array literals straight to assertion helpers; hoisting each to a field hurts readability.

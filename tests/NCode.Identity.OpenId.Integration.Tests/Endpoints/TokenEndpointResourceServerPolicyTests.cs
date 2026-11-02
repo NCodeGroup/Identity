@@ -15,9 +15,10 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Verifies that a resource server's settings bound the access tokens issued for it, combined with the client's at
-/// issuance (ADR-1158): a lifetime ceiling, a signing-algorithm ceiling, and a sender-constraint requirement with the
+/// issuance: a lifetime ceiling, a signing-algorithm ceiling, and a sender-constraint requirement with the
 /// confirmation methods the resource server verifies.
 /// </summary>
+// See ADR-1158.
 public class TokenEndpointResourceServerPolicyTests
 {
     private const string TokenPath = "/oauth2/token";

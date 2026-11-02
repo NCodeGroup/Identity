@@ -70,10 +70,12 @@ for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) 
 
 ## Coding standards
 
-**The coding-convention instruction files are the authoritative checklist** — auto-applied by scope
-([`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md) and
-[`csharp-testing.instructions.md`](.github/instructions/csharp-testing.instructions.md)); every rule lives there once,
-marked tool-enforced or review-only. The highlights:
+**The coding-convention instruction files are the authoritative checklist**, auto-applied by scope: the project
+template's [`csharp.instructions.md`](.github/instructions/csharp.instructions.md) and
+[`csharp-tests.instructions.md`](.github/instructions/csharp-tests.instructions.md) hold the general C# rules, and
+[`csharp-production.instructions.md`](.github/instructions/csharp-production.instructions.md) and
+[`csharp-testing.instructions.md`](.github/instructions/csharp-testing.instructions.md) hold this family's own, each
+marked tool-enforced or review-only. Every rule lives in one of them, once. The highlights:
 
 - `ValueTask` / `ValueTask<T>` for async; `Async` suffix; `CancellationToken` last.
 - Nullable enabled; restructure so the compiler proves non-null instead of using `!`.

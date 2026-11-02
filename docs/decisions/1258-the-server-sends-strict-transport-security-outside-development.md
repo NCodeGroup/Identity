@@ -7,11 +7,10 @@
 
 ## Context
 
-The reference host redirects a plain-HTTP request to HTTPS (`UseHttpsRedirection`), but a redirect protects only the
-requests that reach it. A browser that is given the issuer's host name, or follows an `http://` link, sends its first
-request in plain text, and an attacker on the path answers it before the redirect does (RFC 6797 §2.3). HTTP Strict
-Transport Security closes that window: a browser that has received `Strict-Transport-Security` over HTTPS sends every
-later request for the host, and for its subdomains when the policy includes them, over HTTPS only.
+[project-template ADR-0122](project-template/0122-strict-transport-security-outside-development.md) sends
+`Strict-Transport-Security` on every response to a request that arrived over HTTPS outside Development, with OWASP's
+defaults, from options bound strictly and validated when the host starts. The reference host redirects a plain-HTTP
+request to HTTPS (`UseHttpsRedirection`), which protects only the requests that reach it (RFC 6797 §2.3).
 
 The header belongs to the transport, not to a page
 ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
@@ -22,7 +21,6 @@ decision 7). Three facts decide where it is sent:
   sends the header.
 - Behind a TLS-terminating proxy the host sees plain HTTP. It knows that a request arrived over HTTPS only from the
   `X-Forwarded-Proto` header of a proxy that `ReverseProxy` trusts, which `UseReverseProxy` applies first.
-- RFC 6797 §7.2 forbids the header on a response sent over plain HTTP, and a browser ignores it there.
 
 ## Decision
 
@@ -58,19 +56,12 @@ section configures it.**
 
 - **Call the framework's `AddHsts` and `UseHsts` in the host.** Rejected: the host is a composition root of turnkey
   calls, the framework's default `max-age` is 30 days, and its options are neither bound strictly nor validated.
-- **Bind `HstsOptions` directly.** Rejected: binding appends configured hosts to its default excluded hosts, and
-  nothing would check the preload requirements.
-- **Send the header from each page, as the page security headers are sent.** Rejected: the policy protects every
-  request to the host, and the JSON endpoints would never send it.
 - **Preload by default.** Rejected (decision 3).
 - **Send it in Development.** Rejected (decision 5).
 - **Leave it to a proxy.** Rejected: a host that terminates mutual TLS itself has no proxy to send it.
 
 ## Consequences
 
-- A browser that has reached the issuer over HTTPS sends it no plain-HTTP request for a year, and the policy covers
-  its subdomains.
-- An operator who serves a subdomain of the issuer's host over plain HTTP sets `IncludeSubDomains` to `false`.
 - Behind a proxy that does not set `X-Forwarded-Proto`, or that `ReverseProxy` does not trust, the host sees plain
   HTTP and sends no header; the proxy sends it instead, or the deployment trusts the proxy.
 - The Helm chart passes the section through `extraEnv`, and its README describes the ingress case.

@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
+- **Conflicts with:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md); tracked in [#163](https://github.com/NCodeGroup/Identity/issues/163)
 
 ## Context
 

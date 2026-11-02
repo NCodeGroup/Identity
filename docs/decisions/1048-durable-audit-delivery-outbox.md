@@ -7,25 +7,17 @@
 
 ## Context
 
+[project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md) writes an effect
+that must follow a commit to an outbox in the same unit of work and delivers it at least once, through idempotent
+handlers, so it is never sent for a change that rolled back or lost after one that committed. This record applies it to
+mandatory audit.
+
 [ADR-1047](./1047-auditing-and-events-observation-seam.md) establishes the event seam and its default
 delivery: synchronous, fault-isolated, best-effort, with an optional in-memory background queue for slow
 sinks. That best-effort posture is correct for observation — a failing or slow sink must never break or
 stall a request — but it is **insufficient for compliance-grade audit**, which has the opposite
 requirement: an audit record **must not be lost**, even across a process crash, and must truthfully
 reflect committed state.
-
-Three failure modes make best-effort delivery unsafe for mandatory audit:
-
-1. **Crash loss.** The in-memory background queue drops everything it holds if the process dies; a
-   synchronous sink that throws is swallowed. Either way the record is gone, with no record that it was
-   lost.
-2. **Phantom records.** Publishing an event for a persisted change _before_ its transaction commits
-   emits an audit record for something that never happened if the transaction then rolls back.
-3. **Lost-after-commit.** Publishing _after_ commit but out-of-band means a crash in the window between
-   commit and dispatch loses the record for a change that did happen.
-
-These are the classic dual-write problems between a database and a message/sink, and they cannot be
-solved by tuning the in-process publisher alone.
 
 ## Decision
 

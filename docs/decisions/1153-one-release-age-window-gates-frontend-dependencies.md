@@ -7,9 +7,10 @@
 
 ## Context
 
-A compromised npm release is usually detected and unpublished within hours to days, so waiting before adopting a new
-version (a release-age gate, or cooldown) keeps most of them out. Both tools that resolve the frontend workspace's
-dependencies can enforce one: pnpm through `minimumReleaseAge`, and Dependabot through `cooldown`.
+[project-template ADR-0009](project-template/0009-new-dependency-versions-wait-a-cooldown.md) adopts a new dependency
+version only once it is three days old, states the window in Dependabot's `cooldown`, and never lets a package
+manager's own gate be shorter. Both tools that resolve the frontend workspace's dependencies can enforce one: pnpm
+through `minimumReleaseAge`, and Dependabot through `cooldown`.
 
 - **Dependabot applies a cooldown by default.** When `dependabot.yml` configures none, Dependabot waits three days
   before proposing a version.
@@ -42,10 +43,6 @@ runs it.
 
 ## Options considered
 
-- **Turn Dependabot's cooldown off** (`default-days: 0`). Rejected: it removes a supply-chain control to hide a
-  mismatch between two settings, when the mismatch is the thing to fix.
-- **Rely on Dependabot's default without stating it.** Rejected: if GitHub lengthened the default, the gap between the
-  two windows would reopen without any change in this repository.
 - **A one-day window for both.** Not chosen: it would shorten Dependabot's default. Updates arrive weekly, so three days
   delays almost nothing.
 - **Go back to pnpm 9**, which has no release-age gate, so Dependabot applies none. Rejected: it hides the gate
@@ -58,8 +55,6 @@ runs it.
 
 - The lockfile cannot gain a version Dependabot's gate rejects unless someone excludes it deliberately, and then only
   until that version ages.
-- `pnpm add <package>` resolves the newest version that is at least three days old. Asking for a newer one fails with
-  `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.
 - `pnpm install --frozen-lockfile` does not re-check ages, so CI and `build/frontend-install.ps1` install the committed
   lockfile as it is. The versions it held when this was decided that were younger than three days make Dependabot's npm
   version update fail until 2026-10-22, which is before the next weekly run.

@@ -38,8 +38,9 @@ export type SecretsManagerProps = {
   /** Reads an asymmetric secret's public key; must reject with an {@link ApiError}-shaped error on failure. */
   readonly onExportPublicKey: (secretId: string) => Promise<PublicKeyResource>;
   /**
-   * Rotates a shared secret in one call, replacing it with a new one (ADR-1183); must reject with an
-   * {@link ApiError}-shaped error on failure. The rotate action is shown only when this is supplied.
+   * Rotates a shared secret: adds a replacement and keeps the rotated secret until it expires or is deleted
+   * (ADR-1320); must reject with an {@link ApiError}-shaped error on failure. The rotate action is shown only when
+   * this is supplied.
    */
   readonly onRotate?: (
     secretId: string,
@@ -63,6 +64,16 @@ function defaultExpiry(): Date {
   const expiry = new Date();
   expiry.setFullYear(expiry.getFullYear() + 1);
   return expiry;
+}
+
+/** How long a rotated secret keeps authenticating, so its holder can switch to the replacement. */
+const rotationGraceDays = 7;
+
+/** The expiry given to a rotated secret: the grace period from now. */
+function rotationGraceEnd(): Date {
+  const end = new Date();
+  end.setDate(end.getDate() + rotationGraceDays);
+  return end;
 }
 
 /** Seeds the create-secret form with the default expiry, as a `datetime-local` string. */
@@ -109,7 +120,7 @@ export function SecretsManager({
     .map((capability) => capability.secretType);
   const eccCurves = capabilities?.eccCurves ?? [];
   const algorithms = capabilities?.algorithms ?? [];
-  // A shared secret is rotated; a key is replaced by importing a new one (ADR-1183).
+  // A shared secret is rotated; a key is replaced by importing a new one (ADR-1320).
   const rotatableSecretTypes = (capabilities?.secretTypes ?? [])
     .filter((capability) => !capability.isAsymmetric)
     .map((capability) => capability.secretType);
@@ -185,6 +196,7 @@ export function SecretsManager({
     try {
       const created = await onRotate(dialog.secret.secretId, {
         expiresWhen: defaultExpiry().toISOString(),
+        rotatedExpiresWhen: rotationGraceEnd().toISOString(),
       });
       setDialog({ kind: 'reveal', created });
     } catch (rotateFailure) {
@@ -273,7 +285,7 @@ export function SecretsManager({
         title="Rotate secret"
         message={
           dialog.kind === 'rotate'
-            ? `Replace secret “${dialog.secret.secretId}” with a new one that expires in a year? The current secret stops authenticating at once.`
+            ? `Create a replacement for secret “${dialog.secret.secretId}” that expires in a year? The current secret keeps authenticating for up to ${rotationGraceDays} days, or until you delete it, so its holder can switch.`
             : ''
         }
         confirmLabel="Rotate"

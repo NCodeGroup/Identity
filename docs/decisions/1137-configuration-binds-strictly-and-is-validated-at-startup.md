@@ -10,6 +10,11 @@
 
 ## Context
 
+[project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md) stops the
+host on a configuration key that maps to no option or a value the application cannot honor: options bind strictly, each
+section has one owner, and every options type is validated when the host starts. This record applies it to the OpenID
+section and the reference host.
+
 The reference host shipped an `appsettings.json` that configured tenant selection under `OpenId:Tenant`
 (`Mode: StaticSingle`, `StaticSingle:TenantPath: /`). Tenant selection is bound from `OpenId:TenantResolution`;
 `OpenId:Tenant` binds `OpenIdTenantOptions`, which configures how a resolved tenant is materialized and cached and has
@@ -30,8 +35,7 @@ resolved a tenant — after health checks had already reported the instance read
 
 ## Decision
 
-**A key that maps to no option stops the host from starting, and so does a value the server cannot honor. Both are
-checked before the host accepts traffic.**
+**The server applies project-template ADR-0106 to every options type it binds:**
 
 1. **Strict binding.** Every options type the server binds from configuration is bound with the binder's
    `ErrorOnUnknownConfiguration`, at every depth, through one helper (`BindStrictly`) that names the offending section
@@ -54,18 +58,11 @@ checked before the host accepts traffic.**
    selected strategy's options: a literal path for the static and host strategies, the tenant parameter in the
    path strategy's route, a compilable host pattern, and a static issuer that is an absolute `http`/`https` URL ending in
    the tenant path. An unknown strategy code fails when the endpoints are mapped, before the host starts.
-4. **Unselected strategies are inert.** Only the selected strategy's options are validated. JSON configuration layers
-   cannot delete a key from a lower layer, so rejecting another strategy's section would make it impossible for an
-   environment overlay to switch strategies.
 
 ## Options considered
 
 - **Bind `OpenId:Tenant` as an alias of `OpenId:TenantResolution`.** Rejected: `OpenId:Tenant` already means
   materialization, so the alias would give one key two meanings and leave every other misplaced key silent.
-- **Fix only the host's `appsettings.json`.** Rejected: it repairs the instance and keeps the defect class.
-- **Strict binding, but fail on first use.** Rejected: an instance passes its readiness checks and fails on live
-  traffic, which is the worst time to learn about a configuration error.
-- **Reject options for unselected strategies.** Rejected for the layering reason above.
 
 ## Consequences
 

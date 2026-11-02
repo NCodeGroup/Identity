@@ -206,6 +206,12 @@ describe('ClientDetailPage', () => {
     expect(calls.find((c) => c.method === 'POST')?.url).toBe(
       'https://api.test/api/tenants/acme/clients/web/secrets/s-old/rotate',
     );
+    const rotateBody = JSON.parse(calls.find((c) => c.method === 'POST')?.body ?? '{}') as {
+      expiresWhen?: unknown;
+      rotatedExpiresWhen?: unknown;
+    };
+    expect(typeof rotateBody.expiresWhen).toBe('string');
+    expect(typeof rotateBody.rotatedExpiresWhen).toBe('string');
   });
 
   it('creates a secret and reveals its one-time material', async () => {

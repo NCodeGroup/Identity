@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0113](project-template/0113-metrics-have-one-owner-per-signal-and-bounded-dimensions.md) gives
+every metric signal one owner and every metric attribute a value from a vocabulary the application controls. This
+record applies it to the protocol packages.
+
 The platform is observable through OpenTelemetry ([ADR-1134](1134-cloud-native-operating-principles.md) §8), but the
 protocol endpoints have almost no metrics of their own. The family has one meter today: `DefaultEventMetricsHandler`
 counts every published event ([ADR-1047](1047-auditing-and-events-observation-seam.md)). Nothing measures endpoint
@@ -14,17 +18,11 @@ latency by protocol meaning, the rate limiter's refusals
 ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), or the health of the shared
 state those refusals depend on. The reference host does not wire OpenTelemetry at all.
 
-Four forces shape the design:
+Two forces of the family's own add to project-template ADR-0113's:
 
-- **Signals must not be counted twice.** ASP.NET Core already records `http.server.request.duration` for every request,
-  `System.Net.Http` records `http.client.request.duration` for every outbound call, and the event seam already counts
-  every audited outcome. A second counter of the same fact drifts from the first and doubles the series a deployment
-  pays for.
 - **Cardinality is bounded by the platform, not by its customers.** The hosted platform's metrics backend allows 10,000
   active series on its free tier ([hosting analysis](../hosting-analysis.md)). Tenants, clients, subjects, and remote
   addresses are unbounded, so a series per tenant grows with the customer base until the backend drops data.
-- **Request input must never name a series.** An attribute whose value comes from the request (an unsupported
-  `grant_type`, a `client_id`) lets any caller create series at will.
 - **Vocabularies are open** ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)): a package registers
   another grant type, client-authentication method, or endpoint, so a metric dimension cannot be a closed list either.
 
@@ -61,8 +59,6 @@ of refusals must not flood the event pipeline — so it gets a direct instrument
   instruments and their attributes share `aspnetcore.…`. An attribute that OpenTelemetry's semantic conventions already
   define (`error.type`, `http.route`, `http.response.status_code`) keeps its standard name. The event metric's
   attributes become `ncode.identity.event.type`, `ncode.identity.audit.action`, and `ncode.identity.audit.outcome`.
-- **Units are UCUM**: durations are histograms in seconds (`s`) with explicit bucket advice; counts use an annotation
-  (`{request}`, `{event}`, `{operation}`).
 
 ### 3. The protocol endpoints enrich the built-in HTTP instrument
 
@@ -143,8 +139,6 @@ renaming an instrument or attribute is a deliberate change.
 
 ## Options considered
 
-- **A family request counter and duration histogram per endpoint.** Rejected: it duplicates
-  `http.server.request.duration`, doubles the series, and can disagree with it.
 - **A counter per domain outcome at its call site.** Rejected: it re-plumbs instrumentation the event seam already
   provides and lets the two counts drift (ADR-1047).
 - **A tenant attribute, opt-in or allow-listed.** Rejected: an operator who enables it on a multi-tenant platform
@@ -152,8 +146,6 @@ renaming an instrument or attribute is a deliberate change.
   traces, logs, and the usage ledger of [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
 - **Publishing rate-limit refusals as events.** Rejected: a flood of refused requests would become a flood through the
   event pipeline and its sinks, the load the limiter exists to shed.
-- **Depending on the OpenTelemetry API in the library packages.** Rejected: `System.Diagnostics.Metrics` is the .NET
-  instrumentation API that OpenTelemetry reads; a library that depends on the SDK forces it on every consumer.
 
 ## Consequences
 
@@ -163,7 +155,6 @@ renaming an instrument or attribute is a deliberate change.
 - An operator gets latency, traffic, and errors per endpoint and per OAuth error code from one histogram, and can build
   service-level indicators on it: availability as the share of protocol requests that are not `5xx`, and latency as a
   percentile of the token endpoint's duration.
-- The series a deployment emits is bounded by its registered vocabularies, not by its tenant count.
 - Renaming the event metric's attributes changes a consumer-visible contract; pre-release, it is made once, cleanly
   ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
 

@@ -242,7 +242,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         {
             var key = BffStoreKeys.Lease(leaseKey);
             var owner = BffKeyDerivation.CreateSecret();
-            var value = SecureEncoding.UTF8.GetBytes(owner);
+            using var lease = RentOwnerBytes(owner, out var value);
             var added = await values.TryAddAsync(key, value, expiresWhen, cancellationToken);
             return added ? new BffRefreshLease(leaseKey, owner) : null;
         }
@@ -279,13 +279,31 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var key = BffStoreKeys.Lease(lease.LeaseKey);
-            var owner = SecureEncoding.UTF8.GetBytes(lease.Owner);
+            using var ownerLease = RentOwnerBytes(lease.Owner, out var owner);
             await values.TryRemoveAsync(key, owner, cancellationToken);
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {
             throw Unavailable(exception);
         }
+    }
+
+    /// <summary>
+    /// Encodes a refresh lease's owner token as UTF-8 into sensitive pooled memory that is zeroed when the returned
+    /// lease is disposed. The bytes live in <see cref="Memory{T}"/> because they cross an <c>await</c>.
+    /// </summary>
+    /// <param name="owner">The owner token to encode.</param>
+    /// <param name="bytes">The owner token's UTF-8 bytes.</param>
+    /// <returns>The lease that returns the memory to the pool.</returns>
+    private static IDisposable RentOwnerBytes(string owner, out Memory<byte> bytes)
+    {
+        var lease = BufferFactory.Rent(
+            SecureEncoding.UTF8.GetByteCount(owner),
+            isSensitive: true,
+            out bytes
+        );
+        SecureEncoding.UTF8.GetBytes(owner, bytes.Span);
+        return lease;
     }
 
     private static DateTimeOffset GetExpiresWhen(BffSessionMetadata metadata) =>

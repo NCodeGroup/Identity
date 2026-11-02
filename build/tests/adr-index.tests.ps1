@@ -37,6 +37,11 @@ function New-Fixture([string]$Name, [string[]]$Files, [string[]]$Rows) {
     return $root
 }
 
+function Add-FixtureFile([string]$Root, [string]$Path, [string]$Text) {
+    Write-FixtureFile (Join-Path $Root $Path) $Text
+    git -C $Root -c core.autocrlf=false add --all 2>$null | Out-Null
+}
+
 function Assert-Problems([string]$Name, [string]$Root, [string[]]$ExpectedFragments) {
     $problems = @(& $checker -Root $Root)
     if ($problems.Count -ne $ExpectedFragments.Count) {
@@ -64,7 +69,10 @@ try {
     Assert-Problems 'an unindexed file is reported' $fixture @('docs/decisions/1002-b.md is not listed')
 
     $fixture = New-Fixture 'missing' @('1001-a.md') @('1001|1001-a.md', '1002|1002-b.md')
-    Assert-Problems 'a link to a missing file is reported' $fixture @('links ./1002-b.md, which does not exist')
+    Assert-Problems 'a link to a missing file is reported' $fixture @(
+        'links ./1002-b.md, which does not exist'
+        'docs/decisions/README.md(6) names 1002-b.md, which is in neither'
+    )
 
     $fixture = New-Fixture 'mislabeled' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1003|1002-b.md')
     Assert-Problems 'a row labeled with another number is reported' $fixture @('labels ./1002-b.md as 1003')
@@ -81,6 +89,20 @@ try {
     $fixture = New-Fixture 'columns'@('1001-a.md') @('1001|1001-a.md')
     Add-Content -LiteralPath (Join-Path $fixture 'docs' 'decisions' 'README.md') -Value '| [x] | two |'
     Assert-Problems 'a row with the wrong column count is reported' $fixture @('table row has 2 columns, expected 3')
+
+    $fixture = New-Fixture 'link-missing' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'notes.md' "See [ADR-1003](docs/decisions/1003-c.md).`n"
+    Assert-Problems 'a link to a missing record is reported' $fixture @('notes.md(1) names 1003-c.md, which is in neither')
+
+    $fixture = New-Fixture 'link-template' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'docs/decisions/project-template/0001-t.md' "# 0001-t.md`n"
+    Add-FixtureFile $fixture 'notes.md' "See [0001](docs/decisions/project-template/0001-t.md) and [the template](docs/decisions/0000-template.md).`n"
+    Assert-Problems 'a link to a template record resolves' $fixture @()
+
+    $fixture = New-Fixture 'link-family-path' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'docs/decisions/project-template/0001-t.md' "# 0001-t.md`n"
+    Add-FixtureFile $fixture 'notes.md' "See [0001](docs/decisions/0001-t.md).`n"
+    Assert-Problems 'a family path with a template number is reported' $fixture @('notes.md(1) points docs/decisions/0001-t.md at docs/decisions/')
 
     Assert-Problems 'the repository has no problems' (Join-Path $PSScriptRoot '..' '..') @()
 

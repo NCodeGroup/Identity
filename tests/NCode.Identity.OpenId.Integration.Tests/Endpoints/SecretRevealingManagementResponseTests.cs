@@ -3,12 +3,8 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
@@ -20,7 +16,6 @@ public class SecretRevealingManagementResponseTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
     private const string BootstrapClientSecret = "bootstrap-secret-value";
-    private const string ManagementScope = "read:clients";
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     private const string ResourceServerClientId = "it-no-store-client";
@@ -29,39 +24,38 @@ public class SecretRevealingManagementResponseTests
     private const string ResourceServerAudience = "https://no-store.integration.test";
     private const string ResourceServerScope = "no-store:read";
 
+    #region PostClientSecret Tests
+
     [Fact]
     public async Task PostClientSecret_Always_MarksTheResponseNoStore()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var clientId = await CreateClientAsync(administrator);
 
-        using var response = await administrator.PostAsJsonAsync(
-            $"{TenantApiPath}/clients/{clientId}/secrets",
-            new
-            {
-                secretType = "symmetric",
-                keySizeBits = 256,
-                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
-            }
-        );
+        using var response = await PostClientSecretAsync(administrator, clientId);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         NoStoreAssert.IsNoStore(response);
     }
+
+    #endregion
+
+    #region PostRotateClientSecret Tests
 
     [Fact]
     public async Task PostRotateClientSecret_Always_MarksTheResponseNoStore()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var clientId = await CreateClientAsync(administrator);
         var secretId = await CreateSecretAsync(administrator, clientId);
+        var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}/rotate",
-            new { expiresWhen = DateTimeOffset.UtcNow.AddYears(1) }
+            new { expiresWhen }
         );
 
         var body = await response.Content.ReadAsStringAsync();
@@ -69,10 +63,14 @@ public class SecretRevealingManagementResponseTests
         NoStoreAssert.IsNoStore(response);
     }
 
+    #endregion
+
+    #region PostResourceServerSecret Tests
+
     [Fact]
     public async Task PostResourceServerSecret_Always_MarksTheResponseNoStore()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = CreateFactory();
         await factory.SeedConfidentialClientAsync(
             ResourceServerClientId,
             ResourceServerClientSecret
@@ -84,6 +82,7 @@ public class SecretRevealingManagementResponseTests
             ResourceServerScope
         );
         using var administrator = await CreateAdministratorClientAsync(factory);
+        var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
 
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/resource-servers/{ResourceServerId}/secrets",
@@ -92,7 +91,7 @@ public class SecretRevealingManagementResponseTests
                 secretType = "rsa",
                 keySizeBits = 2048,
                 use = "enc",
-                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+                expiresWhen,
             }
         );
 
@@ -101,10 +100,14 @@ public class SecretRevealingManagementResponseTests
         NoStoreAssert.IsNoStore(response);
     }
 
+    #endregion
+
+    #region PostInitialAccessToken Tests
+
     [Fact]
     public async Task PostInitialAccessToken_Always_MarksTheResponseNoStore()
     {
-        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
         using var response = await administrator.PostAsJsonAsync(
@@ -117,47 +120,27 @@ public class SecretRevealingManagementResponseTests
         NoStoreAssert.IsNoStore(response);
     }
 
+    #endregion
+
     #region Scaffolding
 
-    private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
-        factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static async Task<HttpClient> CreateAdministratorClientAsync(
-        HostApplicationFactory factory
-    )
+    private static ConfiguredHostApplicationFactory CreateFactory()
     {
-        var client = CreateHttpClient(factory);
-        var credentials = SecureEncoding.UTF8.GetBytes(
-            $"{BootstrapClientId}:{BootstrapClientSecret}"
-        );
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
-        {
-            Headers =
+        var bootstrapClientSecretBytes = SecureEncoding.UTF8.GetBytes(BootstrapClientSecret);
+        var encodedBootstrapClientSecret = Base64Url.EncodeToString(bootstrapClientSecretBytes);
+        return new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
             {
-                Authorization = new AuthenticationHeaderValue(
-                    "Basic",
-                    Convert.ToBase64String(credentials)
-                ),
-            },
-            Content = new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = ManagementScope,
-                }
-            ),
-        };
-
-        using var response = await client.SendAsync(tokenRequest);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-        var jsonElement = JsonElement.Parse(body);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer",
-            jsonElement.GetProperty("access_token").GetString()
+                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+                ["BootstrapAdmin:ClientSecret"] = encodedBootstrapClientSecret,
+                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
+            }
         );
-        return client;
     }
+
+    private static Task<HttpClient> CreateAdministratorClientAsync(
+        HostApplicationFactory factory
+    ) => factory.CreateManagementClientAsync(BootstrapClientId, BootstrapClientSecret);
 
     private static async Task<string> CreateClientAsync(HttpClient administrator)
     {
@@ -180,17 +163,26 @@ public class SecretRevealingManagementResponseTests
         return GetRequiredString(jsonElement, "clientId");
     }
 
-    private static async Task<string> CreateSecretAsync(HttpClient administrator, string clientId)
+    private static Task<HttpResponseMessage> PostClientSecretAsync(
+        HttpClient administrator,
+        string clientId
+    )
     {
-        using var response = await administrator.PostAsJsonAsync(
+        var expiresWhen = DateTimeOffset.UtcNow.AddYears(1);
+        return administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets",
             new
             {
                 secretType = "symmetric",
                 keySizeBits = 256,
-                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+                expiresWhen,
             }
         );
+    }
+
+    private static async Task<string> CreateSecretAsync(HttpClient administrator, string clientId)
+    {
+        using var response = await PostClientSecretAsync(administrator, clientId);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
@@ -203,27 +195,6 @@ public class SecretRevealingManagementResponseTests
         var value = jsonElement.GetProperty(propertyName).GetString();
         Assert.NotNull(value);
         return value;
-    }
-
-    private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            base.ConfigureWebHost(builder);
-
-            builder.ConfigureAppConfiguration(configurationBuilder =>
-                configurationBuilder.AddInMemoryCollection(
-                    new Dictionary<string, string?>
-                    {
-                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
-                        ),
-                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                    }
-                )
-            );
-        }
     }
 
     #endregion

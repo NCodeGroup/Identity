@@ -190,5 +190,95 @@ public sealed class TenantChangedHandlerTests : IDisposable
         Assert.Equal("The seed failed.", exception.Message);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenTheAnnouncementTimesOut_CompletesTheChange()
+    {
+        SetupEviction();
+        SetupMasterKeyEviction();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    TenantChangeBroadcastHandler.ChannelName,
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new TaskCanceledException("The announcement timed out."))
+            .Verifiable();
+
+        await Handler.HandleAsync(
+            new TenantChangedCommand(TenantId, SettingsChanged: false),
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerCancels_StillEvictsAndAnnouncesTheTenant()
+    {
+        var evictionToken = CancellationToken.None;
+        var announcementToken = CancellationToken.None;
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        SetupMasterKeyEviction();
+        MockTenantCache
+            .Setup(x =>
+                x.RemoveAsync(TenantId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Callback((string _, IPropertyBag _, CancellationToken token) => evictionToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    TenantChangeBroadcastHandler.ChannelName,
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((string _, string _, CancellationToken token) => announcementToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleAsync(
+            new TenantChangedCommand(TenantId, SettingsChanged: false),
+            cancellation.Token
+        );
+
+        Assert.True(evictionToken.CanBeCanceled);
+        Assert.False(evictionToken.IsCancellationRequested);
+        Assert.True(announcementToken.CanBeCanceled);
+        Assert.False(announcementToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheEvictionFails_StillAnnouncesTheChange()
+    {
+        MockTenantCache
+            .Setup(x =>
+                x.RemoveAsync(TenantId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ThrowsAsync(new InvalidOperationException("The eviction failed."))
+            .Verifiable();
+        SetupBroadcast();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.HandleAsync(
+                new TenantChangedCommand(TenantId, SettingsChanged: false),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal("The eviction failed.", exception.Message);
+        MockReplicaBroadcaster.Verify(
+            x =>
+                x.PublishAsync(
+                    TenantChangeBroadcastHandler.ChannelName,
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
     #endregion
 }

@@ -185,7 +185,10 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
             .SetupGet(x => x.SecretsProvider)
             .Returns(mockSecretsProvider.Object)
             .Verifiable();
-        mockSecretsProvider.SetupGet(x => x.Collection).Returns(CreateKeys(tenantKeys));
+        mockSecretsProvider
+            .SetupGet(x => x.Collection)
+            .Returns(CreateKeys(tenantKeys))
+            .Verifiable();
 
         return MockContext.Object;
     }
@@ -255,7 +258,8 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         mockErrorFactory
             .Setup(x => x.Create(It.IsAny<string>()))
             .Callback<string>(code => CreatedErrorCode = code)
-            .Returns(mockError.Object);
+            .Returns(mockError.Object)
+            .Verifiable();
 
         Assert.Throws<OpenIdException>(evaluate);
         Assert.Equal(expectedErrorCode, CreatedErrorCode);

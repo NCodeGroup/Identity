@@ -65,6 +65,8 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         MockContext.SetupGet(x => x.Http).Returns(HttpContext).Verifiable();
 
+        // A value provider: only the refusing paths create an error, so its setup is left unverified and the paths that
+        // succeed don't fail verification. The tests assert the refusal itself.
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);

@@ -85,6 +85,7 @@ public class OwnershipHandlerTests : IDisposable
         return context.HasSucceeded;
     }
 
+    // The named argument selects the overload above; without it this one would call itself.
     private Task<bool> HandleAsync(
         IAuthorizationRequirement requirement,
         IResourceNode resource,

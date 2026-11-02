@@ -34,14 +34,23 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     #region Scaffolding
 
     // A request that ends before it reads the subject.
-    private DefaultAuthenticateSubjectHandler CreateHandler()
+    private DefaultAuthenticateSubjectHandler CreateHandler() =>
+        CreateHandler(
+            CreateStrictMock<IStoreManagerFactory>(),
+            CreateStrictMock<IPrincipalResolver>()
+        );
+
+    private DefaultAuthenticateSubjectHandler CreateHandler(
+        Mock<IStoreManagerFactory> mockFactory,
+        Mock<IPrincipalResolver> mockResolver
+    )
     {
         MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
         MockSessionService = CreateStrictMock<ISessionService>();
 
         return new DefaultAuthenticateSubjectHandler(
-            CreateStrictMock<IStoreManagerFactory>().Object,
-            CreateStrictMock<IPrincipalResolver>().Object,
+            mockFactory.Object,
+            mockResolver.Object,
             MockAuditEventRecorder.Object,
             MockSessionService.Object
         );
@@ -65,15 +74,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             SetupPrincipalResolution(mockFactory, mockResolver, subjectId, resolvedPrincipalId);
         }
 
-        MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
-        MockSessionService = CreateStrictMock<ISessionService>();
-
-        return new DefaultAuthenticateSubjectHandler(
-            mockFactory.Object,
-            mockResolver.Object,
-            MockAuditEventRecorder.Object,
-            MockSessionService.Object
-        );
+        return CreateHandler(mockFactory, mockResolver);
     }
 
     private void SetupPrincipalResolution(

@@ -331,7 +331,8 @@ public class DefaultDPoPProofServiceTests : BaseTests
         };
         var payload = CreatePayload(issuedAt: StartTime.AddSeconds(-offsetSeconds));
 
-        AssertRejected(BuildEs256Proof(ecdsa, header, payload), CreateParameters(), "'iat'");
+        var proof = BuildEs256Proof(ecdsa, header, payload);
+        AssertRejected(proof, CreateParameters(), "'iat'");
     }
 
     [Fact]

@@ -383,7 +383,6 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
-        MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal("access-token-value", CapturedJob?.AccessToken);
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, CapturedJob?.TokenType);

@@ -1,7 +1,9 @@
 # Architecture Decision Records
 
 This directory records the **architecturally significant decisions** made for the
-**NCode.Identity** library family, using lightweight
+**NCode.Identity** library family and for the hosted platform's infrastructure in
+[`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform)
+([ADR-1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)), using lightweight
 [Architecture Decision Records (ADRs)](https://adr.github.io/).
 
 An ADR captures a single decision: the context that forced it, the decision itself, and the

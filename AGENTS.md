@@ -86,7 +86,10 @@ Pending work — deferred decisions, feature gaps, follow-ups and review finding
 ([ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). Record a pending item as an issue labeled by
 its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
 ([project-template ADR-0001](docs/decisions/project-template/0001-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
-closes it with `Closes #<number>`.
+closes it with `Closes #<number>`. The same issues and [`docs/decisions/`](docs/decisions/) also hold the pending work
+and decisions of [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform), whose pull
+requests close an issue here with `Closes NCodeGroup/Identity#<number>`
+([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)).
 
 ## Plan-and-execute workflow
 

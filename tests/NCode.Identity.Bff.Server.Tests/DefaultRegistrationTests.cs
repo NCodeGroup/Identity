@@ -20,6 +20,7 @@ public class DefaultRegistrationTests : BaseTests
                 new Dictionary<string, string?>
                 {
                     ["Bff:Authority"] = "https://op.example",
+                    ["Bff:PublicOrigin"] = "https://orders.example",
                     ["Bff:ClientId"] = "orders-web",
                     ["Bff:ReturnUrls:0"] = "/",
                 }

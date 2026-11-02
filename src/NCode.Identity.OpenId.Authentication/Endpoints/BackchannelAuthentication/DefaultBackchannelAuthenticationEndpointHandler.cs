@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Messages;
@@ -39,6 +40,7 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
             .Produces<BackchannelAuthenticationResult>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .DisableAntiforgery()
+            .WithNoStore()
             .WithOpenIdDiscoverable();
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>

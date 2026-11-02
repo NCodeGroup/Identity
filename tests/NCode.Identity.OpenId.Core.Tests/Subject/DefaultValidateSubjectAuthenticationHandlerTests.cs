@@ -155,7 +155,7 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
         return (command, disposition, mockContext, mockTenant);
     }
 
-    private void SetupTenant(Mock<OpenIdContext> mockContext, Mock<OpenIdTenant> mockTenant)
+    private static void SetupTenant(Mock<OpenIdContext> mockContext, Mock<OpenIdTenant> mockTenant)
     {
         mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();

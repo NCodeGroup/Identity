@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
@@ -45,6 +46,7 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
             .Produces<PushedAuthorizationResult>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest)
             .DisableAntiforgery()
+            .WithNoStore()
             .WithOpenIdDiscoverable();
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>

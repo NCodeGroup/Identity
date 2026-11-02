@@ -1324,6 +1324,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Doc comments in tests no longer cite decision records either.** The `doc comment citations` stage of `./build/dod.ps1` (`build/doc-comment-citations.ps1`) scans `tests/` as well as `src/`, and the 13 `///` lines under `tests/` that cited an ADR moved to `// See` comments ([#498](https://github.com/NCodeGroup/Identity/issues/498)).
 - **Breaking:** `OpenIdClientOptions.RequestTimeout` is renamed `TotalTimeout`; set `TotalTimeout` instead, and when it is below 10 seconds also set `AttemptTimeout` no higher, because the host does not start while the default 10-second `AttemptTimeout` exceeds `TotalTimeout`. It still bounds a whole request, the response body included, and the BFF checks its refresh lease against it ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 - **Breaking: the BFF releases a refresh lease only by the owner token its winner holds.** `IExpiringValueSet` gains
   `TryRemoveAsync(key, expectedValue, cancellationToken)`, an atomic compare-and-remove that deletes a value only while

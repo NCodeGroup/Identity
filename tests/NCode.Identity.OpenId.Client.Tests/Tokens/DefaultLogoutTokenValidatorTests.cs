@@ -816,7 +816,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             .Setup(x => x.ContainsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Verifiable();
-        var validator = CreateValidator(CreateKeySetMock(), keySet);
+        var keySetMock = CreateKeySetMock();
+        var validator = CreateValidator(keySetMock, keySet);
 
         var result = await ValidateAsync(validator, CreateLogoutToken());
 
@@ -876,7 +877,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
                 )
             )
             .Verifiable(Times.Never());
-        var validator = CreateValidator(CreateKeySetMock(), keySet);
+        var keySetMock = CreateKeySetMock();
+        var validator = CreateValidator(keySetMock, keySet);
 
         var result = await ValidateAsync(validator, CreateLogoutToken());
 
@@ -928,7 +930,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var keySet = CreateStrictMock<IExpiringKeySet>();
         SetupLookups(keySet, lookups);
         SetupRecords(keySet, records);
-        var validator = CreateValidator(CreateKeySetMock(), keySet);
+        var keySetMock = CreateKeySetMock();
+        var validator = CreateValidator(keySetMock, keySet);
         var result = await ValidateAsync(validator, CreateLogoutToken());
         Assert.True(result.IsValid, result.FailureReason);
 
@@ -952,7 +955,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var keySet = CreateStrictMock<IExpiringKeySet>();
         SetupLookups(keySet, lookups);
         SetupRecords(keySet, records, added: false);
-        var validator = CreateValidator(CreateKeySetMock(), keySet);
+        var keySetMock = CreateKeySetMock();
+        var validator = CreateValidator(keySetMock, keySet);
         var result = await ValidateAsync(validator, CreateLogoutToken());
         Assert.True(result.IsValid, result.FailureReason);
 
@@ -1001,7 +1005,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     [Fact]
     public async Task TryRecordHandledAsync_WhenResultIsInvalid_ThrowsArgumentException()
     {
-        var validator = CreateRecordingValidator(CreateStrictMock<IExpiringKeySet>());
+        var keySet = CreateStrictMock<IExpiringKeySet>();
+        var validator = CreateRecordingValidator(keySet);
         var result = new LogoutTokenValidationResult(
             TokenValidationFailureCodes.InvalidToken,
             "invalid"

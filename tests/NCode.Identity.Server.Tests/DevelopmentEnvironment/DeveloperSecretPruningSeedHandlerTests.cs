@@ -63,10 +63,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(
-            CreateCommand(tenant, CreateStoreManager(store)),
-            CancellationToken.None
-        );
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         // Key provisioning, which runs after the pruner, generates the replacements.
         Assert.Empty(tenant.Secrets.Value);
@@ -109,10 +109,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(
-            CreateCommand(tenant, CreateStoreManager(store)),
-            CancellationToken.None
-        );
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         var remaining = Assert.Single(tenant.Secrets.Value);
         Assert.Same(usable, remaining);
@@ -193,10 +193,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(
-            CreateCommand(tenant, CreateStoreManager(store)),
-            CancellationToken.None
-        );
+        var storeManager = CreateStoreManager(store);
+        var command = CreateCommand(tenant, storeManager);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         // The deletion is committed before the key ring forgets the master keys, so its next load sees the deletion.
         Assert.Equal(["remove", "save", "evict"], calls);
@@ -229,6 +229,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             .Verifiable();
 
         // The store manager and the store manager factory are strict with no setups: any call fails the test.
+        var storeManager = CreateStrictMock<IStoreManager>();
         var storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
 
         var handler = new DeveloperSecretPruningSeedHandler(
@@ -237,10 +238,9 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(
-            CreateCommand(tenant, CreateStrictMock<IStoreManager>().Object),
-            CancellationToken.None
-        );
+        var command = CreateCommand(tenant, storeManager.Object);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Same(originalSecrets, tenant.Secrets);
     }
@@ -258,6 +258,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
 
         // DeserializeSecret is never called for an empty collection; strict mocks with no setups prove it.
         var secretSerializer = CreateStrictMock<ISecretSerializer>();
+        var storeManager = CreateStrictMock<IStoreManager>();
         var storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
 
         var handler = new DeveloperSecretPruningSeedHandler(
@@ -266,10 +267,9 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             storeManagerFactory.Object
         );
 
-        await handler.HandleAsync(
-            CreateCommand(tenant, CreateStrictMock<IStoreManager>().Object),
-            CancellationToken.None
-        );
+        var command = CreateCommand(tenant, storeManager.Object);
+
+        await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Same(originalSecrets, tenant.Secrets);
     }

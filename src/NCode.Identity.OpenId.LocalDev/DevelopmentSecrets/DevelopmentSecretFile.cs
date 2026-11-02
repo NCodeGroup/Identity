@@ -34,7 +34,7 @@ internal static class DevelopmentSecretFile
     /// </summary>
     /// <remarks>
     /// Every OP instance that shares the dev database must unwrap the same master keys, and the secret stays out of the
-    /// repository (ADR-1235): the first AppHost run on a machine writes a random 32-byte secret, base64url encoded, to
+    /// repository: the first AppHost run on a machine writes a random 32-byte secret, base64url encoded, to
     /// <paramref name="directory"/> and every later run reuses it. The secret is written to a temporary file and moved
     /// into place, so a crash never leaves a partial secret under the final name; an empty file left by an older run
     /// is replaced. The secret only ever exists as bytes, zeroed once written — never as a string.

@@ -110,6 +110,31 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task PostPar_WhenRefused_MarksTheErrorResponseNoStore()
+    {
+        const string clientId = "it-par-no-store-error";
+        await Factory.SeedPublicClientAsync(clientId, RedirectUri);
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["redirect_uri"] = RedirectUri,
+                ["response_type"] = "code",
+                ["scope"] = "openid",
+            }
+        );
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        NoStoreAssert.IsNoStore(response);
+    }
+
+    [Fact]
     public async Task PostPar_WhenTheResponseModeIsNotListed_ReturnsInvalidRequest()
     {
         const string clientId = "it-par-mode-not-listed";

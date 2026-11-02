@@ -100,6 +100,33 @@ public class DefaultSessionStateServiceTests : BaseTests
     }
 
     [Fact]
+    public void CreateSessionState_WhenNoBrowserState_WritesAHostOnlyCookie()
+    {
+        var httpContext = new DefaultHttpContext();
+        var mockContext = CreateContext(httpContext);
+
+        const string browserState = "browser-state";
+        MockCryptoService
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
+            .Returns(browserState);
+        SetupSalt();
+        SetupDigest($"{ClientId} https://rp.example {browserState} {Salt}");
+
+        Service.CreateSessionState(
+            mockContext.Object,
+            ClientId,
+            new Uri("https://rp.example/callback")
+        );
+
+        var setCookie = httpContext.Response.Headers.SetCookie.ToString();
+        Assert.StartsWith("__Host-opbs=", setCookie, StringComparison.Ordinal);
+        var attributes = setCookie.Split(';').Skip(1).Select(x => x.Trim()).ToArray();
+        Assert.Contains("path=/", attributes);
+        Assert.Contains("secure", attributes);
+        Assert.DoesNotContain("domain=", setCookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CreateSessionState_WhenBrowserStateCookieExists_ReusesItWithoutSettingCookie()
     {
         var httpContext = new DefaultHttpContext();

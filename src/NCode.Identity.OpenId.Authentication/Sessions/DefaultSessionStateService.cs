@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 internal class DefaultSessionStateService(ICryptoService cryptoService) : ISessionStateService
 {
     // The OpenID Provider browser-state cookie (the "User Agent State" in OpenID Connect Session Management 1.0).
-    internal const string BrowserStateCookieName = "opbs";
+    internal const string BrowserStateCookieName = "__Host-opbs";
 
     private const int SaltByteLength = 16;
 

@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
@@ -10,8 +9,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// Provides the extension method that reads a request's form body without turning a malformed body into a server
 /// error.
 /// </summary>
-[PublicAPI]
-public static class FormRequestExtensions
+internal static class FormRequestExtensions
 {
     /// <param name="request">The <see cref="HttpRequest"/> instance.</param>
     extension(HttpRequest request)

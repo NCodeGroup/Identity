@@ -10,8 +10,6 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **`TryReadFormAsync` reads a request's form without throwing.** The new `FormRequestExtensions.TryReadFormAsync` in `NCode.Identity.OpenId.Authentication.Abstractions` returns the form, or `null` when the request carries no form or its body is malformed or over the form limits, so an endpoint answers `400 invalid_request` ([#497](https://github.com/NCodeGroup/Identity/issues/497)).
-
 - **The protocol client's calls are bounded and retried.** Every call of `NCode.Identity.OpenId.Client`, mutual-TLS clients included, runs through a total and a per-attempt timeout, and a GET or HEAD without a body or a DPoP proof is retried up to twice with jittered backoff after a connection failure, a timed-out attempt or a 408, 429 or 5xx response, set by `OpenIdClientOptions.AttemptTimeout`, `TotalTimeout`, `MaxRetryAttempts` and `RetryDelay` and validated when the host starts; the package depends on `Polly.Core` alone, not on `Microsoft.Extensions.Http.Resilience` ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
 
 - **A client's `jwks_uri` is fetched once for concurrent requests, and a failed fetch is remembered.** Concurrent token requests share one fetch of a client's key set, and a fetch that yields no key is not repeated for `OutboundHttpOptions.FailureCacheDuration` (`OpenId:OutboundHttp:FailureCacheDuration`, one minute), validated when the host starts ([#466](https://github.com/NCodeGroup/Identity/issues/466), [ADR-1335](docs/decisions/1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).

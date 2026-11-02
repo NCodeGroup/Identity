@@ -1,9 +1,9 @@
 # 1293. The BFF ends sessions by guarded logout and by back-channel logout through indexes
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 1 superseded by
+  [ADR-1311](1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md): logout is a form POST)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

@@ -341,7 +341,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1290](./1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |
 | [1291](./1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) | The BFF refreshes a session single-flight under a lease on its refresh token | Accepted |
 | [1292](./1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) | The BFF accepts its cookie only with a static header and Fetch Metadata | Accepted |
-| [1293](./1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted |
+| [1293](./1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted (decision 1 superseded by [1311](./1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md): logout is a form POST) |
 | [1294](./1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md) | A BFF client is registered with explicit metadata, not a bff security profile | Accepted |
 | [1295](./1295-the-jose-library-does-not-implement-the-none-algorithm.md) | The JOSE library does not implement the none algorithm | Accepted |
 | [1296](./1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md) | A failed JWE key unwrap is indistinguishable from a failed authentication tag | Accepted |
@@ -354,3 +354,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |
 | [1304](./1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) | Pull requests into main merge by squash through the merge queue | Accepted |
 | [1310](./1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md) | The interactive surface's cookies are host-only, and a tenant's session is named for its path | Accepted |
+| [1311](./1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md) | The BFF logs out by a form post that carries the session's logout guard | Accepted |

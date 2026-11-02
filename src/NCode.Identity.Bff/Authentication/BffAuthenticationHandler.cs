@@ -107,7 +107,7 @@ internal class BffAuthenticationHandler(
         if (!BffGuardedEndpoints.IsApi(Context.GetEndpoint()))
         {
             throw new InvalidOperationException(
-                "SignOutAsync with the BFF scheme ends a session only on an endpoint marked AsBffApi() or [BffApi], whose anti-forgery checks keep another site from ending it; a page sends the browser to /bff/logout."
+                "SignOutAsync with the BFF scheme ends a session only on an endpoint marked AsBffApi() or [BffApi], whose anti-forgery checks keep another site from ending it; a page posts a form to /bff/logout."
             );
         }
 

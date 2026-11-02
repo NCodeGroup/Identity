@@ -88,5 +88,17 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
         Assert.Null(login.Metadata.GetMetadata<BffUserEndpointMetadata>());
     }
 
+    [Fact]
+    public void MapBffEndpoints_LogoutEndpoint_AcceptsOnlyPost()
+    {
+        var endpoints = MapEndpoints();
+
+        var logout = Assert.Single(endpoints, x => x.RoutePattern.RawText == "/bff/logout");
+
+        var methods = logout.Metadata.GetMetadata<HttpMethodMetadata>();
+        Assert.NotNull(methods);
+        Assert.Equal(["POST"], methods.HttpMethods);
+    }
+
     #endregion
 }

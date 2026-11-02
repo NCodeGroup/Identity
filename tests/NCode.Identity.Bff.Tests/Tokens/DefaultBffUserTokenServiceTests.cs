@@ -570,6 +570,120 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task GetAccessTokenAsync_LeaseReleaseFails_ReturnsTheRefreshedToken()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        var response = new TokenResponse
+        {
+            AccessToken = "new-access",
+            TokenType = "DPoP",
+            RefreshToken = "rotated-refresh",
+            ExpiresIn = 300,
+        };
+        var tokenResult = new TokenResult(response);
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(tokenResult)
+            .Verifiable();
+        BffSessionState? written = null;
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) =>
+                {
+                    written = update(current);
+                    return ValueTask.FromResult(written);
+                }
+            )
+            .Verifiable();
+        var releaseFailure = new BffStoreUnavailableException("The release failed.");
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
+            .Returns(() => ValueTask.FromException(releaseFailure))
+            .Verifiable();
+
+        var result = await Service.GetAccessTokenAsync(
+            httpContext,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsSuccess);
+        var token = Assert.IsType<BffAccessToken>(result.Token);
+        Assert.Equal("new-access", token.Value);
+        AssertRefreshRecorded(BffMetrics.RefreshedResult, errorType: null);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_WriteBackAndLeaseReleaseFail_ThrowsTheWriteBackFailure()
+    {
+        var state = CreateState("refresh-token");
+        var httpContext = CreateHttpContext(state);
+        SetupReload(state);
+        SetupLeaseAcquired();
+        var response = new TokenResponse
+        {
+            AccessToken = "new-access",
+            TokenType = "DPoP",
+            RefreshToken = "rotated-refresh",
+            ExpiresIn = 300,
+        };
+        var tokenResult = new TokenResult(response);
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<TokenRequest>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(tokenResult)
+            .Verifiable();
+        var writeBackFailure = new BffStoreUnavailableException("The write-back failed.");
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(() => ValueTask.FromException<BffSessionState?>(writeBackFailure))
+            .Verifiable();
+        var releaseFailure = new BffStoreUnavailableException("The release failed.");
+        MockStore
+            .Setup(x => x.ReleaseRefreshLeaseAsync(Lease, CancellationToken.None))
+            .Returns(() => ValueTask.FromException(releaseFailure))
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
+            await Service.GetAccessTokenAsync(httpContext, null, null, CancellationToken.None)
+        );
+
+        Assert.Same(writeBackFailure, exception);
+    }
+
+    [Fact]
     public async Task GetAccessTokenAsync_SessionGoneOnReload_ReturnsSessionRequired()
     {
         var state = CreateState("refresh-token");

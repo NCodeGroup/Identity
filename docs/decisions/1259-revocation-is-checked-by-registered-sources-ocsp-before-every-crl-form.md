@@ -1,6 +1,8 @@
 # 1259. Revocation is checked by registered sources, OCSP before every CRL form
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): a request goes through the
+  one guarded client)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

@@ -28,8 +28,9 @@ the server does not control.
 
 2. **A pipeline bounds each call.** The pipeline is a total timeout, then a retry, then a per-attempt timeout, read from
    `OutboundHttpOptions` (`OpenId:OutboundHttp`: `AttemptTimeout` 10 s, `TotalTimeout` 30 s, `MaxRetryAttempts` 2,
-   `RetryDelay` 1 s), which are validated when the host starts. The retry is exponential with jitter, ignores
-   `Retry-After` because the endpoint chooses that delay, and never retries an unsafe method or a connection or
+   `RetryDelay` 1 s), which are validated when the host starts. The timeouts end when the response headers arrive,
+   because the callers send with `HttpCompletionOption.ResponseHeadersRead`. The retry is exponential with jitter,
+   ignores `Retry-After` because the endpoint chooses that delay, and never retries an unsafe method or a connection or
    name-resolution error. A timeout surfaces as a `TaskCanceledException` with a `TimeoutException` inner exception,
    the shape `HttpClient.Timeout` produces.
 
@@ -60,7 +61,9 @@ the server does not control.
 ## Consequences
 
 - A configuration of the former per-purpose client names has no effect; the one name configures them all.
-- A hostile endpoint costs at most the total timeout and no memory for a response body.
+- A hostile endpoint costs at most the total timeout to answer with its headers, and the deliveries buffer no response
+  body; the capped reader and the per-scope fetch timeouts bound a fetch's body, which the pipeline's timeouts do not
+  cover once the headers have arrived.
 - The `jwks_uri` fetch is not yet single-flight and does not remember a failure, as the template's decisions 4 and 5
   ask; a follow-up issue tracks it.
 - The retry of a revocation-list `GET` runs within `FetchTimeout`, and the remembered failure stays the back-off between

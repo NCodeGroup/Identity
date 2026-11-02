@@ -364,3 +364,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1309](./1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |
 | [1320](./1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md) | A rotated client secret overlaps its replacement until it expires or is deleted | Accepted |
+| [1345](./1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md) | A response that reveals a secret is marked uncacheable by its endpoint | Accepted |

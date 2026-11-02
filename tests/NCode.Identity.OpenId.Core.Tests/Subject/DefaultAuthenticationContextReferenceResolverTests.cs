@@ -69,7 +69,8 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
         var settings = CreateStrictMock<IReadOnlySettingCollection>();
         settings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.DefaultAcr, out baselineOut))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
 
         var request = CreateRequest(
             [OpenIdProtocol.AuthenticationMethods.Password],
@@ -88,7 +89,8 @@ public class DefaultAuthenticationContextReferenceResolverTests : BaseTests
         var settings = CreateStrictMock<IReadOnlySettingCollection>();
         settings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.DefaultAcr, out baselineOut))
-            .Returns(false);
+            .Returns(false)
+            .Verifiable();
 
         var request = CreateRequest(
             [OpenIdProtocol.AuthenticationMethods.Password],

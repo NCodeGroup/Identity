@@ -69,7 +69,7 @@ public class DefaultGetAccessTokenMetadataClaimsHandlerTests : BaseTests
         var mockClient = CreateStrictMock<OpenIdClient>();
         if (settings is not null)
         {
-            mockClient.Setup(x => x.Settings).Returns(settings);
+            mockClient.Setup(x => x.Settings).Returns(settings).Verifiable();
         }
 
         var context = CreateStrictMock<OpenIdContext>().Object;
@@ -90,9 +90,11 @@ public class DefaultGetAccessTokenMetadataClaimsHandlerTests : BaseTests
     {
         var mock = CreateStrictMock<IReadOnlySettingCollection>();
         mock.Setup(x => x.GetValue(OpenIdSettingKeys.SendProfileMetadataInAccessToken))
-            .Returns(profile);
+            .Returns(profile)
+            .Verifiable();
         mock.Setup(x => x.GetValue(OpenIdSettingKeys.SendSystemMetadataInAccessToken))
-            .Returns(system);
+            .Returns(system)
+            .Verifiable();
         return mock.Object;
     }
 

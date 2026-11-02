@@ -73,17 +73,32 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
 
     #region Scaffolding
 
-    private Mock<OpenIdContext> CreateContext(bool supported = true, bool sessionSupported = true)
+    private Mock<OpenIdContext> CreateContext(
+        bool supported = true,
+        bool sessionSupported = true,
+        bool issuesToken = false
+    )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.Issuer).Returns(Issuer);
-        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
-        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockTenantSettings.Object);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        // Only a notification that issues a logout token reads the issuer.
+        if (issuesToken)
+        {
+            mockTenant.SetupGet(x => x.Issuer).Returns(Issuer).Verifiable();
+        }
+
+        mockTenant
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+        mockSettingsProvider
+            .SetupGet(x => x.Collection)
+            .Returns(mockTenantSettings.Object)
+            .Verifiable();
         mockTenantSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.BackChannelLogoutSupported))
             .Returns(supported);
@@ -187,7 +202,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     [Fact]
     public async Task NotifyAsync_WhenConfigured_DispatchesSignedLogoutTokenDeliveryJob()
     {
-        var mockContext = CreateContext();
+        var mockContext = CreateContext(issuesToken: true);
         var mockClient = CreateClient(LogoutUri);
         SetupClientId(mockClient);
         SetupCredentials(
@@ -211,7 +226,6 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
             CancellationToken.None
         );
 
-        MockJobDispatcher.Verify();
         Assert.Equal(LogoutUri, CapturedJob?.LogoutUri);
         Assert.Equal(ClientId, CapturedJob?.ClientId);
         Assert.Equal(LogoutToken, CapturedJob?.LogoutToken);
@@ -286,7 +300,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     [Fact]
     public async Task NotifyAsync_WhenTheTenantDoesNotSupportSessions_OmitsTheSid()
     {
-        var mockContext = CreateContext(sessionSupported: false);
+        var mockContext = CreateContext(sessionSupported: false, issuesToken: true);
         var mockClient = CreateClient(LogoutUri);
         SetupClientId(mockClient);
         SetupCredentials(
@@ -319,7 +333,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     [Fact]
     public async Task NotifyAsync_WhenClientRegistersIdTokenEncryption_EncryptsLogoutTokenWithIssuerInHeader()
     {
-        var mockContext = CreateContext();
+        var mockContext = CreateContext(issuesToken: true);
         var mockClient = CreateClient(LogoutUri);
         SetupClientId(mockClient);
         var encryptionCredentials = new JoseEncryptionCredentials(

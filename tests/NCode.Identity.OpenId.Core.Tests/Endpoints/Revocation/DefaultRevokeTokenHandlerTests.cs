@@ -41,23 +41,35 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
 
     #region Scaffolding
 
+    // A missing token is refused through the error factory; a present one is looked up in the tenant, and only a grant
+    // that is found is compared with the client.
     private (RevokeTokenCommand command, Mock<ITokenRevocationRequest> request) CreateScaffold(
-        string? token
+        string? token,
+        bool findsGrant = true
     )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockRequest = CreateStrictMock<ITokenRevocationRequest>();
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
 
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
-        mockClient.SetupGet(x => x.ClientId).Returns(ClientId);
-        mockRequest.SetupGet(x => x.Token).Returns(token);
-        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+        mockRequest.SetupGet(x => x.Token).Returns(token).Verifiable();
+        if (token is null)
+        {
+            var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+            var mockError = CreateLooseMock<IOpenIdError>();
+            mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+            mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+        }
+        else
+        {
+            var mockTenant = CreateStrictMock<OpenIdTenant>();
+            mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+            mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+            if (findsGrant)
+            {
+                mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+            }
+        }
 
         var command = new RevokeTokenCommand(
             mockContext.Object,
@@ -187,7 +199,7 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenTokenUnknown_DoesNotRevoke()
     {
-        var (command, _) = CreateScaffold(Token);
+        var (command, _) = CreateScaffold(Token, findsGrant: false);
         SetupCreateGrantId();
         SetupGetGrant(grant: null);
 

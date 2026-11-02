@@ -16,6 +16,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 public class EnumAndJsonParameterParserTests : BaseTests
 {
+    private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private readonly OpenIdEnvironment _environment;
     private readonly ParameterDescriptor _allowMissingDescriptor = new(
         "test",
@@ -40,16 +41,24 @@ public class EnumAndJsonParameterParserTests : BaseTests
 
     public EnumAndJsonParameterParserTests()
     {
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        _environment = MockEnvironment.Object;
+    }
+
+    // Only a parser that refuses its input reads the environment's error factory.
+    private void SetupErrorFactory()
+    {
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-        mockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockEnvironment
-            .Setup(x => x.JsonSerializerOptions)
-            .Returns(new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        _environment = mockEnvironment.Object;
+        MockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
+
+    private void SetupJsonSerializerOptions() =>
+        MockEnvironment
+            .Setup(x => x.JsonSerializerOptions)
+            .Returns(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+            .Verifiable();
 
     private static ParameterDescriptor RequiredDescriptor<T>(IParameterParser<T> parser) =>
         new(new KnownParameter<T>("test", parser) { AllowMissingStringValues = false });
@@ -100,6 +109,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void EnumParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = EnumParser<SampleColor>.Singleton;
 
         Assert.Throws<OpenIdException>(() =>
@@ -110,6 +120,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void EnumParser_Parse_WhenTooManyValuesAndNotFlags_Throws()
     {
+        SetupErrorFactory();
         var parser = EnumParser<SampleColor>.Singleton;
 
         Assert.Throws<OpenIdException>(() =>
@@ -124,6 +135,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void EnumParser_Parse_WhenInvalid_Throws()
     {
+        SetupErrorFactory();
         var parser = EnumParser<SampleColor>.Singleton;
 
         Assert.Throws<OpenIdException>(() =>
@@ -163,6 +175,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void JsonParser_GetStringValues_SerializesToJson()
     {
+        SetupJsonSerializerOptions();
         var parser = new JsonParser<SamplePayload>();
 
         var result = parser.GetStringValues(
@@ -178,6 +191,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void JsonParser_Parse_DeserializesFromJson()
     {
+        SetupJsonSerializerOptions();
         var parser = new JsonParser<SamplePayload>();
 
         var result = parser.Parse(
@@ -204,6 +218,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void JsonParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new JsonParser<SamplePayload>();
 
         Assert.Throws<OpenIdException>(() =>
@@ -214,6 +229,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void JsonParser_Parse_WhenTooManyValues_Throws()
     {
+        SetupErrorFactory();
         var parser = new JsonParser<SamplePayload>();
 
         Assert.Throws<OpenIdException>(() =>
@@ -224,6 +240,8 @@ public class EnumAndJsonParameterParserTests : BaseTests
     [Fact]
     public void JsonParser_Parse_WhenInvalidJson_Throws()
     {
+        SetupJsonSerializerOptions();
+        SetupErrorFactory();
         var parser = new JsonParser<SamplePayload>();
 
         Assert.Throws<OpenIdException>(() =>

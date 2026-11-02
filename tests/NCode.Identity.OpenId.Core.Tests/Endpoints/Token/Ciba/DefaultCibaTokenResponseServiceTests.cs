@@ -154,6 +154,5 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         Assert.Equal("id-token-value", result.IdToken);
         Assert.Equal("refresh-token-value", result.RefreshToken);
         Assert.Equal(TimeSpan.FromDays(30), result.RefreshTokenExpiresIn);
-        MockTokenService.Verify();
     }
 }

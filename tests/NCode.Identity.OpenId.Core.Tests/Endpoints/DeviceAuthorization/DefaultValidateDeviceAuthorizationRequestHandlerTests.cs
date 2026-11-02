@@ -39,7 +39,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
 
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         mockErrorFactory
@@ -50,7 +50,8 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
         var grantTypes = grantTypesSupported ?? [OpenIdProtocol.GrantTypes.DeviceCode];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypes!))
-            .Returns(grantTypesSupportedPresent);
+            .Returns(grantTypesSupportedPresent)
+            .Verifiable();
 
         return (mockContext, mockClient, mockRequest);
     }

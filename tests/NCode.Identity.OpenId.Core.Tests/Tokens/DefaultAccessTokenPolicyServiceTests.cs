@@ -65,6 +65,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         var algorithmCollectionProvider =
             _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>();
         var nullChangeToken = CreateStrictMock<INullChangeToken>().Object;
+        MockContext = CreateStrictMock<OpenIdContext>();
 
         Descriptors = new DefaultSettingDescriptorCollection(
             new DefaultSettingDescriptorDataSource(
@@ -107,6 +108,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     private SecretKey TenantKey { get; }
     private SecretKey ResourceServerKey { get; }
     private string? CreatedErrorCode { get; set; }
+    private Mock<OpenIdContext> MockContext { get; }
     private DefaultAccessTokenPolicyService Service { get; }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -172,24 +174,20 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
             .GetRequiredService<ISecretKeyFactory>()
             .CreateEcc(new KeyMetadata { KeyId = "tenant-ec" }, key);
 
+    // The policy reads the tenant's keys once it has settled the token's binding.
     private OpenIdContext CreateContext(params SecretKey[] tenantKeys)
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockSecretsProvider = CreateLooseMock<ISecretKeyCollectionProvider>();
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockTenant.SetupGet(x => x.SecretsProvider).Returns(mockSecretsProvider.Object);
+        MockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant
+            .SetupGet(x => x.SecretsProvider)
+            .Returns(mockSecretsProvider.Object)
+            .Verifiable();
         mockSecretsProvider.SetupGet(x => x.Collection).Returns(CreateKeys(tenantKeys));
-        mockErrorFactory
-            .Setup(x => x.Create(It.IsAny<string>()))
-            .Callback<string>(code => CreatedErrorCode = code)
-            .Returns(mockError.Object);
 
-        return mockContext.Object;
+        return MockContext.Object;
     }
 
     private OpenIdContext CreateContext() => CreateContext(TenantKey);
@@ -241,8 +239,24 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         TokenConfirmation confirmation = default
     ) => Service.Evaluate(CreateContext(), client, confirmation, resolution);
 
+    // A binding the policy refuses is refused before it reads the tenant's keys.
+    private AccessTokenPolicy EvaluateUnboundable(
+        OpenIdClient client,
+        ResourceServerCredentialResolution resolution,
+        TokenConfirmation confirmation = default
+    ) => Service.Evaluate(MockContext.Object, client, confirmation, resolution);
+
+    // Only a refusal reads the error factory.
     private void AssertRefused(string expectedErrorCode, Action evaluate)
     {
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        mockErrorFactory
+            .Setup(x => x.Create(It.IsAny<string>()))
+            .Callback<string>(code => CreatedErrorCode = code)
+            .Returns(mockError.Object);
+
         Assert.Throws<OpenIdException>(evaluate);
         Assert.Equal(expectedErrorCode, CreatedErrorCode);
     }
@@ -408,7 +422,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
 
         AssertRefused(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            () => Evaluate(client, Targeting(resourceServer))
+            () => EvaluateUnboundable(client, Targeting(resourceServer))
         );
     }
 
@@ -421,7 +435,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
 
         AssertRefused(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            () => Evaluate(client, Targeting())
+            () => EvaluateUnboundable(client, Targeting())
         );
     }
 
@@ -475,7 +489,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
 
         AssertRefused(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            () => Evaluate(client, Targeting(resourceServer), CertificateBound)
+            () => EvaluateUnboundable(client, Targeting(resourceServer), CertificateBound)
         );
     }
 
@@ -497,7 +511,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
 
         AssertRefused(
             OpenIdProtocol.ErrorCodes.InvalidRequest,
-            () => Evaluate(client, Targeting(first, second), DPoPBound)
+            () => EvaluateUnboundable(client, Targeting(first, second), DPoPBound)
         );
     }
 
@@ -762,10 +776,10 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
                 _tenantRsa
             );
 
-        Assert.Throws<OpenIdException>(() =>
-            Service.Evaluate(CreateContext(signingOnlyKey), client, default, Targeting())
+        AssertRefused(
+            OpenIdProtocol.ErrorCodes.ServerError,
+            () => Service.Evaluate(CreateContext(signingOnlyKey), client, default, Targeting())
         );
-        Assert.Equal(OpenIdProtocol.ErrorCodes.ServerError, CreatedErrorCode);
     }
 
     #endregion

@@ -89,9 +89,12 @@ public class DefaultEndSessionHandlerTests : BaseTests
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
-        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object).Verifiable();
         if (namesALogin)
         {
             mockSettings

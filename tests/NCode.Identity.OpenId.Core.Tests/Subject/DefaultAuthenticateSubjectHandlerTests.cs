@@ -33,22 +33,67 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
     #region Scaffolding
 
+    // A request that ends before it reads the subject.
+    private DefaultAuthenticateSubjectHandler CreateHandler()
+    {
+        MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
+        MockSessionService = CreateStrictMock<ISessionService>();
+
+        return new DefaultAuthenticateSubjectHandler(
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<IPrincipalResolver>().Object,
+            MockAuditEventRecorder.Object,
+            MockSessionService.Object
+        );
+    }
+
+    // A request that reads the subject; a subject with an id is normalized and resolved to its principal.
     private DefaultAuthenticateSubjectHandler CreateHandler(
         string? subjectId,
         string? resolvedPrincipalId = null
     )
     {
         var mockFactory = CreateStrictMock<IStoreManagerFactory>();
-        var mockManager = CreateStrictMock<IStoreManager>();
         var mockResolver = CreateStrictMock<IPrincipalResolver>();
+
+        MockContext
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns(subjectId)
+            .Verifiable();
+        if (subjectId is not null)
+        {
+            SetupPrincipalResolution(mockFactory, mockResolver, subjectId, resolvedPrincipalId);
+        }
+
+        MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
+        MockSessionService = CreateStrictMock<ISessionService>();
+
+        return new DefaultAuthenticateSubjectHandler(
+            mockFactory.Object,
+            mockResolver.Object,
+            MockAuditEventRecorder.Object,
+            MockSessionService.Object
+        );
+    }
+
+    private void SetupPrincipalResolution(
+        Mock<IStoreManagerFactory> mockFactory,
+        Mock<IPrincipalResolver> mockResolver,
+        string subjectId,
+        string? resolvedPrincipalId
+    )
+    {
+        var mockManager = CreateStrictMock<IStoreManager>();
 
         mockFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockManager.Object);
+            .ReturnsAsync(mockManager.Object)
+            .Verifiable();
         mockManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        mockManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        mockManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         // The resolver maps the authenticated subject to the stable principal id carried into the ticket (ADR-1035).
         mockResolver
             .Setup(x =>
@@ -59,22 +104,12 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(resolvedPrincipalId ?? subjectId ?? string.Empty);
-
-        MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
-        MockSessionService = CreateStrictMock<ISessionService>();
-
-        MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
+            .ReturnsAsync(resolvedPrincipalId ?? subjectId)
+            .Verifiable();
         MockContext
             .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>()))
-            .Returns((ClaimsPrincipal subject, string _) => subject);
-
-        return new DefaultAuthenticateSubjectHandler(
-            mockFactory.Object,
-            mockResolver.Object,
-            MockAuditEventRecorder.Object,
-            MockSessionService.Object
-        );
+            .Returns((ClaimsPrincipal subject, string _) => subject)
+            .Verifiable();
     }
 
     private (
@@ -104,6 +139,13 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         return (command, mockAuthService, mockError);
     }
+
+    // An access token that authenticates a principal completes the request, which reads the error factory.
+    private void SetupCompletionErrorFactory() =>
+        MockContext
+            .SetupGet(x => x.ErrorFactory)
+            .Returns(CreateLooseMock<IOpenIdErrorFactory>().Object)
+            .Verifiable();
 
     private static void SetupAuthenticate(
         Mock<IAuthenticationService> mockAuthService,
@@ -141,7 +183,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var (command, mockAuthService, _) = CreateScaffold();
         SetupAuthenticate(mockAuthService, AuthenticateResult.NoResult());
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
         // No credentials were presented; this is not a login event and must not be audited.
@@ -176,7 +218,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             AuthenticateResult.Fail(new InvalidOperationException("boom"))
         );
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.HasError);
         Assert.Same(mockError.Object, result.Error);
@@ -258,7 +300,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         var (command, mockAuthService, _) = CreateScaffold();
         SetupAuthenticate(mockAuthService, SuccessResultWithSession("sid-1"));
 
-        var handler = CreateHandler("subject-id");
+        var handler = CreateHandler();
         MockSessionService
             .Setup(x =>
                 x.ValidateAndTouchAsync(
@@ -310,16 +352,15 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         MockContext = mockContext;
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockMediator = CreateStrictMock<IMediator>();
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers.Authorization = "Bearer the-access-token";
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
 
+        // The bearer token is validated via the in-environment self-issued access-token command, not AuthenticateAsync.
         mockMediator
             .Setup(x =>
                 x.SendAsync<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>(
@@ -344,12 +385,12 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             new AuthenticateAccessTokenDisposition(principal)
         );
 
+        SetupCompletionErrorFactory();
+
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
-        // The bearer token is validated via the in-environment self-issued access-token command, not AuthenticateAsync.
-        mockMediator.Verify();
         MockAuditEventRecorder.Verify(
             x =>
                 x.RecordSubjectAuthenticatedAsync(
@@ -370,7 +411,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             new AuthenticateAccessTokenDisposition(mockError.Object)
         );
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.HasError);
         Assert.Same(mockError.Object, result.Error);
@@ -393,7 +434,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         // An empty disposition (no principal, no error) means the token could not be read; surface it as undefined.
         var (command, _) = CreateBearerScaffold(default);
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
     }
@@ -407,7 +448,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         mockContext.SetupGet(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
         var command = new AuthenticateResourceRequestCommand(mockContext.Object, RequiredAudiences);
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
     }
@@ -420,10 +461,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         command.OpenIdContext.Http.Request.Headers.Authorization = "Bearer some-access-token";
         SetupAuthenticate(mockAuthService, AuthenticateResult.NoResult());
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
-        mockAuthService.Verify();
     }
 
     #endregion
@@ -440,7 +480,6 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         MockContext = mockContext;
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockMediator = CreateStrictMock<IMediator>();
 
         // RFC 6750 §2.2: a form-encoded POST body carrying 'access_token'.
@@ -456,7 +495,6 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         }
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
 
         // Strict: the command must carry the token from the expected transport, or the setup never matches.
@@ -485,11 +523,12 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             expectedAccessToken: "the-body-access-token"
         );
 
+        SetupCompletionErrorFactory();
+
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
-        mockMediator.Verify();
     }
 
     [Fact]
@@ -503,15 +542,16 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             includeAuthorizationHeader: true
         );
 
+        SetupCompletionErrorFactory();
+
         var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
-        mockMediator.Verify();
     }
 
     private AuthenticateResourceRequestCommand CreateFormBodyCommand(
         string body,
-        IOpenIdErrorFactory errorFactory
+        IOpenIdErrorFactory? errorFactory = null
     )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -523,7 +563,11 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         httpContext.Request.Body = new MemoryStream(SecureEncoding.UTF8.GetBytes(body));
 
         mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(errorFactory);
+        // Only an unreadable form reads the error factory.
+        if (errorFactory is not null)
+        {
+            mockContext.SetupGet(x => x.ErrorFactory).Returns(errorFactory).Verifiable();
+        }
 
         return new AuthenticateResourceRequestCommand(mockContext.Object, RequiredAudiences);
     }
@@ -540,7 +584,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         // The form key limit is 2048 characters.
         var command = CreateFormBodyCommand(new string('k', 2049) + "=v", mockErrorFactory.Object);
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.HasError);
         Assert.Same(mockError.Object, result.Error);
@@ -550,9 +594,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenFormBodyHasNoAccessToken_ReturnsUndefined()
     {
-        var command = CreateFormBodyCommand("a=1", CreateStrictMock<IOpenIdErrorFactory>().Object);
+        var command = CreateFormBodyCommand("a=1");
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
     }

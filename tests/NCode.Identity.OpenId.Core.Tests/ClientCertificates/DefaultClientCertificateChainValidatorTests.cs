@@ -53,24 +53,36 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
 
     private OpenIdClient CreateClient(
         IReadOnlyCollection<string>? trustAnchors,
-        string? revocationMode = OpenIdConstants.ClientCertificateRevocationMode.None
+        string? revocationMode = OpenIdConstants.ClientCertificateRevocationMode.None,
+        bool trusted = false
     )
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
-        mockClient.SetupGet(x => x.ClientId).Returns(ClientId);
+        // Only a refusal logs the client id.
+        if (!trusted)
+        {
+            mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+        }
+
         mockSettings
             .Setup(x =>
                 x.TryGetValue(OpenIdSettingKeys.TlsClientAuthTrustAnchors, out trustAnchors)
             )
             .Returns(trustAnchors is not null)
             .Verifiable();
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.TlsClientAuthRevocationMode, out revocationMode)
-            )
-            .Returns(revocationMode is not null);
+        // A client without trust anchors is refused before its revocation mode is read.
+        if (trustAnchors is { Count: > 0 })
+        {
+            mockSettings
+                .Setup(x =>
+                    x.TryGetValue(OpenIdSettingKeys.TlsClientAuthRevocationMode, out revocationMode)
+                )
+                .Returns(revocationMode is not null)
+                .Verifiable();
+        }
+
         return mockClient.Object;
     }
 
@@ -127,7 +139,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
         using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
-        var client = CreateClient([ToPem(root)]);
+        var client = CreateClient([ToPem(root)], trusted: true);
 
         var result = await CreateValidator()
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -141,7 +153,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
         using var root = TestCertificates.CreateRootAuthority("Root");
         using var intermediate = TestCertificates.CreateIntermediateAuthority(root, "Issuing");
         using var leaf = TestCertificates.CreateClientCertificate(intermediate, "CN=client");
-        var client = CreateClient([ToPem(root)]);
+        var client = CreateClient([ToPem(root)], trusted: true);
 
         var result = await CreateValidator()
             .ValidateAsync(client, Present(leaf, intermediate), CancellationToken.None);
@@ -155,7 +167,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
         using var root = TestCertificates.CreateRootAuthority("Root");
         using var intermediate = TestCertificates.CreateIntermediateAuthority(root, "Issuing");
         using var leaf = TestCertificates.CreateClientCertificate(intermediate, "CN=client");
-        var client = CreateClient([ToPem(root), ToPem(intermediate)]);
+        var client = CreateClient([ToPem(root), ToPem(intermediate)], trusted: true);
 
         var result = await CreateValidator()
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -264,7 +276,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
         using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
-        var client = CreateClient([ToPem(root)], revocationMode: null);
+        var client = CreateClient([ToPem(root)], revocationMode: null, trusted: true);
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
         SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Good);
 
@@ -354,7 +366,8 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
         using var leaf = TestCertificates.CreateClientCertificate(intermediate, "CN=client");
         var client = CreateClient(
             [ToPem(root)],
-            OpenIdConstants.ClientCertificateRevocationMode.Online
+            OpenIdConstants.ClientCertificateRevocationMode.Online,
+            trusted: true
         );
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
         SetupCheck(mockChecker, leaf, intermediate, root, ClientCertificateRevocationStatus.Good);
@@ -375,7 +388,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             "CN=client",
             new ClientCertificateOptions { CrlDistributionPoints = ["http://127.0.0.1:9/root.crl"] }
         );
-        var client = CreateClient([ToPem(root)], revocationMode: null);
+        var client = CreateClient([ToPem(root)], revocationMode: null, trusted: true);
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
         SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Good);
 

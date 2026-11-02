@@ -22,6 +22,17 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
 
     private string? CapturedErrorCode { get; set; }
 
+    // What the handler reads, in order; it stops at the first check that refuses the request, and a poll-mode request
+    // ends at its delivery mode.
+    private enum Reads
+    {
+        GrantTypes,
+        Hints,
+        DeliveryMode,
+        NotificationToken,
+        NotificationEndpoint,
+    }
+
     private (
         Mock<OpenIdContext> context,
         Mock<OpenIdClient> client,
@@ -35,9 +46,17 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         string? loginHintToken = null,
         string? idTokenHint = null,
         string? clientNotificationToken = null,
-        string? clientNotificationEndpoint = null
+        string? clientNotificationEndpoint = null,
+        Reads? readsThrough = null
     )
     {
+        var reads =
+            readsThrough
+            ?? (
+                deliveryMode == OpenIdProtocol.BackchannelTokenDeliveryModes.Poll
+                    ? Reads.DeliveryMode
+                    : Reads.NotificationEndpoint
+            );
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
@@ -56,29 +75,50 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         var grantTypes = grantTypesSupported ?? [OpenIdProtocol.GrantTypes.Ciba];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypes!))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
 
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode))
-            .Returns(deliveryMode);
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported))
-            .Returns(
-                deliveryModesSupported
-                    ??
-                    [
-                        OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
-                        OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
-                    ]
-            );
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint))
-            .Returns(clientNotificationEndpoint ?? string.Empty);
+        if (reads >= Reads.Hints)
+        {
+            mockRequest.SetupGet(x => x.LoginHint).Returns(loginHint).Verifiable();
+            mockRequest.SetupGet(x => x.LoginHintToken).Returns(loginHintToken).Verifiable();
+            mockRequest.SetupGet(x => x.IdTokenHint).Returns(idTokenHint).Verifiable();
+        }
 
-        mockRequest.SetupGet(x => x.LoginHint).Returns(loginHint);
-        mockRequest.SetupGet(x => x.LoginHintToken).Returns(loginHintToken);
-        mockRequest.SetupGet(x => x.IdTokenHint).Returns(idTokenHint);
-        mockRequest.SetupGet(x => x.ClientNotificationToken).Returns(clientNotificationToken);
+        if (reads >= Reads.DeliveryMode)
+        {
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode))
+                .Returns(deliveryMode)
+                .Verifiable();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported))
+                .Returns(
+                    deliveryModesSupported
+                        ??
+                        [
+                            OpenIdProtocol.BackchannelTokenDeliveryModes.Poll,
+                            OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+                        ]
+                )
+                .Verifiable();
+        }
+
+        if (reads >= Reads.NotificationToken)
+        {
+            mockRequest
+                .SetupGet(x => x.ClientNotificationToken)
+                .Returns(clientNotificationToken)
+                .Verifiable();
+        }
+
+        if (reads >= Reads.NotificationEndpoint)
+        {
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint))
+                .Returns(clientNotificationEndpoint ?? string.Empty)
+                .Verifiable();
+        }
 
         return (mockContext, mockClient, mockSettings, mockRequest);
     }
@@ -109,7 +149,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     public async Task HandleAsync_WhenGrantNotAllowed_ThrowsUnauthorizedClient()
     {
         var (context, client, _, request) = CreateScaffold(
-            grantTypesSupported: [OpenIdProtocol.GrantTypes.AuthorizationCode]
+            grantTypesSupported: [OpenIdProtocol.GrantTypes.AuthorizationCode],
+            readsThrough: Reads.GrantTypes
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
@@ -121,7 +162,10 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     [Fact]
     public async Task HandleAsync_WhenNoHint_ThrowsInvalidRequest()
     {
-        var (context, client, _, request) = CreateScaffold(loginHint: null);
+        var (context, client, _, request) = CreateScaffold(
+            loginHint: null,
+            readsThrough: Reads.Hints
+        );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
@@ -134,7 +178,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     {
         var (context, client, _, request) = CreateScaffold(
             loginHint: "user@localhost",
-            idTokenHint: "an-id-token"
+            idTokenHint: "an-id-token",
+            readsThrough: Reads.Hints
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
@@ -147,7 +192,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     public async Task HandleAsync_WhenUnsupportedDeliveryMode_ThrowsInvalidRequest()
     {
         var (context, client, _, request) = CreateScaffold(
-            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Push
+            deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Push,
+            readsThrough: Reads.DeliveryMode
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
@@ -161,7 +207,8 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     {
         var (context, client, _, request) = CreateScaffold(
             deliveryMode: OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
-            clientNotificationToken: null
+            clientNotificationToken: null,
+            readsThrough: Reads.NotificationToken
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>

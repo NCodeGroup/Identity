@@ -67,7 +67,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     private static SubjectAuthentication CreateSubjectAuthentication() =>
         new("scheme", new AuthenticationProperties(), new ClaimsPrincipal(), "subject-id");
 
-    private Scaffold CreateScaffold(string authRequestClientId)
+    private Scaffold CreateScaffold(string authRequestClientId, bool readsTenant = false)
     {
         string? capturedErrorCode = null;
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -79,11 +79,16 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
 
-        // ErrorFactory and the two client ids are read before the first branch on every path; the client settings are
-        // read only on the PKCE path, so the tests that reach it set them up (CreatePkceScaffold).
+        // ErrorFactory and the two client ids are read before the first branch on every path; the tenant is read only
+        // once the client's allowed scopes are looked up, and the client settings only on the PKCE path, so the tests
+        // that reach them set them up (CreatePkceScaffold).
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
+        if (readsTenant)
+        {
+            mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+            mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        }
+
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
         mockAuthRequest.SetupGet(x => x.ClientId).Returns(authRequestClientId).Verifiable();
         mockErrorFactory
@@ -119,7 +124,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         List<string>? requestedScopes = null
     )
     {
-        var scaffold = CreateScaffold(ClientId);
+        var scaffold = CreateScaffold(ClientId, readsTenant: true);
         var mockMediator = CreateStrictMock<IMediator>();
 
         scaffold.TokenRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();
@@ -298,7 +303,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenEffectiveScopeNotSupported_ThrowsOpenIdException()
     {
-        var scaffold = CreateScaffold(ClientId);
+        var scaffold = CreateScaffold(ClientId, readsTenant: true);
 
         scaffold.TokenRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();
         scaffold.AuthRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();

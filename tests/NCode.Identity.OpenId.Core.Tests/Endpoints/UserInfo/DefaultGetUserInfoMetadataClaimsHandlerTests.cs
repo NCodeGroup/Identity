@@ -41,19 +41,21 @@ public class DefaultGetUserInfoMetadataClaimsHandlerTests : BaseTests
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.SendProfileMetadataInUserInfo))
-            .Returns(profile);
+            .Returns(profile)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.SendSystemMetadataInUserInfo))
-            .Returns(system);
+            .Returns(system)
+            .Verifiable();
 
         var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
-        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object);
+        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object).Verifiable();
 
         var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
 
         var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
 
         var subjectAuthentication = new SubjectAuthentication(
             "scheme",

@@ -30,7 +30,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
         MockMediator = CreateStrictMock<IMediator>();
 
         var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.SetupGet(x => x.Mediator).Returns(MockMediator.Object);
+        mockContext.SetupGet(x => x.Mediator).Returns(MockMediator.Object).Verifiable();
         OpenIdContext = mockContext.Object;
 
         HttpContext = new DefaultHttpContext();

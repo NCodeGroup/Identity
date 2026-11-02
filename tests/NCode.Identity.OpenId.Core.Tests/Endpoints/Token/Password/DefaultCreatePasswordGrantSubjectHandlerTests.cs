@@ -35,7 +35,8 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(() => ValueTask.FromResult(ResolvedAcr));
+            .Returns(() => ValueTask.FromResult(ResolvedAcr))
+            .Verifiable();
 
         Handler = new DefaultCreatePasswordGrantSubjectHandler(
             MockResolver.Object,
@@ -50,18 +51,22 @@ public class DefaultCreatePasswordGrantSubjectHandlerTests : BaseTests
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.SubjectClaimTypes))
-            .Returns(new[] { "sub" });
-        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim)).Returns("iss");
+            .Returns(new[] { "sub" })
+            .Verifiable();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim))
+            .Returns("iss")
+            .Verifiable();
 
         var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
-        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object);
+        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object).Verifiable();
 
         var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
+        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
 
         var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
 
         return new CreatePasswordGrantSubjectCommand(mockContext.Object, account);
     }

@@ -487,7 +487,6 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockTokenResponse.Object, result);
-        MockTokenResponseService.Verify();
     }
 
     [Fact]

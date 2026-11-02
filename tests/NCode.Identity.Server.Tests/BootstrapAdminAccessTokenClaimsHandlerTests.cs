@@ -17,8 +17,9 @@ public class BootstrapAdminAccessTokenClaimsHandlerTests : BaseTests
     private const string BootstrapClientId = "bootstrap-admin";
     private const string BootstrapTenantId = "default";
 
-    private BootstrapAdminAccessTokenClaimsHandler CreateHandler(BootstrapAdminOptions options) =>
-        new(Options.Create(options));
+    private static BootstrapAdminAccessTokenClaimsHandler CreateHandler(
+        BootstrapAdminOptions options
+    ) => new(Options.Create(options));
 
     private static BootstrapAdminOptions ConfiguredOptions() =>
         new()

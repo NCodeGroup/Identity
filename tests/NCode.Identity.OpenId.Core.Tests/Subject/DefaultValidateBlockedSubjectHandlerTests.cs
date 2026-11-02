@@ -82,7 +82,7 @@ public class DefaultValidateBlockedSubjectHandlerTests : BaseTests
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 
-    private ValidateSubjectStandingCommand CreateCommand(
+    private static ValidateSubjectStandingCommand CreateCommand(
         Mock<OpenIdContext> mockContext,
         OperationDisposition<IOpenIdError> disposition
     )

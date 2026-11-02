@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.OpenId.Host.Database;
+using NCode.Identity.OpenId.Host.MigrationService.Logging;
 
 namespace NCode.Identity.OpenId.Host.MigrationService;
 
@@ -32,13 +33,13 @@ internal sealed class MigrationWorker(
                         + "worker another way."
                 );
 
-            logger.LogInformation("Applying host database migrations.");
+            logger.MigrationsApplying();
             await MigrationRunner.MigrateAllAsync(serviceProvider, connectionString, stoppingToken);
-            logger.LogInformation("Host database migrations applied successfully.");
+            logger.MigrationsApplied();
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Host database migration failed.");
+            logger.MigrationsFailed(exception);
             Environment.ExitCode = 1;
         }
         finally

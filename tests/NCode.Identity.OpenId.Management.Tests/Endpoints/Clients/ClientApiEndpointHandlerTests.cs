@@ -2439,6 +2439,32 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 ),
             Times.Never
         );
+        MockAuthorizationService.Verify(
+            x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is TenantOwnedResource<PersistedSecret>
+                        && ((TenantOwnedResource<PersistedSecret>)resource).Value.SecretId
+                            == "secret-1"
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Update)
+                    )
+                ),
+            Times.Once
+        );
+        MockAuthorizationService.Verify(
+            x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Delete)
+                    )
+                ),
+            Times.Never
+        );
     }
 
     [Fact]
@@ -2635,6 +2661,98 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenUpdateOfTheRotatedSecretIsDenied_ReturnsForbidden()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupRotateAuthorization(
+            createResult: AuthorizationResult.Success(),
+            updateResult: AuthorizationResult.Failed()
+        );
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenCreateIsDenied_ReturnsForbidden()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupRotateAuthorization(
+            createResult: AuthorizationResult.Failed(),
+            updateResult: AuthorizationResult.Success()
+        );
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    // Rotation is authorized as the create and the update it performs, so each requirement is set up on its own. A
+    // setup that is not reached because the other requirement already failed is not verified.
+    private void SetupRotateAuthorization(
+        AuthorizationResult createResult,
+        AuthorizationResult updateResult
+    )
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Create)
+                    )
+                )
+            )
+            .ReturnsAsync(createResult)
+            .Verifiable();
+        var updateSetup = MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Update)
+                    )
+                )
+            )
+            .ReturnsAsync(updateResult);
+        if (createResult.Succeeded)
+        {
+            updateSetup.Verifiable();
+        }
     }
 
     [Fact]

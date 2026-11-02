@@ -69,7 +69,15 @@ internal class BffLogoutHandler
             return;
         }
 
-        var form = await request.ReadFormAsync(cancellationToken);
+        var form = await TryReadFormAsync(request, cancellationToken);
+        if (form is null)
+        {
+            await WriteInvalidRequestAsync(
+                httpContext,
+                "The logout request is not a valid form post."
+            );
+            return;
+        }
 
         var returnUrlValues = form[ReturnUrlParameterName];
         if (returnUrlValues.Count > 1)
@@ -142,6 +150,22 @@ internal class BffLogoutHandler
         };
         var location = QueryHelpers.AddQueryString(endpoint, parameters);
         httpContext.Response.Redirect(location);
+    }
+
+    // A malformed body, or one over the form limits, throws InvalidDataException: the request is bad, not the server.
+    private static async ValueTask<IFormCollection?> TryReadFormAsync(
+        HttpRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await request.ReadFormAsync(cancellationToken);
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
     }
 
     private static bool IsGuardMatch(string sid, string guard)

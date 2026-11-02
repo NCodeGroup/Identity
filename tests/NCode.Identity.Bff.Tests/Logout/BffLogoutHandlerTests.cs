@@ -145,6 +145,18 @@ public class BffLogoutHandlerTests : BaseTests
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task HandleAsync_FormOverTheKeyLengthLimit_WritesBadRequest()
+    {
+        var formKey = new string('k', 2049);
+        var httpContext = CreateHttpContext($"{formKey}=value");
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("sid=wrong-value")]

@@ -69,7 +69,8 @@ public static class IdentityServerBuilderExtensions
         /// the OCSP responses and revocation lists a mutual-TLS client certificate names are retrieved and
         /// cached.</description></item>
         /// <item><description><c>OutboundHttp</c> — <see cref="OutboundHttpOptions"/>: how long a call to a
-        /// caller-supplied URL may take and how often it is retried.</description></item>
+        /// caller-supplied URL may take, how often it is retried, and how long a failed <c>jwks_uri</c> fetch is
+        /// remembered.</description></item>
         /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
         /// kept and how often they are removed.</description></item>
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its

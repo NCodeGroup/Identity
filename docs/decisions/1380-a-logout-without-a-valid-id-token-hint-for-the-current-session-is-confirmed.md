@@ -7,8 +7,8 @@
 
 ## Context
 
-The `end_session_endpoint` ended the end-user's session for any request that reached it, so a cross-site link or form
-signed the end-user out (logout CSRF). OpenID Connect RP-Initiated Logout 1.0 section 2 says "the OP MUST ask the
+An `end_session_endpoint` that ends the end-user's session for any request that reaches it lets a cross-site link or form
+sign the end-user out (logout CSRF). OpenID Connect RP-Initiated Logout 1.0 section 2 says "the OP MUST ask the
 End-User this question if an id_token_hint was not provided or if the supplied ID Token does not belong to the current
 OP session with the RP and/or currently logged in End-User"
 ([#494](https://github.com/NCodeGroup/Identity/issues/494)).
@@ -60,8 +60,8 @@ OP session with the RP and/or currently logged in End-User"
    `IContinueRefusalService` and redirects to the account page, leaving the session.
 
 8. **A logout that saw no login clears nothing.** A logout whose subject names no `SubjectId` and no `SessionId` saw no
-   login, so `DefaultEndSessionHandler` then skips `SignOutAsync` and `ClearBrowserState`: a cross-site POST, which the
-   SameSite=Lax login cookie does not accompany, can no longer clear the login through the response's `Set-Cookie`.
+   login, so `DefaultEndSessionHandler` skips `SignOutAsync` and `ClearBrowserState`: a cross-site POST, which the
+   SameSite=Lax login cookie does not accompany, cannot clear the login through the response's `Set-Cookie`.
 
 ## Alternatives considered
 

@@ -21,19 +21,21 @@
 
     0000-template.md is the template, not a decision, so it is deliberately absent from the index.
 
-.PARAMETER Directory
-    The ADR directory that holds README.md and the ADR files. Defaults to docs/decisions under the repository root.
+.PARAMETER Root
+    The repository root, whose docs/decisions folder holds README.md and the ADR files. Defaults to the folder above
+    this script's.
 
 .EXAMPLE
     ./build/adr-index.ps1
 #>
 [CmdletBinding()]
 param(
-    [string]$Directory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'docs/decisions')
+    [string]$Root = (Split-Path -Parent $PSScriptRoot)
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$Directory = Join-Path $Root 'docs/decisions'
 
 $indexPath = Join-Path $Directory 'README.md'
 $indexLines = @(Get-Content -LiteralPath $indexPath)

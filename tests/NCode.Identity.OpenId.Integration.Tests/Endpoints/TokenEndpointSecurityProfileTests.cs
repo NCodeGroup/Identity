@@ -262,13 +262,13 @@ public class TokenEndpointSecurityProfileTests
     [Fact]
     public async Task GetDiscovery_WhenThePersistedServerSelectsFapi2_AdvertisesItsCeilings()
     {
-        using var factory = new HostApplicationFactory();
-        await factory.SeedServerSettingsAsync(
-            new Dictionary<string, object>
+        using var factory = new HostApplicationFactory
+        {
+            PersistedServerSettings = new Dictionary<string, object>
             {
                 ["security_profiles"] = (string[])[OpenIdConstants.SecurityProfiles.Fapi2],
-            }
-        );
+            },
+        };
 
         var client = CreateClient(factory);
         using var response = await client.GetAsync(DiscoveryPath);

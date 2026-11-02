@@ -62,21 +62,25 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     public const string MutualTlsCertificateHeaderName = "X-Client-Cert";
 
     /// <summary>
-    /// When set, overrides the SSRF-guarded client <c>jwks_uri</c> HTTP client with a stub that serves the JSON this
-    /// responder returns, so a <c>jwks_uri</c> fetch can be exercised without a real network connection.
+    /// When set, overrides the primary handler of the one SSRF-guarded outbound client with a stub that serves the JSON
+    /// this responder returns to every <c>GET</c>, so a <c>jwks_uri</c> fetch can be exercised without a real network
+    /// connection. It cannot be set together with <see cref="CertificateRevocationListResponder"/>, because both are
+    /// <c>GET</c> requests on the one client.
     /// </summary>
     public Func<HttpRequestMessage, string>? ClientJwksResponder { get; set; }
 
     /// <summary>
-    /// When set, overrides the SSRF-guarded certificate revocation HTTP client with a stub that serves the DER bytes
-    /// this responder returns, so a CRL fetch can be exercised without a real network connection.
+    /// When set, overrides the primary handler of the one SSRF-guarded outbound client with a stub that serves the DER
+    /// bytes this responder returns to every <c>GET</c>, so a CRL fetch can be exercised without a real network
+    /// connection. It cannot be set together with <see cref="ClientJwksResponder"/>, because both are <c>GET</c>
+    /// requests on the one client.
     /// </summary>
     public Func<HttpRequestMessage, byte[]>? CertificateRevocationListResponder { get; set; }
 
     /// <summary>
-    /// When set, overrides the SSRF-guarded back-channel logout HTTP client with a stub that answers <c>200 OK</c> to
-    /// every <c>POST</c> and records it in this queue, so the logout token the OP delivers to a client's
-    /// <c>backchannel_logout_uri</c> can be captured without a real network connection. The delivery runs on a
+    /// When set, overrides the primary handler of the one SSRF-guarded outbound client with a stub that answers
+    /// <c>200 OK</c> to every <c>POST</c> and records it in this queue, so the logout token the OP delivers to a
+    /// client's <c>backchannel_logout_uri</c> can be captured without a real network connection. The delivery runs on a
     /// background worker, so a test polls the queue after the request that terminates the session.
     /// </summary>
     internal ConcurrentQueue<RecordedHttpExchange>? BackChannelLogoutExchanges { get; set; }
@@ -102,50 +106,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
-    /// Persists the server's own settings document. The server is materialized once, by the first request that needs
-    /// it, and loads this document then, so this must be called before the factory serves any request.
+    /// Gets or sets the server's own settings document, persisted before the host starts so the server materializes
+    /// with it. Set it before the factory serves any request or reads <see cref="WebApplicationFactory{TEntryPoint}.Services"/>.
     /// </summary>
-    /// <param name="settings">The server's settings document.</param>
-    public async Task SeedServerSettingsAsync(IReadOnlyDictionary<string, object> settings)
-    {
-        const string serverId = OpenIdServerOptions.DefaultServerId;
-
-        using var scope = Services.CreateScope();
-        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-        await using var storeManager = await storeManagerFactory.CreateAsync(
-            CancellationToken.None
-        );
-        var store = storeManager.GetStore<IServerStore>();
-
-        if (await store.GetOrDefaultAsync(serverId, CancellationToken.None) is not null)
-        {
-            throw new InvalidOperationException(
-                "The server is already persisted, so it may already be materialized with its earlier settings."
-            );
-        }
-
-        var persistedServer = new PersistedServer
-        {
-            ServerId = serverId,
-            ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            DisplayName = serverId,
-            Settings = new PersistedServerSettings
-            {
-                ServerId = serverId,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                Value = System.Text.Json.JsonSerializer.SerializeToElement(settings),
-            },
-            Secrets = new PersistedServerSecrets
-            {
-                ServerId = serverId,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                Value = [],
-            },
-        };
-
-        await store.AddAsync(persistedServer, CancellationToken.None);
-        await storeManager.SaveChangesAsync(CancellationToken.None);
-    }
+    public IReadOnlyDictionary<string, object>? PersistedServerSettings { get; set; }
 
     /// <summary>
     /// Ensures the tenant exists (persisted lazily on first request) and seeds a public client
@@ -1307,6 +1271,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     .ConfigurePrimaryHttpMessageHandler(() =>
                         new StubOutboundHttpMessageHandler(getHandler, postHandler)
                     );
+            }
+
+            // The reconciliation service materializes and persists the server when the host starts, so a persisted
+            // server document is seeded from the host's own lifecycle, before any hosted service starts.
+            if (PersistedServerSettings is { } persistedServerSettings)
+            {
+                serviceCollection.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(
+                    provider => new PersistedServerSeedService(
+                        provider.GetRequiredService<IServiceScopeFactory>(),
+                        persistedServerSettings
+                    )
+                );
             }
 
             // The TestServer terminates no TLS, so mutual-TLS client authentication is exercised by forwarding the

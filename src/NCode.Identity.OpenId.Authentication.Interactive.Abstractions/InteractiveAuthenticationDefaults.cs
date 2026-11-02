@@ -59,6 +59,12 @@ public static class InteractiveAuthenticationDefaults
     public const string LogoutPath = "/account/logout";
 
     /// <summary>
+    /// The request path of the logout confirmation page, which its form posts to; the end-session endpoint redirects to
+    /// it when a logout needs the end-user's confirmation.
+    /// </summary>
+    public const string LogoutConfirmPath = "/account/logout/confirm";
+
+    /// <summary>
     /// The request path of the self-service "authorized applications" page, where the end-user reviews and revokes the
     /// applications they have granted standing consent to.
     /// </summary>

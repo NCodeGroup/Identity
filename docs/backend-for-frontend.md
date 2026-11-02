@@ -216,7 +216,7 @@ flowchart LR
     OP["OpenID Provider<br/>NCode or any compliant OP"]
     RS["Resource servers<br/>Bearer or DPoP"]
 
-    SPA -- "navigation: /bff/login, /bff/logout" --> EP
+    SPA -- "navigation: /bff/login; form post: /bff/logout" --> EP
     SPA -- "fetch + session cookie + X-CSRF: 1" --> GATE
     GATE --> LOCAL
     GATE --> PROXY
@@ -242,9 +242,9 @@ The flow follows RFC 10017 Figure 1:
    token, creates the session, sets the cookie, and redirects to the allow-listed return URL.
 4. **API calls.** The SPA calls local or remote APIs with the cookie and the header. The BFF resolves the session,
    obtains the right access token (refreshing it if needed), and either runs the local endpoint or forwards the call.
-5. **Logout.** The SPA navigates to the `logout_url` from step 1. The BFF revokes the refresh token, deletes the
-   session, and redirects to the OP's `end_session_endpoint`. When the session ends at the OP, a back-channel
-   `logout_token` ends it at the BFF too.
+5. **Logout.** The SPA posts a form to the `logoutUrl` from step 1, with the `logoutSid` as its `sid` field. The BFF
+   revokes the refresh token, deletes the session, and redirects to the OP's `end_session_endpoint`. When the session
+   ends at the OP, a back-channel `logout_token` ends it at the BFF too.
 
 ### 4.1 Packages
 
@@ -634,8 +634,8 @@ itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable opera
 | ------------------------------ | ------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `/bff/login?returnUrl=`        | `GET`, navigation   | Starts the code flow and redirects to the OP                                 | `returnUrl` must be an allow-listed relative path. Login CSRF is stopped by the binding in [§5.2](#52-login-transaction-and-callback-binding). |
 | `/bff/callback`                | `GET`, navigation   | The `redirect_uri`. Completes login and redirects to the return URL          | The guarantees in [§5.2](#52-login-transaction-and-callback-binding)                                                             |
-| `/bff/user`                    | `GET`, `fetch`      | Session probe: allow-listed claims, expiry, `logout_url`                    | Anti-forgery header and Fetch Metadata. Answers `401` JSON when there is no session, never a redirect.                            |
-| `/bff/logout?sid=&returnUrl=`  | `GET`, navigation   | Ends the session and runs RP-initiated logout                                | `sid` must equal the session's logout guard ([§5.8](#58-logout-and-back-channel-logout)). `returnUrl` is allow-listed.             |
+| `/bff/user`                    | `GET`, `fetch`      | Session probe: allow-listed claims, expiry, `logoutUrl`, `logoutSid`        | Anti-forgery header and Fetch Metadata. Answers `401` JSON when there is no session, never a redirect.                            |
+| `/bff/logout`                  | `POST`, navigation  | Ends the session and runs RP-initiated logout                                | The form's `sid` must equal the session's logout guard ([§5.8](#58-logout-and-back-channel-logout)). `returnUrl` is allow-listed. |
 | `/bff/backchannel-logout`      | `POST` form         | Receives the OP's `logout_token`                                             | Validates the logout token ([§5.8](#58-logout-and-back-channel-logout)). No cookie or CSRF check, because it is a server-to-server call. |
 | `/bff/jwks`                    | `GET`               | Optional. The BFF's public client-authentication keys                        | Public data                                                                                                                      |
 
@@ -647,12 +647,13 @@ itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable opera
   "name": "Jane Doe",
   "claims": { "email": "jane@example.com", "role": ["admin", "auditor"] }, // the frontend's allow-listed claims
   "session": { "expiresAt": 1792540800, "idleExpiresAt": 1792515600 },
-  "logoutUrl": "/bff/logout?sid=Qm9v…" // carries the logout guard
+  "logoutUrl": "/bff/logout",
+  "logoutSid": "Qm9v…" // the logout guard
 }
 ```
 
 A claim leaves the BFF only when the frontend allow-lists it. Contributors may add computed fields
-([§5.11](#511-extensibility-seams)), but the `sub`, `name`, `session`, and `logoutUrl` keys are reserved. The `iss`,
+([§5.11](#511-extensibility-seams)), but the `sub`, `name`, `session`, `logoutUrl`, and `logoutSid` keys are reserved. The `iss`,
 `sid`, `at_hash`, `nonce`, and token claims are never returned.
 
 **Return URLs** must be relative and start with exactly one `/`. They are rejected when they contain `//`, a backslash,
@@ -662,11 +663,15 @@ the allow-listed path. That URL must also be registered with the OP.
 
 ### 5.8 Logout and back-channel logout
 
-**User logout** is `GET /bff/logout?sid=<guard>&returnUrl=<path>`:
+**User logout** is `POST /bff/logout` with the form fields `sid=<guard>` and `returnUrl=<path>`. A frontend submits
+`<form method="post" action="{logoutUrl}">` with a hidden `sid` input that holds `logoutSid`. A form post is a top-level
+navigation, so it follows the redirect to the provider. `GET` is not accepted
+([ADR-1311](decisions/1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md)):
 
 1. When a session exists, `sid` must equal the session's **logout guard**: a random value minted at login and exposed
-   only through `/bff/user`. The comparison is constant-time. A mismatch answers `400`, so a cross-site page cannot log
-   the user out. The `Strict` cookie already stops cross-site navigations; the guard covers same-site ones.
+   only through `/bff/user`. It acts as the form's synchronizer token. The comparison is constant-time. A mismatch
+   answers `400`, so a cross-site page cannot log the user out. The `Strict` cookie already stops cross-site
+   navigations; the guard covers same-site ones.
 2. The BFF revokes the refresh token at the OP's `revocation_endpoint` with `token_type_hint=refresh_token`
    (RFC 7009). This is best effort, because the OP's end-session step revokes the session's grants anyway
    ([ADR-1077](decisions/1077-session-scoped-grant-revocation-on-logout.md)).
@@ -771,7 +776,7 @@ runs.
 | Login gates (`IBffLoginGate`)            | Strategy collection           | Reject a validated login before a session exists, for example a disabled account or a missing `acr`. **Reject only.**        |
 | Session claim contributors (`IBffSessionClaimContributor`) | Strategy collection | Shape the session principal **once**, at login, before the login gates. A good place for an expensive lookup. `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr` cannot be added or removed. |
 | Session validators (`IBffSessionValidator`) | Strategy collection        | Per-request checks that can only end a session, for example re-checking account status at an interval.                        |
-| `/bff/user` contributors (`IBffUserContributor`) | Strategy collection | Add computed fields to the session probe, never into the reserved keys (`sub`, `name`, `claims`, `session`, `logoutUrl`). |
+| `/bff/user` contributors (`IBffUserContributor`) | Strategy collection | Add computed fields to the session probe, never into the reserved keys (`sub`, `name`, `claims`, `session`, `logoutUrl`, `logoutSid`). |
 | Remote-API destination resolver          | Service                       | Dynamic routing. It must return an allow-listed destination.                                                                  |
 | Events                                   | `NCode.Identity.Events`       | Lifecycle events go through the family's `IEventPublisher`, and audit-worthy ones are `IAuditEvent`s.                        |
 

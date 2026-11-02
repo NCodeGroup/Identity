@@ -77,7 +77,7 @@ internal class BffAuthenticationHandler(
         var bffOptions = _options.Value;
         var request = Request;
         var returnUrl = $"{request.Path}{request.QueryString}";
-        if (!BffReturnUrls.IsAllowed(returnUrl, bffOptions.ReturnUrls))
+        if (!BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
             returnUrl = "/";
 
         var loginUrl = BffNavigation.LocalUrl(request, bffOptions.PathPrefix + LoginPath);
@@ -92,7 +92,7 @@ internal class BffAuthenticationHandler(
         if (!BffGuardedEndpoints.IsApi(Context.GetEndpoint()))
         {
             throw new InvalidOperationException(
-                "SignOutAsync with the BFF scheme ends a session only on an endpoint marked AsBffApi() or [BffApi], whose anti-forgery checks keep another site from ending it; a page sends the browser to /bff/logout."
+                "SignOutAsync with the BFF scheme ends a session only on an endpoint marked AsBffApi() or [BffApi], whose anti-forgery checks keep another site from ending it; a page posts a form to /bff/logout."
             );
         }
 

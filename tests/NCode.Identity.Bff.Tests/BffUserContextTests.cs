@@ -20,6 +20,7 @@ public class BffUserContextTests : BaseTests
     [InlineData("claims")]
     [InlineData("session")]
     [InlineData("logoutUrl")]
+    [InlineData("logoutSid")]
     public void AddField_WithAReservedName_Throws(string name)
     {
         var context = CreateContext();

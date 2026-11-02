@@ -42,11 +42,11 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// <remarks>
 /// Each factory instance uses its own uniquely-named in-memory database so tests are fully isolated
 /// (EF Core caches its internal service provider by option configuration, so a shared database name
-/// would cause parallel test hosts to collide). At present the tenant has no signing keys; once an
-/// ephemeral development key composition exists, this factory (or a derived one) can apply it so that
-/// token-signing and a non-empty JWKS can be asserted. A host is stopped through its own run loop
-/// (<see cref="ApplicationRunLoopHost"/>), so each hosted service is stopped once.
+/// would cause parallel test hosts to collide). The tenant signs with the keys the host provisions when it first seeds
+/// the tenant, stored in that database under the factory's own root key. A host is stopped through its own
+/// run loop (<see cref="ApplicationRunLoopHost"/>), so each hosted service is stopped once.
 /// </remarks>
+// See ADR-1169.
 public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
     /// <summary>The tenant id used by the host's static single-tenant provider.</summary>
@@ -196,10 +196,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
-    /// federated identity that a real interactive login provisions (ADR-1035), so the UserInfo scope-claims enricher
+    /// federated identity that a real interactive login provisions, so the UserInfo scope-claims enricher
     /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries
     /// as its public <c>sub</c>, which the enricher resolves the local account from.
     /// </summary>
+    // See ADR-1035.
     public async Task<string> SeedLocalAccountAsync(
         string localAccountId,
         string? email = null,
@@ -1063,8 +1064,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Persists the tenant with the given settings and no keys, so the tenant's keys are the ones the host provisions
-    /// when it first seeds the tenant (<c>OpenId:Tenant:KeyProvisioning</c>, under <c>DeveloperKeys:Mode</c>
-    /// <c>None</c>). The tenant reads its settings and keys when it is first served, so this must be called before the
+    /// when it first seeds the tenant (<c>OpenId:Tenant:KeyProvisioning</c>). The tenant reads its settings and keys when
+    /// it is first served, so this must be called before the
     /// factory serves any request.
     /// </summary>
     /// <param name="settings">The tenant's settings document.</param>

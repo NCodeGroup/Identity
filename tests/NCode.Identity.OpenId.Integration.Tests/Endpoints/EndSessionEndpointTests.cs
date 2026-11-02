@@ -22,10 +22,10 @@ public class EndSessionEndpointTests
     private const string ReturnUrl = "/foo";
 
     private const string EndSessionPath = "/oauth2/end_session";
-    private const string InteractiveCookieName = "NCode.Identity.Interactive";
-    private const string AntiforgeryRequestCookieName = "XSRF-TOKEN";
+    private const string InteractiveCookieName = "__Host-NCode.Identity.Interactive";
+    private const string AntiforgeryRequestCookieName = "__Host-XSRF-TOKEN";
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
-    private const string AntiforgeryCookiePrefix = ".AspNetCore.Antiforgery";
+    private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
     [Fact]
     public async Task GetEndSession_WhenAuthenticated_ClearsSessionCookieAndRendersLoggedOut()

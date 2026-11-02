@@ -164,7 +164,6 @@ standard output, with a UTC timestamp, so a log collector keeps an entry and its
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 
 - `AllowedHosts`: the public host names. A missing value or `*` is refused.
-- `DeveloperKeys__Mode=None`: every tenant gets persisted signing keys instead of developer keys.
 - `SecretProtection__RootKeyProvider`: a real root key provider (not `ephemeral`) with its settings, such as
   `SecretProtection__RootKeyProviders__Local__KeyPath` for `local`, and either
   `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running

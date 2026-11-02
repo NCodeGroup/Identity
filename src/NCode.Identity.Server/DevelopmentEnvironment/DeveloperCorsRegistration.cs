@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Registration;
@@ -19,11 +18,12 @@ namespace NCode.Identity.Server;
 /// discovery document and call the management API during local development.
 /// </summary>
 /// <remarks>
-/// Allowed origins come from <see cref="DeveloperCorsOptions"/>, bound from the <c>Cors</c> configuration section. When
-/// none are configured, a Development host defaults to the local Vite dev/preview origins; any other environment allows
-/// no origins. This is intentionally NOT part of the default registrations, and <c>AddDevelopmentEnvironment</c> does
-/// not register it in Production.
+/// Allowed origins come from <see cref="DeveloperCorsOptions"/>, bound from the <c>Cors</c> configuration section. The
+/// section is the opt-in: without it no policy is registered, and the library carries no origins of its own. The host's
+/// Development overlay lists the origins it allows. This is intentionally NOT part of the default
+/// registrations.
 /// </remarks>
+// See ADR-1313.
 [PublicAPI]
 public static class DeveloperCorsRegistration
 {
@@ -32,26 +32,13 @@ public static class DeveloperCorsRegistration
     /// </summary>
     public const string PolicyName = "NCode.Identity.Server.DeveloperCors";
 
-    private static readonly string[] DefaultDevelopmentOrigins =
-    [
-        // Management console dev server (apps/mgmt).
-        "https://localhost:5173",
-        // Playground flow-explorer dev server (apps/playground).
-        "https://localhost:5174",
-        // Conformance posture dashboard dev server (apps/conformance).
-        "https://localhost:5175",
-        // Vite preview origin.
-        "http://localhost:4173",
-        "https://localhost:4173",
-    ];
-
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
         /// Registers the development CORS policy (<see cref="PolicyName"/>) whose allowed origins come from
-        /// <see cref="DeveloperCorsOptions"/>, defaulting to the local Vite dev/preview origins in a Development
-        /// environment. Apply it to the request pipeline with <c>UseDeveloperCors</c>. It must not be used to grant
-        /// production cross-origin access implicitly.
+        /// <see cref="DeveloperCorsOptions"/>. It registers nothing without a <c>Cors</c> section: the library carries no
+        /// origins, and the host's Development overlay lists them. Apply the policy to the request pipeline
+        /// with <c>UseDeveloperCors</c>. It must not be used to grant production cross-origin access implicitly.
         /// </summary>
         /// <remarks>
         /// The <c>Cors</c> section is bound strictly and validated when the host starts: a key that maps to no option,
@@ -59,30 +46,23 @@ public static class DeveloperCorsRegistration
         /// the host with an error naming the entry, because such an origin can never match a request.
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the <c>Cors</c> section.</param>
-        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> used to apply the Development default.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
-        public IServiceCollection AddDeveloperCors(
-            IConfiguration configuration,
-            IHostEnvironment hostEnvironment
-        )
+        // See ADR-1313.
+        public IServiceCollection AddDeveloperCors(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(configuration);
-            ArgumentNullException.ThrowIfNull(hostEnvironment);
 
             var section = configuration.GetSection(DeveloperCorsOptions.DefaultSectionName);
-            var isDevelopment = hostEnvironment.IsDevelopment();
+            if (!section.Exists())
+            {
+                return serviceCollection;
+            }
 
             // ValidateOnStart materializes the options as the host starts, so an origin that can never match stops the
             // host before it accepts traffic (ADR-1137).
             serviceCollection
                 .AddOptions<DeveloperCorsOptions>()
                 .Configure(options => section.BindStrictly(options))
-                .PostConfigure(options =>
-                    options.AllowedOrigins =
-                        options.AllowedOrigins.Length == 0 && isDevelopment
-                            ? [.. DefaultDevelopmentOrigins]
-                            : options.AllowedOrigins
-                )
                 .ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

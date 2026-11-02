@@ -18,63 +18,40 @@ public sealed class DeveloperKeysConfigurationTests
     #region GetDeveloperKeysOptions Tests
 
     [Fact]
-    public void GetDeveloperKeysOptions_WhenSectionIsAbsent_LeavesTheModeUnset()
+    public void GetDeveloperKeysOptions_WhenSectionIsAbsent_LeavesPruningOff()
     {
         var options = CreateConfiguration().GetDeveloperKeysOptions();
 
-        Assert.Null(options.Mode);
-    }
-
-    [Theory]
-    [InlineData("Ephemeral", DeveloperKeyMode.Ephemeral)]
-    [InlineData("persistentsigningkey", DeveloperKeyMode.PersistentSigningKey)]
-    [InlineData("None", DeveloperKeyMode.None)]
-    public void GetDeveloperKeysOptions_WhenModeIsConfigured_BindsIt(
-        string value,
-        DeveloperKeyMode expected
-    )
-    {
-        var options = CreateConfiguration(("DeveloperKeys:Mode", value)).GetDeveloperKeysOptions();
-
-        Assert.Equal(expected, options.Mode);
+        Assert.False(options.PruneUnreadableKeys);
     }
 
     [Fact]
-    public void GetDeveloperKeysOptions_WhenModeIsMisspelled_Throws()
+    public void GetDeveloperKeysOptions_WhenPruneUnreadableKeysIsTrue_BindsIt()
     {
-        // A lenient read would fall back to Ephemeral and silently regenerate the signing key on every restart.
-        var configuration = CreateConfiguration(("DeveloperKeys:Mode", "Persistent"));
+        var options = CreateConfiguration(("DeveloperKeys:PruneUnreadableKeys", "true"))
+            .GetDeveloperKeysOptions();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            configuration.GetDeveloperKeysOptions()
-        );
-
-        Assert.Contains("'DeveloperKeys'", exception.Message, StringComparison.Ordinal);
+        Assert.True(options.PruneUnreadableKeys);
     }
 
     [Fact]
-    public void GetDeveloperKeysOptions_WhenModeIsAnUndefinedNumber_Throws()
+    public void GetDeveloperKeysOptions_WhenPruneUnreadableKeysIsNotABoolean_Throws()
     {
-        var configuration = CreateConfiguration(("DeveloperKeys:Mode", "5"));
+        var configuration = CreateConfiguration(("DeveloperKeys:PruneUnreadableKeys", "yes"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            configuration.GetDeveloperKeysOptions()
-        );
-
-        Assert.Contains("'DeveloperKeys:Mode'", exception.Message, StringComparison.Ordinal);
-        Assert.Contains(nameof(DeveloperKeyMode.PersistentSigningKey), exception.Message);
+        Assert.Throws<InvalidOperationException>(() => configuration.GetDeveloperKeysOptions());
     }
 
     [Fact]
     public void GetDeveloperKeysOptions_WhenSectionHasUnknownKey_Throws()
     {
-        var configuration = CreateConfiguration(("DeveloperKeys:Mdoe", "None"));
+        var configuration = CreateConfiguration(("DeveloperKeys:Prune", "true"));
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             configuration.GetDeveloperKeysOptions()
         );
 
-        Assert.Contains("'Mdoe'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'Prune'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

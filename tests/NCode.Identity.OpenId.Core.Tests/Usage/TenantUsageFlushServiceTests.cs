@@ -130,10 +130,11 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new InvalidOperationException("conflict"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.FlushAsync(cancellationToken);
         await Service.FlushAsync(cancellationToken);
@@ -240,11 +241,11 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(3));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("conflict"))
-            .Returns(ValueTask.CompletedTask)
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new InvalidOperationException("conflict"),
+            Times.Exactly(3),
+            cancellationToken
+        );
 
         await Service.FlushAsync(cancellationToken);
         await Service.FlushAsync(cancellationToken);

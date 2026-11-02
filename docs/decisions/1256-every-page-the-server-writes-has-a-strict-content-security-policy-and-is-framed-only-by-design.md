@@ -5,7 +5,7 @@
   Strict-Transport-Security)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0121](project-template/0121-html-pages-have-a-strict-content-security-policy.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
+- **Supersedes:** [project-template ADR-0121](project-template/0121-html-pages-have-a-strict-content-security-policy.md)
 
 ## Context
 
@@ -145,6 +145,18 @@ and the `form_post` response only by its client's origin.**
 - A page that submits a form to a client keeps `form-action` open, so its protection against an injected form rests on
   HTML encoding, the nonce and `base-uri`.
 - The reference host sends no `Strict-Transport-Security` header (issue [#304](https://github.com/NCodeGroup/Identity/issues/304)).
+
+## Relation to project-template ADR-0121
+
+This record keeps [project-template ADR-0121](project-template/0121-html-pages-have-a-strict-content-security-policy.md)'s
+model, writer, headers, nonce and framing rules. It differs in one default, and it meets the template's cache rule.
+
+- A page that lists no `form-action` gets `'none'`, not `'self'` (decision 2). Every default of the policy allows
+  nothing, and no page the server writes has a same-origin form: each either posts none or omits `form-action`
+  (decision 5).
+- `Cache-Control: no-store` on every page meets the template's per-user rule. Every page carries per-response or
+  per-user content: a nonce, an authorization response, or a session's logout targets. It costs nothing for the one
+  static page, the `check_session_iframe`.
 
 ## References
 

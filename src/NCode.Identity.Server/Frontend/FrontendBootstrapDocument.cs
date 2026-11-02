@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 
 namespace NCode.Identity.Server.Frontend;
 
@@ -35,24 +36,24 @@ internal sealed record FrontendBootstrapDocument
 
     /// <summary>
     /// Builds the bootstrap document from the configured <paramref name="options"/> and the resolved
-    /// <paramref name="issuer"/>, falling back to the serving <paramref name="requestOrigin"/> (<c>scheme://host</c>) for
-    /// the API base when it is not configured: the bundle calls the API on the origin that serves it. When <paramref name="surface"/> names a
-    /// configured <see cref="FrontendBootstrapOptions.Surfaces"/> entry, that surface's coordinates (client id,
-    /// scopes, feature flags, branding) are published instead of the host default; an unknown or absent surface
-    /// receives the default.
+    /// <paramref name="issuer"/>. When <see cref="FrontendBootstrapOptions.ApiBaseUrl"/> is not configured, the API base
+    /// is the host's <paramref name="pathBase"/>, root-relative (<c>/</c> at the root), so the browser resolves it
+    /// against the origin that served the bundle and the request's <c>Host</c> contributes nothing. When
+    /// <paramref name="surface"/> names a configured <see cref="FrontendBootstrapOptions.Surfaces"/> entry, that
+    /// surface's coordinates (client id, scopes, feature flags, branding) are published instead of the host default; an
+    /// unknown or absent surface receives the default.
     /// </summary>
+    // See ADR-1312.
     public static FrontendBootstrapDocument Create(
         FrontendBootstrapOptions options,
         string issuer,
-        string requestOrigin,
+        PathString pathBase,
         string? surface = null
     )
     {
-        var origin = NormalizeOrigin(requestOrigin);
-
-        var apiBaseUrl = NormalizeOrigin(
-            string.IsNullOrWhiteSpace(options.ApiBaseUrl) ? origin : options.ApiBaseUrl
-        );
+        var apiBaseUrl = string.IsNullOrWhiteSpace(options.ApiBaseUrl)
+            ? (pathBase.HasValue ? pathBase.Value : "/")
+            : NormalizeOrigin(options.ApiBaseUrl);
         var normalizedIssuer = NormalizeOrigin(issuer);
 
         var overrides =

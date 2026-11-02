@@ -2,10 +2,11 @@
 
 - **Status:** Accepted (amended by
   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md):
-  the bundle's hashed files are served immutable by a group that resolves no tenant)
+  the bundle's hashed files are served immutable by a group that resolves no tenant; decision 4 superseded by
+  [ADR-1310](1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md): the
+  session cookie is host-only and named for the tenant's path)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md); tracked in [#442](https://github.com/NCodeGroup/Identity/issues/442)
 
 ## Context
 

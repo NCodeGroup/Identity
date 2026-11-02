@@ -17,7 +17,7 @@ using NCode.Identity.OpenId.Client;
 namespace NCode.Identity.Bff.Logout;
 
 /// <summary>
-/// Handles <c>GET /bff/logout</c>: checks the request and ends the session of the user.
+/// Handles <c>POST /bff/logout</c>: checks the request and ends the session of the user.
 /// </summary>
 internal class BffLogoutHandler
 {
@@ -63,7 +63,23 @@ internal class BffLogoutHandler
 
         BffResponses.SetNoStore(httpContext.Response);
 
-        var returnUrlValues = request.Query[ReturnUrlParameterName];
+        if (!request.HasFormContentType)
+        {
+            await WriteInvalidRequestAsync(httpContext, "The logout request must be a form post.");
+            return;
+        }
+
+        var form = await TryReadFormAsync(request, cancellationToken);
+        if (form is null)
+        {
+            await WriteInvalidRequestAsync(
+                httpContext,
+                "The logout request is not a valid form post."
+            );
+            return;
+        }
+
+        var returnUrlValues = form[ReturnUrlParameterName];
         if (returnUrlValues.Count > 1)
         {
             await WriteInvalidRequestAsync(
@@ -74,7 +90,7 @@ internal class BffLogoutHandler
         }
 
         var returnUrl = returnUrlValues.Count == 0 ? DefaultReturnUrl : returnUrlValues[0];
-        if (returnUrl is null || !BffReturnUrls.IsAllowed(returnUrl, bffOptions.ReturnUrls))
+        if (returnUrl is null || !BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
         {
             await WriteInvalidRequestAsync(httpContext, "The returnUrl parameter is not allowed.");
             return;
@@ -87,7 +103,7 @@ internal class BffLogoutHandler
             return;
         }
 
-        var sidValues = request.Query[SidParameterName];
+        var sidValues = form[SidParameterName];
         var sid = sidValues.Count == 1 ? sidValues[0] : null;
         if (sid is null || !IsGuardMatch(sid, session.Payload.LogoutGuard))
         {
@@ -134,6 +150,22 @@ internal class BffLogoutHandler
         };
         var location = QueryHelpers.AddQueryString(endpoint, parameters);
         httpContext.Response.Redirect(location);
+    }
+
+    // A malformed body, or one over the form limits, throws InvalidDataException: the request is bad, not the server.
+    private static async ValueTask<IFormCollection?> TryReadFormAsync(
+        HttpRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await request.ReadFormAsync(cancellationToken);
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
     }
 
     private static bool IsGuardMatch(string sid, string guard)

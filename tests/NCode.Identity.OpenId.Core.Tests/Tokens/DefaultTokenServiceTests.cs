@@ -598,9 +598,13 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
     {
         SetupRefreshTokenContext();
         MockCryptoService
-            .SetupSequence(x => x.GenerateKey(It.IsAny<int>(), BinaryEncodings.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns("fresh")
-            .Returns("lineage-new");
+            .Verifiable();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("lineage-new")
+            .Verifiable();
         var grantId = CreateRefreshTokenGrantId("fresh");
         MockPersistedGrantService
             .Setup(x =>

@@ -128,7 +128,8 @@ public class BffUserHandlerTests : BaseTests
             session.GetProperty("idleExpiresAt").GetInt64()
         );
 
-        Assert.Equal("/bff/logout?sid=guard%2B%2F1", root.GetProperty("logoutUrl").GetString());
+        Assert.Equal("/bff/logout", root.GetProperty("logoutUrl").GetString());
+        Assert.Equal("guard+/1", root.GetProperty("logoutSid").GetString());
         Assert.DoesNotContain("id-token", body);
         Assert.DoesNotContain("sid-1", body);
         Assert.DoesNotContain("op.example", body);

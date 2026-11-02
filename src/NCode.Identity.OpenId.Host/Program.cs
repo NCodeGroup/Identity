@@ -122,9 +122,9 @@ identityServer
 identityServer.OpenIdManagementLibraryBuilder.AddLocalAccountManagement(localAccountStore);
 
 // DEVELOPMENT CONVENIENCE: everything that is only correct on a developer's machine — the Vite CORS policy, the
-// developer and conformance seeders, and the developer signing keys — behind one self-gating call that does nothing
-// in Production. Each piece also stays inert unless its own configuration section is present.
-identityServer.AddDevelopmentEnvironment(configuration, hostEnvironment);
+// developer and conformance seeders, and the developer key pruning — behind one call. Each piece stays inert unless
+// its own configuration section is present, and AddProductionSafety refuses each of those sections in Production.
+identityServer.AddDevelopmentEnvironment(configuration);
 
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -189,8 +189,8 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless AddDeveloperCors
-// registered the developer policy, which AddDevelopmentEnvironment never does in Production.
+// Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless the configuration has a
+// Cors section, which AddProductionSafety refuses in Production.
 app.UseDeveloperCors();
 
 app.UseAuthentication();

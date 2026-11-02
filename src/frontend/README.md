@@ -184,12 +184,15 @@ The serving host must publish `/config/bootstrap.json`:
 
 ```json
 {
-  "apiBaseUrl": "https://id.example",
+  "apiBaseUrl": "/",
   "issuer": "https://id.example",
   "features": { "dcr": true },
   "branding": { "displayName": "Acme", "primaryColor": "#6750A4", "mode": "light" }
 }
 ```
+
+Unless `Frontend:ApiBaseUrl` is set, the host publishes its root-relative path base, and the standalone dev servers proxy
+`/api/` and `/config/bootstrap.json` to the OP host.
 
 Every bundle gets this document from the host at runtime — there is no static dev copy to drift.
 

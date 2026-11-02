@@ -51,9 +51,12 @@ internal static class DefaultRegistration
             // This one client serves every fetch of, and delivery to, a caller-supplied URL (ADR-1315). Its
             // connections are pinned away from private/loopback/link-local addresses and it never follows redirects,
             // so a registered internal URL cannot turn the OP into a confused deputy; the pipeline bounds each attempt
-            // and the whole call, and retries a failed attempt a bounded number of times.
+            // and the whole call, and retries a failed attempt a bounded number of times. The pipeline is the only
+            // time bound, so the client's own timeout is switched off; its default of 100 seconds would silently cut
+            // a longer TotalTimeout.
             serviceCollection
                 .AddHttpClient(GuardedHttpClient.Name)
+                .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)
                 .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
                 {
                     AllowAutoRedirect = false,

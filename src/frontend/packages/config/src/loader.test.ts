@@ -183,7 +183,7 @@ describe('loadRuntimeConfig', () => {
       env: {},
     });
 
-    expect(Object.keys(config.server?.proxy ?? {})).toStrictEqual([BOOTSTRAP_PATH]);
+    expect(Object.keys(config.server?.proxy ?? {})).toStrictEqual([BOOTSTRAP_PATH, '/api/']);
   });
 });
 

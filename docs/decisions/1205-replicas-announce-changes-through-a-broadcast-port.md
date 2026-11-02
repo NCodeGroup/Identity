@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a handler learns of
-  messages it may have missed, and a server settings change is announced too)
+  messages it may have missed, and a server settings change is announced too; and by
+  [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md): the eviction, the refresh
+  and the announcement run on their own bounded token)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)

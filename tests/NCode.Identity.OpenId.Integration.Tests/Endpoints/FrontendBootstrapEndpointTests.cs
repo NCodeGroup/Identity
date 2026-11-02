@@ -10,16 +10,17 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
-/// Pins the frontend bootstrap document's issuer to the tenant that serves the surface: the bundle trusts that
-/// authority, so the serving request's <c>Host</c> never changes it (ADR-1182).
+/// Pins the frontend bootstrap document to the tenant and host that serve the surface: the bundle trusts that
+/// authority and sends its access token to that API base, so the serving request's <c>Host</c> changes neither.
 /// </summary>
+// See ADR-1182 and ADR-1312.
 public class FrontendBootstrapEndpointTests(HostApplicationFactory factory)
     : IClassFixture<HostApplicationFactory>
 {
     private HostApplicationFactory Factory { get; } = factory;
 
     [Fact]
-    public async Task GetBootstrap_WithAnotherHost_PublishesTheTenantsIssuerAndForbidsCaching()
+    public async Task GetBootstrap_WithAnotherHost_PublishesTheTenantsIssuerAndARootRelativeApiBaseUncached()
     {
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
@@ -36,5 +37,6 @@ public class FrontendBootstrapEndpointTests(HostApplicationFactory factory)
             HostApplicationFactory.TestServerIssuer,
             jsonElement.GetProperty("issuer").GetString()
         );
+        Assert.Equal("/", jsonElement.GetProperty("apiBaseUrl").GetString());
     }
 }

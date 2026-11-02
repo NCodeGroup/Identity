@@ -15,7 +15,7 @@
       "launchUrl": "scalar/v1",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
@@ -31,7 +31,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ReadyToRun": "0",
-        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
@@ -48,7 +48,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Conformance",
         "DOTNET_ReadyToRun": "0",
-        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
@@ -64,7 +64,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Conformance",
         "DOTNET_ReadyToRun": "0",
-        "DeveloperKeys__Mode": "PersistentSigningKey",
+        "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",

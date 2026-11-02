@@ -1361,6 +1361,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   types the rule found unsealed in assemblies without `InternalsVisibleTo` are sealed
   ([#475](https://github.com/NCodeGroup/Identity/issues/475), [#476](https://github.com/NCodeGroup/Identity/issues/476),
   [#477](https://github.com/NCodeGroup/Identity/issues/477)).
+
 - **The template's `CA1848` and, in tests, `CA1822` analyzers are on again.** `.editorconfig` no longer turns off
   `CA1848` (use `LoggerMessage` delegates) or, in tests, `CA1822` (mark members as static): the migration worker
   logs through source-generated `[LoggerMessage]` methods with event IDs in its own `20000`–`20999` band, and the
@@ -1383,6 +1384,21 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 - **Server settings are reconciled when a replica starts**, not at its first request; a replica that cannot materialize its server at start falls back to its first request ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 
 - **The family's records settle their conflicts with the project template's.** ADR-1116, ADR-1213 and ADR-1219 refine project-template ADR-0112, ADR-0142 and ADR-0140; ADR-1315 supersedes two points of project-template ADR-0145; ADR-1090's conflict with project-template ADR-0141 is tracked in [#25](https://github.com/NCodeGroup/Identity/issues/25) ([#440](https://github.com/NCodeGroup/Identity/issues/440), [#443](https://github.com/NCodeGroup/Identity/issues/443), [#444](https://github.com/NCodeGroup/Identity/issues/444)).
+
+- **Breaking:** **Development conveniences do nothing unless configured.**
+  `AddDevelopmentEnvironment(configuration)` and `AddDeveloperCors(configuration)` drop their `IHostEnvironment`
+  parameter. `AddDevelopmentEnvironment` no longer checks the environment: `AddProductionSafety` is the one Production
+  check and also refuses a `DeveloperKeys` section. The developer CORS policy has no default origins and registers
+  nothing without a `Cors` section; the reference host's `appsettings.Development.json` lists its dev-server origins.
+  `DeveloperKeys:PruneUnreadableKeys` replaces `DeveloperKeys:Mode`, and `AddPersistentDeveloperKeys` is renamed
+  `AddDeveloperKeyPruning`. Remove `DeveloperKeys__Mode` from deployments
+  ([#441](https://github.com/NCodeGroup/Identity/issues/441),
+  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+- **ADR-1256 and ADR-1314 record overrides of project-template ADR-0121 and ADR-0129.** A page without `form-action`
+  keeps `'none'`, and the authorization, continue and end-session endpoints keep the `GET` their specifications require;
+  AGENTS.md lists the overrides
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md)).
 
 - **The build takes the template's analyzer settings.** `build/BannedSymbols.txt`, from the template, bans
   sync-over-async, every `JsonDocument.Parse` overload and Newtonsoft.Json in every project, test projects included,
@@ -4192,6 +4208,12 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Removed
 
+- **Breaking:** **Ephemeral developer keys.** `DeveloperKeyMode`, `AddDeveloperKeys(DeveloperKeyMode)`,
+  `AddEphemeralDeveloperKeys()` and `EphemeralOpenIdTenantFactory` are removed. Every host, tests included, signs with
+  the keys tenant provisioning persists
+  ([#441](https://github.com/NCodeGroup/Identity/issues/441),
+  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+
 - **ADR-0004, ADR-0006, ADR-0008 and ADR-0210**, which said nothing that project-template ADR-0104, ADR-0105,
   ADR-0001 and ADR-0115 don't; their citations point at the template records.
 
@@ -4228,6 +4250,25 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `ISecretGenerator.GenerateSharedSecret` throws below it, and creating a client secret below it answers `400`
   ([#445](https://github.com/NCodeGroup/Identity/issues/445),
   [ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
+
+- **Breaking:** **The interactive surface's cookies are host-only.** The session cookie is
+  `__Host-NCode.Identity.Interactive`, the antiforgery cookie `__Host-NCode.Identity.Antiforgery`, the request-token
+  cookie `__Host-XSRF-TOKEN` (`InteractiveAuthenticationDefaults.SessionCookieName`, `AntiforgeryCookieName`,
+  `AntiforgeryTokenCookieName`), and the Session Management cookie `__Host-opbs`. All are `Path=/` without `Domain`, so
+  a sibling subdomain cannot set them. Tenants that share an origin keep separate sessions through a session cookie name
+  qualified by the tenant's path. Existing sessions end
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1310](docs/decisions/1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md)).
+- **Breaking:** **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body, and
+  `GET /bff/logout` is gone. `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a
+  reserved field
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1311](docs/decisions/1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md)).
+- **The frontend bootstrap's API base no longer comes from the `Host` header.** With `Frontend:ApiBaseUrl` unset,
+  `/config/bootstrap.json` publishes the host's root-relative path base, and the standalone Vite dev servers proxy
+  `/api/` to the OP host
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1312](docs/decisions/1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md)).
 
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
@@ -4684,6 +4725,21 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
+- **The guarded client's `TotalTimeout` is no longer cut at 100 seconds.** The one client that serves every fetch of,
+  and delivery to, a caller-supplied URL kept `HttpClient`'s default 100-second timeout, so an
+  `OutboundHttpOptions.TotalTimeout` above 100 seconds was silently cut short; the client's own timeout is now off,
+  and the options are its only time bound
+  ([#481](https://github.com/NCodeGroup/Identity/issues/481),
+  [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+- **A committed tenant or server settings change no longer fails when its announcement times out.**
+  `TenantChangedHandler` and `ServerSettingsChangedHandler` evicted, read back and announced a committed change with
+  the request's token and let an `OperationCanceledException` through, so a client that disconnected skipped the
+  announcement and a store or Valkey timeout that surfaced as `TaskCanceledException` failed a write that had already
+  committed; each of those steps now runs on its own 30-second token, a failed refresh or announcement is logged, and
+  a failed eviction is still announced. The in-process replica broadcaster now lets a handler's
+  `OperationCanceledException` through only when the publisher cancelled, and logs every other failure of a handler
+  ([#485](https://github.com/NCodeGroup/Identity/issues/485),
+  [ADR-1351](docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
 - **A store timeout no longer stops the grant prune.** `GrantPruneService` let an `OperationCanceledException` through,
   so a store timeout that surfaced as `TaskCanceledException` ended the service and, under
   `BackgroundServiceExceptionBehavior.StopHost`, the host; it now logs the failure (`GrantPruneFailed`) and prunes

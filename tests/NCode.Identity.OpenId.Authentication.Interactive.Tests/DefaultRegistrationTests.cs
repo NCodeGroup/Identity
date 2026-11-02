@@ -24,7 +24,15 @@ public sealed class DefaultRegistrationTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
+    private IHostEnvironment CreateHostEnvironment()
+    {
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        hostEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRootPath).Verifiable();
+        return hostEnvironment.Object;
+    }
+
     private InteractiveAuthenticationOptions ResolveOptions(
+        IHostEnvironment hostEnvironment,
         Dictionary<string, string?> configurationData,
         Action<InteractiveAuthenticationOptions>? configureOptions = null
     )
@@ -33,13 +41,10 @@ public sealed class DefaultRegistrationTests : IDisposable
             .AddInMemoryCollection(configurationData)
             .Build();
 
-        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
-        hostEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRootPath);
-
         var serviceCollection = new ServiceCollection();
         serviceCollection
             .NewBuilder<OpenIdAuthenticationLibrary>()
-            .AddInteractiveAuthentication(configuration, hostEnvironment.Object, configureOptions);
+            .AddInteractiveAuthentication(configuration, hostEnvironment, configureOptions);
 
         using var serviceProvider = serviceCollection.BuildServiceProvider();
         return serviceProvider
@@ -52,7 +57,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     [Fact]
     public void AddInteractiveAuthentication_WhenSectionIsAbsent_LeavesTheBundleUnset()
     {
-        var options = ResolveOptions([]);
+        var options = ResolveOptions(CreateHostEnvironment(), []);
 
         Assert.Null(options.BundleRootPath);
     }
@@ -61,6 +66,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     public void AddInteractiveAuthentication_WhenBundleRootPathIsRelative_ResolvesItAgainstTheContentRoot()
     {
         var options = ResolveOptions(
+            CreateHostEnvironment(),
             new Dictionary<string, string?>
             {
                 ["InteractiveAuthentication:BundleRootPath"] = "../frontend/apps/auth/dist",
@@ -79,6 +85,7 @@ public sealed class DefaultRegistrationTests : IDisposable
         var rooted = Path.Combine(Path.GetTempPath(), "bundle");
 
         var options = ResolveOptions(
+            CreateHostEnvironment(),
             new Dictionary<string, string?>
             {
                 ["InteractiveAuthentication:BundleRootPath"] = rooted,
@@ -92,6 +99,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     public void AddInteractiveAuthentication_WhenConfiguredInCode_OverridesConfiguration()
     {
         var options = ResolveOptions(
+            CreateHostEnvironment(),
             new Dictionary<string, string?> { ["InteractiveAuthentication:BundleRootPath"] = "a" },
             configure => configure.BundleRootPath = "b"
         );
@@ -105,6 +113,7 @@ public sealed class DefaultRegistrationTests : IDisposable
         // A misspelled key would otherwise leave the surface without its bundle and no sign of why.
         var exception = Assert.Throws<InvalidOperationException>(() =>
             ResolveOptions(
+                MockRepository.Create<IHostEnvironment>().Object,
                 new Dictionary<string, string?>
                 {
                     ["InteractiveAuthentication:BundlePath"] = "../frontend/apps/auth/dist",

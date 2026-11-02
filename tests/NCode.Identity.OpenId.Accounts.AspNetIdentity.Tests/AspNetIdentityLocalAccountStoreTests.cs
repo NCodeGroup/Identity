@@ -68,7 +68,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var userManager = _mocks.Create<UserManager<IdentityUser>>((object[])constructorArguments);
 
         // UserManager's constructor assigns its virtual Logger property; allow that set on the strict mock.
-        userManager.SetupSet(x => x.Logger = It.IsAny<ILogger>());
+        userManager.SetupSet(x => x.Logger = It.IsAny<ILogger>()).Verifiable();
 
         var serviceProvider = _mocks.Create<IServiceProvider>();
         serviceProvider
@@ -138,8 +138,8 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     private static void SetupMapping(Mock<UserManager<IdentityUser>> userManager, IdentityUser user)
     {
         userManager.Setup(x => x.GetClaimsAsync(user)).ReturnsAsync([RoleClaim]).Verifiable();
-        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
-        userManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
+        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true).Verifiable();
+        userManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false).Verifiable();
     }
 
     private static PersistedLocalAccount CreateAccount(
@@ -745,7 +745,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
             .Setup(x => x.CreateAsync(It.IsAny<IdentityUser>()))
             .ReturnsAsync(IdentityResult.Success)
             .Verifiable();
-        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
+        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true).Verifiable();
         userManager
             .Setup(x => x.SetLockoutEnabledAsync(It.IsAny<IdentityUser>(), true))
             .ReturnsAsync(IdentityResult.Success)
@@ -837,7 +837,7 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
             .Setup(x => x.SetEmailAsync(user, "alice@example.com"))
             .ReturnsAsync(IdentityResult.Success)
             .Verifiable();
-        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
+        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true).Verifiable();
         userManager
             .Setup(x => x.SetLockoutEndDateAsync(user, null))
             .ReturnsAsync(IdentityResult.Success)
@@ -1025,9 +1025,15 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         };
         userManager.SetupGet(x => x.SupportsQueryableUsers).Returns(true).Verifiable();
         userManager.SetupGet(x => x.Users).Returns(users.AsQueryable()).Verifiable();
-        userManager.Setup(x => x.GetClaimsAsync(It.IsAny<IdentityUser>())).ReturnsAsync([]);
-        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true);
-        userManager.Setup(x => x.IsLockedOutAsync(It.IsAny<IdentityUser>())).ReturnsAsync(false);
+        userManager
+            .Setup(x => x.GetClaimsAsync(It.IsAny<IdentityUser>()))
+            .ReturnsAsync([])
+            .Verifiable();
+        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true).Verifiable();
+        userManager
+            .Setup(x => x.IsLockedOutAsync(It.IsAny<IdentityUser>()))
+            .ReturnsAsync(false)
+            .Verifiable();
 
         var page = await store.GetPageAsync(new PageRequest { Limit = 10 }, CancellationToken.None);
 

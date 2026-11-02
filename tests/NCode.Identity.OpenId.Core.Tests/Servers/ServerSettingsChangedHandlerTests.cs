@@ -104,5 +104,79 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenTheRefreshTimesOut_StillAnnouncesTheChange()
+    {
+        MockRegistry
+            .Setup(x => x.RefreshSettingsAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("The refresh timed out."))
+            .Verifiable();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    ServerId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheAnnouncementTimesOut_DoesNotThrow()
+    {
+        MockRegistry
+            .Setup(x => x.RefreshSettingsAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    ServerId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new TaskCanceledException("The announcement timed out."))
+            .Verifiable();
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerCancels_StillRefreshesAndAnnounces()
+    {
+        var refreshToken = CancellationToken.None;
+        var announcementToken = CancellationToken.None;
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        MockRegistry
+            .Setup(x => x.RefreshSettingsAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Callback((string _, CancellationToken token) => refreshToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    ServerId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((string _, string _, CancellationToken token) => announcementToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleAsync(CreateCommand(), cancellation.Token);
+
+        Assert.True(refreshToken.CanBeCanceled);
+        Assert.False(refreshToken.IsCancellationRequested);
+        Assert.True(announcementToken.CanBeCanceled);
+        Assert.False(announcementToken.IsCancellationRequested);
+    }
+
     #endregion
 }

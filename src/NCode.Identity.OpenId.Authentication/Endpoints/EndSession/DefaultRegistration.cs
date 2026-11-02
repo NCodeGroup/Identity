@@ -1,7 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
@@ -32,6 +34,10 @@ internal static class DefaultRegistration
 
             var serviceCollection = builder.ServiceCollection;
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IContinueProvider, DefaultEndSessionContinueProvider>()
+            );
+
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<LoadEndSessionRequestCommand, IEndSessionRequest>,
                 DefaultLoadEndSessionRequestHandler
@@ -45,6 +51,19 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<EndSessionCommand, EndSessionDisposition>,
                 DefaultEndSessionHandler
+            >();
+
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<ParkEndSessionRequestCommand, string>,
+                DefaultParkEndSessionRequestHandler
+            >();
+
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<
+                    EndSessionConfirmationChallengeCommand,
+                    ReadOnlyEndpointDisposition
+                >,
+                DefaultEndSessionConfirmationChallengeHandler
             >();
         }
     }

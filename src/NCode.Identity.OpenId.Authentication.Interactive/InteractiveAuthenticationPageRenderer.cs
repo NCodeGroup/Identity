@@ -142,6 +142,45 @@ internal static class InteractiveAuthenticationPageRenderer
     }
 
     /// <summary>
+    /// Renders the logout confirmation page: a form with stable <c>logout-confirm</c> / <c>logout-cancel</c> submit
+    /// buttons, posting to the logout confirmation endpoint.
+    /// </summary>
+    /// <param name="writer">The buffer the page is written to.</param>
+    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
+    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
+    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
+    /// placeholder.</param>
+    /// <param name="returnUrl">The URL the form carries so the logout resumes once it is confirmed.</param>
+    /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
+    /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
+    public static void RenderLogoutConfirmationPage(
+        IBufferWriter<char> writer,
+        InteractiveBundleShell? shell,
+        string surfaceBase,
+        InteractiveBranding? branding,
+        string nonce,
+        string returnUrl,
+        string antiforgeryFieldName,
+        string antiforgeryToken
+    )
+    {
+        WriteHead(writer, shell, surfaceBase, branding, nonce, "Sign out");
+        Write(
+            writer,
+            "<main class=\"auth-card\"><form method=\"post\" action=\"logout/confirm\"><h1>Sign out</h1><p>Do you want to sign out?</p>"
+        );
+        WriteHiddenFields(writer, returnUrl, antiforgeryFieldName, antiforgeryToken);
+        Write(
+            writer,
+            "<button id=\"logout-cancel\" name=\"action\" value=\"cancel\" type=\"submit\">Stay signed in</button>"
+                + "<button id=\"logout-confirm\" name=\"action\" value=\"logout\" type=\"submit\">Sign out</button>"
+                + "</form></main>"
+        );
+        WriteTail(writer, shell, nonce);
+    }
+
+    /// <summary>
     /// Renders the non-redirectable authorization error page shown to the resource owner when the authorize endpoint
     /// cannot safely redirect the error back to the client (an unregistered <c>redirect_uri</c> or an unresolvable
     /// <c>client_id</c>; OpenID Connect Core §3.1.2.4). The error code is rendered as the text of a stable

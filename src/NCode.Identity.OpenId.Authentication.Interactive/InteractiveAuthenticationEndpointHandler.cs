@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
@@ -55,6 +56,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     // a full "sign out everywhere".
     private const string SignOutOthersScope = "others";
 
+    // The `action` form value that confirms a logout; any other value declines it.
+    private const string LogoutAction = "logout";
+
     // The `error` and `status` query values the change-password page reads back to show its message.
     private const string ErrorQueryName = "error";
     private const string StatusQueryName = "status";
@@ -90,6 +94,14 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         surface.MapPost(InteractiveAuthenticationDefaults.ConsentPath, PostConsentAsync);
         surface.MapPost(InteractiveAuthenticationDefaults.LogoutPath, PostLogoutAsync);
+        surface.MapGet(
+            InteractiveAuthenticationDefaults.LogoutConfirmPath,
+            GetLogoutConfirmationPageAsync
+        );
+        surface.MapPost(
+            InteractiveAuthenticationDefaults.LogoutConfirmPath,
+            PostLogoutConfirmationAsync
+        );
         surface.MapGet(
             InteractiveAuthenticationDefaults.ApplicationsPath,
             GetApplicationsPageAsync
@@ -635,8 +647,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             httpContext.RequestAborted
         );
 
+        var subject = await mediator.SendAsync<ResolveEndSessionSubjectCommand, EndSessionSubject>(
+            new ResolveEndSessionSubjectCommand(openIdContext, request),
+            httpContext.RequestAborted
+        );
+
         await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
-            new EndSessionCommand(openIdContext, request),
+            new EndSessionCommand(openIdContext, request, subject),
             httpContext.RequestAborted
         );
 
@@ -650,6 +667,76 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 : returnUrl
         );
         return TypedResults.Redirect(safeReturnUrl);
+    }
+
+    /// <summary>
+    /// Serves the logout confirmation page that the end-session endpoint redirects to when a logout needs the end-user's
+    /// confirmation. The server renders a working no-JavaScript form (confirm and cancel buttons) carrying the
+    /// antiforgery token and the return URL, which is the parked logout's one-time continue URL; when the single-page
+    /// bundle is present the form is injected into its <c>#root</c> so the SPA replaces it on mount.
+    /// </summary>
+    public async ValueTask<IResult> GetLogoutConfirmationPageAsync(HttpContext httpContext)
+    {
+        var tokens = IssueAntiforgeryTokens(httpContext);
+        var returnUrl = httpContext.Request.Query["ReturnUrl"].ToString();
+        var branding = ReadBranding(httpContext);
+        var security = InteractivePageSecurity.Create(branding);
+        var shell = await BundleReader.TryReadShellAsync(httpContext.RequestAborted);
+        var surfaceBase = SurfacePaths.GetSurfaceBase(httpContext);
+        var html = InteractiveHtmlResult.CreateBuffer();
+        InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
+            html,
+            shell,
+            surfaceBase,
+            branding,
+            security.Nonce,
+            returnUrl,
+            tokens.FormFieldName,
+            tokens.RequestToken ?? string.Empty
+        );
+        return new InteractiveHtmlResult(html, security.Policy);
+    }
+
+    /// <summary>
+    /// Records the end-user's answer to a logout confirmation: a confirmation redirects to the parked logout's one-time
+    /// continue URL, which resumes it; any other answer refuses the continuation, so the logout is spent and the
+    /// session is left, and returns to the account page.
+    /// </summary>
+    public async ValueTask<IResult> PostLogoutConfirmationAsync(
+        HttpContext httpContext,
+        [FromForm] string? action,
+        [FromForm(Name = "ReturnUrl")] string? returnUrl
+    )
+    {
+        var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
+
+        // See ADR-1380.
+        if (string.Equals(action, LogoutAction, StringComparison.OrdinalIgnoreCase))
+        {
+            // The continue URL resumes the parked logout.
+            return TypedResults.Redirect(safeReturnUrl);
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var declined = openIdContext.ErrorFactory.AccessDenied(
+            "The end user declined to sign out."
+        );
+        var refusal = await ContinueRefusalService.RefuseAsync(
+            openIdContext,
+            safeReturnUrl,
+            declined,
+            httpContext.RequestAborted
+        );
+        if (refusal.HasHttpResult)
+        {
+            return refusal.HttpResult;
+        }
+
+        var accountPath = SurfacePaths.GetSurfacePath(
+            httpContext,
+            InteractiveAuthenticationDefaults.AccountPath
+        );
+        return TypedResults.Redirect(accountPath);
     }
 
     /// <summary>

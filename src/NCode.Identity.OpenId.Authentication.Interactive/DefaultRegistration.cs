@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -138,6 +139,18 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     ICommandResponseHandler<ConsentChallengeCommand, ReadOnlyEndpointDisposition>,
                     InteractiveConsentChallengeHandler
+                >()
+            );
+
+            // Replace the core default end-session confirmation handler with one that redirects to the interactive
+            // logout confirmation page.
+            serviceCollection.Replace(
+                ServiceDescriptor.Singleton<
+                    ICommandResponseHandler<
+                        EndSessionConfirmationChallengeCommand,
+                        ReadOnlyEndpointDisposition
+                    >,
+                    InteractiveEndSessionConfirmationChallengeHandler
                 >()
             );
 

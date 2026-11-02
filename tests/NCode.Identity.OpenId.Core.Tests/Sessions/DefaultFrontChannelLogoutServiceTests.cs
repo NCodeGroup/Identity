@@ -65,7 +65,14 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
     }
 
     private static EndSessionSubject CreateSubject(params string[] clientIds) =>
-        new(SubjectId, SessionId, ClientId, clientIds, RequiresConfirmation: false);
+        new(
+            SubjectId,
+            SessionId,
+            ClientId,
+            clientIds,
+            RequiresConfirmation: false,
+            LoginScheme: null
+        );
 
     #endregion
 

@@ -5,10 +5,12 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Json;
@@ -32,11 +34,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 // See ADR-1093, ADR-1096 and ADR-1380.
 internal class DefaultResolveEndSessionSubjectHandler(
     IIssuedTokenValidator issuedTokenValidator,
+    IOpenIdClientResolver clientResolver,
     ISessionService sessionService,
     ILogger<DefaultResolveEndSessionSubjectHandler> logger
 ) : ICommandResponseHandler<ResolveEndSessionSubjectCommand, EndSessionSubject>
 {
     private IIssuedTokenValidator IssuedTokenValidator { get; } = issuedTokenValidator;
+    private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private ISessionService SessionService { get; } = sessionService;
     private ILogger<DefaultResolveEndSessionSubjectHandler> Logger { get; } = logger;
 
@@ -71,9 +75,16 @@ internal class DefaultResolveEndSessionSubjectHandler(
             }
         }
 
+        var clientId = request.ClientId ?? hint?.ClientId;
+
+        // The OP login is read from, and later cleared from, the scheme the authorize endpoint authenticates it with:
+        // the client's authorization_authenticate_scheme when the logout names a registered client, otherwise the
+        // tenant's, so a host whose default scheme is not the OP login scheme still sees the login.
+        var loginScheme = await GetLoginSchemeAsync(openIdContext, clientId, cancellationToken);
+
         // The current OP login cookie supplies the session (and a provisional subject). The cookie's `sub` is the
         // stable PrincipalId (ADR-1094).
-        var authenticateResult = await httpContext.AuthenticateAsync();
+        var authenticateResult = await httpContext.AuthenticateAsync(loginScheme);
         if (authenticateResult.Succeeded)
         {
             var principal = authenticateResult.Principal;
@@ -85,7 +96,6 @@ internal class DefaultResolveEndSessionSubjectHandler(
         // The login's session takes precedence, so a confirmed logout ends the session the end-user is signed in to;
         // the hint's sid identifies the session only when no login is present.
         var sessionId = string.IsNullOrEmpty(loginSessionId) ? hint?.SessionId : loginSessionId;
-        var clientId = request.ClientId ?? hint?.ClientId;
 
         // See ADR-1380.
         // RP-Initiated Logout 1.0 section 2: the end-user must confirm unless a valid hint names the current session.
@@ -124,8 +134,27 @@ internal class DefaultResolveEndSessionSubjectHandler(
             sessionId,
             clientId,
             participatingClientIds,
-            requiresConfirmation
+            requiresConfirmation,
+            loginScheme
         );
+    }
+
+    private async ValueTask<string?> GetLoginSchemeAsync(
+        OpenIdContext openIdContext,
+        string? clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        var client = string.IsNullOrEmpty(clientId)
+            ? null
+            : await ClientResolver.ResolveClientOrDefaultAsync(
+                openIdContext,
+                clientId,
+                cancellationToken
+            );
+
+        var settings = client?.Settings ?? openIdContext.Tenant.SettingsProvider.Collection;
+        return settings.GetLoginScheme();
     }
 
     private async ValueTask<HintClaims?> TryReadIdTokenHintAsync(

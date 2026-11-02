@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Settings;
 using Xunit;
@@ -21,6 +22,9 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
         new() { Server = { ReconciliationLeaseDuration = TimeSpan.FromMilliseconds(20) } };
 
     private Mock<IMaterializedServerRegistry> MockRegistry { get; }
+    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
+    private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<IServerSettingsReconciler> MockReconciler { get; }
     private Mock<OpenIdServer> MockServer { get; }
     private Mock<IReadOnlySettingCollectionProvider> MockSettingsProvider { get; }
@@ -42,12 +46,17 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
     public ServerSettingsReconciliationServiceTests()
     {
         MockRegistry = CreateStrictMock<IMaterializedServerRegistry>();
+        MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
+        MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         MockReconciler = CreateStrictMock<IServerSettingsReconciler>();
         MockServer = CreateStrictMock<OpenIdServer>();
         MockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
 
         Service = new ServerSettingsReconciliationService(
             MockRegistry.Object,
+            MockServerProvider.Object,
+            MockEnvironmentProvider.Object,
             MockReconciler.Object,
             Options.Create(OpenIdOptions),
             TimeProvider.System,
@@ -72,6 +81,26 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
     public async Task ExecuteAsync_WhenTheServerIsMaterialized_ReconcilesItsSettings()
     {
         SetupServer();
+        SetupReconciler(_ => ValueTask.FromResult(true));
+
+        await Service.StartAsync(CancellationToken.None);
+        await Calls[0].Task.WaitAsync(Deadline);
+        await Service.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenMaterializingAtStartFails_ReconcilesOnceARequestMaterializesTheServer()
+    {
+        SetupServerMembers();
+        MockEnvironmentProvider.Setup(x => x.Get()).Returns(MockEnvironment.Object).Verifiable();
+        MockServerProvider
+            .Setup(x => x.GetAsync(MockEnvironment.Object, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("unreachable"))
+            .Verifiable();
+        MockRegistry
+            .Setup(x => x.GetServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockServer.Object)
+            .Verifiable();
         SetupReconciler(_ => ValueTask.FromResult(true));
 
         await Service.StartAsync(CancellationToken.None);
@@ -129,10 +158,11 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
         var requested = new TaskCompletionSource(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
-        MockRegistry
-            .Setup(x => x.GetServerAsync(It.IsAny<CancellationToken>()))
+        MockEnvironmentProvider.Setup(x => x.Get()).Returns(MockEnvironment.Object).Verifiable();
+        MockServerProvider
+            .Setup(x => x.GetAsync(MockEnvironment.Object, It.IsAny<CancellationToken>()))
             .Returns(
-                (CancellationToken cancellationToken) =>
+                (OpenIdEnvironment _, CancellationToken cancellationToken) =>
                 {
                     requested.TrySetResult();
                     return WaitForeverAsync(cancellationToken);
@@ -171,16 +201,22 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
 
     private void SetupServer()
     {
+        SetupServerMembers();
+        MockEnvironmentProvider.Setup(x => x.Get()).Returns(MockEnvironment.Object).Verifiable();
+        MockServerProvider
+            .Setup(x => x.GetAsync(MockEnvironment.Object, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockServer.Object)
+            .Verifiable();
+    }
+
+    private void SetupServerMembers()
+    {
         MockSettingsProvider
             .Setup(x => x.GetChangeToken())
             .Returns(() => new CancellationChangeToken(Changes.Token))
             .Verifiable();
         MockServer.Setup(x => x.ServerId).Returns(ServerId).Verifiable();
         MockServer.Setup(x => x.SettingsProvider).Returns(MockSettingsProvider.Object).Verifiable();
-        MockRegistry
-            .Setup(x => x.GetServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockServer.Object)
-            .Verifiable();
     }
 
     // Counts the calls and completes the call's completion source after choosing its result.

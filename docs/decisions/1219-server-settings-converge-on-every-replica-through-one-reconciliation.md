@@ -7,7 +7,7 @@
   reconciliation records the settings it reconciled against and reaches only the tenants a change affects)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md); tracked in [#443](https://github.com/NCodeGroup/Identity/issues/443)
+- **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)
 
 ## Context
 
@@ -59,8 +59,10 @@ below them. Three kinds of change move them: a management write to the document,
    secrets poll, so a replica that missed every announcement converges within the bound its polls already set, and
    the materialization that follows seeds the tenant again.
 4. **What derives from the server's settings is reconciled, not replayed.** Each replica runs
-   `ServerSettingsReconciliationService`. It waits until the replica materializes its server, at its first request,
-   and then watches the server's settings provider, which signals a configuration reload, a refresh of the committed
+   `ServerSettingsReconciliationService`. It materializes the server when the replica starts, through
+   `IOpenIdServerProvider` with the environment of `IOpenIdEnvironmentProvider`, and, when that fails, logs
+   `ServerMaterializationAtStartFailed` and waits until the replica's first request materializes it. It then watches
+   the server's settings provider, which signals a configuration reload, a refresh of the committed
    document, and a change of the registered algorithms or setting descriptors. On the first signal and on each later
    one it resolves the server's effective settings from the committed document and this replica's configuration, and
    computes their fingerprint: the base64url SHA-256 of each setting's name and JSON value, in name order, with a list
@@ -101,9 +103,9 @@ below them. Three kinds of change move them: a management write to the document,
 - **A durable `IJobDispatcher` adapter** (issue [#25](https://github.com/NCodeGroup/Identity/issues/25)). Rejected for this purpose: a stored job would carry the
   comparison of two documents, which a configuration change never produces, while the invariants can be checked from
   the current state. A durable adapter for deliveries stays deferred.
-- **A pass at every replica's start.** Rejected: every rollout and every scale-out would walk every tenant and client
-  once per replica. The recorded fingerprint makes a start that changes nothing free, and a start with a changed
-  configuration still runs a pass.
+- **Waiting for the replica's first request.** Rejected: derived state would stay unreconciled after a deployment until
+  traffic arrived, and the first requests would race the pass. The recorded fingerprint makes a start that changes
+  nothing cost one read.
 - **Remembering every reconciled fingerprint in the shared state.** Rejected: a return to an earlier state would be
   skipped, while tenants and clients created in between were reconciled against the other state only.
 - **A pass that compares the previous effective settings with the current ones.** Deferred (issue [#279](https://github.com/NCodeGroup/Identity/issues/279)): it needs
@@ -130,7 +132,8 @@ below them. Three kinds of change move them: a management write to the document,
   uses a configured algorithm, and every client's settings.
 - A management write to the server row can lose a race to the record of a reconciliation; it is answered `412`
   ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)), and a retry succeeds.
-- A replica that has served no request has not materialized its server and does not reconcile.
+- Every replica materializes its server and reconciles when it starts; a start whose settings match the recorded
+  fingerprint costs one read of the server row.
 - While a rollout runs replicas with different configurations, each configuration is reconciled when a replica that
   holds it starts or reloads, and the record names the last one.
 - `NCode.Identity.OpenId.Core` registers `ServerSettingsReconciliationService` and does not reference the Dispatch

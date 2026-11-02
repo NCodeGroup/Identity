@@ -10,6 +10,10 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Outbound calls are bounded and retried.** Every fetch of, and delivery to, a caller-supplied URL goes through one guarded HTTP client with a per-attempt and a total timeout and up to two jittered retries of a safe request, set by the new `OpenId:OutboundHttp` section (`OutboundHttpOptions`: `AttemptTimeout`, `TotalTimeout`, `MaxRetryAttempts`, `RetryDelay`) and validated when the host starts ([#444](https://github.com/NCodeGroup/Identity/issues/444), [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+
+- **The usage ledger's prune interval is an option.** `TenantUsageOptions.PruneInterval` (`OpenId:TenantUsage:PruneInterval`, one hour) sets how often `TenantUsagePruneService` removes the days past retention ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
+
 - **Project template v0.53.0.** The repository moves from project-template v0.41.1 to v0.53.0. It gains the
   `/address-feedback` command; the weekly `template-update` workflow, which keeps an issue open while a newer template
   version is out; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first
@@ -1338,6 +1342,12 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   `docs/decisions/0NNN` path at the family's folder, where records are numbered from 1000
   ([#455](https://github.com/NCodeGroup/Identity/issues/455)).
 
+- **Breaking:** the six per-purpose outbound HTTP clients (`NCode.Identity.OpenId.SectorIdentifier`, `.ClientJwks`, `.RequestUri`, `.BackChannelLogout`, `.CibaDelivery`, `.ClientCertificateRevocation`) are one guarded client; configure its limits under `OpenId:OutboundHttp`. Each call is bounded by its defaults, 10 seconds per attempt and 30 seconds in total; the back-channel logout and CIBA deliveries had only `HttpClient`'s 100-second timeout, so an endpoint that takes longer than 10 seconds to answer now fails each delivery attempt. The deliveries no longer read the response body ([#444](https://github.com/NCodeGroup/Identity/issues/444), [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+
+- **Server settings are reconciled when a replica starts**, not at its first request; a replica that cannot materialize its server at start falls back to its first request ([#443](https://github.com/NCodeGroup/Identity/issues/443), [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+
+- **The family's records settle their conflicts with the project template's.** ADR-1116, ADR-1213 and ADR-1219 refine project-template ADR-0112, ADR-0142 and ADR-0140; ADR-1315 supersedes two points of project-template ADR-0145; ADR-1090's conflict with project-template ADR-0141 is tracked in [#25](https://github.com/NCodeGroup/Identity/issues/25) ([#440](https://github.com/NCodeGroup/Identity/issues/440), [#443](https://github.com/NCodeGroup/Identity/issues/443), [#444](https://github.com/NCodeGroup/Identity/issues/444)).
+
 - **Breaking:** **Development conveniences do nothing unless configured.**
   `AddDevelopmentEnvironment(configuration)` and `AddDeveloperCors(configuration)` drop their `IHostEnvironment`
   parameter. `AddDevelopmentEnvironment` no longer checks the environment: `AddProductionSafety` is the one Production
@@ -1352,6 +1362,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   AGENTS.md lists the overrides
   ([#442](https://github.com/NCodeGroup/Identity/issues/442),
   [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md)).
+
 - **The build takes the template's analyzer settings.** `build/BannedSymbols.txt`, from the template, bans
   sync-over-async, every `JsonDocument.Parse` overload and Newtonsoft.Json in every project, test projects included,
   through `Microsoft.CodeAnalysis.BannedApiAnalyzers` 5.6.0; the root `BannedSymbols.txt` keeps only this family's own
@@ -4188,6 +4199,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   body from it. A body larger than the limit, whatever its `Content-Length` says, fails with an
   `OpenIdProviderException` that names the limit ([#423](https://github.com/NCodeGroup/Identity/issues/423)).
 
+- **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release, instead of returning uncleared to the shared array pool ([#440](https://github.com/NCodeGroup/Identity/issues/440), [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+
 - **Breaking:** **The interactive surface's cookies are host-only.** The session cookie is
   `__Host-NCode.Identity.Interactive`, the antiforgery cookie `__Host-NCode.Identity.Antiforgery`, the request-token
   cookie `__Host-XSRF-TOKEN` (`InteractiveAuthenticationDefaults.SessionCookieName`, `AntiforgeryCookieName`,
@@ -4206,6 +4219,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `/api/` to the OP host
   ([#442](https://github.com/NCodeGroup/Identity/issues/442),
   [ADR-1312](docs/decisions/1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md)).
+
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
   it, so `/\t/evil.example` no longer redirects off-site after sign-in.

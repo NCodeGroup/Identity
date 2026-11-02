@@ -422,7 +422,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   consumes a code before it checks `dpop_jkt` (`TokenClientDPoPEndToEndTests`).
 - 👁 **Read the logout token the server delivers from the back-channel logout client.** Set
   `HostApplicationFactory.BackChannelLogoutExchanges` to a `ConcurrentQueue<RecordedHttpExchange>` before the first
-  request, which replaces the SSRF-guarded `NCode.Identity.OpenId.BackChannelLogout` client's handler with
+  request, which replaces the primary handler of the one SSRF-guarded client (`GuardedHttpClient.Name`,
+  [ADR-1315](../../docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)) with
+  a stub whose `POST` handler is
   `StubRecordingHttpMessageHandler` (answers `200`, records each `POST`); the server notifies a client only after it
   issued that client an ID token in the session, so run the code flow first, end the session with
   `GET /oauth2/end_session` and the session cookie, and poll the queue with a deadline because a background job

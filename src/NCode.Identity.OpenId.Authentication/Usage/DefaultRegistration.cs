@@ -31,6 +31,7 @@ internal static class DefaultRegistration
                 serviceProvider.GetRequiredService<DefaultTenantUsageRecorder>()
             );
             serviceCollection.AddHostedService<TenantUsageFlushService>();
+            serviceCollection.AddHostedService<TenantUsagePruneService>();
 
             return builder;
         }

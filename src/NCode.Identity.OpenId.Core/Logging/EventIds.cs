@@ -41,4 +41,6 @@ internal static class EventIds
     public const int ReconciledServerSettingsUnreadable = Base + 13;
 
     public const int TenantCacheClearFailed = Base + 14;
+
+    public const int ServerMaterializationAtStartFailed = Base + 15;
 }

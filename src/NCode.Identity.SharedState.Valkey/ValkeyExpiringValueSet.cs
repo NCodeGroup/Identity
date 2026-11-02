@@ -201,6 +201,8 @@ internal class ValkeyExpiringValueSet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
+        // Copy into an array this adapter owns: WaitAsync can abandon a command the multiplexer still sends, after the
+        // caller has released or reused its memory.
         var expected = expectedValue.ToArray();
 
         return await Metrics.MeasureAsync(

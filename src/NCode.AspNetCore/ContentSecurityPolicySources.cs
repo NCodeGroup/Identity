@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Buffers;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides the source expressions that a Content-Security-Policy directive lists, and the helpers that build the

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 
@@ -134,7 +134,7 @@ public class FrontChannelCorsTests
         using var factory = new HostApplicationFactory();
         var endpoints = factory
             .Services.GetRequiredService<EndpointDataSource>()
-            .Endpoints.Where(endpoint => endpoint.IsOpenIdFrontChannel)
+            .Endpoints.Where(endpoint => endpoint.IsFrontChannel)
             .ToList();
 
         Assert.Contains(

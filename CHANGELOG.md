@@ -1371,6 +1371,16 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking: the HTML page security and the front-channel marker moved to `NCode.AspNetCore`.**
+  `HtmlPageSecurityPolicy`, `HtmlPageSecurityResponseExtensions` (`SetHtmlPageSecurity`),
+  `ContentSecurityPolicyDirective`, `ContentSecurityPolicyDirectives` and `ContentSecurityPolicySources` are in the
+  `NCode.AspNetCore` namespace, and `SetHtmlPageSecurity` writes its cache headers through `SetNoStore()`. The
+  front-channel marker is general ASP.NET Core metadata: `IOpenIdEndpointFrontChannelMetadata` and
+  `OpenIdEndpointFrontChannelMetadata` are renamed `IFrontChannelEndpointMetadata` and `FrontChannelEndpointMetadata`,
+  and `OpenIdFrontChannelEndpointConventionBuilderExtensions` is `FrontChannelEndpointConventionBuilderExtensions`,
+  whose `WithOpenIdFrontChannel()` and `Endpoint.IsOpenIdFrontChannel` are renamed `WithFrontChannel()` and
+  `Endpoint.IsFrontChannel`. `NCode.Identity.OpenId.Authentication.Abstractions` no longer holds them
+  ([#513](https://github.com/NCodeGroup/Identity/issues/513)).
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`, instead of
   `no-store` alone ([#512](https://github.com/NCodeGroup/Identity/issues/512),

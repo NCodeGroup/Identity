@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Text;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Describes the Content-Security-Policy and framing rules of one HTML page. A page starts from the strict default,

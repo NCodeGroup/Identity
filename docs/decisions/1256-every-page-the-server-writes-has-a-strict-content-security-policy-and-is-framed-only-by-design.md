@@ -180,11 +180,11 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
   responses are delivered by registered response-mode handlers.
 - [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md): the interactive bundle
   mounts at once over the page the host rendered.
-- Code: `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/HtmlPageSecurityPolicy.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/HtmlPageSecurityResponseExtensions.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/ContentSecurityPolicyDirective.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/ContentSecurityPolicyDirectives.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/ContentSecurityPolicySources.cs`,
+- Code: `src/NCode.AspNetCore/HtmlPageSecurityPolicy.cs`,
+  `src/NCode.AspNetCore/HtmlPageSecurityResponseExtensions.cs`,
+  `src/NCode.AspNetCore/ContentSecurityPolicyDirective.cs`,
+  `src/NCode.AspNetCore/ContentSecurityPolicyDirectives.cs`,
+  `src/NCode.AspNetCore/ContentSecurityPolicySources.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/AuthorizationResponseWriter.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/CheckSession/DefaultCheckSessionEndpointProvider.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/DefaultEndSessionEndpointProvider.cs`,

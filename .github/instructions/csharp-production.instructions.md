@@ -96,10 +96,10 @@ than inlining the rationale.
   `IOpenIdEndpointResourceServerClientMetadata`, which `DefaultOpenIdClientResolver` checks, and a request with no
   endpoint, such as background work, resolves no such client
   ([ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
-- 👁 **Keep CORS off a front-channel endpoint with `WithOpenIdFrontChannel()`, never CORS metadata.** An endpoint the
-  user agent navigates to (authorization, continue, end-session, the interactive surface) carries
-  `IOpenIdEndpointFrontChannelMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same
-  call routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
+- 👁 **Keep CORS off a front-channel endpoint with `WithFrontChannel()`, never CORS metadata.** An endpoint the
+  user agent navigates to (authorization, continue, end-session, the interactive surface) carries `NCode.AspNetCore`'s
+  `IFrontChannelEndpointMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same call
+  routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
   preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
   `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an endpoint carrying CORS
   metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-1109](../../docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md).

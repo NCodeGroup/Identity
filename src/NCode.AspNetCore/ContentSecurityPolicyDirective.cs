@@ -4,7 +4,7 @@
 using System.Collections.Immutable;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Represents one directive of a page's Content-Security-Policy: a name and the sources it allows. A directive with

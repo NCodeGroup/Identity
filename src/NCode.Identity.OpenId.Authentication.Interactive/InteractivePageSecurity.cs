@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 

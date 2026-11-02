@@ -6,9 +6,11 @@ description: "NCode.Identity's own checks for /audit-conventions: the tested-or-
 
 `/audit-conventions`, from the project template, loads `AGENTS.md`, every instruction file it lists and the decision
 records, runs the gate, sweeps the review-only rules and ranks the findings. These are this repository's sweeps for it.
-The rules are in [csharp-production.instructions.md](csharp-production.instructions.md) and
-[csharp-testing.instructions.md](csharp-testing.instructions.md), where every rule is tagged ✅ tool-enforced, 👁
-review-only or ⏳ rolling out: spend the manual effort on the 👁 rules.
+The general C# rules are the project template's [csharp.instructions.md](csharp.instructions.md) and
+[csharp-tests.instructions.md](csharp-tests.instructions.md); this repository's own are in
+[csharp-production.instructions.md](csharp-production.instructions.md) and
+[csharp-testing.instructions.md](csharp-testing.instructions.md), where every rule, a pointer to a template rule
+included, is tagged ✅ tool-enforced, 👁 review-only or ⏳ rolling out: spend the manual effort on the 👁 rules.
 
 ## Tested-or-excluded coverage
 

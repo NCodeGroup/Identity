@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
@@ -57,7 +58,7 @@ public class BffLogoutServiceTests : BaseTests
             manager.Object,
             revocation.Object,
             new BffClientRegistrationProvider(options),
-            new BffCookies(options, new MutableTimeProvider(Now)),
+            new BffCookies(options, new FakeTimeProvider(Now)),
             CreateLooseMock<ILogger<BffLogoutService>>().Object
         );
         return (service, manager, revocation);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Diagnostics;
@@ -20,7 +21,7 @@ public class BffLoginTransactionServiceTests : IAsyncLifetime
     public BffLoginTransactionServiceTests()
     {
         var services = new ServiceCollection();
-        services.AddSingleton<TimeProvider>(new MutableTimeProvider(Now));
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         services
             .AddSharedStateServices()
             .AddInProcessExpiringValueSet()

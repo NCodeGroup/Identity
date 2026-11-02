@@ -399,7 +399,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   server sends `myapp://callback/` for `myapp://callback`.
 - 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
   `myapp://callback` is of no registered kind and is refused
-  (  [ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
+  ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
   ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test

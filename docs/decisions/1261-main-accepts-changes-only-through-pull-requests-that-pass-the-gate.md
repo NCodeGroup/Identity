@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md) lets
+the default branch take changes only through pull requests whose required checks pass, with zero required approvals
+while there is one maintainer. This record holds the family's ruleset, settings and required checks.
+
 [ADR-1125](1125-trunk-based-development-on-main.md) leaves `main` unprotected while the family is pre-release, for two
 reasons: a single maintainer cannot approve their own pull request, and nothing is published, so a broken commit costs
 one fix-forward commit. Three facts outweigh those reasons:
@@ -16,9 +20,6 @@ one fix-forward commit. Three facts outweigh those reasons:
 - CI runs the gate on every pull request, but a direct push to `main` skips it. The push is the one path by which an
   unchecked commit reaches the trunk.
 - The maintainer decides to work through pull requests and to let cloud agents propose changes only that way.
-
-A pull-request rule with **zero** required approvals, together with required status checks, is satisfiable by one
-maintainer: it enforces the gate without asking for a review that nobody can give.
 
 ## Decision
 
@@ -60,15 +61,11 @@ stands: one trunk, short-lived branches, release lines, and deployment gated by 
 - **Keep ADR-1125's unprotected trunk.** Rejected: a direct push skips the gate that CI already runs.
 - **Classic branch protection.** Rejected: a ruleset is the current GitHub mechanism, is visible to anyone who reads
   the repository, and composes with other rulesets.
-- **Require one approval.** Rejected: a single maintainer cannot satisfy it (ADR-1125).
 - **Allow merge commits.** Rejected: linear history keeps `git bisect` and the changelog readable.
 - **Require every status, including Codecov and `copilot-setup-steps`.** Rejected (decision 4).
 
 ## Consequences
 
-- Every change — a person's, a cloud agent's, Dependabot's — reaches `main` only through a green, up-to-date pull
-  request.
-- An administrator changes the ruleset in the repository settings, and GitHub records the change.
 - The push protocol pushes a topic branch and opens or updates its pull request; it never pushes `main`.
 - A workflow added later whose job gates merges is added to the ruleset's required checks, and it must report on every
   pull request, as Frontend CI does.

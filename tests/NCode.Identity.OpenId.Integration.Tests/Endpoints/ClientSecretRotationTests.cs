@@ -165,7 +165,7 @@ public class ClientSecretRotationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("clientId").GetString()!;
+        return GetRequiredString(jsonElement, "clientId");
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
@@ -185,10 +185,9 @@ public class ClientSecretRotationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
-        return (
-            jsonElement.GetProperty("secretId").GetString()!,
-            jsonElement.GetProperty("secretMaterial").GetString()!
-        );
+        var createdSecretId = GetRequiredString(jsonElement, "secretId");
+        var createdSecretMaterial = GetRequiredString(jsonElement, "secretMaterial");
+        return (createdSecretId, createdSecretMaterial);
     }
 
     // Rotates the secret, giving the replacement a year and the rotated secret the specified grace expiry.
@@ -207,10 +206,17 @@ public class ClientSecretRotationTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
         Assert.Equal("symmetric", jsonElement.GetProperty("secretType").GetString());
-        return (
-            jsonElement.GetProperty("secretId").GetString()!,
-            jsonElement.GetProperty("secretMaterial").GetString()!
-        );
+        var createdSecretId = GetRequiredString(jsonElement, "secretId");
+        var createdSecretMaterial = GetRequiredString(jsonElement, "secretMaterial");
+        return (createdSecretId, createdSecretMaterial);
+    }
+
+    // Reads a string property the endpoint always writes, failing the test here when the property is null.
+    private static string GetRequiredString(JsonElement jsonElement, string propertyName)
+    {
+        var value = jsonElement.GetProperty(propertyName).GetString();
+        Assert.NotNull(value);
+        return value;
     }
 
     // Revoking an unknown token is a no-op once the client authenticates (RFC 7009 §2.2), so the response reports only

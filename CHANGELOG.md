@@ -1314,6 +1314,14 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **The C# conventions and the refining decision records keep only NCode.Identity's own content.**
+  `.github/instructions/csharp-production.instructions.md` and `csharp-testing.instructions.md` no longer restate the
+  rules of the project template's `csharp.instructions.md` and `csharp-tests.instructions.md`: each such bullet keeps
+  its enforcement tag, links the template's section and keeps only what the family adds or decides differently. Thirty
+  decision records with a `**Refines:**` line drop the general rule, options and consequences of the template record
+  they refine and cite it instead ([#447](https://github.com/NCodeGroup/Identity/issues/447),
+  [#450](https://github.com/NCodeGroup/Identity/issues/450)).
+
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`
   block with a dated Apache 2.0 notice in three layouts. `.editorconfig` sets the header as `file_header_template` and

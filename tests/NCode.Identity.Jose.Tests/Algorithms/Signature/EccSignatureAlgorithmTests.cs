@@ -35,7 +35,7 @@ public class EccSignatureAlgorithmTests : BaseTests
             ECCurve.NamedCurves.nistP384,
             anyValidHashAlgorithmName
         );
-        Assert.Equal(typeof(EccSecretKey), algorithm.KeyType);
+        Assert.Equal(typeof(EccSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
     }
 
     public static IEnumerable<object[]> GetKeyBitSizesTestData()
@@ -56,7 +56,7 @@ public class EccSignatureAlgorithmTests : BaseTests
         const string code = nameof(code);
 
         var algorithm = new EccSignatureAlgorithm(code, curve, hashAlgorithmName);
-        var result = Assert.Single(algorithm.KeyBitSizes);
+        var result = Assert.Single(Assert.Single(algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(expected, result.MinSize);
         Assert.Equal(expected, result.MaxSize);
         Assert.Equal(0, result.SkipSize);

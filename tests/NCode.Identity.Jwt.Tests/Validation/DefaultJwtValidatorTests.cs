@@ -189,9 +189,8 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         public override string Code => AlgorithmCodes.DigitalSignature.None;
 
-        public override Type KeyType => typeof(SecretKey);
-
-        public override IEnumerable<KeySizes> KeyBitSizes => [];
+        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+        [new(typeof(SecretKey), [])];
 
         public override HashAlgorithmName HashAlgorithmName => default;
 

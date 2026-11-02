@@ -12,20 +12,17 @@ const initial: SecretFormValues = { ...emptySecretFormValues, expiresWhen: '2027
 const rs256: AlgorithmOption = {
   code: 'RS256',
   use: 'sig',
-  secretTypes: ['rsa'],
-  keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+  keyTypes: [{ secretType: 'rsa', keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }] }],
 };
 const rsaOaep: AlgorithmOption = {
   code: 'RSA-OAEP',
   use: 'enc',
-  secretTypes: ['rsa'],
-  keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+  keyTypes: [{ secretType: 'rsa', keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }] }],
 };
 const es256: AlgorithmOption = {
   code: 'ES256',
   use: 'sig',
-  secretTypes: ['ecc'],
-  keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+  keyTypes: [{ secretType: 'ecc', keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }] }],
 };
 const algorithms = [rs256, rsaOaep, es256];
 
@@ -264,6 +261,54 @@ describe('SecretFormDialog', () => {
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ algorithm: 'ES256', use: 'sig', keySizeBits: 256 }),
+    );
+  });
+
+  // One algorithm name may serve several secret types, each with its own sizes (ADR-1389), such as ECDH-ES over EC
+  // and OKP keys; the key size is bounded by the chosen type's entry.
+  it.each([
+    {
+      secretType: 'ecc' as const,
+      expected: 'Allowed: 256–384 bits for ECDH-ES.',
+      min: '256',
+      max: '384',
+    },
+    {
+      secretType: 'rsa' as const,
+      expected: 'Allowed: 2048–4096 bits for ECDH-ES.',
+      min: '2048',
+      max: '4096',
+    },
+  ])('bounds the key size by the $secretType entry of a multi-type algorithm', (row) => {
+    const multiType: AlgorithmOption = {
+      code: 'ECDH-ES',
+      use: 'enc',
+      keyTypes: [
+        { secretType: 'ecc', keyBitSizes: [{ minBits: 256, maxBits: 384, skipBits: 128 }] },
+        { secretType: 'rsa', keyBitSizes: [{ minBits: 2048, maxBits: 4096, skipBits: 1024 }] },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        initialValues={{ ...initial, secretType: row.secretType, keySizeBits: 1 }}
+        algorithms={[multiType]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'ECDH-ES' } });
+
+    expect(screen.getByText(row.expected)).toBeInTheDocument();
+    const keySize = screen.getByTestId('secret-key-size');
+    expect(keySize).toHaveValue(Number(row.min));
+    expect(keySize).toHaveAttribute('min', row.min);
+    expect(keySize).toHaveAttribute('max', row.max);
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ algorithm: 'ECDH-ES', use: 'enc', keySizeBits: Number(row.min) }),
     );
   });
 

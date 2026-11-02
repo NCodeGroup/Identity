@@ -11,6 +11,16 @@ change to the public API is a **major** version bump.
 ### Added
 
 - **The outbound clients count their retries and timeouts.** The guarded outbound client records `ncode.identity.outbound_http.retries` (by `error.type`) and `ncode.identity.outbound_http.timeouts` (by `attempt` or `total` scope) on the `NCode.Identity.OpenId.Authentication` meter, and the OpenID protocol client records `ncode.identity.openid_client.retries` and `ncode.identity.openid_client.timeouts` on its new `NCode.Identity.OpenId.Client` meter (`OpenIdClientMetrics.MeterName`), so operators can see how often a call to a caller-supplied URL or an OpenID Provider is retried or times out; `docs/metrics.md` lists them ([#519](https://github.com/NCodeGroup/Identity/issues/519)).
+- **ECDH-ES agrees keys of any registered key type.** `ECDH-ES`, `ECDH-ES+A128KW`, `ECDH-ES+A192KW` and
+  `ECDH-ES+A256KW` serve every key type that has a registered `IEcdhKeyAgreement` (in
+  `NCode.Identity.Jose.Abstractions`), so a package can contribute ECDH-ES over its key type, such as the `OKP` X25519
+  and X448 keys of RFC 8037 §3.2, by registering an agreement beside its key type; the core registers the `EC`
+  agreement over P-256, P-384 and P-521. The `epk` header is written and read through the key type's
+  `ISecretKeyTypeDescriptor` and JSON Web Key rules: it carries only the type's required members, its `kty` must be the
+  recipient key's, and a received `epk` that holds any private member is refused ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+- **A tenant key can name its secret type.** `OpenId:Tenant:KeyProvisioning:Keys` entries take an optional
+  `SecretType` that selects which of the algorithm's key types the key is generated as; unset, it is the algorithm's
+  first key type that has a registered secret key type ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 
 - **The BFF serves more token requirements and forwards remote APIs.** Besides `user`, an endpoint or remote API can name
   `client` (the BFF's own `client_credentials` token, served only to a request with a session and cached in memory on
@@ -1382,6 +1392,19 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   `Endpoint.IsFrontChannel`. `NCode.Identity.OpenId.Authentication.Abstractions` no longer holds them, and
   `NCode.AspNetCore` now references `NCode.Buffers` ([#513](https://github.com/NCodeGroup/Identity/issues/513),
   [ADR-1388](docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md)).
+- **Breaking: a keyed algorithm declares a list of key types.** `KeyedAlgorithm.KeyType` and `KeyBitSizes` are
+  replaced by `KeyTypes`, a list of `AlgorithmKeyType` values (a `SecretKey` type with the sizes legal for it) in the
+  algorithm's order of preference, with `TryGetKeyType` to match a key and `AcceptsOnly<TKey>()` to ask whether every
+  key type is of a family. The JWE decryption key check, `ValidateKeyAlgorithm`, tenant key provisioning and the client
+  authentication and decryption policies read it. `AuthenticatedEncryptionAlgorithm` no longer derives from
+  `KeyedAlgorithm`, because its key is a content encryption key, not a `SecretKey` ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+- **Breaking: the `algorithms` capability lists each secret type with its own key sizes.**
+  `AlgorithmCapabilityResource.KeyTypes` (`{ secretType, keyBitSizes }` per compatible secret type) replaces
+  `SecretTypes` and `KeyBitSizes`, and the console bounds a new secret's key size by the chosen type's entry ([#327](https://github.com/NCodeGroup/Identity/issues/327),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+- **`ECDH-ES+A*KW` wraps a random content encryption key.** The key-wrapping ECDH-ES algorithms generate the content
+  encryption key at random and wrap it with the agreed key, as RFC 7518 §4.6 describes, instead of deriving it from a
+  second agreement whose ephemeral key was discarded ([#327](https://github.com/NCodeGroup/Identity/issues/327)).
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`, instead of
   `no-store` alone ([#512](https://github.com/NCodeGroup/Identity/issues/512),

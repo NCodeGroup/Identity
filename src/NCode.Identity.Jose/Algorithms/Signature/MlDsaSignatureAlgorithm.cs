@@ -23,11 +23,21 @@ internal sealed class MlDsaSignatureAlgorithm(
     public override string Code => code;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(AkpSecretKey);
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+    [
+        new(
+            typeof(AkpSecretKey),
+            [
+                new KeySizes(
+                    algorithm.PublicKeySizeInBytes * 8,
+                    algorithm.PublicKeySizeInBytes * 8,
+                    0
+                ),
+            ]
+        ),
+    ];
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; } =
-    [new KeySizes(algorithm.PublicKeySizeInBytes * 8, algorithm.PublicKeySizeInBytes * 8, 0)];
+    private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 
     /// <summary>
     /// Gets the <see cref="HashAlgorithmName"/> used for derived hashes (for example OpenID Connect <c>at_hash</c> /

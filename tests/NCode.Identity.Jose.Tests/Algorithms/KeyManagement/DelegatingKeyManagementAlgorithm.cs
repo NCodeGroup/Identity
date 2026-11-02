@@ -16,9 +16,7 @@ internal sealed class DelegatingKeyManagementAlgorithm(KeyManagementAlgorithm in
 
     public override string Code => Inner.Code;
 
-    public override Type KeyType => Inner.KeyType;
-
-    public override IEnumerable<KeySizes> KeyBitSizes => Inner.KeyBitSizes;
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes => Inner.KeyTypes;
 
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
         Inner.GetLegalCekByteSizes(kekSizeBits);

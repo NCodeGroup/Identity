@@ -26,15 +26,31 @@ export type KeyBitSizesOption = {
   readonly skipBits: number;
 };
 
+/** One secret type an algorithm accepts, with the key sizes legal for keys of that type. */
+export type AlgorithmKeyTypeOption = {
+  /** The secret-type discriminator (e.g. `rsa`, `ecc`) whose key material is compatible with the algorithm. */
+  readonly secretType: string;
+  readonly keyBitSizes: readonly KeyBitSizesOption[];
+};
+
 /** A signature or key-management algorithm offered for secrets, discovered from the server capabilities. */
 export type AlgorithmOption = {
   readonly code: string;
   /** The key use the algorithm implies: `sig` for signature, `enc` for key-management. */
   readonly use: string;
-  /** The secret-type discriminators (e.g. `rsa`, `ecc`) whose key material is compatible with this algorithm. */
-  readonly secretTypes: readonly string[];
-  readonly keyBitSizes: readonly KeyBitSizesOption[];
+  /**
+   * The compatible secret types, each with its legal key sizes: one algorithm, such as `ECDH-ES`, may accept several
+   * secret types with different sizes (ADR-1389).
+   */
+  readonly keyTypes: readonly AlgorithmKeyTypeOption[];
 };
+
+/** The first legal key-size range of the algorithm for the secret type, if it accepts that type. */
+const keySizeRangeFor = (
+  algorithm: AlgorithmOption | undefined,
+  secretType: string,
+): KeyBitSizesOption | undefined =>
+  algorithm?.keyTypes.find((keyType) => keyType.secretType === secretType)?.keyBitSizes[0];
 
 /** The secret create form's own field shape. `expiresWhen` is a `datetime-local` string (local time). */
 export type SecretFormValues = {
@@ -107,12 +123,12 @@ export function SecretFormDialog({
   // (ADR-1067) instead of free-text defaults; only algorithms compatible with the chosen type are offered.
   const algorithmsProvided = (algorithms?.length ?? 0) > 0;
   const applicableAlgorithms = (algorithms ?? []).filter((algorithm) =>
-    algorithm.secretTypes.includes(values.secretType),
+    algorithm.keyTypes.some((keyType) => keyType.secretType === values.secretType),
   );
   const selectedAlgorithm = applicableAlgorithms.find(
     (algorithm) => algorithm.code === values.algorithm,
   );
-  const keySizeRange = selectedAlgorithm?.keyBitSizes[0];
+  const keySizeRange = keySizeRangeFor(selectedAlgorithm, values.secretType);
 
   const canSubmit = values.keySizeBits > 0 && values.expiresWhen.trim().length > 0 && !isSubmitting;
 
@@ -235,7 +251,7 @@ export function SecretFormDialog({
                 const code = event.target.value;
                 const match = applicableAlgorithms.find((algorithm) => algorithm.code === code);
                 setValues((v) => {
-                  const range = match?.keyBitSizes[0];
+                  const range = keySizeRangeFor(match, v.secretType);
                   const inRange =
                     range !== undefined &&
                     v.keySizeBits >= range.minBits &&

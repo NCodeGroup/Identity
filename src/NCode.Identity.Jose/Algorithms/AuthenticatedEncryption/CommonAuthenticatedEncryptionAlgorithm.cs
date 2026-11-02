@@ -11,11 +11,13 @@ namespace NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 /// </summary>
 internal abstract class CommonAuthenticatedEncryptionAlgorithm : AuthenticatedEncryptionAlgorithm
 {
-    private IEnumerable<KeySizes>? KeyBitSizesOrNull { get; set; }
+    private IEnumerable<KeySizes>? ContentKeyBitSizesOrNull { get; set; }
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes =>
-        KeyBitSizesOrNull ??= new[]
+    /// <summary>
+    /// Gets the legal sizes, in bits, of the content encryption key (CEK).
+    /// </summary>
+    protected internal IEnumerable<KeySizes> ContentKeyBitSizes =>
+        ContentKeyBitSizesOrNull ??= new[]
         {
             new KeySizes(minSize: ContentKeySizeBits, maxSize: ContentKeySizeBits, skipSize: 0),
         };
@@ -44,7 +46,7 @@ internal abstract class CommonAuthenticatedEncryptionAlgorithm : AuthenticatedEn
         ReadOnlySpan<byte> authenticationTag
     )
     {
-        if (!KeySizesUtility.IsLegalSize(KeyBitSizes, cek.Length << 3))
+        if (!KeySizesUtility.IsLegalSize(ContentKeyBitSizes, cek.Length << 3))
             throw new ArgumentException(
                 "The specified content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
                 nameof(cek)

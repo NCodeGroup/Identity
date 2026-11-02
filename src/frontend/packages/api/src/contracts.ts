@@ -331,17 +331,26 @@ export type KeyBitSizes = {
 };
 
 /**
+ * Mirror of `AlgorithmKeyTypeCapabilityResource` — one secret type an algorithm accepts, with the key sizes legal
+ * for keys of that type. An algorithm such as `ECDH-ES` lists one per secret type it serves (ADR-1389).
+ */
+export type AlgorithmKeyTypeCapability = {
+  /** The secret-type discriminator (e.g. `rsa`, `ecc`) whose key material is compatible with the algorithm. */
+  readonly secretType: string;
+  readonly keyBitSizes: readonly KeyBitSizes[];
+};
+
+/**
  * Mirror of `AlgorithmCapabilityResource` — one signature or key-management algorithm the server supports, with
- * its implied use, compatible secret types, and legal key sizes, so the create-secret form can drive its
+ * its implied use and each compatible secret type with its legal key sizes, so the create-secret form can drive its
  * algorithm, use, and key-size inputs from server discovery rather than hard-coded defaults.
  */
 export type AlgorithmCapability = {
   readonly code: string;
   /** The key use the algorithm implies: `sig` for signature, `enc` for key-management. */
   readonly use: string;
-  /** The secret-type discriminators (e.g. `rsa`, `ecc`) whose key material is compatible with this algorithm. */
-  readonly secretTypes: readonly string[];
-  readonly keyBitSizes: readonly KeyBitSizes[];
+  /** The compatible secret types, each with its legal key sizes, in the algorithm's order of preference. */
+  readonly keyTypes: readonly AlgorithmKeyTypeCapability[];
 };
 
 /**

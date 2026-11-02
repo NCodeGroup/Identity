@@ -122,6 +122,13 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
+        // An algorithm may accept several key types (ADR-1389); a key of another type than the one configured does not
+        // satisfy the specification, so the configured type is provisioned.
+        if (!string.Equals(secret.SecretType, specification.SecretType, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
         {
             return false;
@@ -171,13 +178,16 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        var descriptor = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
-            candidate.KeyClrType == algorithm.KeyType
-        );
-        if (descriptor is null)
+        if (
+            !TryResolveKeyType(
+                algorithm,
+                key,
+                out var descriptor,
+                out var algorithmKeyType,
+                out error
+            )
+        )
         {
-            error =
-                $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
             return false;
         }
 
@@ -196,9 +206,9 @@ internal class DefaultTenantKeyPolicy(
         {
             keySizeBits = configuredKeySizeBits;
         }
-        else if (algorithm.KeyBitSizes.Any())
+        else if (algorithmKeyType.KeyBitSizes.Count > 0)
         {
-            keySizeBits = algorithm.KeyBitSizes.Min(legalSize => legalSize.MinSize);
+            keySizeBits = algorithmKeyType.KeyBitSizes.Min(legalSize => legalSize.MinSize);
         }
         else
         {
@@ -240,5 +250,55 @@ internal class DefaultTenantKeyPolicy(
         };
         error = null;
         return true;
+    }
+
+    // See ADR-1389: an algorithm may accept several key types. The configured secret type selects one; otherwise the key
+    // is generated as the first key type the algorithm lists that has a registered secret key type.
+    private bool TryResolveKeyType(
+        KeyedAlgorithm algorithm,
+        OpenIdTenantKeyOptions key,
+        [NotNullWhen(true)] out ISecretKeyTypeDescriptor? descriptor,
+        [NotNullWhen(true)] out AlgorithmKeyType? algorithmKeyType,
+        [NotNullWhen(false)] out string? error
+    )
+    {
+        if (key.SecretType is { } secretType)
+        {
+            if (!SecretKeyTypeCatalog.TryGet(secretType, out descriptor))
+            {
+                algorithmKeyType = null;
+                error = $"The secret type '{secretType}' is not a registered secret key type.";
+                return false;
+            }
+
+            if (!algorithm.TryGetKeyType(descriptor.KeyClrType, out algorithmKeyType))
+            {
+                error = $"The algorithm '{algorithm.Code}' does not accept '{secretType}' keys.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        foreach (var candidateKeyType in algorithm.KeyTypes)
+        {
+            var candidate = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
+                candidate.KeyClrType == candidateKeyType.KeyType
+            );
+            if (candidate is not null)
+            {
+                descriptor = candidate;
+                algorithmKeyType = candidateKeyType;
+                error = null;
+                return true;
+            }
+        }
+
+        descriptor = null;
+        algorithmKeyType = null;
+        error =
+            $"The algorithm '{algorithm.Code}' uses a key type that has no registered secret key type.";
+        return false;
     }
 }

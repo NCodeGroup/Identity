@@ -21,14 +21,14 @@ internal class RsaOaepKeyManagementAlgorithm(string code, HashAlgorithmName hash
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
     [new(minSize: 2048, maxSize: 16384, skipSize: 64)];
 
+    private static IReadOnlyList<AlgorithmKeyType> StaticKeyTypes { get; } =
+    [new(typeof(RsaSecretKey), StaticKeyBitSizes)];
+
     /// <inheritdoc />
     public override string Code { get; } = code;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(RsaSecretKey);
-
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes => StaticKeyTypes;
 
     private RSAEncryptionPadding Padding { get; } =
         RSAEncryptionPadding.CreateOaep(hashAlgorithmName);
@@ -62,7 +62,7 @@ internal class RsaOaepKeyManagementAlgorithm(string code, HashAlgorithmName hash
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(StaticKeyBitSizes);
 
         using var key = validatedSecretKey.ExportRSA();
 
@@ -82,7 +82,7 @@ internal class RsaOaepKeyManagementAlgorithm(string code, HashAlgorithmName hash
         out int bytesWritten
     )
     {
-        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<RsaSecretKey>(StaticKeyBitSizes);
 
         using var key = validatedSecretKey.ExportRSA();
 

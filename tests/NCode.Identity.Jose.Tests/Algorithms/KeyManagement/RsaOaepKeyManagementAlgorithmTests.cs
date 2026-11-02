@@ -27,7 +27,7 @@ public class RsaOaepKeyManagementAlgorithmTests : BaseTests
         const string code = nameof(code);
 
         var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
-        Assert.Equal(typeof(RsaSecretKey), algorithm.KeyType);
+        Assert.Equal(typeof(RsaSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class RsaOaepKeyManagementAlgorithmTests : BaseTests
         const string code = nameof(code);
 
         var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
-        var result = Assert.Single(algorithm.KeyBitSizes);
+        var result = Assert.Single(Assert.Single(algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(2048, result.MinSize);
         Assert.Equal(16384, result.MaxSize);
         Assert.Equal(64, result.SkipSize);

@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Jose;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 using Base64Url = NCode.Encoders.Base64Url;
 using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
@@ -16,18 +18,74 @@ namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
 
 public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
-    private static EcdhKeyManagementAlgorithm Algorithm => EcdhKeyManagementAlgorithm.Singleton;
+    private const string Enc = "A128GCM";
 
-    private static ECCurve GetCurve(int curveSizeBits)
+    private ServiceProvider ServiceProvider { get; }
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; }
+
+    private EcdhKeyManagementAlgorithm Algorithm { get; }
+
+    public EcdhKeyManagementAlgorithmTests()
     {
-        var curve = curveSizeBits switch
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+
+        SecretKeyTypeCatalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();
+        Algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new EccEcdhKeyAgreement()]
+        );
+    }
+
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        await ServiceProvider.DisposeAsync();
+        await base.DisposeAsyncCore();
+    }
+
+    private static ECCurve GetCurve(int curveSizeBits) =>
+        curveSizeBits switch
         {
             256 => ECCurve.NamedCurves.nistP256,
             384 => ECCurve.NamedCurves.nistP384,
             521 => ECCurve.NamedCurves.nistP521,
             _ => throw new NotSupportedException(),
         };
-        return curve;
+
+    private static EccSecretKey CreateRecipientKey(int curveSizeBits)
+    {
+        using var key = ECDiffieHellman.Create(GetCurve(curveSizeBits));
+        return SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "recipient" }, key);
+    }
+
+    private static JsonObject CreateEpk(int curveSizeBits, bool includePrivateKey = false)
+    {
+        using var key = ECDiffieHellman.Create(GetCurve(curveSizeBits));
+        var parameters = key.ExportParameters(includePrivateKey);
+        var epk = new JsonObject
+        {
+            ["kty"] = "EC",
+            ["crv"] = $"P-{curveSizeBits}",
+            ["x"] = Base64Url.Encode(parameters.Q.X),
+            ["y"] = Base64Url.Encode(parameters.Q.Y),
+        };
+        if (includePrivateKey)
+        {
+            epk["d"] = Base64Url.Encode(parameters.D);
+        }
+
+        return epk;
+    }
+
+    private JoseException ValidateHeaderForUnwrapThrows(SecretKey recipientKey, JsonObject header)
+    {
+        var headerForUnwrap = header.Deserialize<JsonElement>();
+        return Assert.Throws<JoseException>(() =>
+            Algorithm.ValidateHeaderForUnwrap(recipientKey, headerForUnwrap, out _, out _, out _)
+        );
     }
 
     [Fact]
@@ -37,29 +95,31 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_ReturnsEccSecretKey()
+    public void KeyTypes_ReturnsTheKeyTypeOfEachAgreement()
     {
-        Assert.Equal(typeof(EccSecretKey), Algorithm.KeyType);
+        var keyType = Assert.Single(Algorithm.KeyTypes);
+        Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
+        Assert.Collection(
+            keyType.KeyBitSizes,
+            size => Assert.Equal((256, 384, 128), (size.MinSize, size.MaxSize, size.SkipSize)),
+            size => Assert.Equal((521, 521, 0), (size.MinSize, size.MaxSize, size.SkipSize))
+        );
     }
 
     [Fact]
-    [SuppressMessage("ReSharper", "ParameterOnlyUsedForPreconditionCheck.Local")]
-    public void KeyBitSizes_ReturnsExpected()
+    public void Constructor_WhenTwoAgreementsServeTheSameKeyType_Throws()
     {
-        Assert.Collection(
-            Algorithm.KeyBitSizes,
-            size =>
-            {
-                Assert.Equal(256, size.MinSize);
-                Assert.Equal(384, size.MaxSize);
-                Assert.Equal(128, size.SkipSize);
-            },
-            size =>
-            {
-                Assert.Equal(521, size.MinSize);
-                Assert.Equal(521, size.MaxSize);
-                Assert.Equal(0, size.SkipSize);
-            }
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new EcdhKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                [new EccEcdhKeyAgreement(), new EccEcdhKeyAgreement()]
+            )
+        );
+
+        Assert.Contains(
+            typeof(EccSecretKey).FullName!,
+            exception.Message,
+            StringComparison.Ordinal
         );
     }
 
@@ -67,64 +127,73 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     [InlineData(256)]
     [InlineData(384)]
     [InlineData(521)]
-    public void ExportKey_WhenGivenValidCurve_ExportsOnlyThePublicKeyToHeader(int curveSizeBits)
+    public void IsKeyCompatible_WhenEccKeyOnASupportedCurve_ReturnsTrue(int curveSizeBits)
     {
-        var curve = GetCurve(curveSizeBits);
+        Assert.True(Algorithm.IsKeyCompatible(CreateRecipientKey(curveSizeBits)));
+    }
 
-        using var key = ECDiffieHellman.Create(curve);
-        var parameters = key.ExportParameters(includePrivateParameters: false);
+    [Fact]
+    public void IsKeyCompatible_WhenKeyTypeHasNoAgreement_ReturnsFalse()
+    {
+        using var rsa = RSA.Create(2048);
+        var secretKey = SecretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, rsa);
 
-        var header = new Dictionary<string, object>();
-        EcdhKeyManagementAlgorithm.ExportKey(curveSizeBits, key, header);
+        Assert.False(Algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void NewKey_WhenKeyTypeHasNoAgreement_Throws()
+    {
+        using var rsa = RSA.Create(2048);
+        var secretKey = SecretKeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, rsa);
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Algorithm.NewKey(secretKey, header, new byte[16])
+        );
+
+        Assert.Contains(
+            "has no registered ECDH key agreement",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    [Theory]
+    [InlineData(256)]
+    [InlineData(384)]
+    [InlineData(521)]
+    public void NewKey_WritesOnlyTheEphemeralPublicKeyToTheHeader(int curveSizeBits)
+    {
+        var recipientKey = CreateRecipientKey(curveSizeBits);
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        Algorithm.NewKey(recipientKey, header, new byte[16]);
 
         var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
-        var kty = Assert.IsType<string>(Assert.Contains("kty", epk));
-        var crv = Assert.IsType<string>(Assert.Contains("crv", epk));
-        var x = Assert.IsType<string>(Assert.Contains("x", epk));
-        var y = Assert.IsType<string>(Assert.Contains("y", epk));
 
-        Assert.Equal("EC", kty);
-        Assert.Equal($"P-{curveSizeBits}", crv);
-        Assert.Equal(Base64Url.Encode(parameters.Q.X), x);
-        Assert.Equal(Base64Url.Encode(parameters.Q.Y), y);
-
-        // RFC 7518 §4.6.1.1: the ephemeral private key never leaves the sender.
+        // RFC 7518 §4.6.1.1: the ephemeral private key never leaves the sender, and the epk holds only the members the
+        // EC key type requires.
         Assert.Equal(["crv", "kty", "x", "y"], epk.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal("EC", epk["kty"]);
+        Assert.Equal($"P-{curveSizeBits}", epk["crv"]);
+
+        var coordinateSizeBytes = (curveSizeBits + 7) >> 3;
+        Assert.Equal(coordinateSizeBytes, Base64Url.Decode(Assert.IsType<string>(epk["x"])).Length);
+        Assert.Equal(coordinateSizeBytes, Base64Url.Decode(Assert.IsType<string>(epk["y"])).Length);
     }
 
     [Fact]
     public void ValidateHeaderForUnwrap_WhenTheEphemeralKeyCarriesItsPrivateKey_Throws()
     {
-        const int curveSizeBits = 256;
-
-        var curve = GetCurve(curveSizeBits);
-        using var ephemeralKey = ECDiffieHellman.Create(curve);
-        var parameters = ephemeralKey.ExportParameters(includePrivateParameters: true);
-
         var header = new JsonObject
         {
-            ["enc"] = "A128GCM",
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "EC",
-                ["crv"] = $"P-{curveSizeBits}",
-                ["x"] = Base64Url.Encode(parameters.Q.X),
-                ["y"] = Base64Url.Encode(parameters.Q.Y),
-                ["d"] = Base64Url.Encode(parameters.D),
-            },
+            ["enc"] = Enc,
+            ["epk"] = CreateEpk(256, includePrivateKey: true),
         };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
 
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
-        );
+        var exception = ValidateHeaderForUnwrapThrows(CreateRecipientKey(256), header);
 
         Assert.Equal(
             "The 'epk' header must contain only public key parameters, but it contains 'd'.",
@@ -132,81 +201,82 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         );
     }
 
-    [Fact]
-    public void ValidateHeaderForUnwrap_WhenValidHeader_Succeeds()
+    [Theory]
+    [InlineData("k")]
+    [InlineData("p")]
+    [InlineData("priv")]
+    public void ValidateHeaderForUnwrap_WhenTheEphemeralKeyCarriesAnotherTypesPrivateMember_Throws(
+        string privateMember
+    )
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
+        var epk = CreateEpk(256);
+        epk[privateMember] = Base64Url.Encode(new byte[32]);
+        var header = new JsonObject { ["enc"] = Enc, ["epk"] = epk };
 
-        var curve = GetCurve(curveSizeBits);
-        using var expectedKey = ECDiffieHellman.Create(curve);
-        var expectedParameters = expectedKey.ExportParameters(includePrivateParameters: false);
-        var encodedX = Base64Url.Encode(expectedParameters.Q.X);
-        var encodedY = Base64Url.Encode(expectedParameters.Q.Y);
+        var exception = ValidateHeaderForUnwrapThrows(CreateRecipientKey(256), header);
 
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
+        Assert.Equal(
+            "The 'epk' header must contain only public key parameters.",
+            exception.Message
+        );
+    }
 
-        var encodedApu = Base64Url.Encode(expectedApu);
-        var encodedApv = Base64Url.Encode(expectedApv);
-
+    [Fact]
+    public void ValidateHeaderForUnwrap_WhenValidHeader_ReturnsTheEphemeralPublicKey()
+    {
+        var epk = CreateEpk(256);
+        var apu = Base64Url.Encode(RandomNumberGenerator.GetBytes(32));
+        var apv = Base64Url.Encode(RandomNumberGenerator.GetBytes(32));
         var header = new JsonObject
         {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "EC",
-                ["crv"] = $"P-{curveSizeBits}",
-                ["x"] = encodedX,
-                ["y"] = encodedY,
-            },
-            ["apu"] = encodedApu,
-            ["apv"] = encodedApv,
+            ["enc"] = Enc,
+            ["epk"] = epk,
+            ["apu"] = apu,
+            ["apv"] = apv,
         };
 
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        using var key = Algorithm.ValidateHeaderForUnwrap(
-            curve,
-            curveSizeBits,
-            headerForUnwrap,
+        var ephemeralKey = Algorithm.ValidateHeaderForUnwrap(
+            CreateRecipientKey(256),
+            header.Deserialize<JsonElement>(),
             out var algorithm,
-            out var apu,
-            out var apv
+            out var actualApu,
+            out var actualApv
         );
 
-        Assert.Equal(expectedAlgorithm, algorithm);
-        Assert.Equal(encodedApu, apu);
-        Assert.Equal(encodedApv, apv);
+        Assert.Equal(Enc, algorithm);
+        Assert.Equal(apu, actualApu);
+        Assert.Equal(apv, actualApv);
+
+        var eccKey = Assert.IsType<EccSecretKey>(ephemeralKey, exactMatch: false);
+        using var ecdh = eccKey.ExportECDiffieHellman();
+        var parameters = ecdh.ExportParameters(includePrivateParameters: false);
+        Assert.Equal(epk["x"]!.GetValue<string>(), Base64Url.Encode(parameters.Q.X));
+        Assert.Equal(epk["y"]!.GetValue<string>(), Base64Url.Encode(parameters.Q.Y));
+    }
+
+    [Fact]
+    public void ValidateHeaderForUnwrap_IgnoresMembersTheKeyTypeDoesNotRequire()
+    {
+        var epk = CreateEpk(256);
+        epk["kid"] = "ignored";
+        epk["use"] = "enc";
+        var header = new JsonObject { ["enc"] = Enc, ["epk"] = epk };
+
+        var ephemeralKey = Algorithm.ValidateHeaderForUnwrap(
+            CreateRecipientKey(256),
+            header.Deserialize<JsonElement>(),
+            out _,
+            out _,
+            out _
+        );
+
+        Assert.IsType<EccSecretKey>(ephemeralKey, exactMatch: false);
     }
 
     [Fact]
     public void ValidateHeaderForUnwrap_WhenMissingAlgorithm_Throws()
     {
-        const int curveSizeBits = 256;
-
-        var curve = GetCurve(curveSizeBits);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject();
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
-        );
+        var exception = ValidateHeaderForUnwrapThrows(CreateRecipientKey(256), new JsonObject());
 
         Assert.Equal("The JWT header is missing the 'enc' field.", exception.Message);
     }
@@ -214,295 +284,193 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void ValidateHeaderForUnwrap_WhenMissingKey_Throws()
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
-
-        var curve = GetCurve(curveSizeBits);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject { ["enc"] = expectedAlgorithm };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
+        var exception = ValidateHeaderForUnwrapThrows(
+            CreateRecipientKey(256),
+            new JsonObject { ["enc"] = Enc }
         );
 
         Assert.Equal("The JWT header is missing the 'epk' field.", exception.Message);
     }
 
     [Fact]
+    public void ValidateHeaderForUnwrap_WhenKeyIsNotAnObject_Throws()
+    {
+        var exception = ValidateHeaderForUnwrapThrows(
+            CreateRecipientKey(256),
+            new JsonObject { ["enc"] = Enc, ["epk"] = "not-a-key" }
+        );
+
+        Assert.Equal("The 'epk' header must be a JSON object.", exception.Message);
+    }
+
+    [Fact]
     public void ValidateHeaderForUnwrap_WhenMissingKeyType_Throws()
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
-
-        var curve = GetCurve(curveSizeBits);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject { ["enc"] = expectedAlgorithm, ["epk"] = new JsonObject() };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
+        var exception = ValidateHeaderForUnwrapThrows(
+            CreateRecipientKey(256),
+            new JsonObject { ["enc"] = Enc, ["epk"] = new JsonObject() }
         );
 
         Assert.Equal("The 'epk' header is missing the 'kty' field.", exception.Message);
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_WhenInvalidKeyType_Throws()
+    public void ValidateHeaderForUnwrap_WhenKeyTypeIsNotTheRecipientKeys_Throws()
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
-
-        var curve = GetCurve(curveSizeBits);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject { ["kty"] = "NotEC" },
-        };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
+        var exception = ValidateHeaderForUnwrapThrows(
+            CreateRecipientKey(256),
+            new JsonObject
+            {
+                ["enc"] = Enc,
+                ["epk"] = new JsonObject { ["kty"] = "OKP" },
+            }
         );
 
         Assert.Equal("The 'kty' field was expected to be 'EC'.", exception.Message);
     }
 
-    [Fact]
-    public void ValidateHeaderForUnwrap_WhenMissingCurve_Throws()
+    [Theory]
+    [InlineData("crv")]
+    [InlineData("x")]
+    [InlineData("y")]
+    public void ValidateHeaderForUnwrap_WhenMissingARequiredMember_Throws(string member)
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
+        var epk = CreateEpk(256);
+        epk.Remove(member);
 
-        var curve = GetCurve(curveSizeBits);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject { ["kty"] = "EC" },
-        };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
+        var exception = ValidateHeaderForUnwrapThrows(
+            CreateRecipientKey(256),
+            new JsonObject { ["enc"] = Enc, ["epk"] = epk }
         );
 
-        Assert.Equal("The 'epk' header is missing the 'crv' field.", exception.Message);
+        Assert.Equal($"The 'epk' header is missing the '{member}' field.", exception.Message);
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_WhenMissingX_Throws()
+    public void ValidateHeaderForUnwrap_WhenThePointIsNotOnTheCurve_Throws()
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
+        var epk = CreateEpk(256);
+        var y = Base64Url.Decode(epk["y"]!.GetValue<string>());
+        y[^1] ^= 0x01;
+        epk["y"] = Base64Url.Encode(y);
 
-        var curve = GetCurve(curveSizeBits);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject { ["kty"] = "EC", ["crv"] = $"P-{curveSizeBits}" },
-        };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
+        var exception = ValidateHeaderForUnwrapThrows(
+            CreateRecipientKey(256),
+            new JsonObject { ["enc"] = Enc, ["epk"] = epk }
         );
 
-        Assert.Equal("The 'epk' header is missing the 'x' field.", exception.Message);
+        Assert.Equal("The 'epk' header is not a valid 'EC' public key.", exception.Message);
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_WhenMissingY_Throws()
+    public void ValidateHeaderForUnwrap_WhenMissingApuAndApv_Succeeds()
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
+        var header = new JsonObject { ["enc"] = Enc, ["epk"] = CreateEpk(256) };
 
-        var curve = GetCurve(curveSizeBits);
-        using var expectedKey = ECDiffieHellman.Create(curve);
-        var expectedParameters = expectedKey.ExportParameters(includePrivateParameters: false);
-        var encodedX = Base64Url.Encode(expectedParameters.Q.X);
-
-        Span<byte> expectedApu = new byte[32];
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "EC",
-                ["crv"] = $"P-{curveSizeBits}",
-                ["x"] = encodedX,
-            },
-        };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        var exception = Assert.Throws<JoseException>(() =>
-            Algorithm.ValidateHeaderForUnwrap(
-                curve,
-                curveSizeBits,
-                headerForUnwrap,
-                out _,
-                out _,
-                out _
-            )
-        );
-
-        Assert.Equal("The 'epk' header is missing the 'y' field.", exception.Message);
-    }
-
-    [Fact]
-    public void ValidateHeaderForUnwrap_WhenMissingApu_Succeeds()
-    {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
-
-        var curve = GetCurve(curveSizeBits);
-        using var expectedKey = ECDiffieHellman.Create(curve);
-        var expectedParameters = expectedKey.ExportParameters(includePrivateParameters: false);
-        var encodedX = Base64Url.Encode(expectedParameters.Q.X);
-        var encodedY = Base64Url.Encode(expectedParameters.Q.Y);
-
-        Span<byte> expectedApv = new byte[32];
-        RandomNumberGenerator.Fill(expectedApv);
-
-        var encodedApv = Base64Url.Encode(expectedApv);
-
-        var header = new JsonObject
-        {
-            ["enc"] = expectedAlgorithm,
-            ["epk"] = new JsonObject
-            {
-                ["kty"] = "EC",
-                ["crv"] = $"P-{curveSizeBits}",
-                ["x"] = encodedX,
-                ["y"] = encodedY,
-            },
-            ["apv"] = encodedApv,
-        };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
-
-        using var key = Algorithm.ValidateHeaderForUnwrap(
-            curve,
-            curveSizeBits,
-            headerForUnwrap,
+        Algorithm.ValidateHeaderForUnwrap(
+            CreateRecipientKey(256),
+            header.Deserialize<JsonElement>(),
             out var algorithm,
             out var apu,
             out var apv
         );
 
-        Assert.Equal(expectedAlgorithm, algorithm);
+        Assert.Equal(Enc, algorithm);
         Assert.Null(apu);
-        Assert.Equal(encodedApv, apv);
+        Assert.Null(apv);
     }
 
     [Fact]
-    public void ValidateHeaderForUnwrap_WhenMissingApv_Succeeds()
+    public void TryUnwrapKey_WhenTheEphemeralKeyIsOnAnotherCurve_Throws()
     {
-        const string expectedAlgorithm = nameof(expectedAlgorithm);
-        const int curveSizeBits = 256;
+        var header = new JsonObject { ["enc"] = Enc, ["epk"] = CreateEpk(384) };
 
-        var curve = GetCurve(curveSizeBits);
-        using var expectedKey = ECDiffieHellman.Create(curve);
-        var expectedParameters = expectedKey.ExportParameters(includePrivateParameters: false);
-        var encodedX = Base64Url.Encode(expectedParameters.Q.X);
-        var encodedY = Base64Url.Encode(expectedParameters.Q.Y);
+        var exception = Assert.Throws<JoseException>(() =>
+            Algorithm.TryUnwrapKey(
+                CreateRecipientKey(256),
+                header.Deserialize<JsonElement>(),
+                [],
+                new byte[16],
+                out _
+            )
+        );
 
-        Span<byte> expectedApu = new byte[32];
-        RandomNumberGenerator.Fill(expectedApu);
+        Assert.Equal(
+            "The ephemeral public key is not on the curve of the recipient's key.",
+            exception.Message
+        );
+    }
 
-        var encodedApu = Base64Url.Encode(expectedApu);
+    [Fact]
+    public void TryUnwrapKey_WhenApuIsNotBase64Url_Throws()
+    {
+        var header = new JsonObject
+        {
+            ["enc"] = Enc,
+            ["epk"] = CreateEpk(256),
+            ["apu"] = "not base64url!",
+        };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            Algorithm.TryUnwrapKey(
+                CreateRecipientKey(256),
+                header.Deserialize<JsonElement>(),
+                [],
+                new byte[16],
+                out _
+            )
+        );
+
+        Assert.Equal("The 'apu' header is not valid base64url.", exception.Message);
+    }
+
+    /// <summary>
+    /// The example of RFC 7518 Appendix C: Bob's key, Alice's ephemeral key and the <c>apu</c> and <c>apv</c> of the
+    /// example agree on the content encryption key <c>VqqN6vgjbSBcIijNcacQGg</c> for <c>A128GCM</c>.
+    /// </summary>
+    [Fact]
+    public void TryUnwrapKey_WhenRfc7518AppendixCExample_DerivesTheExampleKey()
+    {
+        var bobParameters = new ECParameters
+        {
+            Curve = ECCurve.NamedCurves.nistP256,
+            Q = new ECPoint
+            {
+                X = Base64Url.Decode("weNJy2HscCSM6AEDTDg04biOvhFhyyWvOHQfeF_PxMQ"),
+                Y = Base64Url.Decode("e8lnCO-AlStT-NJVX-crhB7QRYhiix03illJOVAOyck"),
+            },
+            D = Base64Url.Decode("VEmDZpDXXK8p8N0Cndsxs924q6nS1RXFASRl6BfUqdw"),
+        };
+        using var bob = ECDiffieHellman.Create(bobParameters);
+        var bobKey = SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "bob" }, bob);
 
         var header = new JsonObject
         {
-            ["enc"] = expectedAlgorithm,
+            ["alg"] = "ECDH-ES",
+            ["enc"] = "A128GCM",
+            ["apu"] = "QWxpY2U",
+            ["apv"] = "Qm9i",
             ["epk"] = new JsonObject
             {
                 ["kty"] = "EC",
-                ["crv"] = $"P-{curveSizeBits}",
-                ["x"] = encodedX,
-                ["y"] = encodedY,
+                ["crv"] = "P-256",
+                ["x"] = "gI0GAILBdu7T53akrFmMyGcsF3n5dO7MmwNBHKW5SV0",
+                ["y"] = "SLW_xSffzlPWrHEVI30DHM_4egVwt3NQqeUD7nMFpps",
             },
-            ["apu"] = encodedApu,
         };
-        var headerForUnwrap = header.Deserialize<JsonElement>();
 
-        using var key = Algorithm.ValidateHeaderForUnwrap(
-            curve,
-            curveSizeBits,
-            headerForUnwrap,
-            out var algorithm,
-            out var apu,
-            out var apv
+        var cek = new byte[16];
+        var result = Algorithm.TryUnwrapKey(
+            bobKey,
+            header.Deserialize<JsonElement>(),
+            [],
+            cek,
+            out var bytesWritten
         );
 
-        Assert.Equal(expectedAlgorithm, algorithm);
-        Assert.Equal(encodedApu, apu);
-        Assert.Null(apv);
+        Assert.True(result);
+        Assert.Equal(16, bytesWritten);
+        Assert.Equal("VqqN6vgjbSBcIijNcacQGg", Base64Url.Encode(cek));
     }
 
     [Fact]
@@ -533,22 +501,22 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         );
     }
 
-    public static IEnumerable<object[]> RoundTripTestData
+    public static TheoryData<ECCurve, int> RoundTripTestData
     {
         get
         {
-            var curves = new[]
-            {
-                ECCurve.NamedCurves.nistP256,
-                ECCurve.NamedCurves.nistP384,
-                ECCurve.NamedCurves.nistP521,
-            };
-
-            var keySizes = new[] { 16, 24, 32 };
-
-            foreach (var curve in curves)
-            foreach (var keySize in keySizes)
-                yield return new object[] { curve, keySize };
+            var data = new TheoryData<ECCurve, int>();
+            foreach (
+                var curve in new[]
+                {
+                    ECCurve.NamedCurves.nistP256,
+                    ECCurve.NamedCurves.nistP384,
+                    ECCurve.NamedCurves.nistP521,
+                }
+            )
+            foreach (var keySize in new[] { 16, 24, 32 })
+                data.Add(curve, keySize);
+            return data;
         }
     }
 
@@ -556,21 +524,18 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     [MemberData(nameof(RoundTripTestData))]
     public void RoundTrip_EncryptsAndDecrypts(ECCurve curve, int keySizeBytes)
     {
-        const string keyId = nameof(keyId);
         const string enc = "dir";
 
-        var apu = new byte[16];
-        RandomNumberGenerator.Fill(apu);
-
-        var apv = new byte[32];
-        RandomNumberGenerator.Fill(apv);
-
-        var metadata = new KeyMetadata { KeyId = keyId };
+        var apu = RandomNumberGenerator.GetBytes(16);
+        var apv = RandomNumberGenerator.GetBytes(32);
 
         // the sender agrees on a key from the recipient's public key and an ephemeral key of its own
 
         using var recipientKey = ECDiffieHellman.Create(curve);
-        var recipientSecretKey = SecretKeyFactory.CreateEcc(metadata, recipientKey);
+        var recipientSecretKey = SecretKeyFactory.CreateEcc(
+            new KeyMetadata { KeyId = "recipient" },
+            recipientKey
+        );
 
         var header = new Dictionary<string, object>
         {
@@ -581,10 +546,6 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 
         var cek1 = new byte[keySizeBytes];
         Algorithm.NewKey(recipientSecretKey, header, cek1);
-
-        // RFC 7518 §4.6.1.1: the header carries only the ephemeral public key.
-        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
-        Assert.Equal(["crv", "kty", "x", "y"], epk.Keys.Order(StringComparer.Ordinal));
 
         // the recipient agrees on the same key from its private key and the ephemeral public key
 

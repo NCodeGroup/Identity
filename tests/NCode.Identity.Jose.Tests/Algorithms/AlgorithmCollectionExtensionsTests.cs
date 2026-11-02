@@ -17,6 +17,7 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
     {
         // The real registered algorithms are the source of truth the rule reads.
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 

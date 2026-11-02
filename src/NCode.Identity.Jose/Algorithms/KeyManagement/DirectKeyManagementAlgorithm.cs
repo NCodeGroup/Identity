@@ -25,6 +25,9 @@ internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
     [new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)];
 
+    private static IReadOnlyList<AlgorithmKeyType> StaticKeyTypes { get; } =
+    [new(typeof(SymmetricSecretKey), StaticKeyBitSizes)];
+
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
     [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
@@ -35,10 +38,7 @@ internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     public override bool SupportsKeyWrapping => false;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(SymmetricSecretKey);
-
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes => StaticKeyTypes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DirectKeyManagementAlgorithm"/> class.
@@ -62,7 +62,7 @@ internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         Span<byte> contentKey
     )
     {
-        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(StaticKeyBitSizes);
         if (contentKey.Length != validatedSecretKey.KeySizeBytes)
         {
             throw new JoseException(
@@ -115,7 +115,7 @@ internal class DirectKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             );
         }
 
-        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(StaticKeyBitSizes);
         if (contentKey.Length < validatedSecretKey.KeySizeBytes)
         {
             bytesWritten = 0;

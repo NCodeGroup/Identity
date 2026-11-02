@@ -17,10 +17,9 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(EccSecretKey);
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; }
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; }
+    private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 
     /// <inheritdoc />
     public override HashAlgorithmName HashAlgorithmName { get; }
@@ -49,7 +48,13 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
 
         Code = code;
 
-        KeyBitSizes = [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
+        KeyTypes =
+        [
+            new(
+                typeof(EccSecretKey),
+                [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)]
+            ),
+        ];
     }
 
     /// <inheritdoc />

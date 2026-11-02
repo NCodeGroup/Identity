@@ -37,16 +37,16 @@ internal class Pbes2KeyManagementAlgorithm(
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
     [new(minSize: 8, maxSize: int.MaxValue, skipSize: 8)];
 
+    private static IReadOnlyList<AlgorithmKeyType> StaticKeyTypes { get; } =
+    [new(typeof(SymmetricSecretKey), StaticKeyBitSizes)];
+
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
     /// <inheritdoc />
     public override string Code { get; } = code;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(SymmetricSecretKey);
-
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes => StaticKeyTypes;
 
     private HashAlgorithmName HashAlgorithmName { get; } = hashAlgorithmName;
 
@@ -70,7 +70,7 @@ internal class Pbes2KeyManagementAlgorithm(
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(StaticKeyBitSizes);
 
         if (!header.TryGetValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {
@@ -150,7 +150,7 @@ internal class Pbes2KeyManagementAlgorithm(
     {
         // TODO: unit test for the edge cases in this method
 
-        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
+        var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(StaticKeyBitSizes);
 
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg))
         {

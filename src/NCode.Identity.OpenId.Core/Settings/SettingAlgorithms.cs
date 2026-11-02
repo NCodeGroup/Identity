@@ -68,5 +68,5 @@ internal static class SettingAlgorithms
 
     private static bool IsKeyedByAsymmetricKey(Algorithm algorithm) =>
         algorithm is KeyedAlgorithm keyedAlgorithm
-        && typeof(AsymmetricSecretKey).IsAssignableFrom(keyedAlgorithm.KeyType);
+        && keyedAlgorithm.AcceptsOnly<AsymmetricSecretKey>();
 }

@@ -26,11 +26,15 @@ internal class AesKeyManagementAlgorithm(IAesKeyWrap aesKeyWrap, string code, in
     public override string Code { get; } = code;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(SymmetricSecretKey);
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+    [
+        new(
+            typeof(SymmetricSecretKey),
+            [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)]
+        ),
+    ];
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; } =
-    [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)];
+    private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>

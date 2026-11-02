@@ -9,7 +9,9 @@
   key ring is; by
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): there
   are no developer modes and no ephemeral keys, so every host provisions its keys, and the pruning contributor is
-  `AddDeveloperKeyPruning`, registered by `DeveloperKeys:PruneUnreadableKeys`)
+  `AddDeveloperKeyPruning`, registered by `DeveloperKeys:PruneUnreadableKeys`; by
+  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md): a key may name
+  its `SecretType` among the key types its algorithm accepts, and is otherwise the first of them)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

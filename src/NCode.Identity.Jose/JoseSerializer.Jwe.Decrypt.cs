@@ -5,7 +5,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose;
@@ -64,15 +63,20 @@ partial class JoseSerializer
         SecretKey secretKey
     )
     {
-        if (!keyManagementAlgorithm.KeyType.IsInstanceOfType(secretKey))
+        // See ADR-1389: an algorithm may accept several key types, each with its own sizes.
+        if (!keyManagementAlgorithm.TryGetKeyType(secretKey.GetType(), out var algorithmKeyType))
         {
+            var expected = string.Join(
+                "', '",
+                keyManagementAlgorithm.KeyTypes.Select(keyType => keyType.KeyType.FullName)
+            );
             throw new ArgumentException(
-                $"The secret key was expected to be a type of '{keyManagementAlgorithm.KeyType.FullName}', but '{secretKey.GetType().FullName}' was given instead.",
+                $"The secret key was expected to be a type of '{expected}', but '{secretKey.GetType().FullName}' was given instead.",
                 nameof(secretKey)
             );
         }
 
-        if (!KeySizesUtility.IsLegalSize(keyManagementAlgorithm.KeyBitSizes, secretKey.KeySizeBits))
+        if (!algorithmKeyType.IsLegalSize(secretKey.KeySizeBits))
         {
             throw new ArgumentException(
                 "The secret key does not have a valid size for this cryptographic algorithm.",

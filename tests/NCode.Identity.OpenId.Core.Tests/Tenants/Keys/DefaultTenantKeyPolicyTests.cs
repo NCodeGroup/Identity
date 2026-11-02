@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -41,6 +42,9 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
                 UntypedKeyAlgorithmDataSource
             >()
         );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEcdhKeyAgreement, RsaKeyTypeAgreementStub>()
+        );
         _serviceProvider = serviceCollection.BuildServiceProvider();
 
         Policy = new DefaultTenantKeyPolicy(
@@ -55,6 +59,31 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
 
     public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
 
+    // Gives the ECDH-ES algorithms a second key type, RSA keys of 2048 to 4096 bits, so they accept several key types as
+    // they do with a package that contributes OKP keys (ADR-1389); provisioning never performs an agreement.
+    private sealed class RsaKeyTypeAgreementStub : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType KeyType { get; } =
+            new(typeof(RsaSecretKey), [new KeySizes(minSize: 2048, maxSize: 4096, skipSize: 1024)]);
+
+        public bool IsKeyCompatible(SecretKey secretKey) => secretKey is RsaSecretKey;
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
     // A registered signature algorithm keyed by the abstract SecretKey, which no secret key type describes.
     private sealed class UntypedKeySignatureAlgorithm : SignatureAlgorithm
     {
@@ -62,9 +91,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
 
         public override string Code => AlgorithmCode;
 
-        public override Type KeyType => typeof(SecretKey);
-
-        public override IEnumerable<KeySizes> KeyBitSizes => [];
+        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+        [new(typeof(SecretKey), [])];
 
         public override HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
 
@@ -249,6 +277,73 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Contains("'1024' bits is not valid", error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ResolveSpecifications_WhenAlgorithmAcceptsSeveralKeyTypes_GeneratesTheFirst()
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions { Algorithm = AlgorithmCodes.KeyManagement.EcdhEs }
+            )
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                AlgorithmCodes.KeyManagement.EcdhEs,
+                SecretKeyUses.Encryption,
+                SecretKeyTypes.Ecc,
+                256
+            ),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenSecretTypeSelectsAnotherKeyTypeOfTheAlgorithm_GeneratesIt()
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                    SecretType = SecretKeyTypes.Rsa,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                AlgorithmCodes.KeyManagement.EcdhEs,
+                SecretKeyUses.Encryption,
+                SecretKeyTypes.Rsa,
+                2048
+            ),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    [Theory]
+    [InlineData(SecretKeyTypes.Ecc, "The algorithm 'RS256' does not accept 'ecc' keys.")]
+    [InlineData(
+        "unregistered",
+        "The secret type 'unregistered' is not a registered secret key type."
+    )]
+    public void ResolveSpecifications_WhenSecretTypeIsNotOneTheAlgorithmAccepts_ReportsIt(
+        string secretType,
+        string expectedError
+    )
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions { Algorithm = "RS256", SecretType = secretType }
+            )
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(expectedError, Assert.Single(resolution.Errors));
+    }
+
     #endregion
 
     #region IsSatisfiedBy Tests
@@ -337,6 +432,31 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
 
         Assert.False(Policy.IsSatisfiedBy(Rs256, secret));
+    }
+
+    [Theory]
+    [InlineData(SecretKeyTypes.Ecc, 256, true)]
+    [InlineData(SecretKeyTypes.Rsa, 2048, false)]
+    public void IsSatisfiedBy_WhenAlgorithmAcceptsSeveralKeyTypes_RequiresTheSpecifiedOne(
+        string secretType,
+        int keySizeBits,
+        bool expected
+    )
+    {
+        var specification = CreateSpecification(
+            AlgorithmCodes.KeyManagement.EcdhEs,
+            SecretKeyUses.Encryption,
+            SecretKeyTypes.Ecc,
+            256
+        );
+        var secret = CreateSecret(
+            algorithm: null,
+            use: SecretKeyUses.Encryption,
+            secretType: secretType,
+            keySizeBits: keySizeBits
+        );
+
+        Assert.Equal(expected, Policy.IsSatisfiedBy(specification, secret));
     }
 
     #endregion

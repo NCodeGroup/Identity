@@ -7,28 +7,54 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 
 /// <summary>
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>ECDH-ES with AES</c> cryptographic algorithm for key management.
 /// </summary>
+/// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the <c>epk</c>.</param>
+/// <param name="keyAgreements">The registered key agreements, one per key type.</param>
 /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
 internal class EcdhWithAesKeyManagementAlgorithm(
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    IEnumerable<IEcdhKeyAgreement> keyAgreements,
     IAesKeyWrap aesKeyWrap,
     string code,
     int kekSizeBits
-) : EcdhKeyManagementAlgorithm(code, isDirectAgreement: false)
+) : EcdhKeyManagementAlgorithm(secretKeyTypeCatalog, keyAgreements, code, isDirectAgreement: false)
 {
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
     private int KekSizeBytes { get; } = (kekSizeBits + 7) >> 3;
 
     /// <inheritdoc />
+    public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
+        AesKeyWrap.LegalCekByteSizes;
+
+    /// <inheritdoc />
     public override int GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) =>
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
+
+    /// <summary>
+    /// Generates a random content encryption key (CEK), which <see cref="WrapKey"/> wraps with the agreed key
+    /// encryption key (RFC 7518 §4.6): in key agreement with key wrapping mode the CEK is not the agreed key.
+    /// </summary>
+    /// <param name="secretKey">The recipient's key.</param>
+    /// <param name="header">The JOSE header for the current cryptographic operation.</param>
+    /// <param name="contentKey">Destination for the new content encryption key (CEK).</param>
+    public override void NewKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> contentKey
+    )
+    {
+        ValidateContentKeySize(secretKey.KeySizeBits, contentKey.Length);
+        RandomNumberGenerator.Fill(contentKey);
+    }
 
     /// <inheritdoc />
     public override void WrapKey(

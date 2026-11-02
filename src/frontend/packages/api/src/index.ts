@@ -12,6 +12,7 @@ export type {
   CreateServerRequest,
   CreateTenantRequest,
   AlgorithmCapability,
+  AlgorithmKeyTypeCapability,
   EccCurveCapability,
   EffectiveSettingsResource,
   GrantResource,

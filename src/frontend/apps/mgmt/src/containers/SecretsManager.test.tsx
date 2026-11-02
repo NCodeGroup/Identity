@@ -206,8 +206,9 @@ describe('SecretsManager', () => {
             {
               code: 'ES384',
               use: 'sig',
-              secretTypes: ['ecc'],
-              keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }],
+              keyTypes: [
+                { secretType: 'ecc', keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }] },
+              ],
             },
           ],
         },

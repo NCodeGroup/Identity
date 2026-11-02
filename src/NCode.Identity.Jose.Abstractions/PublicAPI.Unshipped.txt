@@ -10,8 +10,7 @@ abstract NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.NonceSi
 abstract NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.TryDecrypt(System.ReadOnlySpan<byte> cek, System.ReadOnlySpan<byte> nonce, System.ReadOnlySpan<byte> cipherText, System.ReadOnlySpan<byte> associatedData, System.ReadOnlySpan<byte> authenticationTag, System.Span<byte> plainText, out int bytesWritten) -> bool
 abstract NCode.Identity.Jose.Algorithms.CompressionAlgorithm.Compress(System.ReadOnlySpan<byte> uncompressedData, System.Buffers.IBufferWriter<byte>! compressedData) -> void
 abstract NCode.Identity.Jose.Algorithms.CompressionAlgorithm.Decompress(System.ReadOnlySpan<byte> compressedData, System.Buffers.IBufferWriter<byte>! uncompressedData) -> void
-abstract NCode.Identity.Jose.Algorithms.KeyedAlgorithm.KeyBitSizes.get -> System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>!
-abstract NCode.Identity.Jose.Algorithms.KeyedAlgorithm.KeyType.get -> System.Type!
+abstract NCode.Identity.Jose.Algorithms.KeyedAlgorithm.KeyTypes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.Algorithms.AlgorithmKeyType!>!
 abstract NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.GetEncryptedContentKeySizeBytes(int kekSizeBits, int cekSizeBytes) -> int
 abstract NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.GetLegalCekByteSizes(int kekSizeBits) -> System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>!
 abstract NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.NewKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Collections.Generic.IDictionary<string!, object!>! header, System.Span<byte> contentKey) -> void
@@ -182,6 +181,12 @@ NCode.Identity.Jose.Algorithms.AlgorithmCodes.KeyManagement
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!)
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).ValidateKeyAlgorithm(NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration declaration) -> string?
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Accepts(System.Type! keyType) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.AlgorithmKeyType(System.Type! keyType, System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! keyBitSizes) -> void
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalSize(int keySizeBits) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<System.Security.Cryptography.KeySizes!>!
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyType.get -> System.Type!
 NCode.Identity.Jose.Algorithms.AlgorithmType
 NCode.Identity.Jose.Algorithms.AlgorithmType.AuthenticatedEncryption = 3 -> NCode.Identity.Jose.Algorithms.AlgorithmType
 NCode.Identity.Jose.Algorithms.AlgorithmType.Compression = 4 -> NCode.Identity.Jose.Algorithms.AlgorithmType
@@ -210,6 +215,12 @@ NCode.Identity.Jose.Algorithms.IAlgorithmCollection.TryGetCompressionAlgorithm(s
 NCode.Identity.Jose.Algorithms.IAlgorithmCollection.TryGetKeyManagementAlgorithm(string! algorithmCode, out NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm! algorithm) -> bool
 NCode.Identity.Jose.Algorithms.IAlgorithmCollection.TryGetSignatureAlgorithm(string! algorithmCode, out NCode.Identity.Jose.Algorithms.SignatureAlgorithm! algorithm) -> bool
 NCode.Identity.Jose.Algorithms.IAlgorithmCollectionProvider
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.Agree(NCode.Identity.Secrets.Keys.SecretKey! recipientKey, NCode.Identity.Secrets.Keys.SecretKey! ephemeralPublicKey, System.Span<byte> sharedSecret) -> void
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.AgreeWithEphemeralKey(NCode.Identity.Secrets.Keys.SecretKey! recipientKey, System.Buffers.IBufferWriter<byte>! ephemeralPublicKeyWriter, System.Span<byte> sharedSecret) -> void
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.GetSharedSecretSizeBytes(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> int
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.KeyType.get -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
 NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration
 NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.get -> string!
 NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.init -> void
@@ -221,7 +232,9 @@ NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyType.init -> void
 NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.get -> string?
 NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.init -> void
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm
+NCode.Identity.Jose.Algorithms.KeyedAlgorithm.AcceptsOnly<TKey>() -> bool
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm.KeyedAlgorithm() -> void
+NCode.Identity.Jose.Algorithms.KeyedAlgorithm.TryGetKeyType(System.Type! keyType, out NCode.Identity.Jose.Algorithms.AlgorithmKeyType? algorithmKeyType) -> bool
 NCode.Identity.Jose.Algorithms.KeyedHashFunctionDelegate
 NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm
 NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.KeyManagementAlgorithm() -> void
@@ -369,7 +382,6 @@ NCode.Identity.Jose.JsonJwt
 NCode.Identity.Jose.JsonJwt.JsonJwt(string! protectionType, NCode.Identity.Jose.JoseSerializationFormat serializationFormat, string! encodedToken, System.Text.Json.JsonElement root, System.Text.Json.JsonElement header) -> void
 NCode.Identity.Jose.JsonJwt.Root.get -> System.Text.Json.JsonElement
 override abstract NCode.Identity.Jose.JoseToken.ToString() -> string!
-override NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.KeyType.get -> System.Type!
 override NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
 override NCode.Identity.Jose.Algorithms.CompressionAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
 override NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType

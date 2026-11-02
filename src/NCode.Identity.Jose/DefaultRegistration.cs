@@ -50,6 +50,11 @@ public static class DefaultRegistration
                 >()
             );
 
+            // The ECDH-ES algorithms serve every key type that has a registered agreement (ADR-1389).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IEcdhKeyAgreement, EccEcdhKeyAgreement>()
+            );
+
             serviceCollection.TryAddSingleton<IJoseSerializer, JoseSerializer>();
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<IDPoPProofService, DefaultDPoPProofService>();

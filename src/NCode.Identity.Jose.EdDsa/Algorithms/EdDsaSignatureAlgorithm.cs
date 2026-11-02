@@ -22,16 +22,7 @@ namespace NCode.Identity.Jose.EdDsa.Algorithms;
 /// <param name="curve">The curve the algorithm is fixed to, or <see langword="null"/> to accept either curve.</param>
 internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) : SignatureAlgorithm
 {
-    private OkpCurveInfo? Curve { get; } = curve;
-
-    /// <inheritdoc />
-    public override string Code { get; } = code;
-
-    /// <inheritdoc />
-    public override Type KeyType => typeof(OkpSecretKey);
-
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; } =
+    private static IEnumerable<KeySizes> GetKeyBitSizes(OkpCurveInfo? curve) =>
         curve is not null
             ? [new KeySizes(minSize: curve.KeySizeBits, maxSize: curve.KeySizeBits, skipSize: 0)]
             :
@@ -47,6 +38,17 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
                     skipSize: 0
                 ),
             ];
+
+    private OkpCurveInfo? Curve { get; } = curve;
+
+    /// <inheritdoc />
+    public override string Code { get; } = code;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+    [new(typeof(OkpSecretKey), GetKeyBitSizes(curve))];
+
+    private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 
     private bool TryResolveCurve(OkpSecretKey key, [NotNullWhen(true)] out OkpCurveInfo? resolved)
     {

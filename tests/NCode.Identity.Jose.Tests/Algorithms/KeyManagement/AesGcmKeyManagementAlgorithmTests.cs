@@ -29,7 +29,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
     public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = CreateAlgorithm();
-        Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
         const int kekSizeBits = 256;
 
         var algorithm = CreateAlgorithm(kekSizeBits);
-        var result = Assert.Single(algorithm.KeyBitSizes);
+        var result = Assert.Single(Assert.Single(algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(kekSizeBits, result.MinSize);
         Assert.Equal(kekSizeBits, result.MaxSize);
         Assert.Equal(0, result.SkipSize);

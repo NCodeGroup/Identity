@@ -28,7 +28,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, anyValidHashAlgorithmName, null!);
-        Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
         var hashAlgorithmName = new HashAlgorithmName($"SHA{hashSizeBits}");
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, hashAlgorithmName, null!);
-        var result = Assert.Single(algorithm.KeyBitSizes);
+        var result = Assert.Single(Assert.Single(algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(hashSizeBits, result.MinSize);
         Assert.Equal(int.MaxValue, result.MaxSize);
         Assert.Equal(8, result.SkipSize);

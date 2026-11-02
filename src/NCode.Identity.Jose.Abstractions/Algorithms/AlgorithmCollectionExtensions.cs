@@ -3,7 +3,6 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.KeyMaterial;
 
 namespace NCode.Identity.Jose.Algorithms;
 
@@ -20,8 +19,9 @@ public static class AlgorithmCollectionExtensions
         /// Checks that a key may be declared for an algorithm: the algorithm is a registered signature or
         /// key-management algorithm, the use it implies (<c>sig</c> for a signature algorithm, <c>enc</c> for a
         /// key-management algorithm) agrees with the key's declared use, and the algorithm accepts the key's type and
-        /// size. The registered algorithm metadata is the same the cryptographic runtime validates a key against, so a
-        /// key that passes can be used with the algorithm it declares.
+        /// size, checked against the first of its key types that the key's type is of. The registered algorithm metadata
+        /// is the same the cryptographic runtime validates a key against, so a key that passes can be used with the
+        /// algorithm it declares.
         /// </summary>
         /// <param name="declaration">The key and the use and algorithm declared for it.</param>
         /// <returns><c>null</c> when the declaration is coherent; otherwise a human-readable reason.</returns>
@@ -57,12 +57,12 @@ public static class AlgorithmCollectionExtensions
                     + $"specified use '{use}'.";
             }
 
-            if (!keyedAlgorithm.KeyType.IsAssignableFrom(declaration.KeyType))
+            if (!keyedAlgorithm.TryGetKeyType(declaration.KeyType, out var algorithmKeyType))
             {
                 return $"The algorithm '{algorithm}' is not compatible with the key's type.";
             }
 
-            if (!KeySizesUtility.IsLegalSize(keyedAlgorithm.KeyBitSizes, declaration.KeySizeBits))
+            if (!algorithmKeyType.IsLegalSize(declaration.KeySizeBits))
             {
                 return $"The key size '{declaration.KeySizeBits}' bits is not valid for algorithm '{algorithm}'.";
             }

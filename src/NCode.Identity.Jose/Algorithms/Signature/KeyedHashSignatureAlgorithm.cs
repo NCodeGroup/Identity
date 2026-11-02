@@ -18,10 +18,9 @@ internal class KeyedHashSignatureAlgorithm : SignatureAlgorithm
     public override string Code { get; }
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(SymmetricSecretKey);
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; }
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; }
+    private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 
     /// <inheritdoc />
     public override HashAlgorithmName HashAlgorithmName { get; }
@@ -57,9 +56,12 @@ internal class KeyedHashSignatureAlgorithm : SignatureAlgorithm
            effective security strength is the minimum of the security strength
            of the key and two times the size of the internal hash value.)
         */
-        KeyBitSizes =
+        KeyTypes =
         [
-            new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8),
+            new(
+                typeof(SymmetricSecretKey),
+                [new KeySizes(minSize: signatureSizeBits, maxSize: int.MaxValue, skipSize: 8)]
+            ),
         ];
     }
 

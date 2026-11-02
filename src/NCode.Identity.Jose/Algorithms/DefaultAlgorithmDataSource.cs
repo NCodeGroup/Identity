@@ -8,6 +8,7 @@ using NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Identity.Jose.Algorithms.Compression;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Algorithms.Signature;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.Algorithms;
 
@@ -15,10 +16,21 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Provides the default implementation for a data source collection of <see cref="Algorithm"/> instances supported by this library.
 /// </summary>
 /// <param name="aesKeyWrap">Provides the common implementation for <c>AES Key Wrap</c> functionality.</param>
-internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
-    : ICollectionDataSource<Algorithm>
+/// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the ephemeral public key
+/// of the <c>ECDH-ES</c> algorithms.</param>
+/// <param name="ecdhKeyAgreements">The registered <c>ECDH-ES</c> key agreements, one per key type the <c>ECDH-ES</c>
+/// algorithms accept.</param>
+internal sealed class DefaultAlgorithmDataSource(
+    IAesKeyWrap aesKeyWrap,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    IEnumerable<IEcdhKeyAgreement> ecdhKeyAgreements
+) : ICollectionDataSource<Algorithm>
 {
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private IReadOnlyList<IEcdhKeyAgreement> EcdhKeyAgreements { get; } = [.. ecdhKeyAgreements];
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
@@ -240,12 +252,16 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
 
             // Key Agreement with Elliptic Curve Diffie-Hellman Ephemeral Static (ECDH-ES)
             // https://datatracker.ietf.org/doc/html/rfc7518#section-4.6
+            // Each name serves every key type that has a registered IEcdhKeyAgreement: EC keys here, and the OKP keys of
+            // RFC 8037 §3.2 from the package that contributes them (ADR-1389).
 
             // ECDH-ES
-            yield return EcdhKeyManagementAlgorithm.Singleton;
+            yield return new EcdhKeyManagementAlgorithm(SecretKeyTypeCatalog, EcdhKeyAgreements);
 
             // ECDH-ES+A128KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                EcdhKeyAgreements,
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes128,
                 kekSizeBits: 128
@@ -253,6 +269,8 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
 
             // ECDH-ES+A192KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                EcdhKeyAgreements,
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes192,
                 kekSizeBits: 192
@@ -260,6 +278,8 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
 
             // ECDH-ES+A256KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                EcdhKeyAgreements,
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes256,
                 kekSizeBits: 256

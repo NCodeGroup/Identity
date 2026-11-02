@@ -23,6 +23,7 @@ public class JoseSerializerJsonTests : BaseTests
     public JoseSerializerJsonTests()
     {
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 

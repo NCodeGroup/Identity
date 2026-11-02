@@ -40,20 +40,23 @@ export const WithDiscovery: Story = {
       {
         code: 'RS256',
         use: 'sig',
-        secretTypes: ['rsa'],
-        keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+        keyTypes: [
+          { secretType: 'rsa', keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }] },
+        ],
       },
       {
         code: 'RSA-OAEP',
         use: 'enc',
-        secretTypes: ['rsa'],
-        keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+        keyTypes: [
+          { secretType: 'rsa', keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }] },
+        ],
       },
       {
         code: 'ES256',
         use: 'sig',
-        secretTypes: ['ecc'],
-        keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+        keyTypes: [
+          { secretType: 'ecc', keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }] },
+        ],
       },
     ],
     onSubmit: () => undefined,

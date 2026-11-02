@@ -38,12 +38,16 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResou
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.AlgorithmCapabilityResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Code.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Code.init -> void
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource!>!
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyBitSizes.init -> void
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.SecretTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.SecretTypes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyTypes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyTypes.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.AlgorithmKeyTypeCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.KeyBitSizes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.init -> void

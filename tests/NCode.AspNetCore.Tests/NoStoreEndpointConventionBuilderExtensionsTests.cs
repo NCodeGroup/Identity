@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Moq;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Endpoints;
+namespace NCode.AspNetCore.Tests;
 
 public class NoStoreEndpointConventionBuilderExtensionsTests : BaseTests
 {

@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 
-namespace NCode.Identity.OpenId.Authentication.Endpoints;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides an <see cref="IEndpointFilter"/> that marks the response of an endpoint as non-cacheable before the

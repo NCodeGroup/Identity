@@ -10,9 +10,9 @@ namespace NCode.Identity.Jose.Tests;
 // header codes, so the removed lookups are reproduced here from the standardized code values.
 internal static class JwtSettingsHeaderCodeExtensions
 {
-    extension(JwtSettings settings)
+    extension(JwtSettings)
     {
-        public string JwsHeaderValue(JwsAlgorithm algorithm) =>
+        public static string JwsHeaderValue(JwsAlgorithm algorithm) =>
             algorithm switch
             {
                 JwsAlgorithm.none => "none",
@@ -31,7 +31,7 @@ internal static class JwtSettingsHeaderCodeExtensions
                 _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, null),
             };
 
-        public string JwaHeaderValue(JweAlgorithm algorithm) =>
+        public static string JwaHeaderValue(JweAlgorithm algorithm) =>
             algorithm switch
             {
                 JweAlgorithm.RSA1_5 => "RSA1_5",
@@ -56,7 +56,7 @@ internal static class JwtSettingsHeaderCodeExtensions
                 _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, null),
             };
 
-        public string JweHeaderValue(JweEncryption encryption) =>
+        public static string JweHeaderValue(JweEncryption encryption) =>
             encryption switch
             {
                 JweEncryption.A128CBC_HS256 => "A128CBC-HS256",
@@ -68,7 +68,7 @@ internal static class JwtSettingsHeaderCodeExtensions
                 _ => throw new ArgumentOutOfRangeException(nameof(encryption), encryption, null),
             };
 
-        public string CompressionHeader(JweCompression compression) =>
+        public static string CompressionHeader(JweCompression compression) =>
             compression switch
             {
                 JweCompression.DEF => "DEF",

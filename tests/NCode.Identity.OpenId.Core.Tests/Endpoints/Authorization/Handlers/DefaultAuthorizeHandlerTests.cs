@@ -92,7 +92,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         );
     }
 
-    private void SetupValidateSubject(
+    private static void SetupValidateSubject(
         Mock<OpenIdContext> mockContext,
         Mock<IMediator> mockMediator,
         IOpenIdError? subjectError

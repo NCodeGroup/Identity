@@ -145,7 +145,8 @@ try {
     # --- Expanding the suite configuration templates. ---------------------------------------------------------------
     $name = 'a token is replaced with its JSON-escaped value'
     $text = Expand-ConfigTemplate '{"a":"{{x}}"}' ([ordered]@{ x = 'q"z' })
-    Assert-True $name ($text -ceq '{"a":"q"z"}') "got '$text'."
+    # The encoder may write the quote as \" or \u0022; either is JSON, so check that the value survives parsing.
+    Assert-True $name (($text | ConvertFrom-Json).a -ceq 'q"z') "got '$text'."
     Complete-Test $name
 
     Assert-Throws 'a token that is not supplied fails the expansion' {

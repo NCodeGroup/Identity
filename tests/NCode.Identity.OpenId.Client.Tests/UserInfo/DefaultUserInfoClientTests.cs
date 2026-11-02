@@ -88,18 +88,16 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata
-                    {
-                        Issuer = Authority,
-                        TokenEndpoint = "https://op.example.test/token",
-                        JwksUri = "https://op.example.test/jwks",
-                        UserInfoEndpoint = userInfoEndpoint,
-                        DPoPSigningAlgValuesSupported = ["ES256"],
-                        UserInfoSigningAlgValuesSupported = advertisedSigningAlgorithms,
-                    }
-                )
+            .ReturnsAsync(
+                new OpenIdProviderMetadata
+                {
+                    Issuer = Authority,
+                    TokenEndpoint = "https://op.example.test/token",
+                    JwksUri = "https://op.example.test/jwks",
+                    UserInfoEndpoint = userInfoEndpoint,
+                    DPoPSigningAlgValuesSupported = ["ES256"],
+                    UserInfoSigningAlgValuesSupported = advertisedSigningAlgorithms,
+                }
             )
             .Verifiable();
 
@@ -161,12 +159,8 @@ public sealed class DefaultUserInfoClientTests : BaseTests, IAsyncLifetime
     {
         var mock = CreateStrictMock<IProviderKeySetResolver>();
         mock.Setup(x => x.GetSigningKeysAsync(Authority, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    JwtProvider
-                        .GetRequiredService<ISecretKeyCollectionFactory>()
-                        .Create([ProviderKey])
-                )
+            .ReturnsAsync(
+                JwtProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create([ProviderKey])
             )
             .Verifiable();
         return mock;

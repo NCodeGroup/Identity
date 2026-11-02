@@ -18,9 +18,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [File Location and Namespace](csharp-tests.instructions.md#file-location-and-namespace)
   (`NCode.Identity.Jose/JoseSerializer.cs` → `NCode.Identity.Jose.Tests/JoseSerializerTests.cs`).
 - 👁 **Test method names use the `Method_State_Expected` idiom** — template
-  [Test Style](csharp-tests.instructions.md#test-style). Beyond the template's own list, the `[tests/**/*.cs]` block of
-  [`.editorconfig`](../../.editorconfig) also disables `CA2012` and `CA2215` for test projects; both stay active on
-  production code.
+  [Test Style](csharp-tests.instructions.md#test-style).
 - ⏳ **Warnings are errors in test projects too** — template
   [Warnings and Analyzers](csharp-tests.instructions.md#warnings-and-analyzers) and
   [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md); relax a rule that is noise in tests in

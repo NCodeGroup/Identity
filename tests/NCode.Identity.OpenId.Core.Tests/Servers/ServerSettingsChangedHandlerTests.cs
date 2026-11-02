@@ -65,7 +65,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     {
         MockRegistry
             .Setup(x => x.RefreshSettingsAsync(ServerId, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromException(new InvalidOperationException("The refresh failed.")))
+            .ThrowsAsync(new InvalidOperationException("The refresh failed."))
             .Verifiable();
         MockReplicaBroadcaster
             .Setup(x =>
@@ -96,9 +96,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromException(new InvalidOperationException("The broadcast failed."))
-            )
+            .ThrowsAsync(new InvalidOperationException("The broadcast failed."))
             .Verifiable();
 
         await Handler.HandleAsync(CreateCommand(), CancellationToken.None);

@@ -123,7 +123,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var mock = CreateStrictMock<IProviderKeySetResolver>();
         mock.Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys(key ?? RsaKey)))
+            .ReturnsAsync(CreateKeys(key ?? RsaKey))
             .Verifiable();
         return mock;
     }
@@ -155,14 +155,12 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var mockMetadata = CreateStrictMock<IProviderMetadataResolver>();
         mockMetadata
             .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult(
-                    new OpenIdProviderMetadata
-                    {
-                        Issuer = Issuer,
-                        IdTokenSigningAlgValuesSupported = advertised,
-                    }
-                )
+            .ReturnsAsync(
+                new OpenIdProviderMetadata
+                {
+                    Issuer = Issuer,
+                    IdTokenSigningAlgValuesSupported = advertised,
+                }
             )
             .Verifiable();
 
@@ -762,11 +760,11 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
         mockKeySet
             .Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys()))
+            .ReturnsAsync(CreateKeys())
             .Verifiable();
         mockKeySet
             .Setup(x => x.RefreshSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys(RsaKey)))
+            .ReturnsAsync(CreateKeys(RsaKey))
             .Verifiable();
         var validator = CreateValidator(mockKeySet);
 
@@ -781,11 +779,11 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
         mockKeySet
             .Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys()))
+            .ReturnsAsync(CreateKeys())
             .Verifiable();
         mockKeySet
             .Setup(x => x.RefreshSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys()))
+            .ReturnsAsync(CreateKeys())
             .Verifiable();
         var validator = CreateValidator(mockKeySet);
 
@@ -871,7 +869,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var mockMetadata = CreateStrictMock<IProviderMetadataResolver>();
         mockMetadata
             .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(new OpenIdProviderMetadata()))
+            .ReturnsAsync(new OpenIdProviderMetadata())
             .Verifiable();
         var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
         var validator = new DefaultIdTokenValidator(

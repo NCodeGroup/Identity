@@ -101,7 +101,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.FromResult(result))
+            .ReturnsAsync(result)
             .Verifiable();
 
     private void SetupRejected(string reason) =>
@@ -119,7 +119,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
     private void SetupGet(string key, BffSessionRecord? record) =>
         _store
             .Setup(x => x.GetAsync(key, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(record))
+            .ReturnsAsync(record)
             .Verifiable();
 
     private void SetupEnd(string key, BffSessionMetadata metadata) =>
@@ -145,7 +145,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.FromResult(true))
+            .ReturnsAsync(true)
             .Verifiable();
 
     private void SetupReceived() =>
@@ -229,9 +229,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         SetupValidate(result);
         _store
             .Setup(x => x.FindBySessionIdAsync(Issuer, sid, It.IsAny<CancellationToken>()))
-            .Returns(
-                ValueTask.FromResult<IReadOnlyList<string>>(["key-1", "key-2", "key-3", "key-4"])
-            )
+            .ReturnsAsync(["key-1", "key-2", "key-3", "key-4"])
             .Verifiable();
         var metadata1 = CreateMetadata(Issuer, sid);
         var metadata2 = CreateMetadata(Issuer, sid);
@@ -259,7 +257,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         SetupValidate(result);
         _store
             .Setup(x => x.FindBySubjectAsync(Issuer, subject, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult<IReadOnlyList<string>>(["key-1"]))
+            .ReturnsAsync(["key-1"])
             .Verifiable();
         var metadata = CreateMetadata(Issuer, "other-sid");
         SetupGet("key-1", CreateRecord("key-1", metadata));

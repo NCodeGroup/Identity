@@ -122,7 +122,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         );
 
     /// <inheritdoc />
-    public ValueTask<bool> TryAcquireRefreshLeaseAsync(
+    public ValueTask<BffRefreshLease?> TryAcquireRefreshLeaseAsync(
         string leaseKey,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
@@ -144,12 +144,12 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
 
     /// <inheritdoc />
     public ValueTask ReleaseRefreshLeaseAsync(
-        string leaseKey,
+        BffRefreshLease lease,
         CancellationToken cancellationToken
     ) =>
         MeasureAsync(
             BffMetrics.ReleaseRefreshLeaseOperation,
-            () => _inner.ReleaseRefreshLeaseAsync(leaseKey, cancellationToken)
+            () => _inner.ReleaseRefreshLeaseAsync(lease, cancellationToken)
         );
 
     private async ValueTask<TResult> MeasureAsync<TResult>(

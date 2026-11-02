@@ -301,14 +301,13 @@ internal class DefaultBffUserTokenService(
             return await EndRefreshFailedAsync(httpContext, current);
 
         var leaseKey = GetLeaseKey(current, refreshToken);
-        var acquiredAt = now;
-        var leaseExpiresAt = acquiredAt + tokenOptions.RefreshLeaseDuration;
+        var leaseExpiresAt = now + tokenOptions.RefreshLeaseDuration;
         var acquired = await _sessionStore.TryAcquireRefreshLeaseAsync(
             leaseKey,
             leaseExpiresAt,
             cancellationToken
         );
-        if (!acquired)
+        if (acquired is not { } lease)
             return null;
 
         attempt.Presented = true;
@@ -325,11 +324,8 @@ internal class DefaultBffUserTokenService(
         }
         finally
         {
-            // never remove a lease that has expired and that another replica may have taken
-            var finishedAt = _timeProvider.GetUtcNowWithPrecisionInSeconds();
-            var safetyMargin = TimeSpan.FromSeconds(5);
-            if (finishedAt - acquiredAt < tokenOptions.RefreshLeaseDuration - safetyMargin)
-                await _sessionStore.ReleaseRefreshLeaseAsync(leaseKey, CancellationToken.None);
+            // releases only this hold: a lease another replica took after this one expired has another owner and stays
+            await _sessionStore.ReleaseRefreshLeaseAsync(lease, CancellationToken.None);
         }
     }
 

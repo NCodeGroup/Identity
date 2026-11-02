@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Buffers;
 using NCode.Identity.SharedState;
 
 namespace NCode.Identity.Bff.Sessions;
@@ -246,7 +247,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> TryAcquireRefreshLeaseAsync(
+    public async ValueTask<BffRefreshLease?> TryAcquireRefreshLeaseAsync(
         string leaseKey,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
@@ -255,8 +256,10 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var key = BffStoreKeys.Lease(leaseKey);
-            var marker = "1"u8.ToArray();
-            return await values.TryAddAsync(key, marker, expiresWhen, cancellationToken);
+            var owner = BffKeyDerivation.CreateSecret();
+            var value = SecureEncoding.UTF8.GetBytes(owner);
+            var added = await values.TryAddAsync(key, value, expiresWhen, cancellationToken);
+            return added ? new BffRefreshLease(leaseKey, owner) : null;
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {
@@ -284,14 +287,15 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
     /// <inheritdoc />
     public async ValueTask ReleaseRefreshLeaseAsync(
-        string leaseKey,
+        BffRefreshLease lease,
         CancellationToken cancellationToken
     )
     {
         try
         {
-            var key = BffStoreKeys.Lease(leaseKey);
-            await values.RemoveAsync(key, cancellationToken);
+            var key = BffStoreKeys.Lease(lease.LeaseKey);
+            var owner = SecureEncoding.UTF8.GetBytes(lease.Owner);
+            await values.TryRemoveAsync(key, owner, cancellationToken);
         }
         catch (Exception exception) when (IsStoreFailure(exception))
         {

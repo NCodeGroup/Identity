@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
@@ -11,42 +12,60 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Exercises the OpenID Connect RP-Initiated Logout <c>end_session_endpoint</c> end-to-end: an interactive login
-/// establishes an OP session cookie, and a <c>GET</c> to the end-session endpoint runs the full logout pipeline
-/// (resolve subject/session from the cookie, clear the OP login, revoke the session's grants, and — since no relying
+/// establishes an OP session cookie, and a <c>GET</c> to the end-session endpoint without a valid <c>id_token_hint</c>
+/// asks the end-user to confirm. Once confirmed, the resumed logout runs the full logout pipeline (resolve
+/// subject/session from the cookie, clear the OP login, revoke the session's grants, and — since no relying
 /// party participated — skip back-channel notification), rendering the logged-out confirmation.
 /// </summary>
 public class EndSessionEndpointTests
 {
     private const string UserName = "admin";
     private const string Password = "dev-password";
-    private const string ReturnUrl = "/foo";
 
     private const string EndSessionPath = "/oauth2/end_session";
     private const string InteractiveCookieName = "__Host-NCode.Identity.Interactive";
-    private const string AntiforgeryRequestCookieName = "__Host-XSRF-TOKEN";
-    private const string AntiforgeryFieldName = "__RequestVerificationToken";
-    private const string AntiforgeryCookiePrefix = "__Host-NCode.Identity.Antiforgery";
 
     [Fact]
-    public async Task GetEndSession_WhenAuthenticated_ClearsSessionCookieAndRendersLoggedOut()
+    public async Task GetEndSession_WhenSignedInWithoutAnIdTokenHint_RedirectsToTheConfirmationAndKeepsTheSession()
     {
         using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
 
-        var client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions
-            {
-                AllowAutoRedirect = false,
-                HandleCookies = false,
-            }
-        );
-
-        var sessionCookie = await LoginAsync(client);
-        Assert.NotNull(sessionCookie);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
         request.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
         using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        Assert.Equal(
+            InteractiveLogin.LogoutConfirmPath,
+            new Uri(
+                new Uri("http://localhost"),
+                response.Headers.Location.OriginalString
+            ).AbsolutePath
+        );
+
+        // The session is left alone until the end-user confirms the logout.
+        Assert.Null(ReadSetCookieRaw(response, InteractiveCookieName));
+    }
+
+    [Fact]
+    public async Task ConfirmEndSession_WhenTheEndUserConfirms_ClearsTheSessionCookieAndRendersLoggedOut()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var response = await InteractiveLogin.ConfirmEndSessionAsync(
+            client,
+            EndSessionPath,
+            sessionCookie
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -56,6 +75,64 @@ public class EndSessionEndpointTests
         // The OP login cookie is cleared (an expired Set-Cookie for the interactive scheme).
         var clearing = ReadSetCookieRaw(response, InteractiveCookieName);
         Assert.NotNull(clearing);
+    }
+
+    [Fact]
+    public async Task ConfirmEndSession_WhenTheEndUserCancels_KeepsTheSession()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var cancel = await InteractiveLogin.AnswerEndSessionConfirmationAsync(
+            client,
+            EndSessionPath,
+            sessionCookie,
+            "cancel"
+        );
+
+        Assert.Equal(HttpStatusCode.Found, cancel.StatusCode);
+        Assert.Equal("/account", cancel.Headers.Location?.OriginalString);
+
+        using var me = new HttpRequestMessage(HttpMethod.Get, "/account/me");
+        me.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
+        using var meResponse = await client.SendAsync(me);
+
+        Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ContinueEndSession_WhenAnotherSessionIsSignedIn_RefusesTheLogout()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+
+        var cookieA = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var cookieB = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var challengeRequest = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
+        challengeRequest.Headers.Add("Cookie", $"{InteractiveCookieName}={cookieA}");
+        using var challenge = await client.SendAsync(challengeRequest);
+
+        Assert.Equal(HttpStatusCode.Found, challenge.StatusCode);
+        Assert.NotNull(challenge.Headers.Location);
+        var location = new Uri(
+            new Uri("http://localhost"),
+            challenge.Headers.Location.OriginalString
+        );
+        var continueUrl = HttpUtility.ParseQueryString(location.Query)["ReturnUrl"];
+        Assert.NotNull(continueUrl);
+
+        // The continuation was parked for session A, so another browser's session cannot resume it.
+        var continueUri = new Uri(new Uri("http://localhost"), continueUrl);
+        using var resume = new HttpRequestMessage(HttpMethod.Get, continueUri.PathAndQuery);
+        resume.Headers.Add("Cookie", $"{InteractiveCookieName}={cookieB}");
+        using var resumeResponse = await client.SendAsync(resume);
+
+        Assert.Equal(HttpStatusCode.BadRequest, resumeResponse.StatusCode);
     }
 
     [Fact]
@@ -129,73 +206,14 @@ public class EndSessionEndpointTests
 
     #region Login Helpers
 
-    private static async Task<string?> LoginAsync(HttpClient client)
-    {
-        var (requestToken, cookieToken) = await GetAntiforgeryTokensAsync(client);
-        using var login = await PostLoginAsync(client, requestToken, cookieToken);
-        Assert.Equal(HttpStatusCode.Found, login.StatusCode);
-        return ReadSetCookieValue(login, InteractiveCookieName);
-    }
-
-    private static async Task<(
-        string? RequestToken,
-        string? CookieToken
-    )> GetAntiforgeryTokensAsync(HttpClient client)
-    {
-        using var request = new HttpRequestMessage(
-            HttpMethod.Get,
-            $"/account/login?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}"
-        );
-        using var response = await client.SendAsync(request);
-
-        var requestToken = ReadSetCookieValue(response, AntiforgeryRequestCookieName);
-        var cookieToken = ReadSetCookieRaw(response, AntiforgeryCookiePrefix);
-        return (requestToken, cookieToken);
-    }
-
-    private static Task<HttpResponseMessage> PostLoginAsync(
-        HttpClient client,
-        string? requestToken,
-        string? cookieToken
-    )
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/account/login");
-
-        var cookies = new List<string>();
-        if (cookieToken is not null)
-        {
-            cookies.Add(cookieToken);
-        }
-        if (requestToken is not null)
-        {
-            cookies.Add($"{AntiforgeryRequestCookieName}={Uri.EscapeDataString(requestToken)}");
-        }
-        request.Headers.Add("Cookie", string.Join("; ", cookies));
-
-        request.Content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
+    private static HttpClient CreateClient(HostApplicationFactory factory) =>
+        factory.CreateClient(
+            new WebApplicationFactoryClientOptions
             {
-                ["username"] = UserName,
-                ["password"] = Password,
-                ["ReturnUrl"] = ReturnUrl,
-                [AntiforgeryFieldName] = requestToken ?? string.Empty,
+                AllowAutoRedirect = false,
+                HandleCookies = false,
             }
         );
-
-        return client.SendAsync(request);
-    }
-
-    private static string? ReadSetCookieValue(HttpResponseMessage response, string name)
-    {
-        var raw = ReadSetCookieRaw(response, name);
-        if (raw is null)
-        {
-            return null;
-        }
-
-        var value = raw[(raw.IndexOf('=') + 1)..];
-        return Uri.UnescapeDataString(value);
-    }
 
     private static string? ReadSetCookieRaw(HttpResponseMessage response, string namePrefix)
     {

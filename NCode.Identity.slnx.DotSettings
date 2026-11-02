@@ -6,22 +6,8 @@
 	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/WRAP_CHAINED_BINARY_EXPRESSIONS/@EntryValue">CHOP_IF_LONG</s:String>
 	<s:Int64 x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/WRAP_LIMIT/@EntryValue">128</s:Int64>
 	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/CSharpFormat/WRAP_LINES/@EntryValue">False</s:Boolean>
-	<s:String x:Key="/Default/CodeStyle/FileHeader/FileHeaderRegionName/@EntryValue">Copyright Preamble</s:String>
-	<s:String x:Key="/Default/CodeStyle/FileHeader/FileHeaderText/@EntryValue">&#xD;
-   Copyright @ ${CurrentDate.Year} NCode Group&#xD;
-&#xD;
-   Licensed under the Apache License, Version 2.0 (the "License");&#xD;
-   you may not use this file except in compliance with the License.&#xD;
-   You may obtain a copy of the License at&#xD;
-&#xD;
-       http://www.apache.org/licenses/LICENSE-2.0&#xD;
-&#xD;
-   Unless required by applicable law or agreed to in writing, software&#xD;
-   distributed under the License is distributed on an "AS IS" BASIS,&#xD;
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.&#xD;
-   See the License for the specific language governing permissions and&#xD;
-   limitations under the License.&#xD;
-</s:String>
+	<s:String x:Key="/Default/CodeStyle/FileHeader/FileHeaderText/@EntryValue">Copyright © NCode Group&#xD;
+SPDX-License-Identifier: Apache-2.0</s:String>
 	<s:String x:Key="/Default/CodeStyle/CodeCleanup/Profiles/=NCode/@EntryIndexedValue">&lt;?xml version="1.0" encoding="utf-16"?&gt;&lt;Profile name="NCode"&gt;&lt;CSCodeStyleAttributes /&gt;&lt;CSOptimizeUsings&gt;&lt;/CSOptimizeUsings&gt;&lt;CSUpdateFileHeader&gt;True&lt;/CSUpdateFileHeader&gt;&lt;XAMLCollapseEmptyTags&gt;False&lt;/XAMLCollapseEmptyTags&gt;&lt;CSEnforceVarKeywordUsageSettings&gt;True&lt;/CSEnforceVarKeywordUsageSettings&gt;&lt;IDEA_SETTINGS&gt;&amp;lt;profile version="1.0"&amp;gt;&#xD;
   &amp;lt;option name="myName" value="NCode" /&amp;gt;&#xD;
   &amp;lt;inspection_tool class="ES6ShorthandObjectProperty" enabled="false" level="WARNING" enabled_by_default="false" /&amp;gt;&#xD;

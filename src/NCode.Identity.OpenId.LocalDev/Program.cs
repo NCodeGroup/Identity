@@ -28,12 +28,15 @@ var rootKeyPath = DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "roo
 // No development credential is committed (ADR-1370): the bootstrap administrator's client secret and the developer
 // administrator's password are generated once per machine beside the root key. The bootstrap secret is configured
 // Base64Url-encoded, so the file's text is the secret a client presents.
+var bootstrapAdminSecretPath = DevelopmentSecretFile.Ensure(
+    developmentSecretsDirectory,
+    "bootstrap-admin-secret"
+);
 var bootstrapAdminClientSecret = DevelopmentSecretFile.ReadBase64UrlEncoded(
-    DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "bootstrap-admin-secret")
+    bootstrapAdminSecretPath
 );
-var adminPassword = DevelopmentSecretFile.ReadText(
-    DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "admin-password")
-);
+var adminPasswordPath = DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "admin-password");
+var adminPassword = DevelopmentSecretFile.ReadText(adminPasswordPath);
 
 // The dev database is Postgres in a container (ADR-1073). WithDataVolume gives it a STABLE, named volume so data
 // survives restarts (persistent by default); the matching build/dev-db-reset.ps1 removes exactly this volume for an

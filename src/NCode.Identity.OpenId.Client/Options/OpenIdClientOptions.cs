@@ -30,10 +30,10 @@ public sealed class OpenIdClientOptions
     public TimeSpan StaleLifetime { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
-    /// Gets or sets the time one attempt of a request that may be retried — a GET or HEAD without a DPoP proof, while
-    /// <see cref="MaxRetryAttempts"/> is above zero — may take until its response headers arrive; a longer attempt is
-    /// cancelled and retried. The default is ten seconds. It is between ten milliseconds and five minutes, and not
-    /// greater than <see cref="TotalTimeout"/>.
+    /// Gets or sets the time one attempt of a request that may be retried — a GET or HEAD without a body or a DPoP
+    /// proof, while <see cref="MaxRetryAttempts"/> is above zero — may take until its response headers arrive; a longer
+    /// attempt is cancelled and retried. The default is ten seconds. It is between ten milliseconds and five minutes,
+    /// and not greater than <see cref="TotalTimeout"/>.
     /// </summary>
     public TimeSpan AttemptTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
@@ -46,8 +46,8 @@ public sealed class OpenIdClientOptions
 
     /// <summary>
     /// Gets or sets how many times a failed attempt is retried; zero turns retries off. Only a GET or HEAD request
-    /// without a DPoP proof is retried, after a connection failure, a timed-out attempt, or a 408, 429 or 5xx response.
-    /// The default is two. It is between zero and ten.
+    /// without a body or a DPoP proof is retried, after a connection failure, a timed-out attempt, or a 408, 429 or 5xx
+    /// response. The default is two. It is between zero and ten.
     /// </summary>
     public int MaxRetryAttempts { get; set; } = 2;
 

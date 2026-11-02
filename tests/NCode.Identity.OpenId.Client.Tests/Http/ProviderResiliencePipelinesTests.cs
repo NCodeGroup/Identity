@@ -12,8 +12,11 @@ namespace NCode.Identity.OpenId.Client.Tests.Http;
 
 public class ProviderResiliencePipelinesTests : BaseTests
 {
-    private static ProviderResiliencePipelines CreatePipelines() =>
-        new(Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions()));
+    private static ProviderResiliencePipelines CreatePipelines()
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions());
+        return new ProviderResiliencePipelines(options);
+    }
 
     #region IsTransient Tests
 
@@ -107,6 +110,18 @@ public class ProviderResiliencePipelinesTests : BaseTests
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://op.example/userinfo");
         request.Headers.Add(OpenIdProtocol.DPoP.HeaderName, "proof");
+
+        var result = ProviderResiliencePipelines.IsRetryable(request);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsRetryable_WhenAGetCarriesABody_ReturnsFalse()
+    {
+        using var content = new ByteArrayContent([0x7B, 0x7D]);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "https://op.example/userinfo");
+        request.Content = content;
 
         var result = ProviderResiliencePipelines.IsRetryable(request);
 

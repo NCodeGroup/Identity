@@ -11,9 +11,9 @@ namespace NCode.Identity.OpenId.Client.Http;
 
 /// <summary>
 /// Holds the resilience pipelines that bound a request to an OpenID Provider and selects the one that fits a request. A
-/// request that is safe to resend — a GET or HEAD without a DPoP proof, while retries are turned on — runs through the
-/// total timeout, a bounded and jittered retry, and a per-attempt timeout; any other request runs through the total
-/// timeout only, so it is never sent twice.
+/// request that is safe to resend — a GET or HEAD without a body or a DPoP proof, while retries are turned on — runs
+/// through the total timeout, a bounded and jittered retry, and a per-attempt timeout; any other request runs through
+/// the total timeout only, so it is never sent twice.
 /// </summary>
 /// <param name="options">The <see cref="OpenIdClientOptions"/> that hold the limits.</param>
 // See ADR-1336.
@@ -34,17 +34,22 @@ internal sealed class ProviderResiliencePipelines(IOptions<OpenIdClientOptions> 
         IsRetryable(request) ? Retrying : Bounded;
 
     /// <summary>
-    /// Determines whether <paramref name="request"/> may be sent again after a failed attempt. A DPoP proof carries a
-    /// <c>jti</c> that is single-use (RFC 9449 §11.1), so a request that carries one is never resent.
+    /// Determines whether <paramref name="request"/> may be sent again after a failed attempt. A request with a body is
+    /// never resent, because a body's content may be a stream that one attempt consumes. A DPoP proof carries a
+    /// <c>jti</c> that is single-use (RFC 9449 §11.1), so a request that carries one is never resent either.
     /// </summary>
     /// <param name="request">The request that is about to be sent.</param>
-    /// <returns><c>true</c> when the request is a GET or HEAD without a DPoP proof; otherwise, <c>false</c>.</returns>
+    /// <returns>
+    /// <c>true</c> when the request is a GET or HEAD without a body and without a DPoP proof; otherwise, <c>false</c>.
+    /// </returns>
     internal static bool IsRetryable(HttpRequestMessage request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var isSafeMethod = request.Method == HttpMethod.Get || request.Method == HttpMethod.Head;
-        return isSafeMethod && !request.Headers.Contains(OpenIdProtocol.DPoP.HeaderName);
+        return isSafeMethod
+            && request.Content is null
+            && !request.Headers.Contains(OpenIdProtocol.DPoP.HeaderName);
     }
 
     /// <summary>

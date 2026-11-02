@@ -353,34 +353,17 @@ than inlining the rationale.
   `OpenIdClient.IsConfidential`, which agrees with it. Never treat a client registered as confidential as having
   authenticated. See [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md) and
   [ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md).
-- 👁 **Bind configuration strictly and validate it when the host starts.** An options type bound from configuration is
-  bound with the binder's `ErrorOnUnknownConfiguration` (through `NCode.Registration`'s `BindStrictly`, which names the
-  section in the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an
-  `IValidateOptions<T>`. A key that maps to no option must stop the host — a misspelled or misplaced key is otherwise
-  indistinguishable from an absent one. Bind a whole section rather than reading single keys (`configuration["A:B"]`),
-  which leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. A collection
-  option the binder fills starts **empty**: the binder appends the configured values to an array or list that already
-  holds some, so a default set in the initializer can never be narrowed by configuration — apply the default when
-  nothing is configured instead. A host's own identifiers are not a library default at all: a collection that would
-  default to them (a seeded client's id and redirect URIs) has none, and the host's environment overlay declares the
-  entries beside the configuration that publishes them
+- 👁 **Bind configuration strictly and validate it when the host starts** — template
+  [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Registration`'s
+  `BindStrictly`, which names the section in the error. A seeded client's id and redirect URIs have no library default:
+  the host's environment overlay declares them beside the configuration that publishes them
   ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
-  Each section
-  has one owner that declares its whole shape; an extension binds its own section rather than adding keys to one the
-  server owns. Validate only what is in force (for example the selected tenant strategy's options), since a JSON overlay
-  cannot delete a lower layer's key. **Validate a value the way it will be used:** a lenient parser can turn a typo into
-  a different value instead of an error (`IPAddress.TryParse("10.0.0")` is `10.0.0.0`; `IPNetwork.TryParse` masks
-  `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
-  Unix, `C:\path` on Windows — and trims surrounding whitespace, so parse an absolute URI with
+  An extension binds its own section rather than adding keys to one the server owns. Parse an absolute URI with
   `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
-  `Uri.TryCreate` alone; a test that passes on Windows can fail on the Linux CI runner otherwise), and a value compared
-  verbatim (a CORS origin) must be in the form it is compared
-  in — reject anything that parses to something other than what was written. The binder reads an enum option from a
-  number as well as from a name and accepts a number that names no member (`"7"`), so the options validator refuses a
-  value `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
-  [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). A setting the
-  server cannot honor in an environment (a development-only section in Production) is a startup error, not an inert
-  key. See [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  `Uri.TryCreate` alone, and keep a value compared verbatim, such as a CORS origin, in the form it is compared in. An
+  options validator refuses an enum value that `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
+  [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). See
+  [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md),
   [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md), and
   [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a
@@ -522,30 +505,24 @@ than inlining the rationale.
   or drop it to a naked collection. Register a stateless capability as a singleton; register
   a long-running loop as an `AddHostedService<T>` over a `BackgroundService`. Wire-up stays out of the type that does
   the work, so the work stays constructor-injectable and testable.
-- 👁 **The package that owns a consumer registers that consumer's ambient dependencies**, so composing the server
-  (`AddIdentityServer()`) is turnkey and a host wires **no** framework plumbing. Register the framework services your
-  endpoints/handlers depend on (routing, `IHttpClientFactory`, `AddAuthentication()`, a default `IIdGenerator<long>`,
-  …) from the owning package via `TryAdd*`, as an **overridable default** rather than a host requirement; a host
-  overrides by registering its own before the composition call (or last-wins after). Only genuinely host-specific,
-  unsafe-to-default inputs stay host-only — the database provider/connection string and the production signing key (per
-  [ADR-1002](../../docs/decisions/1002-ephemeral-development-keys.md)). Dead host wiring that only "works" by accidentally
-  pulling in a framework service (for example `AddControllers` dragging in authentication) is a smell: register the
-  real dependency explicitly from the package that needs it.
-- 👁 **A singleton service must be stateless — never memoize per-request state in an instance field.** A singleton is
-  shared by every request, so a cached result on the instance (`_result ??= await …`) leaks one request's answer to all
-  others — a correctness and security hole (a client-authentication result that sticks after the first call let any
-  later request reuse it regardless of its credentials). Memoize per-request state on the **request** instead
-  (`HttpContext.Items`, the `OpenIdContext`), or keep the service genuinely stateless. Making the service scoped is not
-  a fix when a singleton consumer captures it (captive dependency re-singletons it), so prefer request-scoped storage.
-- 👁 **Correctness never depends on process-local state.** The host runs as several interchangeable, disposable
-  replicas ([ADR-1134](../../docs/decisions/1134-cloud-native-operating-principles.md)), and any replica may serve the next
-  request. State that must outlive a request or be seen by another replica goes to the database or to the shared-state
-  port; in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and
-  must tolerate eviction and restarts. Never write durable data to the local filesystem.
-- 👁 **A hosted service whose `StopAsync` does work runs it once and never throws.** A host can be stopped twice at
-  once (`StopAsync` called while `RunAsync` stops it too), and the stop that returns first lets its caller dispose
-  the service provider under the other's work. Memoize the stop task under a `Lock`, serialize it with the
-  service's periodic work, and log what it could not finish (`TenantUsageFlushService.StopAsync`,
+- 👁 **The package that owns a consumer registers that consumer's ambient dependencies** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods), so composing
+  the server (`AddIdentityServer()`) is turnkey: the owning package registers routing, `IHttpClientFactory`,
+  `AddAuthentication()` and a default `IIdGenerator<long>` with `TryAdd*`. Only the database provider and connection
+  string and the production signing key stay host inputs
+  ([ADR-1002](../../docs/decisions/1002-ephemeral-development-keys.md)); host wiring that works only by pulling in a
+  framework service by accident, such as `AddControllers` dragging in authentication, is a smell.
+- 👁 **A singleton service is stateless** — template
+  [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods); a
+  client-authentication result memoized on a singleton let a later request reuse it whatever its credentials. Keep
+  per-request state on the request (`HttpContext.Items`, the `OpenIdContext`).
+- 👁 **Correctness never depends on process-local state** — template
+  [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work): the host runs
+  as interchangeable replicas ([ADR-1134](../../docs/decisions/1134-cloud-native-operating-principles.md)), and state
+  another replica must see goes to the database or the shared-state port.
+- 👁 **A hosted service whose `StopAsync` does work runs it once and never throws** — template
+  [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work)
+  (`TenantUsageFlushService.StopAsync`,
   [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
   `IMaterializedServerAccessor.GetServerAsync`, public so a package other than the core waits the same way, which
@@ -558,16 +535,13 @@ than inlining the rationale.
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
   Protection's hosted service
   ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
-- 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
-  `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
-  (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,
-  Valkey for several. `IDistributedCache` cannot express it: a read followed by a write lets two concurrent requests
-  both pass. Build the key with the tenant and a digest of the length-prefixed, request-supplied components
-  (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
-  ambiguous or unbounded. `ExpiringKeys.Create` puts the tenant in braces, the key's hash tag, so one script may touch
-  one tenant's keys on a clustered Valkey and never several tenants'; and every Valkey adapter call goes through
-  `ValkeySharedStateMetrics.MeasureAsync`. A library never registers a host-wide cache. See
-  [ADR-1164](../../docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set** — template
+  [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state). A replay guard (a `jti`) or a
+  server-issued nonce is an atomic add-if-absent on the shared-state port (`NCode.Identity.SharedState.Abstractions`),
+  in process for one replica and Valkey for several. Build the key with `ExpiringKeys.Create`, which puts the tenant in
+  braces, the key's hash tag, so one script touches one tenant's keys on a clustered Valkey, and every Valkey adapter
+  call goes through `ValkeySharedStateMetrics.MeasureAsync`
+  ([ADR-1164](../../docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
 - 👁 **A record every replica must read and update is an `IExpiringValueSet` value, and a lookup by an attribute is an
   `IExpiringIndexSet`.** Take a single-use record with `TryTakeAsync`, never `GetAsync` then `RemoveAsync`. Update a
   record with `TryReplaceAsync`, naming the version you read; on `false` reload the record rather than overwrite it.

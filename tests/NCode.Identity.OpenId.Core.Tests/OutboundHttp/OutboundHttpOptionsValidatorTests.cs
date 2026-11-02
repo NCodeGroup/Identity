@@ -91,5 +91,38 @@ public sealed class OutboundHttpOptionsValidatorTests
         );
     }
 
+    [Fact]
+    public void Validate_WhenTheFailureCacheDurationIsZero_FailsNamingItsKey()
+    {
+        var options = new OutboundHttpOptions { FailureCacheDuration = TimeSpan.Zero };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "'OutboundHttp:FailureCacheDuration'",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenTheFailureCacheDurationIsOverOneDay_FailsNamingItsKey()
+    {
+        var options = new OutboundHttpOptions
+        {
+            FailureCacheDuration = TimeSpan.FromDays(1) + TimeSpan.FromSeconds(1),
+        };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "'OutboundHttp:FailureCacheDuration'",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
     #endregion
 }

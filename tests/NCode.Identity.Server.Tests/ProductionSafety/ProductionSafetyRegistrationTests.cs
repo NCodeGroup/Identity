@@ -65,10 +65,7 @@ public class ProductionSafetyRegistrationTests
     /// secret protection configuration.
     /// </summary>
     private static IConfiguration CreateSafeConfiguration() =>
-        CreateProductionConfiguration(
-            ("AllowedHosts", "op.example.com"),
-            ("DeveloperKeys:Mode", "None")
-        );
+        CreateProductionConfiguration(("AllowedHosts", "op.example.com"));
 
     private static IHostEnvironment CreateEnvironment(string environmentName)
     {
@@ -136,7 +133,7 @@ public class ProductionSafetyRegistrationTests
         var services = new ServiceCollection();
         var configuration = CreateConfiguration(
             ("AllowedHosts", "*"),
-            ("DeveloperKeys:Mode", "PersistentSigningKey"),
+            ("DeveloperKeys:PruneUnreadableKeys", "true"),
             ("DeveloperInteractiveSeed:Enabled", "true")
         );
 
@@ -146,7 +143,7 @@ public class ProductionSafetyRegistrationTests
 
         // An operator should be able to fix every problem in one pass, not one restart per problem.
         Assert.Contains("AllowedHosts", exception.Message);
-        Assert.Contains("DeveloperKeys:Mode", exception.Message);
+        Assert.Contains("DeveloperKeys", exception.Message);
         Assert.Contains("DeveloperInteractiveSeed", exception.Message);
     }
 
@@ -156,7 +153,6 @@ public class ProductionSafetyRegistrationTests
         var services = new ServiceCollection();
         var configuration = CreateConfiguration(
             ("AllowedHosts", "op.example.com"),
-            ("DeveloperKeys:Mode", "None"),
             ("SecretProtection:RootKeyProviders:Local:Key", "inline-root-key-value")
         );
 
@@ -180,7 +176,7 @@ public class ProductionSafetyRegistrationTests
         var services = new ServiceCollection();
 
         var result = services.AddProductionSafety(
-            CreateConfiguration(("AllowedHosts", "op.example.com"), ("DeveloperKeys:Mode", "None")),
+            CreateConfiguration(("AllowedHosts", "op.example.com")),
             CreateEnvironment(Environments.Development)
         );
 
@@ -300,7 +296,6 @@ public class ProductionSafetyRegistrationTests
         var configuration = CreateConfiguration([
             .. settings,
             ("AllowedHosts", "op.example.com"),
-            ("DeveloperKeys:Mode", "None"),
             .. SafeSecretProtectionSettings,
         ]);
         var services = new ServiceCollection();
@@ -343,55 +338,27 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void FindViolations_WhenDeveloperKeyModeUnset_StillReportsEphemeralDefault()
+    public void FindViolations_WhenDeveloperKeysSectionIsPresent_ReportsIt()
     {
-        // Absent configuration is NOT safe: the mode defaults to Ephemeral, so a deployment that simply never
-        // mentions DeveloperKeys would otherwise pass while regenerating its signing key on every restart.
+        var violations = ProductionSafetyRegistration.FindViolations(
+            CreateProductionConfiguration(
+                ("AllowedHosts", "op.example.com"),
+                ("DeveloperKeys:PruneUnreadableKeys", "true")
+            )
+        );
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("DeveloperKeys", violation.ConfigurationKey);
+    }
+
+    [Fact]
+    public void FindViolations_WhenDeveloperKeysSectionIsAbsent_ReportsNothingForKeys()
+    {
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateProductionConfiguration(("AllowedHosts", "op.example.com"))
         );
 
-        var violation = Assert.Single(violations);
-        Assert.Equal("DeveloperKeys:Mode", violation.ConfigurationKey);
-        Assert.Contains("Ephemeral", violation.Problem);
-    }
-
-    [Theory]
-    [InlineData("Ephemeral")]
-    [InlineData("PersistentSigningKey")]
-    public void FindViolations_WhenAnyDeveloperKeyMode_ReportsViolation(string mode)
-    {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
-                ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", mode)
-            )
-        );
-
-        var violation = Assert.Single(
-            violations,
-            violation => violation.ConfigurationKey == "DeveloperKeys:Mode"
-        );
-        Assert.Contains("provisioned with persisted signing keys", violation.Resolution);
-    }
-
-    [Theory]
-    [InlineData("None")]
-    [InlineData("none")]
-    public void FindViolations_WhenDeveloperKeysDisabled_DoesNotReportKeyViolation(string mode)
-    {
-        // 'None' leaves tenants with the persisted keys they are provisioned with, or the keys an operator imports.
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
-                ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", mode)
-            )
-        );
-
-        Assert.DoesNotContain(
-            violations,
-            violation => violation.ConfigurationKey == "DeveloperKeys:Mode"
-        );
+        Assert.Empty(violations);
     }
 
     [Theory]
@@ -401,10 +368,7 @@ public class ProductionSafetyRegistrationTests
     public void FindViolations_WhenAllowedHostsAcceptsAnything_ReportsViolation(string allowedHosts)
     {
         var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
-                ("AllowedHosts", allowedHosts),
-                ("DeveloperKeys:Mode", "None")
-            )
+            CreateProductionConfiguration(("AllowedHosts", allowedHosts))
         );
 
         Assert.Contains(violations, violation => violation.ConfigurationKey == "AllowedHosts");
@@ -414,10 +378,7 @@ public class ProductionSafetyRegistrationTests
     public void FindViolations_WhenAllowedHostsIsExplicit_DoesNotReportHostViolation()
     {
         var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
-                ("AllowedHosts", "op.example.com;id.example.com"),
-                ("DeveloperKeys:Mode", "None")
-            )
+            CreateProductionConfiguration(("AllowedHosts", "op.example.com;id.example.com"))
         );
 
         Assert.DoesNotContain(
@@ -432,35 +393,17 @@ public class ProductionSafetyRegistrationTests
     [InlineData("https://app.example.com")]
     public void FindViolations_WhenCorsSectionPresent_ReportsViolation(string origin)
     {
-        // The developer CORS policy is never registered in Production, so any Cors section there is accepted without
-        // being honored — whether it names a loopback dev server or a real origin.
+        // The Cors section is development-only: it admits cross-origin calls from the origins it lists, whether it
+        // names a loopback dev server or a real origin.
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateProductionConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("Cors:AllowedOrigins:0", origin)
             )
         );
 
         var violation = Assert.Single(violations);
         Assert.Equal("Cors", violation.ConfigurationKey);
-    }
-
-    [Theory]
-    [InlineData("DeveloperKeys:Mode", "Persistent")]
-    [InlineData("DeveloperKeys:Mode", "5")]
-    [InlineData("DeveloperKeys:Mdoe", "None")]
-    public void FindViolations_WhenDeveloperKeysCannotBeRead_ReportsTheSection(
-        string key,
-        string value
-    )
-    {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(("AllowedHosts", "op.example.com"), (key, value))
-        );
-
-        var violation = Assert.Single(violations);
-        Assert.Equal("DeveloperKeys", violation.ConfigurationKey);
     }
 
     [Theory]
@@ -471,7 +414,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateProductionConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ($"{sectionName}:Enabled", "true")
             )
         );
@@ -487,7 +429,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", provider),
                 ("SecretProtection:Recovery:Disabled", "true")
             )
@@ -504,7 +445,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:Recovery:Disabled", "true")
             )
         );
@@ -523,7 +463,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", "ephemeral"),
                 ("SecretProtection:Recovery:Disabled", "true")
             )
@@ -546,7 +485,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", provider),
                 ("SecretProtection:RootKeyProviders:Local:Key", "inline-root-key-value"),
                 ("SecretProtection:Recovery:Disabled", "true")
@@ -566,7 +504,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", "local")
             )
         );
@@ -587,7 +524,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", "local"),
                 ("SecretProtection:Recovery:Disabled", disabled)
             )
@@ -603,7 +539,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", "local"),
                 ("SecretProtection:Recovery:Disabled", "true")
             )
@@ -618,7 +553,6 @@ public class ProductionSafetyRegistrationTests
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
-                ("DeveloperKeys:Mode", "None"),
                 ("SecretProtection:RootKeyProvider", "local"),
                 ("SecretProtection:Recovery:PublicKeyPath", "/run/secrets/recovery.pub")
             )

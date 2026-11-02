@@ -51,7 +51,7 @@ public class EnumAndJsonParameterParserTests : BaseTests
         _environment = mockEnvironment.Object;
     }
 
-    private ParameterDescriptor RequiredDescriptor<T>(IParameterParser<T> parser) =>
+    private static ParameterDescriptor RequiredDescriptor<T>(IParameterParser<T> parser) =>
         new(new KnownParameter<T>("test", parser) { AllowMissingStringValues = false });
 
     #region EnumParser Tests

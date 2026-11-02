@@ -138,7 +138,12 @@ try {
         }
     }
     finally {
-        foreach ($key in $saved.Keys) { [Environment]::SetEnvironmentVariable($key, $saved[$key]) }
+        # A variable that was unset is removed again: PowerShell passes $null to a [string] parameter as '', so
+        # SetEnvironmentVariable would not restore it, and a leaked variable would reach every later test run.
+        foreach ($key in $saved.Keys) {
+            if ($null -eq $saved[$key]) { Remove-Item -LiteralPath "env:$key" -ErrorAction Ignore }
+            else { Set-Item -LiteralPath "env:$key" -Value $saved[$key] }
+        }
     }
     Complete-Test $name
 

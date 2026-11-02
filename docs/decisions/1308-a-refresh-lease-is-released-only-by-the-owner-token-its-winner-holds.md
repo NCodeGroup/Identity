@@ -31,7 +31,11 @@ store's expiry can differ.
    `ReleaseRefreshLeaseAsync(BffRefreshLease)` compare-and-removes the lease with that owner.
 3. **The winner always releases.** `DefaultBffUserTokenService` releases a won lease when the refresh ends, in a
    `finally` with `CancellationToken.None`. The time margin is gone. A lease another replica took after this one expired
-   has another owner, so the release leaves it in place.
+   has another owner, so the release leaves it in place. A release that fails because the store is unreachable
+   (`BffStoreUnavailableException`) is logged (`RefreshLeaseReleaseFailed`, event 19004, Warning) and changes nothing
+   else: the refresh's own result or exception stands, and the lease expires on its own after
+   `Tokens:RefreshLeaseDuration`, so the replicas that lost the race wait at most that long, as they would for a dead
+   winner.
 
 The comparison uses `SequenceEqual`, not a constant-time compare: the owner token is not a secret that an attacker can
 probe, because it never leaves the store.
@@ -52,6 +56,8 @@ probe, because it never leaves the store.
 
 - A winner frees its lease as soon as it finishes, so the replicas that lost the race wait only for the refresh.
 - A lease that another replica took after this one expired is never removed.
+- A store outage during the release costs the losers at most one lease duration; it never turns a refresh whose tokens
+  were written into a `503`, and never hides the refresh's own failure.
 - A custom `IExpiringValueSet` adapter and a custom `IBffSessionStore` implement the new members. The family is
   pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so this is a clean cutover with no shim.
 - The Valkey script is covered by mock-based tests only, as the other scripts are.
@@ -62,5 +68,6 @@ probe, because it never leaves the store.
 - [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) - point 2's release
   rule, amended here
 - [Issue #422](https://github.com/NCodeGroup/Identity/issues/422)
+- [Issue #462](https://github.com/NCodeGroup/Identity/issues/462)
 - `IExpiringValueSet.cs`, `DefaultInProcessExpiringValueSet.cs`, `ValkeyExpiringValueSet.cs`
 - `DefaultBffSessionStore.cs`, `DefaultBffUserTokenService.cs`

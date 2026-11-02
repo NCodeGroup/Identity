@@ -678,17 +678,19 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     public async ValueTask<IResult> GetLogoutConfirmationPageAsync(HttpContext httpContext)
     {
         var tokens = IssueAntiforgeryTokens(httpContext);
-        var query = httpContext.Request.Query;
+        var returnUrl = httpContext.Request.Query["ReturnUrl"].ToString();
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
+        var shell = await BundleReader.TryReadShellAsync(httpContext.RequestAborted);
+        var surfaceBase = SurfacePaths.GetSurfaceBase(httpContext);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             html,
-            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
-            SurfacePaths.GetSurfaceBase(httpContext),
+            shell,
+            surfaceBase,
             branding,
             security.Nonce,
-            query["ReturnUrl"].ToString(),
+            returnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty
         );
@@ -716,20 +718,25 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
+        var declined = openIdContext.ErrorFactory.AccessDenied(
+            "The end user declined to sign out."
+        );
         var refusal = await ContinueRefusalService.RefuseAsync(
             openIdContext,
             safeReturnUrl,
-            openIdContext.ErrorFactory.AccessDenied("The end user declined to sign out."),
+            declined,
             httpContext.RequestAborted
         );
-        return refusal.HasHttpResult
-            ? refusal.HttpResult
-            : TypedResults.Redirect(
-                SurfacePaths.GetSurfacePath(
-                    httpContext,
-                    InteractiveAuthenticationDefaults.AccountPath
-                )
-            );
+        if (refusal.HasHttpResult)
+        {
+            return refusal.HttpResult;
+        }
+
+        var accountPath = SurfacePaths.GetSurfacePath(
+            httpContext,
+            InteractiveAuthenticationDefaults.AccountPath
+        );
+        return TypedResults.Redirect(accountPath);
     }
 
     /// <summary>

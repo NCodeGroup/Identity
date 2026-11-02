@@ -66,7 +66,8 @@ internal class DefaultEndSessionContinueProvider(ILogger<DefaultEndSessionContin
                 "The session changed before the logout was confirmed."
             );
             error.StatusCode = StatusCodes.Status400BadRequest;
-            return ReadOnlyEndpointDisposition.Handled(error.AsHttpResult());
+            var errorResult = error.AsHttpResult();
+            return ReadOnlyEndpointDisposition.Handled(errorResult);
         }
 
         var disposition = await mediator.SendAsync<EndSessionCommand, EndSessionDisposition>(
@@ -74,9 +75,8 @@ internal class DefaultEndSessionContinueProvider(ILogger<DefaultEndSessionContin
             cancellationToken
         );
 
-        return ReadOnlyEndpointDisposition.Handled(
-            EndSessionHttpResults.Create(openIdContext.Http, disposition)
-        );
+        var httpResult = EndSessionHttpResults.Create(openIdContext.Http, disposition);
+        return ReadOnlyEndpointDisposition.Handled(httpResult);
     }
 
     /// <inheritdoc />
@@ -85,7 +85,10 @@ internal class DefaultEndSessionContinueProvider(ILogger<DefaultEndSessionContin
         JsonElement continuePayloadJson,
         IOpenIdError error,
         CancellationToken cancellationToken
-    ) =>
+    )
+    {
         // A declined logout answers nothing: the continuation is spent and the relying party is not told.
-        ValueTask.FromResult(ReadOnlyEndpointDisposition.Handled());
+        var declined = ReadOnlyEndpointDisposition.Handled();
+        return ValueTask.FromResult(declined);
+    }
 }

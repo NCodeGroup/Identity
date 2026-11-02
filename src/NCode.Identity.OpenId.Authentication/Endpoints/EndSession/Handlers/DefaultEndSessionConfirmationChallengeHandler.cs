@@ -39,10 +39,8 @@ internal class DefaultEndSessionConfirmationChallengeHandler
             new HtmlPageSecurityPolicy { AllowsAnyFormAction = true }
         );
 
-        return ValueTask.FromResult(
-            ReadOnlyEndpointDisposition.Handled(
-                TypedResults.Content(html, "text/html; charset=utf-8", SecureEncoding.UTF8)
-            )
-        );
+        var page = TypedResults.Content(html, "text/html; charset=utf-8", SecureEncoding.UTF8);
+        var disposition = ReadOnlyEndpointDisposition.Handled(page);
+        return ValueTask.FromResult(disposition);
     }
 }

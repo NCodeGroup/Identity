@@ -35,6 +35,7 @@ internal sealed class InteractiveEndSessionConfirmationChallengeHandler(
         var location = $"{confirmPath}?ReturnUrl=" + Uri.EscapeDataString(command.ContinueUrl);
 
         RedirectHttpResult result = TypedResults.Redirect(location);
-        return ValueTask.FromResult(ReadOnlyEndpointDisposition.Handled(result));
+        var disposition = ReadOnlyEndpointDisposition.Handled(result);
+        return ValueTask.FromResult(disposition);
     }
 }

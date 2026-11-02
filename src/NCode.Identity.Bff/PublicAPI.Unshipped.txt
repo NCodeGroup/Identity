@@ -91,6 +91,8 @@ NCode.Identity.Bff.Options.BffOptions.ReturnUrls.get -> System.Collections.Gener
 NCode.Identity.Bff.Options.BffOptions.ReturnUrls.set -> void
 NCode.Identity.Bff.Options.BffOptions.SecurityHeaders.get -> NCode.Identity.Bff.Options.BffSecurityHeadersOptions!
 NCode.Identity.Bff.Options.BffOptions.SecurityHeaders.set -> void
+NCode.Identity.Bff.Options.BffOptions.Jwks.get -> NCode.Identity.Bff.Options.BffJwksOptions!
+NCode.Identity.Bff.Options.BffOptions.Jwks.set -> void
 NCode.Identity.Bff.Options.BffOptions.Scopes.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffOptions.Scopes.set -> void
 NCode.Identity.Bff.Options.BffOptions.Session.get -> NCode.Identity.Bff.Options.BffSessionOptions!
@@ -115,6 +117,10 @@ NCode.Identity.Bff.Options.BffRemoteApiOptions.AllowedMethods.get -> System.Coll
 NCode.Identity.Bff.Options.BffRemoteApiOptions.AllowedMethods.set -> void
 NCode.Identity.Bff.Options.BffRemoteApiOptions.Timeout.get -> System.TimeSpan
 NCode.Identity.Bff.Options.BffRemoteApiOptions.Timeout.set -> void
+NCode.Identity.Bff.Options.BffJwksOptions
+NCode.Identity.Bff.Options.BffJwksOptions.BffJwksOptions() -> void
+NCode.Identity.Bff.Options.BffJwksOptions.Enabled.get -> bool
+NCode.Identity.Bff.Options.BffJwksOptions.Enabled.set -> void
 NCode.Identity.Bff.Options.BffSecurityHeadersOptions
 NCode.Identity.Bff.Options.BffSecurityHeadersOptions.BffSecurityHeadersOptions() -> void
 NCode.Identity.Bff.Options.BffSecurityHeadersOptions.ContentSecurityPolicy.get -> string!

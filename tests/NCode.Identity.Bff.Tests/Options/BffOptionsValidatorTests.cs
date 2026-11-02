@@ -565,6 +565,46 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Fact]
+    public void Validate_WhenJwksEnabledWithoutKeyRing_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Jwks.Enabled = true;
+        options.ClientAuthentication.KeyRing = " ";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Jwks:Enabled") && x.Contains("Bff:ClientAuthentication:KeyRing")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenJwksEnabledWithKeyRing_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.Jwks.Enabled = true;
+        options.ClientAuthentication.KeyRing = "client-keys";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenJwksNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Jwks = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Jwks must be set."));
+    }
+
+    [Fact]
     public void Validate_WhenSecurityHeadersNull_Fails()
     {
         var options = CreateValidOptions();

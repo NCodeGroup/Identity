@@ -113,6 +113,12 @@ public sealed class BffOptions
     public BffSecurityHeadersOptions SecurityHeaders { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets whether the BFF publishes its public client-authentication keys. The configuration section is
+    /// <c>Bff:Jwks</c>.
+    /// </summary>
+    public BffJwksOptions Jwks { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets the session lifetime and cookie options. The configuration section is <c>Bff:Session</c>.
     /// </summary>
     public BffSessionOptions Session { get; set; } = new();

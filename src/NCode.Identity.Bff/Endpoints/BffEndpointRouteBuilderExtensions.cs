@@ -27,7 +27,8 @@ public static class BffEndpointRouteBuilderExtensions
     {
         /// <summary>
         /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints under the configured
-        /// <see cref="BffOptions.PathPrefix"/>.
+        /// <see cref="BffOptions.PathPrefix"/>, and the <c>jwks</c> endpoint when <see cref="BffJwksOptions.Enabled"/> is
+        /// <c>true</c>.
         /// </summary>
         /// <returns>The <see cref="RouteGroupBuilder"/> of the endpoints, so that the application can add a rate
         /// limiter or exclude them from the API description.</returns>
@@ -90,6 +91,19 @@ public static class BffEndpointRouteBuilderExtensions
                             .HandleAsync(context)
                 )
                 .WithName("Bff.BackchannelLogout");
+
+            if (options.Value.Jwks.Enabled)
+            {
+                group
+                    .MapGet(
+                        "/jwks",
+                        static (HttpContext context) =>
+                            context
+                                .RequestServices.GetRequiredService<BffJwksHandler>()
+                                .HandleAsync(context)
+                    )
+                    .WithName("Bff.Jwks");
+            }
 
             return group;
         }

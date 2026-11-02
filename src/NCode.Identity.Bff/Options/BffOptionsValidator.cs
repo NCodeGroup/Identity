@@ -54,6 +54,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         ValidateTokens(options.Tokens, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateSecurityHeaders(options.SecurityHeaders, failures);
+        ValidateJwks(options.Jwks, options.ClientAuthentication, failures);
         ValidateUserClaims(options.UserClaims, failures);
         ValidateLoginParameters(options.LoginParameters, failures);
         ValidateRemoteApis(options.RemoteApis, options.PathPrefix, isDevelopment, failures);
@@ -344,6 +345,24 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
             "Bff:SecurityHeaders:CrossOriginOpenerPolicy",
             failures
         );
+    }
+
+    private static void ValidateJwks(
+        BffJwksOptions? jwks,
+        BffClientAuthenticationOptions? clientAuthentication,
+        List<string> failures
+    )
+    {
+        if (jwks is null)
+        {
+            failures.Add("Bff:Jwks must be set.");
+        }
+        else if (jwks.Enabled && string.IsNullOrWhiteSpace(clientAuthentication?.KeyRing))
+        {
+            failures.Add(
+                "Bff:ClientAuthentication:KeyRing must not be blank when Bff:Jwks:Enabled is true, because it holds the keys the endpoint publishes."
+            );
+        }
     }
 
     private static void ValidateHeaderValue(string? value, string key, List<string> failures)

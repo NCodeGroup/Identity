@@ -35,7 +35,7 @@ public class BffPackageDependencyTests : BaseTests
     }
 
     [Fact]
-    public void BffAssembly_ReferencesOnlyAbstractionPackages()
+    public void BffAssembly_ReferencesOnlyAbstractionAndModelPackages()
     {
         var assembly = Assembly.Load(new AssemblyName("NCode.Identity.Bff"));
 
@@ -45,7 +45,13 @@ public class BffPackageDependencyTests : BaseTests
             if (!name.StartsWith("NCode.Identity.", StringComparison.Ordinal))
                 continue;
 
-            Assert.True(name.EndsWith(".Abstractions", StringComparison.Ordinal), name);
+            // NCode.Identity.Jwk is the JWK model library the abstractions themselves expose (ADR-1119), not an
+            // implementation package (ADR-1016).
+            var isAllowed =
+                name.EndsWith(".Abstractions", StringComparison.Ordinal)
+                || name == "NCode.Identity.Jwk";
+
+            Assert.True(isAllowed, name);
         }
     }
 }

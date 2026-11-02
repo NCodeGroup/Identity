@@ -63,17 +63,12 @@ NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.D
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperInteractiveSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
-NCode.Identity.Server.DeveloperKeyMode
-NCode.Identity.Server.DeveloperKeyMode.Ephemeral = 0 -> NCode.Identity.Server.DeveloperKeyMode
-NCode.Identity.Server.DeveloperKeyMode.PersistentSigningKey = 1 -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DeveloperKeysConfiguration
 NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
 NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).GetDeveloperKeysOptions() -> NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions!
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddEphemeralDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddPersistentDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeyPruning() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.get -> string![]!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.set -> void
@@ -93,8 +88,8 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.Ten
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.TenantId.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.DeveloperKeysOptions() -> void
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.Mode.get -> NCode.Identity.Server.DeveloperKeyMode?
-NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.Mode.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.PruneUnreadableKeys.get -> bool
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.PruneUnreadableKeys.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ClientId.set -> void
@@ -104,7 +99,6 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RedirectUris
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConsent.get -> bool
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConsent.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ShouldSeed.get -> bool
-NCode.Identity.Server.EphemeralOpenIdTenantFactory.EphemeralOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider! secretProtectorProvider, NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory, NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver! effectiveSettingsResolver, NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory! secretKeyFactory) -> void
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityServerApiReference(System.Action<NCode.Identity.Server.IdentityServerApiReferenceOptions!>? configureOptions = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
@@ -114,7 +108,6 @@ NCode.Identity.Server.IdentityServerApiReferenceOptions.MapApiReferenceUi.get ->
 NCode.Identity.Server.IdentityServerApiReferenceOptions.MapApiReferenceUi.set -> void
 NCode.Identity.Server.IdentityServerApiReferenceOptions.MapOpenApiDocument.get -> bool
 NCode.Identity.Server.IdentityServerApiReferenceOptions.MapOpenApiDocument.set -> void
-NCode.Identity.Server.EphemeralOpenIdTenantFactory
 NCode.Identity.Server.IdentityServer
 NCode.Identity.Server.IdentityServer.IdentityServer() -> void
 NCode.Identity.Server.IdentityServerBuilderExtensions
@@ -225,7 +218,6 @@ NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.Resolution.init
 NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ProductionSafetyViolation(string! ConfigurationKey, string! Problem, string! Resolution) -> void
 override NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation.ToString() -> string!
 static NCode.Identity.Server.ProductionSafetyRegistration.FindViolations(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Server.ProductionSafety.ProductionSafetyViolation!>!
-NCode.Identity.Server.DeveloperKeyMode.None = 2 -> NCode.Identity.Server.DeveloperKeyMode
 NCode.Identity.Server.DevelopmentEnvironmentRegistration
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!

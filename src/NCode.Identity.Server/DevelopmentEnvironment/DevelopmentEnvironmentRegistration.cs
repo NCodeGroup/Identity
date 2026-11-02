@@ -79,10 +79,12 @@ public static class DevelopmentEnvironmentRegistration
             // drives. Inert unless the Conformance environment overlay supplies its section.
             builder.AddConformanceSeed(configuration);
 
-            // Chooses how signing keys are provided (ADR-1002). Defaults to ephemeral, in-memory keys, which is what
-            // makes a freshly-cloned repository run and the integration tests hermetic.
-            var developerKeys = configuration.GetDeveloperKeysOptions();
-            builder.AddDeveloperKeys(developerKeys.Mode ?? DeveloperKeyMode.Ephemeral);
+            // Chooses whether signing keys that can no longer be read are pruned (ADR-1313). Every tenant signs with the
+            // keys provisioning persists through the store (ADR-1169); the opt-in only lets a lost root key heal.
+            if (configuration.GetDeveloperKeysOptions().PruneUnreadableKeys)
+            {
+                builder.AddDeveloperKeyPruning();
+            }
 
             return builder;
         }

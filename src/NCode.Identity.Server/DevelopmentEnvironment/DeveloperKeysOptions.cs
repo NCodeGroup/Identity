@@ -21,7 +21,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
-/// Configures how <strong>development-only</strong> signing keys are provided to the OpenID server. Bound from the
+/// Configures how <strong>development-only</strong> signing-key conveniences apply to the OpenID server. Bound from the
 /// <c>DeveloperKeys</c> configuration section.
 /// </summary>
 [PublicAPI]
@@ -33,9 +33,9 @@ public sealed class DeveloperKeysOptions
     public const string DefaultSectionName = "DeveloperKeys";
 
     /// <summary>
-    /// Gets or sets the <see cref="DeveloperKeyMode"/> that selects how signing keys are provided, or <c>null</c> when
-    /// unset, which selects <see cref="DeveloperKeyMode.Ephemeral"/>. A Production deployment must state
-    /// <see cref="DeveloperKeyMode.None"/> explicitly.
+    /// Gets or sets a value indicating whether a tenant signing key that can no longer be read is removed. A tenant key
+    /// can no longer be read when its master key, or the root key that wraps it, was lost or changed. It is removed when
+    /// the tenant is seeded, and provisioning replaces it (ADR-1313). Development-only: Production refuses the section.
     /// </summary>
-    public DeveloperKeyMode? Mode { get; set; }
+    public bool PruneUnreadableKeys { get; set; }
 }

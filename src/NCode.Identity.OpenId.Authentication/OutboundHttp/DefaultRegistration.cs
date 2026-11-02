@@ -30,6 +30,7 @@ internal static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.AddHttpClient();
+            serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<
                 IOutboundHttpForgeryGuard,
                 DefaultOutboundHttpForgeryGuard

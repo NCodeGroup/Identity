@@ -16,8 +16,12 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 /// per-attempt timeout only, so it is never sent twice.
 /// </summary>
 /// <param name="options">The <see cref="OutboundHttpOptions"/> that hold the limits.</param>
+/// <param name="timeProvider">The <see cref="TimeProvider"/> that runs the timeouts and the retry delays.</param>
 // See ADR-1385.
-internal sealed class GuardedResiliencePipelines(IOptions<OutboundHttpOptions> options)
+internal sealed class GuardedResiliencePipelines(
+    IOptions<OutboundHttpOptions> options,
+    TimeProvider timeProvider
+)
 {
     /// <summary>
     /// Determines whether <paramref name="request"/> may be sent again after a failed attempt. A request with a body is
@@ -67,10 +71,14 @@ internal sealed class GuardedResiliencePipelines(IOptions<OutboundHttpOptions> o
 
     private static ResiliencePipeline<HttpResponseMessage> Build(
         OutboundHttpOptions options,
-        int maxRetryAttempts
+        int maxRetryAttempts,
+        TimeProvider timeProvider
     )
     {
-        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
+        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>
+        {
+            TimeProvider = timeProvider,
+        };
         builder.AddTimeout(options.TotalTimeout);
 
         if (maxRetryAttempts > 0)
@@ -102,10 +110,10 @@ internal sealed class GuardedResiliencePipelines(IOptions<OutboundHttpOptions> o
     }
 
     private ResiliencePipeline<HttpResponseMessage> Retrying { get; } =
-        Build(options.Value, options.Value.MaxRetryAttempts);
+        Build(options.Value, options.Value.MaxRetryAttempts, timeProvider);
 
     private ResiliencePipeline<HttpResponseMessage> Bounded { get; } =
-        Build(options.Value, maxRetryAttempts: 0);
+        Build(options.Value, maxRetryAttempts: 0, timeProvider);
 
     /// <summary>
     /// Selects the pipeline that bounds <paramref name="request"/>.

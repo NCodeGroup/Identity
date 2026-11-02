@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using Xunit;
 
@@ -9,14 +10,28 @@ namespace NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 
 public sealed class GuardedResilienceHandlerTests
 {
-    private static GuardedResilienceHandler CreateHandler(
+    private static readonly DateTimeOffset Start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private static readonly TimeSpan EnteredDeadline = TimeSpan.FromSeconds(10);
+
+    private static Task<HttpResponseMessage> RespondServiceUnavailable(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken
+    )
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+        return Task.FromResult(response);
+    }
+
+    private FakeTimeProvider Time { get; } = new(Start);
+
+    private GuardedResilienceHandler CreateHandler(
         StubHttpMessageHandler stub,
         OutboundHttpOptions options
     )
     {
-        var pipelines = new GuardedResiliencePipelines(
-            Microsoft.Extensions.Options.Options.Create(options)
-        );
+        var wrappedOptions = Microsoft.Extensions.Options.Options.Create(options);
+        var pipelines = new GuardedResiliencePipelines(wrappedOptions, Time);
         return new GuardedResilienceHandler(pipelines) { InnerHandler = stub };
     }
 
@@ -33,7 +48,8 @@ public sealed class GuardedResilienceHandlerTests
                     Interlocked.Increment(ref calls) == 1
                         ? HttpStatusCode.ServiceUnavailable
                         : HttpStatusCode.OK;
-                return Task.FromResult(new HttpResponseMessage(statusCode));
+                var response = new HttpResponseMessage(statusCode);
+                return Task.FromResult(response);
             }
         );
         var options = new OutboundHttpOptions { RetryDelay = TimeSpan.Zero };
@@ -45,6 +61,32 @@ public sealed class GuardedResilienceHandlerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.CallCount);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenAGetFailsOnEveryAttempt_ReturnsTheLastResponse()
+    {
+        List<TrackingResponse> responses = [];
+        var stub = new StubHttpMessageHandler(
+            (_, _) =>
+            {
+                var response = new TrackingResponse(HttpStatusCode.ServiceUnavailable);
+                responses.Add(response);
+                return Task.FromResult<HttpResponseMessage>(response);
+            }
+        );
+        var options = new OutboundHttpOptions { MaxRetryAttempts = 2, RetryDelay = TimeSpan.Zero };
+        using var handler = CreateHandler(stub, options);
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "https://client.example/jwks");
+
+        using var response = await invoker.SendAsync(request, CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal(options.MaxRetryAttempts + 1, stub.CallCount);
+        Assert.Same(responses[^1], response);
+        Assert.False(responses[^1].IsDisposed);
+        Assert.All(responses[..^1], failed => Assert.True(failed.IsDisposed));
     }
 
     [Fact]
@@ -76,9 +118,7 @@ public sealed class GuardedResilienceHandlerTests
     [Fact]
     public async Task SendAsync_WhenAPostFailsWith503_DoesNotRetryIt()
     {
-        var stub = new StubHttpMessageHandler(
-            (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable))
-        );
+        var stub = new StubHttpMessageHandler(RespondServiceUnavailable);
         var options = new OutboundHttpOptions { RetryDelay = TimeSpan.Zero };
         using var handler = CreateHandler(stub, options);
         using var invoker = new HttpMessageInvoker(handler);
@@ -114,9 +154,7 @@ public sealed class GuardedResilienceHandlerTests
     [Fact]
     public async Task SendAsync_WhenRetriesAreOff_SendsAGetOnce()
     {
-        var stub = new StubHttpMessageHandler(
-            (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable))
-        );
+        var stub = new StubHttpMessageHandler(RespondServiceUnavailable);
         var options = new OutboundHttpOptions { MaxRetryAttempts = 0, RetryDelay = TimeSpan.Zero };
         using var handler = CreateHandler(stub, options);
         using var invoker = new HttpMessageInvoker(handler);
@@ -129,41 +167,17 @@ public sealed class GuardedResilienceHandlerTests
     }
 
     [Fact]
-    public async Task SendAsync_WhenAPostAttemptHangs_ThrowsTaskCanceledWithTimeoutInner()
+    public async Task SendAsync_WhenAGetAttemptTimesOut_RetriesIt()
     {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
         var stub = new StubHttpMessageHandler(
             async (_, token) =>
             {
-                await Task.Delay(Timeout.InfiniteTimeSpan, token);
-                return new HttpResponseMessage(HttpStatusCode.OK);
-            }
-        );
-        var options = new OutboundHttpOptions
-        {
-            AttemptTimeout = TimeSpan.FromMilliseconds(50),
-            RetryDelay = TimeSpan.Zero,
-        };
-        using var handler = CreateHandler(stub, options);
-        using var invoker = new HttpMessageInvoker(handler);
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            "https://client.example/notify"
-        );
+                if (Interlocked.Increment(ref calls) > 1)
+                    return new HttpResponseMessage(HttpStatusCode.OK);
 
-        var exception = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-            await invoker.SendAsync(request, CancellationToken.None)
-        );
-
-        Assert.IsType<TimeoutException>(exception.InnerException);
-        Assert.Equal(1, stub.CallCount);
-    }
-
-    [Fact]
-    public async Task SendAsync_WhenTheCallerCancels_DoesNotReportATimeout()
-    {
-        var stub = new StubHttpMessageHandler(
-            async (_, token) =>
-            {
+                entered.TrySetResult();
                 await Task.Delay(Timeout.InfiniteTimeSpan, token);
                 return new HttpResponseMessage(HttpStatusCode.OK);
             }
@@ -172,14 +186,68 @@ public sealed class GuardedResilienceHandlerTests
         using var handler = CreateHandler(stub, options);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://client.example/jwks");
+
+        var sending = invoker.SendAsync(request, CancellationToken.None);
+        await entered.Task.WaitAsync(EnteredDeadline);
+        Time.Advance(options.AttemptTimeout);
+        using var response = await sending;
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, stub.CallCount);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenAPostAttemptHangs_ThrowsTaskCanceledWithTimeoutInner()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var stub = new StubHttpMessageHandler(
+            async (_, token) =>
+            {
+                entered.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            }
+        );
+        var options = new OutboundHttpOptions { RetryDelay = TimeSpan.Zero };
+        using var handler = CreateHandler(stub, options);
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            "https://client.example/notify"
+        );
+
+        var sending = invoker.SendAsync(request, CancellationToken.None);
+        await entered.Task.WaitAsync(EnteredDeadline);
+        Time.Advance(options.AttemptTimeout);
+        var exception = await Assert.ThrowsAsync<TaskCanceledException>(() => sending);
+
+        Assert.IsType<TimeoutException>(exception.InnerException);
+        Assert.Equal(1, stub.CallCount);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenTheCallerCancels_DoesNotReportATimeout()
+    {
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(50));
+        var stub = new StubHttpMessageHandler(
+            async (_, token) =>
+            {
+                await cancellation.CancelAsync();
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            }
+        );
+        var options = new OutboundHttpOptions { RetryDelay = TimeSpan.Zero };
+        using var handler = CreateHandler(stub, options);
+        using var invoker = new HttpMessageInvoker(handler);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "https://client.example/jwks");
 
         var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             await invoker.SendAsync(request, cancellation.Token)
         );
 
         Assert.IsNotType<TimeoutException>(exception.InnerException);
+        Assert.Equal(1, stub.CallCount);
     }
 
     #endregion

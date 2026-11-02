@@ -45,9 +45,8 @@ public sealed class GuardedResiliencePipelinesTests
     [Fact]
     public void IsTransient_WhenTheConnectionWasRefused_ReturnsFalse()
     {
-        var outcome = Outcome.FromException<HttpResponseMessage>(
-            new HttpRequestException(HttpRequestError.ConnectionError, "refused")
-        );
+        var exception = new HttpRequestException(HttpRequestError.ConnectionError, "refused");
+        var outcome = Outcome.FromException<HttpResponseMessage>(exception);
 
         var result = GuardedResiliencePipelines.IsTransient(outcome);
 
@@ -57,9 +56,11 @@ public sealed class GuardedResiliencePipelinesTests
     [Fact]
     public void IsTransient_WhenTheNameDidNotResolve_ReturnsFalse()
     {
-        var outcome = Outcome.FromException<HttpResponseMessage>(
-            new HttpRequestException(HttpRequestError.NameResolutionError, "unresolved")
+        var exception = new HttpRequestException(
+            HttpRequestError.NameResolutionError,
+            "unresolved"
         );
+        var outcome = Outcome.FromException<HttpResponseMessage>(exception);
 
         var result = GuardedResiliencePipelines.IsTransient(outcome);
 
@@ -69,9 +70,8 @@ public sealed class GuardedResiliencePipelinesTests
     [Fact]
     public void IsTransient_WhenTheResponseEnded_ReturnsTrue()
     {
-        var outcome = Outcome.FromException<HttpResponseMessage>(
-            new HttpRequestException(HttpRequestError.ResponseEnded, "ended")
-        );
+        var exception = new HttpRequestException(HttpRequestError.ResponseEnded, "ended");
+        var outcome = Outcome.FromException<HttpResponseMessage>(exception);
 
         var result = GuardedResiliencePipelines.IsTransient(outcome);
 
@@ -81,9 +81,9 @@ public sealed class GuardedResiliencePipelinesTests
     [Fact]
     public void IsTransient_WhenAnAttemptTimedOut_ReturnsTrue()
     {
-        var outcome = Outcome.FromException<HttpResponseMessage>(
-            new TimeoutRejectedException("timed out", TimeSpan.FromMilliseconds(50))
-        );
+        var timeout = TimeSpan.FromMilliseconds(50);
+        var exception = new TimeoutRejectedException("timed out", timeout);
+        var outcome = Outcome.FromException<HttpResponseMessage>(exception);
 
         var result = GuardedResiliencePipelines.IsTransient(outcome);
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Time;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Auditing;
@@ -50,6 +51,25 @@ public class AuditRecordOptionsValidatorTests
     public void Validate_WhenThePruneIntervalIsZero_FailsNamingItsKey()
     {
         var options = new AuditRecordOptions { PruneInterval = TimeSpan.Zero };
+        var validator = new AuditRecordOptionsValidator();
+
+        var result = validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "'AuditRecords:PruneInterval'",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenThePruneIntervalExceedsATimerPeriod_FailsNamingItsKey()
+    {
+        var options = new AuditRecordOptions
+        {
+            PruneInterval = TimerPeriod.MaxValue + TimeSpan.FromMilliseconds(1),
+        };
         var validator = new AuditRecordOptionsValidator();
 
         var result = validator.Validate(null, options);

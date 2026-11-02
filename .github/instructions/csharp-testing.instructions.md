@@ -117,6 +117,22 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ServerApiEndpointHandlerTests`,
   `DefaultTenantClientCoherenceCheckerTests`).
+- 👁 **Answer a call differently each time from one counted setup, not `SetupSequence`.** Moq 4.21 has no
+  `.Verifiable()` on `SetupSequence`, so a sequence escapes the repository's verification and an answer it lists but
+  never gives passes unnoticed. Count the calls in a local, answer from the count, and end the setup with
+  `.Verifiable(Times.Exactly(n))`: `.Returns(() => ++saves == 1 ? ValueTask.FromException(exception) :
+  ValueTask.CompletedTask)` (`GrantPruneServiceTests.SetupSaveChangesFailingOnce`), or
+  `.ReturnsAsync(() => ++batches == 1 ? BatchSize : 5)` for a value. When the call that answers differently has
+  arguments of its own, give it its own setup, or the narrower setup above. `SetupSequence` stays only in the
+  read-and-retry case under [Persistence & integration tests](#persistence--integration-tests).
+- 👁 **Drive a `BackgroundService`'s timer loop through the captured timer callback.** A `PeriodicTimer` on a
+  `TimeProvider` asks it for `CreateTimer(callback, state, period, period)`: set that up on the strict `TimeProvider`
+  mock, capture the callback and state in a `TaskCompletionSource`, return a strict `ITimer` whose `Dispose()` is set
+  up, and start the service. Invoke the callback once per tick and await a `TaskCompletionSource` that the tick's work
+  completes (`WaitAsync` with a timeout) before the next tick. Tick twice with the first tick's work failing, then
+  `StopAsync` and assert `ExecuteTask.IsCompletedSuccessfully`, so a loop that ends after one tick or on a failed tick
+  fails the test (`ExecuteAsync_WhenAPruneFails_PrunesAgainAtTheNextTick` in `AuditRecordPruneServiceTests`,
+  `GrantPruneServiceTests` and `TenantUsagePruneServiceTests`).
 - 👁 **Capture an event handler a strict mock receives and invoke it directly** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ValkeyReplicaBroadcastSubscriberTests`).
 - 👁 **A change-token producer in a test returns a fresh token after each change** — template

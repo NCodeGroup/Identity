@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -43,7 +44,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
     private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdClient> MockClient { get; }
     private ISecretKeyCollection ResourceServerKeys { get; }
@@ -54,7 +55,6 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
         MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockClient = CreateStrictMock<OpenIdClient>();
         ResourceServerKeys = CreateLooseMock<ISecretKeyCollection>().Object;
@@ -62,7 +62,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             MockIssuedTokenValidator.Object,
             MockSubjectIdentifierService.Object,
             MockPersistedGrantService.Object,
-            MockTimeProvider.Object
+            TimeProvider
         );
     }
 
@@ -198,7 +198,6 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
             .Verifiable();
 
         MockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
     }
 
     private static string? ClaimString(IntrospectionResult result, string name) =>

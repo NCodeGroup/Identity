@@ -11,19 +11,23 @@ using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 
-public sealed class CapabilitiesProvidersTests
+public sealed class CapabilitiesProvidersTests : IDisposable
 {
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
+    public void Dispose() => MockRepository.Verify();
+
     [Fact]
     public async Task SecretTypeCapabilitiesProvider_AddsSecretTypesSection()
     {
-        var mockDescriptor = new Mock<ISecretKeyTypeDescriptor>(MockBehavior.Strict);
-        mockDescriptor.Setup(x => x.KeyType).Returns("rsa");
-        mockDescriptor.Setup(x => x.IsAsymmetric).Returns(true);
-        mockDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(true);
-        mockDescriptor.Setup(x => x.PublicKeyImportFormats).Returns(["jwk"]);
+        var mockDescriptor = MockRepository.Create<ISecretKeyTypeDescriptor>();
+        mockDescriptor.Setup(x => x.KeyType).Returns("rsa").Verifiable();
+        mockDescriptor.Setup(x => x.IsAsymmetric).Returns(true).Verifiable();
+        mockDescriptor.Setup(x => x.SupportsPublicKeyExport).Returns(true).Verifiable();
+        mockDescriptor.Setup(x => x.PublicKeyImportFormats).Returns(["jwk"]).Verifiable();
 
-        var mockCatalog = new Mock<ISecretKeyTypeCatalog>(MockBehavior.Strict);
-        mockCatalog.Setup(x => x.Descriptors).Returns([mockDescriptor.Object]);
+        var mockCatalog = MockRepository.Create<ISecretKeyTypeCatalog>();
+        mockCatalog.Setup(x => x.Descriptors).Returns([mockDescriptor.Object]).Verifiable();
 
         var provider = new SecretTypeCapabilitiesProvider(mockCatalog.Object);
         var capabilities = new Dictionary<string, object>();
@@ -46,7 +50,7 @@ public sealed class CapabilitiesProvidersTests
     [Fact]
     public async Task EccCurveCapabilitiesProvider_AddsEccCurvesSection()
     {
-        var mockCatalog = new Mock<IEccCurveCatalog>(MockBehavior.Strict);
+        var mockCatalog = MockRepository.Create<IEccCurveCatalog>();
         mockCatalog
             .Setup(x => x.Curves)
             .Returns([
@@ -56,7 +60,8 @@ public sealed class CapabilitiesProvidersTests
                     CurveSizeBits = 256,
                     Curve = ECCurve.NamedCurves.nistP256,
                 },
-            ]);
+            ])
+            .Verifiable();
 
         var provider = new EccCurveCapabilitiesProvider(mockCatalog.Object);
         var capabilities = new Dictionary<string, object>();

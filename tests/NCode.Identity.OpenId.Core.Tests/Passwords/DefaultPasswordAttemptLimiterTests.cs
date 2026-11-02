@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Passwords;
@@ -24,7 +25,7 @@ public sealed class DefaultPasswordAttemptLimiterTests : BaseTests
 
     private Mock<IExpiringCounterSet> MockCounterSet { get; }
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private FakeLogger<DefaultPasswordAttemptLimiter> Logger { get; } = new();
 
@@ -33,12 +34,7 @@ public sealed class DefaultPasswordAttemptLimiterTests : BaseTests
     public DefaultPasswordAttemptLimiterTests()
     {
         MockCounterSet = CreateStrictMock<IExpiringCounterSet>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
-        Limiter = new DefaultPasswordAttemptLimiter(
-            MockCounterSet.Object,
-            MockTimeProvider.Object,
-            Logger
-        );
+        Limiter = new DefaultPasswordAttemptLimiter(MockCounterSet.Object, TimeProvider, Logger);
     }
 
     #region Scaffolding
@@ -145,7 +141,6 @@ public sealed class DefaultPasswordAttemptLimiterTests : BaseTests
         var context = CreateContextWithWindow(window);
         var key = DefaultPasswordAttemptLimiter.CreateKey(TenantId, UserName);
         var expiresWhen = Now + window;
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockCounterSet
             .Setup(x => x.IncrementAsync(key, expiresWhen, CancellationToken.None))
             .ReturnsAsync(1)
@@ -161,7 +156,6 @@ public sealed class DefaultPasswordAttemptLimiterTests : BaseTests
         var context = CreateContextWithWindow(window);
         var key = DefaultPasswordAttemptLimiter.CreateKey(TenantId, UserName);
         var expiresWhen = Now + window;
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockCounterSet
             .Setup(x => x.IncrementAsync(key, expiresWhen, CancellationToken.None))
             .ThrowsAsync(new InvalidOperationException("The counter store is down."))

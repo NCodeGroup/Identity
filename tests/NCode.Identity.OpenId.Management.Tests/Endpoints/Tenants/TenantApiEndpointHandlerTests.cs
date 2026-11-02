@@ -78,14 +78,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantResolver = MockRepository.Create<ITenantResolver>();
         MockTenantProvisioner = MockRepository.Create<ITenantProvisioner>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
-        MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null);
-        MockSecretValidator
-            .Setup(x =>
-                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
-            )
-            .Returns((ManagementError?)null);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
@@ -94,52 +86,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantEnvironmentCatalog = MockRepository.Create<ITenantEnvironmentCatalog>();
         MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
-        MockResourceOwnershipService
-            .Setup(x =>
-                x.AssignCreatorAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordTenantChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordTenantSecretChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         // A write announces the change after it commits; the tests that write verify the announcement.
         MockMediator = MockRepository.Create<IMediator>();
-        MockMediator
-            .Setup(x =>
-                x.SendAsync(It.IsAny<TenantChangedCommand>(), It.IsAny<CancellationToken>())
-            )
-            .Returns(ValueTask.CompletedTask);
 
         Handler = new TenantApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -163,6 +114,79 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             NullLogger<TenantApiEndpointHandler>.Instance
         );
     }
+
+    // Only a request that changes the tenant announces the change to every replica.
+    private void SetupTenantChangedAnnouncement() =>
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<TenantChangedCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that updates a secret validates the update.
+    private void SetupSecretUpdateValidation() =>
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+    // Only a request that adds a secret validates its creation.
+    private void SetupSecretCreateValidation() =>
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+    // Only a request that creates the resource assigns its creator as its owner.
+    private void SetupCreatorAssignment() =>
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes a secret records it.
+    private void SetupTenantSecretChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes the resource records it.
+    private void SetupTenantChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     public void Dispose()
     {
@@ -1061,6 +1085,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
         SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct");
@@ -1089,6 +1115,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutCheckingTheClients()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
         SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct");
@@ -1345,6 +1373,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
+        SetupTenantChangedAnnouncement();
+        SetupSecretCreateValidation();
+        SetupTenantSecretChangedAudit();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1407,6 +1438,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1442,6 +1474,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenValidationFails_ReturnsBadRequest()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1622,6 +1655,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupTenantChangedAnnouncement();
+        SetupSecretUpdateValidation();
+        SetupTenantSecretChangedAudit();
         SetupStore();
         MockTenantStore
             .Setup(x =>
@@ -1663,6 +1699,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantSecretChangedAudit();
         SetupStore();
         MockTenantStore
             .Setup(x =>
@@ -1742,6 +1780,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteSecretAsync_AuthorizesAgainstTenantScopedResource()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantSecretChangedAudit();
         SetupStore();
         MockTenantStore
             .Setup(x =>
@@ -1782,6 +1822,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTenantAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1990,6 +2032,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenIssuerIsOmitted_CreatesTheTenantAtItsDerivedIssuer()
     {
+        SetupCreatorAssignment();
+        SetupTenantChangedAudit();
         SetupDefaultAlias("acme", alias: null);
         SetupValidSettings();
         SetupStore();
@@ -2021,6 +2065,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenAliasIsOmitted_CreatesTheTenantAtItsDerivedAlias()
     {
+        SetupCreatorAssignment();
+        SetupTenantChangedAudit();
         const string derivedAlias = "https://acme.mtls.example";
 
         SetupValidSettings();
@@ -2050,6 +2096,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenIssuerIsGiven_KeepsItWithoutDerivingOne()
     {
+        SetupCreatorAssignment();
+        SetupTenantChangedAudit();
         SetupDefaultAlias("acme", alias: null);
         const string issuer = "https://acme.example";
 
@@ -2075,6 +2123,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenCreated_SeedsTheTenantAndReturnsItAsSeeded()
     {
+        SetupCreatorAssignment();
+        SetupTenantChangedAudit();
         SetupDefaultAlias("acme", alias: null);
         SetupValidSettings();
         SetupStore();
@@ -2210,6 +2260,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTenantAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
         SetupDefaultAlias(TenantId, alias: null);
         UpdateTenantRequest? validated = null;
         var tenant = SetupUpdate(
@@ -2237,6 +2289,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTenantAsync_WhenIssuerIsCleared_RestoresTheDerivedIssuer()
     {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
         SetupDefaultAlias(TenantId, alias: null);
         const string derived = "https://op.example/tenant-1";
 

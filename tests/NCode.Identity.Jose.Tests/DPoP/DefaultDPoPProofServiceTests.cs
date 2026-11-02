@@ -4,6 +4,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
@@ -21,19 +22,16 @@ public class DefaultDPoPProofServiceTests : BaseTests
 
     private static readonly DateTimeOffset StartTime = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    private DateTimeOffset Now { get; set; } = StartTime;
+    private FakeTimeProvider TimeProvider { get; } = new(StartTime);
     private ServiceProvider ServiceProvider { get; }
     private IAlgorithmCollection AlgorithmCollection { get; }
     private IDPoPProofService ProofService { get; }
 
     public DefaultDPoPProofServiceTests()
     {
-        var mockTimeProvider = CreateLooseMock<TimeProvider>();
-        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(() => Now);
-
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(mockTimeProvider.Object);
+        serviceCollection.AddSingleton<TimeProvider>(TimeProvider);
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
@@ -128,12 +126,12 @@ public class DefaultDPoPProofServiceTests : BaseTests
         return jwk;
     }
 
-    private Dictionary<string, object> CreatePayload() =>
+    private static Dictionary<string, object> CreatePayload(DateTimeOffset? issuedAt = null) =>
         new()
         {
             ["htm"] = HttpMethod,
             ["htu"] = HttpUri,
-            ["iat"] = Now.ToUnixTimeSeconds(),
+            ["iat"] = (issuedAt ?? StartTime).ToUnixTimeSeconds(),
             ["jti"] = "jti-1",
         };
 
@@ -324,9 +322,16 @@ public class DefaultDPoPProofServiceTests : BaseTests
     [InlineData(61)]
     public void TryValidateProof_WhenOutsideLifetime_Fails(int offsetSeconds)
     {
-        var proof = CreateProof(CreateCredentials("ES256"));
-        Now = StartTime.AddSeconds(offsetSeconds);
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var header = new Dictionary<string, object>
+        {
+            ["typ"] = "dpop+jwt",
+            ["alg"] = "ES256",
+            ["jwk"] = CreateEcJwk(ecdsa, includePrivate: false),
+        };
+        var payload = CreatePayload(issuedAt: StartTime.AddSeconds(-offsetSeconds));
 
+        var proof = BuildEs256Proof(ecdsa, header, payload);
         AssertRejected(proof, CreateParameters(), "'iat'");
     }
 

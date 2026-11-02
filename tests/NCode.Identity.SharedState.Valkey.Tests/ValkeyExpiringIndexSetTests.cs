@@ -4,6 +4,7 @@
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -22,7 +23,7 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
 
     private Mock<IDatabase> MockDatabase { get; }
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
 
     private ValkeyExpiringIndexSet IndexSet { get; }
 
@@ -34,7 +35,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
     {
         MockConnection = CreateStrictMock<IValkeyConnection>();
         MockDatabase = CreateStrictMock<IDatabase>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
 
         MetricsProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
         var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
@@ -49,7 +49,7 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
             Microsoft.Extensions.Options.Options.Create(
                 new ValkeyOptions { KeyPrefix = KeyPrefix }
             ),
-            MockTimeProvider.Object,
+            TimeProvider,
             new ValkeySharedStateMetrics(meterFactory)
         );
     }
@@ -84,8 +84,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
             Assert.Equal(errorType, measurement.Tags[ValkeySharedStateMetrics.ErrorTypeAttribute]);
     }
 
-    private void SetupNow() => MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-
     private void SetupDatabase() =>
         MockConnection
             .Setup(x => x.GetDatabaseAsync(It.IsAny<CancellationToken>()))
@@ -100,7 +98,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
     [Fact]
     public async Task AddMemberAsync_RunsTheScriptWithTheScoreAndTimeToLive()
     {
-        SetupNow();
         SetupDatabase();
         RedisValue[] expectedValues =
         [
@@ -139,8 +136,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
     [Fact]
     public async Task AddMemberAsync_WhenExpiryNotInFuture_IssuesNoCommand()
     {
-        SetupNow();
-
         await IndexSet.AddMemberAsync("index", "member", Now, CancellationToken.None);
 
         Assert.Empty(DurationCollector.GetMeasurementSnapshot());
@@ -149,7 +144,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
     [Fact]
     public async Task AddMemberAsync_WhenCommandThrows_RecordsTheErrorType()
     {
-        SetupNow();
         SetupDatabase();
         MockDatabase
             .Setup(x =>
@@ -184,7 +178,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
     [Fact]
     public async Task GetMembersAsync_ReturnsTheUnexpiredMembers()
     {
-        SetupNow();
         SetupDatabase();
         double start = Now.ToUnixTimeMilliseconds();
         MockDatabase
@@ -215,7 +208,6 @@ public sealed class ValkeyExpiringIndexSetTests : BaseTests
     [Fact]
     public async Task GetMembersAsync_WhenIndexAbsent_ReturnsEmpty()
     {
-        SetupNow();
         SetupDatabase();
         MockDatabase
             .Setup(x =>

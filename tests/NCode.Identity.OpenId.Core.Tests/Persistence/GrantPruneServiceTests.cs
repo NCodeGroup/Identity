@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -18,7 +19,7 @@ public sealed class GrantPruneServiceTests : IDisposable
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
     private MockRepository MockRepository { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IGrantStore> MockGrantStore { get; }
@@ -27,14 +28,13 @@ public sealed class GrantPruneServiceTests : IDisposable
     public GrantPruneServiceTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
-        MockTimeProvider = MockRepository.Create<TimeProvider>();
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockGrantStore = MockRepository.Create<IGrantStore>();
         Service = new GrantPruneService(
             MockStoreManagerFactory.Object,
             Options.Create(new GrantRetentionOptions()),
-            MockTimeProvider.Object,
+            TimeProvider,
             NullLogger<GrantPruneService>.Instance
         );
     }
@@ -47,7 +47,6 @@ public sealed class GrantPruneServiceTests : IDisposable
 
     private void SetupStores()
     {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
@@ -69,7 +68,8 @@ public sealed class GrantPruneServiceTests : IDisposable
         );
         var mockTimer = MockRepository.Create<ITimer>();
         mockTimer.Setup(x => x.Dispose()).Verifiable();
-        MockTimeProvider
+        var mockTimeProvider = MockRepository.Create<TimeProvider>();
+        mockTimeProvider
             .Setup(x =>
                 x.CreateTimer(
                     It.IsAny<TimerCallback>(),
@@ -84,6 +84,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .Returns(mockTimer.Object)
             .Verifiable();
+        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         SetupStores();
         MockGrantStore
             .Setup(x =>
@@ -122,7 +123,7 @@ public sealed class GrantPruneServiceTests : IDisposable
         using var service = new GrantPruneService(
             MockStoreManagerFactory.Object,
             Options.Create(options),
-            MockTimeProvider.Object,
+            mockTimeProvider.Object,
             NullLogger<GrantPruneService>.Instance
         );
 

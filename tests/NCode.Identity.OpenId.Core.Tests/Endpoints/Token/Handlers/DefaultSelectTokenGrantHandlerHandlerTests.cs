@@ -42,7 +42,7 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         Mock<ITokenRequest> tokenRequest,
         Mock<IReadOnlySettingCollection> settings,
         Mock<IOpenIdError> error
-    ) CreateScaffold()
+    ) CreateScaffold(bool hasGrantType = true)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
@@ -52,10 +52,14 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         var mockError = CreateLooseMock<IOpenIdError>();
 
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
-        // Not verifiable: a request without a grant type is refused before the grant type is tagged.
-        var httpContext = new DefaultHttpContext();
-        httpContext.Features.Set<IHttpMetricsTagsFeature>(MetricsTags);
-        mockContext.SetupGet(x => x.Http).Returns(httpContext);
+        // A request without a grant type is refused before the grant type is tagged.
+        if (hasGrantType)
+        {
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpMetricsTagsFeature>(MetricsTags);
+            mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        }
+
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
@@ -86,7 +90,7 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenGrantTypeMissing_ThrowsOpenIdException()
     {
-        var (command, mockTokenRequest, _, _) = CreateScaffold();
+        var (command, mockTokenRequest, _, _) = CreateScaffold(hasGrantType: false);
         var handler = new DefaultSelectTokenGrantHandlerHandler([]);
 
         mockTokenRequest.SetupGet(x => x.GrantType).Returns((string?)null).Verifiable();

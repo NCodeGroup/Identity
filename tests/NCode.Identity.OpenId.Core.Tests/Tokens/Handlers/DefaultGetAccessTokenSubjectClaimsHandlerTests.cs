@@ -27,6 +27,16 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
     {
         MockClaimsService = CreateStrictMock<IClaimsService>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
+        Handler = new DefaultGetAccessTokenSubjectClaimsHandler(
+            MockClaimsService.Object,
+            MockSubjectIdentifierService.Object
+        );
+    }
+
+    #region Scaffolding
+
+    // A subject's principal id is projected unchanged unless a test projects it.
+    private void SetupSubjectProjection() =>
         MockSubjectIdentifierService
             .Setup(x =>
                 x.ProjectSubjectId(
@@ -35,14 +45,8 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
                     It.IsAny<string>()
                 )
             )
-            .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId);
-        Handler = new DefaultGetAccessTokenSubjectClaimsHandler(
-            MockClaimsService.Object,
-            MockSubjectIdentifierService.Object
-        );
-    }
-
-    #region Scaffolding
+            .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId)
+            .Verifiable();
 
     private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
         "2025-01-01T00:00:00Z",
@@ -96,6 +100,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectAuthentication_CopiesClaims()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(CreateSubjectAuthentication());
 
         MockClaimsService

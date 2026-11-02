@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -16,7 +17,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.PrincipalResolution;
 
-public sealed class DefaultPrincipalResolverTests
+public sealed class DefaultPrincipalResolverTests : BaseTests
 {
     private const string PrincipalId = "principal-1";
     private const string TenantId = "tenant-1";
@@ -24,24 +25,41 @@ public sealed class DefaultPrincipalResolverTests
     private const string Subject = "upstream-subject-1";
     private const string GeneratedId = "generated-id";
 
-    private static OpenIdContext CreateOpenIdContext(MockRepository mocks)
+    // A subject that is not a principal id is read as an upstream identity through the tenant's issuer claim, and only a
+    // resolution that provisions reads the tenant id.
+    private OpenIdContext CreateOpenIdContext(
+        bool readsUpstreamClaims = false,
+        bool provisions = false
+    )
     {
-        var settings = mocks.Create<IReadOnlySettingCollection>();
-        settings.Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim)).Returns("iss");
+        var context = CreateStrictMock<OpenIdContext>();
+        if (readsUpstreamClaims || provisions)
+        {
+            var tenant = CreateStrictMock<OpenIdTenant>();
+            context.Setup(x => x.Tenant).Returns(tenant.Object).Verifiable();
+            if (readsUpstreamClaims)
+            {
+                var settings = CreateStrictMock<IReadOnlySettingCollection>();
+                settings
+                    .Setup(x => x.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim))
+                    .Returns("iss")
+                    .Verifiable();
+                var provider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+                provider.Setup(x => x.Collection).Returns(settings.Object).Verifiable();
+                tenant.Setup(x => x.SettingsProvider).Returns(provider.Object).Verifiable();
+            }
 
-        var provider = mocks.Create<IReadOnlySettingCollectionProvider>();
-        provider.Setup(x => x.Collection).Returns(settings.Object);
+            if (provisions)
+            {
+                tenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+            }
+        }
 
-        var tenant = mocks.Create<OpenIdTenant>();
-        tenant.Setup(x => x.SettingsProvider).Returns(provider.Object);
-        tenant.Setup(x => x.TenantId).Returns(TenantId);
-
-        var context = mocks.Create<OpenIdContext>();
-        context.Setup(x => x.Tenant).Returns(tenant.Object);
         // The resolver derives the subject through the tenant-aware context seam (ADR-1053).
         context
             .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
-            .Returns((ClaimsPrincipal user) => user.FindFirstValue("sub"));
+            .Returns((ClaimsPrincipal user) => user.FindFirstValue("sub"))
+            .Verifiable();
         return context.Object;
     }
 
@@ -71,9 +89,8 @@ public sealed class DefaultPrincipalResolverTests
     [Fact]
     public async Task ResolvePrincipalIdOrDefaultAsync_WhenSubjectIsPrincipalId_ReturnsIt()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
 
         manager
             .Setup(x => x.GetStore<IFederatedPrincipalStore>())
@@ -85,29 +102,27 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
-            mocks.Create<ICryptoService>().Object,
-            mocks.Create<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(),
             CreateUser(new Claim("sub", PrincipalId)),
             manager.Object,
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Equal(PrincipalId, result);
     }
 
     [Fact]
     public async Task ResolvePrincipalIdOrDefaultAsync_WhenUpstreamIdentity_ReturnsOwningPrincipal()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
-        var identityStore = mocks.Create<IFederatedIdentityStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
+        var identityStore = CreateStrictMock<IFederatedIdentityStore>();
 
         manager
             .Setup(x => x.GetStore<IFederatedPrincipalStore>())
@@ -127,36 +142,34 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
-            mocks.Create<ICryptoService>().Object,
-            mocks.Create<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(readsUpstreamClaims: true),
             CreateUser(new Claim("sub", Subject), new Claim("iss", Issuer)),
             manager.Object,
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Equal(PrincipalId, result);
     }
 
     [Fact]
     public async Task ResolvePrincipalIdOrDefaultAsync_WhenNoSubjectClaim_ReturnsNull()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
+        var manager = CreateStrictMock<IStoreManager>();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
-            mocks.Create<ICryptoService>().Object,
-            mocks.Create<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(),
             CreateUser(),
             manager.Object,
             CancellationToken.None
@@ -168,9 +181,8 @@ public sealed class DefaultPrincipalResolverTests
     [Fact]
     public async Task ResolvePrincipalIdOrDefaultAsync_WhenUpstreamWithoutIssuer_ReturnsNull()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
 
         manager
             .Setup(x => x.GetStore<IFederatedPrincipalStore>())
@@ -182,28 +194,26 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
-            mocks.Create<ICryptoService>().Object,
-            mocks.Create<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(readsUpstreamClaims: true),
             CreateUser(new Claim("sub", Subject)),
             manager.Object,
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Null(result);
     }
 
     [Fact]
     public async Task ResolvePrincipalIdAsync_WhenAlreadyProvisioned_DoesNotProvision()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
 
         manager
             .Setup(x => x.GetStore<IFederatedPrincipalStore>())
@@ -215,40 +225,46 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
-            mocks.Create<ICryptoService>().Object,
-            mocks.Create<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(),
             CreateUser(new Claim("sub", PrincipalId)),
             manager.Object,
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Equal(PrincipalId, result);
     }
 
     [Fact]
     public async Task ResolvePrincipalIdAsync_WhenLinked_AttachesIdentityToLinkedPrincipal()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
-        var identityStore = mocks.Create<IFederatedIdentityStore>();
-        var crypto = mocks.Create<ICryptoService>();
-        var linkingPolicy = mocks.Create<IFederatedIdentityLinkingPolicy>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
+        var identityStore = CreateStrictMock<IFederatedIdentityStore>();
+        var crypto = CreateStrictMock<ICryptoService>();
+        var linkingPolicy = CreateStrictMock<IFederatedIdentityLinkingPolicy>();
 
-        manager.Setup(x => x.GetStore<IFederatedPrincipalStore>()).Returns(principalStore.Object);
-        manager.Setup(x => x.GetStore<IFederatedIdentityStore>()).Returns(identityStore.Object);
+        manager
+            .Setup(x => x.GetStore<IFederatedPrincipalStore>())
+            .Returns(principalStore.Object)
+            .Verifiable();
+        manager
+            .Setup(x => x.GetStore<IFederatedIdentityStore>())
+            .Returns(identityStore.Object)
+            .Verifiable();
         principalStore
             .Setup(x => x.GetOrDefaultAsync(Subject, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedFederatedPrincipal?)null);
+            .ReturnsAsync((PersistedFederatedPrincipal?)null)
+            .Verifiable();
         identityStore
             .Setup(x => x.GetByIssuerSubjectAsync(Issuer, Subject, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedFederatedIdentity?)null);
+            .ReturnsAsync((PersistedFederatedIdentity?)null)
+            .Verifiable();
         linkingPolicy
             .Setup(x =>
                 x.ResolveLinkAsync(
@@ -283,19 +299,18 @@ public sealed class DefaultPrincipalResolverTests
             .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
+            CreateStrictMock<IStoreManagerFactory>().Object,
             crypto.Object,
             linkingPolicy.Object
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(readsUpstreamClaims: true, provisions: true),
             CreateUser(new Claim("sub", Subject), new Claim("iss", Issuer)),
             manager.Object,
             CancellationToken.None
         );
 
-        linkingPolicy.Verify();
         Assert.Equal(PrincipalId, result);
         Assert.NotNull(captured);
         Assert.Equal(PrincipalId, captured.PrincipalId);
@@ -310,21 +325,28 @@ public sealed class DefaultPrincipalResolverTests
     [Fact]
     public async Task ResolvePrincipalIdAsync_WhenNotLinked_ProvisionsNewPrincipalAndIdentity()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
-        var identityStore = mocks.Create<IFederatedIdentityStore>();
-        var crypto = mocks.Create<ICryptoService>();
-        var linkingPolicy = mocks.Create<IFederatedIdentityLinkingPolicy>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
+        var identityStore = CreateStrictMock<IFederatedIdentityStore>();
+        var crypto = CreateStrictMock<ICryptoService>();
+        var linkingPolicy = CreateStrictMock<IFederatedIdentityLinkingPolicy>();
 
-        manager.Setup(x => x.GetStore<IFederatedPrincipalStore>()).Returns(principalStore.Object);
-        manager.Setup(x => x.GetStore<IFederatedIdentityStore>()).Returns(identityStore.Object);
+        manager
+            .Setup(x => x.GetStore<IFederatedPrincipalStore>())
+            .Returns(principalStore.Object)
+            .Verifiable();
+        manager
+            .Setup(x => x.GetStore<IFederatedIdentityStore>())
+            .Returns(identityStore.Object)
+            .Verifiable();
         principalStore
             .Setup(x => x.GetOrDefaultAsync(Subject, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedFederatedPrincipal?)null);
+            .ReturnsAsync((PersistedFederatedPrincipal?)null)
+            .Verifiable();
         identityStore
             .Setup(x => x.GetByIssuerSubjectAsync(Issuer, Subject, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedFederatedIdentity?)null);
+            .ReturnsAsync((PersistedFederatedIdentity?)null)
+            .Verifiable();
         linkingPolicy
             .Setup(x =>
                 x.ResolveLinkAsync(
@@ -334,8 +356,12 @@ public sealed class DefaultPrincipalResolverTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(new FederatedIdentityLinkDecision { JoinKey = null });
-        crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns(GeneratedId);
+            .ReturnsAsync(new FederatedIdentityLinkDecision { JoinKey = null })
+            .Verifiable();
+        crypto
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns(GeneratedId)
+            .Verifiable();
 
         PersistedFederatedPrincipal? capturedPrincipal = null;
         principalStore
@@ -346,7 +372,8 @@ public sealed class DefaultPrincipalResolverTests
                 (PersistedFederatedPrincipal principal, CancellationToken _) =>
                     capturedPrincipal = principal
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         PersistedFederatedIdentity? capturedIdentity = null;
         identityStore
             .Setup(x =>
@@ -356,16 +383,17 @@ public sealed class DefaultPrincipalResolverTests
                 (PersistedFederatedIdentity identity, CancellationToken _) =>
                     capturedIdentity = identity
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
+            CreateStrictMock<IStoreManagerFactory>().Object,
             crypto.Object,
             linkingPolicy.Object
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(readsUpstreamClaims: true, provisions: true),
             CreateUser(new Claim("sub", Subject), new Claim("iss", Issuer)),
             manager.Object,
             CancellationToken.None
@@ -385,24 +413,27 @@ public sealed class DefaultPrincipalResolverTests
     [Fact]
     public async Task ResolvePrincipalIdAsync_WhenUpstreamClaimsMissing_FallsBackToRawSubject()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var principalStore = mocks.Create<IFederatedPrincipalStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
 
-        manager.Setup(x => x.GetStore<IFederatedPrincipalStore>()).Returns(principalStore.Object);
+        manager
+            .Setup(x => x.GetStore<IFederatedPrincipalStore>())
+            .Returns(principalStore.Object)
+            .Verifiable();
         principalStore
             .Setup(x => x.GetOrDefaultAsync(Subject, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedFederatedPrincipal?)null);
+            .ReturnsAsync((PersistedFederatedPrincipal?)null)
+            .Verifiable();
 
         var resolver = new DefaultPrincipalResolver(
-            mocks.Create<IStoreManagerFactory>().Object,
-            mocks.Create<ICryptoService>().Object,
-            mocks.Create<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
         );
 
         // Subject present but no issuer: cannot form a durable identity, so the subject value is used as-is.
         var result = await resolver.ResolvePrincipalIdAsync(
-            CreateOpenIdContext(mocks),
+            CreateOpenIdContext(readsUpstreamClaims: true),
             CreateUser(new Claim("sub", Subject)),
             manager.Object,
             CancellationToken.None

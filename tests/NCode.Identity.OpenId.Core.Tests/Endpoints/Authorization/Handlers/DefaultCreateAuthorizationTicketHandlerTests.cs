@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -32,7 +33,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<IAuthorizationCodeService> MockAuthorizationCodeService { get; }
     private Mock<ITokenService> MockTokenService { get; }
     private Mock<ISessionStateService> MockSessionStateService { get; }
@@ -40,12 +41,11 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
 
     public DefaultCreateAuthorizationTicketHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockAuthorizationCodeService = CreateStrictMock<IAuthorizationCodeService>();
         MockTokenService = CreateStrictMock<ITokenService>();
         MockSessionStateService = CreateStrictMock<ISessionStateService>();
         Handler = new DefaultCreateAuthorizationTicketHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockAuthorizationCodeService.Object,
             MockTokenService.Object,
             MockSessionStateService.Object
@@ -89,8 +89,11 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
 
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
-        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object);
+        mockTenant
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object).Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.SessionManagementSupported))
             .Returns(false)
@@ -105,10 +108,11 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(scopes).Verifiable();
         mockAuthRequest.SetupGet(x => x.Resources).Returns([]).Verifiable();
 
-        // Only read on the front-channel (token) response-type path; left non-verifiable for the id_token-only cases.
-        mockAuthRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns((string?)null);
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
+        // Only the front-channel (token) response type reads the DPoP key thumbprint.
+        if (responseTypes.Contains(OpenIdProtocol.ResponseTypes.Token))
+        {
+            mockAuthRequest.SetupGet(x => x.DPoPJwkThumbprint).Returns((string?)null).Verifiable();
+        }
 
         var command = new CreateAuthorizationTicketCommand(
             mockContext.Object,

@@ -42,44 +42,59 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         return (mockErrorFactory.Object, () => capturedCode);
     }
 
+    // An invalid URI is refused before any of the tenant's settings is read, and a host outside the allow-list before
+    // the fetch limits are read.
     private OpenIdContext CreateContext(
         IOpenIdErrorFactory errorFactory,
         IReadOnlyCollection<string>? allowedHosts = null,
         int maxSizeBytes = 100 * 1024,
-        TimeSpan? timeout = null
+        TimeSpan? timeout = null,
+        bool readsSettings = true,
+        bool fetches = true
     )
     {
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
 
         var outHosts = allowedHosts;
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.SectorIdentifierUriAllowedHosts, out outHosts)
-            )
-            .Returns(allowedHosts is not null);
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.SectorIdentifierUriFetchTimeout))
-            .Returns(timeout ?? TimeSpan.FromSeconds(10));
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.SectorIdentifierUriMaxSizeBytes))
-            .Returns(maxSizeBytes);
+        if (readsSettings)
+        {
+            mockSettings
+                .Setup(x =>
+                    x.TryGetValue(OpenIdSettingKeys.SectorIdentifierUriAllowedHosts, out outHosts)
+                )
+                .Returns(allowedHosts is not null)
+                .Verifiable();
+        }
+
+        if (readsSettings && fetches)
+        {
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.SectorIdentifierUriFetchTimeout))
+                .Returns(timeout ?? TimeSpan.FromSeconds(10))
+                .Verifiable();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.SectorIdentifierUriMaxSizeBytes))
+                .Returns(maxSizeBytes)
+                .Verifiable();
+        }
 
         var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
-        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object);
+        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object).Verifiable();
 
         var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
 
         var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
-        mockContext.Setup(x => x.ErrorFactory).Returns(errorFactory);
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.ErrorFactory).Returns(errorFactory).Verifiable();
         return mockContext.Object;
     }
 
     private void SetupHttpResponse(HttpResponseMessage response) =>
         MockHttpClientFactory
             .Setup(x => x.CreateClient(GuardedHttpClient.Name))
-            .Returns(new HttpClient(new StubHttpMessageHandler(response)));
+            .Returns(new HttpClient(new StubHttpMessageHandler(response)))
+            .Verifiable();
 
     private static HttpResponseMessage JsonResponse(string json)
     {
@@ -107,7 +122,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
     {
         var validator = CreateValidator();
         var (factory, capturedCode) = CreateErrorFactory();
-        var context = CreateContext(factory);
+        var context = CreateContext(factory, readsSettings: false);
 
         var error = await validator.ValidateAsync(
             context,
@@ -125,7 +140,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
     {
         var validator = CreateValidator();
         var (factory, capturedCode) = CreateErrorFactory();
-        var context = CreateContext(factory);
+        var context = CreateContext(factory, readsSettings: false);
 
         var error = await validator.ValidateAsync(
             context,
@@ -143,7 +158,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
     {
         var validator = CreateValidator();
         var (factory, capturedCode) = CreateErrorFactory();
-        var context = CreateContext(factory, allowedHosts: ["trusted.example.com"]);
+        var context = CreateContext(factory, allowedHosts: ["trusted.example.com"], fetches: false);
 
         var error = await validator.ValidateAsync(
             context,

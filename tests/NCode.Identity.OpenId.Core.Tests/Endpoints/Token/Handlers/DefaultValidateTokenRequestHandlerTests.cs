@@ -32,7 +32,10 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
 
     #region Scaffolding
 
-    private (ValidateTokenRequestCommand command, Mock<ITokenRequest> tokenRequest) CreateScaffold()
+    // A request without scopes is validated before the client's allowed scopes are looked up.
+    private (ValidateTokenRequestCommand command, Mock<ITokenRequest> tokenRequest) CreateScaffold(
+        bool readsAllowedScopes = true
+    )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
@@ -41,10 +44,14 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
 
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
-        mockClient.SetupGet(x => x.ClientId).Returns(ClientId);
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        if (readsAllowedScopes)
+        {
+            mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+            mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+            mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+        }
+
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
         var command = new ValidateTokenRequestCommand(
@@ -60,7 +67,8 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
     {
         MockClientScopeService
             .Setup(x => x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(scopes);
+            .ReturnsAsync(scopes)
+            .Verifiable();
     }
 
     #endregion
@@ -70,7 +78,7 @@ public class DefaultValidateTokenRequestHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenScopesNull_CompletesSuccessfully()
     {
-        var (command, mockTokenRequest) = CreateScaffold();
+        var (command, mockTokenRequest) = CreateScaffold(readsAllowedScopes: false);
 
         mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
 

@@ -73,14 +73,6 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockServerValidator = MockRepository.Create<IServerValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
-        MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null);
-        MockSecretValidator
-            .Setup(x =>
-                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
-            )
-            .Returns((ManagementError?)null);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
@@ -92,29 +84,6 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockMediator = MockRepository.Create<IMediator>();
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordServerChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordServerSecretChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         Handler = new ServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -136,6 +105,53 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             NullLogger<ServerApiEndpointHandler>.Instance
         );
     }
+
+    // Only a request that updates a secret validates the update.
+    private void SetupSecretUpdateValidation() =>
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+    // Only a request that adds a secret validates its creation.
+    private void SetupSecretCreateValidation() =>
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+    // Only a request that changes a secret records it.
+    private void SetupServerSecretChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordServerSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes the resource records it.
+    private void SetupServerChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordServerChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     public void Dispose()
     {
@@ -1311,6 +1327,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
+        SetupSecretCreateValidation();
+        SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -1407,6 +1425,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenGeneratorRejectsInput_ReturnsBadRequest()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -1436,6 +1455,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -1471,6 +1491,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenValidationFails_ReturnsBadRequest()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -1686,6 +1707,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupSecretUpdateValidation();
+        SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
             .Setup(x =>
@@ -1791,6 +1814,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenMetadataIsRefused_ReturnsBadRequest()
     {
+        SetupSecretUpdateValidation();
         SetupStore();
         MockServerStore
             .Setup(x =>
@@ -1831,6 +1855,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSecretAsync_WhenKeyHasAKid_KeepsIt()
     {
+        SetupSecretUpdateValidation();
+        SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetSecretOrDefaultAsync(ServerId, "key-1", It.IsAny<CancellationToken>()))
@@ -1939,6 +1965,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ImportSecretAsync_WhenKeyIsImported_ReturnsCreatedWithItsKid()
     {
+        SetupServerSecretChangedAudit();
         SetupImportServer();
         var imported = CreatePublicKeySecret("generated-id", "server-kid");
         SetupImportedKey(imported, error: null);
@@ -2033,6 +2060,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
             .Setup(x =>
@@ -2105,6 +2133,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateServerAsync_WhenValid_ReturnsCreatedWithDisplayName()
     {
+        SetupServerChangedAudit();
         SetupValidSettings();
         SetupStore();
         SetupResourceId("generated-id");
@@ -2241,6 +2270,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateServerAsync_WhenValid_AppliesPatchAndReturnsNoContent()
     {
+        SetupServerChangedAudit();
         SetupStore();
         var server = CreateServer("server-ct");
         MockServerStore
@@ -2394,6 +2424,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteServerAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupServerChangedAudit();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))

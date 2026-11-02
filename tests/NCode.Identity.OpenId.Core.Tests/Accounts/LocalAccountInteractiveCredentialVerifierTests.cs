@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.DataContracts;
@@ -30,7 +31,7 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ILocalAccountStore> MockLocalAccountStore { get; }
     private Mock<IAuthenticationContextReferenceResolver> MockResolver { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private Mock<IPasswordAttemptLimiter> MockPasswordAttemptLimiter { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private LocalAccountInteractiveCredentialVerifier Verifier { get; }
@@ -41,13 +42,12 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockLocalAccountStore = CreateStrictMock<ILocalAccountStore>();
         MockResolver = CreateStrictMock<IAuthenticationContextReferenceResolver>();
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPasswordAttemptLimiter = CreateStrictMock<IPasswordAttemptLimiter>();
         MockContext = CreateStrictMock<OpenIdContext>();
         Verifier = new LocalAccountInteractiveCredentialVerifier(
             MockStoreManagerFactory.Object,
             MockResolver.Object,
-            MockTimeProvider.Object,
+            TimeProvider,
             MockPasswordAttemptLimiter.Object
         );
     }
@@ -100,7 +100,6 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
         mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
 
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockResolver
             .Setup(x =>
                 x.ResolveAsync(

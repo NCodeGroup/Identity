@@ -80,19 +80,33 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
     private ISecretKeyCollection CreateKeys(params SecretKey[] keys) =>
         _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create(keys);
 
-    private OpenIdContext CreateContext()
+    // Only a selection that signs reads the tenant's keys, and only a refusal reads the error factory.
+    private OpenIdContext CreateContext(bool signs, bool refuses)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
-        var mockSecretsProvider = CreateStrictMock<ISecretKeyCollectionProvider>();
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockTenant.SetupGet(x => x.SecretsProvider).Returns(mockSecretsProvider.Object);
-        mockSecretsProvider.SetupGet(x => x.Collection).Returns(CreateKeys(TenantSigningKey));
-        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+        if (signs)
+        {
+            var mockTenant = CreateStrictMock<OpenIdTenant>();
+            var mockSecretsProvider = CreateStrictMock<ISecretKeyCollectionProvider>();
+            mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+            mockTenant
+                .SetupGet(x => x.SecretsProvider)
+                .Returns(mockSecretsProvider.Object)
+                .Verifiable();
+            mockSecretsProvider
+                .SetupGet(x => x.Collection)
+                .Returns(CreateKeys(TenantSigningKey))
+                .Verifiable();
+        }
+
+        if (refuses)
+        {
+            var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+            var mockError = CreateLooseMock<IOpenIdError>();
+            mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+            mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+        }
 
         return mockContext.Object;
     }
@@ -100,7 +114,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
     private OpenIdClient CreateClient(IReadOnlyDictionary<string, object> settings)
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.SetupGet(x => x.Settings).Returns(new StubSettings(settings));
+        mockClient.SetupGet(x => x.Settings).Returns(new StubSettings(settings)).Verifiable();
         return mockClient.Object;
     }
 
@@ -112,10 +126,12 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
 
     private async Task<ClientJwtCredentials> SelectAsync(
         OpenIdClient client,
-        ClientJwtProtectionSettings protectionSettings
+        ClientJwtProtectionSettings protectionSettings,
+        bool signs = true,
+        bool refuses = false
     ) =>
         await Selector.SelectCredentialsAsync(
-            CreateContext(),
+            CreateContext(signs, refuses),
             client,
             protectionSettings,
             CancellationToken.None
@@ -130,7 +146,11 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
     {
         var client = CreateClient(new Dictionary<string, object>());
 
-        var credentials = await SelectAsync(client, ClientJwtProtectionSettings.UserInfo);
+        var credentials = await SelectAsync(
+            client,
+            ClientJwtProtectionSettings.UserInfo,
+            signs: false
+        );
 
         Assert.False(credentials.IsProtected);
     }
@@ -171,7 +191,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.IdToken)
+            SelectAsync(client, ClientJwtProtectionSettings.IdToken, signs: false, refuses: true)
         );
     }
 
@@ -186,7 +206,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.IdToken)
+            SelectAsync(client, ClientJwtProtectionSettings.IdToken, refuses: true)
         );
     }
 
@@ -229,7 +249,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.UserInfo)
+            SelectAsync(client, ClientJwtProtectionSettings.UserInfo, signs: false, refuses: true)
         );
     }
 
@@ -245,7 +265,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         SetupClientKeys(client, ClientSharedSecret);
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.UserInfo)
+            SelectAsync(client, ClientJwtProtectionSettings.UserInfo, signs: false, refuses: true)
         );
     }
 
@@ -262,7 +282,7 @@ public sealed class DefaultClientJwtCredentialSelectorTests : BaseTests, IAsyncL
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
-            SelectAsync(client, ClientJwtProtectionSettings.IdToken)
+            SelectAsync(client, ClientJwtProtectionSettings.IdToken, refuses: true)
         );
     }
 

@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Models;
@@ -38,7 +39,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ITokenService> MockTokenService { get; }
     private Mock<ISessionService> MockSessionService { get; }
@@ -46,12 +47,11 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
 
     public DefaultAuthorizationCodeGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockTokenService = CreateStrictMock<ITokenService>();
         MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultAuthorizationCodeGrantHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockPersistedGrantService.Object,
             MockTokenService.Object,
             MockSessionService.Object
@@ -380,8 +380,6 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
             .SetupGet(x => x.GrantType)
             .Returns(OpenIdProtocol.GrantTypes.AuthorizationCode)
             .Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
 
         MockTokenService
             .Setup(x =>

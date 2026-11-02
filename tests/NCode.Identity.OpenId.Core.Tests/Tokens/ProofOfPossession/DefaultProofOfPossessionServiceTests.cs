@@ -51,14 +51,6 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         HttpContext.Request.Path = "/token";
         HttpContext.Request.Method = "POST";
 
-        MockContext.SetupGet(x => x.Http).Returns(HttpContext);
-        MockClient.SetupGet(x => x.Settings).Returns(MockSettings.Object);
-
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-
         Service = new DefaultProofOfPossessionService(
             MockValidator.Object,
             MockCertificateResolver.Object,
@@ -68,8 +60,24 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 
     #region Scaffolding
 
+    // A request that carries or demands a binding reads the HTTP request and the error factory.
+    private void SetupRequestContext()
+    {
+        MockContext.SetupGet(x => x.Http).Returns(HttpContext).Verifiable();
+
+        // A value provider: only the refusing paths create an error, so its setup is left unverified and the paths that
+        // succeed don't fail verification. The tests assert the refusal itself.
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
+        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+    }
+
+    // A token request reads the client's binding settings.
     private void SetupSettings(bool requireDPoP, bool certificateBound)
     {
+        SetupRequestContext();
+        MockClient.SetupGet(x => x.Settings).Returns(MockSettings.Object).Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RequireDPoPBoundAccessTokens))
             .Returns(requireDPoP);
@@ -384,6 +392,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     [Fact]
     public async Task ValidateResourceAccessAsync_WhenDPoPSchemeMissing_ReturnsError()
     {
+        SetupRequestContext();
         var confirmation = new TokenConfirmation { JwkThumbprint = "jkt-1" };
 
         var error = await Service.ValidateResourceAccessAsync(
@@ -399,6 +408,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     [Fact]
     public async Task ValidateResourceAccessAsync_WhenDPoPJktMatches_ReturnsNull()
     {
+        SetupRequestContext();
         SetupTenantSettings();
         HttpContext.Request.Headers.Authorization = "DPoP access-token";
         HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
@@ -430,6 +440,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     [Fact]
     public async Task ValidateResourceAccessAsync_WhenDPoPJktMismatch_ReturnsError()
     {
+        SetupRequestContext();
         SetupTenantSettings();
         HttpContext.Request.Headers.Authorization = "DPoP access-token";
         HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
@@ -459,6 +470,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     [Fact]
     public async Task ValidateResourceAccessAsync_WhenCertificateMatches_ReturnsNull()
     {
+        SetupRequestContext();
         using var certificate = CreateSelfSignedCertificate();
         var thumbprint = Base64Url.Encode(SHA256.HashData(certificate.RawData));
         MockCertificateResolver
@@ -483,6 +495,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     [Fact]
     public async Task ValidateResourceAccessAsync_WhenCertificateMismatch_ReturnsError()
     {
+        SetupRequestContext();
         using var certificate = CreateSelfSignedCertificate();
         MockCertificateResolver
             .Setup(x =>

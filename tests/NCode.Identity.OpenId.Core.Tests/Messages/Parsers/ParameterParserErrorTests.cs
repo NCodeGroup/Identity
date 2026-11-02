@@ -15,6 +15,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 public class ParameterParserErrorTests : BaseTests
 {
+    private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private readonly OpenIdEnvironment _environment;
     private readonly ParameterDescriptor _allowMissingDescriptor = new(
         "test",
@@ -23,12 +24,17 @@ public class ParameterParserErrorTests : BaseTests
 
     public ParameterParserErrorTests()
     {
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        _environment = MockEnvironment.Object;
+    }
+
+    // Only a parser that refuses its input reads the environment's error factory.
+    private void SetupErrorFactory()
+    {
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-        mockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        _environment = mockEnvironment.Object;
+        MockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 
     private static ParameterDescriptor RequiredDescriptor<T>(IParameterParser<T> parser) =>
@@ -39,6 +45,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void BoolParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new BoolParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -49,6 +56,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void BoolParser_Parse_WhenTooManyValues_Throws()
     {
+        SetupErrorFactory();
         var parser = new BoolParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -59,6 +67,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void BoolParser_Parse_WhenInvalidValue_Throws()
     {
+        SetupErrorFactory();
         var parser = new BoolParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -73,6 +82,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void DateTimeOffsetParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -83,6 +93,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void DateTimeOffsetParser_Parse_WhenTooManyValues_Throws()
     {
+        SetupErrorFactory();
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -93,6 +104,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void DateTimeOffsetParser_Parse_WhenInvalidValue_Throws()
     {
+        SetupErrorFactory();
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -105,6 +117,7 @@ public class ParameterParserErrorTests : BaseTests
     [InlineData("-99999999999999")]
     public void DateTimeOffsetParser_Parse_WhenOutOfRange_Throws(string value)
     {
+        SetupErrorFactory();
         var parser = new DateTimeOffsetParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -115,6 +128,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void DateTimeOffsetParser_Parse_WhenNullValue_Throws()
     {
+        SetupErrorFactory();
         var parser = new DateTimeOffsetParser();
         var values = new StringValues([null]);
 
@@ -130,6 +144,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void StringValuesParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new StringValuesParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -144,6 +159,7 @@ public class ParameterParserErrorTests : BaseTests
     [Fact]
     public void StringSetParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new StringSetParser();
 
         Assert.Throws<OpenIdException>(() =>

@@ -12,19 +12,22 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management;
 
-public class DefaultResourceOwnershipServiceTests
+public class DefaultResourceOwnershipServiceTests : IDisposable
 {
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
+    public void Dispose() => MockRepository.Verify();
+
     private static ClaimsPrincipal CreateUser(params Claim[] claims) =>
         new(new ClaimsIdentity(claims, "test"));
 
     [Fact]
     public async Task AssignCreatorAsync_WhenSubjectPresent_AddsOwnerAssignment()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
-        var crypto = mocks.Create<ICryptoService>();
-        var resolver = mocks.Create<IPrincipalResolver>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
+        var crypto = MockRepository.Create<ICryptoService>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
         crypto
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -69,7 +72,6 @@ public class DefaultResourceOwnershipServiceTests
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.NotNull(captured);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("assign-1", captured.AssignmentId);
@@ -82,13 +84,15 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task AssignCreatorAsync_UsesResolvedPrincipalIdNotRawSubject()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
-        var crypto = mocks.Create<ICryptoService>();
-        var resolver = mocks.Create<IPrincipalResolver>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
+        var crypto = MockRepository.Create<ICryptoService>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
-        crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns("assign-1");
+        crypto
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("assign-1")
+            .Verifiable();
         // The resolver maps the raw upstream subject to a stable, server-owned principal id (ADR-1035).
         resolver
             .Setup(x =>
@@ -99,8 +103,12 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync("principal-99");
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+            .ReturnsAsync("principal-99")
+            .Verifiable();
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
 
         PersistedRoleAssignment? captured = null;
         store
@@ -110,7 +118,8 @@ public class DefaultResourceOwnershipServiceTests
             .Callback(
                 (PersistedRoleAssignment assignment, CancellationToken _) => captured = assignment
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var service = new DefaultResourceOwnershipService(crypto.Object, resolver.Object);
 
@@ -143,9 +152,8 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task GetOwnersAsync_ReturnsOnlyOwnerAssignments()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
 
         var nonOwner = new PersistedRoleAssignment
         {
@@ -158,7 +166,10 @@ public class DefaultResourceOwnershipServiceTests
             ConcurrencyToken = string.Empty,
         };
 
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
         store
             .Setup(x =>
                 x.GetByResourceAsync(
@@ -167,7 +178,8 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([Owner("p1", "a1"), nonOwner, Owner("p3", "a3")]);
+            .ReturnsAsync([Owner("p1", "a1"), nonOwner, Owner("p3", "a3")])
+            .Verifiable();
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
@@ -186,12 +198,14 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task AddOwnerAsync_WhenNotYetOwner_AddsAssignment()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
-        var crypto = mocks.Create<ICryptoService>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
+        var crypto = MockRepository.Create<ICryptoService>();
 
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
         store
             .Setup(x =>
                 x.GetByResourceAsync(
@@ -200,15 +214,20 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([]);
-        crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns("new-assign");
+            .ReturnsAsync([])
+            .Verifiable();
+        crypto
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("new-assign")
+            .Verifiable();
         PersistedRoleAssignment? captured = null;
         store
             .Setup(x =>
                 x.AddAsync(It.IsAny<PersistedRoleAssignment>(), It.IsAny<CancellationToken>())
             )
             .Callback((PersistedRoleAssignment a, CancellationToken _) => captured = a)
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var service = new DefaultResourceOwnershipService(
             crypto.Object,
@@ -232,11 +251,13 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task AddOwnerAsync_WhenAlreadyOwner_ReturnsExistingWithoutAdding()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
 
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
         store
             .Setup(x =>
                 x.GetByResourceAsync(
@@ -245,7 +266,8 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([Owner("p1", "a1")]);
+            .ReturnsAsync([Owner("p1", "a1")])
+            .Verifiable();
 
         // No AddAsync/crypto setups: a strict-mock failure would mean a duplicate owner was written.
         var service = new DefaultResourceOwnershipService(
@@ -267,11 +289,13 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task RemoveOwnerAsync_WhenNotOwner_ReturnsNotFound()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
 
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
         store
             .Setup(x =>
                 x.GetByResourceAsync(
@@ -280,7 +304,8 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([Owner("p1", "a1")]);
+            .ReturnsAsync([Owner("p1", "a1")])
+            .Verifiable();
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
@@ -300,11 +325,13 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task RemoveOwnerAsync_WhenLastOwner_ReturnsLastOwnerForbidden()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
 
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
         store
             .Setup(x =>
                 x.GetByResourceAsync(
@@ -313,7 +340,8 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([Owner("p1", "a1")]);
+            .ReturnsAsync([Owner("p1", "a1")])
+            .Verifiable();
 
         // No RemoveAsync setup: a strict-mock failure would mean the last owner was removed.
         var service = new DefaultResourceOwnershipService(
@@ -334,11 +362,13 @@ public class DefaultResourceOwnershipServiceTests
     [Fact]
     public async Task RemoveOwnerAsync_WhenAnotherOwnerRemains_Removes()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IRoleAssignmentStore>();
+        var storeManager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IRoleAssignmentStore>();
 
-        storeManager.Setup(x => x.GetStore<IRoleAssignmentStore>()).Returns(store.Object);
+        storeManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(store.Object)
+            .Verifiable();
         store
             .Setup(x =>
                 x.GetByResourceAsync(
@@ -347,12 +377,14 @@ public class DefaultResourceOwnershipServiceTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([Owner("p1", "a1"), Owner("p2", "a2")]);
+            .ReturnsAsync([Owner("p1", "a1"), Owner("p2", "a2")])
+            .Verifiable();
         var removed = new List<string>();
         store
             .Setup(x => x.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback((string id, CancellationToken _) => removed.Add(id))
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),

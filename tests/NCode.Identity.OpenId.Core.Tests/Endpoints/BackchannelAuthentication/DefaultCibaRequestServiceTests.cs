@@ -318,7 +318,6 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
-        MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
         Assert.Equal(Endpoint, CapturedJob?.EndpointUrl);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
@@ -346,13 +345,19 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         var mockTokenResponse = CreateStrictMock<ITokenResponse>();
-        mockTokenResponse.SetupGet(x => x.AccessToken).Returns("access-token-value");
-        mockTokenResponse.SetupGet(x => x.TokenType).Returns(OpenIdProtocol.TokenTypes.Bearer);
-        mockTokenResponse.SetupGet(x => x.ExpiresIn).Returns(TimeSpan.FromHours(1));
-        mockTokenResponse.SetupGet(x => x.RefreshToken).Returns("refresh-1");
-        mockTokenResponse.SetupGet(x => x.RefreshTokenExpiresIn).Returns(TimeSpan.FromDays(30));
-        mockTokenResponse.SetupGet(x => x.IdToken).Returns("id-token-value");
-        mockTokenResponse.SetupGet(x => x.Scopes).Returns(["openid", "api"]);
+        mockTokenResponse.SetupGet(x => x.AccessToken).Returns("access-token-value").Verifiable();
+        mockTokenResponse
+            .SetupGet(x => x.TokenType)
+            .Returns(OpenIdProtocol.TokenTypes.Bearer)
+            .Verifiable();
+        mockTokenResponse.SetupGet(x => x.ExpiresIn).Returns(TimeSpan.FromHours(1)).Verifiable();
+        mockTokenResponse.SetupGet(x => x.RefreshToken).Returns("refresh-1").Verifiable();
+        mockTokenResponse
+            .SetupGet(x => x.RefreshTokenExpiresIn)
+            .Returns(TimeSpan.FromDays(30))
+            .Verifiable();
+        mockTokenResponse.SetupGet(x => x.IdToken).Returns("id-token-value").Verifiable();
+        mockTokenResponse.SetupGet(x => x.Scopes).Returns(["openid", "api"]).Verifiable();
 
         MockTokenResponseService
             .Setup(x =>
@@ -378,8 +383,6 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
-        MockTokenResponseService.Verify();
-        MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal("access-token-value", CapturedJob?.AccessToken);
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, CapturedJob?.TokenType);
@@ -452,7 +455,6 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.False(result);
-        MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
         Assert.Null(CapturedJob?.Error);
@@ -533,7 +535,6 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
-        MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
         Assert.Equal(Endpoint, CapturedJob?.EndpointUrl);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
@@ -570,7 +571,6 @@ public class DefaultCibaRequestServiceTests : BaseTests
         );
 
         Assert.True(result);
-        MockJobDispatcher.Verify();
         Assert.Equal(OpenIdProtocol.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
         Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, CapturedJob?.Error);

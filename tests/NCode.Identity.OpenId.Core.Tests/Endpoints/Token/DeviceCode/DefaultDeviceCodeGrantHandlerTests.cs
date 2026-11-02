@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -38,7 +39,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ITokenService> MockTokenService { get; }
     private DefaultDeviceCodeGrantHandler Handler { get; }
@@ -47,11 +48,10 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
 
     public DefaultDeviceCodeGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockTokenService = CreateStrictMock<ITokenService>();
         Handler = new DefaultDeviceCodeGrantHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockPersistedGrantService.Object,
             MockTokenService.Object
         );
@@ -314,7 +314,6 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
             .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
@@ -342,7 +341,6 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
             .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Approved));
 
@@ -370,7 +368,6 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
             .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
@@ -502,8 +499,6 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .SetupGet(x => x.GrantType)
             .Returns(OpenIdProtocol.GrantTypes.DeviceCode)
             .Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         MockTokenService
             .Setup(x =>

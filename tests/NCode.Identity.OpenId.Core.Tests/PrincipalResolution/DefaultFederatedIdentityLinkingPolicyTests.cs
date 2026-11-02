@@ -4,6 +4,7 @@
 using System.Security.Claims;
 using Moq;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -15,40 +16,54 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.PrincipalResolution;
 
-public sealed class DefaultFederatedIdentityLinkingPolicyTests
+public sealed class DefaultFederatedIdentityLinkingPolicyTests : BaseTests
 {
     private const string JoinKey = "user@example.com";
     private const string TenantId = "tenant-1";
     private const string MatchedPrincipalId = "principal-9";
 
-    private static OpenIdContext CreateOpenIdContext(
-        MockRepository mocks,
+    // The policy reads its settings in order and stops at the first one that settles the decision: a subject without
+    // a join claim reads no verification setting, and an unverified one never reads whether linking is explicit-only.
+    private OpenIdContext CreateOpenIdContext(
         bool explicitOnly = false,
-        bool requireVerified = true
+        bool requireVerified = true,
+        bool readsVerification = true,
+        bool readsExplicitOnly = true
     )
     {
-        var settings = mocks.Create<IReadOnlySettingCollection>();
+        var settings = CreateStrictMock<IReadOnlySettingCollection>();
         settings
             .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityJoinClaim))
-            .Returns("email");
-        settings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityVerifiedClaim))
-            .Returns("email_verified");
-        settings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityRequireVerified))
-            .Returns(requireVerified);
-        settings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityExplicitOnly))
-            .Returns(explicitOnly);
+            .Returns("email")
+            .Verifiable();
+        if (readsVerification)
+        {
+            settings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityVerifiedClaim))
+                .Returns("email_verified")
+                .Verifiable();
+            settings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityRequireVerified))
+                .Returns(requireVerified)
+                .Verifiable();
+        }
 
-        var provider = mocks.Create<IReadOnlySettingCollectionProvider>();
-        provider.Setup(x => x.Collection).Returns(settings.Object);
+        if (readsVerification && readsExplicitOnly)
+        {
+            settings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.FederatedIdentityExplicitOnly))
+                .Returns(explicitOnly)
+                .Verifiable();
+        }
 
-        var tenant = mocks.Create<OpenIdTenant>();
-        tenant.Setup(x => x.SettingsProvider).Returns(provider.Object);
+        var provider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        provider.Setup(x => x.Collection).Returns(settings.Object).Verifiable();
 
-        var context = mocks.Create<OpenIdContext>();
-        context.Setup(x => x.Tenant).Returns(tenant.Object);
+        var tenant = CreateStrictMock<OpenIdTenant>();
+        tenant.Setup(x => x.SettingsProvider).Returns(provider.Object).Verifiable();
+
+        var context = CreateStrictMock<OpenIdContext>();
+        context.Setup(x => x.Tenant).Returns(tenant.Object).Verifiable();
         return context.Object;
     }
 
@@ -73,10 +88,9 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     [Fact]
     public async Task ResolveLinkAsync_WhenNoJoinClaim_ReturnsEmptyDecision()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
+        var manager = CreateStrictMock<IStoreManager>();
 
-        var openIdContext = CreateOpenIdContext(mocks);
+        var openIdContext = CreateOpenIdContext(readsVerification: false);
         var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
@@ -93,10 +107,9 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     [Fact]
     public async Task ResolveLinkAsync_WhenUnverifiedAndVerificationRequired_ReturnsEmptyDecision()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
+        var manager = CreateStrictMock<IStoreManager>();
 
-        var openIdContext = CreateOpenIdContext(mocks);
+        var openIdContext = CreateOpenIdContext(readsExplicitOnly: false);
         var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
@@ -114,10 +127,9 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     [Fact]
     public async Task ResolveLinkAsync_WhenExplicitOnly_RecordsJoinKeyButDoesNotLink()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
+        var manager = CreateStrictMock<IStoreManager>();
 
-        var openIdContext = CreateOpenIdContext(mocks, explicitOnly: true);
+        var openIdContext = CreateOpenIdContext(explicitOnly: true);
         var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
@@ -134,9 +146,8 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     [Fact]
     public async Task ResolveLinkAsync_WhenVerifiedMatch_AttachesToExistingPrincipal()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var identityStore = mocks.Create<IFederatedIdentityStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var identityStore = CreateStrictMock<IFederatedIdentityStore>();
 
         manager
             .Setup(x => x.GetStore<IFederatedIdentityStore>())
@@ -147,7 +158,7 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
             .ReturnsAsync([Identity(MatchedPrincipalId)])
             .Verifiable();
 
-        var openIdContext = CreateOpenIdContext(mocks);
+        var openIdContext = CreateOpenIdContext();
         var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
@@ -157,7 +168,6 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Equal(MatchedPrincipalId, decision.LinkedPrincipalId);
         Assert.Equal(JoinKey, decision.JoinKey);
     }
@@ -165,9 +175,8 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
     [Fact]
     public async Task ResolveLinkAsync_WhenVerifiedNoMatch_RecordsJoinKeyWithoutLink()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var identityStore = mocks.Create<IFederatedIdentityStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        var identityStore = CreateStrictMock<IFederatedIdentityStore>();
 
         manager
             .Setup(x => x.GetStore<IFederatedIdentityStore>())
@@ -178,7 +187,7 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
             .ReturnsAsync([])
             .Verifiable();
 
-        var openIdContext = CreateOpenIdContext(mocks);
+        var openIdContext = CreateOpenIdContext();
         var policy = new DefaultFederatedIdentityLinkingPolicy();
 
         var decision = await policy.ResolveLinkAsync(
@@ -188,7 +197,6 @@ public sealed class DefaultFederatedIdentityLinkingPolicyTests
             CancellationToken.None
         );
 
-        mocks.Verify();
         Assert.Null(decision.LinkedPrincipalId);
         Assert.Equal(JoinKey, decision.JoinKey);
     }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Globalization;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -22,18 +23,19 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.ClientCredentials;
 
 public class DefaultClientCredentialsGrantHandlerTests : BaseTests
 {
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
+        "2025-01-01T00:00:00Z",
+        CultureInfo.InvariantCulture
+    );
+
+    private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<ITokenService> MockTokenService { get; }
     private DefaultClientCredentialsGrantHandler Handler { get; }
 
     public DefaultClientCredentialsGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockTokenService = CreateStrictMock<ITokenService>();
-        Handler = new DefaultClientCredentialsGrantHandler(
-            MockTimeProvider.Object,
-            MockTokenService.Object
-        );
+        Handler = new DefaultClientCredentialsGrantHandler(TimeProvider, MockTokenService.Object);
     }
 
     #region GrantTypes Property Tests
@@ -84,14 +86,10 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         var mockTokenRequest = CreateStrictMock<ITokenRequest>();
 
-        var createdWhen = DateTimeOffset.Parse(
-            "2025-01-01T00:00:00Z",
-            CultureInfo.InvariantCulture
-        );
         var tokenLifetime = new TimePeriod
         {
-            StartTime = createdWhen,
-            EndTime = createdWhen.AddHours(1),
+            StartTime = CreatedWhen,
+            EndTime = CreatedWhen.AddHours(1),
         };
         var securityToken = new SecurityToken
         {
@@ -121,8 +119,6 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
             .SetupGet(x => x.GrantType)
             .Returns(OpenIdProtocol.GrantTypes.ClientCredentials)
             .Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(createdWhen).Verifiable();
 
         mockMediator
             .Setup(x =>

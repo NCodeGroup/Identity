@@ -28,12 +28,25 @@ public class DefaultAuthenticateHandlerTests : BaseTests
     private Mock<OpenIdContext> MockContext { get; set; } = null!;
     private Mock<ISessionService> MockSessionService { get; set; } = null!;
 
-    private DefaultAuthenticateHandler CreateHandler(string? subjectId)
+    // A request that ends before it reads the subject.
+    private DefaultAuthenticateHandler CreateHandler() =>
+        new(NullLogger<DefaultAuthenticateHandler>.Instance, MockSessionService.Object);
+
+    // A request that reads the subject; only one that issues a ticket for a subject id normalizes it.
+    private DefaultAuthenticateHandler CreateHandler(string? subjectId, bool issuesTicket = true)
     {
-        MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
         MockContext
-            .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>()))
-            .Returns((ClaimsPrincipal subject, string _) => subject);
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns(subjectId)
+            .Verifiable();
+        if (subjectId is not null && issuesTicket)
+        {
+            MockContext
+                .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), It.IsAny<string>()))
+                .Returns((ClaimsPrincipal subject, string _) => subject)
+                .Verifiable();
+        }
+
         return new DefaultAuthenticateHandler(
             NullLogger<DefaultAuthenticateHandler>.Instance,
             MockSessionService.Object
@@ -111,7 +124,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         var (command, mockAuthService, _) = CreateScaffold();
         SetupAuthenticate(mockAuthService, AuthenticateResult.NoResult());
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
     }
@@ -127,7 +140,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
             AuthenticateResult.Fail(new InvalidOperationException("boom"))
         );
 
-        var result = await CreateHandler("subject-id").HandleAsync(command, CancellationToken.None);
+        var result = await CreateHandler().HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
     }
@@ -178,7 +191,6 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsAuthenticated);
-        MockSessionService.Verify();
     }
 
     [Fact]
@@ -187,7 +199,7 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         var (command, mockAuthService, _) = CreateScaffold();
         SetupAuthenticate(mockAuthService, SuccessResultWithSession("session-1"));
 
-        var handler = CreateHandler("subject-id");
+        var handler = CreateHandler("subject-id", issuesTicket: false);
         MockSessionService
             .Setup(x =>
                 x.ValidateAndTouchAsync(
@@ -202,7 +214,6 @@ public class DefaultAuthenticateHandlerTests : BaseTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsUndefined);
-        MockSessionService.Verify();
     }
 
     #endregion

@@ -3,6 +3,7 @@
 
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
@@ -29,7 +30,9 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 {
     private const string RequesterClientId = "requester";
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private static readonly DateTimeOffset UtcNow = new(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ITokenService> MockTokenService { get; }
     private Mock<ISubjectTokenValidator> MockSubjectTokenValidator { get; }
     private Mock<IPrincipalResolver> MockPrincipalResolver { get; }
@@ -39,14 +42,13 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
 
     public DefaultTokenExchangeGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockTokenService = CreateStrictMock<ITokenService>();
         MockSubjectTokenValidator = CreateStrictMock<ISubjectTokenValidator>();
         MockPrincipalResolver = CreateStrictMock<IPrincipalResolver>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockClientScopeService = CreateStrictMock<IClientScopeService>();
         Handler = new DefaultTokenExchangeGrantHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockTokenService.Object,
             MockSubjectTokenValidator.Object,
             MockPrincipalResolver.Object,
@@ -66,11 +68,20 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var mockError = CreateLooseMock<IOpenIdError>();
         var mockMediator = CreateStrictMock<IMediator>();
 
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object);
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
         return (mockContext, mockError);
+    }
+
+    // The request parameters in the order the handler reads them; it stops at the first one that settles its answer.
+    private enum RequestReads
+    {
+        SubjectToken,
+        SubjectTokenType,
+        RequestedTokenType,
+        ActorToken,
     }
 
     private Mock<ITokenRequest> SetupTokenRequest(
@@ -78,23 +89,45 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         string? subjectTokenType = OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
         string? actorToken = null,
         string? actorTokenType = null,
-        string? requestedTokenType = null
+        string? requestedTokenType = null,
+        RequestReads readsThrough = RequestReads.ActorToken
     )
     {
         var mock = CreateStrictMock<ITokenRequest>();
-        mock.SetupGet(x => x.SubjectToken).Returns(subjectToken);
-        mock.SetupGet(x => x.SubjectTokenType).Returns(subjectTokenType);
-        mock.SetupGet(x => x.ActorToken).Returns(actorToken);
-        mock.SetupGet(x => x.ActorTokenType).Returns(actorTokenType);
-        mock.SetupGet(x => x.RequestedTokenType).Returns(requestedTokenType);
+        mock.SetupGet(x => x.SubjectToken).Returns(subjectToken).Verifiable();
+        if (readsThrough >= RequestReads.SubjectTokenType)
+        {
+            mock.SetupGet(x => x.SubjectTokenType).Returns(subjectTokenType).Verifiable();
+        }
+
+        if (readsThrough >= RequestReads.RequestedTokenType)
+        {
+            mock.SetupGet(x => x.RequestedTokenType).Returns(requestedTokenType).Verifiable();
+        }
+
+        if (readsThrough >= RequestReads.ActorToken)
+        {
+            mock.SetupGet(x => x.ActorToken).Returns(actorToken).Verifiable();
+            // The actor token's type is read only when an actor token is presented.
+            if (actorToken is not null)
+            {
+                mock.SetupGet(x => x.ActorTokenType).Returns(actorTokenType).Verifiable();
+            }
+        }
+
         return mock;
     }
 
-    private Mock<OpenIdClient> SetupConfidentialClient()
+    // The requester's client id is read once its subject token has been validated.
+    private Mock<OpenIdClient> SetupConfidentialClient(bool readsClientId = true)
     {
         var mock = CreateStrictMock<OpenIdClient>();
-        mock.SetupGet(x => x.IsConfidential).Returns(true);
-        mock.SetupGet(x => x.ClientId).Returns(RequesterClientId);
+        mock.SetupGet(x => x.IsConfidential).Returns(true).Verifiable();
+        if (readsClientId)
+        {
+            mock.SetupGet(x => x.ClientId).Returns(RequesterClientId).Verifiable();
+        }
+
         return mock;
     }
 
@@ -118,7 +151,8 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
                         OpenIdProtocol.TokenTypeIdentifiers.AccessToken
                     )
                 )
-            );
+            )
+            .Verifiable();
     }
 
     #endregion
@@ -140,7 +174,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.SetupGet(x => x.IsConfidential).Returns(false);
+        mockClient.SetupGet(x => x.IsConfidential).Returns(false).Verifiable();
         var mockTokenRequest = CreateStrictMock<ITokenRequest>();
 
         var result = await Handler.HandleAsync(
@@ -158,8 +192,11 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenSubjectTokenMissing_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
-        var mockClient = SetupConfidentialClient();
-        var mockTokenRequest = SetupTokenRequest(subjectToken: null);
+        var mockClient = SetupConfidentialClient(readsClientId: false);
+        var mockTokenRequest = SetupTokenRequest(
+            subjectToken: null,
+            readsThrough: RequestReads.SubjectToken
+        );
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -176,8 +213,11 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenSubjectTokenTypeMissing_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
-        var mockClient = SetupConfidentialClient();
-        var mockTokenRequest = SetupTokenRequest(subjectTokenType: null);
+        var mockClient = SetupConfidentialClient(readsClientId: false);
+        var mockTokenRequest = SetupTokenRequest(
+            subjectTokenType: null,
+            readsThrough: RequestReads.SubjectTokenType
+        );
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -194,8 +234,8 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenSubjectTokenInvalid_ReturnsValidatorError()
     {
         var (mockContext, _) = SetupContextWithErrorFactory();
-        var mockClient = SetupConfidentialClient();
-        var mockTokenRequest = SetupTokenRequest();
+        var mockClient = SetupConfidentialClient(readsClientId: false);
+        var mockTokenRequest = SetupTokenRequest(readsThrough: RequestReads.SubjectTokenType);
         var mockValidatorError = CreateLooseMock<IOpenIdError>();
 
         MockSubjectTokenValidator
@@ -212,7 +252,8 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
                 new ValueTask<SubjectTokenValidationResult>(
                     SubjectTokenValidationResult.Fail(mockValidatorError.Object)
                 )
-            );
+            )
+            .Verifiable();
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -230,7 +271,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = SetupConfidentialClient();
-        var mockTokenRequest = SetupTokenRequest();
+        var mockTokenRequest = SetupTokenRequest(readsThrough: RequestReads.SubjectTokenType);
 
         // client_id names a different client and there is no audience, so the requester is not entitled.
         SetupSubjectValidatorSuccess("subject.jwt", """{"sub":"alice","client_id":"other"}""");
@@ -252,7 +293,8 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(
-            requestedTokenType: "urn:ietf:params:oauth:token-type:saml2"
+            requestedTokenType: "urn:ietf:params:oauth:token-type:saml2",
+            readsThrough: RequestReads.RequestedTokenType
         );
 
         SetupSubjectValidatorSuccess(
@@ -277,11 +319,15 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = SetupConfidentialClient();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings.Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>())).Returns(false);
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockSettings
+            .Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>()))
+            .Returns(false)
+            .Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         var mockTokenRequest = SetupTokenRequest(
-            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken
+            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
+            readsThrough: RequestReads.RequestedTokenType
         );
 
         SetupSubjectValidatorSuccess(
@@ -306,11 +352,15 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = SetupConfidentialClient();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings.Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>())).Returns(true);
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockSettings
+            .Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>()))
+            .Returns(true)
+            .Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         var mockTokenRequest = SetupTokenRequest(
-            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken
+            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
+            readsThrough: RequestReads.RequestedTokenType
         );
 
         // The subject token carries no auth_time, so there is no authentication to bound the refresh token by.
@@ -333,21 +383,24 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenRefreshTokenRequestedAndAuthenticationIsPastTheHorizon_ReturnsError()
     {
-        var utcNow = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
-        var authTime = utcNow - TimeSpan.FromDays(31);
+        var authTime = UtcNow - TimeSpan.FromDays(31);
 
         var (mockContext, mockError) = SetupContextWithErrorFactory();
         var mockClient = SetupConfidentialClient();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings.Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>())).Returns(true);
+        mockSettings
+            .Setup(x => x.GetValue(It.IsAny<SettingKey<bool>>()))
+            .Returns(true)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenLifetime))
             .Returns(TimeSpan.FromDays(30))
             .Verifiable();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         var mockTokenRequest = SetupTokenRequest(
-            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken
+            requestedTokenType: OpenIdProtocol.TokenTypeIdentifiers.RefreshToken,
+            readsThrough: RequestReads.RequestedTokenType
         );
 
         // The authentication is 31 days old and a refresh family lasts 30 days, so exchange cannot start a new one.
@@ -355,7 +408,6 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
             "subject.jwt",
             $$"""{"sub":"alice","client_id":"{{RequesterClientId}}","auth_time":{{authTime.ToUnixTimeSeconds()}}}"""
         );
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(utcNow).Verifiable();
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -366,8 +418,6 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        MockTimeProvider.Verify();
-        mockSettings.Verify();
     }
 
     #endregion
@@ -492,8 +542,6 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
             )
             .Returns(new ValueTask<string?>("principal-1"))
             .Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UnixEpoch).Verifiable();
 
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         mockTenant.SetupGet(x => x.TenantId).Returns("tenant-1").Verifiable();

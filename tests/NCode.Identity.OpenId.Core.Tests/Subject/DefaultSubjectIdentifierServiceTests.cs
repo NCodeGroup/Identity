@@ -27,8 +27,14 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     public DefaultSubjectIdentifierServiceTests()
     {
         MockCryptoService = CreateStrictMock<ICryptoService>();
-        // echo the composed input so the test can inspect how the derivation input is assembled; the real hashing is
-        // ICryptoService's responsibility, verified in its own tests.
+        Service = new DefaultSubjectIdentifierService(MockCryptoService.Object);
+    }
+
+    #region Scaffolding
+
+    // A pairwise subject is hashed: echo the composed input so the test can inspect how the derivation input is
+    // assembled; the real hashing is ICryptoService's responsibility, verified in its own tests.
+    private void SetupHash() =>
         MockCryptoService
             .Setup(x =>
                 x.HashValue(
@@ -38,18 +44,15 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
                     It.IsAny<Encoding?>()
                 )
             )
-            .Returns((string data, HashAlgorithmName _, string _, Encoding? _) => data);
-        Service = new DefaultSubjectIdentifierService(MockCryptoService.Object);
-    }
-
-    #region Scaffolding
+            .Returns((string data, HashAlgorithmName _, string _, Encoding? _) => data)
+            .Verifiable();
 
     private Mock<OpenIdContext> CreateContext(string tenantId = TenantId)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(tenantId);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(tenantId).Verifiable();
         return mockContext;
     }
 
@@ -58,26 +61,44 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
         string? sectorIdentifierUri = null,
         IReadOnlyCollection<string>? redirectUris = null,
         string? pairwiseSalt = null,
-        string clientId = ClientId
+        string clientId = ClientId,
+        bool fallsBackToClientId = false
     )
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
-        mockClient.SetupGet(x => x.ClientId).Returns(clientId);
-        mockClient.SetupGet(x => x.RedirectUris).Returns(redirectUris ?? []);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.SubjectType, out subjectType))
-            .Returns(subjectType is not null);
+            .Returns(subjectType is not null)
+            .Verifiable();
+        if (subjectType != OpenIdProtocol.SubjectTypes.Pairwise)
+        {
+            return mockClient;
+        }
+
+        // The sector is the sector_identifier_uri's host, else the single redirect host, else the client id.
+        if (sectorIdentifierUri is null)
+        {
+            mockClient.SetupGet(x => x.RedirectUris).Returns(redirectUris ?? []).Verifiable();
+        }
+
+        if (fallsBackToClientId)
+        {
+            mockClient.SetupGet(x => x.ClientId).Returns(clientId).Verifiable();
+        }
+
         mockSettings
             .Setup(x =>
                 x.TryGetValue(OpenIdSettingKeys.SectorIdentifierUri, out sectorIdentifierUri)
             )
-            .Returns(sectorIdentifierUri is not null);
+            .Returns(sectorIdentifierUri is not null)
+            .Verifiable();
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.PairwiseSalt, out pairwiseSalt))
-            .Returns(pairwiseSalt is not null);
+            .Returns(pairwiseSalt is not null)
+            .Verifiable();
 
         return mockClient;
     }
@@ -87,7 +108,8 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPublic_ReturnsPrincipalIdUnchanged()
     {
-        var context = CreateContext();
+        // A public subject identifier reads neither the tenant nor the hash.
+        var context = CreateStrictMock<OpenIdContext>();
         var client = CreateClient(OpenIdProtocol.SubjectTypes.Public);
 
         var result = Service.ProjectSubjectId(context.Object, client.Object, PrincipalId);
@@ -98,7 +120,8 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenSubjectTypeUnset_DefaultsToPublic()
     {
-        var context = CreateContext();
+        // A public subject identifier reads neither the tenant nor the hash.
+        var context = CreateStrictMock<OpenIdContext>();
         var client = CreateClient(subjectType: null);
 
         var result = Service.ProjectSubjectId(context.Object, client.Object, PrincipalId);
@@ -109,6 +132,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwise_DerivesFromSectorPrincipalTenantAndSalt()
     {
+        SetupHash();
         var context = CreateContext();
         var client = CreateClient(
             OpenIdProtocol.SubjectTypes.Pairwise,
@@ -130,6 +154,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwiseWithoutSectorUri_UsesSingleRedirectHost()
     {
+        SetupHash();
         var context = CreateContext();
         var client = CreateClient(
             OpenIdProtocol.SubjectTypes.Pairwise,
@@ -144,10 +169,12 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwiseWithMultipleRedirectHosts_FallsBackToClientId()
     {
+        SetupHash();
         var context = CreateContext();
         var client = CreateClient(
             OpenIdProtocol.SubjectTypes.Pairwise,
-            redirectUris: ["https://a.example.com/cb", "https://b.example.com/cb"]
+            redirectUris: ["https://a.example.com/cb", "https://b.example.com/cb"],
+            fallsBackToClientId: true
         );
 
         var result = Service.ProjectSubjectId(context.Object, client.Object, PrincipalId);
@@ -158,8 +185,13 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwiseWithoutRedirects_FallsBackToClientId()
     {
+        SetupHash();
         var context = CreateContext();
-        var client = CreateClient(OpenIdProtocol.SubjectTypes.Pairwise, redirectUris: []);
+        var client = CreateClient(
+            OpenIdProtocol.SubjectTypes.Pairwise,
+            redirectUris: [],
+            fallsBackToClientId: true
+        );
 
         var result = Service.ProjectSubjectId(context.Object, client.Object, PrincipalId);
 
@@ -169,6 +201,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwise_IsDeterministic()
     {
+        SetupHash();
         var sector = "https://app.example.com/cb";
 
         var first = Service.ProjectSubjectId(
@@ -188,6 +221,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwise_DiffersBySector()
     {
+        SetupHash();
         var clientA = CreateClient(
             OpenIdProtocol.SubjectTypes.Pairwise,
             redirectUris: ["https://a.example.com/cb"]
@@ -206,6 +240,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwise_DiffersByTenant()
     {
+        SetupHash();
         var sector = "https://app.example.com/cb";
 
         var subTenant1 = Service.ProjectSubjectId(
@@ -225,6 +260,7 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
     [Fact]
     public void ProjectSubjectId_WhenPairwise_DiffersBySalt()
     {
+        SetupHash();
         var sector = "https://app.example.com/cb";
 
         var withSaltA = Service.ProjectSubjectId(

@@ -38,10 +38,16 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.Issuer).Returns(Issuer);
-        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
-        mockSettingsProvider.SetupGet(x => x.Collection).Returns(mockTenantSettings.Object);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.Issuer).Returns(Issuer).Verifiable();
+        mockTenant
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+        mockSettingsProvider
+            .SetupGet(x => x.Collection)
+            .Returns(mockTenantSettings.Object)
+            .Verifiable();
         mockTenantSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSessionSupported))
             .Returns(sessionSupported);
@@ -79,7 +85,8 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
     [Fact]
     public async Task GetLogoutUrisAsync_WhenNoParticipatingClients_ReturnsEmpty()
     {
-        var mockContext = CreateContext();
+        // Without a participating client the service never reads the tenant.
+        var mockContext = CreateStrictMock<OpenIdContext>();
 
         var result = await Service.GetLogoutUrisAsync(
             mockContext.Object,
@@ -96,15 +103,17 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockClient = SetupResolvedClient(ClientId);
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         string? uri = LogoutUri;
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.FrontChannelLogoutUri, out uri))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSessionRequired))
-            .Returns(false);
+            .Returns(false)
+            .Verifiable();
 
         var result = await Service.GetLogoutUrisAsync(
             mockContext.Object,
@@ -121,15 +130,17 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockClient = SetupResolvedClient(ClientId);
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         string? uri = LogoutUri;
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.FrontChannelLogoutUri, out uri))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSessionRequired))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
 
         var result = await Service.GetLogoutUrisAsync(
             mockContext.Object,
@@ -149,12 +160,13 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
         var mockContext = CreateContext();
         var mockClient = SetupResolvedClient(ClientId);
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         string? uri = null;
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.FrontChannelLogoutUri, out uri))
-            .Returns(false);
+            .Returns(false)
+            .Verifiable();
 
         var result = await Service.GetLogoutUrisAsync(
             mockContext.Object,
@@ -171,15 +183,17 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
         var mockContext = CreateContext(sessionSupported: false);
         var mockClient = SetupResolvedClient(ClientId);
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
         string? uri = LogoutUri;
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.FrontChannelLogoutUri, out uri))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.FrontChannelLogoutSessionRequired))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
 
         var result = await Service.GetLogoutUrisAsync(
             mockContext.Object,

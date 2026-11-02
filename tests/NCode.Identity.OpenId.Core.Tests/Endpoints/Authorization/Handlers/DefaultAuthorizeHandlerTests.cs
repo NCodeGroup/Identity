@@ -53,7 +53,12 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         Mock<IAuthorizationRequest> authRequest,
         Mock<IMediator> mediator,
         Mock<IOpenIdError> error
-    ) CreateScaffold(IReadOnlyList<string> promptTypes, bool isContinuation = false)
+    ) CreateScaffold(
+        IReadOnlyList<string> promptTypes,
+        bool isContinuation = false,
+        bool checksConsent = false,
+        bool resolvesConsent = false
+    )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
@@ -69,10 +74,18 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         mockAuthRequest.SetupGet(x => x.IsContinuation).Returns(isContinuation).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
-        // Consent is disabled by default; individual tests opt in.
-        mockClient.SetupGet(x => x.ClientId).Returns("client-id");
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
-        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(false);
+        // A request whose subject is valid checks consent, which is disabled by default; individual tests opt in. Only a
+        // request that resolves the subject's consent reads the client id.
+        if (checksConsent || resolvesConsent)
+        {
+            mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+            mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(false);
+        }
+
+        if (resolvesConsent)
+        {
+            mockClient.SetupGet(x => x.ClientId).Returns("client-id").Verifiable();
+        }
 
         var command = new AuthorizeCommand(
             mockContext.Object,
@@ -167,7 +180,8 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     {
         var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
             [OpenIdProtocol.PromptTypes.Login],
-            isContinuation: true
+            isContinuation: true,
+            checksConsent: true
         );
 
         // The resumed continuation already re-authenticated the subject; re-challenging it would loop.
@@ -195,7 +209,8 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     {
         var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
             [OpenIdProtocol.PromptTypes.CreateAccount],
-            isContinuation: true
+            isContinuation: true,
+            checksConsent: true
         );
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
@@ -220,7 +235,10 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectValid_ReturnsAuthorized()
     {
-        var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold([]);
+        var (command, mockContext, _, _, _, mockMediator, _) = CreateScaffold(
+            [],
+            checksConsent: true
+        );
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         MockAuditEventRecorder
@@ -355,7 +373,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenConsentRequiredAndNotGranted_ReturnsConsentRequired()
     {
         var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
-            CreateScaffold([]);
+            CreateScaffold([], resolvesConsent: true);
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
@@ -384,12 +402,14 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenConsentRequiredAndGranted_ReturnsAuthorized()
     {
         var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
-            CreateScaffold([]);
+            CreateScaffold([], resolvesConsent: true);
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
         mockAuthRequest.SetupGet(x => x.Scopes).Returns(["openid"]).Verifiable();
-        mockAuthRequest.SetupSet(x => x.GrantedScopes = It.IsAny<IReadOnlyList<string>?>());
+        mockAuthRequest
+            .SetupSet(x => x.GrantedScopes = It.IsAny<IReadOnlyList<string>?>())
+            .Verifiable();
         MockConsentService
             .Setup(x =>
                 x.ResolveConsentAsync(
@@ -425,7 +445,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     public async Task HandleAsync_WhenConsentRequiredWithNonePrompt_ReturnsConsentRequiredError()
     {
         var (command, mockContext, _, mockSettings, mockAuthRequest, mockMediator, _) =
-            CreateScaffold([OpenIdProtocol.PromptTypes.None]);
+            CreateScaffold([OpenIdProtocol.PromptTypes.None], resolvesConsent: true);
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
         mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireConsent)).Returns(true);
@@ -467,7 +487,8 @@ public class DefaultAuthorizeHandlerTests : BaseTests
     {
         var (command, mockContext, _, _, mockAuthRequest, mockMediator, _) = CreateScaffold(
             [OpenIdProtocol.PromptTypes.Consent],
-            isContinuation: true
+            isContinuation: true,
+            resolvesConsent: true
         );
 
         SetupValidateSubject(mockContext, mockMediator, subjectError: null);
@@ -478,7 +499,8 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         IReadOnlyList<string>? downScoped = null;
         mockAuthRequest
             .SetupSet(x => x.GrantedScopes = It.IsAny<IReadOnlyList<string>?>())
-            .Callback((IReadOnlyList<string>? value) => downScoped = value);
+            .Callback((IReadOnlyList<string>? value) => downScoped = value)
+            .Verifiable();
 
         MockConsentService
             .Setup(x =>

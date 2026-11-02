@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
@@ -35,7 +36,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ICibaTokenResponseService> MockTokenResponseService { get; }
     private DefaultCibaGrantHandler Handler { get; }
@@ -44,11 +45,10 @@ public class DefaultCibaGrantHandlerTests : BaseTests
 
     public DefaultCibaGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockTokenResponseService = CreateStrictMock<ICibaTokenResponseService>();
         Handler = new DefaultCibaGrantHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockPersistedGrantService.Object,
             MockTokenResponseService.Object
         );
@@ -294,7 +294,6 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
             .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
@@ -322,7 +321,6 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
             .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Approved));
 
@@ -350,7 +348,6 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
             .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
@@ -490,7 +487,6 @@ public class DefaultCibaGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockTokenResponse.Object, result);
-        MockTokenResponseService.Verify();
     }
 
     [Fact]

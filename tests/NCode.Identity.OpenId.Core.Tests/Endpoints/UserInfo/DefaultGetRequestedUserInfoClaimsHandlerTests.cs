@@ -24,15 +24,18 @@ public class DefaultGetRequestedUserInfoClaimsHandlerTests : BaseTests
         Mock<IPersistedGrantService> grantService,
         GetUserInfoClaimsCommand command,
         Dictionary<string, object> claims
-    ) CreateScaffold(ClaimsPrincipal subject)
+    ) CreateScaffold(ClaimsPrincipal subject, bool queriesGrantStore = true)
     {
         var mockGrantService = CreateStrictMock<IPersistedGrantService>();
 
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
-
+        // Only a lookup in the grant store reads the tenant.
         var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+        if (queriesGrantStore)
+        {
+            var mockTenant = CreateStrictMock<OpenIdTenant>();
+            mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+            mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        }
 
         var subjectAuthentication = new SubjectAuthentication(
             "scheme",
@@ -167,7 +170,7 @@ public class DefaultGetRequestedUserInfoClaimsHandlerTests : BaseTests
     public async Task HandleAsync_NoJti_DoesNotQueryGrantStore()
     {
         var subject = CreateSubject(new Claim("email", "alice@example.com"));
-        var (mockGrantService, command, claims) = CreateScaffold(subject);
+        var (mockGrantService, command, claims) = CreateScaffold(subject, queriesGrantStore: false);
 
         var handler = new DefaultGetRequestedUserInfoClaimsHandler(mockGrantService.Object);
         await handler.HandleAsync(command, CancellationToken.None);

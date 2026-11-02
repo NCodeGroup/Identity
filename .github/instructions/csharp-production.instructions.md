@@ -737,6 +737,13 @@ than inlining the rationale.
   [ADR-1198](../../docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
   [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
   [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
+- 👁 **A response that reveals a secret is marked `.WithNoStore()`.** Map every endpoint whose response can carry
+  secret material (a generated secret or key, an initial access token, a `client_secret` or
+  `registration_access_token`) with `.WithNoStore()` (`NCode.Identity.OpenId.Authentication.Endpoints`), which writes
+  `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` before the handler runs, so the mapping shows
+  which routes reveal a secret and no handler path can forget it. `HttpResponse.SetNoStore()` writes the same headers
+  where a response rather than a route carries the secret, as the authorization response writer does. See
+  [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

@@ -88,21 +88,22 @@ public class DefaultKeyWrapperCatalogTests : IDisposable
     #region GetConfigured Tests
 
     [Fact]
-    public void GetConfigured_Unset_ReturnsEphemeral()
+    public void GetConfigured_Unset_ThrowsNamingTheSetting()
     {
         var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
         var local = CreateProvider(KeyWrapperNames.Local);
         var catalog = CreateCatalog([ephemeral.Object, local.Object]);
 
-        var result = catalog.GetConfigured();
+        var exception = Assert.Throws<InvalidOperationException>(() => catalog.GetConfigured());
 
-        Assert.Same(ephemeral.Object, result);
+        Assert.Contains("SecretProtection:RootKeyProvider", exception.Message);
+        Assert.Contains($"'{KeyWrapperNames.Local}'", exception.Message);
     }
 
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    public void GetConfigured_Blank_ReturnsEphemeral(string rootKeyProvider)
+    public void GetConfigured_Blank_ThrowsNamingTheSetting(string rootKeyProvider)
     {
         var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
         var local = CreateProvider(KeyWrapperNames.Local);
@@ -111,9 +112,10 @@ public class DefaultKeyWrapperCatalogTests : IDisposable
             rootKeyProvider: rootKeyProvider
         );
 
-        var result = catalog.GetConfigured();
+        var exception = Assert.Throws<InvalidOperationException>(() => catalog.GetConfigured());
 
-        Assert.Same(ephemeral.Object, result);
+        Assert.Contains("SecretProtection:RootKeyProvider", exception.Message);
+        Assert.Contains($"'{KeyWrapperNames.Local}'", exception.Message);
     }
 
     [Fact]

@@ -45,7 +45,14 @@ internal class DefaultKeyWrapperCatalog(
     public IKeyWrapper GetConfigured()
     {
         var name = ProtectionOptions.Value.RootKeyProvider;
-        return Get(string.IsNullOrWhiteSpace(name) ? KeyWrapperNames.Ephemeral : name);
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException(
+                "No root key provider is selected. Set 'SecretProtection:RootKeyProvider' to the name of a registered provider: "
+                    + $"{FormatNames(ProvidersByName.Keys)}."
+            );
+
+        return Get(name);
     }
 
     private static FrozenDictionary<string, IKeyWrapper> IndexByName(

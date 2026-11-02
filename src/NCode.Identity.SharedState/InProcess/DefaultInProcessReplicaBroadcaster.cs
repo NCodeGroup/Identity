@@ -41,9 +41,13 @@ internal sealed class DefaultInProcessReplicaBroadcaster(
             {
                 await handler.HandleAsync(message, cancellationToken);
             }
-            // A handler's own timeout throws OperationCanceledException with the publisher's token untouched; only a
-            // cancelled token stops the delivery.
-            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+            // Only the publisher's own cancellation stops the delivery. A handler's own timeout throws
+            // OperationCanceledException with the publisher's token untouched, and any other failure is the handler's,
+            // even after the publisher cancelled, so both are logged and the other handlers still run.
+            catch (Exception exception)
+                when (exception is not OperationCanceledException
+                    || !cancellationToken.IsCancellationRequested
+                )
             {
                 Logger.ReplicaBroadcastHandlerFailed(channel, exception);
             }

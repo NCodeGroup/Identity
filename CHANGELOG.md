@@ -4685,7 +4685,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   announcement and a store or Valkey timeout that surfaced as `TaskCanceledException` failed a write that had already
   committed; each of those steps now runs on its own 30-second token, a failed refresh or announcement is logged, and
   a failed eviction is still announced. The in-process replica broadcaster now lets a handler's
-  `OperationCanceledException` through only when the publisher cancelled
+  `OperationCanceledException` through only when the publisher cancelled, and logs every other failure of a handler
   ([#485](https://github.com/NCodeGroup/Identity/issues/485),
   [ADR-1351](docs/decisions/1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
 - **A store timeout no longer stops the grant prune.** `GrantPruneService` let an `OperationCanceledException` through,

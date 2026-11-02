@@ -37,7 +37,8 @@ such inline effects on `CancellationToken.None` with their own timeout
 
 5. **The in-process broadcaster lets a cancellation through only when the publisher cancelled.**
    `DefaultInProcessReplicaBroadcaster` rethrows an `OperationCanceledException` only when the publisher's token is
-   cancelled; a handler's own timeout is logged (`ReplicaBroadcastHandlerFailed`) and the other handlers still run.
+   cancelled; a handler's own timeout, and any other failure of a handler even after the publisher cancelled, is
+   logged (`ReplicaBroadcastHandlerFailed`) and the other handlers still run.
 
 6. **The bound is fixed, not an option.** It is a backstop behind the store's and the Valkey client's own timeouts, and
    it equals the guarded client's default `TotalTimeout`

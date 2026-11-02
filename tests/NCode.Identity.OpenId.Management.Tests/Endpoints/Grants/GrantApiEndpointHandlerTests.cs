@@ -831,7 +831,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     public async Task CreateInitialAccessTokenAsync_WhenNotAuthorizedToUpdateResourceServer_ReturnsForbid()
     {
         MockAuthorizationService
-            .SetupSequence(x =>
+            .Setup(x =>
                 x.AuthorizeAsync(
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<object?>(),
@@ -839,7 +839,17 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                 )
             )
             .ReturnsAsync(AuthorizationResult.Success())
-            .ReturnsAsync(AuthorizationResult.Failed());
+            .Verifiable();
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => resource is IResourceNode),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable(Times.Once);
         SetupResourceServer(TenantId, isSystem: false);
 
         var result = await Handler.CreateInitialAccessTokenAsync(
@@ -850,15 +860,6 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<ForbidHttpResult>(result);
-        MockAuthorizationService.Verify(
-            x =>
-                x.AuthorizeAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.Is<object?>(resource => resource is IResourceNode),
-                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
-                ),
-            Times.Once
-        );
     }
 
     #endregion

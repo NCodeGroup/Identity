@@ -52,7 +52,11 @@ public sealed class DefaultTenantUsageRecorderTests : IDisposable
     [Fact]
     public void Record_WhenTheUtcDayChanges_CountsTheNewDaySeparately()
     {
-        MockTimeProvider.SetupSequence(x => x.GetUtcNow()).Returns(Now).Returns(Now.AddSeconds(1));
+        var reads = 0;
+        MockTimeProvider
+            .Setup(x => x.GetUtcNow())
+            .Returns(() => ++reads == 1 ? Now : Now.AddSeconds(1))
+            .Verifiable(Times.Exactly(2));
 
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);

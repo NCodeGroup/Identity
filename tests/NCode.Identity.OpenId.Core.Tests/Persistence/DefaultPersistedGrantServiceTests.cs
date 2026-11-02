@@ -395,10 +395,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Setup(x => x.UpdateAsync(It.IsAny<PersistedGrant>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
 
         var result = await Service.SetRevokedOnceAsync(
             OpenIdContext,
@@ -638,10 +638,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
         SetupRevokeSessionGrants("sid-1", revokedWhen, Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
         SetupDeserialize();
 
         var result = await Service.RevokeSessionOnceAsync<string>(
@@ -669,10 +669,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
         SetupRevokeSessionGrants("sid-1", revokedWhen, Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
         SetupEnvironment();
         MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
         MockPayloadProtector
@@ -780,10 +780,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Setup(x => x.UpdateAsync(It.IsAny<PersistedGrant>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
 
         var result = await Service.TryRevokeOnceAsync(
             OpenIdContext,
@@ -916,10 +916,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
 
         var result = await Service.ReplaceOnceOrDefault(
             OpenIdContext,
@@ -1099,10 +1099,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             )
             .ReturnsAsync(2L)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
 
         var result = await Service.RevokeByRefreshTokenLineageAsync(
             OpenIdContext,
@@ -1158,10 +1158,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             )
             .ReturnsAsync(2L)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
 
         var result = await Service.RevokeWhereAsync(
             OpenIdContext,
@@ -1361,10 +1361,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Setup(x => x.UpdateAsync(It.IsAny<PersistedGrant>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2)
+        );
 
         var updated = await Service.UpdatePayloadAsync<string>(
             OpenIdContext,

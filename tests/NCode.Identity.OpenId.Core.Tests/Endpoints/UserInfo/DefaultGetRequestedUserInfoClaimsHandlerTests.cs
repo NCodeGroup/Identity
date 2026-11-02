@@ -95,7 +95,7 @@ public class DefaultGetRequestedUserInfoClaimsHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.FromResult(grant))
+            .ReturnsAsync(grant)
             .Verifiable();
     }
 

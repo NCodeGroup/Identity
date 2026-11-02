@@ -37,7 +37,7 @@ public class DefaultOpenIdServerProviderTests : BaseTests
         var mockFactory = CreateStrictMock<IOpenIdServerFactory>();
         mockFactory
             .Setup(x => x.CreateAsync(mockEnvironment.Object, CancellationToken.None))
-            .Returns(ValueTask.FromResult(mockServer.Object))
+            .ReturnsAsync(mockServer.Object)
             .Verifiable(Times.Once());
 
         var mockRegistry = CreateStrictMock<IMaterializedServerRegistry>();

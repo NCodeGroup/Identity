@@ -158,9 +158,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(
-                ValueTask.FromException(new InvalidOperationException("The broadcast failed."))
-            )
+            .ThrowsAsync(new InvalidOperationException("The broadcast failed."))
             .Verifiable();
 
         await Handler.HandleAsync(

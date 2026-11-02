@@ -16,10 +16,9 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <summary>
 /// Provides the default implementation of <see cref="IOpenIdClientResolver"/> that loads the persisted client, applies
 /// the tenant-merged effective settings and deserialized unexpired secrets, and builds the public
-/// <see cref="OpenIdClient"/>. A
-/// client bound to a resource server is resolved only at an endpoint that accepts such clients
-/// (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its credentials
-/// serve only the calls the resource server needs.
+/// <see cref="OpenIdClient"/>. A client bound to a resource server is resolved only at an endpoint that accepts such
+/// clients (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its
+/// credentials serve only the calls the resource server needs.
 /// </summary>
 // See ADR-1168.
 internal class DefaultOpenIdClientResolver(

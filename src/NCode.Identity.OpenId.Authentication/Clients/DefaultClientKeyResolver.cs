@@ -51,7 +51,6 @@ internal sealed class DefaultClientKeyResolver(
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
-    private OutboundHttpOptions OutboundHttpOptions { get; } = outboundHttpOptions.Value;
     private IMemoryCache MemoryCache { get; } = memoryCache;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
@@ -165,7 +164,7 @@ internal sealed class DefaultClientKeyResolver(
         Logger.ClientJwksFetchSuppressed(
             openIdClient.ClientId,
             uri.AbsoluteUri,
-            OutboundHttpOptions.FailureCacheDuration
+            Fetches.FailureCacheDuration
         );
         return [];
     }

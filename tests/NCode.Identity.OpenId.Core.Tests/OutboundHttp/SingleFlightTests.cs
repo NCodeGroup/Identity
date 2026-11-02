@@ -105,7 +105,7 @@ public sealed class SingleFlightTests : BaseTests
         Task<string> Retrieve()
         {
             if (Interlocked.Increment(ref calls) == 1)
-                throw new InvalidOperationException();
+                return Task.FromException<string>(new InvalidOperationException());
 
             return Task.FromResult(Value);
         }
@@ -117,6 +117,18 @@ public sealed class SingleFlightTests : BaseTests
 
         Assert.Equal(Value, second);
         Assert.Equal(2, calls);
+    }
+
+    #endregion
+
+    #region FailureCacheDuration Tests
+
+    [Fact]
+    public void FailureCacheDuration_ReturnsTheDurationGivenToTheConstructor()
+    {
+        var singleFlight = CreateSingleFlight();
+
+        Assert.Equal(TimeSpan.FromMinutes(1), singleFlight.FailureCacheDuration);
     }
 
     #endregion

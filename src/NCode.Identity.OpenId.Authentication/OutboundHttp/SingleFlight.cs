@@ -19,7 +19,11 @@ internal sealed class SingleFlight<TResult>(IMemoryCache memoryCache, TimeSpan f
     private const string FailureKeySuffix = ":unavailable";
 
     private IMemoryCache MemoryCache { get; } = memoryCache;
-    private TimeSpan FailureCacheDuration { get; } = failureCacheDuration;
+
+    /// <summary>
+    /// Gets how long a failed retrieval is remembered.
+    /// </summary>
+    public TimeSpan FailureCacheDuration { get; } = failureCacheDuration;
 
     private ConcurrentDictionary<string, Lazy<Task<TResult>>> InFlight { get; } =
         new(StringComparer.Ordinal);
@@ -33,7 +37,7 @@ internal sealed class SingleFlight<TResult>(IMemoryCache memoryCache, TimeSpan f
         MemoryCache.TryGetValue(key + FailureKeySuffix, out _);
 
     /// <summary>
-    /// Remembers that a retrieval for <paramref name="key"/> failed, for the duration given to the constructor.
+    /// Remembers that a retrieval for <paramref name="key"/> failed, for <see cref="FailureCacheDuration"/>.
     /// </summary>
     /// <param name="key">The key of the retrieval.</param>
     public void RememberFailure(string key) =>

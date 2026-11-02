@@ -22,7 +22,6 @@ internal sealed class RevocationRetrievalCache(
 )
 {
     private IMemoryCache MemoryCache { get; } = memoryCache;
-    private ClientCertificateRevocationOptions Options { get; } = options.Value;
     private ILogger<RevocationRetrievalCache> Logger { get; } = logger;
 
     private SingleFlight<object?> Retrievals { get; } =
@@ -68,7 +67,11 @@ internal sealed class RevocationRetrievalCache(
         // asked again for every check. See ADR-1252.
         if (IsUnavailable(key))
         {
-            Logger.RevocationRetrievalSuppressed(location, subject, Options.FailureCacheDuration);
+            Logger.RevocationRetrievalSuppressed(
+                location,
+                subject,
+                Retrievals.FailureCacheDuration
+            );
             return null;
         }
 

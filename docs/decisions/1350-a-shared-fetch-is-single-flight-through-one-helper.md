@@ -25,7 +25,8 @@ missed the other ([#482](https://github.com/NCodeGroup/Identity/issues/482)). AD
    result.
 
 2. **One helper remembers a failure.** `RememberFailure(key)` stores `{key}:unavailable` in `IMemoryCache` for the
-   duration the owner gives, and `IsFailureRemembered(key)` reads it.
+   duration the owner gives, `IsFailureRemembered(key)` reads it, and `FailureCacheDuration` returns that duration, so
+   the owner's log reports the duration the helper remembers.
 
 3. **Each owner keeps what is its own.** The owner decides what counts as a failure, keeps the value cache with its key
    and lifetime, makes the check before it calls the helper, and keeps its log entries and options. The `jwks_uri`

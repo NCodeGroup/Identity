@@ -67,6 +67,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   enforces it with `RS0030`. A test that needs UTF-16 or a byte-order mark builds a strict encoding, such as
   `new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)`. See
   [ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
+- ✅ **No decision-record citations in `///` doc comments in tests either.** Put the citation on a `//` line after the
+  doc comment (`// See ADR-1201.`), as production code does
+  ([`csharp-production.instructions.md`](csharp-production.instructions.md) §10); the `doc comment citations` stage of
+  [`build/dod.ps1`](../../build/dod.ps1) scans `tests/` as well as `src/`.
 
 ## Isolation & mocking
 

@@ -11,6 +11,7 @@ const NCode.Identity.Secrets.Persistence.SecretResourceTypes.Secrets = "secrets"
 const NCode.Identity.Secrets.Persistence.SecretTypes.Ecc = "ecc" -> string!
 const NCode.Identity.Secrets.Persistence.SecretTypes.Rsa = "rsa" -> string!
 const NCode.Identity.Secrets.Persistence.SecretTypes.Symmetric = "symmetric" -> string!
+const NCode.Identity.Secrets.Persistence.SharedSecretPolicy.MinimumEntropyBits = 256 -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Algorithm.get -> string?
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Algorithm.init -> void
@@ -95,6 +96,7 @@ NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary
 NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary.SecretPersistenceLibrary() -> void
 NCode.Identity.Secrets.Persistence.SecretResourceTypes
 NCode.Identity.Secrets.Persistence.SecretTypes
+NCode.Identity.Secrets.Persistence.SharedSecretPolicy
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.SecretEncoding = 100 -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.init -> void

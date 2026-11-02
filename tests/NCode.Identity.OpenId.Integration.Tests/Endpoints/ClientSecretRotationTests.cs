@@ -15,8 +15,8 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// Rotating a client secret through the management API replaces it in one change: the replacement authenticates the
-// client at once and the rotated secret stops (ADR-1183).
+// Rotating a client secret through the management API adds the replacement beside the rotated secret, which keeps
+// authenticating until it expires or is deleted (ADR-1320).
 public class ClientSecretRotationTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
@@ -25,7 +25,7 @@ public class ClientSecretRotationTests
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
 
     [Fact]
-    public async Task PostRotate_WhenSecretIsShared_ReplacesItAndRevealsTheReplacementOnce()
+    public async Task PostRotate_WhenSecretIsShared_KeepsTheRotatedSecretUntilItIsDeleted()
     {
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
@@ -35,33 +35,59 @@ public class ClientSecretRotationTests
         var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
         Assert.Null(await AuthenticateAsync(client, clientId, secretMaterial));
 
-        using var rotateResponse = await administrator.PostAsJsonAsync(
-            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}/rotate",
-            new { expiresWhen = DateTimeOffset.UtcNow.AddYears(1) }
+        var (replacementId, replacementMaterial) = await RotateAsync(
+            administrator,
+            clientId,
+            secretId,
+            DateTimeOffset.UtcNow.AddDays(7)
         );
-        var rotateBody = await rotateResponse.Content.ReadAsStringAsync();
-        Assert.True(rotateResponse.StatusCode == HttpStatusCode.Created, rotateBody);
-
-        var rotated = JsonElement.Parse(rotateBody);
-        var replacementId = rotated.GetProperty("secretId").GetString()!;
-        var replacementMaterial = rotated.GetProperty("secretMaterial").GetString()!;
         Assert.NotEqual(secretId, replacementId);
         Assert.False(string.IsNullOrEmpty(replacementMaterial));
-        Assert.Equal("symmetric", rotated.GetProperty("secretType").GetString());
 
+        // Both authenticate while the holder switches.
         Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
-        Assert.Equal("invalid_client", await AuthenticateAsync(client, clientId, secretMaterial));
+        Assert.Null(await AuthenticateAsync(client, clientId, secretMaterial));
 
-        // The replacement is listed without its material; the rotated secret is gone.
+        // Both are listed without their material.
         using var listResponse = await administrator.GetAsync(
             $"{TenantApiPath}/clients/{clientId}/secrets"
         );
         var listBody = await listResponse.Content.ReadAsStringAsync();
         Assert.True(listResponse.StatusCode == HttpStatusCode.OK, listBody);
         var list = JsonElement.Parse(listBody);
-        var secret = Assert.Single(list.GetProperty("secrets").EnumerateArray());
-        Assert.Equal(replacementId, secret.GetProperty("secretId").GetString());
-        Assert.False(secret.TryGetProperty("secretMaterial", out _));
+        var secrets = list.GetProperty("secrets").EnumerateArray().ToList();
+        Assert.Equal(2, secrets.Count);
+        Assert.All(secrets, secret => Assert.False(secret.TryGetProperty("secretMaterial", out _)));
+
+        // Deleting the rotated secret ends the overlap.
+        using var deleteResponse = await administrator.DeleteAsync(
+            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}"
+        );
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        Assert.Equal("invalid_client", await AuthenticateAsync(client, clientId, secretMaterial));
+        Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
+    }
+
+    [Fact]
+    public async Task PostRotate_WhenTheRotatedSecretExpiresAtOnce_OnlyTheReplacementAuthenticates()
+    {
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var client = CreateHttpClient(factory);
+
+        var clientId = await CreateClientAsync(administrator);
+        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
+
+        var (_, replacementMaterial) = await RotateAsync(
+            administrator,
+            clientId,
+            secretId,
+            DateTimeOffset.UtcNow.AddMinutes(-1)
+        );
+
+        Assert.Equal("invalid_client", await AuthenticateAsync(client, clientId, secretMaterial));
+        Assert.Null(await AuthenticateAsync(client, clientId, replacementMaterial));
     }
 
     [Fact]
@@ -139,7 +165,7 @@ public class ClientSecretRotationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
-        return jsonElement.GetProperty("clientId").GetString()!;
+        return GetRequiredString(jsonElement, "clientId");
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
@@ -159,10 +185,38 @@ public class ClientSecretRotationTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         var jsonElement = JsonElement.Parse(body);
-        return (
-            jsonElement.GetProperty("secretId").GetString()!,
-            jsonElement.GetProperty("secretMaterial").GetString()!
+        var createdSecretId = GetRequiredString(jsonElement, "secretId");
+        var createdSecretMaterial = GetRequiredString(jsonElement, "secretMaterial");
+        return (createdSecretId, createdSecretMaterial);
+    }
+
+    // Rotates the secret, giving the replacement a year and the rotated secret the specified grace expiry.
+    private static async Task<(string SecretId, string SecretMaterial)> RotateAsync(
+        HttpClient administrator,
+        string clientId,
+        string secretId,
+        DateTimeOffset rotatedExpiresWhen
+    )
+    {
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}/rotate",
+            new { expiresWhen = DateTimeOffset.UtcNow.AddYears(1), rotatedExpiresWhen }
         );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var jsonElement = JsonElement.Parse(body);
+        Assert.Equal("symmetric", jsonElement.GetProperty("secretType").GetString());
+        var createdSecretId = GetRequiredString(jsonElement, "secretId");
+        var createdSecretMaterial = GetRequiredString(jsonElement, "secretMaterial");
+        return (createdSecretId, createdSecretMaterial);
+    }
+
+    // Reads a string property the endpoint always writes, failing the test here when the property is null.
+    private static string GetRequiredString(JsonElement jsonElement, string propertyName)
+    {
+        var value = jsonElement.GetProperty(propertyName).GetString();
+        Assert.NotNull(value);
+        return value;
     }
 
     // Revoking an unknown token is a no-op once the client authenticates (RFC 7009 §2.2), so the response reports only

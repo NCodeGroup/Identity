@@ -1,9 +1,11 @@
 # 1183. A client secret is rotated by replacing it in one change
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md); tracked in [#445](https://github.com/NCodeGroup/Identity/issues/445)
+
+> **Superseded by [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md).**
+> A rotated client secret now stays accepted beside its replacement until it expires or is deleted.
 
 ## Context
 

@@ -8,6 +8,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
@@ -15,10 +16,10 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IOpenIdClientResolver"/> that loads the persisted client, applies
-/// the tenant-merged effective settings and deserialized secrets, and builds the public <see cref="OpenIdClient"/>. A
-/// client bound to a resource server is resolved only at an endpoint that accepts such clients
-/// (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its credentials
-/// serve only the calls the resource server needs.
+/// the tenant-merged effective settings and deserialized unexpired secrets, and builds the public
+/// <see cref="OpenIdClient"/>. A client bound to a resource server is resolved only at an endpoint that accepts such
+/// clients (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its
+/// credentials serve only the calls the resource server needs.
 /// </summary>
 // See ADR-1168.
 internal class DefaultOpenIdClientResolver(
@@ -26,15 +27,65 @@ internal class DefaultOpenIdClientResolver(
     IOpenIdClientFactory clientFactory,
     ISecretSerializer secretSerializer,
     ISecretProtectorProvider secretProtectorProvider,
-    IEffectiveSettingsResolver effectiveSettingsResolver
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    TimeProvider timeProvider
 ) : IOpenIdClientResolver
 {
+    /// <summary>
+    /// Selects the secrets that have not expired, because a credential past its expiry does not authenticate the
+    /// client.
+    /// </summary>
+    /// <remarks>
+    /// A secret whose expiry equals <paramref name="now"/> has expired. Client resolution runs on every
+    /// client-authenticated request, so the collection is copied only when one of its secrets has expired.
+    /// </remarks>
+    /// <param name="secrets">The client's persisted secrets.</param>
+    /// <param name="now">The current instant.</param>
+    /// <returns>The secrets whose expiry is after <paramref name="now"/>.</returns>
+    // See ADR-1320.
+    private static IReadOnlyCollection<PersistedSecret> SelectUnexpired(
+        IReadOnlyCollection<PersistedSecret> secrets,
+        DateTimeOffset now
+    )
+    {
+        if (secrets.Count == 0)
+        {
+            return secrets;
+        }
+
+        var expiredCount = 0;
+        foreach (var secret in secrets)
+        {
+            if (secret.ExpiresWhen <= now)
+            {
+                expiredCount++;
+            }
+        }
+
+        if (expiredCount == 0)
+        {
+            return secrets;
+        }
+
+        var unexpired = new List<PersistedSecret>(secrets.Count - expiredCount);
+        foreach (var secret in secrets)
+        {
+            if (secret.ExpiresWhen > now)
+            {
+                unexpired.Add(secret);
+            }
+        }
+
+        return unexpired;
+    }
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
     public async ValueTask<OpenIdClient?> ResolveClientOrDefaultAsync(
@@ -64,12 +115,16 @@ internal class DefaultOpenIdClientResolver(
             OpenIdSettingScopes.Client,
             persistedClient.Settings.Value
         );
+
+        var now = TimeProvider.GetUtcNow();
+        var liveSecrets = SelectUnexpired(persistedClient.Secrets.Value, now);
+
         var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
             SecretOwner.ForTenant(tenantId),
-            persistedClient.Secrets.Value,
+            liveSecrets,
             cancellationToken
         );
-        var secrets = SecretSerializer.DeserializeSecrets(protector, persistedClient.Secrets.Value);
+        var secrets = SecretSerializer.DeserializeSecrets(protector, liveSecrets);
 
         var definition = new OpenIdClientDefinition
         {

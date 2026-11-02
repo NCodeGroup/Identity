@@ -1330,6 +1330,15 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   ([#422](https://github.com/NCodeGroup/Identity/issues/422),
   [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
 
+- **Rotating a client secret keeps the rotated secret.** **Breaking:**
+  `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate` adds a replacement of the same type, use
+  and algorithm beside the rotated secret, so both authenticate while its holder switches; delete the rotated secret
+  when the switch is done. The optional `rotatedExpiresWhen` shortens the rotated secret's expiry and never extends it.
+  Rotation is authorized as creating a secret and updating the rotated one, and the replacement keeps the rotated
+  secret's entropy instead of growing with each rotation. The management console's rotate action keeps the current
+  secret for up to seven days ([#445](https://github.com/NCodeGroup/Identity/issues/445),
+  [ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
+
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`, in place of the `#region Copyright Preamble`
   block with a dated Apache 2.0 notice in three layouts. `.editorconfig` sets the header as `file_header_template` and
@@ -4179,6 +4188,12 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `OpenIdProviderException` that names the limit ([#423](https://github.com/NCodeGroup/Identity/issues/423)).
 
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release, instead of returning uncleared to the shared array pool ([#440](https://github.com/NCodeGroup/Identity/issues/440), [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+- **Client credentials stop authenticating at their expiry, and client secrets have at least 256 bits.** A client
+  secret or registered key whose `expiresWhen` has passed no longer authenticates its client.
+  `SharedSecretPolicy.MinimumEntropyBits` (256) is the floor for every generated shared secret:
+  `ISecretGenerator.GenerateSharedSecret` throws below it, and creating a client secret below it answers `400`
+  ([#445](https://github.com/NCodeGroup/Identity/issues/445),
+  [ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
 
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use

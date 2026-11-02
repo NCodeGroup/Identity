@@ -21,6 +21,12 @@ internal sealed class ProviderMetrics
 
     internal const string TimeoutScopeAttribute = "ncode.identity.openid_client.timeout_scope";
 
+    internal const string TimeoutErrorType = "timeout";
+
+    // The bounded catch-all value the family's metrics use (OpenIdMetricAttributes.OtherValue), which this package
+    // cannot reference.
+    internal const string OtherErrorType = "_OTHER";
+
     internal const string AttemptTimeoutScope = "attempt";
 
     internal const string TotalTimeoutScope = "total";

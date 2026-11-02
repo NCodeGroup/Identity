@@ -37,6 +37,8 @@ internal sealed class AuthenticationMetrics
 
     internal const string TimeoutScopeAttribute = "ncode.identity.outbound_http.timeout_scope";
 
+    internal const string TimeoutErrorType = "timeout";
+
     internal const string AttemptTimeoutScope = "attempt";
 
     internal const string TotalTimeoutScope = "total";

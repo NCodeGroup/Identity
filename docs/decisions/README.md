@@ -337,7 +337,7 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1282](./1282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |
 | [1283](./1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) | Audit records are CloudTrail-shaped JSON with an indexable envelope | Accepted |
 | [1284](./1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md) | A logout token is recorded only after the client handles it | Accepted |
-| [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted |
+| [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted (amended 2026-11-02 for #519) |
 | [1286](./1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
 | [1287](./1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md) | The AppHost fails fast when the frontend toolchain is stale | Accepted (amends [1152](./1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)) |
 | [1288](./1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |

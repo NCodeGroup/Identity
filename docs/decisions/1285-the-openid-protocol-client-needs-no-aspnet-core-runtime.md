@@ -28,6 +28,11 @@ The protocol client is a plain .NET library: no package of it references an ASP.
 - It references five `Microsoft.Extensions.*` packages directly, exactly the ones its `using`s name:
   `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Http`,
   `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options` and `Microsoft.Extensions.Primitives`.
+- Amendment (2026-11-02, [#519](https://github.com/NCodeGroup/Identity/issues/519)): a sixth direct reference,
+  `Microsoft.Extensions.Diagnostics`, supplies `IMeterFactory` and `AddMetrics()` for the retry and timeout counters on
+  the `NCode.Identity.OpenId.Client` meter. It is framework-free and already came in through `Microsoft.Extensions.Http`,
+  so it adds nothing to restore; the client still carries no `Microsoft.Extensions.Telemetry.*` package, which
+  `ProtocolPackageDependencyTests` checks.
 - Status codes are the internal named `int` constants `ProviderStatusCodes.Status200OK` and `.Status201Created` in
   `NCode.Identity.OpenId.Client.Http`, named as ASP.NET Core names them.
 - Authorization-request query parameters are percent-encoded with `Uri.EscapeDataString` (RFC 3986: everything but

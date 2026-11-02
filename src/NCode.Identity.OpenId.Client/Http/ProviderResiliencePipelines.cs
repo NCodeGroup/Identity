@@ -84,17 +84,19 @@ internal sealed class ProviderResiliencePipelines(
     /// </summary>
     /// <param name="outcome">The outcome of the attempt.</param>
     /// <returns>The error type.</returns>
+    // NCode.Identity.OpenId.Authentication's GuardedResiliencePipelines.GetErrorType maps outcomes the same way; this
+    // package cannot reference it (ADR-1285), so the two copies are kept in step, and both test suites pin the values.
     internal static string GetErrorType(Outcome<HttpResponseMessage> outcome) =>
         outcome switch
         {
             { Result: { } response } => ((int)response.StatusCode).ToString(
                 CultureInfo.InvariantCulture
             ),
-            { Exception: TimeoutRejectedException } => "timeout",
+            { Exception: TimeoutRejectedException } => ProviderMetrics.TimeoutErrorType,
             { Exception: HttpRequestException exception } => ToSnakeCase(
                 exception.HttpRequestError.ToString()
             ),
-            _ => "_OTHER",
+            _ => ProviderMetrics.OtherErrorType,
         };
 
     private static string ToSnakeCase(string name)
@@ -140,9 +142,12 @@ internal sealed class ProviderResiliencePipelines(
     )
     {
         var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        builder.AddTimeout(
-            CreateTimeout(options.TotalTimeout, ProviderMetrics.TotalTimeoutScope, metrics)
+        var totalTimeout = CreateTimeout(
+            options.TotalTimeout,
+            ProviderMetrics.TotalTimeoutScope,
+            metrics
         );
+        builder.AddTimeout(totalTimeout);
 
         if (maxRetryAttempts > 0)
         {
@@ -160,15 +165,19 @@ internal sealed class ProviderResiliencePipelines(
                     },
                     OnRetry = args =>
                     {
-                        metrics.Retried(GetErrorType(args.Outcome));
+                        var errorType = GetErrorType(args.Outcome);
+                        metrics.Retried(errorType);
                         args.Outcome.Result?.Dispose();
                         return ValueTask.CompletedTask;
                     },
                 }
             );
-            builder.AddTimeout(
-                CreateTimeout(options.AttemptTimeout, ProviderMetrics.AttemptTimeoutScope, metrics)
+            var attemptTimeout = CreateTimeout(
+                options.AttemptTimeout,
+                ProviderMetrics.AttemptTimeoutScope,
+                metrics
             );
+            builder.AddTimeout(attemptTimeout);
         }
 
         return builder.Build();

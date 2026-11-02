@@ -27,6 +27,8 @@ internal sealed class TestMetrics : IDisposable
         Dictionary<string, object?> Tags
     )> Measurements { get; } = new();
 
+    private ConcurrentDictionary<string, (string Meter, string? Unit)> Instruments { get; } = new();
+
     public TestMetrics()
     {
         ServiceProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
@@ -36,8 +38,11 @@ internal sealed class TestMetrics : IDisposable
         {
             InstrumentPublished = (instrument, listener) =>
             {
-                if (ReferenceEquals(instrument.Meter.Scope, meterFactory))
-                    listener.EnableMeasurementEvents(instrument);
+                if (!ReferenceEquals(instrument.Meter.Scope, meterFactory))
+                    return;
+
+                Instruments[instrument.Name] = (instrument.Meter.Name, instrument.Unit);
+                listener.EnableMeasurementEvents(instrument);
             },
         };
         Listener.SetMeasurementEventCallback<long>(
@@ -65,6 +70,12 @@ internal sealed class TestMetrics : IDisposable
             .Where(measurement => measurement.Instrument == instrumentName)
             .Select(measurement => measurement.Tags.GetValueOrDefault(attributeName) as string)
             .ToList();
+
+    /// <summary>
+    /// Gets the meter name and the unit of the instrument named <paramref name="instrumentName"/>, as it was published.
+    /// </summary>
+    public (string Meter, string? Unit) Describe(string instrumentName) =>
+        Instruments[instrumentName];
 
     public void Dispose()
     {

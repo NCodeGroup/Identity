@@ -43,6 +43,23 @@ public class ProviderResilienceHandlerTests : BaseTests
     #region SendAsync Tests
 
     [Fact]
+    public void CreateHandler_Always_PublishesTheInstrumentsOnTheClientMeterWithTheirUnits()
+    {
+        var stub = StubHttpMessageHandler.Sequence(CreateResponse(HttpStatusCode.OK));
+
+        using var handler = CreateHandler(stub);
+
+        Assert.Equal(
+            (OpenIdClientMetrics.MeterName, "{retry}"),
+            Metrics.Describe(ProviderMetrics.RetriesName)
+        );
+        Assert.Equal(
+            (OpenIdClientMetrics.MeterName, "{timeout}"),
+            Metrics.Describe(ProviderMetrics.TimeoutsName)
+        );
+    }
+
+    [Fact]
     public async Task SendAsync_WhenAGetFailsTransiently_RetriesIt()
     {
         var unavailable = CreateResponse(HttpStatusCode.ServiceUnavailable);

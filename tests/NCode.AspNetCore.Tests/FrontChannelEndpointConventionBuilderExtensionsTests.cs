@@ -74,7 +74,9 @@ public class FrontChannelEndpointConventionBuilderExtensionsTests : BaseTests
         );
         var httpContext = CreatePreflightContext();
 
-        await endpoint.RequestDelegate!(httpContext);
+        var requestDelegate = endpoint.RequestDelegate;
+        Assert.NotNull(requestDelegate);
+        await requestDelegate(httpContext);
 
         Assert.False(called);
         Assert.Equal(StatusCodes.Status405MethodNotAllowed, httpContext.Response.StatusCode);
@@ -95,7 +97,9 @@ public class FrontChannelEndpointConventionBuilderExtensionsTests : BaseTests
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = HttpMethods.Options;
 
-        await endpoint.RequestDelegate!(httpContext);
+        var requestDelegate = endpoint.RequestDelegate;
+        Assert.NotNull(requestDelegate);
+        await requestDelegate(httpContext);
 
         Assert.True(called);
     }

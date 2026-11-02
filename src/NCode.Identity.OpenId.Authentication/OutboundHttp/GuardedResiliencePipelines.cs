@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Metrics;
+using NCode.Identity.OpenId.Metrics;
 using Polly;
 using Polly.Retry;
 using Polly.Timeout;
@@ -81,17 +82,19 @@ internal sealed class GuardedResiliencePipelines(
     /// </summary>
     /// <param name="outcome">The outcome of the attempt.</param>
     /// <returns>The error type.</returns>
+    // The protocol client's ProviderResiliencePipelines.GetErrorType maps outcomes the same way; the client package
+    // cannot reference this one (ADR-1285), so the two copies are kept in step, and both test suites pin the values.
     internal static string GetErrorType(Outcome<HttpResponseMessage> outcome) =>
         outcome switch
         {
             { Result: { } response } => ((int)response.StatusCode).ToString(
                 CultureInfo.InvariantCulture
             ),
-            { Exception: TimeoutRejectedException } => "timeout",
+            { Exception: TimeoutRejectedException } => AuthenticationMetrics.TimeoutErrorType,
             { Exception: HttpRequestException exception } => ToSnakeCase(
                 exception.HttpRequestError.ToString()
             ),
-            _ => "_OTHER",
+            _ => OpenIdMetricAttributes.OtherValue,
         };
 
     private static string ToSnakeCase(string name)
@@ -141,9 +144,12 @@ internal sealed class GuardedResiliencePipelines(
         {
             TimeProvider = timeProvider,
         };
-        builder.AddTimeout(
-            CreateTimeout(options.TotalTimeout, AuthenticationMetrics.TotalTimeoutScope, metrics)
+        var totalTimeout = CreateTimeout(
+            options.TotalTimeout,
+            AuthenticationMetrics.TotalTimeoutScope,
+            metrics
         );
+        builder.AddTimeout(totalTimeout);
 
         if (maxRetryAttempts > 0)
         {
@@ -161,7 +167,8 @@ internal sealed class GuardedResiliencePipelines(
                     },
                     OnRetry = args =>
                     {
-                        metrics.OutboundRetried(GetErrorType(args.Outcome));
+                        var errorType = GetErrorType(args.Outcome);
+                        metrics.OutboundRetried(errorType);
                         args.Outcome.Result?.Dispose();
                         return ValueTask.CompletedTask;
                     },
@@ -169,13 +176,12 @@ internal sealed class GuardedResiliencePipelines(
             );
         }
 
-        builder.AddTimeout(
-            CreateTimeout(
-                options.AttemptTimeout,
-                AuthenticationMetrics.AttemptTimeoutScope,
-                metrics
-            )
+        var attemptTimeout = CreateTimeout(
+            options.AttemptTimeout,
+            AuthenticationMetrics.AttemptTimeoutScope,
+            metrics
         );
+        builder.AddTimeout(attemptTimeout);
 
         return builder.Build();
     }

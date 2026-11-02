@@ -57,11 +57,12 @@ public static class DefaultRegistration
                 >()
             );
 
-            // Every HTTP call is bounded by the resilience pipeline, so the client's own timeout is switched off; the
-            // default of 100 seconds would silently cut a longer TotalTimeout. See ADR-1336.
             // The pipelines count their retries and timeouts on the package's meter (ADR-1197).
             serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton<ProviderMetrics>();
+
+            // Every HTTP call is bounded by the resilience pipeline, so the client's own timeout is switched off; the
+            // default of 100 seconds would silently cut a longer TotalTimeout. See ADR-1336.
             serviceCollection.TryAddSingleton<ProviderResiliencePipelines>();
             serviceCollection.TryAddTransient<ProviderResilienceHandler>();
             serviceCollection

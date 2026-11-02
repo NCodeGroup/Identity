@@ -107,6 +107,12 @@ public sealed class BffOptions
     public BffAntiforgeryOptions Antiforgery { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the headers that <c>UseBffSecurityHeaders()</c> writes. The configuration section is
+    /// <c>Bff:SecurityHeaders</c>.
+    /// </summary>
+    public BffSecurityHeadersOptions SecurityHeaders { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets the session lifetime and cookie options. The configuration section is <c>Bff:Session</c>.
     /// </summary>
     public BffSessionOptions Session { get; set; } = new();

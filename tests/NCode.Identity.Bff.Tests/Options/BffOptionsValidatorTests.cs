@@ -516,6 +516,67 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("default-src 'self'\r\nSet-Cookie: x=1")]
+    [InlineData("default-src 'sélf'")]
+    public void Validate_WhenSecurityHeadersContentSecurityPolicyInvalid_Fails(string value)
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders.ContentSecurityPolicy = value;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SecurityHeaders:ContentSecurityPolicy")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenSecurityHeadersReferrerPolicyBlank_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders.ReferrerPolicy = "";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SecurityHeaders:ReferrerPolicy")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenSecurityHeadersCrossOriginOpenerPolicyHasControlCharacter_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders.CrossOriginOpenerPolicy = "same-origin\t";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SecurityHeaders:CrossOriginOpenerPolicy")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenSecurityHeadersNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:SecurityHeaders must be set"));
+    }
+
+    [Theory]
     [InlineData("iss")]
     [InlineData("sid")]
     [InlineData("nonce")]

@@ -53,6 +53,7 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         ValidateUserInfo(options.UserInfo, options.ClientAuthentication, failures);
         ValidateTokens(options.Tokens, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
+        ValidateSecurityHeaders(options.SecurityHeaders, failures);
         ValidateUserClaims(options.UserClaims, failures);
         ValidateLoginParameters(options.LoginParameters, failures);
         ValidateRemoteApis(options.RemoteApis, options.PathPrefix, isDevelopment, failures);
@@ -314,6 +315,46 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
             failures.Add(
                 "Bff:Tokens:RefreshLeaseDuration must be between 10 seconds and 5 minutes."
             );
+        }
+    }
+
+    private static void ValidateSecurityHeaders(
+        BffSecurityHeadersOptions? securityHeaders,
+        List<string> failures
+    )
+    {
+        if (securityHeaders is null)
+        {
+            failures.Add("Bff:SecurityHeaders must be set.");
+            return;
+        }
+
+        ValidateHeaderValue(
+            securityHeaders.ContentSecurityPolicy,
+            "Bff:SecurityHeaders:ContentSecurityPolicy",
+            failures
+        );
+        ValidateHeaderValue(
+            securityHeaders.ReferrerPolicy,
+            "Bff:SecurityHeaders:ReferrerPolicy",
+            failures
+        );
+        ValidateHeaderValue(
+            securityHeaders.CrossOriginOpenerPolicy,
+            "Bff:SecurityHeaders:CrossOriginOpenerPolicy",
+            failures
+        );
+    }
+
+    private static void ValidateHeaderValue(string? value, string key, List<string> failures)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            failures.Add($"{key} must not be blank.");
+        }
+        else if (value.Any(x => x is < ' ' or > '~'))
+        {
+            failures.Add($"{key} must hold only printable ASCII characters.");
         }
     }
 

@@ -4,6 +4,9 @@ const NCode.Identity.Bff.Options.BffDPoPModes.WhenSupported = "when_supported" -
 NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions
 NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
 NCode.Identity.Bff.Antiforgery.BffApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseBff() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.Bff.Hardening.BffSecurityHeadersApplicationBuilderExtensions
+NCode.Identity.Bff.Hardening.BffSecurityHeadersApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.Bff.Hardening.BffSecurityHeadersApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseBffSecurityHeaders() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 NCode.Identity.Bff.BffLibraryRegistration
 NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!)
 NCode.Identity.Bff.BffLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!).AddBffConfiguration(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.BffLibrary>!
@@ -86,6 +89,8 @@ NCode.Identity.Bff.Options.BffOptions.Resources.get -> System.Collections.Generi
 NCode.Identity.Bff.Options.BffOptions.Resources.set -> void
 NCode.Identity.Bff.Options.BffOptions.ReturnUrls.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffOptions.ReturnUrls.set -> void
+NCode.Identity.Bff.Options.BffOptions.SecurityHeaders.get -> NCode.Identity.Bff.Options.BffSecurityHeadersOptions!
+NCode.Identity.Bff.Options.BffOptions.SecurityHeaders.set -> void
 NCode.Identity.Bff.Options.BffOptions.Scopes.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffOptions.Scopes.set -> void
 NCode.Identity.Bff.Options.BffOptions.Session.get -> NCode.Identity.Bff.Options.BffSessionOptions!
@@ -110,6 +115,14 @@ NCode.Identity.Bff.Options.BffRemoteApiOptions.AllowedMethods.get -> System.Coll
 NCode.Identity.Bff.Options.BffRemoteApiOptions.AllowedMethods.set -> void
 NCode.Identity.Bff.Options.BffRemoteApiOptions.Timeout.get -> System.TimeSpan
 NCode.Identity.Bff.Options.BffRemoteApiOptions.Timeout.set -> void
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.BffSecurityHeadersOptions() -> void
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.ContentSecurityPolicy.get -> string!
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.ContentSecurityPolicy.set -> void
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.CrossOriginOpenerPolicy.get -> string!
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.CrossOriginOpenerPolicy.set -> void
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.ReferrerPolicy.get -> string!
+NCode.Identity.Bff.Options.BffSecurityHeadersOptions.ReferrerPolicy.set -> void
 NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.get -> System.Collections.Generic.List<string!>!
 NCode.Identity.Bff.Options.BffOptions.TrustedOrigins.set -> void
 NCode.Identity.Bff.Options.BffOptions.UserClaims.get -> System.Collections.Generic.List<string!>!

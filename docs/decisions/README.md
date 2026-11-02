@@ -364,3 +364,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1309](./1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted (amended by [1335](./1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)) |
 | [1335](./1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md) | A client's `jwks_uri` is fetched single-flight and a failed fetch is remembered | Accepted |
+| [1336](./1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) | The protocol client bounds its calls with a Polly.Core pipeline | Accepted |

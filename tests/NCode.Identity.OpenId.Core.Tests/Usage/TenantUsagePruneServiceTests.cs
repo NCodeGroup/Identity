@@ -11,12 +11,11 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Usage;
 
-public sealed class TenantUsagePruneServiceTests : IDisposable
+public sealed class TenantUsagePruneServiceTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateOnly Today = new(2026, 10, 21);
 
-    private MockRepository MockRepository { get; }
     private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -25,12 +24,10 @@ public sealed class TenantUsagePruneServiceTests : IDisposable
 
     public TenantUsagePruneServiceTests()
     {
-        MockRepository = new MockRepository(MockBehavior.Strict);
-        MockTimeProvider = MockRepository.Create<TimeProvider>();
-        MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
-        MockStoreManager = MockRepository.Create<IStoreManager>();
-        MockTenantUsageStore = MockRepository.Create<ITenantUsageStore>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now);
+        MockTimeProvider = CreateStrictMock<TimeProvider>();
+        MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
+        MockStoreManager = CreateStrictMock<IStoreManager>();
+        MockTenantUsageStore = CreateStrictMock<ITenantUsageStore>();
         Service = new TenantUsagePruneService(
             MockStoreManagerFactory.Object,
             Options.Create(new TenantUsageOptions { Retention = TimeSpan.FromDays(10) }),
@@ -39,14 +36,24 @@ public sealed class TenantUsagePruneServiceTests : IDisposable
         );
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        Service.Dispose();
-        MockRepository.Verify();
+        if (disposing)
+        {
+            Service.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    private void SetupClock()
+    {
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
     }
 
     private void SetupStores()
     {
+        SetupClock();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
@@ -58,13 +65,8 @@ public sealed class TenantUsagePruneServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    #region PruneAsync Tests
-
-    [Fact]
-    public async Task PruneAsync_RemovesTheDaysPastRetention()
+    private void SetupRemoveBefore(int removed, Times times, CancellationToken cancellationToken)
     {
-        var cancellationToken = CancellationToken.None;
-        SetupStores();
         MockTenantUsageStore
             .Setup(x =>
                 x.RemoveBeforeAsync(
@@ -73,8 +75,32 @@ public sealed class TenantUsagePruneServiceTests : IDisposable
                     cancellationToken
                 )
             )
-            .ReturnsAsync(3)
-            .Verifiable(Times.Once);
+            .ReturnsAsync(removed)
+            .Verifiable(times);
+    }
+
+    private void SetupSaveChangesFailingOnce(
+        Exception exception,
+        CancellationToken cancellationToken
+    )
+    {
+        var saves = 0;
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(() =>
+                ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask
+            )
+            .Verifiable(Times.Exactly(2));
+    }
+
+    #region PruneAsync Tests
+
+    [Fact]
+    public async Task PruneAsync_RemovesTheDaysPastRetention()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        SetupRemoveBefore(3, Times.Once(), cancellationToken);
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(cancellationToken))
             .Returns(ValueTask.CompletedTask)
@@ -88,23 +114,43 @@ public sealed class TenantUsagePruneServiceTests : IDisposable
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
-        MockTenantUsageStore
-            .Setup(x =>
-                x.RemoveBeforeAsync(
-                    Today.AddDays(-10),
-                    TenantUsagePruneService.BatchSize,
-                    cancellationToken
-                )
-            )
-            .ReturnsAsync(3)
-            .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("unreachable"))
-            .Returns(ValueTask.CompletedTask);
+        SetupRemoveBefore(3, Times.Exactly(2), cancellationToken);
+        SetupSaveChangesFailingOnce(
+            new InvalidOperationException("unreachable"),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task PruneAsync_WhenTheCommitTimesOut_RetriesOnTheNextTick()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        SetupRemoveBefore(3, Times.Exactly(2), cancellationToken);
+        SetupSaveChangesFailingOnce(new TaskCanceledException("timed out"), cancellationToken);
+
+        await Service.PruneAsync(cancellationToken);
+        await Service.PruneAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task PruneAsync_WhenTheTokenIsCancelled_Throws()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        await cancellationTokenSource.CancelAsync();
+        SetupClock();
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(cancellationToken))
+            .ThrowsAsync(new OperationCanceledException(cancellationToken))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Service.PruneAsync(cancellationToken)
+        );
     }
 
     [Fact]
@@ -135,20 +181,8 @@ public sealed class TenantUsagePruneServiceTests : IDisposable
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
-        MockTenantUsageStore
-            .Setup(x =>
-                x.RemoveBeforeAsync(
-                    Today.AddDays(-10),
-                    TenantUsagePruneService.BatchSize,
-                    cancellationToken
-                )
-            )
-            .ReturnsAsync(3)
-            .Verifiable(Times.Exactly(2));
-        MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new StoreConcurrencyException("conflict"))
-            .Returns(ValueTask.CompletedTask);
+        SetupRemoveBefore(3, Times.Exactly(2), cancellationToken);
+        SetupSaveChangesFailingOnce(new StoreConcurrencyException("conflict"), cancellationToken);
 
         await Service.PruneAsync(cancellationToken);
     }

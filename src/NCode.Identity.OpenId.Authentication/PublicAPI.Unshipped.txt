@@ -353,6 +353,8 @@ NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.FlushInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.FlushInterval.set -> void
+NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.PruneInterval.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.PruneInterval.set -> void
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.Retention.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.Retention.set -> void
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.TenantUsageOptions() -> void

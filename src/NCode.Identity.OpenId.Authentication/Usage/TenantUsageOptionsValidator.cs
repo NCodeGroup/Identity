@@ -49,6 +49,13 @@ internal sealed class TenantUsageOptionsValidator : IValidateOptions<TenantUsage
             );
         }
 
+        if (!TimerPeriod.IsValid(options.PruneInterval))
+        {
+            failures.Add(
+                $"{nameof(TenantUsageOptions)}.{nameof(TenantUsageOptions.PruneInterval)} ('{TenantUsageOptions.SectionName}:{nameof(TenantUsageOptions.PruneInterval)}') must be between {TimerPeriod.MinValue} and {TimerPeriod.MaxValue}, the periods a timer accepts; it is {options.PruneInterval}."
+            );
+        }
+
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);

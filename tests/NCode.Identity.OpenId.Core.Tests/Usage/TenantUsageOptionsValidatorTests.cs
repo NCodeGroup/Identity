@@ -63,5 +63,20 @@ public sealed class TenantUsageOptionsValidatorTests
         Assert.Contains("'TenantUsage:Retention'", result.FailureMessage, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Validate_WhenThePruneIntervalIsZero_FailsNamingItsKey()
+    {
+        var options = new TenantUsageOptions { PruneInterval = TimeSpan.Zero };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "'TenantUsage:PruneInterval'",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
     #endregion
 }

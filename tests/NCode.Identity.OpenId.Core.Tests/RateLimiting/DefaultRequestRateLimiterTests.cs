@@ -635,8 +635,9 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             CreateSlidingIncrement("limited", limit: 1),
         ];
         IReadOnlyList<ExpiringCounterCount> answer = [new ExpiringCounterCount(2, 0)];
+        var increments = 0;
         MockCounterSet
-            .SetupSequence(x =>
+            .Setup(x =>
                 x.IncrementUntilExceededAsync(
                     It.Is<IReadOnlyList<ExpiringCounterIncrement>>(actual =>
                         actual.SequenceEqual(expected)
@@ -644,23 +645,19 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
-            .ReturnsAsync(answer);
+            .Returns(() =>
+                ++increments == 1
+                    ? ValueTask.FromException<IReadOnlyList<ExpiringCounterCount>>(
+                        new InvalidOperationException("The store is unavailable.")
+                    )
+                    : ValueTask.FromResult(answer)
+            )
+            .Verifiable(Times.Exactly(2));
 
         await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
         Timestamp += DefaultRequestRateLimiter.StoreRetryInterval.Ticks;
         var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
-        MockCounterSet.Verify(
-            x =>
-                x.IncrementUntilExceededAsync(
-                    It.Is<IReadOnlyList<ExpiringCounterIncrement>>(actual =>
-                        actual.SequenceEqual(expected)
-                    ),
-                    CancellationToken.None
-                ),
-            Times.Exactly(2)
-        );
         var state = RateLimitRequestState.Get(HttpContext);
         Assert.True(decision.IsRejected);
         Assert.True(state.IsRefused);

@@ -141,10 +141,17 @@ public sealed class AuditRecordFlushServiceTests : IDisposable
             )
             .ReturnsAsync(2)
             .Verifiable();
+        var saves = 0;
         MockStoreManager
-            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("The database is unreachable."))
-            .Returns(ValueTask.CompletedTask);
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(() =>
+                ++saves == 1
+                    ? ValueTask.FromException(
+                        new InvalidOperationException("The database is unreachable.")
+                    )
+                    : ValueTask.CompletedTask
+            )
+            .Verifiable(Times.Exactly(2));
 
         await Service.FlushAsync(cancellationToken);
         var second = Enqueue(1);

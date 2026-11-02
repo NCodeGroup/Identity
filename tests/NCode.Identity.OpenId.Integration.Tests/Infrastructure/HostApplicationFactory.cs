@@ -43,9 +43,10 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// Each factory instance uses its own uniquely-named in-memory database so tests are fully isolated
 /// (EF Core caches its internal service provider by option configuration, so a shared database name
 /// would cause parallel test hosts to collide). The tenant signs with the keys the host provisions when it first seeds
-/// the tenant (ADR-1169), stored in that database under the factory's own root key. A host is stopped through its own
+/// the tenant, stored in that database under the factory's own root key. A host is stopped through its own
 /// run loop (<see cref="ApplicationRunLoopHost"/>), so each hosted service is stopped once.
 /// </remarks>
+// See ADR-1169.
 public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
     /// <summary>The tenant id used by the host's static single-tenant provider.</summary>
@@ -195,10 +196,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
-    /// federated identity that a real interactive login provisions (ADR-1035), so the UserInfo scope-claims enricher
+    /// federated identity that a real interactive login provisions, so the UserInfo scope-claims enricher
     /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries
     /// as its public <c>sub</c>, which the enricher resolves the local account from.
     /// </summary>
+    // See ADR-1035.
     public async Task<string> SeedLocalAccountAsync(
         string localAccountId,
         string? email = null,

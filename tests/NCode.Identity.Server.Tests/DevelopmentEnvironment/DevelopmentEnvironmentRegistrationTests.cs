@@ -8,7 +8,7 @@ using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Registration;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests.DevelopmentEnvironment;
+namespace NCode.Identity.Server.Tests;
 
 public sealed class DevelopmentEnvironmentRegistrationTests
 {
@@ -21,9 +21,11 @@ public sealed class DevelopmentEnvironmentRegistrationTests
 
     private static ServiceCollection AddDevelopmentEnvironment(IConfiguration configuration)
     {
-        var services = new ServiceCollection();
-        new ServiceBuilder<IdentityServer>(services).AddDevelopmentEnvironment(configuration);
-        return services;
+        var serviceCollection = new ServiceCollection();
+        new ServiceBuilder<IdentityServer>(serviceCollection).AddDevelopmentEnvironment(
+            configuration
+        );
+        return serviceCollection;
     }
 
     #region AddDevelopmentEnvironment Tests
@@ -31,14 +33,14 @@ public sealed class DevelopmentEnvironmentRegistrationTests
     [Fact]
     public void AddDevelopmentEnvironment_WhenNothingIsConfigured_RegistersNoConvenience()
     {
-        var services = AddDevelopmentEnvironment(CreateConfiguration());
+        var serviceCollection = AddDevelopmentEnvironment(CreateConfiguration());
 
         Assert.DoesNotContain(
-            services,
+            serviceCollection,
             descriptor => descriptor.ImplementationType == typeof(DeveloperSecretPruningSeedHandler)
         );
         Assert.DoesNotContain(
-            services,
+            serviceCollection,
             descriptor => descriptor.ServiceType == typeof(ICorsService)
         );
     }
@@ -46,12 +48,12 @@ public sealed class DevelopmentEnvironmentRegistrationTests
     [Fact]
     public void AddDevelopmentEnvironment_WhenPruneUnreadableKeysIsTrue_RegistersThePruner()
     {
-        var services = AddDevelopmentEnvironment(
+        var serviceCollection = AddDevelopmentEnvironment(
             CreateConfiguration(("DeveloperKeys:PruneUnreadableKeys", "true"))
         );
 
         Assert.Contains(
-            services,
+            serviceCollection,
             descriptor => descriptor.ImplementationType == typeof(DeveloperSecretPruningSeedHandler)
         );
     }
@@ -59,11 +61,14 @@ public sealed class DevelopmentEnvironmentRegistrationTests
     [Fact]
     public void AddDevelopmentEnvironment_WhenCorsOriginsAreConfigured_RegistersTheCorsPolicy()
     {
-        var services = AddDevelopmentEnvironment(
+        var serviceCollection = AddDevelopmentEnvironment(
             CreateConfiguration(("Cors:AllowedOrigins:0", "https://localhost:5173"))
         );
 
-        Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(ICorsService));
+        Assert.Contains(
+            serviceCollection,
+            descriptor => descriptor.ServiceType == typeof(ICorsService)
+        );
     }
 
     #endregion

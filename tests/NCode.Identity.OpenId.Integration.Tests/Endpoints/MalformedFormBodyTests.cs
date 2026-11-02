@@ -147,6 +147,8 @@ public class MalformedFormBodyTests(HostApplicationFactory factory)
     [Fact]
     public async Task PostInteractiveLogin_WithAMalformedForm_AnswersBadRequest()
     {
+        // This pins existing behavior: the framework reads the login form (its antiforgery check and minimal-API form
+        // binding) and answers 400 before the handler runs, so there is no OpenID error body to assert.
         using var response = await PostMalformedFormAsync("/account/login");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

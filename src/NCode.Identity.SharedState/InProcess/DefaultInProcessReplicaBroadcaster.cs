@@ -12,7 +12,7 @@ namespace NCode.Identity.SharedState.InProcess;
 /// correct only for a deployment that runs a single replica, because a message published by one replica is not seen by
 /// another. A handler's failure is logged and never reaches the publisher.
 /// </summary>
-// See ADR-1205.
+// See ADR-1205 and ADR-1351.
 internal sealed class DefaultInProcessReplicaBroadcaster(
     IEnumerable<IReplicaBroadcastHandler> handlers,
     ILogger<DefaultInProcessReplicaBroadcaster> logger
@@ -41,7 +41,13 @@ internal sealed class DefaultInProcessReplicaBroadcaster(
             {
                 await handler.HandleAsync(message, cancellationToken);
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            // Only the publisher's own cancellation stops the delivery. A handler's own timeout throws
+            // OperationCanceledException with the publisher's token untouched, and any other failure is the handler's,
+            // even after the publisher cancelled, so both are logged and the other handlers still run.
+            catch (Exception exception)
+                when (exception is not OperationCanceledException
+                    || !cancellationToken.IsCancellationRequested
+                )
             {
                 Logger.ReplicaBroadcastHandlerFailed(channel, exception);
             }

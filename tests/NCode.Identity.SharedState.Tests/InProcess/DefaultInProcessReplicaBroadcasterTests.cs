@@ -85,5 +85,76 @@ public sealed class DefaultInProcessReplicaBroadcasterTests : BaseTests
         mockSucceeding.Verify(x => x.HandleAsync("acme", CancellationToken.None), Times.Once);
     }
 
+    [Fact]
+    public async Task PublishAsync_WhenAHandlerTimesOut_DeliversToTheOthersAndCompletes()
+    {
+        var mockFailing = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockFailing.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockFailing
+            .Setup(x => x.HandleAsync("acme", CancellationToken.None))
+            .ThrowsAsync(new TaskCanceledException("The handler timed out."))
+            .Verifiable();
+
+        var mockSucceeding = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockSucceeding.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockSucceeding
+            .Setup(x => x.HandleAsync("acme", CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var broadcaster = CreateBroadcaster(mockFailing.Object, mockSucceeding.Object);
+
+        await broadcaster.PublishAsync("tenant-changed", "acme", CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WhenThePublisherCancelsAndAHandlerFailsOtherwise_DeliversToTheOthersAndCompletes()
+    {
+        using var source = new CancellationTokenSource();
+        await source.CancelAsync();
+        var token = source.Token;
+
+        var mockFailing = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockFailing.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockFailing
+            .Setup(x => x.HandleAsync("acme", token))
+            .ThrowsAsync(new InvalidOperationException("The handler failed."))
+            .Verifiable();
+
+        var mockSucceeding = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockSucceeding.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockSucceeding
+            .Setup(x => x.HandleAsync("acme", token))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var broadcaster = CreateBroadcaster(mockFailing.Object, mockSucceeding.Object);
+
+        await broadcaster.PublishAsync("tenant-changed", "acme", token);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WhenThePublisherCancels_Throws()
+    {
+        using var source = new CancellationTokenSource();
+        await source.CancelAsync();
+        var token = source.Token;
+
+        var mockCancelling = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockCancelling.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockCancelling
+            .Setup(x => x.HandleAsync("acme", token))
+            .ThrowsAsync(new OperationCanceledException(token))
+            .Verifiable();
+
+        var mockSecond = CreateStrictMock<IReplicaBroadcastHandler>();
+
+        var broadcaster = CreateBroadcaster(mockCancelling.Object, mockSecond.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await broadcaster.PublishAsync("tenant-changed", "acme", token)
+        );
+    }
+
     #endregion
 }

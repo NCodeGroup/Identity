@@ -102,6 +102,18 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public async Task AddOutboundHttpServices_GuardedClient_DisablesTheHttpClientTimeout()
+    {
+        var serviceCollection = CreateServiceCollection();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+        var factory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+
+        using var client = factory.CreateClient(GuardedHttpClient.Name);
+
+        Assert.Equal(Timeout.InfiniteTimeSpan, client.Timeout);
+    }
+
+    [Fact]
     public async Task AddOutboundHttpServices_WhenAGetFailsWith503_RetriesTwice()
     {
         var stub = new CountingHttpMessageHandler(ServiceUnavailable);

@@ -80,6 +80,8 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+
             // A committed change to a tenant evicts it from this replica's cache and seeds it again, so a key its new
             // settings require is provisioned at once rather than when the tenant is next materialized (ADR-1169).
             serviceCollection.TryAddEnumerable(

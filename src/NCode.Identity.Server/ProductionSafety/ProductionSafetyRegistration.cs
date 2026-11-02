@@ -200,8 +200,7 @@ public static class ProductionSafetyRegistration
             violations.Add(
                 new ProductionSafetyViolation(
                     RootKeyProviderConfigurationKey,
-                    "is not set, so the ephemeral root key is used and every restart makes every stored secret "
-                        + "unreadable.",
+                    "is not set, so no root key protects the stored secrets.",
                     providerResolution
                 )
             );

@@ -118,8 +118,9 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Answer a call differently each time from one counted setup, not `SetupSequence`.** Moq 4.21 has no
   `.Verifiable()` on `SetupSequence`, so a sequence escapes the repository's verification and an answer it lists but
   never gives passes unnoticed. Count the calls in a local, answer from the count, and end the setup with
-  `.Verifiable(Times.Exactly(n))`: `.Returns(() => ++saves == 1 ? ValueTask.FromException(exception) :
-  ValueTask.CompletedTask)` (`StoreManagerMockExtensions.SetupSaveChangesFailingOnce`), or
+  `.Verifiable(Times.Exactly(n))`:
+  `.Returns(() => ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask)`
+  (`StoreManagerMockExtensions.SetupSaveChangesFailingOnce`), or
   `.ReturnsAsync(() => ++batches == 1 ? BatchSize : 5)` for a value. When the call that answers differently has
   arguments of its own, give it its own setup, or the narrower setup above. `SetupSequence` stays only in the
   read-and-retry case under [Persistence & integration tests](#persistence--integration-tests).

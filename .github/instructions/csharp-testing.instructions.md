@@ -136,39 +136,26 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 
 ## Persistence & integration tests
 
-- 👁 **Store / EF behavior is tested against a real provider, not a mocked store.** Anything that depends on
-  `SaveChanges` side effects — concurrency-token generation, cascade deletes, `SaveChangesInterceptor`s, value
-  converters — must run against an actual `DbContext` (EF **InMemory** covers most cases). Endpoint tests that mock the
-  store cannot observe these effects: a `SavingChanges`-only interceptor sat dead for exactly this reason (the codebase
-  saves via `SaveChangesAsync`; see
-  [ADR-1012](../../docs/decisions/1012-interceptor-managed-concurrency-tokens.md)). Keep both layers — mock the store for
-  endpoint logic, and exercise the store itself against a real provider.
-- 👁 **A handler that writes through more than one store needs an end-to-end test.** A store resolves the tenant that
-  owns a row with a database query, not from the change tracker, so a row a tenant owns — its creator's ownership
-  assignment, a seeded resource — can be added only after the tenant row is committed. A store-mocked endpoint test
-  cannot see that order: the management API's tenant create added the ownership row in the same unit of work as the
-  tenant, failed on every call, and its unit tests passed. Cover such a handler through the host
-  (`TenantProvisioningTests` creates a tenant through the management API, then serves it).
-- 👁 **EF InMemory does not enforce `[ConcurrencyCheck]`.** It honors a change-tracker interceptor but does **not** put
-  the token in the `UPDATE … WHERE` clause, so it cannot detect a concurrent-write conflict. A true
-  optimistic-concurrency test uses a **relational** provider — SQLite in-memory (a shared, open `SqliteConnection` +
-  `EnsureCreated`) with two `DbContext`s to stand in for the racing writers.
-- 👁 **EF InMemory does not enforce unique indexes** either — including a **filtered** unique index
-  (`.HasIndex(…).IsUnique().HasFilter("… IS NOT NULL")`). A test that must observe the constraint (a duplicate
-  rejected, or multiple rows allowed past a filtered `NULL`) runs against **SQLite in-memory** (`EnsureCreated` builds
-  and enforces the index); the collision surfaces as a `DbUpdateException` on the offending `SaveChanges`.
-- 👁 **EF InMemory enforces no foreign key.** A deletion whose dependents reference the deleted row is tested on SQLite
-  in-memory, where a missed dependent fails `SaveChanges` (`ClientStoreRelationalRemovalTests`,
-  `TenantStoreRelationalRemovalTests`).
-- 👁 **EF Core's SQLite provider cannot compare or order a `DateTimeOffset`.** Test a store query that filters on one,
-  such as a grant's `ExpiresWhen` or `RevokedWhen`, on EF InMemory.
-- 👁 **Name an EF InMemory database once, outside the options lambda.** `AddDbContext(options => …)` runs the lambda for
-  every context, so `options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))` gives each scope its own empty
-  database and a test that writes in one scope reads nothing in the next. Draw the name into a local first and close
-  over it (`AuditRecordStoreTests.CreateInMemoryProvider`).
-- 👁 **A test that adds an entity to the `OpenIdDbContext` model calls `EnableServiceProviderCaching(false)`.** Entity
-  Framework caches the model per context type across service providers, so without it the test may receive a model
-  built without its entity (`TenantStoreContributedEntityRemovalTests`).
+- 👁 **Store and EF behavior is tested against a real provider, not a mocked store** — template
+  [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); a `SavingChanges`-only interceptor never
+  runs, because the codebase saves through `SaveChangesAsync`
+  ([ADR-1012](../../docs/decisions/1012-interceptor-managed-concurrency-tokens.md)).
+- 👁 **A handler that writes through more than one store needs an end-to-end test** — template
+  [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core): a store resolves the tenant that owns a
+  row with a database query, so a row a tenant owns can be added only after the tenant row commits
+  (`TenantProvisioningTests`).
+- 👁 **EF InMemory enforces no concurrency token, unique index (filtered or not) or foreign key** — template
+  [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); test them on SQLite in-memory
+  (`ClientStoreRelationalRemovalTests`, `TenantStoreRelationalRemovalTests`).
+- 👁 **EF Core's SQLite provider cannot compare or order a `DateTimeOffset`** — template
+  [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); test a grant's `ExpiresWhen` or
+  `RevokedWhen` query on EF InMemory.
+- 👁 **Name an EF InMemory database once, outside the options lambda** — template
+  [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core)
+  (`AuditRecordStoreTests.CreateInMemoryProvider`).
+- 👁 **A test that adds an entity to the `OpenIdDbContext` model calls `EnableServiceProviderCaching(false)`** —
+  template [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core)
+  (`TenantStoreContributedEntityRemovalTests`).
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
   [ADR-1208](../../docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
@@ -185,25 +172,20 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   tenant cached, so the token still validates and the management request reads the document
   (`UnreadableSettingsDocumentTests`). A handler test that a read authorizes before it resolves gives the strict
   resolver no setup (`GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings`).
-- 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
-  (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
-  one shared instance makes the second read see the first attempt's own write.
-- 👁 **Test a read-modify-write through the update function it passes.** The strict setup of `UpdatePayloadAsync`
-  captures the `update` argument in its callback; the test invokes it with the stored grant the scenario means, such as
-  one a concurrent request changed, and asserts the update it returns (`DefaultSessionServiceTests`,
+- 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
+- 👁 **Test a read-modify-write through the update function it passes** — template
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`DefaultSessionServiceTests`,
   [ADR-1222](../../docs/decisions/1222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
 - 👁 **A mocked `OpenIdContext` or `OpenIdTenant` that the code under test disposes sets up its protected
-  `DisposeAsyncCore`.** `mock.Protected().Setup<ValueTask>("DisposeAsyncCore")…Verifiable()`; `DisposeAsync` is not
-  virtual and calls it (`EndedSessionTerminationServiceTests`).
-- 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
-  tenant-scoping filter, [ADR-1018](../../docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
-  applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,
-  including a store's local-first lookup — returns the row **without** re-applying the filter. A test that exercises a
-  query filter must `ChangeTracker.Clear()` (or use a fresh `DbContext`) after seeding so the assertion hits the
-  database query where the filter actually runs. EF InMemory **does** honor query filters, so it covers this case.
-- 👁 **Data-protection integration tests are not hermetic under a shared host.** A `WebApplicationFactory`
-  `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
-  keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own
+  `DisposeAsyncCore`** — template [Setup Techniques](csharp-tests.instructions.md#setup-techniques)
+  (`EndedSessionTerminationServiceTests`).
+- 👁 **A global query filter is bypassed for change-tracked entities** — template
+  [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); the tenant-scoping filter
+  ([ADR-1018](../../docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)) behaves this way, and EF
+  InMemory honors query filters, so it covers the case.
+- 👁 **Data-protection integration tests are not hermetic under a shared host** — template
+  [Integration Tests](csharp-tests.instructions.md#integration-tests): give each such test its own
   `using var factory = new HostApplicationFactory();`.
 - 👁 **Each `HostApplicationFactory` instance owns one in-memory database and one root key, which every host it builds
   shares.** The factory keeps its `InMemoryDatabaseRoot` and root key on the instance. `factory.WithWebHostBuilder(…)`

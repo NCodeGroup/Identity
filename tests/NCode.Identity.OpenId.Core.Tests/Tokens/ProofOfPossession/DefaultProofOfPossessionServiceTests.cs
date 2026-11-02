@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Encoders;
+using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
@@ -29,6 +30,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     private Mock<IReadOnlySettingCollection> MockSettings { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdClient> MockClient { get; }
+    private Mock<OpenIdTenant> MockTenant { get; }
     private DefaultHttpContext HttpContext { get; }
 
     private DefaultProofOfPossessionService Service { get; }
@@ -41,6 +43,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockClient = CreateStrictMock<OpenIdClient>();
+        MockTenant = CreateStrictMock<OpenIdTenant>();
 
         HttpContext = new DefaultHttpContext();
         HttpContext.Request.Scheme = "https";
@@ -73,6 +76,41 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens))
             .Returns(certificateBound);
+    }
+
+    private void SetupTenant(
+        string? mtlsEndpointAliasAuthority = null,
+        bool comparesTheAlias = false
+    )
+    {
+        MockContext.SetupGet(x => x.Tenant).Returns(MockTenant.Object).Verifiable();
+
+        // When the request reaches the mTLS alias, the htu is compared with the alias URL and the base address is never
+        // read, so a strict BaseAddress setup would go unconsumed.
+        if (comparesTheAlias)
+        {
+            MockTenant
+                .SetupGet(x => x.MtlsEndpointAliasAuthority)
+                .Returns(mtlsEndpointAliasAuthority)
+                .Verifiable();
+            return;
+        }
+
+        MockTenant
+            .SetupGet(x => x.BaseAddress)
+            .Returns(
+                new UriDescriptor
+                {
+                    Scheme = "https",
+                    Host = new HostString("op.test"),
+                    Path = PathString.Empty,
+                }
+            )
+            .Verifiable();
+        MockTenant
+            .SetupGet(x => x.MtlsEndpointAliasAuthority)
+            .Returns(mtlsEndpointAliasAuthority)
+            .Verifiable();
     }
 
     private void SetupSenderConstraintRequired() =>
@@ -122,6 +160,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     public async Task EvaluateTokenRequestAsync_WhenDPoPProofPresent_ReturnsDPoPBinding()
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
+        SetupTenant();
         HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator
             .Setup(x =>
@@ -147,6 +186,42 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 
         Assert.Equal(OpenIdProtocol.TokenTypes.DPoP, binding.TokenType);
         Assert.Equal("jkt-thumbprint", binding.Confirmation.JwkThumbprint);
+    }
+
+    [Theory]
+    [InlineData("attacker.test", false, "https://op.test/token")]
+    [InlineData("op.test:8443", false, "https://op.test/token")]
+    [InlineData("mtls.op.test:8443", false, "https://op.test/token")]
+    [InlineData("mtls.op.test", true, "https://mtls.op.test/token")]
+    [InlineData("MTLS.OP.TEST:443", true, "https://mtls.op.test/token")]
+    public async Task EvaluateTokenRequestAsync_ComparesTheHtuWithTheTenantsPublishedUrl(
+        string requestHost,
+        bool comparesTheAlias,
+        string expectedHttpUri
+    )
+    {
+        SetupSettings(requireDPoP: false, certificateBound: false);
+        SetupTenant(mtlsEndpointAliasAuthority: "https://mtls.op.test", comparesTheAlias);
+        HttpContext.Request.Host = new HostString(requestHost);
+        HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
+        MockValidator
+            .Setup(x =>
+                x.ValidateAsync(
+                    MockContext.Object,
+                    It.Is<DPoPProofValidationRequest>(r => r.HttpUri == expectedHttpUri),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("jkt-thumbprint")
+            .Verifiable();
+
+        var binding = await Service.EvaluateTokenRequestAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CancellationToken.None
+        );
+
+        Assert.Equal(OpenIdProtocol.TokenTypes.DPoP, binding.TokenType);
     }
 
     [Fact]
@@ -232,6 +307,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
         SetupSenderConstraintRequired();
+        SetupTenant();
         HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator
             .Setup(x =>
@@ -283,11 +359,13 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 
     private void SetupTenantSettings()
     {
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        SetupTenant();
         var mockSettingsProvider = CreateLooseMock<IReadOnlySettingCollectionProvider>();
-        MockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
-        mockSettingsProvider.SetupGet(x => x.Collection).Returns(MockSettings.Object);
+        MockTenant
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+        mockSettingsProvider.SetupGet(x => x.Collection).Returns(MockSettings.Object).Verifiable();
     }
 
     [Fact]

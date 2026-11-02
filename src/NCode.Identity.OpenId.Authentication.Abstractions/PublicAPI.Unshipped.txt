@@ -1424,7 +1424,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRe
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest.State.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.EndSessionSubject() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.EndSessionSubject(string? SubjectId, string? SessionId, string? ClientId, System.Collections.Generic.IReadOnlyList<string!>! ParticipatingClientIds, bool RequiresConfirmation) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.EndSessionSubject(string? SubjectId, string? SessionId, string? ClientId, System.Collections.Generic.IReadOnlyList<string!>! ParticipatingClientIds, bool RequiresConfirmation, System.Collections.Generic.IReadOnlyList<string?>! LoginSchemes) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.SubjectId.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.SubjectId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.SessionId.get -> string?
@@ -1435,6 +1435,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubje
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.ParticipatingClientIds.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.RequiresConfirmation.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.RequiresConfirmation.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.LoginSchemes.get -> System.Collections.Generic.IReadOnlyList<string?>!
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models.EndSessionSubject.LoginSchemes.init -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectDisposition
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectDisposition.AuthenticateSubjectDisposition() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateSubjectDisposition.AuthenticateSubjectDisposition(NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication ticket) -> void

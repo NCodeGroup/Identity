@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Registration;
 
@@ -17,9 +18,15 @@ namespace NCode.Identity.Server.SecretProtection;
 /// Protection key ring under the master key of the server.
 /// </summary>
 // See ADR-1235.
+// See ADR-1370.
 internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";
+
+    internal const string RootKeyProviderMissingMessage =
+        "SecretProtection:RootKeyProvider is not set. Name the root key provider that protects the stored secrets, such as "
+        + $"'{KeyWrapperNames.Local}', '{KeyWrapperNames.AwsKms}', '{KeyWrapperNames.AzureKeyVault}' or '{KeyWrapperNames.GoogleCloudKms}'; "
+        + $"local development and tests may select '{KeyWrapperNames.Ephemeral}', whose root key is lost when the process stops.";
 
     // Every direct child of the secret protection section. The children of RootKeyProviders belong to the root key
     // providers, each of which binds its own, so strict binding does not close the set of providers.
@@ -40,7 +47,8 @@ internal static class SecretProtectionRegistration
     /// <remarks>
     /// Binding is strict and checked when the host starts: a key that maps to no option stops the host with an error
     /// naming the key. The <see cref="DataProtectionKeyRingOptions.DefaultSectionName"/> section revokes Data
-    /// Protection keys by ID.
+    /// Protection keys by ID. An unset or blank <c>SecretProtection:RootKeyProvider</c> stops the host when it starts:
+    /// no root key provider is selected by default.
     /// </remarks>
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> whose services are configured.</param>
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
@@ -72,6 +80,10 @@ internal static class SecretProtectionRegistration
                 options.RootKeyProvider = section[nameof(SecretProtectionOptions.RootKeyProvider)];
                 recoverySection.BindStrictly(options.Recovery);
             })
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.RootKeyProvider),
+                RootKeyProviderMissingMessage
+            )
             .ValidateOnStart();
 
         serviceCollection

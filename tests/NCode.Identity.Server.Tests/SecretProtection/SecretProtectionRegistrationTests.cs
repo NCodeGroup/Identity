@@ -103,6 +103,46 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.False(options.Recovery.Disabled);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void AddSecretProtection_WhenRootKeyProviderIsBlank_FailsValidation(
+        string? rootKeyProvider
+    )
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = rootKeyProvider,
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value
+        );
+
+        Assert.Contains(
+            SecretProtectionRegistration.RootKeyProviderMissingMessage,
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void AddSecretProtection_WhenRootKeyProviderIsEphemeral_BindsIt()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?> { ["SecretProtection:RootKeyProvider"] = "ephemeral" }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var options = serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value;
+
+        Assert.Equal("ephemeral", options.RootKeyProvider);
+    }
+
     [Fact]
     public void AddSecretProtection_WhenRecoveryHasUnknownKey_Throws()
     {

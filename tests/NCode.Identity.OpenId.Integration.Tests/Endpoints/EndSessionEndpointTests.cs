@@ -103,6 +103,61 @@ public class EndSessionEndpointTests
         Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
     }
 
+    [Theory]
+    [InlineData("logout")]
+    [InlineData("cancel")]
+    public async Task ConfirmEndSession_WithoutTheAntiforgeryToken_RefusesTheAnswerAndKeepsTheSession(
+        string action
+    )
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var challengeRequest = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
+        challengeRequest.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
+        using var challenge = await client.SendAsync(challengeRequest);
+
+        Assert.Equal(HttpStatusCode.Found, challenge.StatusCode);
+        Assert.NotNull(challenge.Headers.Location);
+        var location = new Uri(
+            new Uri("http://localhost"),
+            challenge.Headers.Location.OriginalString
+        );
+        var continueUrl = HttpUtility.ParseQueryString(location.Query)["ReturnUrl"];
+        Assert.NotNull(continueUrl);
+
+        // A cross-site form carries the session cookie but not the antiforgery token.
+        using var answer = new HttpRequestMessage(
+            HttpMethod.Post,
+            InteractiveLogin.LogoutConfirmPath
+        );
+        answer.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
+        answer.Content = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["action"] = action, ["ReturnUrl"] = continueUrl }
+        );
+        using var answerResponse = await client.SendAsync(answer);
+
+        Assert.InRange((int)answerResponse.StatusCode, 400, 499);
+        Assert.Null(ReadSetCookieRaw(answerResponse, InteractiveCookieName));
+
+        using var me = new HttpRequestMessage(HttpMethod.Get, "/account/me");
+        me.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
+        using var meResponse = await client.SendAsync(me);
+
+        Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
+
+        // The refused answer did not spend the continuation: the parked logout still resumes.
+        var continueUri = new Uri(new Uri("http://localhost"), continueUrl);
+        using var resume = new HttpRequestMessage(HttpMethod.Get, continueUri.PathAndQuery);
+        resume.Headers.Add("Cookie", $"{InteractiveCookieName}={sessionCookie}");
+        using var resumeResponse = await client.SendAsync(resume);
+
+        Assert.Equal(HttpStatusCode.OK, resumeResponse.StatusCode);
+    }
+
     [Fact]
     public async Task ContinueEndSession_WhenAnotherSessionIsSignedIn_RefusesTheLogout()
     {

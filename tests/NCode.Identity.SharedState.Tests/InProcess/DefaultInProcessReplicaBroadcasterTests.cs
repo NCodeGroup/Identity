@@ -85,5 +85,29 @@ public sealed class DefaultInProcessReplicaBroadcasterTests : BaseTests
         mockSucceeding.Verify(x => x.HandleAsync("acme", CancellationToken.None), Times.Once);
     }
 
+    [Fact]
+    public async Task PublishAsync_WhenAHandlerTimesOut_DeliversToTheOthersAndCompletes()
+    {
+        var mockFailing = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockFailing.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockFailing
+            .Setup(x => x.HandleAsync("acme", CancellationToken.None))
+            .ThrowsAsync(new TaskCanceledException("The handler timed out."))
+            .Verifiable();
+
+        var mockSucceeding = CreateStrictMock<IReplicaBroadcastHandler>();
+        mockSucceeding.Setup(x => x.Channel).Returns("tenant-changed").Verifiable();
+        mockSucceeding
+            .Setup(x => x.HandleAsync("acme", CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var broadcaster = CreateBroadcaster(mockFailing.Object, mockSucceeding.Object);
+
+        await broadcaster.PublishAsync("tenant-changed", "acme", CancellationToken.None);
+
+        mockSucceeding.Verify(x => x.HandleAsync("acme", CancellationToken.None), Times.Once);
+    }
+
     #endregion
 }

@@ -99,7 +99,9 @@ Prerequisites, roughly in dependency order:
    is in-process only; CI needs a launched process (Docker container or `dotnet run`) addressable from
    the suite. On Windows/Docker, the suite reaches the host via `host.docker.internal`.
 2. **Automatable login + consent UI** with stable selectors and a **seeded deterministic conformance
-   user** (fixed username/password). Auto-consent (or a scripted consent task) for the test client.
+   user** (fixed username; password generated per machine and never committed —
+   [#514](https://github.com/NCodeGroup/Identity/issues/514)). Auto-consent (or a scripted consent task) for the test
+   client.
 3. **Deterministic conformance tenant + clients.** Either:
     - seed the required clients (the manual path needs **three**: two `client_secret_basic`, one
       `client_secret_post` — the second basic client exists so the suite can prove auth codes are bound to
@@ -217,8 +219,10 @@ references in sync with the actual markup).
 | Consent | allow/approve btn | `id=consent-allow`        | `["click","id","consent-allow"]` |
 | Consent | deny button       | `id=consent-deny`         | negative-path tests              |
 
-Seeded conformance user (deterministic, dev-only): e.g. `conformance-user` / fixed password, created on
-startup in the conformance tenant. Prefer an **auto-approve** path for the conformance client so the
+Seeded conformance user (deterministic, dev-only): `conformance-user`, created on startup in the conformance tenant,
+with a password generated once per machine outside the repository
+([`Get-ConformanceSeedCredentials.ps1`](../build/conformance/Get-ConformanceSeedCredentials.ps1)) and filled into the
+committed config templates at run time. Prefer an **auto-approve** path for the conformance client so the
 consent task can be omitted (simpler, fewer flaky selectors), with the deny button still present for the
 negative tests.
 

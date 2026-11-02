@@ -1,4 +1,5 @@
 {
+  "comment:template": "Template for run-conformance.ps1, rendered whenever a run uses oidcc-basic.json (as -IncludeBrowserPlans does). The script replaces each {{token}} (test_user_name, test_user_password) with the conformance seed's per-machine credentials, which are generated outside the repository and never committed, and writes the result beside this file as oidcc-basic.json (gitignored, deleted when the run ends).",
   "description": "NCode.Identity OP — Basic OP certification (authorization code bound to PKCE S256 or, for the attested suite clients, the nonce; dynamic client registration).",
   "server": {
     "discoveryUrl": "https://host.docker.internal:5001/.well-known/openid-configuration"
@@ -16,8 +17,8 @@
           "match": "https://host.docker.internal:5001/account/login*",
           "optional": true,
           "commands": [
-            ["text", "id", "username", "conformance-user"],
-            ["text", "id", "password", "conformance-password"],
+            ["text", "id", "username", "{{test_user_name}}"],
+            ["text", "id", "password", "{{test_user_password}}"],
             ["click", "id", "login"]
           ]
         },
@@ -71,8 +72,8 @@
               "optional": true,
               "commands": [
                 ["wait", "xpath", "//*", 10, "Sign in", "update-image-placeholder-optional"],
-                ["text", "id", "username", "conformance-user"],
-                ["text", "id", "password", "conformance-password"],
+                ["text", "id", "username", "{{test_user_name}}"],
+                ["text", "id", "password", "{{test_user_password}}"],
                 ["click", "id", "login"]
               ]
             },
@@ -102,8 +103,8 @@
               "optional": true,
               "commands": [
                 ["wait", "xpath", "//*", 10, "Sign in", "update-image-placeholder-optional"],
-                ["text", "id", "username", "conformance-user"],
-                ["text", "id", "password", "conformance-password"],
+                ["text", "id", "username", "{{test_user_name}}"],
+                ["text", "id", "password", "{{test_user_password}}"],
                 ["click", "id", "login"]
               ]
             },

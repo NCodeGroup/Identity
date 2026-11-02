@@ -8,3 +8,7 @@
 # configurations that carry them. Private keys are generated at run time and never committed.
 .fapi1-keys/
 fapi1-advanced-*.json
+
+# run-conformance.ps1 -IncludeBrowserPlans: the Basic OP suite configuration rendered from oidcc-basic.template.json,
+# which carries the conformance test user's per-machine password.
+oidcc-basic.json

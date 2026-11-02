@@ -38,7 +38,10 @@ Conformance` loads `appsettings.Conformance.json` (the `ConformanceSeed` section
   tenant's `/account/*`.
 
 Run it with `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance` (the
-full orchestration script that also brings the suite up/down is [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D, not [#126](https://github.com/NCodeGroup/Identity/issues/126)).
+full orchestration script that also brings the suite up/down is [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D, not [#126](https://github.com/NCodeGroup/Identity/issues/126)),
+after `./build/conformance/Get-ConformanceSeedCredentials.ps1 -SetEnvironment` in the same shell: the seeded clients'
+secrets and the test user's password are generated per machine and passed in the environment, never committed
+([#514](https://github.com/NCodeGroup/Identity/issues/514)).
 
 ## Current state (verified)
 

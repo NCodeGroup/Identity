@@ -5,7 +5,10 @@
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): a setting is accepted only at a scope that reads it;
   amended by
   [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): a retired setting stays
-  registered until a later release removes it)
+  registered until a later release removes it; and by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md):
+  `DeveloperKeys` has no mode and no ephemeral fallback, only the `PruneUnreadableKeys` opt-in, and
+  `AddProductionSafety` refuses a `DeveloperKeys` or `Cors` section in Production)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

@@ -243,9 +243,8 @@ The flow follows RFC 10017 Figure 1:
 4. **API calls.** The SPA calls local or remote APIs with the cookie and the header. The BFF resolves the session,
    obtains the right access token (refreshing it if needed), and either runs the local endpoint or forwards the call.
 5. **Logout.** The SPA posts a form to the `logoutUrl` from step 1, with the `logoutSid` as its `sid` field. The BFF
-   revokes the refresh token, deletes the
-   session, and redirects to the OP's `end_session_endpoint`. When the session ends at the OP, a back-channel
-   `logout_token` ends it at the BFF too.
+   revokes the refresh token, deletes the session, and redirects to the OP's `end_session_endpoint`. When the session
+   ends at the OP, a back-channel `logout_token` ends it at the BFF too.
 
 ### 4.1 Packages
 
@@ -635,7 +634,7 @@ itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable opera
 | `/bff/login?returnUrl=`        | `GET`, navigation   | Starts the code flow and redirects to the OP                                 | `returnUrl` must be an allow-listed relative path. Login CSRF is stopped by the binding in [§5.2](#52-login-transaction-and-callback-binding). |
 | `/bff/callback`                | `GET`, navigation   | The `redirect_uri`. Completes login and redirects to the return URL          | The guarantees in [§5.2](#52-login-transaction-and-callback-binding)                                                             |
 | `/bff/user`                    | `GET`, `fetch`      | Session probe: allow-listed claims, expiry, `logoutUrl`, `logoutSid`        | Anti-forgery header and Fetch Metadata. Answers `401` JSON when there is no session, never a redirect.                            |
-| `/bff/logout`                  | `POST` form, navigation | Ends the session and runs RP-initiated logout                           | The form's `sid` must equal the session's logout guard ([§5.8](#58-logout-and-back-channel-logout)). `returnUrl` is allow-listed. |
+| `/bff/logout`                  | `POST`, navigation  | Ends the session and runs RP-initiated logout                                | The form's `sid` must equal the session's logout guard ([§5.8](#58-logout-and-back-channel-logout)). `returnUrl` is allow-listed. |
 | `/bff/backchannel-logout`      | `POST` form         | Receives the OP's `logout_token`                                             | Validates the logout token ([§5.8](#58-logout-and-back-channel-logout)). No cookie or CSRF check, because it is a server-to-server call. |
 | `/bff/jwks`                    | `GET`               | Optional. The BFF's public client-authentication keys                        | Public data                                                                                                                      |
 

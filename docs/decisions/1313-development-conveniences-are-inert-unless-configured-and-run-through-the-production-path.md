@@ -5,8 +5,12 @@
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md)
 - **Supersedes:** [ADR-1002](1002-ephemeral-development-keys.md)
-- **Amends:** [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) and
-  [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)
+- **Amends:** [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md),
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md),
+  [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
+  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) and
+  [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)
 
 ## Context
 
@@ -47,7 +51,7 @@ refuses each section in Production.
 
 ## Consequences
 
-- Tests provision RS256, PS256 and ES256 keys per host. All 454 integration tests passed on provisioned keys.
+- Tests provision RS256, PS256 and ES256 keys per host.
 - Launch profiles set `DeveloperKeys__PruneUnreadableKeys=true`, so a debugging session survives a change of the root
   key.
 - The chart sets no `DeveloperKeys` value.

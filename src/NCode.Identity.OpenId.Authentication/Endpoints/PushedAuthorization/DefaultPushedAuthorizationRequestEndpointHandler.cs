@@ -45,6 +45,7 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
             .Produces<PushedAuthorizationResult>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest)
             .DisableAntiforgery()
+            .WithNoStore()
             .WithOpenIdDiscoverable();
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>

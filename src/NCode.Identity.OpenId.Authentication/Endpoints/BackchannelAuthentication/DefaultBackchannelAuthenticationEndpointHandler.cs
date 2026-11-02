@@ -39,6 +39,7 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
             .Produces<BackchannelAuthenticationResult>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .DisableAntiforgery()
+            .WithNoStore()
             .WithOpenIdDiscoverable();
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>

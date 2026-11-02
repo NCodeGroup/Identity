@@ -32,10 +32,9 @@ namespace NCode.Identity.SharedState.Valkey;
 /// atomically, so at most one concurrent replace of a version succeeds. A take is <c>GETDEL</c>, so at most one
 /// concurrent take returns the value. A compare-and-remove is a second script that compares the bytes after the
 /// version prefix and, only when they match, runs <c>DEL</c>. <c>GetAsync</c> runs <c>GET</c> and <c>RemoveAsync</c>
-/// runs <c>DEL</c>. The
-/// time-to-live is computed from this replica's clock, so the expiry does not depend on the server's clock agreeing
-/// with it. A command against an unreachable server throws rather than reporting an absent value, so the caller fails
-/// closed.
+/// runs <c>DEL</c>. The time-to-live is computed from this replica's clock, so the expiry does not depend on the
+/// server's clock agreeing with it. A command against an unreachable server throws rather than reporting an absent
+/// value, so the caller fails closed.
 /// </summary>
 internal class ValkeyExpiringValueSet(
     IValkeyConnection connection,

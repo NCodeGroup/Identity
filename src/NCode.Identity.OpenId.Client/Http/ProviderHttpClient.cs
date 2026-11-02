@@ -171,6 +171,15 @@ internal class ProviderHttpClient(
         }
     }
 
+    /// <summary>
+    /// Streams the response body into <paramref name="destination"/> while enforcing
+    /// <see cref="OpenIdClientOptions.MaxResponseSizeBytes"/>: the declared <c>Content-Length</c> is checked first, and
+    /// the running total is checked again before each chunk is committed.
+    /// </summary>
+    /// <param name="content">The response content to read.</param>
+    /// <param name="destination">The sequence that receives the body's bytes.</param>
+    /// <param name="cancellationToken">A token to observe while waiting for the body.</param>
+    /// <returns><c>true</c> when the whole body was read; <c>false</c> when it exceeds the size limit.</returns>
     private async ValueTask<bool> TryReadBodyAsync(
         HttpContent content,
         Sequence<byte> destination,

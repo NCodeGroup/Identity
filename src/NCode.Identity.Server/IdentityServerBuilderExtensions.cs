@@ -75,7 +75,8 @@ public static class IdentityServerBuilderExtensions
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
         /// usage to the ledger and how long the ledger keeps it.</description></item>
         /// <item><description><c>AuditRecords</c> — <see cref="AuditRecordOptions"/>: whether audit records are kept in
-        /// the audit store, how often each replica writes them and how long the store keeps them.</description></item>
+        /// the audit store, how often each replica writes them, how long the store keeps them and how often each
+        /// replica removes the older ones.</description></item>
         /// <item><description><c>EndedSessionTermination</c> — <see cref="EndedSessionTerminationOptions"/>: how often
         /// the sessions that ended while unused are terminated.</description></item>
         /// <item><description><c>InProcessJobDispatcher</c> — <see cref="InProcessJobDispatcherOptions"/>: how many

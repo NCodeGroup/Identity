@@ -365,6 +365,8 @@ NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Enabled.get -> 
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Enabled.set -> void
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.FlushInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.FlushInterval.set -> void
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.PruneInterval.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.PruneInterval.set -> void
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.QueueCapacity.get -> int
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.QueueCapacity.set -> void
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Retention.get -> System.TimeSpan

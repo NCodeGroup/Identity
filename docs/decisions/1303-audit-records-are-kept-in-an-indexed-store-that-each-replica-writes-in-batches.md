@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md)
 
 ## Context
 
@@ -39,11 +40,16 @@ batches; the store keeps a record for 90 days by default.**
    the host stops the service twice: concurrent stops share one final flush. A batch that fails is held and written
    first next time. The store skips an event identifier it already holds, under a unique index, so a batch whose save
    committed but reported a failure adds nothing twice.
-4. **Retention.** The same service removes the records older than `Retention` (90 days, CloudTrail's event history) in
-   batches, at most once an hour.
+4. **Retention.** `AuditRecordPruneService` removes the records older than `Retention` (90 days, CloudTrail's event
+   history) every `PruneInterval` (one hour by default), on a `PeriodicTimer` through the registered `TimeProvider`, in
+   units of work of 256 records, repeating while a batch is full. A batch whose save loses a race to another replica's
+   prune counts as a full batch, because that replica removed records of it. Any other failure, a store timeout
+   included, is logged (`AuditRecordPruneFailed`) and the prune runs again at the next tick; only the host's stopping
+   token ends the service. With `Enabled: false` it does not run, as the writer does not.
 5. **Configuration.** `OpenId:AuditRecords` binds `AuditRecordOptions` strictly and validates it when the host starts
-   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)); `Enabled: false`
-   keeps the records out of the store and leaves them in the log.
+   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)): `FlushInterval` and
+   `PruneInterval` are periods a timer accepts, `QueueCapacity` is at least one and `Retention` at least one day;
+   `Enabled: false` keeps the records out of the store and leaves them in the log.
 6. **The management API looks records up newest first.** `GET api/tenants/{tenantId}/audit-records` returns a page of the
    addressed tenant's records, newest first, filtered by a time range (`startTime` inclusive, `endTime` exclusive),
    `eventName`, `eventCategory`, `outcome`, `subjectId`, `clientId`, `actorId`, `traceId`, and a resource by
@@ -74,5 +80,7 @@ batches; the store keeps a record for 90 days by default.**
 
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) — the audit record
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger the writer mirrors
+- [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md) — the prune service the audit store's mirrors
+- Issue [#468](https://github.com/NCodeGroup/Identity/issues/468) — the prune interval and its own hosted service
 - Issues [#383](https://github.com/NCodeGroup/Identity/issues/383) and
   [#384](https://github.com/NCodeGroup/Identity/issues/384)

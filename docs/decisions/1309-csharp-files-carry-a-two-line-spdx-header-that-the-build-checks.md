@@ -56,8 +56,10 @@ tools such as SPDX and REUSE read, and the copyright line is the one the project
   header fails the build.
 - The header has no year, so a year never goes stale in a file.
 - The `file_header_template` value must contain neither `;` nor `#`, which Roslyn reads as the end of the value.
-- The project template's first `[*.cs]` section keeps its truncated `file_header_template`; the repository's own
-  section, which comes later in `.editorconfig`, wins for the key.
+- Since project-template v0.57.1 the template's first `[*.cs]` section sets the same `file_header_template`
+  ([NCodeGroup/project-template#215](https://github.com/NCodeGroup/project-template/issues/215)). The repository's own
+  section, which comes later in `.editorconfig`, still sets it and wins for the key, so the header stays this
+  decision's if the template's changes, and raises `IDE0073` from the template's `suggestion` to `warning`.
 - Files that start with a UTF-8 BOM lose it with their header, as `charset = utf-8` in `.editorconfig` says.
 
 ## References

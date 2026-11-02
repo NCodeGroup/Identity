@@ -297,6 +297,11 @@ public static partial class OpenIdConstants
         /// Identifies the continuation of a previously-initiated <c>authorization</c> operation.
         /// </summary>
         public const string Authorization = "continue_authorization";
+
+        /// <summary>
+        /// Identifies the continuation of an <c>end_session</c> request that waits for the end-user to confirm it.
+        /// </summary>
+        public const string EndSession = "continue_end_session";
     }
 
     /// <summary>

@@ -24,6 +24,7 @@ const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthentication
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.ConsentDetailsPath = "/account/consent/details" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LoginPath = "/account/login" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LogoutPath = "/account/logout" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LogoutConfirmPath = "/account/logout/confirm" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.MePath = "/account/me" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.PasswordPath = "/account/password" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsPath = "/account/sessions" -> string!

@@ -168,7 +168,12 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenValidIdTokenHint_ResolvesSubjectFromSessionGrantNotHint()
     {
-        var mockContext = CreateContext(new DefaultHttpContext());
+        var mockAuthService = CreateStrictMock<IAuthenticationService>();
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
+        var mockContext = CreateContext(CreateHttpContext(mockAuthService));
         // The hint carries a pairwise pseudonym as `sub`; it must be ignored and the stable subject taken from the
         // persisted session grant (the OP never reverses a one-way pairwise projection).
         SetupValidHint(
@@ -190,12 +195,18 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(SessionId, result.SessionId);
         Assert.Equal(ClientId, result.ClientId);
         Assert.Equal(new[] { ClientId, "client-2" }, result.ParticipatingClientIds);
+        Assert.False(result.RequiresConfirmation);
     }
 
     [Fact]
     public async Task HandleAsync_WhenPairwiseHintSubButSessionNotFound_LeavesSubjectUnresolved()
     {
-        var mockContext = CreateContext(new DefaultHttpContext());
+        var mockAuthService = CreateStrictMock<IAuthenticationService>();
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .ReturnsAsync(AuthenticateResult.NoResult())
+            .Verifiable();
+        var mockContext = CreateContext(CreateHttpContext(mockAuthService));
         // A hint that carries only a pairwise `sub` (plus sid) whose session has already lapsed cannot be mapped back
         // to the stable subject without reversing the one-way projection, which the OP refuses to do.
         SetupValidHint(
@@ -216,6 +227,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(SessionId, result.SessionId);
         Assert.Equal(ClientId, result.ClientId);
         Assert.Empty(result.ParticipatingClientIds);
+        Assert.False(result.RequiresConfirmation);
     }
 
     [Fact]
@@ -246,6 +258,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(SubjectId, result.SubjectId);
         Assert.Equal(SessionId, result.SessionId);
         Assert.Equal(new[] { ClientId }, result.ParticipatingClientIds);
+        Assert.True(result.RequiresConfirmation);
     }
 
     [Fact]
@@ -276,6 +289,7 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Equal(SessionId, result.SessionId);
         Assert.Equal(ClientId, result.ClientId);
         Assert.Equal(new[] { ClientId }, result.ParticipatingClientIds);
+        Assert.True(result.RequiresConfirmation);
     }
 
     [Fact]
@@ -328,6 +342,73 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         Assert.Null(result.SubjectId);
         Assert.Null(result.SessionId);
         Assert.Empty(result.ParticipatingClientIds);
+        Assert.False(result.RequiresConfirmation);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenValidHintNamesTheLoginSession_DoesNotRequireConfirmation()
+    {
+        var mockAuthService = CreateStrictMock<IAuthenticationService>();
+        var httpContext = CreateHttpContext(mockAuthService);
+        var mockContext = CreateContext(httpContext);
+        SetupValidHint(
+            CreatePayload(
+                $$"""{"sub":"{{PairwisePseudonym}}","sid":"{{SessionId}}","azp":"{{ClientId}}"}"""
+            )
+        );
+
+        mockContext
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns(SubjectId)
+            .Verifiable();
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
+            .Verifiable();
+        SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
+
+        var result = await Handler.HandleAsync(
+            new ResolveEndSessionSubjectCommand(mockContext.Object, request.Object),
+            CancellationToken.None
+        );
+
+        Assert.Equal(SessionId, result.SessionId);
+        Assert.False(result.RequiresConfirmation);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenValidHintNamesAnotherSession_RequiresConfirmationAndResolvesTheLoginSession()
+    {
+        var mockAuthService = CreateStrictMock<IAuthenticationService>();
+        var httpContext = CreateHttpContext(mockAuthService);
+        var mockContext = CreateContext(httpContext);
+        SetupValidHint(
+            CreatePayload(
+                $$"""{"sub":"{{PairwisePseudonym}}","sid":"sid-hint","azp":"{{ClientId}}"}"""
+            )
+        );
+
+        mockContext
+            .Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>()))
+            .Returns(SubjectId)
+            .Verifiable();
+        mockAuthService
+            .Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()))
+            .ReturnsAsync(SucceededCookie(new Claim(JoseClaimNames.Payload.Sid, SessionId)))
+            .Verifiable();
+        SetupSession(mockContext.Object, SessionId, [ClientId]);
+
+        var request = CreateRequest(idTokenHint: "aaa.bbb.ccc", clientId: null);
+
+        var result = await Handler.HandleAsync(
+            new ResolveEndSessionSubjectCommand(mockContext.Object, request.Object),
+            CancellationToken.None
+        );
+
+        Assert.Equal(SessionId, result.SessionId);
+        Assert.True(result.RequiresConfirmation);
     }
 
     #endregion

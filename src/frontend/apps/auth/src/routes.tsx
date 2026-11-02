@@ -3,6 +3,7 @@ import type { BrandingConfig } from '@ncode/config';
 import { AuthorizationErrorPage } from './AuthorizationErrorPage.js';
 import { ConsentForm } from './ConsentForm.js';
 import { LoginForm } from './LoginForm.js';
+import { LogoutConfirmPage } from './LogoutConfirmPage.js';
 import { AccountPage } from './AccountPage.js';
 import { AuthorizedAppsPage } from './AuthorizedAppsPage.js';
 import { PasswordPage } from './PasswordPage.js';
@@ -12,6 +13,7 @@ import {
   isAccountPath,
   isApplicationsPath,
   isConsentPath,
+  isLogoutConfirmPath,
   isPasswordPath,
   isSessionsPath,
 } from './params.js';
@@ -52,6 +54,16 @@ function productNameOf(branding: BrandingConfig | undefined): { productName?: st
  * should still present a login.
  */
 const ROUTES: readonly Route[] = [
+  {
+    match: isLogoutConfirmPath,
+    render: ({ returnUrl, antiforgeryToken, branding }) => (
+      <LogoutConfirmPage
+        returnUrl={returnUrl}
+        antiforgeryToken={antiforgeryToken}
+        {...productNameOf(branding)}
+      />
+    ),
+  },
   {
     match: isPasswordPath,
     render: ({ antiforgeryToken, branding, errorCode, status }) => (

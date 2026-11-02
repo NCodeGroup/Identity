@@ -18,17 +18,18 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ResolveEndSessionSubjectCommand"/> handler that identifies the
-/// session being logged out from the request's <c>id_token_hint</c> (validated as an ID token the tenant issued, except
-/// for its lifetime) or the current OP login cookie, and resolves the participating relying parties for back-channel
-/// notification. The stable subject (the internal <c>PrincipalId</c> used to key grants and re-projected per-client for
+/// session being logged out from the current OP login cookie, falling back to the request's <c>id_token_hint</c>
+/// (validated as an ID token the tenant issued, except for its lifetime) when no login is present, and resolves the
+/// participating relying parties for back-channel notification. The stable subject (the internal <c>PrincipalId</c>
+/// used to key grants and re-projected per-client for
 /// back-channel logout) is recovered from server-owned state — the persisted session grant, falling back to the login
 /// cookie. The <c>sub</c> carried by the <c>id_token_hint</c> is deliberately never used as the subject identifier:
 /// for a <c>pairwise</c> client it is a per-sector pseudonym produced by a one-way projection
 /// (<see cref="NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService"/>) the OP cannot and
 /// must not reverse. Resolving the subject forward from the <c>sid</c> mirrors the one-way-hashed grant-key model where
-/// a presented value is matched forward, never reversed.
+/// a presented value is matched forward, never reversed. It also reports whether the end-user must confirm the logout.
 /// </summary>
-// See ADR-1093 and ADR-1096.
+// See ADR-1093, ADR-1096 and ADR-1380.
 internal class DefaultResolveEndSessionSubjectHandler(
     IIssuedTokenValidator issuedTokenValidator,
     ISessionService sessionService,
@@ -52,41 +53,48 @@ internal class DefaultResolveEndSessionSubjectHandler(
         var httpContext = openIdContext.Http;
 
         string? subjectId = null;
-        string? sessionId = null;
-        var clientId = request.ClientId;
+        string? loginSessionId = null;
+        HintClaims? hint = null;
 
         // The id_token_hint identifies the session (sid) and the requesting client (azp/aud). Its `sub` is intentionally
         // not read: for a pairwise client it is a per-sector pseudonym the OP cannot reverse to the stable subject.
         if (!string.IsNullOrEmpty(request.IdTokenHint))
         {
-            var hint = await TryReadIdTokenHintAsync(
+            hint = await TryReadIdTokenHintAsync(
                 openIdContext,
                 request.IdTokenHint,
                 cancellationToken
             );
-            if (hint is { } claims)
-            {
-                sessionId = claims.SessionId;
-                clientId ??= claims.ClientId;
-            }
-            else
+            if (hint is null)
             {
                 Logger.EndSessionIdTokenHintInvalid();
             }
         }
 
-        // Fall back to the current OP login cookie for the session (and a provisional subject) when the hint did not
-        // supply a sid. The cookie's `sub` is the stable PrincipalId (ADR-1094).
-        if (string.IsNullOrEmpty(sessionId))
+        // The current OP login cookie supplies the session (and a provisional subject). The cookie's `sub` is the
+        // stable PrincipalId (ADR-1094).
+        var authenticateResult = await httpContext.AuthenticateAsync();
+        if (authenticateResult.Succeeded)
         {
-            var authenticateResult = await httpContext.AuthenticateAsync();
-            if (authenticateResult.Succeeded)
-            {
-                var principal = authenticateResult.Principal;
-                subjectId = openIdContext.GetSubjectId(principal);
-                sessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
-            }
+            var principal = authenticateResult.Principal;
+            subjectId = openIdContext.GetSubjectId(principal);
+            loginSessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
         }
+
+        // See ADR-1380.
+        // The login's session takes precedence, so a confirmed logout ends the session the end-user is signed in to;
+        // the hint's sid identifies the session only when no login is present.
+        var sessionId = string.IsNullOrEmpty(loginSessionId) ? hint?.SessionId : loginSessionId;
+        var clientId = request.ClientId ?? hint?.ClientId;
+
+        // See ADR-1380.
+        // RP-Initiated Logout 1.0 section 2: the end-user must confirm unless a valid hint names the current session.
+        var requiresConfirmation =
+            authenticateResult.Succeeded
+            && (
+                string.IsNullOrEmpty(hint?.SessionId)
+                || !string.Equals(hint?.SessionId, loginSessionId, StringComparison.Ordinal)
+            );
 
         // The persisted session grant is the authoritative source of the stable subject (PrincipalId) and of the
         // participating relying parties. Resolving it forward from the sid (never reversing a pairwise `sub`) recovers
@@ -111,7 +119,13 @@ internal class DefaultResolveEndSessionSubjectHandler(
             Logger.EndSessionSubjectUnresolved();
         }
 
-        return new EndSessionSubject(subjectId, sessionId, clientId, participatingClientIds);
+        return new EndSessionSubject(
+            subjectId,
+            sessionId,
+            clientId,
+            participatingClientIds,
+            requiresConfirmation
+        );
     }
 
     private async ValueTask<HintClaims?> TryReadIdTokenHintAsync(

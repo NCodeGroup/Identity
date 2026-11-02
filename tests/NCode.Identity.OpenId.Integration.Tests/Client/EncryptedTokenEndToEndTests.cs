@@ -233,9 +233,11 @@ public class EncryptedTokenEndToEndTests
 
     private static async Task EndSessionAsync(HttpClient browser, string sessionCookie)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
-        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
-        using var response = await browser.SendAsync(request);
+        using var response = await InteractiveLogin.ConfirmEndSessionAsync(
+            browser,
+            EndSessionPath,
+            sessionCookie
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

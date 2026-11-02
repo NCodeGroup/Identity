@@ -149,9 +149,11 @@ public class BffBackChannelLogoutEndToEndTests
 
     private static async Task EndSessionAsync(HttpClient browser, string providerSession)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, EndSessionPath);
-        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={providerSession}");
-        using var response = await browser.SendAsync(request);
+        using var response = await InteractiveLogin.ConfirmEndSessionAsync(
+            browser,
+            EndSessionPath,
+            providerSession
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

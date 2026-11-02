@@ -2,27 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Net.Http.Headers;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Serialization;
 
 namespace NCode.Identity.Bff.Responses;
 
 /// <summary>
-/// Writes the BFF's uncacheable and problem responses.
+/// Writes the BFF's problem responses, which are never cached.
 /// </summary>
 internal static class BffResponses
 {
-    private const string NoStore = "no-store";
     private const string ProblemContentType = "application/problem+json";
-
-    /// <summary>
-    /// Marks the response as uncacheable with <c>Cache-Control: no-store</c>.
-    /// </summary>
-    /// <param name="response">The response to mark.</param>
-    public static void SetNoStore(HttpResponse response)
-    {
-        response.Headers[HeaderNames.CacheControl] = NoStore;
-    }
 
     /// <summary>
     /// Writes an <c>application/problem+json</c> response that is never cached.
@@ -39,7 +29,7 @@ internal static class BffResponses
     )
     {
         var response = httpContext.Response;
-        SetNoStore(response);
+        response.SetNoStore();
         response.StatusCode = status;
 
         var problem = new BffProblem(type, title, status);
@@ -49,5 +39,21 @@ internal static class BffResponses
             ProblemContentType,
             httpContext.RequestAborted
         );
+    }
+
+    /// <summary>
+    /// Writes the problem that answers a token requirement's failure: <c>session_required</c> for a <c>401</c>, and
+    /// <c>token_unavailable</c> for any other status.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="status">The HTTP status code of the failure.</param>
+    public static Task WriteTokenUnavailableAsync(HttpContext httpContext, int status)
+    {
+        var type =
+            status == StatusCodes.Status401Unauthorized
+                ? BffProblemTypes.SessionRequired
+                : BffProblemTypes.TokenUnavailable;
+
+        return WriteProblemAsync(httpContext, status, type, "An access token is unavailable.");
     }
 }

@@ -23,6 +23,7 @@ const NCode.Identity.Bff.BffProblemTypes.StoreUnavailable = "urn:ncode:identity:
 const NCode.Identity.Bff.BffProblemTypes.TokenUnavailable = "urn:ncode:identity:bff:token_unavailable" -> string!
 const NCode.Identity.Bff.BffProblemTypes.InvalidRequest = "urn:ncode:identity:bff:invalid_request" -> string!
 const NCode.Identity.Bff.BffProblemTypes.UnsafeMethod = "urn:ncode:identity:bff:unsafe_method" -> string!
+const NCode.Identity.Bff.BffProblemTypes.MethodNotAllowed = "urn:ncode:identity:bff:method_not_allowed" -> string!
 NCode.Identity.Bff.BffSessionEndReasons
 const NCode.Identity.Bff.BffSessionEndReasons.LoggedOut = "logged_out" -> string!
 const NCode.Identity.Bff.BffSessionEndReasons.IdleTimeout = "idle_timeout" -> string!
@@ -190,3 +191,7 @@ NCode.Identity.Bff.IBffUserContributor.ContributeAsync(NCode.Identity.Bff.BffUse
 static NCode.Identity.Bff.BffSessionClaimContext.ReservedClaimTypes.get -> System.Collections.Generic.IReadOnlySet<string!>!
 static NCode.Identity.Bff.BffUserContext.ReservedFieldNames.get -> System.Collections.Generic.IReadOnlySet<string!>!
 const NCode.Identity.Bff.BffLoginFailureReasons.UserInfoFailed = "userinfo_failed" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.Client = "client" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.Exchange = "exchange" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.None = "none" -> string!
+const NCode.Identity.Bff.BffTokenRequirementNames.UserOrClient = "user_or_client" -> string!

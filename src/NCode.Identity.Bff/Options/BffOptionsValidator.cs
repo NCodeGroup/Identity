@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Navigation;
+using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
 
@@ -52,8 +53,11 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         ValidateUserInfo(options.UserInfo, options.ClientAuthentication, failures);
         ValidateTokens(options.Tokens, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
+        ValidateSecurityHeaders(options.SecurityHeaders, failures);
+        ValidateJwks(options.Jwks, options.ClientAuthentication, failures);
         ValidateUserClaims(options.UserClaims, failures);
         ValidateLoginParameters(options.LoginParameters, failures);
+        ValidateRemoteApis(options.RemoteApis, options.PathPrefix, isDevelopment, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
@@ -315,6 +319,64 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
         }
     }
 
+    private static void ValidateSecurityHeaders(
+        BffSecurityHeadersOptions? securityHeaders,
+        List<string> failures
+    )
+    {
+        if (securityHeaders is null)
+        {
+            failures.Add("Bff:SecurityHeaders must be set.");
+            return;
+        }
+
+        ValidateHeaderValue(
+            securityHeaders.ContentSecurityPolicy,
+            "Bff:SecurityHeaders:ContentSecurityPolicy",
+            failures
+        );
+        ValidateHeaderValue(
+            securityHeaders.ReferrerPolicy,
+            "Bff:SecurityHeaders:ReferrerPolicy",
+            failures
+        );
+        ValidateHeaderValue(
+            securityHeaders.CrossOriginOpenerPolicy,
+            "Bff:SecurityHeaders:CrossOriginOpenerPolicy",
+            failures
+        );
+    }
+
+    private static void ValidateJwks(
+        BffJwksOptions? jwks,
+        BffClientAuthenticationOptions? clientAuthentication,
+        List<string> failures
+    )
+    {
+        if (jwks is null)
+        {
+            failures.Add("Bff:Jwks must be set.");
+        }
+        else if (jwks.Enabled && string.IsNullOrWhiteSpace(clientAuthentication?.KeyRing))
+        {
+            failures.Add(
+                "Bff:ClientAuthentication:KeyRing must not be blank when Bff:Jwks:Enabled is true, because it holds the keys the endpoint publishes."
+            );
+        }
+    }
+
+    private static void ValidateHeaderValue(string? value, string key, List<string> failures)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            failures.Add($"{key} must not be blank.");
+        }
+        else if (value.Any(x => x is < ' ' or > '~'))
+        {
+            failures.Add($"{key} must hold only printable ASCII characters.");
+        }
+    }
+
     private static void ValidateAntiforgery(
         BffAntiforgeryOptions? antiforgery,
         List<string> failures
@@ -371,6 +433,51 @@ internal class BffOptionsValidator(IHostEnvironment environment) : IValidateOpti
                     $"Bff:LoginParameters entry '{parameter}' is not allowed; use only prompt, max_age, acr_values, login_hint and ui_locales."
                 );
             }
+        }
+    }
+
+    private static void ValidateRemoteApis(
+        Dictionary<string, BffRemoteApiOptions>? remoteApis,
+        string? pathPrefix,
+        bool isDevelopment,
+        List<string> failures
+    )
+    {
+        if (remoteApis is null)
+        {
+            failures.Add("Bff:RemoteApis must be set.");
+            return;
+        }
+
+        List<(string Name, string Path)> paths = [];
+        foreach (var (name, api) in remoteApis)
+        {
+            var key = $"Bff:RemoteApis:{name}";
+            BffRemoteApiValidation.Validate(key, api, isDevelopment, failures);
+            if (string.IsNullOrEmpty(api?.Path))
+                continue;
+
+            if (
+                !string.IsNullOrEmpty(pathPrefix)
+                && BffRemoteApiValidation.Overlaps(api.Path, pathPrefix)
+            )
+            {
+                failures.Add(
+                    $"{key}:Path '{api.Path}' must not overlap Bff:PathPrefix '{pathPrefix}'."
+                );
+            }
+
+            foreach (var (otherName, otherPath) in paths)
+            {
+                if (BffRemoteApiValidation.Overlaps(api.Path, otherPath))
+                {
+                    failures.Add(
+                        $"{key}:Path '{api.Path}' must not overlap Bff:RemoteApis:{otherName}:Path '{otherPath}'."
+                    );
+                }
+            }
+
+            paths.Add((name, api.Path));
         }
     }
 

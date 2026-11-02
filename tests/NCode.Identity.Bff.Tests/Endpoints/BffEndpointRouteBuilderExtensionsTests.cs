@@ -85,5 +85,25 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
         Assert.Equal(["POST"], methods.HttpMethods);
     }
 
+    [Fact]
+    public void MapBffEndpoints_WhenJwksEnabled_MapsTheJwksRoute()
+    {
+        var endpoints = MapEndpoints(x => x.Jwks.Enabled = true);
+
+        var jwks = Assert.Single(endpoints, x => x.RoutePattern.RawText == "/bff/jwks");
+
+        var methods = jwks.Metadata.GetMetadata<HttpMethodMetadata>();
+        Assert.NotNull(methods);
+        Assert.Equal(["GET"], methods.HttpMethods);
+    }
+
+    [Fact]
+    public void MapBffEndpoints_WhenJwksDisabled_DoesNotMapTheJwksRoute()
+    {
+        var endpoints = MapEndpoints();
+
+        Assert.DoesNotContain(endpoints, x => x.RoutePattern.RawText == "/bff/jwks");
+    }
+
     #endregion
 }

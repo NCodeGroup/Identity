@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
@@ -38,7 +39,7 @@ internal class BffUserHandler(
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var response = httpContext.Response;
-        BffResponses.SetNoStore(response);
+        response.SetNoStore();
 
         var cancellationToken = httpContext.RequestAborted;
         var session = await _resolver.ResolveAsync(httpContext, cancellationToken);

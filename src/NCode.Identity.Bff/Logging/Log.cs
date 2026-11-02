@@ -50,4 +50,28 @@ internal static partial class Log
         this ILogger logger,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TokenRequestFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF {GrantType} token request failed: {Reason}"
+    )]
+    internal static partial void TokenRequestFailed(
+        this ILogger logger,
+        string grantType,
+        string reason,
+        Exception? exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RemoteApiForwardFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not forward a request to the remote API at {Path}: {Error}"
+    )]
+    internal static partial void RemoteApiForwardFailed(
+        this ILogger logger,
+        string path,
+        string error,
+        Exception? exception
+    );
 }

@@ -11,9 +11,15 @@ public class BffRefreshLocksTests : BaseTests
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ShortTimeout = TimeSpan.FromMilliseconds(50);
 
-    private static async Task<IDisposable> EnterAsync(BffRefreshLocks locks, string storeKey)
+    private const string Purpose = BffRefreshLocks.UserPurpose;
+
+    private static async Task<IDisposable> EnterAsync(
+        BffRefreshLocks locks,
+        string key,
+        string purpose = Purpose
+    )
     {
-        var lease = await locks.TryEnterAsync(storeKey, WaitTimeout, CancellationToken.None);
+        var lease = await locks.TryEnterAsync(purpose, key, WaitTimeout, CancellationToken.None);
         return Assert.IsAssignableFrom<IDisposable>(lease);
     }
 
@@ -25,7 +31,9 @@ public class BffRefreshLocksTests : BaseTests
         var locks = new BffRefreshLocks();
         var first = await EnterAsync(locks, "session");
 
-        var pending = locks.TryEnterAsync("session", WaitTimeout, CancellationToken.None).AsTask();
+        var pending = locks
+            .TryEnterAsync(Purpose, "session", WaitTimeout, CancellationToken.None)
+            .AsTask();
 
         Assert.False(pending.IsCompleted);
 
@@ -49,12 +57,29 @@ public class BffRefreshLocksTests : BaseTests
     }
 
     [Fact]
+    public async Task TryEnterAsync_SameKeyDifferentPurposes_EnterTogether()
+    {
+        var locks = new BffRefreshLocks();
+
+        // the exchange service holds its lock on a session while the user token service takes its own
+        using var exchange = await EnterAsync(locks, "session", BffRefreshLocks.ExchangePurpose);
+        using var user = await EnterAsync(locks, "session", BffRefreshLocks.UserPurpose);
+
+        Assert.Equal(2, locks.Count);
+    }
+
+    [Fact]
     public async Task TryEnterAsync_TimeoutWhileHeld_ReturnsNull()
     {
         var locks = new BffRefreshLocks();
         using var first = await EnterAsync(locks, "session");
 
-        var second = await locks.TryEnterAsync("session", ShortTimeout, CancellationToken.None);
+        var second = await locks.TryEnterAsync(
+            Purpose,
+            "session",
+            ShortTimeout,
+            CancellationToken.None
+        );
 
         Assert.Null(second);
         Assert.Equal(1, locks.Count);
@@ -65,7 +90,9 @@ public class BffRefreshLocksTests : BaseTests
     {
         var locks = new BffRefreshLocks();
         var first = await EnterAsync(locks, "session");
-        var pending = locks.TryEnterAsync("session", WaitTimeout, CancellationToken.None).AsTask();
+        var pending = locks
+            .TryEnterAsync(Purpose, "session", WaitTimeout, CancellationToken.None)
+            .AsTask();
 
         first.Dispose();
         var second = Assert.IsAssignableFrom<IDisposable>(await pending.WaitAsync(WaitTimeout));
@@ -86,7 +113,9 @@ public class BffRefreshLocksTests : BaseTests
     {
         var locks = new BffRefreshLocks();
         var first = await EnterAsync(locks, "session");
-        var pending = locks.TryEnterAsync("session", WaitTimeout, CancellationToken.None).AsTask();
+        var pending = locks
+            .TryEnterAsync(Purpose, "session", WaitTimeout, CancellationToken.None)
+            .AsTask();
 
         first.Dispose();
         first.Dispose();
@@ -94,7 +123,12 @@ public class BffRefreshLocksTests : BaseTests
         using var second = Assert.IsAssignableFrom<IDisposable>(
             await pending.WaitAsync(WaitTimeout)
         );
-        var third = await locks.TryEnterAsync("session", ShortTimeout, CancellationToken.None);
+        var third = await locks.TryEnterAsync(
+            Purpose,
+            "session",
+            ShortTimeout,
+            CancellationToken.None
+        );
 
         Assert.Null(third);
         Assert.Equal(1, locks.Count);

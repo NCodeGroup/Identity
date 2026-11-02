@@ -4,17 +4,34 @@
 namespace NCode.Identity.Bff.Tokens;
 
 /// <summary>
-/// Reference-counted locks, one per session store key, that serialize the token refreshes of one session inside one
-/// replica.
+/// Reference-counted locks, one per purpose and key, that serialize the token work on one key inside one replica.
 /// </summary>
+// One registered table serves every token service, each in the key space its purpose names: the exchange service
+// holds its lock on a session while the user token service takes its own lock on the same session to refresh the
+// subject token, so the two must never share a key.
 internal sealed class BffRefreshLocks
 {
-    private Lock Gate { get; } = new();
-
-    private Dictionary<string, Entry> Entries { get; } = new(StringComparer.Ordinal);
+    /// <summary>
+    /// The purpose of the user token service's locks, keyed by the session's store key.
+    /// </summary>
+    public const string UserPurpose = "user";
 
     /// <summary>
-    /// Gets the number of session locks that are currently held or awaited.
+    /// The purpose of the client token service's locks, keyed by the resource and scope.
+    /// </summary>
+    public const string ClientPurpose = "client";
+
+    /// <summary>
+    /// The purpose of the exchange token service's locks, keyed by the session's store key.
+    /// </summary>
+    public const string ExchangePurpose = "exchange";
+
+    private Lock Gate { get; } = new();
+
+    private Dictionary<(string Purpose, string Key), Entry> Entries { get; } = [];
+
+    /// <summary>
+    /// Gets the number of locks that are currently held or awaited.
     /// </summary>
     internal int Count
     {
@@ -28,19 +45,22 @@ internal sealed class BffRefreshLocks
     }
 
     /// <summary>
-    /// Waits to enter the lock of the specified session.
+    /// Waits to enter the lock of the specified key, in the key space of the specified purpose.
     /// </summary>
-    /// <param name="storeKey">The store key of the session.</param>
+    /// <param name="purpose">The purpose that names the key space, such as <see cref="UserPurpose"/>.</param>
+    /// <param name="key">The key to lock, such as the store key of a session.</param>
     /// <param name="timeout">The longest time to wait for the lock.</param>
     /// <param name="cancellationToken">The token to observe while waiting.</param>
     /// <returns>A lease that releases the lock when disposed, or <c>null</c> when the wait timed out.</returns>
     public async ValueTask<IDisposable?> TryEnterAsync(
-        string storeKey,
+        string purpose,
+        string key,
         TimeSpan timeout,
         CancellationToken cancellationToken
     )
     {
-        var entry = Acquire(storeKey);
+        var entryKey = (purpose, key);
+        var entry = Acquire(entryKey);
 
         var entered = false;
         try
@@ -50,20 +70,20 @@ internal sealed class BffRefreshLocks
         finally
         {
             if (!entered)
-                Leave(storeKey, entry);
+                Leave(entryKey, entry);
         }
 
-        return entered ? new Releaser(this, storeKey, entry) : null;
+        return entered ? new Releaser(this, entryKey, entry) : null;
     }
 
-    private Entry Acquire(string storeKey)
+    private Entry Acquire((string Purpose, string Key) entryKey)
     {
         lock (Gate)
         {
-            if (!Entries.TryGetValue(storeKey, out var entry))
+            if (!Entries.TryGetValue(entryKey, out var entry))
             {
                 entry = new Entry();
-                Entries.Add(storeKey, entry);
+                Entries.Add(entryKey, entry);
             }
 
             entry.References++;
@@ -71,7 +91,7 @@ internal sealed class BffRefreshLocks
         }
     }
 
-    private void Leave(string storeKey, Entry entry)
+    private void Leave((string Purpose, string Key) entryKey, Entry entry)
     {
         lock (Gate)
         {
@@ -79,7 +99,7 @@ internal sealed class BffRefreshLocks
             if (entry.References > 0)
                 return;
 
-            Entries.Remove(storeKey);
+            Entries.Remove(entryKey);
             entry.Semaphore.Dispose();
         }
     }
@@ -91,7 +111,11 @@ internal sealed class BffRefreshLocks
         public int References { get; set; }
     }
 
-    private sealed class Releaser(BffRefreshLocks owner, string storeKey, Entry entry) : IDisposable
+    private sealed class Releaser(
+        BffRefreshLocks owner,
+        (string Purpose, string Key) entryKey,
+        Entry entry
+    ) : IDisposable
     {
         private int _released;
 
@@ -101,7 +125,7 @@ internal sealed class BffRefreshLocks
                 return;
 
             entry.Semaphore.Release();
-            owner.Leave(storeKey, entry);
+            owner.Leave(entryKey, entry);
         }
     }
 }

@@ -6,10 +6,10 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
-using NCode.Identity.Bff.Requests;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -62,7 +62,7 @@ internal class BffLogoutHandler
         var cancellationToken = httpContext.RequestAborted;
         var bffOptions = _options.Value;
 
-        BffResponses.SetNoStore(httpContext.Response);
+        httpContext.Response.SetNoStore();
 
         if (!request.HasFormContentType)
         {
@@ -70,7 +70,7 @@ internal class BffLogoutHandler
             return;
         }
 
-        var form = await BffForms.TryReadFormAsync(request, cancellationToken);
+        var form = await request.TryReadFormAsync(cancellationToken);
         if (form is null)
         {
             await WriteInvalidRequestAsync(

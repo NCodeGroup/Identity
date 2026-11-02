@@ -16,6 +16,7 @@ using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Events;
@@ -77,13 +78,40 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffLogoutService>();
             serviceCollection.TryAddSingleton<BffLogoutHandler>();
             serviceCollection.TryAddSingleton<BffBackChannelLogoutHandler>();
+            serviceCollection.TryAddSingleton<BffJwksHandler>();
 
             serviceCollection.TryAddSingleton<BffRefreshLocks>();
             serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();
+            serviceCollection.TryAddSingleton<BffGrantClient>();
+            serviceCollection.TryAddSingleton<
+                IBffClientTokenService,
+                DefaultBffClientTokenService
+            >();
+            serviceCollection.TryAddSingleton<
+                IBffExchangeTokenService,
+                DefaultBffExchangeTokenService
+            >();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IBffTokenRequirement, BffUserTokenRequirement>()
             );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffClientTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffUserOrClientTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffExchangeTokenRequirement>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffTokenRequirement, BffNoneTokenRequirement>()
+            );
             serviceCollection.TryAddSingleton<IBffTokenAccessor, DefaultBffTokenAccessor>();
+
+            serviceCollection.AddHttpForwarder();
+            serviceCollection.TryAddSingleton<BffRemoteApiInvokerFactory>();
+            serviceCollection.TryAddSingleton<BffRemoteApiRegistry>();
+            serviceCollection.TryAddSingleton<BffRemoteApiHandler>();
 
             serviceCollection
                 .AddAuthentication()

@@ -5,13 +5,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
-using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
@@ -85,7 +85,7 @@ internal class BffCallbackHandler
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
 
-        BffResponses.SetNoStore(httpContext.Response);
+        httpContext.Response.SetNoStore();
         _cookies.DeleteLogin(httpContext.Response);
 
         var stateValues = request.Query[OpenIdProtocol.Parameters.State];

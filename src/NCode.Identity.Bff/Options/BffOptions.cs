@@ -107,6 +107,18 @@ public sealed class BffOptions
     public BffAntiforgeryOptions Antiforgery { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the headers that <c>UseBffSecurityHeaders()</c> writes. The configuration section is
+    /// <c>Bff:SecurityHeaders</c>.
+    /// </summary>
+    public BffSecurityHeadersOptions SecurityHeaders { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets whether the BFF publishes its public client-authentication keys. The configuration section is
+    /// <c>Bff:Jwks</c>.
+    /// </summary>
+    public BffJwksOptions Jwks { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets the session lifetime and cookie options. The configuration section is <c>Bff:Session</c>.
     /// </summary>
     public BffSessionOptions Session { get; set; } = new();
@@ -120,4 +132,11 @@ public sealed class BffOptions
     /// Gets or sets the token refresh options. The configuration section is <c>Bff:Tokens</c>.
     /// </summary>
     public BffTokenOptions Tokens { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the remote APIs that <c>MapBffRemoteApis()</c> forwards, by name. The configuration section is
+    /// <c>Bff:RemoteApis</c>.
+    /// </summary>
+    public Dictionary<string, BffRemoteApiOptions> RemoteApis { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase);
 }

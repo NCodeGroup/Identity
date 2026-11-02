@@ -1,21 +1,25 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text;
 using Microsoft.AspNetCore.Http;
-using NCode.Buffers;
-using NCode.Identity.Bff.Requests;
 using Xunit;
 
-namespace NCode.Identity.Bff.Tests.Requests;
+namespace NCode.AspNetCore.Tests;
 
-public class BffFormsTests : BaseTests
+public class FormRequestExtensionsTests : BaseTests
 {
+    private static readonly UTF8Encoding StrictUtf8 = new(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true
+    );
+
     private static HttpRequest CreateRequest(string? contentType, string body)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = HttpMethods.Post;
         httpContext.Request.ContentType = contentType;
-        httpContext.Request.Body = new MemoryStream(SecureEncoding.UTF8.GetBytes(body));
+        httpContext.Request.Body = new MemoryStream(StrictUtf8.GetBytes(body));
         return httpContext.Request;
     }
 
@@ -26,7 +30,7 @@ public class BffFormsTests : BaseTests
     {
         var request = CreateRequest("application/x-www-form-urlencoded", "a=1");
 
-        var form = await BffForms.TryReadFormAsync(request, CancellationToken.None);
+        var form = await request.TryReadFormAsync(CancellationToken.None);
 
         Assert.NotNull(form);
         Assert.Equal("1", form["a"].ToString());
@@ -37,7 +41,7 @@ public class BffFormsTests : BaseTests
     {
         var request = CreateRequest("application/json", "{}");
 
-        var form = await BffForms.TryReadFormAsync(request, CancellationToken.None);
+        var form = await request.TryReadFormAsync(CancellationToken.None);
 
         Assert.Null(form);
     }
@@ -51,7 +55,7 @@ public class BffFormsTests : BaseTests
             new string('k', 2049) + "=v"
         );
 
-        var form = await BffForms.TryReadFormAsync(request, CancellationToken.None);
+        var form = await request.TryReadFormAsync(CancellationToken.None);
 
         Assert.Null(form);
     }

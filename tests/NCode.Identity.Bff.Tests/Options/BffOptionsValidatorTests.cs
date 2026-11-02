@@ -516,6 +516,107 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("default-src 'self'\r\nSet-Cookie: x=1")]
+    [InlineData("default-src 'sélf'")]
+    public void Validate_WhenSecurityHeadersContentSecurityPolicyInvalid_Fails(string value)
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders.ContentSecurityPolicy = value;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SecurityHeaders:ContentSecurityPolicy")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenSecurityHeadersReferrerPolicyBlank_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders.ReferrerPolicy = "";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SecurityHeaders:ReferrerPolicy")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenSecurityHeadersCrossOriginOpenerPolicyHasControlCharacter_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders.CrossOriginOpenerPolicy = "same-origin\t";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SecurityHeaders:CrossOriginOpenerPolicy")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenJwksEnabledWithoutKeyRing_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Jwks.Enabled = true;
+        options.ClientAuthentication.KeyRing = " ";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Jwks:Enabled") && x.Contains("Bff:ClientAuthentication:KeyRing")
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenJwksEnabledWithKeyRing_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.Jwks.Enabled = true;
+        options.ClientAuthentication.KeyRing = "client-keys";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenJwksNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Jwks = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Jwks must be set."));
+    }
+
+    [Fact]
+    public void Validate_WhenSecurityHeadersNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SecurityHeaders = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:SecurityHeaders must be set"));
+    }
+
+    [Theory]
     [InlineData("iss")]
     [InlineData("sid")]
     [InlineData("nonce")]
@@ -571,6 +672,112 @@ public class BffOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApisValid_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/api/orders",
+            Destination = "https://api.example.com/v1",
+        };
+        options.RemoteApis["customers"] = new BffRemoteApiOptions
+        {
+            Path = "/api/customers",
+            Destination = "https://api.example.com/v1",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApisNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:RemoteApis must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApiInvalid_FailsWithItsKey()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/api/orders",
+            Destination = "http://api.example.com",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.StartsWith("Bff:RemoteApis:orders:Destination", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApiEntryNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:RemoteApis:orders must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApiOverlapsThePathPrefix_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/bff/orders",
+            Destination = "https://api.example.com",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:RemoteApis:orders:Path '/bff/orders' must not overlap Bff:PathPrefix '/bff'.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenRemoteApisOverlap_Fails()
+    {
+        var options = CreateValidOptions();
+        options.RemoteApis["api"] = new BffRemoteApiOptions
+        {
+            Path = "/api",
+            Destination = "https://api.example.com",
+        };
+        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        {
+            Path = "/api/orders",
+            Destination = "https://api.example.com",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:RemoteApis:orders:Path '/api/orders' must not overlap Bff:RemoteApis:api:Path '/api'.",
+            result.Failures ?? []
+        );
     }
 
     #endregion

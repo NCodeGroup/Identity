@@ -10,20 +10,6 @@ namespace NCode.Identity.Bff.Tests.Responses;
 
 public class BffResponsesTests : BaseTests
 {
-    #region SetNoStore Tests
-
-    [Fact]
-    public void SetNoStore_Always_SetsCacheControl()
-    {
-        var httpContext = new DefaultHttpContext();
-
-        BffResponses.SetNoStore(httpContext.Response);
-
-        Assert.Equal("no-store", httpContext.Response.Headers.CacheControl.ToString());
-    }
-
-    #endregion
-
     #region WriteProblemAsync Tests
 
     [Fact]
@@ -42,7 +28,11 @@ public class BffResponsesTests : BaseTests
 
         Assert.Equal(401, httpContext.Response.StatusCode);
         Assert.StartsWith("application/problem+json", httpContext.Response.ContentType);
-        Assert.Equal("no-store", httpContext.Response.Headers.CacheControl.ToString());
+        Assert.Equal(
+            "no-store, no-cache, max-age=0",
+            httpContext.Response.Headers.CacheControl.ToString()
+        );
+        Assert.Equal("no-cache", httpContext.Response.Headers.Pragma.ToString());
 
         body.Position = 0;
         var root = await JsonSerializer.DeserializeAsync<JsonElement>(body);

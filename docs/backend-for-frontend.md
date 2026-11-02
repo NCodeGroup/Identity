@@ -254,9 +254,8 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.OpenId.Client.Abstractions`     | `NCode.Identity.Jose.Abstractions`, `NCode.Identity.Jwt.Abstractions`, `NCode.Identity.OpenId.Protocol.Abstractions`, `NCode.Json` | Contracts for an OAuth/OIDC **protocol client**: discovery document, token-endpoint requests and responses, client-authentication strategies, DPoP proof creation, ID-token and logout-token validation results.                                                            |
 | `NCode.Identity.OpenId.Client`                  | the above, `.SharedState.Abstractions` (abstractions only, ADR-1016)    | Default implementations: cached discovery and JWKS, PAR, code / refresh / client-credentials / token-exchange requests, revocation, `private_key_jwt` and mTLS client authentication, DPoP with nonce handling, and ID-token and logout-token validation under the family's JWT policy ([ADR-1154](decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). It is useful on its own to any server-side client. It needs no ASP.NET Core runtime ([ADR-1285](decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md)). |
 | `NCode.Identity.Bff.Abstractions`               | the ASP.NET Core shared framework, `NCode.Identity.OpenId.Client.Abstractions`, `NCode.Identity.Events.Abstractions`, `NCode.Registration` | BFF contracts: the session record and `IBffSessionStore`, token requirements and `IBffTokenAccessor`, login gates and session validators, `[BffApi]`, the audit event, problem types and name constants ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)). |
-| `NCode.Identity.Bff`                            | the above, `NCode.Identity.SharedState.Abstractions` (abstractions only, ADR-1016) | The ASP.NET Core authentication scheme, the `/bff` endpoints, `UseBff()` with the cookie-acceptance checks, the token manager and `AddBffAccessTokenHandler`, local-API endpoint metadata (`AsBffApi`), and the back-channel logout receiver. Composed with `AddBffLibrary(events)` on the protocol client's builder and `AddBffConfiguration(configuration)`; the host registers the protocol client, events and shared-state implementations. Phase 3 adds the remote-API forwarder (YARP's `IHttpForwarder`). |
+| `NCode.Identity.Bff`                            | the above, `NCode.Identity.SharedState.Abstractions` (abstractions only, ADR-1016), the `NCode.Identity.Jwk` model ([ADR-1119](decisions/1119-first-class-jwk-jwks-and-thumbprint.md)), YARP | The ASP.NET Core authentication scheme, the `/bff` endpoints (with the optional `/bff/jwks`), `UseBff()` with the cookie-acceptance checks, the token manager and `AddBffAccessTokenHandler`, local-API endpoint metadata (`AsBffApi`), the back-channel logout receiver, the remote-API forwarder on YARP's `IHttpForwarder` (`MapBffRemoteApi`), token attachment for routes in YARP configuration (`AddBffTransforms()`, `AsBffRemoteApis()`), and the opt-in `UseBffSecurityHeaders()`. Composed with `AddBffLibrary(events)` on the protocol client's builder and `AddBffConfiguration(configuration)`; the host registers the protocol client, events and shared-state implementations. |
 | `NCode.Identity.Bff.Server`                     | `NCode.Identity.Bff`, and the protocol client, events, secrets, JOSE, JWT and shared-state implementations | The turnkey composition root: `AddIdentityBff(configuration)` composes every library a BFF needs in one call, with in-process shared state by default, and exposes each library's builder (`IIdentityBffBuilder`), as `AddIdentityServer()` does for the OP. The host still registers the key rings its configuration names and, with several replicas, a shared-state adapter. |
-| `NCode.Identity.Bff.Yarp`                       | `NCode.Identity.Bff`, YARP                                      | Optional. Attaches tokens to routes defined in YARP configuration and applies the anti-forgery check to them.                                                                                                                                                               |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
 Dependencies point one way: `Bff` → `OpenId.Client` → JOSE, Secrets, and SharedState. Nothing depends on the OP
@@ -602,20 +601,52 @@ cookie authenticate it:
 **Remote APIs** are forwarded to an allow-listed destination. `MapBffRemoteApi("/api/orders", destination, options)`
 binds a local path prefix to **one** destination base URL. The forwarder:
 
-- Accepts only configured destinations. It never derives a host from the request, and dynamic routing goes through a
-  resolver that must return an allow-listed destination (RFC 10017 §6.1.3.6).
+- Accepts only configured destinations. It never derives a host from the request (RFC 10017 §6.1.3.6). A host that
+  routes by more than a path prefix describes its routes in YARP configuration instead, as below.
 - Normalizes the remaining path and **rejects** dot segments, encoded slashes (`%2F`, `%5C`), backslashes, and anything
   that would leave the destination's base path.
 - Applies an optional method allow-list for each API.
-- Strips inbound `Cookie`, `Authorization`, the anti-forgery header, and any `DPoP` header, then attaches the token
-  and proof for the API's requirement.
+- Strips inbound `Cookie`, `Authorization`, the anti-forgery header, any `DPoP` header and the forwarding headers,
+  then attaches the token and proof for the API's requirement.
 - Strips `Set-Cookie` from upstream responses, so an API cannot plant cookies on the BFF's origin.
 - Never follows upstream redirects. Responses stream through, and each API has its own timeouts.
 - Retries **once** on an upstream `WWW-Authenticate: DPoP error="use_dpop_nonce"`.
 
-`NCode.Identity.Bff.Yarp` brings the same token attachment and anti-forgery checks to routes in YARP configuration,
-through route metadata such as `Bff:TokenRequirement` and `Bff:Resource`. The destination allow-list is then YARP's
-cluster configuration.
+**YARP routes.** A host that already describes its routes in YARP configuration names their token in route metadata
+instead ([ADR-1381](decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+decision 8). `AddReverseProxy()…AddBffTransforms()` makes every route whose metadata has `BffTokenRequirement` a
+remote API, with the optional `BffResource` and `BffScope`, and `MapReverseProxy().AsBffRemoteApis()` marks those
+routes as BFF APIs, so they need the session and the anti-forgery header. The keys have no `:`, because YARP's
+configuration loader reads a colon as a section separator.
+
+```jsonc
+{
+  "ReverseProxy": {
+    "Routes": {
+      "orders": {
+        "ClusterId": "orders",
+        "Match": { "Path": "/api/orders/{**rest}" },
+        "Metadata": { "BffTokenRequirement": "user", "BffResource": "https://orders.example.com" },
+      },
+    },
+    "Clusters": {
+      "orders": { "Destinations": { "primary": { "Address": "https://orders.example.com/" } } },
+    },
+  },
+}
+```
+
+- The destination allow-list is YARP's cluster configuration, and the path and forwarding headers follow the route's
+  own pattern and transforms.
+- Each route's metadata is validated when YARP loads it: the requirement must be registered, and `BffResource` or
+  `BffScope` without `BffTokenRequirement` is refused.
+- A remote API route strips the browser's `Cookie`, `Authorization`, `DPoP` and anti-forgery headers, resolves its
+  token before anything is forwarded, attaches it as `MapBffRemoteApi` does, and drops every upstream `Set-Cookie`.
+- Every other route never forwards the BFF's session or login cookie, and an upstream cannot set either.
+- `AddBffTransforms()` wraps the last registered `IForwarderHttpClientFactory`, so it is called after
+  `ConfigureHttpClient()`; the proxy refuses to start when a factory is registered after it.
+- A route that names a requirement but is not marked with `AsBffRemoteApis()` fails closed: the token accessor serves
+  a token only to an endpoint the BFF guards, so nothing is forwarded and YARP answers `502`.
 
 **The SPA contract.** Every request to `/bff/user`, local APIs, and remote APIs carries the configured anti-forgery
 header with its static value (`X-CSRF: 1` by default). Requests are same-origin and send credentials (the `fetch`
@@ -637,7 +668,7 @@ itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable opera
 | `/bff/user`                    | `GET`, `fetch`      | Session probe: allow-listed claims, expiry, `logoutUrl`, `logoutSid`        | Anti-forgery header and Fetch Metadata. Answers `401` JSON when there is no session, never a redirect.                            |
 | `/bff/logout`                  | `POST`, navigation  | Ends the session and runs RP-initiated logout                                | The form's `sid` must equal the session's logout guard ([§5.8](#58-logout-and-back-channel-logout)). `returnUrl` is allow-listed. |
 | `/bff/backchannel-logout`      | `POST` form         | Receives the OP's `logout_token`                                             | Validates the logout token ([§5.8](#58-logout-and-back-channel-logout)). No cookie or CSRF check, because it is a server-to-server call. |
-| `/bff/jwks`                    | `GET`               | Optional. The BFF's public client-authentication keys                        | Public data                                                                                                                      |
+| `/bff/jwks`                    | `GET`               | Optional, mapped only when `Bff:Jwks:Enabled` is `true`. The public keys of `Bff:ClientAuthentication:KeyRing` ([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)) | Public data. Symmetric keys and the DPoP key ring are never published.                                                          |
 
 `GET /bff/user` returns:
 
@@ -734,11 +765,20 @@ authorization. A `403` from the CSRF check must travel back out through CORS so 
 rather than a generic CORS failure. The library checks the order and the presence of its endpoints at startup, and
 throws if `UseBff()` or `MapBffEndpoints()` is missing, so CSRF protection cannot be left out silently.
 
-**Security headers.** `UseBffSecurityHeaders()` is opt-in. It sets a strict Content-Security-Policy as a starting point
-(`default-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`), plus
-`X-Content-Type-Options: nosniff`, a strict `Referrer-Policy`, and `Cross-Origin-Opener-Policy: same-origin`. CSP
+**Security headers.** `UseBffSecurityHeaders()` is opt-in
+([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+It sets a strict Content-Security-Policy as a starting point
+(`default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`), plus
+`X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, and `Cross-Origin-Opener-Policy: same-origin`. CSP
 contents depend on the application, so the library offers this helper but never imposes it. CSP is the only control
 that limits XSS riding the session (RFC 10017 §6.1.4.1).
+
+- The values come from `Bff:SecurityHeaders` (`ContentSecurityPolicy`, `ReferrerPolicy`, `CrossOriginOpenerPolicy`),
+  and `nosniff` is fixed. Startup validation refuses a blank value or a character outside printable ASCII.
+- A header that the application sets on a response wins, so a page with a nonce-based policy sends its own.
+- The default policy names no `form-action`, because the logout form's redirect to the OP must not be blocked. A host
+  that knows the OP's origin adds `form-action 'self' <OP origin>`.
+- Call it before the static files and the endpoints, so the frontend's own pages carry the headers.
 
 **Topology.** The paved path is **one origin**: the SPA and the BFF behind one reverse proxy, so no call needs a
 preflight. The absolute URLs the BFF publishes, the `redirect_uri` and the `post_logout_redirect_uri`, come from
@@ -778,7 +818,6 @@ runs.
 | Session claim contributors (`IBffSessionClaimContributor`) | Strategy collection | Shape the session principal **once**, at login, before the login gates. A good place for an expensive lookup. `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr` cannot be added or removed. |
 | Session validators (`IBffSessionValidator`) | Strategy collection        | Per-request checks that can only end a session, for example re-checking account status at an interval.                        |
 | `/bff/user` contributors (`IBffUserContributor`) | Strategy collection | Add computed fields to the session probe, never into the reserved keys (`sub`, `name`, `claims`, `session`, `logoutUrl`, `logoutSid`). |
-| Remote-API destination resolver          | Service                       | Dynamic routing. It must return an allow-listed destination.                                                                  |
 | Events                                   | `NCode.Identity.Events`       | Lifecycle events go through the family's `IEventPublisher`, and audit-worthy ones are `IAuditEvent`s.                        |
 
 **Invariants that no seam can break.** No seam can skip the callback binding, the cookie attributes, the CSRF checks,
@@ -787,7 +826,7 @@ that is not registered is rejected at startup.
 
 ### 5.12 Composition and configuration
 
-The sketch below shows the phase-2 composition; `MapBffRemoteApi` and `RemoteApis` arrive in phase 3. `AddIdentityBff` composes the shared-state, events, secrets, JOSE, JWT, protocol-client and BFF libraries; a host that needs a finer composition calls their `Add…Library` methods itself, as the composition root does.
+The sketch below shows the composition. `AddIdentityBff` composes the shared-state, events, secrets, JOSE, JWT, protocol-client and BFF libraries; a host that needs a finer composition calls their `Add…Library` methods itself, as the composition root does.
 
 ```csharp
 var bff = builder.Services.AddIdentityBff(builder.Configuration); // NCode.Identity.Bff.Server; binds "Bff" strictly
@@ -797,12 +836,13 @@ builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the key rin
 
 var app = builder.Build();
 app.UseForwardedHeaders();
+app.UseBffSecurityHeaders();                            // optional; Bff:SecurityHeaders
 app.UseCors(myCorsPolicy);                              // optional, and always outermost
 app.UseBff();                                           // anti-forgery header + Fetch Metadata + session resolution
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapBffEndpoints();                                  // /bff/login, /callback, /user, /logout, /backchannel-logout
+app.MapBffEndpoints();                                  // /bff/login, /callback, /user, /logout, /backchannel-logout, /jwks
 app.MapGet("/api/me", (ClaimsPrincipal user) => user.FindFirstValue("sub")).AsBffApi();
 app.MapBffRemoteApi("/api/orders", "https://orders.example.com/", api =>
 {
@@ -825,6 +865,7 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
     "TrustedOrigins": ["https://admin.example.com"],              // same-site origins allowed to call the APIs
     "Session": { "AbsoluteLifetime": "08:00:00", "IdleTimeout": "01:00:00", "SameSite": "Strict" },
     "DPoP": { "Mode": "when_supported", "KeyRing": "orders-web-dpop" },
+    "Jwks": { "Enabled": true },                                  // publish the client key at /bff/jwks
     "RemoteApis": {
       "orders": {
         "Path": "/api/orders",
@@ -845,6 +886,8 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 - The client-authentication method or the token requirement names something not registered.
 - There are no `ReturnUrls`, or an entry is not a same-origin relative path.
 - A remote API's destination is not `https` (outside Development) or overlaps another API's local prefix.
+- `Jwks:Enabled` is `true` without `ClientAuthentication:KeyRing`.
+- `SecurityHeaders` is missing, or a header value is blank or has a character outside printable ASCII.
 - `SameSite` is `None`.
 - `AbsoluteLifetime` is shorter than `IdleTimeout`.
 - A `Bff:IdToken` or `Bff:UserInfo` algorithm list has a blank entry, `none` or a duplicate; content encryption is
@@ -860,8 +903,8 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 - `bff.login.succeeded` and `bff.login.failed`, with a reason name.
 - `bff.session.ended`, with a reason: `logged_out`, `idle_timeout`, `absolute_expiry`, `refresh_failed`,
   `backchannel_logout`, `replaced`, or `ended_by_validator`.
-- `bff.token.refresh_failed`, `bff.backchannel_logout.received` and `.rejected`, `bff.antiforgery.rejected`, and
-  `bff.proxy.destination_rejected`.
+- `bff.token.refresh_failed`, `bff.backchannel_logout.received` and `.rejected`, and `bff.antiforgery.rejected`. A
+  remote API's destination is fixed at startup, so no destination is rejected at run time.
 
 Reason names are open string constants, so a new reason never breaks a consumer.
 
@@ -877,7 +920,8 @@ Reason names are open string constants, so a new reason never breaks a consumer.
 - `ncode.identity.bff.session_store.operation.duration` and its span time every operation against the registered
   `IBffSessionStore`.
 - The token endpoint calls are `System.Net.Http`'s client spans and `http.client.request.duration`, and the endpoints
-  are ASP.NET Core's request spans and `http.server.request.duration`. Forwarding arrives with phase 3.
+  are ASP.NET Core's request spans and `http.server.request.duration`. A forwarded remote-API call is a
+  `System.Net.Http` client span and `http.client.request.duration` too.
 
 Tags are low-cardinality constants: operation, result, reason, and error type. They never carry subjects, handles,
 tokens, client ids, or paths. [`docs/metrics.md`](metrics.md) catalogs every instrument and span.
@@ -1032,14 +1076,17 @@ tokens, client ids, or paths. [`docs/metrics.md`](metrics.md) catalogs every ins
 ### D8. Forwarding
 
 - **Options:**
-  - (a) A built-in forwarder on YARP's `IHttpForwarder`, plus an optional YARP configuration package.
+  - (a) A built-in forwarder on YARP's `IHttpForwarder`, plus support for routes described in YARP configuration.
   - (b) YARP configuration only.
   - (c) Forwarding with a hand-written `HttpClient`.
 - **Decision: (a).**
 - **Why:**
   - `IHttpForwarder` handles streaming, hop-by-hop headers, and protocol edge cases correctly.
   - The simple case needs no YARP configuration.
-  - The YARP package serves deployments that already describe their routes in YARP.
+  - Deployments that already describe their routes in YARP name each route's token in its metadata, and
+    `NCode.Identity.Bff` itself carries that support
+    ([ADR-1381](decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+    decision 8).
 
 ### D9. Endpoint prefix
 
@@ -1057,8 +1104,8 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-1267](decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
 | 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-1270](decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. mTLS client authentication is delivered ([ADR-1288](decisions/1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md)); ID-token validation (ADR-1273) and logout-token validation ([ADR-1274](decisions/1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. PAR is delivered ([ADR-1275](decisions/1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)). Encrypted ID and logout tokens are delivered ([ADR-1280](decisions/1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)). DPoP is delivered ([ADR-1286](decisions/1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)). |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. Delivered ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md), [ADR-1291](decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md), [ADR-1292](decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md), [ADR-1293](decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)). |
-| 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
-| 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |
+| 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and token attachment for routes in YARP configuration. Delivered ([ADR-1381](decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)), with the YARP support in `NCode.Identity.Bff` itself rather than a separate package. |
+| 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint. `UseBffSecurityHeaders()` and `/bff/jwks` are delivered ([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)); multiple frontends remain ([#396](https://github.com/NCodeGroup/Identity/issues/396)). |
 | 5     | [#158](https://github.com/NCodeGroup/Identity/issues/158): the management console moves onto the BFF. The reference host serves the console through the BFF as a confidential client of its own root tenant, and the console's `@ncode/auth` token custody is retired. The Playground stays a public client on purpose. |
 
 ---

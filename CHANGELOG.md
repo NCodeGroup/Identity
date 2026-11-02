@@ -10,6 +10,47 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The BFF serves more token requirements and forwards remote APIs.** Besides `user`, an endpoint or remote API can name
+  `client` (the BFF's own `client_credentials` token, served only to a request with a session and cached in memory on
+  each replica per resource and scope), `user_or_client` (the user's token when a session resolves, otherwise the BFF's
+  own, never falling back from a failed user token), `exchange` (an RFC 8693 token exchange that presents the user's
+  token, cached in the session per resource and scope and bound to its DPoP key) and `none` (a session but no token);
+  the names are in `BffTokenRequirementNames`. `MapBffRemoteApi(path, destination, configure)` and `MapBffRemoteApis()`
+  over the `Bff:RemoteApis` section (`BffRemoteApiOptions`: `Path`, `Destination`, `TokenRequirement`, `Resource`,
+  `Scope`, `AllowedMethods`, `Timeout`) forward a BFF API's requests to a remote API through YARP's `IHttpForwarder`
+  with the token attached, DPoP-bound when the token is. The forwarder answers `400` for a path that could leave the
+  destination's base path and `405` (`BffProblemTypes.MethodNotAllowed`) for a method outside `AllowedMethods`, never
+  forwards the browser's cookies, credentials or forwarding headers, drops the upstream `Set-Cookie`, and never follows
+  a redirect; `NCode.Identity.Bff` now depends on `Yarp.ReverseProxy`
+  ([#395](https://github.com/NCodeGroup/Identity/issues/395),
+  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
+
+- **YARP-configured routes can carry the BFF's token.** `AddReverseProxy()…AddBffTransforms()` makes every route whose
+  metadata names `BffTokenRequirement` (with the optional `BffResource` and `BffScope`) a remote API, and
+  `MapReverseProxy().AsBffRemoteApis()` marks those routes as BFF APIs, so they require the session and the
+  anti-forgery header. Such a route loses the browser's cookies, credentials and anti-forgery header, gets the token
+  attached, DPoP-bound when the token is, and drops the upstream `Set-Cookie`; every other route keeps its cookies but
+  never forwards or accepts the BFF's own. Route metadata is validated when YARP loads it, and the proxy refuses to
+  start when another `IForwarderHttpClientFactory` is registered after `AddBffTransforms()`. Routing beyond a path
+  prefix goes through YARP's routes and clusters; the design's destination resolver seam is not built
+  ([#395](https://github.com/NCodeGroup/Identity/issues/395),
+  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+  decision 8).
+
+- **The BFF can send browser security headers and publish its client keys.** `app.UseBffSecurityHeaders()` writes
+  `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` and `Cross-Origin-Opener-Policy` on
+  every response, from `Bff:SecurityHeaders` (`BffSecurityHeadersOptions`: `ContentSecurityPolicy`, `ReferrerPolicy`,
+  `CrossOriginOpenerPolicy`), unless the application set the header itself. `Bff:Jwks:Enabled` maps an anonymous,
+  never-cached `GET /bff/jwks` that publishes the public keys of `Bff:ClientAuthentication:KeyRing`, for an OP that
+  reads a `private_key_jwt` client's keys from its `jwks_uri`; it is off by default. Both are validated when the host
+  starts ([#396](https://github.com/NCodeGroup/Identity/issues/396),
+  [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+
+- **One public form reader.** `NCode.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or
+  returns `null` when it has none or its body is malformed or over the form limits; the OpenID endpoints and the BFF
+  share it instead of keeping copies ([#517](https://github.com/NCodeGroup/Identity/issues/517),
+  [ADR-1355](docs/decisions/1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)).
+
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar and group arithmetic and the Ed25519 and Ed448 signing and verification of `NCode.Identity.Jose.EdDsa` with BenchmarkDotNet, so an optimization of a primitive is justified by a measurement; the build compiles the project and nothing runs it ([#470](https://github.com/NCodeGroup/Identity/issues/470), [ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
 
 - **Project template v0.59.0.** The repository moves from project-template v0.53.0 to v0.59.0. It gains the `/run-feedback` command, which runs an `/address-feedback` pass on a pull request every five minutes until it merges or closes, commenting `/review` after each push so NCode Review reviews the new commits; and project-template ADR-0014, under which every review thread, and every top-level comment or review summary that asks for something, is fixed or answered and replied to before the pull request merges, with the person who merges resolving each thread. `/run-issues` and `/address-feedback` now reply to every unresolved review thread they read, `/run-issues` comments `/review` after pushing a round's fixes and turns a finding the issue doesn't ask for into a follow-up, and both leave a plan's worktree to run from the main checkout. The template's own `file_header_template` is now the two-line SPDX header [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) already enforces ([#516](https://github.com/NCodeGroup/Identity/issues/516)).
@@ -1327,6 +1368,14 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   (set in `launchSettings.json`). See [ADR-1021](docs/decisions/1021-developer-signing-keys-seeded-through-persistence.md).
 
 ### Changed
+
+- **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
+  `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`, instead of
+  `no-store` alone ([#512](https://github.com/NCodeGroup/Identity/issues/512),
+  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+- **A BFF token whose response named no `token_type` is a `Bearer` token.** `BffAccessToken.TokenType` is `Bearer`,
+  not empty, when the provider's token response omitted `token_type`, which RFC 6749 §5.1 requires
+  ([#395](https://github.com/NCodeGroup/Identity/issues/395)).
 
 - **Breaking: a host names its root key provider.** An unset or blank `SecretProtection:RootKeyProvider` no longer falls back to `ephemeral`: the host stops when it starts, with an error naming the setting. Set `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or another registered provider, or `ephemeral` for local development and tests; the reference host's `appsettings.Development.json` and `appsettings.Conformance.json` select `ephemeral`, Production still refuses it, and the Helm chart refuses an empty `secretProtection.rootKeyProvider` in every environment ([#495](https://github.com/NCodeGroup/Identity/issues/495), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **Breaking:** `EndSessionCommand` takes the resolved `EndSessionSubject`, so send `ResolveEndSessionSubjectCommand` first; `EndSessionSubject` takes a positional `RequiresConfirmation`, so a replacement subject resolver states whether the end-user must confirm, the new `ParkEndSessionRequestCommand` parks a logout that needs confirmation and the new `EndSessionConfirmationChallengeCommand` asks for it, and when an OP login is present its session takes precedence over the `id_token_hint`'s `sid` ([#494](https://github.com/NCodeGroup/Identity/issues/494), [ADR-1380](docs/decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)).

@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.AspNetCore\NCode.AspNetCore.csproj" />
         <ProjectReference Include="..\NCode.Identity.Bff.Abstractions\NCode.Identity.Bff.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Client.Abstractions\NCode.Identity.OpenId.Client.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Abstractions\NCode.Identity.SharedState.Abstractions.csproj" />
@@ -25,5 +26,6 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Buffers" />
+        <PackageReference Include="Yarp.ReverseProxy" />
     </ItemGroup>
 </Project>

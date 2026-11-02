@@ -1,6 +1,8 @@
 # 1125. Trunk-based development on a single `main` trunk
 
 - **Status:** Superseded by [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md)
+  (its protection was already superseded by
+  [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md))
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
 

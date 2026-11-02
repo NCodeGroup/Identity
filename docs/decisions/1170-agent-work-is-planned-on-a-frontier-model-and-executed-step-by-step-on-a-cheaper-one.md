@@ -55,7 +55,7 @@ Code executor runs commands with the PowerShell tool, which Claude Code allows i
 of commands no longer moves to the main checkout. From `v0.12.0`, a plan names the issue it implements on an
 `Issue:` line, the planning session posts the plan to that issue, and the pull request description ends with
 `Closes #<number>`, which ties each plan to the issue that tracks its work
-([ADR-1264](1264-pending-work-is-tracked-as-github-issues.md)).
+([ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)).
 
 The update to project-template `v0.14.0` adds three commands. From `v0.13.0`, `/plan-issue #<number>` plans one
 issue: it reads the issue and every comment, stops with questions when the issue is closed, already planned, has an
@@ -86,7 +86,8 @@ The update to project-template `v0.35.1` adds those keys, and `AGENTS.md` sets t
 opens every pull request as a draft without the `draft` argument; `gate: ./build/dod.ps1 -Fast -Affected`, so
 `/ship-plan` and `/run-issues` run the local pre-push gate before each push and stop when it fails or changes a file;
 and `pr-format: none`, because a plan's title is already the conventional commit subject. `/ship-plan` files a plan's
-follow-ups as issues labelled `follow-up` ([ADR-1264](1264-pending-work-is-tracked-as-github-issues.md)). One plan may
+follow-ups as issues labelled `follow-up`
+([ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md)). One plan may
 cover up to three related issues, with a `Closes` line for each, and `/run-issues` answers top-level pull request
 comments and review summaries as well as review threads, and plans the next issue while a pull request waits for
 review.
@@ -251,5 +252,5 @@ individual review.
   [`plan-executor.agent.md`](../../.github/agents/plan-executor.agent.md)
 - [`AGENTS.md` — Plan-and-execute workflow](../../AGENTS.md#plan-and-execute-workflow)
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — conventions and lessons live in the repository
-- [ADR-1125](1125-trunk-based-development-on-main.md) — trunk-based development on `main`
+- [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) — trunk-based development on `main` and its release lines
 - [ADR-1128](1128-commits-are-attributed-to-people-not-agents.md) — commits are attributed to people, not agents

@@ -2,7 +2,8 @@
 #
 # Dependabot is the free, built-in counterpart to the Definition of Done: the gate proves a change is safe, this keeps
 # the inputs current so the gate has something honest to prove. Every ecosystem the repository actually ships or builds
-# from is covered; updates land as pull requests against the single `main` trunk (project-template ADR-0004) and are gated by CI.
+# from is covered; updates land as pull requests against the single `main` trunk (project-template ADR-0004) and are
+# gated by CI.
 #
 # VERSION UPDATES ARE PAUSED (issue #36), except for the docker ecosystem. While the family is refactored heavily
 # ahead of its first release, a weekly version bump is mostly churn against code that is about to move. Every other

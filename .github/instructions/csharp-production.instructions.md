@@ -968,7 +968,8 @@ Production code **must** be unit-test-friendly. These are 👁 review-only excep
   for data, options and event types (§2) and facade implementations.
 - ✅/👁 **`internal` for test access** — the test template's
   [InternalsVisibleTo](csharp-tests.instructions.md#internalsvisibleto): each package grants its `.Tests` project and
-  `DynamicProxyGenAssembly2`.
+  `DynamicProxyGenAssembly2`, and a package with a benchmark project also grants its `.Benchmarks` project
+  ([ADR-1386](../../docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
 - 👁 **Test the unit through its public surface; privates are covered transitively** — the test template's
   [What a Test Proves](csharp-tests.instructions.md#what-a-test-proves).
 - 👁 **Tested-or-excluded.** Every type/member that can carry `[ExcludeFromCodeCoverage]` is **either** exercised by
@@ -1115,8 +1116,10 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   code must not gain a data-dependent branch or memory access from any optimization; (2) correctness is pinned by
   test vectors / differential tests that must stay green. This is a deliberate, scoped exception to the clean-code
   rules above, limited to performance-critical primitives. A new optimization of a primitive is justified by a benchmark
+  in `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks`, whose before and after numbers the pull request quotes
   ([project-template ADR-0112](../../docs/decisions/project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)).
-  See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+  See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md) and
+  [ADR-1386](../../docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md).
 
 ## 11. Logging & metrics
 

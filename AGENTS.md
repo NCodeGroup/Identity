@@ -11,6 +11,8 @@ abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host
 ## Layout
 
 Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
+Benchmark projects (the `*.Benchmarks` projects) live under `benchmarks/`; the build compiles them and nothing runs
+them ([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.JsonWebTokens`
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its

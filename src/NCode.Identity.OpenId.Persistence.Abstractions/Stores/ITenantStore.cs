@@ -271,23 +271,24 @@ public interface ITenantStore : IStore<PersistedTenant>
 
     /// <summary>
     /// Determines whether the specified tenant identifier belonged to a deleted tenant. A tenant identifier is never
-    /// reissued (ADR-1189).
+    /// reissued.
     /// </summary>
     /// <param name="tenantId">The tenant identifier to look up.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when a
     /// deleted tenant had the identifier; otherwise <c>false</c>.</returns>
+    // See ADR-1189.
     ValueTask<bool> IsTenantIdRetiredAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the identifier of the tenant that gave up the specified issuer, by changing its issuer or by being deleted.
-    /// Relying parties that trusted the issuer would trust any tenant that took it, so only that tenant can take it back
-    /// (ADR-1189).
+    /// Relying parties that trusted the issuer would trust any tenant that took it, so only that tenant can take it back.
     /// </summary>
     /// <param name="issuer">The issuer to look up.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identifier of
     /// the tenant that held the issuer, or <c>null</c> when no tenant has given it up.</returns>
+    // See ADR-1189.
     ValueTask<string?> GetRetiredIssuerHolderOrDefaultAsync(
         string issuer,
         CancellationToken cancellationToken

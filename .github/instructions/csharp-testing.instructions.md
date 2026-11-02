@@ -341,13 +341,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`DeveloperSpaClientSeedingTests`).
 - 👁 **Configuration the composition root reads while it registers services is a host setting in a test factory.** A
   `ConfigureAppConfiguration` overlay reaches options bound later, but not a value `Program.cs` reads to decide what to
-  register — `DeveloperKeys:Mode`, read by `AddDevelopmentEnvironment`, keeps its default and the test silently runs
+  register — `DeveloperKeys:PruneUnreadableKeys`, read by `AddDevelopmentEnvironment`, keeps its default and the test silently runs
   the wrong composition. Supply such a value with `builder.UseSetting(key, value)`, which reaches the host's entry point
-  the way `UseEnvironment` does, and assert on an effect only that composition has (the provisioned keys of
-  `TenantKeyProvisioningTests`), so a value that did not arrive fails the test.
-- 👁 **A test that needs a tenant encryption key has the host provision it.** The default `Ephemeral` developer keys are
-  one in-memory RSA signing key, and a tenant reads its settings and keys once, when it is first served, so neither can
-  be added after a request reaches it. Select `DeveloperKeys:Mode` `None` (a host setting, above), list a key-management
+  the way `UseEnvironment` does, and assert on an effect only that composition has, so a value that did not arrive fails
+  the test.
+- 👁 **A test that needs a tenant encryption key has the host provision it.** The host provisions only the default
+  signing keys, and a tenant reads its settings and keys once, when it is first served, so neither can
+  be added after a request reaches it. List a key-management
   algorithm such as `RSA-OAEP-256` beside a signing algorithm in `OpenId:Tenant:KeyProvisioning:Keys`
   ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
   tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
@@ -399,11 +399,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   server sends `myapp://callback/` for `myapp://callback`.
 - 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
   `myapp://callback` is of no registered kind and is refused
-  ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
-- 👁 **The ephemeral developer key signs only `RS256`.** A test that needs the tenant to sign with `PS256` or
-  `ES256`, such as a FAPI client's JARM response, selects `DeveloperKeys:Mode` `None` with `builder.UseSetting` (a
-  host setting, above), so the tenant is provisioned `RS256`, `PS256`, and `ES256` keys
-  (`Fapi1AdvancedAuthorizationTests`).
+  (  [ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
   ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test

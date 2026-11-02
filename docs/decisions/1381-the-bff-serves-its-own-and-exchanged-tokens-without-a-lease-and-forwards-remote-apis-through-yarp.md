@@ -13,13 +13,14 @@ replicas because the OP rotates refresh tokens: two replicas that present the sa
 whole family (RFC 9700 §4.14.2).
 
 Phase 3 of the [design](../backend-for-frontend.md) (issue [#395](https://github.com/NCodeGroup/Identity/issues/395))
-adds four more requirements and a way to call a remote API with them:
+adds four more requirements and two ways to call a remote API with them:
 
 - `client`: the BFF's own token from the `client_credentials` grant (RFC 6749 §4.4).
 - `user_or_client`: the user's token when the request has a session, otherwise the BFF's own.
 - `exchange`: a token for another resource or scope, from an RFC 8693 token exchange that presents the user's token.
 - `none`: no token at all, only a session.
 - Remote APIs: a local path prefix that forwards each request to a destination with one of those tokens attached.
+- YARP routes: a host that already uses the YARP reverse proxy names a requirement on its configured routes.
 
 Neither new grant has the reuse hazard that the lease guards against. `client_credentials` issues no refresh token
 (RFC 6749 §4.4.3), and the BFF keeps no refresh token from an exchange. A second request for either token returns a
@@ -73,6 +74,27 @@ second, equally valid token and revokes nothing.
      activity.
    - It attaches the token through `BffAccessTokenHandler`, which signs a DPoP proof for a DPoP-bound token and
      retries a `use_dpop_nonce` challenge once.
+8. **A host that already describes its routes in YARP configuration names their token in route metadata.**
+   `AddReverseProxy()…AddBffTransforms()` makes every route whose metadata has `BffTokenRequirement` a remote API, with
+   the optional `BffResource` and `BffScope`. The keys have no `:`, because YARP's configuration loader reads a colon as
+   a section separator. `MapReverseProxy().AsBffRemoteApis()` marks those routes as BFF APIs, so they require the
+   session and the anti-forgery header. The support lives in `NCode.Identity.Bff` itself.
+   - Every route's metadata is validated when YARP loads it: the requirement must be registered, and `BffResource` or
+     `BffScope` without `BffTokenRequirement` is refused, so a typo fails the configuration instead of forwarding
+     without a token.
+   - A remote API route loses the browser's `Cookie`, `Authorization`, `DPoP` and anti-forgery headers. Its token is
+     resolved before anything is forwarded, so a failure answers the same problem as `UseBff()`. The token is attached
+     by the same `BffAccessTokenHandler`, and the upstream response loses every `Set-Cookie`.
+   - Every other route keeps its cookies but never forwards the BFF's session or login cookie, and an upstream
+     `Set-Cookie` for either is dropped.
+   - `AddBffTransforms()` decorates the last registered `IForwarderHttpClientFactory`, and the proxy refuses to start
+     when another factory is registered after it, because a later factory would forward without the token handler or
+     the cookie boundary.
+   - A route that names a requirement but is not marked with `AsBffRemoteApis()` fails closed. The token accessor
+     serves a token only to an endpoint the BFF guards, so the transform throws, nothing is forwarded, and YARP answers
+     `502`.
+   - Path and header policy stay with the route: the route's own pattern and YARP transforms decide what is forwarded,
+     including the forwarding headers, as for any YARP route.
 
 ## Alternatives considered
 
@@ -91,6 +113,14 @@ second, equally valid token and revokes nothing.
   streams the request and response bodies, drops the hop-by-hop headers and maps upstream failures to `502` and `504`. The
   full proxy's route and cluster configuration is more than one mapped prefix needs. The full proxy stays available to
   a host that already uses it.
+- **Put the YARP configuration support in a separate `NCode.Identity.Bff.Yarp` package**, as the design first
+  planned. Rejected: the transform needs the BFF's internal token resolution, problem writer and cookie names, so a
+  separate package would need new public seams for each. `NCode.Identity.Bff` already depends on YARP for the
+  forwarder, so keeping the support in it adds no dependency.
+- **A remote-API destination resolver service for dynamic routing**, as the design first listed among its seams.
+  Rejected: YARP's routes already match on host, headers and query and pick a destination from a configured cluster,
+  so the allow-list stays configuration. A resolver would be one more place where a destination could be derived from
+  the request.
 
 ## Consequences
 
@@ -98,7 +128,11 @@ second, equally valid token and revokes nothing.
   them.
 - A deployment with `n` replicas requests up to `n` client tokens per resource and scope per token lifetime.
 - The session record grows by one cached exchanged token per resource and scope that the frontend calls.
-- A remote API's upstream sees the BFF, never the browser: no browser credential and no forwarding header reaches it.
+- A remote API's upstream sees the BFF, never the browser: no browser credential reaches it, and with
+  `MapBffRemoteApi` no forwarding header either.
+- A YARP route's forwarding headers follow its own transforms, so a host that forwards `X-Forwarded-*` to an upstream
+  does so on purpose.
+- A host that registers its own `IForwarderHttpClientFactory` must do so before `AddBffTransforms()`.
 
 ## References
 

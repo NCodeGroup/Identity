@@ -25,6 +25,27 @@ change to the public API is a **major** version bump.
   ([#395](https://github.com/NCodeGroup/Identity/issues/395),
   [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
 
+- **YARP-configured routes can carry the BFF's token.** `AddReverseProxy()…AddBffTransforms()` makes every route whose
+  metadata names `BffTokenRequirement` (with the optional `BffResource` and `BffScope`) a remote API, and
+  `MapReverseProxy().AsBffRemoteApis()` marks those routes as BFF APIs, so they require the session and the
+  anti-forgery header. Such a route loses the browser's cookies, credentials and anti-forgery header, gets the token
+  attached, DPoP-bound when the token is, and drops the upstream `Set-Cookie`; every other route keeps its cookies but
+  never forwards or accepts the BFF's own. Route metadata is validated when YARP loads it, and the proxy refuses to
+  start when another `IForwarderHttpClientFactory` is registered after `AddBffTransforms()`. Routing beyond a path
+  prefix goes through YARP's routes and clusters; the design's destination resolver seam is not built
+  ([#395](https://github.com/NCodeGroup/Identity/issues/395),
+  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+  decision 8).
+
+- **The BFF can send browser security headers and publish its client keys.** `app.UseBffSecurityHeaders()` writes
+  `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` and `Cross-Origin-Opener-Policy` on
+  every response, from `Bff:SecurityHeaders` (`BffSecurityHeadersOptions`: `ContentSecurityPolicy`, `ReferrerPolicy`,
+  `CrossOriginOpenerPolicy`), unless the application set the header itself. `Bff:Jwks:Enabled` maps an anonymous,
+  never-cached `GET /bff/jwks` that publishes the public keys of `Bff:ClientAuthentication:KeyRing`, for an OP that
+  reads a `private_key_jwt` client's keys from its `jwks_uri`; it is off by default. Both are validated when the host
+  starts ([#396](https://github.com/NCodeGroup/Identity/issues/396),
+  [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+
 - **One public form reader.** `NCode.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or
   returns `null` when it has none or its body is malformed or over the form limits; the OpenID endpoints and the BFF
   share it instead of keeping copies ([#517](https://github.com/NCodeGroup/Identity/issues/517),

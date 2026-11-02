@@ -114,8 +114,8 @@
     <PackageVersion Include="Nerdbank.Streams" Version="2.14.405" />
   </ItemGroup>
 
-  <!-- Remote-API forwarding (NCode.Identity.Bff and NCode.Identity.Bff.Yarp): YARP's IHttpForwarder streams the
-       request and response and handles hop-by-hop headers (docs/backend-for-frontend.md D8). -->
+  <!-- Remote-API forwarding (NCode.Identity.Bff): YARP's IHttpForwarder streams the request and response and handles
+       hop-by-hop headers, and YARP-configured routes take the BFF's transforms (docs/backend-for-frontend.md D8). -->
   <ItemGroup>
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>

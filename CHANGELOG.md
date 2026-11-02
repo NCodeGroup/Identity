@@ -1324,6 +1324,7 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking: a host names its root key provider.** An unset or blank `SecretProtection:RootKeyProvider` no longer falls back to `ephemeral`: the host stops when it starts, with an error naming the setting. Set `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or another registered provider, or `ephemeral` for local development and tests; the reference host's `appsettings.Development.json` and `appsettings.Conformance.json` select `ephemeral`, Production still refuses it, and the Helm chart refuses an empty `secretProtection.rootKeyProvider` in every environment ([#495](https://github.com/NCodeGroup/Identity/issues/495), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **Breaking:** the BFF requires `Bff:PublicOrigin`, the absolute URL it is published at (scheme, host, optional port and path base; `https` outside Development), and builds its `redirect_uri` and `post_logout_redirect_uri` from it; set it to the URL the BFF's callback is registered under ([#493](https://github.com/NCodeGroup/Identity/issues/493), [ADR-1365](docs/decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)).
 
 - **Breaking:** `OpenIdClientOptions.RequestTimeout` is renamed `TotalTimeout`; set `TotalTimeout` instead, and when it is below 10 seconds also set `AttemptTimeout` no higher, because the host does not start while the default 10-second `AttemptTimeout` exceeds `TotalTimeout`. It still bounds a whole request, the response body included, and the BFF checks its refresh lease against it ([#469](https://github.com/NCodeGroup/Identity/issues/469), [ADR-1336](docs/decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)).
@@ -4233,6 +4234,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **No development secret is committed.** The reference host's `launchSettings.json` no longer holds `BootstrapAdmin__ClientSecret` or `DeveloperInteractiveSeed__AdminPassword`. The LocalDev AppHost generates both once per machine, beside the development root key in `LocalApplicationData/NCode.Identity/LocalDev`, and hands them to the hosts it starts; a host run without it reads them from its user secrets and otherwise seeds neither administrator ([#496](https://github.com/NCodeGroup/Identity/issues/496), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **No published URL comes from the request's `Host`.** The interactive surface's login redirect is root-relative, and the BFF's `redirect_uri` and `post_logout_redirect_uri` come from `Bff:PublicOrigin`, so a forged `Host` header no longer chooses where they point ([#493](https://github.com/NCodeGroup/Identity/issues/493), [ADR-1365](docs/decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)).
 
 - **Responses that reveal a secret are never cached.** Creating or rotating a client secret, creating a resource

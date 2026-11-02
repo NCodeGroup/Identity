@@ -32,8 +32,9 @@ calls — so the suite and the login UI ([#125](https://github.com/NCodeGroup/Id
 - **The only startup seeding is the bootstrap admin client.**
   [`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs) seeds a
   `bootstrap-admin` client from configuration
-  ([`launchSettings.json`](../../src/NCode.Identity.OpenId.Host/Properties/launchSettings.json):
-  `BootstrapAdmin__ClientId` / `BootstrapAdmin__ClientSecret`). There is **no** startup seeding of a
+  (`BootstrapAdmin__ClientId` in
+  [`launchSettings.json`](../../src/NCode.Identity.OpenId.Host/Properties/launchSettings.json); the secret comes from
+  the host's user secrets, or from the per-machine file the AppHost generates). There is **no** startup seeding of a
   conformance tenant, end-user clients, or a test user.
 - **Tenant default.** The host runs a `StaticSingle` tenant (`TenantPath: "/"`,
   [`appsettings.json`](../../src/NCode.Identity.OpenId.Host/appsettings.json)); the test factory

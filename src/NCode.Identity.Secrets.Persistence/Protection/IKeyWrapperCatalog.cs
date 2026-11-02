@@ -24,12 +24,12 @@ internal interface IKeyWrapperCatalog
     IKeyWrapper Get(string providerName);
 
     /// <summary>
-    /// Gets the root key provider that the options select for wrapping new keys. When the options do not name a
-    /// provider, the ephemeral provider is selected.
+    /// Gets the root key provider that the options select for wrapping new keys. The options must name a provider:
+    /// none is selected by default.
     /// </summary>
     /// <returns>The configured provider.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the selected provider is not registered.
+    /// Thrown when the options name no provider, or the named provider is not registered.
     /// </exception>
     IKeyWrapper GetConfigured();
 }

@@ -1,5 +1,6 @@
 #nullable enable
 const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.SectionName = "ClientCertificateRevocation" -> string!
+const NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.SectionName = "OutboundHttp" -> string!
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.ClientCertificateRevocationOptions() -> void
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FailureCacheDuration.get -> System.TimeSpan
@@ -292,6 +293,16 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.Issu
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResponse.IssuedTokenType.set -> void
 NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters
 NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.AttemptTimeout.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.AttemptTimeout.set -> void
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.MaxRetryAttempts.get -> int
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.MaxRetryAttempts.set -> void
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.OutboundHttpOptions() -> void
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.RetryDelay.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.RetryDelay.set -> void
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.TotalTimeout.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpOptions.TotalTimeout.set -> void
 NCode.Identity.OpenId.Authentication.UniqueCollection<T>
 NCode.Identity.OpenId.Authentication.UniqueCollection<T>.Add(T item) -> bool
 NCode.Identity.OpenId.Authentication.UniqueCollection<T>.Clear() -> void

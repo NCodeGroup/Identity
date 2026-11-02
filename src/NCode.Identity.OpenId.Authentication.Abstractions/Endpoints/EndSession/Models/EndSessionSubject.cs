@@ -19,10 +19,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 /// <param name="RequiresConfirmation">Whether the end-user must confirm the logout: an OP login is present and the
 /// request carries no valid <c>id_token_hint</c> whose <c>sid</c> names the login's session. It is positional, so every
 /// subject resolver states it.</param>
-/// <param name="LoginScheme">The authentication scheme that holds the OP login: the
-/// <c>authorization_authenticate_scheme</c> the authorize endpoint authenticates the end-user with, for the client the
-/// logout names, or for the tenant when it names none; <see langword="null"/> for the host's default scheme. The
-/// logout reads the login from it and clears the login from it.</param>
+/// <param name="LoginSchemes">The authentication schemes that may hold the OP login: the tenant's
+/// <c>authorization_authenticate_scheme</c>, which the authorize endpoint authenticates the end-user with, followed by
+/// the one of the client the logout names when that client overrides it; <see langword="null"/> names the host's
+/// default scheme. The logout reads the login from each of them and clears it from each of them.</param>
 // See ADR-1380.
 [PublicAPI]
 public readonly record struct EndSessionSubject(
@@ -31,5 +31,5 @@ public readonly record struct EndSessionSubject(
     string? ClientId,
     IReadOnlyList<string> ParticipatingClientIds,
     bool RequiresConfirmation,
-    string? LoginScheme
+    IReadOnlyList<string?> LoginSchemes
 );

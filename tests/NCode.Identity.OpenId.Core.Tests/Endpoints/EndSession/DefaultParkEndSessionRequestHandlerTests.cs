@@ -46,7 +46,7 @@ public class DefaultParkEndSessionRequestHandlerTests : BaseTests
             "client-1",
             [],
             RequiresConfirmation: true,
-            LoginScheme: null
+            LoginSchemes: [null]
         );
         var expectedContinuation = new EndSessionContinuation(
             "hint",

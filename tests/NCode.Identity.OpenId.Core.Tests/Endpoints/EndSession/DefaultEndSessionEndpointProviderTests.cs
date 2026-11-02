@@ -57,7 +57,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
                 null,
                 [],
                 RequiresConfirmation: false,
-                LoginScheme: null
+                LoginSchemes: [null]
             )
         );
         SetupEndSession(disposition);
@@ -138,7 +138,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
                 null,
                 [],
                 RequiresConfirmation: true,
-                LoginScheme: null
+                LoginSchemes: [null]
             )
         );
         var challengeResult = TypedResults.Redirect("/account/logout/confirm");
@@ -159,7 +159,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
                 null,
                 [],
                 RequiresConfirmation: true,
-                LoginScheme: null
+                LoginSchemes: [null]
             )
         );
         SetupChallenge(ReadOnlyEndpointDisposition.UnHandled());

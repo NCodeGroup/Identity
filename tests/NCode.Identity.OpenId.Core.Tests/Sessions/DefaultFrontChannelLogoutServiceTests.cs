@@ -71,7 +71,7 @@ public class DefaultFrontChannelLogoutServiceTests : BaseTests
             ClientId,
             clientIds,
             RequiresConfirmation: false,
-            LoginScheme: null
+            LoginSchemes: [null]
         );
 
     #endregion

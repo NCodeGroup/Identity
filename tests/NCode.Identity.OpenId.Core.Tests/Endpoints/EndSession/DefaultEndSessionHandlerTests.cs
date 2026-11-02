@@ -29,6 +29,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     private const string ClientId = "client-1";
     private const string RedirectUri = "https://rp.example/after-logout";
     private const string LoginScheme = "op-login";
+    private const string ClientLoginScheme = "client-login";
 
     private Mock<IOpenIdClientResolver> MockClientResolver { get; }
     private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
@@ -141,16 +142,19 @@ public class DefaultEndSessionHandlerTests : BaseTests
 
         if (namesALogin)
         {
-            mockAuthService
-                .Setup(x =>
-                    x.SignOutAsync(
-                        It.IsAny<HttpContext>(),
-                        subject.LoginScheme,
-                        It.IsAny<AuthenticationProperties?>()
+            foreach (var loginScheme in subject.LoginSchemes)
+            {
+                mockAuthService
+                    .Setup(x =>
+                        x.SignOutAsync(
+                            It.IsAny<HttpContext>(),
+                            loginScheme,
+                            It.IsAny<AuthenticationProperties?>()
+                        )
                     )
-                )
-                .Returns(Task.CompletedTask)
-                .Verifiable();
+                    .Returns(Task.CompletedTask)
+                    .Verifiable();
+            }
         }
 
         var command = new EndSessionCommand(mockContext.Object, mockRequest.Object, subject);
@@ -189,7 +193,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     }
 
     private static EndSessionSubject CreateSubject(string? clientId) =>
-        new(SubjectId, SessionId, clientId, [ClientId], RequiresConfirmation: false, LoginScheme);
+        new(SubjectId, SessionId, clientId, [ClientId], RequiresConfirmation: false, [LoginScheme]);
 
     private List<int> LogEventIds =>
         Logger.Collector.GetSnapshot().Select(record => record.Id.Id).ToList();
@@ -208,7 +212,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
                 ClientId,
                 [],
                 RequiresConfirmation: false,
-                LoginScheme
+                [LoginScheme]
             ),
             postLogoutRedirectUri: null,
             state: null
@@ -229,7 +233,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
                 ClientId,
                 [],
                 RequiresConfirmation: false,
-                LoginScheme
+                [LoginScheme]
             ),
             postLogoutRedirectUri: null,
             state: null
@@ -254,6 +258,29 @@ public class DefaultEndSessionHandlerTests : BaseTests
     {
         var scaffold = CreateScaffold(
             CreateSubject(ClientId),
+            postLogoutRedirectUri: null,
+            state: null
+        );
+
+        var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
+
+        Assert.Null(disposition.RedirectUri);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSubjectNamesSeveralLoginSchemes_SignsOutOfEach()
+    {
+        // The scaffold sets up one verifiable sign-out per scheme, so the repository's verification fails unless the
+        // handler clears the login from every one of them.
+        var scaffold = CreateScaffold(
+            new EndSessionSubject(
+                SubjectId,
+                SessionId,
+                ClientId,
+                [ClientId],
+                RequiresConfirmation: false,
+                [LoginScheme, ClientLoginScheme]
+            ),
             postLogoutRedirectUri: null,
             state: null
         );

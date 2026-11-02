@@ -7,6 +7,10 @@
 
 ## Context
 
+[project-template ADR-0114](project-template/0114-one-activity-source-named-like-its-meter.md) has a project trace only
+its own mechanisms, through one activity source named like its meter, with spans that mirror its duration histograms and
+carry no secret or personal data. This record applies it to the family's packages and the BFF.
+
 [ADR-1197](1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) settled how the family
 measures: each signal has one owner, a package's instruments live in one meter named after the package, and every
 attribute is bounded. It said nothing about traces, because no package emitted any. ASP.NET Core already traces each
@@ -55,8 +59,6 @@ it.
 - A slow BFF request shows its refresh, its waits and its store operations as child spans, with the result of each.
 - A package that adds a span adds its histogram, or names the one it mirrors, and lists both in
   [`docs/metrics.md`](../metrics.md).
-- Tests observe spans with an `ActivityListener` filtered to a parent activity the test started, because the source is
-  shared by every test in the process.
 
 ## References
 

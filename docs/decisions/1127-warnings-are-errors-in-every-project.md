@@ -7,36 +7,36 @@
 
 ## Context
 
+[project-template ADR-0100](project-template/0100-warnings-are-errors-in-every-project.md) holds every project, test
+projects included, to zero warnings, for the reasons it gives, and
+[project-template ADR-0102](project-template/0102-disallowed-apis-are-banned-at-build-time.md) and
+[project-template ADR-0118](project-template/0118-the-null-forgiving-operator-is-banned-outside-tests.md) ban
+disallowed APIs and the null-forgiving operator. This record keeps how the family's test projects came under that rule
+and the analyzers that stay off for them.
+
 [`Directory.Build.props`](../../Directory.Build.props) sets `TreatWarningsAsErrors=true` for the repository, but
 [`tests/Directory.Build.props`](../../tests/Directory.Build.props) overrode it back to `false`, justified in a comment
 as *"Test projects are never shipped: no XML documentation, and warnings must not fail the build."* Every build
 therefore carried a standing pile of warnings that nobody read.
 
-Three facts make that exemption indefensible:
+The family's own build shows the exemption to be an accident rather than a policy:
 
 1. **"Never shipped" is not the repository's actual criterion.** `NCode.Identity.OpenId.Host`,
    `.Host.Database`, `.Host.MigrationService`, and `.AppHost` all set `IsPackable=false` and are
    equally never shipped — yet all of them inherit the gate and hold at zero warnings. `AppHost` suppresses exactly one
    rule (`NoWarn=ASPIRE010`) rather than dropping the gate wholesale. Test projects were the single exception, which
    makes the exemption an accident rather than a policy.
-2. **Warnings in tests are disproportionately correctness defects.** `xunit` brings `xunit.analyzers` transitively, so
-   the `xUnit1xxx`/`xUnit2xxx` rules run against test code: unused theory parameters, `null` passed to a value-type
-   parameter, assertions that cannot fail. A silently-broken test stops protecting production code without any other
-   signal — the worst class of warning to ignore, not the most tolerable.
-3. **The noise floor was eroding a security gate.** `NU1901`–`NU1904` NuGet vulnerability advisories are deliberately
-   warnings-locally / errors-in-CI (`WarningsNotAsErrors` when `CI` is unset). A build that always prints warnings
-   trains everyone to stop reading them, including those.
 
 The audit that forced the question found the real cost was trivial: 20 unique warnings across the whole solution, all
 in `tests/` — 8 `CS8600`, 4 `CS8602`, 3 `CA1869`, 2 `CA2201`, and one each of `CS0105`, `CS8620`, and `CA5350`.
 
 ## Decision
 
-**Hold every project in the repository to zero warnings.** The criterion is **"code we maintain"**, not "code we
-ship". `tests/Directory.Build.props` no longer overrides `TreatWarningsAsErrors`; test projects inherit the root gate
-like every other project.
+**Hold every project in the repository to zero warnings**, as project-template ADR-0100 decides.
+`tests/Directory.Build.props` does not override `TreatWarningsAsErrors`; test projects inherit the root gate like every
+other project.
 
-The only sanctioned escape hatches, in order of preference:
+The remedies are project-template ADR-0100's, in its order; the family applies them this way:
 
 1. **Fix the code.** This is the default, and it was the right answer for 16 of the 20 findings. Nullable `out`
    arguments annotated `[MaybeNullWhen(false)]` get a **nullable local**; a maybe-null result is narrowed with
@@ -49,8 +49,6 @@ The only sanctioned escape hatches, in order of preference:
 3. **A tight `#pragma warning disable/restore` with a reason**, for a single isolated site where the rule should stay
    live everywhere else — e.g. the one `CA5350` on `SHA1.HashData`, where the test cross-validates the service's SHA-1
    support against the framework and therefore *must* name the weak algorithm.
-
-🚫 Never reintroduce `TreatWarningsAsErrors=false`, and never use a project-level `NoWarn` as a general pressure valve.
 
 ### `IDE0005` is enforced solution-wide
 
@@ -83,10 +81,6 @@ This asymmetry is a decision, not an oversight:
 
 ## Consequences
 
-- A new warning anywhere in the repository breaks the build immediately, so `NU190x` advisories and `xunit.analyzers`
-  findings surface against a clean baseline instead of being lost in noise.
-- Relaxing a rule now requires naming the rule and writing down why, which keeps the exception list auditable — and
-  reviewable — rather than implicit in a disabled gate.
 - Enabling `IDE0005` removed unused `using` directives from 182 files in a single mechanical pass
   (`dotnet format style --diagnostics IDE0005`). That command is the maintenance tool for the rule; CSharpier must be
   re-run afterwards, since the formatter and CSharpier can disagree about the resulting layout.

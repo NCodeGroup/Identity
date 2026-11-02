@@ -8,6 +8,10 @@
 
 ## Context
 
+[project-template ADR-0123](project-template/0123-resource-ids-are-server-generated-and-opaque.md) has the server mint
+every resource identifier as an opaque, base64url-encoded 128-bit random value, keeps names as ordinary fields beside
+it, and leaves parent references caller-supplied. This record applies it to the management API.
+
 The management API creates four kinds of addressable resource — **server**, **tenant**, **client**, and
 **secret** — each identified on the wire by a string id (`ServerId`, `TenantId`, `ClientId`, `SecretId`, the
 last also serving as a JWK `kid`). Until now those ids were **caller-supplied**: the create request carried the
@@ -20,13 +24,6 @@ ids workable but left three open questions the team resolved deliberately:
 - Should a caller be able to choose the id at all?
 - If the server mints ids, what shape are they — a `Guid`, a snowflake, an opaque random string?
 - Do human-meaningful names disappear, or coexist with an opaque id?
-
-Two facts shaped the answer. First, every management resource is already behind a resource-based
-authorization check, so an id's guessability is **not** a security control — relying on an opaque id for
-protection would be security-through-obscurity, and if it were load-bearing the authorization would be the
-bug. Second, the entities already carry a server-generated surrogate `long` primary key (IdGen snowflake, via
-`[UseIdGenerator]`), so the exposed string id is a _secondary_ identifier, not the storage key — changing how
-it is minted touches only the create path, not the schema.
 
 ## Decision
 
@@ -54,15 +51,6 @@ are removed from the public DTOs.
 
 ## Options considered
 
-- **Caller-supplied natural-key ids (the prior model).** Rejected as the default. It welds "what an operator
-  typed once" to "what every foreign key, issued token, and audit record points at," so the id can never be
-  renamed, and it pushes format/validation/collision concerns onto every caller. It remains defensible for a
-  protocol value a client must know a priori (`client_id` under RFC 7591 DCR), but that is an additive future
-  option, not the baseline.
-- **Server-minted but structured (`Guid`, snowflake, or type-prefixed).** Rejected. A `Guid` is lower-entropy
-  and not guaranteed CSPRNG; a snowflake leaks creation time and ordering; a type prefix adds parsing surface
-  for no benefit here. A bare high-entropy random string is the simplest opaque identifier and matches the
-  existing `GenerateUrlSafeKey` house pattern.
 - **Opaque id _and_ a required user-provided `name` slug on every entity (full dual-identifier model).**
   Deferred, not rejected. It is the mature Auth0/Keycloak shape, but adding a new unique `name` field to
   client and server is additional public surface and validation that can land additively when a concrete need
@@ -70,10 +58,6 @@ are removed from the public DTOs.
 
 ## Consequences
 
-- Create requests shrink: the caller supplies content and parent references, never the new id. A caller that
-  needs the id reads it from the `201` response (body + `Location`) — the REST-idiomatic contract.
-- The id is a stable, meaningless anchor: renaming a resource's human name (e.g. a tenant `DisplayName`) never
-  disturbs the id, its foreign keys, or previously issued references.
 - `SecretId` generation moves off `Guid.NewGuid()` onto the injected `ICryptoService`, removing a static,
   un-faceted dependency from the endpoint handlers and making the create path fully unit-testable via the
   crypto facade.

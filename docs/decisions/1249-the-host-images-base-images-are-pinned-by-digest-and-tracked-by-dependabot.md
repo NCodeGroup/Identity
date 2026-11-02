@@ -7,9 +7,10 @@
 
 ## Context
 
-A tag such as `aspnet:10.0-noble-chiseled-extra` moves: the registry repoints it at each rebuild of the image. Two
-builds of one commit can start from different base layers, and a compromised or broken tag reaches the host image
-without anyone reviewing it (issue [#226](https://github.com/NCodeGroup/Identity/issues/226)).
+[project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md) pins every external
+input exactly, a container base image by its tag and the digest of its multi-architecture index, and has Dependabot
+move the pins. A tag such as `aspnet:10.0-noble-chiseled-extra` moves with each rebuild of the image (issue
+[#226](https://github.com/NCodeGroup/Identity/issues/226)).
 
 A digest pins the layers, and two details of the tooling shape how it is written:
 
@@ -51,10 +52,6 @@ digests every week.**
 
 ## Options considered
 
-- **Tags only.** Rejected: a tag moves, so builds of one commit differ, and a compromised or broken tag reaches the
-  image unreviewed.
-- **Digests without Dependabot.** Rejected: the image would stay on the layers of the day it was pinned and never
-  receive a fix.
 - **A `NODE_VERSION` argument beside a digest.** Rejected: the digest wins over the tag, so the argument would name a
   Node major that the build does not use.
 
@@ -62,7 +59,6 @@ digests every week.**
 
 - The base layers of a build are reproducible. A base image moves in a pull request that Dependabot opens and the
   `Host image` workflow builds, so the change is reviewed.
-- A week's updates arrive as one pull request for the version updates, and security updates have a group of their own.
 - A Node major bump edits `.node-version` and the Dockerfile together. The workflow fails when they differ, and
   Dependabot ignores a major.
 - The `FROM` lines are longer than 120 columns, because a digest cannot wrap.

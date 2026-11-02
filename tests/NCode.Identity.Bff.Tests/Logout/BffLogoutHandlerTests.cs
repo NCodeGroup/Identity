@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Logout;
@@ -104,10 +105,12 @@ public class BffLogoutHandlerTests : BaseTests
             new BffSessionPayload { IdToken = "id-token", LogoutGuard = Guard }
         );
 
-    private static DefaultHttpContext CreateHttpContext(string query)
+    private static DefaultHttpContext CreateHttpContext(string form)
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.QueryString = new QueryString(query);
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.Request.ContentType = "application/x-www-form-urlencoded";
+        httpContext.Request.Body = new MemoryStream(SecureEncoding.UTF8.GetBytes(form));
         httpContext.Response.Body = new MemoryStream();
         return httpContext;
     }
@@ -123,7 +126,7 @@ public class BffLogoutHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_DisallowedReturnUrl_WritesBadRequest()
     {
-        var httpContext = CreateHttpContext("?returnUrl=https%3A%2F%2Fevil.example%2F");
+        var httpContext = CreateHttpContext("returnUrl=https%3A%2F%2Fevil.example%2F");
         var handler = CreateHandler();
 
         await handler.HandleAsync(httpContext);
@@ -135,7 +138,7 @@ public class BffLogoutHandlerTests : BaseTests
     public async Task HandleAsync_NoSession_RedirectsToReturnUrl()
     {
         SetupResolve(null);
-        var httpContext = CreateHttpContext("?returnUrl=%2Fhome");
+        var httpContext = CreateHttpContext("returnUrl=%2Fhome");
         var handler = CreateHandler();
 
         await handler.HandleAsync(httpContext);
@@ -144,19 +147,54 @@ public class BffLogoutHandlerTests : BaseTests
         Assert.Equal("/home", httpContext.Response.Headers.Location.ToString());
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("?sid=wrong-value")]
-    [InlineData("?sid=guard-value&sid=guard-value")]
-    public async Task HandleAsync_BadSid_WritesBadRequestAndKeepsSession(string query)
+    [Fact]
+    public async Task HandleAsync_NotAFormPost_WritesBadRequest()
     {
-        SetupResolve(CreateState());
-        var httpContext = CreateHttpContext(query);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.Response.Body = new MemoryStream();
         var handler = CreateHandler();
 
         await handler.HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("sid=wrong-value")]
+    [InlineData("sid=guard-value&sid=guard-value")]
+    public async Task HandleAsync_BadSid_WritesBadRequestAndKeepsSession(string form)
+    {
+        SetupResolve(CreateState());
+        var httpContext = CreateHttpContext(form);
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task HandleAsync_SidInTheQueryString_WritesBadRequestAndKeepsSession()
+    {
+        SetupResolve(CreateState());
+        var httpContext = CreateHttpContext("");
+        httpContext.Request.QueryString = new QueryString("?sid=guard-value");
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+        _logoutService.Verify(
+            x =>
+                x.EndSessionAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<BffSessionState>(),
+                    It.IsAny<string>()
+                ),
+            Times.Never
+        );
     }
 
     private void SetupEnd(DefaultHttpContext httpContext, BffSessionState state) =>
@@ -170,7 +208,7 @@ public class BffLogoutHandlerTests : BaseTests
     {
         var state = CreateState();
         SetupResolve(state);
-        var httpContext = CreateHttpContext("?sid=guard-value&returnUrl=%2Fhome");
+        var httpContext = CreateHttpContext("sid=guard-value&returnUrl=%2Fhome");
         httpContext.Request.Scheme = "https";
         httpContext.Request.Host = new HostString("app.example");
         SetupEnd(httpContext, state);
@@ -204,7 +242,7 @@ public class BffLogoutHandlerTests : BaseTests
     {
         var state = CreateState();
         SetupResolve(state);
-        var httpContext = CreateHttpContext("?sid=guard-value");
+        var httpContext = CreateHttpContext("sid=guard-value");
         SetupEnd(httpContext, state);
         _metadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
@@ -223,7 +261,7 @@ public class BffLogoutHandlerTests : BaseTests
     {
         var state = CreateState();
         SetupResolve(state);
-        var httpContext = CreateHttpContext("?sid=guard-value");
+        var httpContext = CreateHttpContext("sid=guard-value");
         SetupEnd(httpContext, state);
         _metadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))
@@ -242,7 +280,7 @@ public class BffLogoutHandlerTests : BaseTests
     {
         var state = CreateState();
         SetupResolve(state);
-        var httpContext = CreateHttpContext("?sid=guard-value");
+        var httpContext = CreateHttpContext("sid=guard-value");
         SetupEnd(httpContext, state);
         _metadataResolver
             .Setup(x => x.GetMetadataAsync("https://op.example", It.IsAny<CancellationToken>()))

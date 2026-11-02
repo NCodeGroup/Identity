@@ -32,7 +32,7 @@ using NCode.Identity.OpenId.Client;
 namespace NCode.Identity.Bff.Logout;
 
 /// <summary>
-/// Handles <c>GET /bff/logout</c>: checks the request and ends the session of the user.
+/// Handles <c>POST /bff/logout</c>: checks the request and ends the session of the user.
 /// </summary>
 internal class BffLogoutHandler
 {
@@ -78,7 +78,15 @@ internal class BffLogoutHandler
 
         BffResponses.SetNoStore(httpContext.Response);
 
-        var returnUrlValues = request.Query[ReturnUrlParameterName];
+        if (!request.HasFormContentType)
+        {
+            await WriteInvalidRequestAsync(httpContext, "The logout request must be a form post.");
+            return;
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+
+        var returnUrlValues = form[ReturnUrlParameterName];
         if (returnUrlValues.Count > 1)
         {
             await WriteInvalidRequestAsync(
@@ -102,7 +110,7 @@ internal class BffLogoutHandler
             return;
         }
 
-        var sidValues = request.Query[SidParameterName];
+        var sidValues = form[SidParameterName];
         var sid = sidValues.Count == 1 ? sidValues[0] : null;
         if (sid is null || !IsGuardMatch(sid, session.Payload.LogoutGuard))
         {

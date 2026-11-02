@@ -34,7 +34,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// </summary>
 public class FrontChannelCorsTests
 {
-    // One of the developer policy's default Development origins.
+    // One of the origins the host's Development overlay allows.
     private const string AllowedOrigin = "https://localhost:5173";
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>

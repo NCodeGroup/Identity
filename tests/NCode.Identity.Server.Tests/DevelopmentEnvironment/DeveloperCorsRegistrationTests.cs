@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
@@ -34,34 +33,24 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
     #region AddDeveloperCors Tests
 
     [Fact]
-    public void AddDeveloperCors_WhenDevelopmentAndNoConfiguredOrigins_RegistersViteDefaults()
+    public void AddDeveloperCors_WhenSectionIsAbsent_RegistersNothing()
     {
-        var policy = ResolvePolicy("Development", configuredOrigins: null);
+        var configuration = new ConfigurationBuilder().Build();
+        var serviceCollection = new ServiceCollection();
 
-        Assert.Contains("https://localhost:5173", policy.Origins);
-        Assert.Contains("https://localhost:5174", policy.Origins);
-        Assert.Contains("https://localhost:5175", policy.Origins);
-        Assert.DoesNotContain("http://localhost:5173", policy.Origins);
-        Assert.DoesNotContain("http://localhost:5174", policy.Origins);
-        Assert.DoesNotContain("http://localhost:5175", policy.Origins);
+        serviceCollection.AddDeveloperCors(configuration);
+
+        Assert.Empty(serviceCollection);
     }
 
     [Fact]
-    public void AddDeveloperCors_WhenConfiguredOrigins_UsesThemRegardlessOfEnvironment()
+    public void AddDeveloperCors_WhenConfiguredOrigins_UsesThem()
     {
         string[] expected = ["https://app.example"];
 
-        var policy = ResolvePolicy("Production", configuredOrigins: expected);
+        var policy = ResolvePolicy(expected);
 
         Assert.Equal(expected, policy.Origins);
-    }
-
-    [Fact]
-    public void AddDeveloperCors_WhenNotDevelopmentAndNoConfiguredOrigins_RegistersEmptyPolicy()
-    {
-        var policy = ResolvePolicy("Production", configuredOrigins: null);
-
-        Assert.Empty(policy.Origins);
     }
 
     [Theory]
@@ -72,9 +61,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
     [InlineData("app.example.com")]
     public void AddDeveloperCors_WhenOriginCanNeverMatch_Throws(string origin)
     {
-        var exception = Assert.Throws<OptionsValidationException>(() =>
-            ResolvePolicy("Development", configuredOrigins: [origin])
-        );
+        var exception = Assert.Throws<OptionsValidationException>(() => ResolvePolicy([origin]));
 
         Assert.Contains(
             $"Cors:AllowedOrigins:0 '{origin}'",
@@ -86,14 +73,13 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
     [Fact]
     public void AddDeveloperCors_WhenSectionHasUnknownKey_Throws()
     {
-        var hostEnvironment = CreateEnvironment("Development");
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
                 new Dictionary<string, string?> { ["Cors:AllowedOrigin:0"] = "https://app.example" }
             )
             .Build();
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
+        serviceCollection.AddDeveloperCors(configuration);
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -132,10 +118,10 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         bool expectsAllowOrigin
     )
     {
-        var configuration = new ConfigurationBuilder().Build();
+        var configuration = CreateConfiguration(["https://localhost:5173"]);
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddDeveloperCors(configuration, CreateEnvironment("Development"));
+        serviceCollection.AddDeveloperCors(configuration);
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var endpointMetadata = isFrontChannel
@@ -180,10 +166,10 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         bool expectsAllowOrigin
     )
     {
-        var configuration = new ConfigurationBuilder().Build();
+        var configuration = CreateConfiguration(["https://localhost:5173"]);
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddDeveloperCors(configuration, CreateEnvironment("Development"));
+        serviceCollection.AddDeveloperCors(configuration);
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var app = new ApplicationBuilder(serviceProvider);
@@ -228,31 +214,23 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         }
     }
 
-    private IHostEnvironment CreateEnvironment(string environmentName)
+    private static IConfiguration CreateConfiguration(string[] configuredOrigins)
     {
-        var hostEnvironment = CreateStrictMock<IHostEnvironment>();
-        hostEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName);
-        return hostEnvironment.Object;
+        var configurationData = new Dictionary<string, string?>();
+        for (var index = 0; index < configuredOrigins.Length; index++)
+        {
+            configurationData[$"Cors:AllowedOrigins:{index}"] = configuredOrigins[index];
+        }
+
+        return new ConfigurationBuilder().AddInMemoryCollection(configurationData).Build();
     }
 
-    private CorsPolicy ResolvePolicy(string environmentName, string[]? configuredOrigins)
+    private static CorsPolicy ResolvePolicy(string[] configuredOrigins)
     {
-        var hostEnvironment = CreateEnvironment(environmentName);
-
-        var configurationData = new Dictionary<string, string?>();
-        if (configuredOrigins is not null)
-        {
-            for (var index = 0; index < configuredOrigins.Length; index++)
-            {
-                configurationData[$"Cors:AllowedOrigins:{index}"] = configuredOrigins[index];
-            }
-        }
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configurationData)
-            .Build();
+        var configuration = CreateConfiguration(configuredOrigins);
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddDeveloperCors(configuration, hostEnvironment);
+        serviceCollection.AddDeveloperCors(configuration);
 
         using var serviceProvider = serviceCollection.BuildServiceProvider();
         var corsOptions = serviceProvider.GetRequiredService<IOptions<CorsOptions>>().Value;

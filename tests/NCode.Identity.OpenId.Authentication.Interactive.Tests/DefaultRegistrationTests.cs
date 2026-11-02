@@ -31,7 +31,7 @@ public sealed class DefaultRegistrationTests : IDisposable
         return hostEnvironment.Object;
     }
 
-    private InteractiveAuthenticationOptions ResolveOptions(
+    private static InteractiveAuthenticationOptions ResolveOptions(
         IHostEnvironment hostEnvironment,
         Dictionary<string, string?> configurationData,
         Action<InteractiveAuthenticationOptions>? configureOptions = null

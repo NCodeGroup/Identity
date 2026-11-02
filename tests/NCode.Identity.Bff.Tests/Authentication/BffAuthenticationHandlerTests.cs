@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Authentication;
@@ -58,7 +59,7 @@ public class BffAuthenticationHandlerTests : BaseTests
     )
     {
         var options = Microsoft.Extensions.Options.Options.Create(bffOptions ?? new BffOptions());
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
         var resolver = new BffSessionResolver(manager.Object, cookies, [], options, timeProvider);

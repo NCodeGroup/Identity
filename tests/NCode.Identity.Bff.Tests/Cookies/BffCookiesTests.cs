@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using Xunit;
@@ -17,7 +18,7 @@ public class BffCookiesTests : BaseTests
     private static BffCookies CreateCookies() =>
         new(
             Microsoft.Extensions.Options.Options.Create(new BffOptions()),
-            new MutableTimeProvider(Now)
+            new FakeTimeProvider(Now)
         );
 
     private static string GetSetCookie(DefaultHttpContext httpContext) =>

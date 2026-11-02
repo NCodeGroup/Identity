@@ -134,6 +134,15 @@ public class DefaultSecretGeneratorTests
         Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(protector, request));
     }
 
+    [Fact]
+    public void GenerateSharedSecret_WhenEntropyIsBelowTheMinimum_Throws()
+    {
+        var protector = CreateProtector();
+        var request = CreateRequest(SecretTypes.Symmetric, 128);
+
+        Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(protector, request));
+    }
+
     #endregion
 
     #region ImportSharedSecret Tests

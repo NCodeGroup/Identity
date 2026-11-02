@@ -116,9 +116,9 @@ dotnet_diagnostic.CA1720.severity = none
 # Clean violations with: dotnet format style --diagnostics IDE0005
 dotnet_diagnostic.IDE0005.severity = warning
 
-# Every C# file starts with this two-line header (ADR-1309). It overrides the template's Apache boilerplate above,
-# which Roslyn cuts at its first ';' (NCodeGroup/project-template#215). At warning, IDE0073 fails the build on a
-# missing or different header; generated code is exempt.
+# Every C# file starts with this two-line header (ADR-1309). The template's section above sets the same value since
+# project-template v0.57.1; setting it here keeps the header this repository's decision. At warning, IDE0073 fails the
+# build on a missing or different header; generated code is exempt.
 file_header_template = Copyright © NCode Group\nSPDX-License-Identifier: Apache-2.0
 dotnet_diagnostic.IDE0073.severity = warning
 

@@ -1,8 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
-using System.Security.Cryptography;
+using NCode.Identity.OpenId.LocalDev.DevelopmentSecrets;
 using NCode.Identity.OpenId.LocalDev.Frontend;
 
 // ASPIRE ORCHESTRATION-ONLY HOST (ADR-1071): a flat resource graph that is the single one-stop entry to build, run,
@@ -23,7 +22,18 @@ new FrontendToolchainGuard(Path.Combine(builder.AppHostDirectory, "..", "fronten
 // Every OP instance started below shares the one dev database, so they must all unwrap the same master keys: they are
 // handed the same development root key, as a key file (ADR-1235). The key is generated once per machine, outside the
 // repository, so no root key is ever committed.
-var rootKeyPath = EnsureDevelopmentRootKey();
+var developmentSecretsDirectory = DevelopmentSecretFile.GetDefaultDirectory();
+var rootKeyPath = DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "root-key");
+
+// No development credential is committed (ADR-1370): the bootstrap administrator's client secret and the developer
+// administrator's password are generated once per machine beside the root key. The bootstrap secret is configured
+// Base64Url-encoded, so the file's text is the secret a client presents.
+var bootstrapAdminClientSecret = DevelopmentSecretFile.ReadBase64UrlEncoded(
+    DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "bootstrap-admin-secret")
+);
+var adminPassword = DevelopmentSecretFile.ReadText(
+    DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "admin-password")
+);
 
 // The dev database is Postgres in a container (ADR-1073). WithDataVolume gives it a STABLE, named volume so data
 // survives restarts (persistent by default); the matching build/dev-db-reset.ps1 removes exactly this volume for an
@@ -57,6 +67,7 @@ var migrations = builder
 // removes the UI-before-API race.
 // WithReference injects the 'openiddb' connection string; WaitForCompletion holds the api until migrations succeed.
 // The SecretProtection__ variables select the `local` root key provider and point it at the development root key file.
+// The BootstrapAdmin__ and DeveloperInteractiveSeed__ variables hand it the per-machine development credentials.
 var api = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>("api")
     .WithHttpHealthCheck("/health/ready")
@@ -64,6 +75,8 @@ var api = builder
     .WithReference(valkey)
     .WithEnvironment("SecretProtection__RootKeyProvider", "local")
     .WithEnvironment("SecretProtection__RootKeyProviders__Local__KeyPath", rootKeyPath)
+    .WithEnvironment("BootstrapAdmin__ClientSecret", bootstrapAdminClientSecret)
+    .WithEnvironment("DeveloperInteractiveSeed__AdminPassword", adminPassword)
     .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
@@ -89,6 +102,7 @@ var conformanceApi = builder
     .WithReference(valkey)
     .WithEnvironment("SecretProtection__RootKeyProvider", "local")
     .WithEnvironment("SecretProtection__RootKeyProviders__Local__KeyPath", rootKeyPath)
+    .WithEnvironment("BootstrapAdmin__ClientSecret", bootstrapAdminClientSecret)
     .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
@@ -180,91 +194,3 @@ builder
     .WithExternalHttpEndpoints();
 
 builder.Build().Run();
-
-return;
-
-// Every OP instance that shares the dev database must unwrap the same master keys, and the key stays out of the
-// repository (ADR-1235): the first AppHost run on a machine writes a random 32-byte root key, base64url encoded, to
-// LocalApplicationData and every later run reuses it. The key is written to a temporary file and moved into place, so a
-// crash never leaves a partial key under the final name; an empty file left by an older run is replaced. The key only
-// ever exists as bytes, zeroed once written — never as a string.
-static string EnsureDevelopmentRootKey()
-{
-    var directory = Path.Combine(
-        Environment.GetFolderPath(
-            Environment.SpecialFolder.LocalApplicationData,
-            Environment.SpecialFolderOption.Create
-        ),
-        "NCode.Identity",
-        "LocalDev"
-    );
-    Directory.CreateDirectory(directory);
-
-    var path = Path.Combine(directory, "root-key");
-    if (File.Exists(path))
-    {
-        // An empty file can only be left by an interrupted in-place write of an older run.
-        if (new FileInfo(path).Length == 0)
-            File.Delete(path);
-        else
-            return path;
-    }
-
-    var temporaryPath = Path.Combine(directory, $"root-key.{Guid.NewGuid():N}.tmp");
-
-    Span<byte> key = stackalloc byte[32];
-    Span<byte> text = stackalloc byte[43];
-    try
-    {
-        RandomNumberGenerator.Fill(key);
-
-        var status = System.Buffers.Text.Base64Url.EncodeToUtf8(key, text, out _, out var written);
-        if (status != OperationStatus.Done)
-            throw new InvalidOperationException(
-                $"Encoding the development root key failed with status {status}."
-            );
-
-        // The temporary name is unique, so CreateNew only guards against a stray file of the same name.
-        var options = new FileStreamOptions
-        {
-            Mode = FileMode.CreateNew,
-            Access = FileAccess.Write,
-            Share = FileShare.None,
-        };
-        if (!OperatingSystem.IsWindows())
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-
-        using (var stream = new FileStream(temporaryPath, options))
-        {
-            stream.Write(text[..written]);
-            stream.Flush(flushToDisk: true);
-        }
-
-        // Move never overwrites: when another AppHost moved its key into place first, that key is the one to use.
-        try
-        {
-            File.Move(temporaryPath, path, overwrite: false);
-        }
-        catch (IOException) when (File.Exists(path))
-        {
-            return path;
-        }
-
-        return path;
-    }
-    finally
-    {
-        CryptographicOperations.ZeroMemory(key);
-        CryptographicOperations.ZeroMemory(text);
-
-        try
-        {
-            if (File.Exists(temporaryPath))
-                File.Delete(temporaryPath);
-        }
-        catch (IOException)
-        {
-            // Cleanup is best-effort and must not hide the real outcome.
-        }
-    }
-}

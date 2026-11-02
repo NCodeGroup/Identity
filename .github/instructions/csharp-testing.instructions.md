@@ -128,6 +128,14 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `.ReturnsAsync(() => ++batches == 1 ? BatchSize : 5)` for a value. When the call that answers differently has
   arguments of its own, give it its own setup, or the narrower setup above. `SetupSequence` stays only in the
   read-and-retry case under [Persistence & integration tests](#persistence--integration-tests).
+- ⏳ **Read time from a `FakeTimeProvider`** — template
+  [Time and Concurrency](csharp-tests.instructions.md#time-and-concurrency). `tests/Directory.Build.props` gives every
+  test project `Microsoft.Extensions.TimeProvider.Testing`. Start the clock at a fixed instant and move it with
+  `Advance`, or with `SetUtcNow` to an exact later instant; it never moves back, so a test that needs an earlier time
+  starts there. Never write a `TimeProvider` subclass or mock `GetUtcNow` (`DefaultOpenIdClientResolverTests`,
+  `DefaultInProcessExpiringKeySetTests`). A strict `TimeProvider` mock stays only where a test drives a timer loop
+  through the captured `CreateTimer` callback, below, whose setup pins the period. Rolling out: the strict `GetUtcNow`
+  mocks still in other test classes move to it.
 - 👁 **Drive a `BackgroundService`'s timer loop through the captured timer callback.** A `PeriodicTimer` on a
   `TimeProvider` asks it for `CreateTimer(callback, state, period, period)`: set that up on the strict `TimeProvider`
   mock, capture the callback and state in a `TaskCompletionSource`, return a strict `ITimer` whose `Dispose()` is set

@@ -47,11 +47,6 @@ internal class DefaultLoadAuthorizationRequestHandler(
         outboundHttpContentReader;
     private IClientKeyResolver ClientKeyResolver { get; } = clientKeyResolver;
 
-    /// <summary>
-    /// The name of the SSRF-guarded HTTP client used to fetch a JAR <c>request_uri</c> payload (RFC 9101).
-    /// </summary>
-    internal const string HttpClientName = "NCode.Identity.OpenId.RequestUri";
-
     /// <inheritdoc />
     public async ValueTask<IAuthorizationRequest> HandleAsync(
         LoadAuthorizationRequestCommand command,
@@ -320,7 +315,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
 
         request.Options.Set(new HttpRequestOptionsKey<OpenIdClient>("OpenIdClient"), openIdClient);
 
-        using var httpClient = HttpClientFactory.CreateClient(HttpClientName);
+        using var httpClient = HttpClientFactory.CreateClient(GuardedHttpClient.Name);
         using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
 
         try

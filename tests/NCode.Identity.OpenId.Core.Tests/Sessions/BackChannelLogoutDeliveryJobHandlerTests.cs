@@ -4,7 +4,9 @@
 using System.Net;
 using Moq;
 using NCode.Identity.Dispatch;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Sessions;
@@ -67,7 +69,7 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
     public async Task HandleAsync_WhenConfigured_PostsFormEncodedLogoutToken()
     {
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(BackChannelLogoutDeliveryJobHandler.HttpClientName))
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
             .Returns(new HttpClient(Handler))
             .Verifiable();
 
@@ -80,11 +82,22 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenTheResponseHasABody_DoesNotReadIt()
+    {
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new UnreadableBodyHttpMessageHandler()))
+            .Verifiable();
+
+        await Subject.HandleAsync(CreateJob(), Context(), CancellationToken.None);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenEndpointReturnsError_Throws()
     {
         var errorHandler = new RecordingHttpMessageHandler(HttpStatusCode.ServiceUnavailable);
         MockHttpClientFactory
-            .Setup(x => x.CreateClient(BackChannelLogoutDeliveryJobHandler.HttpClientName))
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
             .Returns(new HttpClient(errorHandler))
             .Verifiable();
 

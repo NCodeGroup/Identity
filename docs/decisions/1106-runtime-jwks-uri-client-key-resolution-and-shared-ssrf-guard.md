@@ -2,10 +2,11 @@
 
 - **Status:** Accepted (key sources and import policy amended by
   [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's stored public
-  keys and its `jwks_uri` keys are never merged, and a published key set is imported under the client-key policy)
+  keys and its `jwks_uri` keys are never merged, and a published key set is imported under the client-key policy; and by
+  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): every fetch and delivery
+  goes through one guarded client with per-attempt and total timeouts and bounded retries)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
-- **Conflicts with:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md); tracked in [#444](https://github.com/NCodeGroup/Identity/issues/444)
 
 ## Context
 

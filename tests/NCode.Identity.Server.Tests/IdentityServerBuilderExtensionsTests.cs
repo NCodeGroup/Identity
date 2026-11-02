@@ -13,6 +13,7 @@ using Moq;
 using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
@@ -245,6 +246,38 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             exception.Message,
             StringComparison.Ordinal
         );
+        Assert.Contains("'Timeout'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenOutboundHttpConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:OutboundHttp:AttemptTimeout"] = "00:00:05",
+                ["OpenId:OutboundHttp:MaxRetryAttempts"] = "1",
+            }
+        );
+
+        var options = serviceProvider.GetRequiredService<IOptions<OutboundHttpOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromSeconds(5), options.AttemptTimeout);
+        Assert.Equal(1, options.MaxRetryAttempts);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenOutboundHttpHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?> { ["OpenId:OutboundHttp:Timeout"] = "00:00:10" }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<OutboundHttpOptions>>().Value
+        );
+
+        Assert.Contains("'OpenId:OutboundHttp'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("'Timeout'", exception.Message, StringComparison.Ordinal);
     }
 

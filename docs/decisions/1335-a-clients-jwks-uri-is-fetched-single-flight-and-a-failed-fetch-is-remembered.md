@@ -26,8 +26,9 @@ both open (issue [#466](https://github.com/NCodeGroup/Identity/issues/466)).
    ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)). The
    fetch runs without any caller's token and is bounded by the client's `jwks_uri_fetch_timeout`; each caller waits with
    its own token, so a caller that gives up does not break the fetch for the others. The fetch writes the accepted set
-   to the cache, or the failure entry, before it leaves the in-flight dictionary, so no caller can slip between the two.
-   The log of a failed fetch names the client whose request started it.
+   to the cache, or the failure entry, before it leaves the in-flight dictionary, and it checks both entries again
+   before it fetches, so a caller that checked them just before a previous fetch recorded its result and left does not
+   fetch the `jwks_uri` again. The log of a failed fetch names the client whose request started it.
 
 2. **A fetch that yields no key is remembered.** An unreachable `jwks_uri`, a non-2xx answer, an oversized or malformed
    document, and a set the import policy refuses are remembered in the memory cache of each replica for

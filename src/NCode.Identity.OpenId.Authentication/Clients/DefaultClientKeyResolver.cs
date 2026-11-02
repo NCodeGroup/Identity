@@ -129,28 +129,10 @@ internal sealed class DefaultClientKeyResolver(
             return [];
         }
 
-        var cacheKey = GetCacheKey(uri);
-        if (
-            MemoryCache.TryGetValue<IReadOnlyList<SecretKey>>(cacheKey, out var cached)
-            && cached is not null
-        )
-        {
-            return cached;
-        }
-
         var fetchKey = GetFetchKey(openIdClient, uri);
-
-        // A fetch that yielded no key is remembered, so an unreachable or misbehaving jwks_uri is not fetched again for
-        // every request. See ADR-1335.
-        if (MemoryCache.TryGetValue(fetchKey + UnavailableKeySuffix, out _))
-        {
-            Logger.ClientJwksFetchSuppressed(
-                openIdClient.ClientId,
-                jwksUri,
-                OutboundHttpOptions.FailureCacheDuration
-            );
-            return [];
-        }
+        var remembered = GetRememberedKeys(openIdClient, uri, fetchKey);
+        if (remembered is not null)
+            return remembered;
 
         // Concurrent misses share one fetch; it runs without the caller's token, so a caller that gives up does not
         // break it for the others. See ADR-1335.
@@ -163,6 +145,35 @@ internal sealed class DefaultClientKeyResolver(
         return await fetch.Value.WaitAsync(cancellationToken);
     }
 
+    // Returns the accepted key set or, for a remembered failure, an empty set; null when neither is cached.
+    private IReadOnlyList<SecretKey>? GetRememberedKeys(
+        OpenIdClient openIdClient,
+        Uri uri,
+        string fetchKey
+    )
+    {
+        var cacheKey = GetCacheKey(uri);
+        if (
+            MemoryCache.TryGetValue<IReadOnlyList<SecretKey>>(cacheKey, out var cached)
+            && cached is not null
+        )
+        {
+            return cached;
+        }
+
+        // A fetch that yielded no key is remembered, so an unreachable or misbehaving jwks_uri is not fetched again for
+        // every request. See ADR-1335.
+        if (!MemoryCache.TryGetValue(fetchKey + UnavailableKeySuffix, out _))
+            return null;
+
+        Logger.ClientJwksFetchSuppressed(
+            openIdClient.ClientId,
+            uri.AbsoluteUri,
+            OutboundHttpOptions.FailureCacheDuration
+        );
+        return [];
+    }
+
     // A Task, not a ValueTask, because every caller sharing the fetch awaits it.
     private async Task<IReadOnlyList<SecretKey>> RunFetchAsync(
         string fetchKey,
@@ -172,6 +183,12 @@ internal sealed class DefaultClientKeyResolver(
     {
         try
         {
+            // A caller that checked the cache just before a previous fetch recorded its result and left the in-flight
+            // dictionary starts this one, so the result is checked again before the jwks_uri is fetched. See ADR-1335.
+            var remembered = GetRememberedKeys(openIdClient, uri, fetchKey);
+            if (remembered is not null)
+                return remembered;
+
             var keys = await FetchAndImportAsync(openIdClient, uri);
 
             if (keys.Count == 0)

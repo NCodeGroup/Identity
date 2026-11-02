@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Settings;
@@ -95,6 +96,33 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         );
     }
 
+    private DefaultClientKeyResolver CreateResolverOverCache(IMemoryCache memoryCache)
+    {
+        // A strict factory with no setup: any fetch of the jwks_uri fails the test.
+        var mockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
+        var mockContentReader = CreateStrictMock<IOutboundHttpContentReader>();
+        var mockClientKeyImporter = CreateStrictMock<IClientKeyImporter>();
+        var mockSecretSerializer = CreateStrictMock<ISecretSerializer>();
+        var options = Microsoft.Extensions.Options.Options.Create(new OutboundHttpOptions());
+        var logger = _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>();
+        var collectionFactory = _serviceProvider.GetRequiredService<ISecretKeyCollectionFactory>();
+
+        return new DefaultClientKeyResolver(
+            logger,
+            TimeProvider.System,
+            mockHttpClientFactory.Object,
+            mockContentReader.Object,
+            options,
+            memoryCache,
+            mockClientKeyImporter.Object,
+            mockSecretSerializer.Object,
+            collectionFactory
+        );
+    }
+
+    private static bool IsUnavailableKey(object key) =>
+        key is string text && text.EndsWith(":unavailable", StringComparison.Ordinal);
+
     private static Dictionary<string, object> FetchSettings(TimeSpan fetchTimeout) =>
         new()
         {
@@ -163,7 +191,8 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var handler = new CountingHttpMessageHandler(gate.Task);
         var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
-        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        var client = CreateClient(settings, readsClientId: true);
 
         var first = resolver.ResolveSecretKeysAsync(client, CancellationToken.None).AsTask();
         var second = resolver.ResolveSecretKeysAsync(client, CancellationToken.None).AsTask();
@@ -179,7 +208,8 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     {
         using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
         var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
-        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        var client = CreateClient(settings, readsClientId: true);
 
         var first = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
         var second = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
@@ -198,7 +228,8 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             FailureCacheDuration = TimeSpan.FromMilliseconds(1),
         };
         var resolver = CreateFetchingResolver(handler, options);
-        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        var client = CreateClient(settings, readsClientId: true);
 
         var first = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
         await Task.Delay(TimeSpan.FromMilliseconds(100));
@@ -214,14 +245,10 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     {
         using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
         var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
-        var firstClient = CreateClient(
-            FetchSettings(TimeSpan.FromSeconds(10)),
-            readsClientId: true
-        );
-        var secondClient = CreateClient(
-            FetchSettings(TimeSpan.FromSeconds(5)),
-            readsClientId: true
-        );
+        var firstSettings = FetchSettings(TimeSpan.FromSeconds(10));
+        var firstClient = CreateClient(firstSettings, readsClientId: true);
+        var secondSettings = FetchSettings(TimeSpan.FromSeconds(5));
+        var secondClient = CreateClient(secondSettings, readsClientId: true);
 
         var first = await resolver.ResolveSecretKeysAsync(firstClient, CancellationToken.None);
         var second = await resolver.ResolveSecretKeysAsync(secondClient, CancellationToken.None);
@@ -237,7 +264,8 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var handler = new CountingHttpMessageHandler(gate.Task);
         var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
-        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        var client = CreateClient(settings, readsClientId: true);
         using var cancellation = new CancellationTokenSource();
 
         var first = resolver.ResolveSecretKeysAsync(client, cancellation.Token).AsTask();
@@ -249,6 +277,68 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         var keys = await second;
         AssertOnlySharedSecret(keys);
         Assert.Equal(1, handler.Calls);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenAFailureIsRememberedBeforeTheFetchStarts_DoesNotFetch()
+    {
+        var unavailableChecks = 0;
+        object? notCached = null;
+        object? remembered = true;
+        var mockMemoryCache = CreateStrictMock<IMemoryCache>();
+        mockMemoryCache
+            .Setup(x => x.TryGetValue(It.Is<object>(key => !IsUnavailableKey(key)), out notCached))
+            .Returns(false)
+            .Verifiable();
+        // The caller's check misses; a fetch that ends before this one starts has remembered its failure by then.
+        mockMemoryCache
+            .Setup(x => x.TryGetValue(It.Is<object>(key => IsUnavailableKey(key)), out remembered))
+            .Returns(() => Interlocked.Increment(ref unavailableChecks) > 1)
+            .Verifiable();
+        var resolver = CreateResolverOverCache(mockMemoryCache.Object);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        var client = CreateClient(settings, readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        Assert.Equal(2, unavailableChecks);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenAKeySetIsCachedBeforeTheFetchStarts_ReturnsItWithoutFetching()
+    {
+        var secretKeyFactory = _serviceProvider.GetRequiredService<ISecretKeyFactory>();
+        var publishedMetadata = new KeyMetadata
+        {
+            KeyId = "published-key",
+            Use = SecretKeyUses.Signature,
+        };
+        var publishedKey = secretKeyFactory.CreateRsaPublicKey(publishedMetadata, _rsa);
+        var acceptedChecks = 0;
+        object? accepted = new List<SecretKey> { publishedKey };
+        object? notRemembered = null;
+        var mockMemoryCache = CreateStrictMock<IMemoryCache>();
+        // The caller's check misses; a fetch that ends before this one starts has cached its key set by then.
+        mockMemoryCache
+            .Setup(x => x.TryGetValue(It.Is<object>(key => !IsUnavailableKey(key)), out accepted))
+            .Returns(() => Interlocked.Increment(ref acceptedChecks) > 1)
+            .Verifiable();
+        mockMemoryCache
+            .Setup(x =>
+                x.TryGetValue(It.Is<object>(key => IsUnavailableKey(key)), out notRemembered)
+            )
+            .Returns(false)
+            .Verifiable();
+        var resolver = CreateResolverOverCache(mockMemoryCache.Object);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        var client = CreateClient(settings, readsClientId: false);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        SecretKey[] expected = [SharedSecret, publishedKey];
+        Assert.Equal(expected, keys);
+        Assert.Equal(2, acceptedChecks);
     }
 
     #endregion

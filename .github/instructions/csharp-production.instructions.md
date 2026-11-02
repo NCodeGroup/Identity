@@ -664,12 +664,10 @@ than inlining the rationale.
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
   `IClientCertificateRevocationChecker`. See
   [ADR-1173](../../docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
-- 👁 **A retrieval that concurrent requests share runs once, on its own terms.** Key it in a `ConcurrentDictionary` of
-  `Lazy<Task<T>>` that the retrieval removes itself from; bound it by its own timeout, never a caller's token (a caller
-  stops waiting with `WaitAsync`); give it its own copy of any disposable input a caller owns, such as a chain's
-  certificates; remember a failed retrieval for a configured time so an unreachable source does not cost every request
-  a timeout (`DefaultClientCertificateRevocationChecker`). See
-  [ADR-1252](../../docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md).
+- 👁 **A retrieval that concurrent requests share runs once, on its own terms** — template
+  [Outbound Calls](csharp.instructions.md#outbound-calls); it also takes its own copy of any disposable input a caller
+  owns, such as a chain's certificates (`DefaultClientCertificateRevocationChecker`,
+  [ADR-1252](../../docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
 - 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A counter is
   incremented with the port's atomic `IncrementAsync`, which starts a counter for one fixed window, or, for the limits
   of a rate-limit stage, with `IncrementUntilExceededAsync`; a read followed by a write loses concurrent requests. Read
@@ -715,10 +713,9 @@ than inlining the rationale.
   ([ADR-1238](../../docs/decisions/1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
   [ADR-1239](../../docs/decisions/1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md),
   [ADR-1243](../../docs/decisions/1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
-- 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
-  acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
-  unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,
-  [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md).
+- 👁 **A write that a background loop retries is idempotent** — template
+  [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state): the usage ledger's per-replica
+  batch checkpoint ([ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **Deleting an owner removes what it owns, in the same unit of work, through the change tracker.** A client's
   removal takes its secrets, client grants, consents and grants; a client's or a resource server's removal also takes
   the role assignments at its node, ownership included; a tenant's takes every `ISupportTenantEntity` row of
@@ -757,13 +754,12 @@ than inlining the rationale.
   endings are **LF** ([`.gitattributes`](../../.gitattributes), [`.editorconfig`](../../.editorconfig)), and the check
   fails a file with CRLF endings ("different line endings than formatting it would result in") — which a file created
   on Windows by a tool that ignores `.editorconfig` gets; `dotnet csharpier format <file>` fixes it.
-- ⏳ **Code-style analyzers run on build.** `EnforceCodeStyleInBuild` makes the `IDExxxx` rules execute during
-  `dotnet build`; combined with warnings-as-errors, rules set to `warning` in [`.editorconfig`](../../.editorconfig)
-  become build errors on shipping code.
-- ✅ **No unused `using` directives** — `IDE0005` is raised to `warning` solution-wide in
-  [`.editorconfig`](../../.editorconfig), so an unused `using` fails the build. It is hidden by default under
-  `AnalysisLevel` `latest-recommended`, and Roslyn only evaluates it when `GenerateDocumentationFile` is `true`
-  (dotnet/roslyn#41640). Clean violations with `dotnet format style --diagnostics IDE0005`, then re-run CSharpier.
+- ⏳ **Code-style analyzers run on build** — the template's build settings
+  ([project-template ADR-0100](../../docs/decisions/project-template/0100-warnings-are-errors-in-every-project.md)); a
+  rule [`.editorconfig`](../../.editorconfig) raises to `warning` fails the build.
+- ✅ **No unused `using` directives (`IDE0005`)** — template [Build](csharp.instructions.md#build);
+  [`.editorconfig`](../../.editorconfig) raises it solution-wide, and CSharpier runs again after
+  `dotnet format style --diagnostics IDE0005`.
 - ✅ **Every C# file starts with the two-line license header** `// Copyright © NCode Group` and
   `// SPDX-License-Identifier: Apache-2.0`, then a blank line — no `#region`, no year.
   [`.editorconfig`](../../.editorconfig) sets it as `file_header_template` and raises `IDE0073` to `warning`, so a
@@ -778,11 +774,9 @@ than inlining the rationale.
   house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
   encodings in every project, tests included
   ([ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
-- ⏳ **Warnings-as-errors in _every_ project — including tests and the host projects** — and **NuGet vulnerability
-  advisories (`NU190x`) as errors in CI**. See
-  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md): the criterion is "code we maintain", not
-  "code we ship". Relax an individual rule via a justified [`.editorconfig`](../../.editorconfig) entry or a tight
-  `#pragma`; 🚫 never by setting `TreatWarningsAsErrors=false`.
+- ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
+  errors in CI** — template [Build](csharp.instructions.md#build) and
+  [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
 - ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
   model contributor that changes a host context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
   MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
@@ -793,25 +787,21 @@ than inlining the rationale.
   re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
   See [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md).
-- ✅ **A migration keeps the previous release working.** The previous release serves while a migration runs and after a
-  rollback, so a migration adds tables, nullable or defaulted columns, and indexes, and never drops, renames, or
-  tightens what the previous release reads. A column made required (with or without a default: EF Core writes an
-  explicit NULL for a column the previous release maps as nullable), a unique index, unique constraint, primary key,
-  check constraint or foreign key added to an existing table, and a foreign key that restricts deleting rows of an
-  existing table all tighten it. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous release
-  still reads every row they write, with the same meaning or a restriction this release applies too) or
+- ✅ **A migration keeps the previous release working** — template
+  [Entity Framework Core](csharp.instructions.md#entity-framework-core). A foreign key that restricts deleting rows of
+  an existing table tightens it too. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous
+  release still reads every row they write, with the same meaning or a restriction this release applies too) or
   `[ContractMigration("why")]` (it fails on, or loses, a value it reads). `ExpandOnlyRule.Check` judges every migration
   in `ExpandOnlyRuleTests`, which fails any other migration in the Definition of Done. A deliberate contract step ships
   a release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
   `Migrations/`, which `.editorconfig` treats as generated code. See
   [ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
   [ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).
-- ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
-  `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
-  `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema
-  uses PascalCase), so an unquoted fragment compiles and passes the SQLite tests but fails at runtime against Postgres
-  (`column "…" does not exist`). The drift gate cannot catch this — only applying the migration to Postgres does.
-- ✅ The whole gate is [`build/dod.ps1`](../../build/dod.ps1) — the single Definition of Done that CI runs.
+- ✅ **Raw SQL in the EF model quotes identifiers** — template
+  [Entity Framework Core](csharp.instructions.md#entity-framework-core):
+  `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`. The schema uses PascalCase, and only applying the migration to
+  Postgres catches an unquoted fragment; the drift gate cannot.
+- ✅ **The whole gate is [`build/dod.ps1`](../../build/dod.ps1)** — template [Build](csharp.instructions.md#build).
 - 👁 **`dod.ps1` prints its stage markers and the final `Definition of Done: PASSED` verdict via `Write-Host`,** which
   bypasses the PowerShell pipeline. `./build/dod.ps1 2>&1 | Out-File run.log` therefore captures the nested tool output
   but **silently drops the verdict line**, making a passing run look inconclusive. To capture everything, tee the
@@ -821,21 +811,17 @@ than inlining the rationale.
   `Get-Help ./build/<script>.ps1` shows only the generated syntax. The DoD's `build script help` stage
   ([`build/tests/script-help.tests.ps1`](../../build/tests/script-help.tests.ps1)) fails a script whose help does not
   parse.
-- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`, narrowed with `-Filter`.** It parallelizes project builds and skips
-  the non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
-  analyzers, and compile warnings-as-errors; test assemblies run in parallel in every mode.
-  `./build/dod.ps1 -Fast -Affected` (only the test projects the change reaches since its merge base with
-  `origin/main`) is the **local pre-push gate** (the push protocol's final check); the plain `./build/dod.ps1` is the
-  full gate, which runs in the merge queue, on `main` and on release lines (ADR-1263).
-- 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone.** They share every project's
-  `obj/` output, and Nerdbank.GitVersioning rewrites `obj/<config>/<tfm>/<Project>.Version.cs.new` on each build, so
-  concurrent runs fail with `MSB4018` (the file is in use by another process) — a spurious build error, not a code
-  defect. Run test projects one after another, or let a single `./build/dod.ps1` invocation parallelize them.
-- 👁 **Run the full `dod.ps1` (no `-Fast`, a clean Release build over the whole solution) before calling a structural
-  change done —
-  an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file
-  that is open in the editor can be silently undone by the editor re-saving its stale buffer to the old path, leaving a
-  duplicate type definition that only a clean/Release build (i.e. the DoD) surfaces.
+- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`, narrowed with `-Filter`** — template
+  [Build](csharp.instructions.md#build). `./build/dod.ps1 -Fast -Affected` (only the test projects the change reaches
+  since its merge base with `origin/main`) is the **local pre-push gate**, and the plain `./build/dod.ps1` is the full
+  gate, which runs in the merge queue, on `main` and on release lines
+  ([ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+- 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone** — template
+  [Build](csharp.instructions.md#build); here they fail with `MSB4018` on Nerdbank.GitVersioning's
+  `obj/<config>/<tfm>/<Project>.Version.cs.new`.
+- 👁 **Run the full `dod.ps1` before calling a structural change done** — template
+  [Build](csharp.instructions.md#build); a `git mv` of a file open in the editor can be undone by the editor
+  re-saving its stale buffer, leaving a duplicate type that only a clean Release build surfaces.
 
 ## 6. Clean Code / Refactoring (review-only)
 

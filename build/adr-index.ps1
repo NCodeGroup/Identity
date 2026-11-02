@@ -100,11 +100,11 @@ $rows |
         $problems.Add("docs/decisions/README.md lists ./$($_.Name) on more than one row (lines $(($_.Group | ForEach-Object { $_.Line }) -join ', ')).")
     }
 
-# Searches the tracked text files (never bin/, obj/ or node_modules/, which are untracked) for a pattern. The checker's
-# own test file is excluded because its fixtures name records that exist only in the fixtures. A line that repeats a
-# match (an index row names its file in the link and in the title) is reported once.
+# Searches the tracked text files (never bin/, obj/ or node_modules/, which are untracked) for a pattern. The build
+# scripts' fixture tests under build/tests/ are excluded because their fixtures name records that exist only in the
+# fixtures. A line that repeats a match (an index row names its file in the link and in the title) is reported once.
 function Find-TrackedText([string]$Pattern) {
-    $output = @(git -C $Root grep -I -n -o -z -E $Pattern -- . ':(exclude)build/tests/adr-index.tests.ps1')
+    $output = @(git -C $Root grep -I -n -o -z -E $Pattern -- . ':(exclude)build/tests/*.tests.ps1')
     if ($LASTEXITCODE -gt 1) {
         throw "git grep failed with exit code $LASTEXITCODE."
     }

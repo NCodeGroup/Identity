@@ -46,6 +46,14 @@ internal static class DefaultRegistration
                 ICommandResponseHandler<EndSessionCommand, EndSessionDisposition>,
                 DefaultEndSessionHandler
             >();
+
+            serviceCollection.TryAddSingleton<
+                ICommandResponseHandler<
+                    EndSessionConfirmationChallengeCommand,
+                    ReadOnlyEndpointDisposition
+                >,
+                DefaultEndSessionConfirmationChallengeHandler
+            >();
         }
     }
 }

@@ -14,6 +14,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Persistence;
 public sealed class GrantPruneServiceTests : IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
+    private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(1);
+    private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
     private MockRepository MockRepository { get; }
     private Mock<TimeProvider> MockTimeProvider { get; }
@@ -57,19 +59,86 @@ public sealed class GrantPruneServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
-    private void SetupSaveChangesFailingOnce(
-        Exception exception,
-        CancellationToken cancellationToken
-    )
+    #region ExecuteAsync Tests
+
+    [Fact]
+    public async Task ExecuteAsync_WhenAPruneFails_PrunesAgainAtTheNextTick()
     {
-        var saves = 0;
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(cancellationToken))
-            .Returns(() =>
-                ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask
+        var timerCreated = new TaskCompletionSource<(TimerCallback Callback, object? State)>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var mockTimer = MockRepository.Create<ITimer>();
+        mockTimer.Setup(x => x.Dispose()).Verifiable();
+        MockTimeProvider
+            .Setup(x =>
+                x.CreateTimer(
+                    It.IsAny<TimerCallback>(),
+                    It.IsAny<object?>(),
+                    PruneInterval,
+                    PruneInterval
+                )
             )
+            .Callback(
+                (TimerCallback callback, object? state, TimeSpan _, TimeSpan _) =>
+                    timerCreated.SetResult((callback, state))
+            )
+            .Returns(mockTimer.Object)
+            .Verifiable();
+        SetupStores();
+        MockGrantStore
+            .Setup(x =>
+                x.RemoveEndedBeforeAsync(
+                    Now - TimeSpan.FromDays(14),
+                    GrantPruneService.GrantTypesEndedByRevocation,
+                    GrantPruneService.BatchSize,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
+        var firstSave = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var secondSave = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var saves = 0;
+        var failure = new InvalidOperationException("unreachable");
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                if (++saves == 1)
+                {
+                    firstSave.SetResult();
+                    return ValueTask.FromException(failure);
+                }
+
+                secondSave.SetResult();
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Exactly(2));
+        var options = new GrantRetentionOptions { PruneInterval = PruneInterval };
+        using var service = new GrantPruneService(
+            MockStoreManagerFactory.Object,
+            Options.Create(options),
+            MockTimeProvider.Object,
+            NullLogger<GrantPruneService>.Instance
+        );
+
+        await service.StartAsync(CancellationToken.None);
+        var (tick, state) = await timerCreated.Task.WaitAsync(WaitTimeout);
+        tick(state);
+        await firstSave.Task.WaitAsync(WaitTimeout);
+        tick(state);
+        await secondSave.Task.WaitAsync(WaitTimeout);
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.NotNull(service.ExecuteTask);
+        Assert.True(service.ExecuteTask.IsCompletedSuccessfully);
     }
+
+    #endregion
 
     #region PruneAsync Tests
 
@@ -138,7 +207,11 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        SetupSaveChangesFailingOnce(new StoreConcurrencyException("conflict"), cancellationToken);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new StoreConcurrencyException("conflict"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
     }
@@ -159,8 +232,9 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        SetupSaveChangesFailingOnce(
+        MockStoreManager.SetupSaveChangesFailingOnce(
             new InvalidOperationException("unreachable"),
+            Times.Exactly(2),
             cancellationToken
         );
 
@@ -184,7 +258,11 @@ public sealed class GrantPruneServiceTests : IDisposable
             )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
-        SetupSaveChangesFailingOnce(new TaskCanceledException("timed out"), cancellationToken);
+        MockStoreManager.SetupSaveChangesFailingOnce(
+            new TaskCanceledException("timed out"),
+            Times.Exactly(2),
+            cancellationToken
+        );
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);

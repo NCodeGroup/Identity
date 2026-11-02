@@ -107,8 +107,8 @@ internal class BffUserHandler(
             httpContext.Request,
             bffOptions.PathPrefix + LogoutPath
         );
-        var guard = Uri.EscapeDataString(session.Payload.LogoutGuard);
-        writer.WriteString("logoutUrl", $"{logoutPath}?sid={guard}");
+        writer.WriteString("logoutUrl", logoutPath);
+        writer.WriteString("logoutSid", session.Payload.LogoutGuard);
 
         foreach (var (fieldName, value) in userContext.Fields)
         {

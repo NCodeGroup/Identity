@@ -1,11 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
@@ -21,30 +21,25 @@ internal sealed class RevocationRetrievalCache(
     ILogger<RevocationRetrievalCache> logger
 )
 {
-    private const string UnavailableKeySuffix = ":unavailable";
-
     private IMemoryCache MemoryCache { get; } = memoryCache;
-    private ClientCertificateRevocationOptions Options { get; } = options.Value;
     private ILogger<RevocationRetrievalCache> Logger { get; } = logger;
 
-    private ConcurrentDictionary<string, Lazy<Task<object?>>> Retrievals { get; } =
-        new(StringComparer.Ordinal);
+    private SingleFlight<object?> Retrievals { get; } =
+        new(memoryCache, options.Value.FailureCacheDuration);
 
     /// <summary>
     /// Determines whether a failed retrieval for <paramref name="key"/> is remembered.
     /// </summary>
     /// <param name="key">The key of the retrieval.</param>
     /// <returns><see langword="true"/> when the failure is remembered; otherwise, <see langword="false"/>.</returns>
-    public bool IsUnavailable(string key) =>
-        MemoryCache.TryGetValue(key + UnavailableKeySuffix, out _);
+    public bool IsUnavailable(string key) => Retrievals.IsFailureRemembered(key);
 
     /// <summary>
     /// Remembers that a retrieval for <paramref name="key"/> yielded nothing usable, for
     /// <see cref="ClientCertificateRevocationOptions.FailureCacheDuration"/>.
     /// </summary>
     /// <param name="key">The key of the retrieval.</param>
-    public void MarkUnavailable(string key) =>
-        MemoryCache.Set(key + UnavailableKeySuffix, true, Options.FailureCacheDuration);
+    public void MarkUnavailable(string key) => Retrievals.RememberFailure(key);
 
     /// <summary>
     /// Gets the cached value for <paramref name="key"/>, or runs <paramref name="retrieve"/> to obtain it.
@@ -72,40 +67,40 @@ internal sealed class RevocationRetrievalCache(
         // asked again for every check. See ADR-1252.
         if (IsUnavailable(key))
         {
-            Logger.RevocationRetrievalSuppressed(location, subject, Options.FailureCacheDuration);
+            Logger.RevocationRetrievalSuppressed(
+                location,
+                subject,
+                Retrievals.FailureCacheDuration
+            );
             return null;
         }
 
         // Concurrent checks share one retrieval; it runs without the caller's token, so a caller that gives up does
-        // not break it for the others. See ADR-1252.
-        var retrieval = Retrievals.GetOrAdd(
+        // not break it for the others. See ADR-1252 and ADR-1350.
+        var value = await Retrievals.RunAsync(
             key,
-            _ => new Lazy<Task<object?>>(() => RunAsync(key, retrieve))
+            () => RetrieveAsync(key, retrieve),
+            cancellationToken
         );
-        return await retrieval.Value.WaitAsync(cancellationToken) as T;
+        return value as T;
     }
 
-    // A Task, not a ValueTask, because every caller sharing the retrieval awaits it.
-    private async Task<object?> RunAsync<T>(string key, Func<Task<RevocationRetrieval<T>>> retrieve)
+    private async Task<object?> RetrieveAsync<T>(
+        string key,
+        Func<Task<RevocationRetrieval<T>>> retrieve
+    )
         where T : class
     {
-        try
+        var result = await retrieve();
+        if (result.Value is null)
         {
-            var result = await retrieve();
-            if (result.Value is null)
-            {
-                MarkUnavailable(key);
-                return null;
-            }
-
-            if (result.CacheUntil is { } cacheUntil)
-                MemoryCache.Set(key, result.Value, cacheUntil);
-
-            return result.Value;
+            MarkUnavailable(key);
+            return null;
         }
-        finally
-        {
-            Retrievals.TryRemove(key, out _);
-        }
+
+        if (result.CacheUntil is { } cacheUntil)
+            MemoryCache.Set(key, result.Value, cacheUntil);
+
+        return result.Value;
     }
 }

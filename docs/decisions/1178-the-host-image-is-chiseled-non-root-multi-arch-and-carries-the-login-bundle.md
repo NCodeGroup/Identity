@@ -3,7 +3,9 @@
 - **Status:** Accepted (amended by
   [ADR-1248](1248-the-host-image-writes-one-line-json-logs.md): the image writes one-line JSON logs; and by
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): its base images are
-  pinned by digest, and the Node major is a literal the workflow checks)
+  pinned by digest, and the Node major is a literal the workflow checks; and by
+  [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): a
+  Production deployment sets no `DeveloperKeys` section, which replaces `DeveloperKeys:Mode=None`)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

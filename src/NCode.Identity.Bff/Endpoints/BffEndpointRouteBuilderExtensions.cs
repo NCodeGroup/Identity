@@ -71,7 +71,7 @@ public static class BffEndpointRouteBuilderExtensions
                 .WithMetadata(BffUserEndpointMetadata.Instance);
 
             group
-                .MapGet(
+                .MapPost(
                     "/logout",
                     static (HttpContext context) =>
                         context

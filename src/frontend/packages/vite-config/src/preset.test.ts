@@ -355,6 +355,11 @@ describe('defineStandaloneSurfaceConfig', () => {
           changeOrigin: true,
           secure: false,
         },
+        '/api/': {
+          target: 'https://localhost:7001',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     });
     expect(config.build).toStrictEqual(expectedBuild);

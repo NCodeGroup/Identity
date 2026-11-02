@@ -1088,17 +1088,14 @@ public class TokenIntrospectionEndpointTests
 
     #endregion
 
-    // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys it is provisioned
-    // with (ADR-1169), which only a host without developer keys provisions. The developer-key mode decides what the host
-    // registers, so it is supplied as a host setting, which that read observes, rather than as a configuration overlay
-    // applied after it.
+    // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys the host
+    // provisions for it (ADR-1169).
     private sealed class ProvisionedKeysHostApplicationFactory : HostApplicationFactory
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            builder.UseSetting("DeveloperKeys:Mode", "None");
             builder.ConfigureAppConfiguration(configurationBuilder =>
                 configurationBuilder.AddInMemoryCollection(
                     new Dictionary<string, string?>

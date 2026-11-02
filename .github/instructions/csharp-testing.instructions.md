@@ -115,6 +115,23 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ServerApiEndpointHandlerTests`,
   `DefaultTenantClientCoherenceCheckerTests`).
+- 👁 **Answer a call differently each time from one counted setup, not `SetupSequence`.** Moq 4.21 has no
+  `.Verifiable()` on `SetupSequence`, so a sequence escapes the repository's verification and an answer it lists but
+  never gives passes unnoticed. Count the calls in a local, answer from the count, and end the setup with
+  `.Verifiable(Times.Exactly(n))`:
+  `.Returns(() => ++saves == 1 ? ValueTask.FromException(exception) : ValueTask.CompletedTask)`
+  (`StoreManagerMockExtensions.SetupSaveChangesFailingOnce`), or
+  `.ReturnsAsync(() => ++batches == 1 ? BatchSize : 5)` for a value. When the call that answers differently has
+  arguments of its own, give it its own setup, or the narrower setup above. `SetupSequence` stays only in the
+  read-and-retry case under [Persistence & integration tests](#persistence--integration-tests).
+- 👁 **Drive a `BackgroundService`'s timer loop through the captured timer callback.** A `PeriodicTimer` on a
+  `TimeProvider` asks it for `CreateTimer(callback, state, period, period)`: set that up on the strict `TimeProvider`
+  mock, capture the callback and state in a `TaskCompletionSource`, return a strict `ITimer` whose `Dispose()` is set
+  up, and start the service. Invoke the callback once per tick and await a `TaskCompletionSource` that the tick's work
+  completes (`WaitAsync` with a timeout) before the next tick. Tick twice with the first tick's work failing, then
+  `StopAsync` and assert `ExecuteTask.IsCompletedSuccessfully`, so a loop that ends after one tick or on a failed tick
+  fails the test (`ExecuteAsync_WhenAPruneFails_PrunesAgainAtTheNextTick` in `AuditRecordPruneServiceTests`,
+  `GrantPruneServiceTests` and `TenantUsagePruneServiceTests`).
 - 👁 **Capture an event handler a strict mock receives and invoke it directly** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ValkeyReplicaBroadcastSubscriberTests`).
 - 👁 **A change-token producer in a test returns a fresh token after each change** — template
@@ -230,12 +247,12 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   that exercises the developer clients uses `DeveloperSeedingHostApplicationFactory`, which returns `true`
   (`DeveloperSpaClientSeedingTests`).
 - 👁 **Configuration the composition root reads while it registers services is a host setting in a test factory** —
-  template [Integration Tests](csharp-tests.instructions.md#integration-tests): supply `DeveloperKeys:Mode`, which
-  `AddDevelopmentEnvironment` reads, with `builder.UseSetting(key, value)`, and assert an effect only that composition
-  has (the provisioned keys of `TenantKeyProvisioningTests`).
-- 👁 **A test that needs a tenant encryption key has the host provision it.** The default `Ephemeral` developer keys are
-  one in-memory RSA signing key, and a tenant reads its settings and keys once, when it is first served, so neither can
-  be added after a request reaches it. Select `DeveloperKeys:Mode` `None` (a host setting, above), list a key-management
+  template [Integration Tests](csharp-tests.instructions.md#integration-tests): supply `DeveloperKeys:PruneUnreadableKeys`,
+  which `AddDevelopmentEnvironment` reads, with `builder.UseSetting(key, value)`, and assert an effect only that
+  composition has, so a value that did not arrive fails the test.
+- 👁 **A test that needs a tenant encryption key has the host provision it.** The host provisions only the default
+  signing keys, and a tenant reads its settings and keys once, when it is first served, so neither can be added after a
+  request reaches it. List a key-management
   algorithm such as `RSA-OAEP-256` beside a signing algorithm in `OpenId:Tenant:KeyProvisioning:Keys`
   ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
   tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
@@ -285,10 +302,6 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
   `myapp://callback` is of no registered kind and is refused
   ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
-- 👁 **The ephemeral developer key signs only `RS256`.** A test that needs the tenant to sign with `PS256` or
-  `ES256`, such as a FAPI client's JARM response, selects `DeveloperKeys:Mode` `None` with `builder.UseSetting` (a
-  host setting, above), so the tenant is provisioned `RS256`, `PS256`, and `ES256` keys
-  (`Fapi1AdvancedAuthorizationTests`).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
   ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test

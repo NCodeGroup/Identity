@@ -39,10 +39,13 @@ public class TokenEndpointResourceServerPolicyTests
 
     private static async Task<HostApplicationFactory> SeedClientSecretPostClientAsync(
         string clientId,
-        IReadOnlyDictionary<string, object> resourceServerSettings
+        IReadOnlyDictionary<string, object> resourceServerSettings,
+        IReadOnlyDictionary<string, string?>? configuration = null
     )
     {
-        var factory = new HostApplicationFactory();
+        HostApplicationFactory factory = configuration is null
+            ? new HostApplicationFactory()
+            : new ConfiguredHostApplicationFactory(configuration);
         await factory.SeedConfidentialClientAsync(clientId, ClientSecret);
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -146,13 +149,17 @@ public class TokenEndpointResourceServerPolicyTests
     [Fact]
     public async Task PostToken_WhenTheResourceServerPermitsNoAlgorithmTheTenantSignsWith_FailsWithServerError()
     {
-        // The test tenant signs with an RS256 key only; the resource server's ceiling is never widened to fit it.
+        // The test provisions an RS256 key only (ADR-1169); the resource server's ceiling is never widened to fit it.
         const string clientId = "it-rs-policy-signing";
         using var factory = await SeedClientSecretPostClientAsync(
             clientId,
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.AccessTokenSigningAlgValuesSupported] = new[] { "PS256" },
+            },
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
             }
         );
 

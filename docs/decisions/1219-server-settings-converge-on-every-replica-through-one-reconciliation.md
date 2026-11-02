@@ -4,7 +4,9 @@
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): background work in another
   package waits for the server through `IMaterializedServerAccessor`; and
   by [ADR-1234](1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md): the
-  reconciliation records the settings it reconciled against and reaches only the tenants a change affects)
+  reconciliation records the settings it reconciled against and reaches only the tenants a change affects; and by
+  [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md): the refresh and the
+  announcement run on their own bounded token)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)

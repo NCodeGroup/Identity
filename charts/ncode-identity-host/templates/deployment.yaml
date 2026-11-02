@@ -90,9 +90,6 @@ spec:
               value: {{ .Values.environment | quote }}
             - name: AllowedHosts
               value: {{ join ";" .Values.allowedHosts | quote }}
-            # Every tenant is provisioned with persisted signing keys.
-            - name: DeveloperKeys__Mode
-              value: "None"
             - name: OpenId__TenantResolution__StrategyCode
               value: {{ .Values.tenantResolution.strategyCode | quote }}
             {{- with .Values.tenantResolution.staticSingle.issuer }}

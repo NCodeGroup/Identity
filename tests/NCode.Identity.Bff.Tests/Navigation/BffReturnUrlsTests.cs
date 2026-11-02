@@ -8,24 +8,24 @@ namespace NCode.Identity.Bff.Tests.Navigation;
 
 public class BffReturnUrlsTests : BaseTests
 {
-    #region IsAllowed Tests
+    #region IsLocalUrl Tests
 
     [Theory]
     [InlineData("/orders")]
     [InlineData("/orders/1?x=1")]
     [InlineData("/orders?x=1")]
-    public void IsAllowed_WhenUnderAnEntry_ReturnsTrue(string returnUrl)
+    public void IsLocalUrl_WhenUnderAnEntry_ReturnsTrue(string returnUrl)
     {
-        Assert.True(BffReturnUrls.IsAllowed(returnUrl, ["/orders"]));
+        Assert.True(BffReturnUrls.IsLocalUrl(returnUrl, ["/orders"]));
     }
 
     [Theory]
     [InlineData("/")]
     [InlineData("/orders")]
     [InlineData("/orders/1?x=1")]
-    public void IsAllowed_WhenTheEntryIsTheRoot_ReturnsTrueForWellFormedPaths(string returnUrl)
+    public void IsLocalUrl_WhenTheEntryIsTheRoot_ReturnsTrueForWellFormedPaths(string returnUrl)
     {
-        Assert.True(BffReturnUrls.IsAllowed(returnUrl, ["/"]));
+        Assert.True(BffReturnUrls.IsLocalUrl(returnUrl, ["/"]));
     }
 
     [Theory]
@@ -38,9 +38,9 @@ public class BffReturnUrlsTests : BaseTests
     [InlineData("https://x/")]
     [InlineData("orders")]
     [InlineData("/a#b")]
-    public void IsAllowed_WhenRefused_ReturnsFalse(string returnUrl)
+    public void IsLocalUrl_WhenRefused_ReturnsFalse(string returnUrl)
     {
-        Assert.False(BffReturnUrls.IsAllowed(returnUrl, ["/orders"]));
+        Assert.False(BffReturnUrls.IsLocalUrl(returnUrl, ["/orders"]));
     }
 
     [Theory]
@@ -50,9 +50,9 @@ public class BffReturnUrlsTests : BaseTests
     [InlineData("https://x/")]
     [InlineData("orders")]
     [InlineData("/a#b")]
-    public void IsAllowed_WhenTheEntryIsTheRootButThePathIsMalformed_ReturnsFalse(string returnUrl)
+    public void IsLocalUrl_WhenTheEntryIsTheRootButThePathIsMalformed_ReturnsFalse(string returnUrl)
     {
-        Assert.False(BffReturnUrls.IsAllowed(returnUrl, ["/"]));
+        Assert.False(BffReturnUrls.IsLocalUrl(returnUrl, ["/"]));
     }
 
     #endregion

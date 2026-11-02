@@ -78,12 +78,13 @@ public class DefaultBffSessionManagerTests : BaseTests
     public async Task CreateAsync_CollisionOnce_RetriesWithNewHandle()
     {
         var storeKeys = new List<string>();
+        var creates = 0;
         MockStore
-            .SetupSequence(x =>
+            .Setup(x =>
                 x.TryCreateAsync(It.IsAny<BffSessionRecord>(), It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(false)
-            .ReturnsAsync(true);
+            .ReturnsAsync(() => ++creates == 2)
+            .Verifiable(Times.Exactly(2));
 
         var state = await Manager.CreateAsync(
             CreateMetadata(),
@@ -93,10 +94,6 @@ public class DefaultBffSessionManagerTests : BaseTests
 
         storeKeys.Add(state.StoreKey);
         Assert.Single(storeKeys);
-        MockStore.Verify(
-            x => x.TryCreateAsync(It.IsAny<BffSessionRecord>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2)
-        );
     }
 
     [Fact]
@@ -252,7 +249,7 @@ public class DefaultBffSessionManagerTests : BaseTests
             .ReturnsAsync(false)
             .Verifiable();
         MockStore
-            .SetupSequence(x => x.GetAsync(storeKey, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetAsync(storeKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 BffSessionCodec.Encode(
                     handle,
@@ -263,7 +260,8 @@ public class DefaultBffSessionManagerTests : BaseTests
                         RefreshToken = "concurrent",
                     }
                 )
-            );
+            )
+            .Verifiable();
         MockStore
             .Setup(x =>
                 x.TryReplaceAsync(It.IsAny<BffSessionRecord>(), 7, It.IsAny<CancellationToken>())

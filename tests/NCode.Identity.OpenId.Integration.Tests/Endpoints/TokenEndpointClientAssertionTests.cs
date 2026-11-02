@@ -27,11 +27,15 @@ public class TokenEndpointClientAssertionTests
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static async Task<string> GetIssuerAsync(HttpClient client)
+    private static async Task<string> GetIssuerAsync(HttpClient client) =>
+        await GetMetadataAsync(client, "issuer");
+
+    private static async Task<string> GetMetadataAsync(HttpClient client, string name)
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
         var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return jsonElement.GetProperty("issuer").GetString()!;
+        return jsonElement.GetProperty(name).GetString()
+            ?? throw new InvalidOperationException($"The discovery document has no '{name}'.");
     }
 
     private static string BuildClientSecretJwt(
@@ -274,6 +278,43 @@ public class TokenEndpointClientAssertionTests
             OpenIdProtocol.ErrorCodes.InvalidClient,
             jsonElement.GetProperty("error").GetString()
         );
+    }
+
+    [Fact]
+    public async Task PostToken_ClientSecretJwt_WhenAudienceIsThePublishedTokenEndpoint_ReturnsAccessToken()
+    {
+        using var factory = await CreateSeededFactoryAsync();
+        var client = CreateClient(factory);
+
+        var tokenEndpoint = await GetMetadataAsync(client, "token_endpoint");
+        var assertion = BuildClientSecretJwt(ClientId, ClientSecret, tokenEndpoint);
+
+        using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    [Fact]
+    public async Task PostToken_ClientSecretJwt_WhenAudienceIsTheTokenEndpointUnderTheRequestsForgedHost_Returns400()
+    {
+        using var factory = await CreateSeededFactoryAsync();
+        var client = CreateClient(factory);
+
+        // The Host header names an origin the tenant does not publish, so an audience built from it is not accepted.
+        const string forgedHost = "attacker.test";
+        var assertion = BuildClientSecretJwt(
+            ClientId,
+            ClientSecret,
+            $"http://{forgedHost}{TokenPath}"
+        );
+        using var request = new HttpRequestMessage(HttpMethod.Post, TokenPath);
+        request.Headers.Host = forgedHost;
+        request.Content = ClientAssertionBody(assertion);
+
+        using var response = await client.SendAsync(request);
+
+        await AssertInvalidClientAsync(response);
     }
 
     [Fact]

@@ -11,6 +11,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
@@ -317,14 +318,10 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
     private static IReadOnlyCollection<string> GetValidAudiences(OpenIdContext openIdContext)
     {
-        var request = openIdContext.Http.Request;
-        var issuer = openIdContext.Tenant.Issuer;
-
         // OpenID Connect Core §9 accepts either the issuer identifier or the URL of the endpoint receiving the request;
-        // a security profile may further restrict this (see IClientAuthenticationProfileRequirement).
-        var endpointUrl = $"{request.Scheme}://{request.Host}{request.PathBase}{request.Path}";
-
-        return [issuer, endpointUrl];
+        // a security profile may further restrict this (see IClientAuthenticationProfileRequirement). The endpoint's URL
+        // is one the tenant publishes, never one built from the request's Host (ADR-1387).
+        return [openIdContext.Tenant.Issuer, .. TenantRequestUri.GetPublishedUris(openIdContext)];
     }
 
     private static bool TryDecodeHeaderAndPayload(

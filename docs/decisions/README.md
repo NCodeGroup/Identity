@@ -383,3 +383,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1382](./1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md) | The BFF sends browser security headers and publishes its client keys only when the host opts in | Accepted |
 | [1385](./1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) | No shipping package switches off its consumers' logging generator | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |
+| [1387](./1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md) | The client-assertion audience and the DPoP `htu` are compared with the tenant's published URLs | Accepted |

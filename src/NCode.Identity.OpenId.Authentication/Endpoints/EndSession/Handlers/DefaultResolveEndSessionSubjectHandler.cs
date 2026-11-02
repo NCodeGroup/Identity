@@ -5,10 +5,12 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Json;
@@ -32,11 +34,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 // See ADR-1093, ADR-1096 and ADR-1380.
 internal class DefaultResolveEndSessionSubjectHandler(
     IIssuedTokenValidator issuedTokenValidator,
+    IOpenIdClientResolver clientResolver,
     ISessionService sessionService,
     ILogger<DefaultResolveEndSessionSubjectHandler> logger
 ) : ICommandResponseHandler<ResolveEndSessionSubjectCommand, EndSessionSubject>
 {
     private IIssuedTokenValidator IssuedTokenValidator { get; } = issuedTokenValidator;
+    private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private ISessionService SessionService { get; } = sessionService;
     private ILogger<DefaultResolveEndSessionSubjectHandler> Logger { get; } = logger;
 
@@ -71,29 +75,49 @@ internal class DefaultResolveEndSessionSubjectHandler(
             }
         }
 
-        // The current OP login cookie supplies the session (and a provisional subject). The cookie's `sub` is the
-        // stable PrincipalId (ADR-1094).
-        var authenticateResult = await httpContext.AuthenticateAsync();
-        if (authenticateResult.Succeeded)
+        var clientId = request.ClientId ?? hint?.ClientId;
+
+        // The OP login is read from, and later cleared from, the schemes the authorize endpoint authenticates it with:
+        // always the tenant's authorization_authenticate_scheme, and also the client's when the logout names a
+        // registered client that overrides it, so a host whose default scheme is not the OP login scheme still sees
+        // the login. The tenant's scheme is always read, so naming a client whose scheme holds no login never hides the
+        // end-user's login from the confirmation below.
+        var loginSchemes = await GetLoginSchemesAsync(openIdContext, clientId, cancellationToken);
+
+        // The current OP login cookies supply the session (and a provisional subject). A cookie's `sub` is the stable
+        // PrincipalId (ADR-1094).
+        var loginSessionIds = new List<string?>(loginSchemes.Count);
+        foreach (var loginScheme in loginSchemes)
         {
+            var authenticateResult = await httpContext.AuthenticateAsync(loginScheme);
+            if (!authenticateResult.Succeeded)
+                continue;
+
             var principal = authenticateResult.Principal;
-            subjectId = openIdContext.GetSubjectId(principal);
-            loginSessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+            var sid = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+            loginSessionIds.Add(sid);
+            if (loginSessionIds.Count == 1)
+            {
+                subjectId = openIdContext.GetSubjectId(principal);
+                loginSessionId = sid;
+            }
         }
 
         // See ADR-1380.
         // The login's session takes precedence, so a confirmed logout ends the session the end-user is signed in to;
         // the hint's sid identifies the session only when no login is present.
         var sessionId = string.IsNullOrEmpty(loginSessionId) ? hint?.SessionId : loginSessionId;
-        var clientId = request.ClientId ?? hint?.ClientId;
 
         // See ADR-1380.
-        // RP-Initiated Logout 1.0 section 2: the end-user must confirm unless a valid hint names the current session.
+        // RP-Initiated Logout 1.0 section 2: the end-user must confirm unless a valid hint names the current session,
+        // and every login found must be that session.
         var requiresConfirmation =
-            authenticateResult.Succeeded
+            loginSessionIds.Count > 0
             && (
                 string.IsNullOrEmpty(hint?.SessionId)
-                || !string.Equals(hint?.SessionId, loginSessionId, StringComparison.Ordinal)
+                || loginSessionIds.Exists(id =>
+                    !string.Equals(hint?.SessionId, id, StringComparison.Ordinal)
+                )
             );
 
         // The persisted session grant is the authoritative source of the stable subject (PrincipalId) and of the
@@ -124,8 +148,40 @@ internal class DefaultResolveEndSessionSubjectHandler(
             sessionId,
             clientId,
             participatingClientIds,
-            requiresConfirmation
+            requiresConfirmation,
+            loginSchemes
         );
+    }
+
+    /// <summary>
+    /// Gets the schemes the authorize endpoint may authenticate the end-user's OP login with for this logout: the
+    /// tenant's <c>authorization_authenticate_scheme</c>, followed by the one of the client the logout names when that
+    /// client is registered and overrides it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="clientId">The client the logout names, or <see langword="null"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may cancel the operation.</param>
+    /// <returns>The schemes' names, where <see langword="null"/> is the host's default scheme.</returns>
+    private async ValueTask<IReadOnlyList<string?>> GetLoginSchemesAsync(
+        OpenIdContext openIdContext,
+        string? clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantScheme = openIdContext.Tenant.SettingsProvider.Collection.GetLoginScheme();
+        if (string.IsNullOrEmpty(clientId))
+            return [tenantScheme];
+
+        var client = await ClientResolver.ResolveClientOrDefaultAsync(
+            openIdContext,
+            clientId,
+            cancellationToken
+        );
+        var clientScheme = client?.Settings.GetLoginScheme() ?? tenantScheme;
+
+        return string.Equals(clientScheme, tenantScheme, StringComparison.Ordinal)
+            ? [tenantScheme]
+            : [tenantScheme, clientScheme];
     }
 
     private async ValueTask<HintClaims?> TryReadIdTokenHintAsync(

@@ -21,7 +21,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text.Json;
 using NCode.Buffers;
-using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose.Encoders;
 
@@ -44,7 +43,7 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     /// <inheritdoc />
     public override string Encode<T>(T payload)
     {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
 
         using var _ = JoseSerializer.SerializeToUtf8(
             payload,
@@ -68,7 +67,7 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     /// <inheritdoc />
     public override string Encode(string payload)
     {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
 
         Encode(tokenBuffer, payload.AsSpan());
 
@@ -84,7 +83,7 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     /// <inheritdoc />
     public override string Encode(ReadOnlySpan<char> payload)
     {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
 
         Encode(tokenBuffer, payload);
 
@@ -110,7 +109,7 @@ internal abstract class CommonJoseEncoder(JoseSerializer joseSerializer) : JoseE
     /// <inheritdoc />
     public override string Encode(ReadOnlySpan<byte> payload)
     {
-        using var tokenBuffer = new Sequence<char>(ArrayPool<char>.Shared);
+        using var tokenBuffer = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
 
         Encode(tokenBuffer, payload);
 

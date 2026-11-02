@@ -17,10 +17,8 @@
 
 #endregion
 
-using System.Buffers;
 using NCode.Buffers;
 using NCode.Disposables;
-using Nerdbank.Streams;
 
 namespace NCode.Identity.Jose.Algorithms.Compression;
 
@@ -40,18 +38,18 @@ internal static class CompressionAlgorithmExtensions
                 return Disposable.Empty;
             }
 
-            var buffer = new Sequence<byte>(ArrayPool<byte>.Shared)
-            {
-                // increase our chances of getting a single-segment buffer
-                MinimumSpanLength = Math.Min(uncompressedData.Length, 1024),
-            };
+            // increase our chances of getting a single-segment buffer
+            var buffer = BufferFactory.CreatePooledBufferWriter(
+                isSensitive: true,
+                Math.Min(uncompressedData.Length, 1024)
+            );
 
             try
             {
                 algorithm.Compress(uncompressedData, buffer);
                 header[JoseClaimNames.Header.Zip] = algorithm.Code;
 
-                return buffer.ConsumeAsContiguousSpan(isSensitive: false, out compressedData);
+                return buffer.ConsumeAsContiguousSpan(isSensitive: true, out compressedData);
             }
             catch
             {

@@ -867,6 +867,15 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var lookups = new List<string>();
         var keySet = CreateStrictMock<IExpiringKeySet>();
         SetupLookups(keySet, lookups);
+        keySet
+            .Setup(x =>
+                x.TryAddAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Verifiable(Times.Never());
         var validator = CreateValidator(CreateKeySetMock(), keySet);
 
         var result = await ValidateAsync(validator, CreateLogoutToken());

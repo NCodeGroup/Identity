@@ -139,6 +139,15 @@ internal class DefaultResolveEndSessionSubjectHandler(
         );
     }
 
+    /// <summary>
+    /// Gets the scheme the authorize endpoint authenticates the end-user's OP login with for this logout: the
+    /// <c>authorization_authenticate_scheme</c> of the client the logout names when it is registered, because a client
+    /// may override the setting, otherwise the tenant's.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="clientId">The client the logout names, or <see langword="null"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may cancel the operation.</param>
+    /// <returns>The scheme's name, or <see langword="null"/> for the host's default scheme.</returns>
     private async ValueTask<string?> GetLoginSchemeAsync(
         OpenIdContext openIdContext,
         string? clientId,

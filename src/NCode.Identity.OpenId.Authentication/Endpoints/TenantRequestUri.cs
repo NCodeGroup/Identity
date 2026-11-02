@@ -13,14 +13,17 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// </summary>
 /// <remarks>
 /// The authority comes from the tenant — its issuer's base address, or its mutual-TLS endpoint-alias authority
-/// (RFC 8705 §5) — and only the path comes from the request, which routing already matched to this endpoint, as
-/// <see cref="OpenIdLinkGeneratorExtensions"/> does for the URLs the discovery document publishes. The request's
-/// <c>Host</c> therefore never widens the values the server accepts: a forged <c>Host</c> chooses at most which of the
-/// tenant's own published origins is compared.
+/// (RFC 8705 §5) — and only the path comes from the request, which routing already matched to this endpoint, as the
+/// discovery document builds the URLs it publishes. The request's <c>Host</c> therefore never widens the values the
+/// server accepts: a forged <c>Host</c> chooses at most which of the tenant's own published origins is compared.
 /// </remarks>
-// See project-template ADR-0126 and ADR-1387.
+// Mirrors OpenIdLinkGeneratorExtensions.GetTenantUriByName. See project-template ADR-0126 and ADR-1387.
 internal static class TenantRequestUri
 {
+    private const int DefaultHttpsPort = 443;
+
+    private const int DefaultHttpPort = 80;
+
     /// <summary>
     /// Gets every URL the tenant publishes for the endpoint receiving the request: the one under the tenant's base
     /// address, then, when the tenant has a mutual-TLS endpoint-alias authority, the one under that authority.
@@ -55,6 +58,12 @@ internal static class TenantRequestUri
         return GetBaseAddressUri(openIdContext);
     }
 
+    /// <summary>
+    /// Gets the URL of the endpoint receiving the request under the tenant's base address: the issuer's scheme and
+    /// authority, followed by the request's path base and path.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <returns>The endpoint's URL under the tenant's base address.</returns>
     private static string GetBaseAddressUri(OpenIdContext openIdContext)
     {
         var request = openIdContext.Http.Request;
@@ -62,6 +71,12 @@ internal static class TenantRequestUri
         return $"{baseAddress.Scheme}://{baseAddress.Host}{request.PathBase}{request.Path}";
     }
 
+    /// <summary>
+    /// Gets the URL of the endpoint receiving the request under the tenant's mutual-TLS endpoint-alias authority,
+    /// together with that authority, or <see langword="null"/> when the tenant publishes no alias.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <returns>The endpoint's URL under the alias and the alias authority, or <see langword="null"/>.</returns>
     private static (string Uri, Uri Authority)? GetMtlsAlias(OpenIdContext openIdContext)
     {
         if (
@@ -79,6 +94,13 @@ internal static class TenantRequestUri
         );
     }
 
+    /// <summary>
+    /// Determines whether the request was sent to the specified authority: the same host, compared without case, and
+    /// the same port, where a request without a port uses its scheme's default port.
+    /// </summary>
+    /// <param name="request">The current request.</param>
+    /// <param name="authority">The authority to compare the request's <c>Host</c> with.</param>
+    /// <returns><see langword="true"/> when the request was sent to the authority; otherwise, <see langword="false"/>.</returns>
     private static bool IsSentTo(HttpRequest request, Uri authority)
     {
         var host = request.Host;
@@ -87,7 +109,7 @@ internal static class TenantRequestUri
 
         // The authority's IdnHost is in punycode, and HostString encodes a Unicode host the same way.
         var requestHost = new HostString(host.Host).ToUriComponent();
-        var requestPort = host.Port ?? (request.IsHttps ? 443 : 80);
+        var requestPort = host.Port ?? (request.IsHttps ? DefaultHttpsPort : DefaultHttpPort);
         return string.Equals(requestHost, authority.IdnHost, StringComparison.OrdinalIgnoreCase)
             && requestPort == authority.Port;
     }

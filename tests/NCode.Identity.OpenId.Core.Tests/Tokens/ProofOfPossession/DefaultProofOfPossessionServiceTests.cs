@@ -78,10 +78,16 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
             .Returns(certificateBound);
     }
 
-    private void SetupTenant(string? mtlsEndpointAliasAuthority = null, bool sentToTheAlias = false)
+    private void SetupTenant(
+        string? mtlsEndpointAliasAuthority = null,
+        bool comparesTheAlias = false
+    )
     {
         MockContext.SetupGet(x => x.Tenant).Returns(MockTenant.Object).Verifiable();
-        if (sentToTheAlias)
+
+        // When the request reaches the mTLS alias, the htu is compared with the alias URL and the base address is never
+        // read, so a strict BaseAddress setup would go unconsumed.
+        if (comparesTheAlias)
         {
             MockTenant
                 .SetupGet(x => x.MtlsEndpointAliasAuthority)
@@ -190,12 +196,12 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     [InlineData("MTLS.OP.TEST:443", true, "https://mtls.op.test/token")]
     public async Task EvaluateTokenRequestAsync_ComparesTheHtuWithTheTenantsPublishedUrl(
         string requestHost,
-        bool sentToTheAlias,
+        bool comparesTheAlias,
         string expectedHttpUri
     )
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
-        SetupTenant(mtlsEndpointAliasAuthority: "https://mtls.op.test", sentToTheAlias);
+        SetupTenant(mtlsEndpointAliasAuthority: "https://mtls.op.test", comparesTheAlias);
         HttpContext.Request.Host = new HostString(requestHost);
         HttpContext.Request.Headers[OpenIdProtocol.DPoP.HeaderName] = "proof-jwt";
         MockValidator

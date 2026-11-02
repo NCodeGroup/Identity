@@ -21,6 +21,8 @@ internal static class LoginSchemeExtensions
         /// <returns>The scheme's name, or <see langword="null"/> for the host's default scheme.</returns>
         public string? GetLoginScheme()
         {
+            ArgumentNullException.ThrowIfNull(settings);
+
             var scheme = settings.GetValue(OpenIdSettingKeys.AuthorizationAuthenticateScheme);
             return string.IsNullOrEmpty(scheme) ? null : scheme;
         }

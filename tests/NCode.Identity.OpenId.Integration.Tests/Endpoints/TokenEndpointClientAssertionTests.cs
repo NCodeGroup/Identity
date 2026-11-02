@@ -34,7 +34,8 @@ public class TokenEndpointClientAssertionTests
     {
         using var response = await client.GetAsync("/.well-known/openid-configuration");
         var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return jsonElement.GetProperty(name).GetString()!;
+        return jsonElement.GetProperty(name).GetString()
+            ?? throw new InvalidOperationException($"The discovery document has no '{name}'.");
     }
 
     private static string BuildClientSecretJwt(

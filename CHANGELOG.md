@@ -1314,6 +1314,20 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
 
 ### Changed
 
+- **Breaking:** **Development conveniences do nothing unless configured.**
+  `AddDevelopmentEnvironment(configuration)` and `AddDeveloperCors(configuration)` drop their `IHostEnvironment`
+  parameter. `AddDevelopmentEnvironment` no longer checks the environment: `AddProductionSafety` is the one Production
+  check and also refuses a `DeveloperKeys` section. The developer CORS policy has no default origins and registers
+  nothing without a `Cors` section; the reference host's `appsettings.Development.json` lists its dev-server origins.
+  `DeveloperKeys:PruneUnreadableKeys` replaces `DeveloperKeys:Mode`, and `AddPersistentDeveloperKeys` is renamed
+  `AddDeveloperKeyPruning`. Remove `DeveloperKeys__Mode` from deployments
+  ([#441](https://github.com/NCodeGroup/Identity/issues/441),
+  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+- **ADR-1256 and ADR-1314 record overrides of project-template ADR-0121 and ADR-0129.** A page without `form-action`
+  keeps `'none'`, and the authorization, continue and end-session endpoints keep the `GET` their specifications require;
+  AGENTS.md lists the overrides
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1314](docs/decisions/1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md)).
 - **The build takes the template's analyzer settings.** `build/BannedSymbols.txt`, from the template, bans
   sync-over-async, every `JsonDocument.Parse` overload and Newtonsoft.Json in every project, test projects included,
   through `Microsoft.CodeAnalysis.BannedApiAnalyzers` 5.6.0; the root `BannedSymbols.txt` keeps only this family's own
@@ -4109,6 +4123,12 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Removed
 
+- **Breaking:** **Ephemeral developer keys.** `DeveloperKeyMode`, `AddDeveloperKeys(DeveloperKeyMode)`,
+  `AddEphemeralDeveloperKeys()` and `EphemeralOpenIdTenantFactory` are removed. Every host, tests included, signs with
+  the keys tenant provisioning persists
+  ([#441](https://github.com/NCodeGroup/Identity/issues/441),
+  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+
 - **ADR-0004, ADR-0006, ADR-0008 and ADR-0210**, which said nothing that project-template ADR-0104, ADR-0105,
   ADR-0001 and ADR-0115 don't; their citations point at the template records.
 
@@ -4124,6 +4144,24 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **Breaking:** **The interactive surface's cookies are host-only.** The session cookie is
+  `__Host-NCode.Identity.Interactive`, the antiforgery cookie `__Host-NCode.Identity.Antiforgery`, the request-token
+  cookie `__Host-XSRF-TOKEN` (`InteractiveAuthenticationDefaults.SessionCookieName`, `AntiforgeryCookieName`,
+  `AntiforgeryTokenCookieName`), and the Session Management cookie `__Host-opbs`. All are `Path=/` without `Domain`, so
+  a sibling subdomain cannot set them. Tenants that share an origin keep separate sessions through a session cookie name
+  qualified by the tenant's path. Existing sessions end
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1310](docs/decisions/1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md)).
+- **Breaking:** **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body, and
+  `GET /bff/logout` is gone. `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a
+  reserved field
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1311](docs/decisions/1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md)).
+- **The frontend bootstrap's API base no longer comes from the `Host` header.** With `Frontend:ApiBaseUrl` unset,
+  `/config/bootstrap.json` publishes the host's root-relative path base, and the standalone Vite dev servers proxy
+  `/api/` to the OP host
+  ([#442](https://github.com/NCodeGroup/Identity/issues/442),
+  [ADR-1312](docs/decisions/1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md)).
 - **Interactive return URLs refuse tabs, newlines and backslashes.** The new `LocalUrl.IsLocal`
   (`NCode.Identity.OpenId.Protocol.Abstractions`) is the one local-path rule; the interactive surface and the BFF use
   it, so `/\t/evil.example` no longer redirects off-site after sign-in.

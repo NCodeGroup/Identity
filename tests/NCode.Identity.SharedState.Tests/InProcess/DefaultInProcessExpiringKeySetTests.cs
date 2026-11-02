@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.SharedState.InProcess;
 using Xunit;
 
@@ -10,14 +11,9 @@ public sealed class DefaultInProcessExpiringKeySetTests : BaseTests
 {
     private static DateTimeOffset Start { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
-    private DateTimeOffset Now { get; set; } = Start;
+    private FakeTimeProvider TimeProvider { get; } = new(Start);
 
-    private DefaultInProcessExpiringKeySet CreateKeySet()
-    {
-        var mockTimeProvider = CreateStrictMock<TimeProvider>();
-        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(() => Now).Verifiable();
-        return new DefaultInProcessExpiringKeySet(mockTimeProvider.Object);
-    }
+    private DefaultInProcessExpiringKeySet CreateKeySet() => new(TimeProvider);
 
     #region TryAddAsync Tests
 
@@ -47,9 +43,13 @@ public sealed class DefaultInProcessExpiringKeySetTests : BaseTests
     {
         var keySet = CreateKeySet();
         await keySet.TryAddAsync("key", Start.AddSeconds(10), CancellationToken.None);
-        Now = Start.AddSeconds(10);
+        TimeProvider.SetUtcNow(Start.AddSeconds(10));
 
-        var added = await keySet.TryAddAsync("key", Now.AddMinutes(1), CancellationToken.None);
+        var added = await keySet.TryAddAsync(
+            "key",
+            TimeProvider.GetUtcNow().AddMinutes(1),
+            CancellationToken.None
+        );
 
         Assert.True(added);
         Assert.True(await keySet.ContainsAsync("key", CancellationToken.None));
@@ -109,9 +109,13 @@ public sealed class DefaultInProcessExpiringKeySetTests : BaseTests
     {
         var keySet = CreateKeySet();
         await keySet.TryAddAsync("expiring", Start.AddSeconds(10), CancellationToken.None);
-        Now = Start + DefaultInProcessExpiringKeySet.SweepInterval;
+        TimeProvider.SetUtcNow(Start + DefaultInProcessExpiringKeySet.SweepInterval);
 
-        await keySet.TryAddAsync("live", Now.AddMinutes(1), CancellationToken.None);
+        await keySet.TryAddAsync(
+            "live",
+            TimeProvider.GetUtcNow().AddMinutes(1),
+            CancellationToken.None
+        );
 
         Assert.Equal(1, keySet.Count);
     }
@@ -121,9 +125,13 @@ public sealed class DefaultInProcessExpiringKeySetTests : BaseTests
     {
         var keySet = CreateKeySet();
         await keySet.TryAddAsync("expiring", Start.AddSeconds(10), CancellationToken.None);
-        Now = Start.AddSeconds(30);
+        TimeProvider.SetUtcNow(Start.AddSeconds(30));
 
-        await keySet.TryAddAsync("live", Now.AddMinutes(1), CancellationToken.None);
+        await keySet.TryAddAsync(
+            "live",
+            TimeProvider.GetUtcNow().AddMinutes(1),
+            CancellationToken.None
+        );
 
         Assert.Equal(2, keySet.Count);
         Assert.False(await keySet.ContainsAsync("expiring", CancellationToken.None));
@@ -149,7 +157,7 @@ public sealed class DefaultInProcessExpiringKeySetTests : BaseTests
     {
         var keySet = CreateKeySet();
         await keySet.TryAddAsync("key", Start.AddMinutes(1), CancellationToken.None);
-        Now = Start.AddMinutes(1);
+        TimeProvider.SetUtcNow(Start.AddMinutes(1));
 
         var contains = await keySet.ContainsAsync("key", CancellationToken.None);
 

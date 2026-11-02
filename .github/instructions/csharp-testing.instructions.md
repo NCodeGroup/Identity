@@ -67,6 +67,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   enforces it with `RS0030`. A test that needs UTF-16 or a byte-order mark builds a strict encoding, such as
   `new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)`. See
   [ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
+- ✅ **No decision-record citations in `///` doc comments in tests either.** Put the citation on a `//` line after the
+  doc comment (`// See ADR-1201.`), as production code does
+  ([`csharp-production.instructions.md`](csharp-production.instructions.md) §10); the `doc comment citations` stage of
+  [`build/dod.ps1`](../../build/dod.ps1) scans `tests/` as well as `src/`.
 
 ## Isolation & mocking
 
@@ -124,6 +128,15 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `.ReturnsAsync(() => ++batches == 1 ? BatchSize : 5)` for a value. When the call that answers differently has
   arguments of its own, give it its own setup, or the narrower setup above. `SetupSequence` stays only in the
   read-and-retry case under [Persistence & integration tests](#persistence--integration-tests).
+- ⏳ **Read time from a `FakeTimeProvider`** — template
+  [Time and Concurrency](csharp-tests.instructions.md#time-and-concurrency). A test project that reads time
+  references `Microsoft.Extensions.TimeProvider.Testing` in its own `.csproj`, as it references `Moq`. Start the clock
+  at a fixed instant and move it with `Advance`, or with `SetUtcNow` to an exact later instant; it never moves back, so
+  a test that needs an earlier time starts there; `DefaultOpenIdClientResolverTests` and
+  `DefaultInProcessExpiringKeySetTests` show it. Never write a `TimeProvider` subclass or mock `GetUtcNow`. A strict
+  `TimeProvider` mock stays only where a test drives a timer loop through the captured `CreateTimer` callback, below,
+  whose setup pins the period. Rolling out: the strict `GetUtcNow` mocks still in other test classes move to it
+  ([#509](https://github.com/NCodeGroup/Identity/issues/509)).
 - 👁 **Drive a `BackgroundService`'s timer loop through the captured timer callback.** A `PeriodicTimer` on a
   `TimeProvider` asks it for `CreateTimer(callback, state, period, period)`: set that up on the strict `TimeProvider`
   mock, capture the callback and state in a `TaskCompletionSource`, return a strict `ITimer` whose `Dispose()` is set

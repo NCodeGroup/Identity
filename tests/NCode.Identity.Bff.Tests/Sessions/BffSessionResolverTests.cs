@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
@@ -25,7 +26,7 @@ public class BffSessionResolverTests : BaseTests
     {
         MockManager = CreateStrictMock<IBffSessionManager>();
         var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         Resolver = new BffSessionResolver(MockManager.Object, cookies, [], options, timeProvider);
     }
@@ -63,7 +64,7 @@ public class BffSessionResolverTests : BaseTests
     private BffSessionResolver CreateResolver(IEnumerable<IBffSessionValidator> validators)
     {
         var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         return new BffSessionResolver(
             MockManager.Object,

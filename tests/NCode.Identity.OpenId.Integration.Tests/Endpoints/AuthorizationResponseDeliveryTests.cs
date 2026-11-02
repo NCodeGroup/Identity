@@ -15,8 +15,9 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Exercises how the authorization endpoint derives the delivery of its response, including the response modes a
-/// client lists in <c>response_modes_supported</c> (ADR-1201).
+/// client lists in <c>response_modes_supported</c>.
 /// </summary>
+// See ADR-1201.
 public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
     : IClassFixture<HostApplicationFactory>
 {

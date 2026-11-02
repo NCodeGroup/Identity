@@ -1018,7 +1018,7 @@ says. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) un
   comment, above the declaration's attributes (`// See ADR-1150.`). The `doc comment citations` stage of
   [`build/dod.ps1`](../../build/dod.ps1) runs
   [`build/doc-comment-citations.ps1`](../../build/doc-comment-citations.ps1), which fails on any `///` line under
-  `src/` that matches `ADR-\d{4}` or `docs/decisions/`.
+  `src/` or `tests/` that matches `ADR-\d{4}` or `docs/decisions/`.
 - 👁 **No internal implementation names in `///` doc comments** — template
   [XML Documentation](csharp.instructions.md#xml-documentation).
 - 👁 **A minimal-API handler's `///` reaches its OpenAPI operation only under specific conditions** — template

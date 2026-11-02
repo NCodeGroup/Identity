@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Cookies;
@@ -60,7 +61,7 @@ public class BffUserHandlerTests : BaseTests
         var options = Microsoft.Extensions.Options.Options.Create(
             new BffOptions { UserClaims = ["email", "role", "phone_number"] }
         );
-        var timeProvider = new MutableTimeProvider(Now);
+        var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
         var resolver = new BffSessionResolver(manager.Object, cookies, [], options, timeProvider);

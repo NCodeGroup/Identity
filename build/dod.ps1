@@ -188,7 +188,7 @@ try {
 
     # Doc-comment citation gate: a /// comment ships in the package's XML documentation and, for HTTP contracts, in
     # the OpenAPI document, where an ADR number or a docs/decisions/ link means nothing to a consumer. Build-free, so it
-    # runs before the slow stages. Its fixture tests end with the repository's own src/.
+    # runs before the slow stages. Its fixture tests end with the repository's own src/ and tests/.
     Invoke-Step 'doc comment citations' {
         & (Join-Path $PSScriptRoot 'tests\doc-comment-citations.tests.ps1')
         $global:LASTEXITCODE = 0

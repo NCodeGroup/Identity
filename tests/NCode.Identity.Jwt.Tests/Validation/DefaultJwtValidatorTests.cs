@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Buffers;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
@@ -32,7 +33,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton<TimeProvider>(new TestTimeProvider(_utcNow));
+        serviceCollection.AddSingleton<TimeProvider>(new FakeTimeProvider(_utcNow));
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
         // A viable unsecured algorithm, so the validator's refusal of "none" is proven by its name rule alone.
         serviceCollection.TryAddEnumerable(

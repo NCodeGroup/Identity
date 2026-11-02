@@ -16,8 +16,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints;
 /// (RFC 8705 §5) — and only the path comes from the request, which routing already matched to this endpoint, as
 /// <see cref="OpenIdLinkGeneratorExtensions"/> does for the URLs the discovery document publishes. The request's
 /// <c>Host</c> therefore never widens the values the server accepts: a forged <c>Host</c> chooses at most which of the
-/// tenant's own published origins is compared (project-template ADR-0126, ADR-1387).
+/// tenant's own published origins is compared.
 /// </remarks>
+// See project-template ADR-0126 and ADR-1387.
 internal static class TenantRequestUri
 {
     /// <summary>

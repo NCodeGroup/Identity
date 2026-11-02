@@ -84,7 +84,10 @@ public class BffLoginHandlerTests : BaseTests
         await CreateHandler(CreateOptions()).HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
-        Assert.Equal("no-store", httpContext.Response.Headers.CacheControl.ToString());
+        Assert.Equal(
+            "no-store, no-cache, max-age=0",
+            httpContext.Response.Headers.CacheControl.ToString()
+        );
     }
 
     [Fact]

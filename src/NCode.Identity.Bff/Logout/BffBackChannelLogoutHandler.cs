@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
-using NCode.Identity.Bff.Requests;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -44,9 +44,9 @@ internal class BffBackChannelLogoutHandler(
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
 
-        BffResponses.SetNoStore(httpContext.Response);
+        httpContext.Response.SetNoStore();
 
-        var form = await BffForms.TryReadFormAsync(request, cancellationToken);
+        var form = await request.TryReadFormAsync(cancellationToken);
         if (form is null)
         {
             await RejectAsync(httpContext, OpenIdProtocol.ErrorCodes.InvalidRequest);

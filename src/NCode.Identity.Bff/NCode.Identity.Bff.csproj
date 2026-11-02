@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.AspNetCore\NCode.AspNetCore.csproj" />
         <ProjectReference Include="..\NCode.Identity.Bff.Abstractions\NCode.Identity.Bff.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Client.Abstractions\NCode.Identity.OpenId.Client.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Abstractions\NCode.Identity.SharedState.Abstractions.csproj" />

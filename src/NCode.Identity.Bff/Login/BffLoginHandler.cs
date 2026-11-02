@@ -4,6 +4,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
@@ -65,7 +66,7 @@ internal class BffLoginHandler
         var cancellationToken = httpContext.RequestAborted;
         var bffOptions = _options.Value;
 
-        BffResponses.SetNoStore(httpContext.Response);
+        httpContext.Response.SetNoStore();
 
         var returnUrlValues = request.Query[ReturnUrlParameterName];
         if (returnUrlValues.Count > 1)

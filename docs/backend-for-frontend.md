@@ -658,8 +658,7 @@ A claim leaves the BFF only when the frontend allow-lists it. Contributors may a
 
 **Return URLs** must be relative and start with exactly one `/`. They are rejected when they contain `//`, a backslash,
 a scheme, or a `..` segment. After normalization, a URL must equal an allow-listed entry or extend it at a segment
-boundary. Where an absolute URL is required (`post_logout_redirect_uri`), the BFF builds it from the request origin and
-the allow-listed path. That URL must also be registered with the OP.
+boundary. Where an absolute URL is required (`post_logout_redirect_uri`), the BFF builds it from `Bff:PublicOrigin` and the allow-listed path, never from the request's `Host`. That URL must also be registered with the OP.
 
 ### 5.8 Logout and back-channel logout
 
@@ -741,8 +740,11 @@ contents depend on the application, so the library offers this helper but never 
 that limits XSS riding the session (RFC 10017 §6.1.4.1).
 
 **Topology.** The paved path is **one origin**: the SPA and the BFF behind one reverse proxy, so no call needs a
-preflight. The origin and scheme come from the request through `ForwardedHeadersMiddleware`, with known proxies
-configured. Startup fails outside Development if the derived `redirect_uri` would not be `https`. Because `__Host-`
+preflight. The absolute
+URLs the BFF publishes, the `redirect_uri` and the `post_logout_redirect_uri`, come from `Bff:PublicOrigin`, the URL
+the BFF is published at, never from the request's `Host` or a forwarded header
+([ADR-1365](decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)). Startup fails
+outside Development unless it is `https`. Because `__Host-`
 forbids `Domain`, a split across subdomains needs one BFF per host.
 
 ### 5.10 Frontends
@@ -815,6 +817,7 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 {
   "Bff": {
     "Authority": "https://id.example.com/",
+    "PublicOrigin": "https://orders.example.com",                  // the BFF's own URL; redirect_uri is built from it
     "ClientId": "orders-web",
     "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "orders-web-client-key" }, // key from Secrets
     "Scopes": ["openid", "profile", "email", "offline_access"],

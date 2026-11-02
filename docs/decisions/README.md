@@ -374,3 +374,4 @@ that says `- **Supersedes:** project-template ADR-NNNN` and list the override in
 | [1345](./1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md) | A response that reveals a secret is marked uncacheable by its endpoint | Accepted |
 | [1350](./1350-a-shared-fetch-is-single-flight-through-one-helper.md) | A shared fetch is single-flight through one helper | Accepted |
 | [1351](./1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) | A committed change is applied and announced on its own bounded token | Accepted |
+| [1365](./1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md) | The BFF and the login redirect take no URL from the request's Host | Accepted |

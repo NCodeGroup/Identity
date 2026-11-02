@@ -100,6 +100,37 @@ public class DevelopmentSecretFileTests : IDisposable
 
     #endregion
 
+    #region MoveIntoPlace Tests
+
+    [Fact]
+    public void MoveIntoPlace_WhenFileIsMissing_MovesTheNewFile()
+    {
+        Directory.CreateDirectory(_root);
+        var temporaryPath = Path.Combine(_root, "new.tmp");
+        File.WriteAllText(temporaryPath, "new-secret", SecureEncoding.UTF8);
+        var path = Path.Combine(_root, FileName);
+
+        DevelopmentSecretFile.MoveIntoPlace(temporaryPath, path);
+
+        Assert.Equal("new-secret", File.ReadAllText(path, SecureEncoding.UTF8));
+        Assert.False(File.Exists(temporaryPath));
+    }
+
+    [Fact]
+    public void MoveIntoPlace_WhenAnotherAppHostMovedItsFileFirst_KeepsThatFileAndDeletesTheNewOne()
+    {
+        var path = WriteFile("winning-secret");
+        var temporaryPath = Path.Combine(_root, "new.tmp");
+        File.WriteAllText(temporaryPath, "losing-secret", SecureEncoding.UTF8);
+
+        DevelopmentSecretFile.MoveIntoPlace(temporaryPath, path);
+
+        Assert.Equal("winning-secret", File.ReadAllText(path, SecureEncoding.UTF8));
+        Assert.False(File.Exists(temporaryPath));
+    }
+
+    #endregion
+
     #region ReadText Tests
 
     [Fact]

@@ -1304,4 +1304,69 @@ public class ClientRegistrationEndpointTests
     }
 
     #endregion
+
+    #region Response Caching
+
+    [Fact]
+    public async Task PostRegister_Always_MarksTheResponseNoStore()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        NoStoreAssert.IsNoStore(registrationResponse);
+    }
+
+    [Fact]
+    public async Task GetRegistration_Always_MarksTheResponseNoStore()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        var root = JsonElement.Parse(registrationBody);
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        NoStoreAssert.IsNoStore(readResponse);
+    }
+
+    #endregion
 }

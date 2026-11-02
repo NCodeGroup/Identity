@@ -30,10 +30,32 @@ public sealed class OpenIdClientOptions
     public TimeSpan StaleLifetime { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
+    /// Gets or sets the time one attempt of a request that may be retried — a GET or HEAD without a DPoP proof, while
+    /// <see cref="MaxRetryAttempts"/> is above zero — may take until its response headers arrive; a longer attempt is
+    /// cancelled and retried. The default is ten seconds. It is between ten milliseconds and five minutes, and not
+    /// greater than <see cref="TotalTimeout"/>.
+    /// </summary>
+    public TimeSpan AttemptTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
     /// Gets or sets the time a whole HTTP request to an OpenID Provider may take: every attempt, the delays between
-    /// retries, and reading the response body. The default is 15 seconds.
+    /// retries, and reading the response body. The default is 15 seconds. It is between ten milliseconds and five
+    /// minutes.
     /// </summary>
     public TimeSpan TotalTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Gets or sets how many times a failed attempt is retried; zero turns retries off. Only a GET or HEAD request
+    /// without a DPoP proof is retried, after a connection failure, a timed-out attempt, or a 408, 429 or 5xx response.
+    /// The default is two. It is between zero and ten.
+    /// </summary>
+    public int MaxRetryAttempts { get; set; } = 2;
+
+    /// <summary>
+    /// Gets or sets the base delay before a retry; it grows exponentially and is jittered. The default is one second.
+    /// It is between zero and five minutes.
+    /// </summary>
+    public TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
     /// Gets or sets the maximum size, in bytes, of an HTTP response body that is read from an OpenID Provider.

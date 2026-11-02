@@ -59,7 +59,7 @@ NCode.Identity.Server.DeveloperCorsApplicationBuilderExtensions.extension(Micros
 NCode.Identity.Server.DeveloperCorsRegistration
 const NCode.Identity.Server.DeveloperCorsRegistration.PolicyName = "NCode.Identity.Server.DeveloperCors" -> string!
 NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperCors(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Server.DeveloperCorsRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDeveloperCors(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DeveloperInteractiveSeedRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperInteractiveSeed(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!

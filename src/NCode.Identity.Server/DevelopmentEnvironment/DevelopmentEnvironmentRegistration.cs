@@ -68,7 +68,7 @@ public static class DevelopmentEnvironmentRegistration
             if (hostEnvironment.IsProduction())
                 return builder;
 
-            builder.ServiceCollection.AddDeveloperCors(configuration, hostEnvironment);
+            builder.ServiceCollection.AddDeveloperCors(configuration);
 
             // Seeds the public SPA clients and the development administrator its section declares, so the frontend
             // surfaces can sign in. Inert unless its section is configured (the reference host's Development overlay

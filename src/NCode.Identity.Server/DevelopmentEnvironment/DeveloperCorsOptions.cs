@@ -36,8 +36,8 @@ public sealed class DeveloperCorsOptions
     /// Gets or sets the browser origins allowed to call the server cross-origin, each written exactly as a browser
     /// sends it in the <c>Origin</c> header: an <c>http</c> or <c>https</c> scheme and a host, with an optional port
     /// and no path, query, or trailing slash (for example <c>https://app.example.com</c>). An entry in any other form
-    /// can never match a request, so it stops the host when it starts. When empty, a Development host allows the local
-    /// Vite dev/preview origins and any other environment allows none.
+    /// can never match a request, so it stops the host when it starts. The section is the opt-in: without it no policy
+    /// is registered.
     /// </summary>
     public string[] AllowedOrigins { get; set; } = [];
 }

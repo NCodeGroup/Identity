@@ -741,7 +741,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         );
     }
 
-    private async Task AddClientAsync(
+    private static async Task AddClientAsync(
         IServiceProvider serviceProvider,
         string clientId,
         System.Text.Json.JsonElement settingsJson,
@@ -1163,7 +1163,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         return client;
     }
 
-    private PersistedTenant CreateEmptyTenant(string tenantId) =>
+    private static PersistedTenant CreateEmptyTenant(string tenantId) =>
         new()
         {
             TenantId = tenantId,

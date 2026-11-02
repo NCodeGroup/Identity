@@ -21,9 +21,10 @@ using NCode.Identity.OpenId.Persistence;
 namespace NCode.Identity.OpenId.Authentication.Usage;
 
 /// <summary>
-/// Records a tenant's usage into the durable daily ledger (ADR-1199). Recording is in memory and never waits on the
+/// Records a tenant's usage into the durable daily ledger. Recording is in memory and never waits on the
 /// database: each replica adds what it recorded to the ledger periodically.
 /// </summary>
+// See ADR-1199.
 public interface ITenantUsageRecorder
 {
     /// <summary>

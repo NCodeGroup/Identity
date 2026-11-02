@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
 /// <summary>
 /// A parameter a request object must carry, and whether a copy sent outside it must equal it or is ignored
-/// (RFC 9101 §5, §6.3; ADR-1202).
+/// (RFC 9101 §5, §6.3).
 /// </summary>
 /// <param name="ParameterName">The name of the parameter.</param>
 /// <param name="GetValue">

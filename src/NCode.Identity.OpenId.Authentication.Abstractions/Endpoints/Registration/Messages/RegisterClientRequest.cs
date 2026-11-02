@@ -254,15 +254,17 @@ public sealed class RegisterClientRequest
     public string? UserInfoEncryptedResponseEnc { get; init; }
 
     /// <summary>
-    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server (ADR-1192).
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server.
     /// </summary>
+    // See ADR-1192.
     [JsonPropertyName("introspection_signed_response_alg")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IntrospectionSignedResponseAlg { get; init; }
 
     /// <summary>
-    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server (ADR-1192).
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server.
     /// </summary>
+    // See ADR-1192.
     [JsonPropertyName("introspection_encrypted_response_alg")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IntrospectionEncryptedResponseAlg { get; init; }

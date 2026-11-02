@@ -31,8 +31,9 @@ namespace NCode.Identity.Cryptography;
 /// </summary>
 /// <remarks>
 /// Encodings are the registered <see cref="IBinaryEncoder"/> strategies, resolved by name; hash algorithms are the
-/// framework's <see cref="HashAlgorithmName"/> names, computed by <see cref="CryptographicOperations"/> (ADR-1150).
+/// framework's <see cref="HashAlgorithmName"/> names, computed by <see cref="CryptographicOperations"/>.
 /// </remarks>
+// See ADR-1150.
 internal class DefaultCryptoService : ICryptoService
 {
     private const int MaxStackAlloc = 512 >> 3;

@@ -15,6 +15,33 @@ breakage — PublicAPI churn, setting renames/removals, signature changes, moved
 and preferred over shims. Surface a fork for the user to decide **only** when the options are genuinely equal in quality
 (a real value/security/semantics trade-off), not when one is merely more work.
 
+### The product is described as it is — changes are not tracked
+
+Breaking changes are allowed and **never tracked**
+([ADR-1393](../../docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)).
+Every text a change writes — a `CHANGELOG.md` entry, a document, a code comment, an XML doc, a decision record's text,
+a test name, a commit message, a pull request's title and description — describes the product **as it is**: what a
+package, type, setting, endpoint or behavior is and does, never how it differs from an earlier unreleased state.
+
+- **No delta phrasing.** No `**Breaking:**` label; no "now", "new"/"newly" set against an earlier state, "no longer",
+  "previously", "used to", "replaces"/"is replaced by", "instead of the old", "renamed", "moved", "migrated", "before
+  this change" or "after this change"; no name of a removed or renamed member; no upgrade, migration, rollback,
+  compatibility or "keeps working until" note. The product's own mechanisms keep their words: an EF Core migration, a
+  key that rotation replaces and a new session are behavior, described as such.
+- **Fixes are not tracked.** A fix to unreleased behavior records nothing about what was wrong; the behavior it
+  establishes is described as a capability or a protection, and needs no text when the text already describes it.
+- **The changelog is a catalog.** Until the first stable release, `## [Unreleased]` in
+  [`CHANGELOG.md`](../../CHANGELOG.md) is a present-tense catalog of what the family does, under `### Added`
+  (capabilities) and `### Security` (security posture and protections) only. A change edits it in place to match the
+  code: it adds an entry, rewrites the entry whose capability it reshapes, and deletes the entry whose capability it
+  removes. This overrides the template's `### Changed`, `### Deprecated`, `### Removed` and `### Fixed` groups and its
+  `**Breaking:**` label.
+- **No breaking marker.** Commit subjects and pull request titles never carry the conventional-commit `!` marker
+  (`feat:`, never `feat!:`), and no commit message or pull request description carries a `BREAKING CHANGE:` footer.
+- **Decision records relate through their metadata.** A record's `Status`, `Amends`, `Supersedes`, `Refines` and
+  `Conflicts with` lines are the decision-record mechanism, not change tracking; its Context states its forces in the
+  present tense.
+
 ### Extensibility is the goal — nothing closed by default
 
 The family exists to be extended easily and without restriction: a consumer or a sibling package adds a setting, a

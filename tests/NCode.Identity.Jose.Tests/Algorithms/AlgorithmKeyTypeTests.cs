@@ -168,30 +168,35 @@ public class AlgorithmKeyTypeTests : BaseTests
 
     #endregion
 
-    #region TryGetCurve Tests
+    #region GetCurves Tests
 
     [Theory]
-    [InlineData(256, "X25519")]
-    [InlineData(448, "X448")]
-    public void TryGetCurve_WhenACurveHasTheSize_ReturnsTheFirst(int keySizeBits, string expected)
+    [InlineData(256, new[] { "X25519", "Other25519" })]
+    [InlineData(448, new[] { "X448" })]
+    public void GetCurves_WhenCurvesHaveTheSize_ReturnsThemInOrderOfPreference(
+        int keySizeBits,
+        string[] expected
+    )
     {
         var keyType = AlgorithmKeyType.OnCurves(
             typeof(EccSecretKey),
-            [new("X25519", 256), new("Other25519", 256), new("X448", 448)]
+            [new("X25519", 256), new("X448", 448), new("Other25519", 256)]
         );
 
-        Assert.True(keyType.TryGetCurve(keySizeBits, out var curve));
-        Assert.Equal(expected, curve.Name);
+        Assert.Equal(expected, keyType.GetCurves(keySizeBits).Select(curve => curve.Name));
     }
 
     [Fact]
-    public void TryGetCurve_WhenNoCurveHasTheSize_ReturnsFalse()
+    public void GetCurves_WhenNoCurveHasTheSize_ReturnsNone()
     {
         var keyType = CreateNistKeyType();
 
-        Assert.False(keyType.TryGetCurve(521, out var curve));
-        Assert.Null(curve);
+        Assert.Empty(keyType.GetCurves(521));
     }
+
+    #endregion
+
+    #region TryGetCurve Tests
 
     [Theory]
     [InlineData("P-384", true)]

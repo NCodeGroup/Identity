@@ -83,8 +83,8 @@ NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.get
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.init -> void
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!>!
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.GetByCurveSizeBits(int curveSizeBits) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!>!
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByCurve(System.Security.Cryptography.ECCurve curve, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
-NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByCurveSizeBits(int curveSizeBits, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByName(string! curveName, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
 NCode.Identity.Secrets.Collections.ISecretKeyCollection
 NCode.Identity.Secrets.Collections.ISecretKeyCollection.TryGetByKeyId(string! keyId, out NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool

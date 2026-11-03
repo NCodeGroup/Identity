@@ -6,11 +6,13 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
-/// Describes a held key of a type without curves by its runtime type and size, together with the use and the algorithm
-/// declared for it, for a key whose material is not at hand, such as a stored symmetric key.
-/// <see cref="AlgorithmCollectionExtensions"/> checks it for coherence against the registered algorithms. A key of a
-/// type on curves is described by a <see cref="KeyAlgorithmDeclaration"/>, which carries the key and so its curve.
+/// Describes a held symmetric key by its runtime type and size, together with the use and the algorithm declared for
+/// it, for a key whose material is not at hand, such as a stored key. A symmetric key is a byte string, so its
+/// type and size describe it whole. <see cref="AlgorithmCollectionExtensions"/> checks it for coherence against the
+/// registered algorithms. An asymmetric key is described by a <see cref="KeyAlgorithmDeclaration"/>, which carries the
+/// key, or its public half, and so its curve and every other parameter.
 /// </summary>
+// See ADR-1398.
 [PublicAPI]
 public readonly record struct KeySizeDeclaration
 {

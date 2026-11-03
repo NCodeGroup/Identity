@@ -20,13 +20,13 @@ public class DefaultEccCurveCatalogTests
     }
 
     [Fact]
-    public void TryGetByCurveSizeBits_ResolvesDefaultCurve()
+    public void GetByCurveSizeBits_ListsTheCurvesOfTheSize()
     {
         var catalog = new DefaultEccCurveCatalog([]);
 
-        Assert.True(catalog.TryGetByCurveSizeBits(256, out var curve));
+        var curve = Assert.Single(catalog.GetByCurveSizeBits(256));
         Assert.Equal("P-256", curve.CurveName);
-        Assert.False(catalog.TryGetByCurveSizeBits(255, out _));
+        Assert.Empty(catalog.GetByCurveSizeBits(255));
     }
 
     [Fact]
@@ -63,8 +63,10 @@ public class DefaultEccCurveCatalogTests
         );
     }
 
+    // See ADR-1398: two curves can share a size, and the catalog lists both, the built-in first, so the key type can
+    // refuse the size until the curve is named.
     [Fact]
-    public void AdditionalCurve_IsMergedButBuiltInStaysSizeDefault()
+    public void AdditionalCurve_IsMergedAfterTheBuiltInOfItsSize()
     {
         var custom = new EccCurveSpecification
         {
@@ -76,9 +78,9 @@ public class DefaultEccCurveCatalogTests
 
         Assert.True(catalog.TryGetByName("secp256k1", out var byName));
         Assert.Equal(256, byName.CurveSizeBits);
-
-        // A built-in remains the size-default so the size-selected 'crv' stays stable.
-        Assert.True(catalog.TryGetByCurveSizeBits(256, out var bySize));
-        Assert.Equal("P-256", bySize.CurveName);
+        Assert.Equal(
+            ["P-256", "secp256k1"],
+            catalog.GetByCurveSizeBits(256).Select(curve => curve.CurveName)
+        );
     }
 }

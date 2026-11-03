@@ -6,13 +6,15 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
 /// <summary>
-/// Provides the ability to determine whether an issuer has revoked a certificate. The default implementation asks each
-/// registered <see cref="IClientCertificateRevocationSource"/> in registration order (OCSP, then certificate
-/// revocation lists) and returns the first <see cref="ClientCertificateRevocationStatus.Good"/> or
+/// Provides the ability to determine whether an issuer has revoked a certificate. The default implementation asks the
+/// <see cref="IClientCertificateRevocationSource"/> instances that configuration selects, in the configured order, or
+/// every registered source in the default order of their descriptors (OCSP, then certificate revocation lists) when
+/// configuration selects none, and returns the first <see cref="ClientCertificateRevocationStatus.Good"/> or
 /// <see cref="ClientCertificateRevocationStatus.Revoked"/>. Every network retrieval goes through the server's
 /// outbound-request guard, so a revocation source can never be used to reach a private address. A host adds a source
-/// by registering an <see cref="IClientCertificateRevocationSource"/>, and replaces the checker only to combine
-/// sources differently.
+/// by registering an <see cref="IClientCertificateRevocationSource"/> with its
+/// <see cref="ClientCertificateRevocationSourceDescriptor"/>, and replaces the checker only to combine sources other
+/// than by asking them in turn.
 /// </summary>
 /// <remarks>
 /// An implementation fails closed: when it cannot determine the status, it returns

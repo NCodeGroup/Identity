@@ -353,4 +353,64 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public ValueTask RecordUserInfoAccessedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string subjectId,
+        IEnumerable<string> claimNames,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var auditEvent = new UserInfoAccessedAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
+            SubjectId = subjectId,
+            ClientId = openIdClient.ClientId,
+            Actor = AuditActor.Client(openIdClient.ClientId),
+            Request = CreateRequest(openIdContext),
+            Outcome = AuditOutcome.Success,
+            ClaimNames =
+            [
+                .. claimNames.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal),
+            ],
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordUserInfoAccessDeniedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string? clientId,
+        string errorCode,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var auditEvent = new UserInfoAccessedAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
+            SubjectId = subjectId,
+            ClientId = clientId,
+            Actor = clientId is null ? AuditActor.Anonymous : AuditActor.Client(clientId),
+            Request = CreateRequest(openIdContext),
+            Outcome = AuditOutcome.Denied,
+            Error = new AuditError(errorCode),
+            ClaimNames = [],
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
 }

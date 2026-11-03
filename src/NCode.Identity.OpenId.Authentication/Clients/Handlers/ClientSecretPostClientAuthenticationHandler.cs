@@ -17,9 +17,16 @@ internal class ClientSecretPostClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger<ClientSecretPostClientAuthenticationHandler> logger
 )
-    : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger),
+    : CommonClientAuthenticationHandler(
+        clientResolver,
+        clientFactory,
+        auditEventRecorder,
+        attemptLimiter,
+        logger
+    ),
         IClientAuthenticationHandler
 {
     /// <inheritdoc />

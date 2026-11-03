@@ -11,6 +11,7 @@ using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt.Encoding;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
@@ -40,6 +41,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         MockClientResolver = CreateStrictMock<IOpenIdClientResolver>();
         MockCredentialSelector = CreateStrictMock<IClientJwtCredentialSelector>();
         MockJwtEncoder = CreateStrictMock<IJwtEncoder>();
+        MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
@@ -64,7 +66,8 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
             TimeProvider.System,
             MockClientResolver.Object,
             MockCredentialSelector.Object,
-            MockJwtEncoder.Object
+            MockJwtEncoder.Object,
+            MockAuditEventRecorder.Object
         );
     }
 
@@ -72,6 +75,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     private Mock<IOpenIdClientResolver> MockClientResolver { get; }
     private Mock<IClientJwtCredentialSelector> MockCredentialSelector { get; }
     private Mock<IJwtEncoder> MockJwtEncoder { get; }
+    private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private OpenIdContext OpenIdContext { get; }
@@ -110,19 +114,24 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
             .Verifiable();
     }
 
-    // Only a signed response reads the client's id and token lifetime and the tenant's issuer.
-    private OpenIdClient SetupClient(bool signsResponse = false)
+    // Every response reads whether the client's settings audit the access; only a signed response reads the client's
+    // id and token lifetime and the tenant's issuer.
+    private OpenIdClient SetupClient(bool signsResponse = false, bool auditsAccess = false)
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.AuditUserInfoAccess))
+            .Returns(auditsAccess)
+            .Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         if (signsResponse)
         {
-            var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
             mockSettings
                 .Setup(x => x.GetValue(OpenIdSettingKeys.IdTokenLifetime))
                 .Returns(TimeSpan.FromMinutes(5))
                 .Verifiable();
             mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
-            mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
 
             var mockTenant = CreateStrictMock<OpenIdTenant>();
             mockTenant.SetupGet(x => x.Issuer).Returns(Issuer).Verifiable();
@@ -142,6 +151,33 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
 
         return mockClient.Object;
     }
+
+    // A refusal reads whether the tenant's settings audit the access, since no client's settings can be read.
+    private void SetupTenantAudit(bool auditsAccess)
+    {
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.AuditUserInfoAccess))
+            .Returns(auditsAccess)
+            .Verifiable();
+        var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        mockProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object).Verifiable();
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
+        MockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+    }
+
+    private void SetupUnresolvedClient() =>
+        MockClientResolver
+            .Setup(x =>
+                x.ResolveClientOrDefaultAsync(
+                    OpenIdContext,
+                    ClientId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((OpenIdClient?)null)
+            .Verifiable();
 
     // Only a JSON response reads the environment's serializer options.
     private void SetupJsonSerializerOptions() =>
@@ -182,6 +218,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     public async Task HandleRouteAsync_WhenAccessTokenNamesNoClient_ReturnsInvalidToken()
     {
         SetupAuthenticatedSubject(clientId: null);
+        SetupTenantAudit(auditsAccess: false);
 
         await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
 
@@ -192,16 +229,8 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     public async Task HandleRouteAsync_WhenClientIsNotEnabled_ReturnsInvalidToken()
     {
         SetupAuthenticatedSubject(ClientId);
-        MockClientResolver
-            .Setup(x =>
-                x.ResolveClientOrDefaultAsync(
-                    OpenIdContext,
-                    ClientId,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync((OpenIdClient?)null)
-            .Verifiable();
+        SetupUnresolvedClient();
+        SetupTenantAudit(auditsAccess: false);
 
         await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
 
@@ -255,6 +284,69 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         Assert.Equal(ClientId, encoded.Audience.ToString());
         Assert.NotNull(encoded.ExtraPayloadClaims);
         Assert.Equal("principal-1", encoded.ExtraPayloadClaims["sub"]);
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheClientAuditsAccess_AuditsTheDisclosedClaimNames()
+    {
+        SetupAuthenticatedSubject(ClientId);
+        var openIdClient = SetupClient(auditsAccess: true);
+        SetupClaims();
+        SetupCredentials(openIdClient, new ClientJwtCredentials(null, null));
+        SetupJsonSerializerOptions();
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordUserInfoAccessedAsync(
+                    OpenIdContext,
+                    openIdClient,
+                    "principal-1",
+                    It.Is<IEnumerable<string>>(names => names.SequenceEqual(new[] { "sub" })),
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheClientDoesNotAuditAccess_AuditsNothing()
+    {
+        // The strict recorder has no setup, so an audit would fail the test.
+        SetupAuthenticatedSubject(ClientId);
+        var openIdClient = SetupClient(auditsAccess: false);
+        SetupClaims();
+        SetupCredentials(openIdClient, new ClientJwtCredentials(null, null));
+        SetupJsonSerializerOptions();
+
+        var result = await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.IsType<JsonHttpResult<UserInfoResult>>(result);
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheTenantAuditsAccessAndTheClientIsNotEnabled_AuditsTheRefusal()
+    {
+        SetupAuthenticatedSubject(ClientId);
+        SetupUnresolvedClient();
+        SetupTenantAudit(auditsAccess: true);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordUserInfoAccessDeniedAsync(
+                    OpenIdContext,
+                    "principal-1",
+                    ClientId,
+                    OpenIdProtocol.ErrorCodes.InvalidToken,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
     }
 
     #endregion

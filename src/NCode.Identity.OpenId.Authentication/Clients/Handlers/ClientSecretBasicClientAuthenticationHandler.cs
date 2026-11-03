@@ -20,9 +20,16 @@ internal class ClientSecretBasicClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger<ClientSecretBasicClientAuthenticationHandler> logger
 )
-    : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger),
+    : CommonClientAuthenticationHandler(
+        clientResolver,
+        clientFactory,
+        auditEventRecorder,
+        attemptLimiter,
+        logger
+    ),
         IClientAuthenticationHandler
 {
     private static string UriDecode(Span<char> source)

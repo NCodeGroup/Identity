@@ -21,6 +21,7 @@ public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthentic
             MockClientResolver.Object,
             MockClientFactory.Object,
             MockAuditEventRecorder.Object,
+            MockAttemptLimiter.Object,
             CreateLogger<ClientSecretBasicClientAuthenticationHandler>()
         );
 

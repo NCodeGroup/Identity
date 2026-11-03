@@ -1844,3 +1844,25 @@ NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.AddedSec
 NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.AddedSecrets.init -> void
 NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.IssuedSecret.get -> NCode.Identity.Secrets.Persistence.GeneratedSecret?
 NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.IssuedSecret.init -> void
+NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter
+NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter.CheckAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string? clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision>
+NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter.RecordFailureAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string? clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor.ClientCertificateRevocationSourceDescriptor() -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor.Name.get -> string!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor.Name.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor.Order.get -> int
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor.Order.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationSourceCatalog
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationSourceCatalog.SourceNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationSourceCatalog.TryGet(string! sourceName, out NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceDescriptor? descriptor) -> bool
+const NCode.Identity.OpenId.Authentication.Auditing.OpenIdAuditEventNames.UserInfoAccessed = "userinfo.accessed" -> string!
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordUserInfoAccessDeniedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, string? clientId, string! errorCode, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.IAuditEventRecorder.RecordUserInfoAccessedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! subjectId, System.Collections.Generic.IEnumerable<string!>! claimNames, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent
+NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent.ClaimNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent.ClaimNames.init -> void
+NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent.HasAuditDetails.get -> bool
+NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+override NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Authentication.Auditing.UserInfoAccessedAuditEvent.EventName.get -> string!

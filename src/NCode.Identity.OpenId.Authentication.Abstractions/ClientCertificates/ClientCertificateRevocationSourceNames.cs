@@ -7,8 +7,9 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
 /// <summary>
 /// Contains the names of the built-in sources of revocation information, the values of
-/// <see cref="IClientCertificateRevocationSource.Name"/>. The names are an open vocabulary: a package adds a source by
-/// registering an <see cref="IClientCertificateRevocationSource"/> under another name.
+/// <see cref="IClientCertificateRevocationSource.Name"/> and <see cref="ClientCertificateRevocationSourceDescriptor.Name"/>.
+/// The names are an open vocabulary: a package adds a source by registering an
+/// <see cref="IClientCertificateRevocationSource"/> and its descriptor under another name.
 /// </summary>
 [PublicAPI]
 public static class ClientCertificateRevocationSourceNames

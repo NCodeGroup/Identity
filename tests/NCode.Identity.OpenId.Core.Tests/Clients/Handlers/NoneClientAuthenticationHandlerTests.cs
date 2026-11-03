@@ -22,6 +22,7 @@ public class NoneClientAuthenticationHandlerTests : ClientAuthenticationHandlerT
             MockClientResolver.Object,
             MockClientFactory.Object,
             MockAuditEventRecorder.Object,
+            MockAttemptLimiter.Object,
             CreateLogger<NoneClientAuthenticationHandler>()
         );
 

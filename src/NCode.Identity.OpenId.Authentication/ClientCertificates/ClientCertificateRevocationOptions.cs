@@ -39,4 +39,14 @@ public sealed class ClientCertificateRevocationOptions
     /// default is one minute. It is greater than zero.
     /// </summary>
     public TimeSpan FailureCacheDuration { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Gets or sets the names of the sources of revocation information to ask, in the order they are asked; the first
+    /// answer that is not unknown decides. Each name is a registered source, such as <c>ocsp</c> or <c>crl</c>, and
+    /// appears once. Empty, the default, asks every registered source in the default order: <c>ocsp</c>, then
+    /// <c>crl</c>, then the sources packages register at the positions their descriptors give. A deployment that cannot
+    /// reach its PKI's OCSP responders names only <c>crl</c>; one that checks no revocation sets the client's revocation
+    /// mode to <c>none</c> instead.
+    /// </summary>
+    public List<string> Sources { get; set; } = [];
 }

@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Collections.Providers;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
@@ -19,8 +20,8 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the client-certificate resolver, the chain validator, the revocation checker with its sources
-        /// and their guarded HTTP client, and the decoders of the known forwarded-certificate formats. The
+        /// Configures the client-certificate resolver, the chain validator, the revocation checker with its sources,
+        /// their descriptors and their guarded HTTP client, and the decoders of the known forwarded-certificate formats. The
         /// forwarded-header settings are configured by the host; the server's <c>AddConfiguration</c> binds them from
         /// <c>OpenId:MutualTls</c>.
         /// </summary>
@@ -62,7 +63,19 @@ internal static class DefaultRegistration
             // The CRL source is registered as itself because the OCSP source checks delegated responders through it.
             serviceCollection.TryAddSingleton<CrlClientCertificateRevocationSource>();
 
-            // Sources are asked in registration order: OCSP, then the CRLs. See ADR-1259.
+            // Each source below has a descriptor of the same name, so the configured selection is validated without
+            // constructing a source; by default the checker asks OCSP, then the CRLs. See ADR-1259 and ADR-1400.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<ClientCertificateRevocationSourceDescriptor>,
+                    DefaultClientCertificateRevocationSourceDataSource
+                >()
+            );
+            serviceCollection.TryAddSingleton<
+                IClientCertificateRevocationSourceCatalog,
+                DefaultClientCertificateRevocationSourceCatalog
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IClientCertificateRevocationSource,

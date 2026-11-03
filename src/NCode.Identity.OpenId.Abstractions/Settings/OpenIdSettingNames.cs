@@ -1125,4 +1125,33 @@ public static class OpenIdSettingNames
     /// counted from the first one, are kept.
     /// </summary>
     public const string PasswordFailedAttemptsWindow = "password_failed_attempts_window";
+
+    /// <summary>
+    /// Contains the name of the <c>client_authentication_failed_attempts_limit</c> setting: the failed client
+    /// authentications that one remote address may make for one <c>client_id</c> within a window before every client
+    /// authentication it presents for that <c>client_id</c> is refused until the window ends.
+    /// </summary>
+    public const string ClientAuthenticationFailedAttemptsLimit =
+        "client_authentication_failed_attempts_limit";
+
+    /// <summary>
+    /// Contains the name of the <c>client_authentication_failed_attempts_address_limit</c> setting: the failed client
+    /// authentications that one remote address may make, for any <c>client_id</c>, within a window before every client
+    /// authentication it presents is refused until the window ends.
+    /// </summary>
+    public const string ClientAuthenticationFailedAttemptsAddressLimit =
+        "client_authentication_failed_attempts_address_limit";
+
+    /// <summary>
+    /// Contains the name of the <c>client_authentication_failed_attempts_window</c> setting: the length of the fixed
+    /// windows in which failed client authentications are counted.
+    /// </summary>
+    public const string ClientAuthenticationFailedAttemptsWindow =
+        "client_authentication_failed_attempts_window";
+
+    /// <summary>
+    /// Contains the name of the <c>audit_userinfo_access</c> setting: whether each response of the UserInfo endpoint
+    /// is audited as a <c>userinfo.accessed</c> event that names the subject, the client and the claims disclosed.
+    /// </summary>
+    public const string AuditUserInfoAccess = "audit_userinfo_access";
 }

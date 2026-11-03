@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Encoding;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Results;
@@ -30,13 +31,17 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// contribute the subject's claims, and returns them as JSON — or, when the client registers a signing or an encryption
 /// algorithm for its UserInfo responses, as a JWT signed by the tenant and/or encrypted to the client
 /// (<see href="https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse">OpenID Connect Core 5.3.2</see>).
+/// When the <c>audit_userinfo_access</c> setting is on, each answer to a request whose access token authenticated is
+/// audited as a <c>userinfo.accessed</c> event that names the subject, the client and the claims disclosed, never their
+/// values or the token.
 /// </summary>
-// See ADR-1155.
+// See ADR-1155 and ADR-1401.
 internal class DefaultUserInfoEndpointProvider(
     TimeProvider timeProvider,
     IOpenIdClientResolver clientResolver,
     IClientJwtCredentialSelector clientJwtCredentialSelector,
-    IJwtEncoder jwtEncoder
+    IJwtEncoder jwtEncoder,
+    IAuditEventRecorder auditEventRecorder
 ) : IEndpointProvider
 {
     private const string JwtContentType = "application/jwt";
@@ -55,6 +60,8 @@ internal class DefaultUserInfoEndpointProvider(
         clientJwtCredentialSelector;
 
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
+
+    private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -123,6 +130,7 @@ internal class DefaultUserInfoEndpointProvider(
         var clientId = ticket.Subject.FindFirstValue(JoseClaimNames.Payload.ClientId);
         if (string.IsNullOrEmpty(clientId))
         {
+            await AuditDeniedAsync(openIdContext, ticket.PrincipalId, null, cancellationToken);
             return InvalidToken(errorFactory);
         }
 
@@ -133,6 +141,7 @@ internal class DefaultUserInfoEndpointProvider(
         );
         if (openIdClient is null)
         {
+            await AuditDeniedAsync(openIdContext, ticket.PrincipalId, clientId, cancellationToken);
             return InvalidToken(errorFactory);
         }
 
@@ -150,14 +159,28 @@ internal class DefaultUserInfoEndpointProvider(
             cancellationToken
         );
 
-        if (!credentials.IsProtected)
+        IResult response = credentials.IsProtected
+            ? Utf8TextResults.Create(
+                EncodeUserInfoJwt(openIdContext, openIdClient, credentials, result),
+                JwtContentType
+            )
+            : TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
+
+        // Audited once the response is built, so a response that cannot be protected is not recorded as a disclosure.
+        // The client's effective settings merge its tenant's with Or, so a client cannot opt out of its tenant's audit
+        // trail. See ADR-1401.
+        if (openIdClient.Settings.GetValue(OpenIdSettingKeys.AuditUserInfoAccess))
         {
-            return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);
+            await AuditEventRecorder.RecordUserInfoAccessedAsync(
+                openIdContext,
+                openIdClient,
+                ticket.PrincipalId,
+                result.Claims.Keys,
+                cancellationToken
+            );
         }
 
-        var jwt = EncodeUserInfoJwt(openIdContext, openIdClient, credentials, result);
-
-        return Utf8TextResults.Create(jwt, JwtContentType);
+        return response;
     }
 
     // OpenID Connect Core 1.0 §5.3.2: a signed UserInfo response carries 'iss' and 'aud'; an encrypted one is the same
@@ -189,6 +212,28 @@ internal class DefaultUserInfoEndpointProvider(
         };
 
         return JwtEncoder.Encode(parameters);
+    }
+
+    // A token that authenticated but names no client the tenant serves discloses nothing; the tenant's settings decide
+    // whether the refusal is audited, since no client's settings can be read.
+    private async ValueTask AuditDeniedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string? clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
+        if (!settings.GetValue(OpenIdSettingKeys.AuditUserInfoAccess))
+            return;
+
+        await AuditEventRecorder.RecordUserInfoAccessDeniedAsync(
+            openIdContext,
+            subjectId,
+            clientId,
+            OpenIdProtocol.ErrorCodes.InvalidToken,
+            cancellationToken
+        );
     }
 
     private static IResult InvalidToken(IOpenIdErrorFactory errorFactory) =>

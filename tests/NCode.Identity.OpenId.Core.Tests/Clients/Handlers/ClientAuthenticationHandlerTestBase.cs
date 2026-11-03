@@ -7,6 +7,7 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -33,6 +34,7 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
     protected Mock<IOpenIdClientResolver> MockClientResolver { get; }
     protected Mock<IOpenIdClientFactory> MockClientFactory { get; }
     protected Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
+    protected Mock<IClientAuthenticationAttemptLimiter> MockAttemptLimiter { get; }
     protected Mock<OpenIdContext> MockContext { get; }
     protected DefaultHttpContext HttpContext { get; } = new();
 
@@ -41,6 +43,28 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
         MockClientResolver = CreateStrictMock<IOpenIdClientResolver>();
         MockClientFactory = CreateStrictMock<IOpenIdClientFactory>();
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
+
+        // Every request may try and every failure is counted, unless a test sets up a refusal; a test that asserts the
+        // limiter's use sets up a verifiable call.
+        MockAttemptLimiter = CreateStrictMock<IClientAuthenticationAttemptLimiter>();
+        MockAttemptLimiter
+            .Setup(x =>
+                x.CheckAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(RateLimitDecision.Admitted);
+        MockAttemptLimiter
+            .Setup(x =>
+                x.RecordFailureAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask);
 
         MockContext = CreateStrictMock<OpenIdContext>();
         MockContext.SetupGet(x => x.Http).Returns(HttpContext).Verifiable();

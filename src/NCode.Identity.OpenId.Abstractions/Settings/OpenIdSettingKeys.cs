@@ -1097,4 +1097,28 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<TimeSpan> PasswordFailedAttemptsWindow =>
         new(OpenIdSettingNames.PasswordFailedAttemptsWindow);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_authentication_failed_attempts_limit' setting.
+    /// </summary>
+    public static SettingKey<int> ClientAuthenticationFailedAttemptsLimit =>
+        new(OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_authentication_failed_attempts_address_limit' setting.
+    /// </summary>
+    public static SettingKey<int> ClientAuthenticationFailedAttemptsAddressLimit =>
+        new(OpenIdSettingNames.ClientAuthenticationFailedAttemptsAddressLimit);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_authentication_failed_attempts_window' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> ClientAuthenticationFailedAttemptsWindow =>
+        new(OpenIdSettingNames.ClientAuthenticationFailedAttemptsWindow);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'audit_userinfo_access' setting.
+    /// </summary>
+    public static SettingKey<bool> AuditUserInfoAccess =>
+        new(OpenIdSettingNames.AuditUserInfoAccess);
 }

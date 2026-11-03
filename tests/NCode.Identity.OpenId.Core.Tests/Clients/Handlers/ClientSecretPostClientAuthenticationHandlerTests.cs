@@ -8,6 +8,7 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Verifiers;
 using Xunit;
@@ -67,6 +68,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             MockClientResolver.Object,
             MockClientFactory.Object,
             MockAuditEventRecorder.Object,
+            MockAttemptLimiter.Object,
             CreateLogger<ClientSecretPostClientAuthenticationHandler>()
         );
 
@@ -228,6 +230,53 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         );
 
         AssertInvalidClient(result, StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheRegisteredClientPresentsAnUnknownSecret_CountsTheFailure()
+    {
+        SetupCredentialsForm();
+        SetupErrorFactory();
+        var client = CreateRegisteredClient(
+            [new FakeSecretVerifier("verifier-1", "another-secret")],
+            readsClientId: true
+        );
+        SetupResolvedClient(client);
+        SetupAudit("invalid_client_secret");
+        MockAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, ClientId, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var handler = CreateHandler();
+
+        await handler.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheAttemptLimitIsReached_RefusesBeforeResolvingTheClient()
+    {
+        // The strict resolver has no setup, so resolving the client or verifying a secret would fail the test.
+        SetupCredentialsForm();
+        SetupErrorFactory();
+        MockAttemptLimiter
+            .Setup(x => x.CheckAsync(MockContext.Object, ClientId, CancellationToken.None))
+            .ReturnsAsync(new RateLimitDecision(TimeSpan.FromSeconds(90.5)))
+            .Verifiable();
+        SetupAudit("attempt_limit_reached");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsError);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, result.Error.Code);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, result.Error.StatusCode);
+        var headers = result.Error.ResponseHeaders;
+        Assert.NotNull(headers);
+        Assert.Equal("91", headers[HeaderNames.RetryAfter].ToString());
+        Assert.Equal("no-store", headers[HeaderNames.CacheControl].ToString());
     }
 
     [Fact]

@@ -35,13 +35,21 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger logger,
     IJwtValidator jwtValidator,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IClientAssertionReplayCache replayCache,
     IClientKeyResolver clientKeyResolver,
     ISecurityProfileCatalog securityProfileCatalog
-) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
+)
+    : CommonClientAuthenticationHandler(
+        clientResolver,
+        clientFactory,
+        auditEventRecorder,
+        attemptLimiter,
+        logger
+    )
 {
     private const int JwsSegmentCount = 3;
 
@@ -152,9 +160,18 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             || !string.Equals(iss, sub, StringComparison.Ordinal)
         )
         {
+            // An assertion that names no client_id is still a failed attempt from its remote address. See ADR-1399.
+            var refusal = await RejectIfAttemptLimitedAsync(
+                openIdContext,
+                clientId: null,
+                cancellationToken
+            );
+            if (refusal is { } refused)
+                return refused;
+
             return await FailAsync(
                 openIdContext,
-                "unknown",
+                clientId: null,
                 "assertion_iss_sub_mismatch",
                 cancellationToken
             );

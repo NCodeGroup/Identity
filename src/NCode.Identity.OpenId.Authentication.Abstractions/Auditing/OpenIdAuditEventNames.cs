@@ -66,4 +66,10 @@ public static class OpenIdAuditEventNames
     /// A server-side end-user session (or every session a subject holds) was terminated.
     /// </summary>
     public const string SessionTerminated = "session.terminated";
+
+    /// <summary>
+    /// The UserInfo endpoint answered a request whose access token authenticated, disclosing the subject's claims or
+    /// refusing them; published only for a tenant or client that opts in to UserInfo access auditing.
+    /// </summary>
+    public const string UserInfoAccessed = "userinfo.accessed";
 }

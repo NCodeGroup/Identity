@@ -29,6 +29,7 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger<TlsClientAuthClientAuthenticationHandler> logger,
     IClientCertificateResolver clientCertificateResolver,
     IClientCertificateChainValidator clientCertificateChainValidator,
@@ -38,6 +39,7 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
         clientResolver,
         clientFactory,
         auditEventRecorder,
+        attemptLimiter,
         logger,
         clientCertificateResolver
     )

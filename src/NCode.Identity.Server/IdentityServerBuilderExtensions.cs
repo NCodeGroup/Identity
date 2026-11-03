@@ -65,9 +65,9 @@ public static class IdentityServerBuilderExtensions
         /// selects, and the route the tenant is served under.</description></item>
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
-        /// <item><description><c>ClientCertificateRevocation</c> — <see cref="ClientCertificateRevocationOptions"/>: how
-        /// the OCSP responses and revocation lists a mutual-TLS client certificate names are retrieved and
-        /// cached.</description></item>
+        /// <item><description><c>ClientCertificateRevocation</c> — <see cref="ClientCertificateRevocationOptions"/>: which
+        /// sources of revocation information a mutual-TLS client certificate is checked against and in what order, and
+        /// how the OCSP responses and revocation lists it names are retrieved and cached.</description></item>
         /// <item><description><c>OutboundHttp</c> — <see cref="OutboundHttpOptions"/>: how long a call to a
         /// caller-supplied URL may take, how often it is retried, and how long a failed <c>jwks_uri</c> fetch is
         /// remembered.</description></item>

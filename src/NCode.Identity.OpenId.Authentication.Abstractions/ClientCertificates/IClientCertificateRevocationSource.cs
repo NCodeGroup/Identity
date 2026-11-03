@@ -7,9 +7,10 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
 /// <summary>
 /// Provides one source of revocation information: OCSP, certificate revocation lists, or a source a package registers.
-/// Sources are a strategy collection that the default <see cref="IClientCertificateRevocationChecker"/> asks in
-/// registration order until one answers <see cref="ClientCertificateRevocationStatus.Good"/> or
-/// <see cref="ClientCertificateRevocationStatus.Revoked"/>. A source answers
+/// Sources are a strategy collection, each described by a <see cref="ClientCertificateRevocationSourceDescriptor"/> of
+/// the same name, that the default <see cref="IClientCertificateRevocationChecker"/> asks in the configured order, or in
+/// the descriptors' default order when none is configured, until one answers
+/// <see cref="ClientCertificateRevocationStatus.Good"/> or <see cref="ClientCertificateRevocationStatus.Revoked"/>. A source answers
 /// <see cref="ClientCertificateRevocationStatus.Unknown"/> when it has nothing to say, for example when the
 /// certificate names no location or the data it retrieves is unusable. Every retrieval goes through the server's
 /// outbound-request guard.
@@ -18,8 +19,9 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 public interface IClientCertificateRevocationSource
 {
     /// <summary>
-    /// Gets the name of this source, compared ordinally. The names of the built-in sources are the values of
-    /// <see cref="ClientCertificateRevocationSourceNames"/>.
+    /// Gets the name of this source, compared ordinally, which the source's
+    /// <see cref="ClientCertificateRevocationSourceDescriptor"/> also carries. The names of the built-in sources are the
+    /// values of <see cref="ClientCertificateRevocationSourceNames"/>.
     /// </summary>
     string Name { get; }
 

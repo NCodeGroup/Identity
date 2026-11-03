@@ -27,9 +27,17 @@ internal abstract class MutualTlsClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger logger,
     IClientCertificateResolver clientCertificateResolver
-) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
+)
+    : CommonClientAuthenticationHandler(
+        clientResolver,
+        clientFactory,
+        auditEventRecorder,
+        attemptLimiter,
+        logger
+    )
 {
     private IClientCertificateResolver ClientCertificateResolver { get; } =
         clientCertificateResolver;
@@ -79,6 +87,11 @@ internal abstract class MutualTlsClientAuthenticationHandler(
         }
 
         var clientId = clientIdValues.ToString();
+
+        // Asked before the client is resolved, so a request refused at the limit costs no lookup. See ADR-1399.
+        var refusal = await RejectIfAttemptLimitedAsync(openIdContext, clientId, cancellationToken);
+        if (refusal is { } refused)
+            return refused;
 
         OpenIdClient? publicClient;
         try

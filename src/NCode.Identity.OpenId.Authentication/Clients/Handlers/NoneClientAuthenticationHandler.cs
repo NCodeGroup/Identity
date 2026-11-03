@@ -19,9 +19,16 @@ internal class NoneClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger<NoneClientAuthenticationHandler> logger
 )
-    : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger),
+    : CommonClientAuthenticationHandler(
+        clientResolver,
+        clientFactory,
+        auditEventRecorder,
+        attemptLimiter,
+        logger
+    ),
         IClientAuthenticationHandler
 {
     /// <inheritdoc />

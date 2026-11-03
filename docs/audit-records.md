@@ -33,7 +33,7 @@ A record with every member set. Its `event_name`, `details` and values are illus
 
 ```json
 {
-  "schema_version": "1.1",
+  "schema_version": "1.0",
   "event_id": "01890a5d-ac96-774b-bcce-b302099a8057",
   "event_time": "2026-10-28T14:03:12.345Z",
   "event_name": "test.detailed",
@@ -83,7 +83,7 @@ the members in the order below.
 
 | Field                     | Type              | Presence                                                              | Meaning                                                                                                                                                                          |
 | ------------------------- | ----------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `schema_version`          | string            | Always                                                                | The version of the record's schema, `1.1` (`AuditRecordWriter.SchemaVersion`). A field added to the record bumps the minor version.                                              |
+| `schema_version`          | string            | Always                                                                | The version of the record's schema, `1.0` (`AuditRecordWriter.SchemaVersion`). A field added to the record bumps the minor version.                                              |
 | `event_id`                | string (UUID)     | Always                                                                | The unique identifier of the event. A UUIDv7, so identifiers sort by time and index and paginate well.                                                                           |
 | `event_time`              | string (RFC 3339) | Always                                                                | When the audited operation occurred, in UTC with a `Z` suffix.                                                                                                                   |
 | `event_name`              | string            | Always                                                                | The audited operation, such as `token.issued`. See the [event catalog](#event-catalog).                                                                                          |

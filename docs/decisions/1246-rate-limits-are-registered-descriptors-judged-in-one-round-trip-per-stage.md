@@ -1,6 +1,8 @@
 # 1246. Rate limits are registered descriptors judged in one round trip per stage
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  event ID `2044` is free)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

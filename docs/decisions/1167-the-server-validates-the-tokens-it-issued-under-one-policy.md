@@ -5,7 +5,9 @@
   [ADR-1101](1101-oauth-token-exchange-rfc8693.md); closes the follow-ups of
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md); realizes the
-  introspection clause of [ADR-1112](1112-authorization-code-replay-revokes-session.md))
+  introspection clause of [ADR-1112](1112-authorization-code-replay-revokes-session.md); amended by
+  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  event ID `2019` is free)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

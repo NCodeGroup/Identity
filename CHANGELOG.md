@@ -2443,12 +2443,12 @@ describes the family as it is rather than its changes
   `ncode.identity.client_authentication.method`.
 
 - **Audit events are CloudTrail-shaped JSON records.** `AuditRecordWriter` writes each audit event as one compact,
-  snake_case record whose field names are the constants of `AuditRecordFields`: `schema_version` (`"1.1"`), `event_id`
+  snake_case record whose field names are the constants of `AuditRecordFields`: `schema_version` (`"1.0"`), `event_id`
   (a UUIDv7), `event_time` (UTC), `event_name`, `event_category`, `event_source`, `outcome`, `severity`, `tenant_id`,
-  `subject_id`, `client_id`, the `actor`, `request` and `error` objects, a `resources` array of `{type, id}` and an
-  event-specific `details` object that the event writes through `ISupportAuditDetails`. Null members and an empty
-  `resources` are omitted. `AuditActor`, `AuditRequest`, `AuditResource` and `AuditError` model the objects, and
-  `AuditActorTypes`, `AuditSeverities`, `AuditEventCategories`, `AuditEventSources`, `AuditResourceTypes`,
+  `tenant_environment_type`, `subject_id`, `client_id`, the `actor`, `request` and `error` objects, a `resources` array
+  of `{type, id}` and an event-specific `details` object that the event writes through `ISupportAuditDetails`. Null
+  members and an empty `resources` are omitted. `AuditActor`, `AuditRequest`, `AuditResource` and `AuditError` model the
+  objects, and `AuditActorTypes`, `AuditSeverities`, `AuditEventCategories`, `AuditEventSources`, `AuditResourceTypes`,
   `OpenIdAuditEventNames` and `ManagementAuditEventNames` hold the open vocabularies. An `AuditEvent` declares an
   abstract `EventName` and `EventCategory`, a required `EventSource` and its `EventTime`, and `OpenIdErrorEvent` carries
   its `Error`. `AuditRequestFactory` builds `request` from the HTTP context: the request, trace and span ids, the source
@@ -2873,7 +2873,7 @@ describes the family as it is rather than its changes
   `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
   `staging` and `production` (a package registers more as `ITenantEnvironmentType`), and the name is a display label. A
   tenant that declares nothing is `production`, and the Development and Conformance host settings declare `development`
-  and `testing`. A non-production tenant's login pages show an environment banner. The audit record (schema 1.1) carries
+  and `testing`. A non-production tenant's login pages show an environment banner. The audit record carries
   `tenant_environment_type`, and management audit events that name a tenant carry it too, resolved from the tenant's
   effective settings once per request; the metric attribute `ncode.identity.tenant.environment_type` tags
   `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`

@@ -24,7 +24,7 @@ public static class AuditRecordWriter
     /// <summary>
     /// The version of the audit record's schema. A field added to the record bumps the minor version.
     /// </summary>
-    public const string SchemaVersion = "1.1";
+    public const string SchemaVersion = "1.0";
 
     /// <summary>
     /// Writes the audit record of an audit event as one JSON object.

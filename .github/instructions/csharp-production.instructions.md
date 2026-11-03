@@ -1159,7 +1159,9 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   starts using its band when it adds its first log. An `EventId` only has to be unique within an `ILogger<T>` category,
   but a family-wide band makes it **globally unique across packages**, so an operator's log filter or alert keys on a
   stable number regardless of which assembly emitted it. IDs are **append-only** — never renumber or reuse a shipped
-  value (same discipline as enum members and the public API §2), and a band, once assigned, is never renumbered.
+  value (same discipline as enum members and the public API §2), and a band, once assigned, is never renumbered. Until
+  the first stable release no ID has shipped: the ID of a removed event is free, and no comment reserves it
+  ([ADR-1397](../../docs/decisions/1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md)).
   `*.Abstractions` packages are pure contracts (§2) with no behavior, so they never log and get no band. A **new**
   runtime package added to the family claims the next free band and **adds a row here**:
 

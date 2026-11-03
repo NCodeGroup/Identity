@@ -1,6 +1,8 @@
 # 1289. A tenant declares its environment type, which selects its guardrails
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  audit record carries `tenant_environment_type` in its `"1.0"` schema)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md)

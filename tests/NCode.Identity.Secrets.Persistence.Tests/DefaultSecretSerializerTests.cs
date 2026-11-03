@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
@@ -434,6 +435,48 @@ public class DefaultSecretSerializerTests
     #endregion
 
     #region DeserializeVerifiers Tests
+
+    // A scheme a package registers: its parameters are the secret itself, which only a test would store.
+    private sealed class PlainTextSecretVerifierScheme : ISecretVerifierScheme
+    {
+        public const string SchemeName = "test-plain";
+
+        public string Name => SchemeName;
+
+        public void WriteParameters(ReadOnlySpan<byte> secret, IBufferWriter<byte> destination) =>
+            destination.Write(secret);
+
+        public bool TryReadParameters(
+            KeyMetadata metadata,
+            ReadOnlySpan<byte> parameters,
+            [NotNullWhen(true)] out SecretVerifier? verifier
+        )
+        {
+            verifier = new PlainTextSecretVerifier(metadata, parameters.ToArray());
+            return true;
+        }
+    }
+
+    // The verifier PlainTextSecretVerifierScheme reads, which compares the presented secret with the stored one.
+    private sealed class PlainTextSecretVerifier(KeyMetadata metadata, byte[] secret)
+        : SecretVerifier
+    {
+        public override KeyMetadata Metadata { get; } = metadata;
+
+        public override string Scheme => PlainTextSecretVerifierScheme.SchemeName;
+
+        public override bool HasWorkFactor => false;
+
+        public override ValueTask<SecretVerificationResult> VerifyAsync(
+            ReadOnlyMemory<byte> presented,
+            CancellationToken cancellationToken
+        ) =>
+            ValueTask.FromResult(
+                presented.Span.SequenceEqual(secret)
+                    ? SecretVerificationResult.Success
+                    : SecretVerificationResult.Failed
+            );
+    }
 
     [Fact]
     public async Task DeserializeVerifiers_ReadsEachVerifierWithItsMetadata()

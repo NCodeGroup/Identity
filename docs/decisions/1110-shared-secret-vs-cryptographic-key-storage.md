@@ -1,6 +1,6 @@
 # 1110. A shared secret is stored as the UTF-8 bytes of its opaque string, distinct from a cryptographic key
 
-- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a shared secret that is only compared is stored as a one-way verifier, and only a secret its client uses as a key keeps the UTF-8 bytes this record describes)
+- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a shared secret that is only compared is stored as a one-way verifier, and only a secret its client uses as a key keeps the UTF-8 bytes this record describes. It also renamed the methods this record names: `GenerateSharedSecret` and `ImportSharedSecret` are now `GenerateOneWaySharedSecret` and `ImportOneWaySharedSecret`, which store a verifier, and the UTF-8 form below is stored by the new `GenerateReversibleSharedSecret` and `ImportReversibleSharedSecret`)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md), with [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md), which resolved the conflict [#163](https://github.com/NCodeGroup/Identity/issues/163) tracked

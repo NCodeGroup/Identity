@@ -1,6 +1,6 @@
 # 1320. A rotated client secret overlaps its replacement until it expires or is deleted
 
-- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): the replacement is stored as a one-way verifier unless the client uses its secret as a key)
+- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): the replacement is stored as a one-way verifier unless the client uses its secret as a key, and `GenerateSharedSecret`, named below, is now `GenerateOneWaySharedSecret` beside `GenerateReversibleSharedSecret`, both of which enforce the entropy floor)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

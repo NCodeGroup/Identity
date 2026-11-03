@@ -16,5 +16,5 @@ internal sealed class TestSecretVerifierSchemeDataSource(IEnumerable<string> nam
     public IEnumerable<SecretVerifierSchemeDescriptor> Collection { get; } =
     [.. names.Select(name => new SecretVerifierSchemeDescriptor { Name = name })];
 
-    public IChangeToken GetChangeToken() => new CancellationChangeToken(CancellationToken.None);
+    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
 }

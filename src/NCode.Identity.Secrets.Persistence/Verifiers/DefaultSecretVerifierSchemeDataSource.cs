@@ -15,12 +15,8 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 internal sealed class DefaultSecretVerifierSchemeDataSource
     : ICollectionDataSource<SecretVerifierSchemeDescriptor>
 {
-    // The descriptors never change; a token over a token that cannot be cancelled never fires.
-    private static IChangeToken NeverChanges { get; } =
-        new CancellationChangeToken(CancellationToken.None);
-
     /// <inheritdoc />
-    public IChangeToken GetChangeToken() => NeverChanges;
+    public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
 
     /// <inheritdoc />
     public IEnumerable<SecretVerifierSchemeDescriptor> Collection

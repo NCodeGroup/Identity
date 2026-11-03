@@ -4,7 +4,9 @@
 using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.Secrets.Collections;
@@ -20,6 +22,63 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
 
     #region Scaffolding
+
+    // A verifier that confirms one secret, as a stored one-way verifier does, and counts its verifications. One with a
+    // work factor that is created unavailable answers Unavailable, as one refused a turn does.
+    private sealed class FakeSecretVerifier(
+        string keyId,
+        string secret,
+        bool hasWorkFactor = false,
+        bool isUnavailable = false
+    ) : SecretVerifier
+    {
+        private byte[] Secret { get; } = SecureEncoding.UTF8.GetBytes(secret);
+
+        private bool IsUnavailable { get; } = isUnavailable;
+
+        public int VerifyCount { get; private set; }
+
+        public override KeyMetadata Metadata { get; } = new() { KeyId = keyId };
+
+        public override string Scheme =>
+            HasWorkFactor ? SecretVerifierSchemes.Pbkdf2Sha256 : SecretVerifierSchemes.Sha256;
+
+        public override bool HasWorkFactor { get; } = hasWorkFactor;
+
+        public override ValueTask<SecretVerificationResult> VerifyAsync(
+            ReadOnlyMemory<byte> secret,
+            CancellationToken cancellationToken
+        )
+        {
+            VerifyCount++;
+            if (IsUnavailable)
+            {
+                return ValueTask.FromResult(SecretVerificationResult.Unavailable);
+            }
+
+            return ValueTask.FromResult(
+                secret.Span.SequenceEqual(Secret)
+                    ? SecretVerificationResult.Success
+                    : SecretVerificationResult.Failed
+            );
+        }
+    }
+
+    // A shared secret the client holds as a key, as a client issued a secret for client_secret_jwt does.
+    private sealed class FakeSymmetricSecretKey(string keyId, string secret) : SymmetricSecretKey
+    {
+        private byte[] Secret { get; } = SecureEncoding.UTF8.GetBytes(secret);
+
+        public override KeyMetadata Metadata { get; } = new() { KeyId = keyId };
+
+        public override int KeySizeBits => Secret.Length * 8;
+
+        public override void ExportPrivateKey<TWriter>(ref TWriter destination)
+        {
+            Secret.CopyTo(destination.GetSpan(Secret.Length));
+            destination.Advance(Secret.Length);
+        }
+    }
 
     private ClientSecretPostClientAuthenticationHandler CreateHandler() =>
         new(
@@ -371,6 +430,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         Assert.True(result.IsError);
         Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, result.Error.Code);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.Error.StatusCode);
+        var responseHeaders = result.Error.ResponseHeaders;
+        Assert.NotNull(responseHeaders);
+        Assert.Equal("1", responseHeaders[HeaderNames.RetryAfter]);
+        Assert.Equal("no-store", responseHeaders[HeaderNames.CacheControl]);
     }
 
     #endregion

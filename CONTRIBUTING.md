@@ -171,7 +171,9 @@ git push --force-with-lease
 ```
 
 A commit message that carries agent attribution keeps it through `--amend --no-edit`, so for such a commit the
-check's command runs the `commit-msg` hook on each message, which strips those lines, and keeps the commit's author:
+check's command runs the `commit-msg` hook on each message, which strips those lines, and keeps the commit's author. A
+commit that also has an agent account as its author or committer needs `--reset-author` in the same command, as the
+check prints it:
 
 ```shell
 git rebase origin/main --exec "git -c core.hooksPath=.githooks commit --amend --no-edit"

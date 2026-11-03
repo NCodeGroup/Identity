@@ -17,7 +17,7 @@ On 2026-10-24 the history was rewritten with `git filter-repo` and a commit call
 commit to the person (229 commits re-SHA'd, trees unchanged), and `main` was force-pushed with its ruleset briefly
 disabled.
 
-The decision gains a third level, and the first two now cover Claude as well:
+The decision has three levels, and the first two cover Claude as well as Copilot:
 
 - **Enforcement — server-side.** The required `Commit attribution` check runs
   [`.template/Test-CommitAttribution.ps1`](../../.template/Test-CommitAttribution.ps1) over every commit it is about to
@@ -33,11 +33,11 @@ The decision gains a third level, and the first two now cover Claude as well:
   and passes once the commit is re-authored. The merge-queue run checks the very commit that lands — PR #12's
   `merge_group` run checked `f47bb897`, the commit on `main` — so it sees any trailer GitHub writes when it squashes;
   with the pull request check required first, there is none to write.
-- **Prevention and the hook — Claude as well as Copilot.** The hook keeps stripping, never rejecting, and now also
-  strips Claude attribution. Claude Code's `attribution` setting is off in `.claude/settings.json`, and VS Code's
-  `git.addAICoAuthor` is `off` in `.vscode/settings.json`. The Copilot-only workflow of
-  [ADR-1170](1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) is
-  unchanged.
+- **Prevention and the hook — Claude and Copilot.** The hook strips, never rejects, the attribution of Claude and
+  Copilot, and of any other AI agent or model. Claude Code's `attribution` setting is off in `.claude/settings.json`,
+  and VS Code's `git.addAICoAuthor` is `off` in `.vscode/settings.json`. The Copilot workflow of
+  [ADR-1170](1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) stays as
+  it is.
 - **The cloud agent's pull requests are re-authored before they merge**, because their commits fail the check until
   then:
 

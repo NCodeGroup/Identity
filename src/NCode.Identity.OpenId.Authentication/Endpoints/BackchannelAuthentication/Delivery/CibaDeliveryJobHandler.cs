@@ -14,8 +14,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// issued tokens, or the error payload of a denied push request per CIBA Core §12) to the client's
 /// <c>client_notification_endpoint</c>, authenticated with the client notification token. A delivery failure throws so
 /// the <see cref="IJobDispatcher"/> retries the job (up to its attempt limit), giving CIBA push and ping delivery
-/// at-least-once semantics. The response body is never read: the
-/// delivery waits for the status line and headers only, so a hostile endpoint cannot make the server buffer a body.
+/// at-least-once semantics. The response body is never read: the delivery waits for the status line and headers only,
+/// so a hostile endpoint cannot make the server buffer a body.
 /// </summary>
 internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactory)
     : IDispatchJobHandler<CibaDeliveryJob>

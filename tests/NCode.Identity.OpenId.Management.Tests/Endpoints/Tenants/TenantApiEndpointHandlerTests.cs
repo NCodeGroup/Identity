@@ -272,7 +272,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 )
             )
             .Returns([
-                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+                new SettingError(
+                    "unregistered_setting",
+                    "'unregistered_setting' is not a registered setting."
+                ),
             ])
             .Verifiable();
 
@@ -280,9 +283,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         var problem = Assert.IsType<ValidationProblem>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
-        Assert.Equal(["tenant_issuer"], problem.ProblemDetails.Errors.Keys);
+        Assert.Equal(["unregistered_setting"], problem.ProblemDetails.Errors.Keys);
         Assert.Contains(
-            "'tenant_issuer' is not a registered setting.",
+            "'unregistered_setting' is not a registered setting.",
             problem.ProblemDetails.Detail
         );
     }
@@ -1252,7 +1255,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
             TenantId,
-            CreateAddPatch("tenant_issuer", "bar"),
+            CreateAddPatch("unregistered_setting", "bar"),
             ifMatch: null,
             CancellationToken.None
         );

@@ -119,7 +119,10 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     public void Read_WhenSettingsCannotBeHonored_ThrowsListingEveryOne()
     {
         var reader = CreateReader();
-        var section = CreateSection(("tenant_issuer", "https://op.example"), ("flag", "yes"));
+        var section = CreateSection(
+            ("unregistered_setting", "https://op.example"),
+            ("flag", "yes")
+        );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             reader.Read(section, OpenIdSettingScopes.Server)
@@ -127,7 +130,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
 
         Assert.Contains($"'{SectionPath}'", exception.Message, StringComparison.Ordinal);
         Assert.Contains(
-            $"{SectionPath}:tenant_issuer",
+            $"{SectionPath}:unregistered_setting",
             exception.Message,
             StringComparison.Ordinal
         );
@@ -166,11 +169,11 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     public void Validate_WhenNameIsNotRegistered_ReportsItsPath()
     {
         var reader = CreateReader();
-        var section = CreateSection(("tenant_issuer", "https://op.example"));
+        var section = CreateSection(("unregistered_setting", "https://op.example"));
 
         var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
-        Assert.Equal($"'{SectionPath}:tenant_issuer' is not a registered setting.", error);
+        Assert.Equal($"'{SectionPath}:unregistered_setting' is not a registered setting.", error);
     }
 
     [Fact]

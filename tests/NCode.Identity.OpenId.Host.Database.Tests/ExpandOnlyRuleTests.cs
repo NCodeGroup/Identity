@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Reflection;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Xunit;
@@ -10,7 +9,6 @@ namespace NCode.Identity.OpenId.Host.Database.Tests;
 
 public sealed class ExpandOnlyRuleTests
 {
-    private const string MigrationsNamespace = "NCode.Identity.OpenId.Host.Database.Migrations.";
     private const string Table = "Tenants";
     private const string Column = "IssuerHost";
     private const string ExpandReason = "Backfills a column the previous release does not read.";
@@ -770,52 +768,13 @@ public sealed class ExpandOnlyRuleTests
 
     #region Host Migration Tests
 
-    public static TheoryData<string> HostMigrations
-    {
-        get
-        {
-            var data = new TheoryData<string>();
-            foreach (var type in GetHostMigrationTypes())
-                data.Add(type.FullName![MigrationsNamespace.Length..]);
-            return data;
-        }
-    }
-
-    private static IEnumerable<Type> GetHostMigrationTypes() =>
-        typeof(HostDatabase)
-            .Assembly.GetTypes()
-            .Where(type =>
-                typeof(Migration).IsAssignableFrom(type)
-                && type is { IsAbstract: false }
-                && type.GetCustomAttribute<MigrationAttribute>() is not null
-            )
-            .OrderBy(type => type.FullName, StringComparer.Ordinal);
-
-    private static Migration CreateMigration(string migrationName)
-    {
-        var type = typeof(HostDatabase).Assembly.GetType(
-            MigrationsNamespace + migrationName,
-            throwOnError: true
-        )!;
-        var migration = (Migration)Activator.CreateInstance(type)!;
-        migration.ActiveProvider = "Npgsql.EntityFrameworkCore.PostgreSQL";
-        return migration;
-    }
-
-    [Fact]
-    public void HostMigrations_WhenEnumerated_FindsBothContexts()
-    {
-        var namespaces = GetHostMigrationTypes().Select(type => type.Namespace).Distinct().ToList();
-
-        Assert.Contains(MigrationsNamespace + "OpenId", namespaces);
-        Assert.Contains(MigrationsNamespace + "DataProtection", namespaces);
-    }
+    public static TheoryData<string> HostMigrations => HostMigrationCatalog.GetNames();
 
     [Theory]
     [MemberData(nameof(HostMigrations))]
     public void HostMigration_WhenChecked_KeepsThePreviousReleaseWorking(string migrationName)
     {
-        var migration = CreateMigration(migrationName);
+        var migration = HostMigrationCatalog.Create(migrationName);
 
         var violations = ExpandOnlyRule.Check(migration);
 

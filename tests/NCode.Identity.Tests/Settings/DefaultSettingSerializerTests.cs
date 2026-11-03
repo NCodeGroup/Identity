@@ -129,13 +129,13 @@ public class DefaultSettingSerializerTests : BaseTests
 
         var exception = Assert.Throws<JsonException>(() =>
             serializer.DeserializeSettings(
-                Parse("""{"a":"value","tenant_issuer":"x"}"""),
+                Parse("""{"a":"value","unregistered_setting":"x"}"""),
                 "client",
                 _jsonOptions
             )
         );
 
-        Assert.Contains("'tenant_issuer'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'unregistered_setting'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

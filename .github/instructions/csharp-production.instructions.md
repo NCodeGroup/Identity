@@ -781,26 +781,34 @@ than inlining the rationale.
   errors in CI** — template [Build](csharp.instructions.md#build) and
   [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
 - ✅ **An EF Core model change re-scaffolds its context's `InitialCreate`.** Until the first stable release
-  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each host context (`OpenIdDbContext` and
-  `DeveloperDataProtectionDbContext`) has one migration, `InitialCreate`, which creates its whole model and changes no
-  data. Any edit to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model
-  deletes that context's migration, designer file and model snapshot under
-  `NCode.Identity.OpenId.Host.Database/Migrations/<context>/` and scaffolds them again with
-  `dotnet ef migrations add InitialCreate --context <context> --output-dir Migrations/<context>`; no migration carries
-  raw SQL or seed-data changes. The Definition of Done runs `dotnet ef migrations has-pending-model-changes` for both
-  contexts and fails on un-migrated model drift, so it is caught pre-push and in CI, not at runtime. The dev database is
-  Postgres applied by the migration worker, so migrations are authoritative, and `build/dev-db-reset.ps1` resets a local
-  database that an earlier `InitialCreate` built. `dotnet ef migrations add` writes its files with a UTF-8 BOM; the
-  repository's files are BOM-less (`charset = utf-8`), so strip the BOM from every generated file. See
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each host context has one migration, `InitialCreate`,
+  which creates its whole model and changes no data: `OpenIdDbContext` in `Migrations/OpenId` and
+  `DeveloperDataProtectionDbContext` in `Migrations/DataProtection` of `NCode.Identity.OpenId.Host.Database`. Any edit
+  to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model deletes that
+  context's migration, designer file and model snapshot from its folder and scaffolds them again with
+  `dotnet ef migrations add InitialCreate --project src/NCode.Identity.OpenId.Host.Database --startup-project src/NCode.Identity.OpenId.Host.Database --context OpenIdDbContext --output-dir Migrations/OpenId`
+  (`--context DeveloperDataProtectionDbContext --output-dir Migrations/DataProtection` for the other context); the
+  database project carries the design-time factories, so it is both the project and the startup project. No migration
+  carries raw SQL or seed-data changes: `InitialCreateTests` fails a context that holds any migration but
+  `InitialCreate`, and a migration that changes data. The Definition of Done runs
+  `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
+  caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so
+  migrations are authoritative. A re-scaffold gives `InitialCreate` a fresh identifier, which the migration worker
+  cannot apply over a schema another identifier created; `build/dev-db-reset.ps1` resets the local database.
+  `dotnet ef migrations add` writes its files with a UTF-8 BOM; the repository's files are BOM-less
+  (`charset = utf-8`), so strip the BOM from every generated file. See
   [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md) and
   [ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md).
-- ✅ **A migration keeps the previous release working** — template
-  [Entity Framework Core](csharp.instructions.md#entity-framework-core). A foreign key that restricts deleting rows of
-  an existing table tightens it too. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous
-  release still reads every row they write, with the same meaning or a restriction this release applies too) or
-  `[ContractMigration("why")]` (it fails on, or loses, a value it reads). `ExpandOnlyRule.Check` judges every migration
-  in `ExpandOnlyRuleTests`, which fails any other migration in the Definition of Done. A deliberate contract step ships
-  a release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
+- ✅ **Every migration passes the expand-and-contract gate** — template
+  [Entity Framework Core](csharp.instructions.md#entity-framework-core). `ExpandOnlyRule.Check` judges every host
+  migration in `ExpandOnlyRuleTests`, which fails a contracting or unclassified migration in the Definition of Done.
+  Until the first stable release the gate judges the `InitialCreate` migrations, which pass it unmarked because every
+  constraint sits on a table they create. From the first stable release, when each context's `InitialCreate` becomes
+  the baseline, a model change adds a migration that keeps the previous release working: a foreign key that restricts
+  deleting rows of an existing table tightens it too; raw SQL and seed-data changes carry `[ExpandMigration("why")]`
+  (the previous release still reads every row they write, with the same meaning or a restriction this release applies
+  too) or `[ContractMigration("why")]` (it fails on, or loses, a value it reads); and a deliberate contract step ships a
+  release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
   `Migrations/`, which `.editorconfig` treats as generated code. See
   [ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
   [ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).

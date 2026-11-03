@@ -21,7 +21,18 @@
   [ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md),
   [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md),
   [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) decision 6 and
-  [ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md))
+  [ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md); and the records whose schema the
+  initial migration creates:
+  [ADR-1076](1076-consent-persistence-and-enforcement.md),
+  [ADR-1081](1081-granular-consent-and-authorized-applications.md),
+  [ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md),
+  [ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md),
+  [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md),
+  [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
+  [ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  [ADR-1234](1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md) and
+  [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md))
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
@@ -54,25 +65,37 @@ chain is that history kept in code.
 
 1. **Each host database context has one migration, `InitialCreate`, which creates its whole model.** It holds only
    schema operations: tables, columns, keys, indexes and foreign keys on the tables it creates. `ExpandOnlyRule.Check`
-   passes it with no marker, because every constraint sits on a table the same migration creates.
-2. **A model change re-scaffolds the context's `InitialCreate`.** The author deletes the context's migration and model
-   snapshot and runs `dotnet ef migrations add InitialCreate` for that context into its `Migrations/<context>` folder,
-   then strips the byte-order mark from the generated files. The scaffolder gives the migration a fresh timestamp
-   identifier on each re-scaffold. The model-drift gate (`dotnet ef migrations has-pending-model-changes`) checks that
+   passes it with no marker, because every constraint sits on a table the same migration creates. It creates every
+   table, column and index that an amended record names a migration of its own for. `InitialCreateTests` fails a
+   context that holds any migration but `InitialCreate`.
+2. **A model change re-scaffolds the context's `InitialCreate`.** The author deletes the context's migration, designer
+   file and model snapshot from its folder (`Migrations/OpenId` for `OpenIdDbContext`, `Migrations/DataProtection`
+   for `DeveloperDataProtectionDbContext`), runs `dotnet ef migrations add InitialCreate` with `--context` naming the
+   context, `--output-dir` naming that folder, and `--project` and `--startup-project` both naming
+   `src/NCode.Identity.OpenId.Host.Database`, which carries the design-time factories, then strips the byte-order mark
+   from the generated files. The scaffolder gives the migration a fresh timestamp identifier on each re-scaffold. The
+   model-drift gate (`dotnet ef migrations has-pending-model-changes`) checks that
    the model and the snapshot agree.
-3. **No migration rewrites stored data.** No migration carries `Sql`, `InsertData`, `UpdateData` or `DeleteData`.
-   Renaming, retiring, re-scoping or narrowing the domain of a setting edits its descriptor and writes no data
-   migration; a stored document that names an unregistered setting or holds a value outside its domain fails closed,
-   as [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) and
-   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md) decide. A
-   change to how a stored row is shaped or protected changes the model and the code that reads it, and nothing reads a
-   shape the serving code does not write.
-4. **The expand-and-contract machinery stays in force.** `ExpandOnlyRule`, `[ExpandMigration]`, `[ContractMigration]`
-   and `ExpandOnlyRuleTests` check every migration of both contexts, the `InitialCreate` migrations included, and the
-   host's README keeps the rule for every migration after the first stable release.
+3. **No migration rewrites stored data.** No migration carries `Sql`, `InsertData`, `UpdateData` or `DeleteData`, and
+   `InitialCreateTests` fails one that does. Renaming, retiring, re-scoping or narrowing the domain of a setting edits
+   its descriptor and writes no data migration; a stored document that names an unregistered setting or holds a value
+   outside its domain fails closed, as [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) and
+   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md) decide. A change
+   to how a stored row is shaped or protected changes the model and the code that reads it, and nothing reads a shape
+   the serving code does not write.
+4. **The expand-and-contract gate stays in force.** `ExpandOnlyRule`, `[ExpandMigration]`, `[ContractMigration]` and
+   `ExpandOnlyRuleTests` are the test that
+   [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md) decision 6
+   requires over every migration, and they judge both contexts' `InitialCreate` migrations, which pass unmarked. The
+   gate is build-time code in the host's unpacked database project: it reads the migrations that exist, and it adds no
+   member to a package's surface, no state to a stored row and no path to the server's runtime. The retired-setting
+   state that [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md)
+   removes is not: it is a member every `ISettingSerializer` implementation carries and a runtime path that reads
+   stored documents only development databases hold. The host's README states the expand-and-contract rule for the
+   migrations that follow the baseline.
 5. **The first stable release freezes the baseline.** At that release
    ([#535](https://github.com/NCodeGroup/Identity/issues/535)) each context's `InitialCreate` becomes the release
-   baseline. From then on every model change adds a migration under
+   baseline and `InitialCreateTests` retires. From then on every model change adds a migration under
    [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
    [ADR-1184](1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
    [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md), and
@@ -89,6 +112,10 @@ previous release the expand-first rule (decision 4) holds for every migration.
   and data rewrites forward for databases that do not exist, and each data rewrite is SQL that no gate checks.
 - **Squash the chain once, at the first stable release.** Rejected: every model change until then adds another step
   and another data rewrite to review, and the squash at the release has to be verified against all of them at once.
+- **Remove the expand-and-contract gate until the first stable release.** Rejected:
+  [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md) decision 6
+  requires the test over every migration, the gate judges the `InitialCreate` migrations that exist, and restoring it
+  at the release would put an unexercised gate into the first release.
 - **Apply the model with `EnsureCreated` until the first release.** Rejected: the migration worker, the chart's
   migration Job, `ExpandOnlyRule` and the model-drift gate all run on migrations, and switching to them at the release
   would put an unexercised path into the first release.
@@ -100,13 +127,14 @@ previous release the expand-first rule (decision 4) holds for every migration.
 
 - A change to the EF model touches the context's `InitialCreate`, its designer file and its model snapshot, and
   nothing else under `Migrations/`.
-- A re-scaffold changes the migration's identifier, so a development database built from an earlier `InitialCreate`
-  fails on its first `CREATE TABLE` when the migration worker applies the new one. `build/dev-db-reset.ps1` resets it,
-  and the next AppHost run creates the schema and seeds the development data.
+- A re-scaffold gives `InitialCreate` a fresh identifier, and the migration worker fails on the first `CREATE TABLE`
+  of a database whose schema another identifier created. `build/dev-db-reset.ps1` resets the local database, and the
+  next AppHost run creates the schema and seeds the development data.
 - A setting vocabulary change is a descriptor change: the closed vocabulary and the fail-closed read of a stored
   document stay, and no SQL accompanies the change.
-- Until the first stable release, the `[ExpandMigration]` and `[ContractMigration]` markers have no instance. The rule
-  and its synthetic tests keep them working for the first migration that follows the baseline.
+- Until the first stable release, no migration carries `[ExpandMigration]` or `[ContractMigration]`: the
+  `InitialCreate` migrations change no data and contract nothing. `ExpandOnlyRuleTests` exercises the markers on
+  synthetic migrations, and judges the real ones.
 - [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this record when it freezes the baseline.
 
 ## References
@@ -121,6 +149,7 @@ previous release the expand-first rule (decision 4) holds for every migration.
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md).
 - `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/`,
   `src/NCode.Identity.OpenId.Host.Database/Migrations/DataProtection/`,
-  `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs` and
-  `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs`.
+  `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
+  `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs` and
+  `tests/NCode.Identity.OpenId.Host.Database.Tests/InitialCreateTests.cs`.
 - [`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1).

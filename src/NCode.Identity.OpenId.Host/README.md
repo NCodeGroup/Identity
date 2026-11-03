@@ -128,30 +128,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
   chart, run the worker the same way, or apply a generated idempotent script
   (`dotnet ef migrations script --idempotent`).
 
-### Every migration keeps the previous release working
-
-The previous release keeps serving while the new schema is applied and until the rollout replaces its last pod, and a
-rollback returns to it. So every migration must work with the release before it — **expand, then contract**:
-
-- **Expand** in the release that needs the change: add a table, add a nullable column or one with a default, or add an
-  index. Never rename, drop, or tighten anything the previous release reads or writes. A unique index, a constraint or a
-  foreign key goes only on a table the same migration creates.
-- **Migrate the data** in code or in a later migration while both shapes are valid.
-- **Contract** only in a later release, once no running version uses the old shape: drop the old column or table, or
-  make the new column required.
-
-A rename is an add, a copy, and a later drop: three steps across at least two releases.
-
-The Definition of Done enforces the rule. `ExpandOnlyRuleTests` runs `ExpandOnlyRule.Check` over every migration and
-fails one that drops or renames a table or column; adds a required column without a default; makes a column required,
-removes the default of a required column, changes its type, or shortens it or its precision; adds a unique index,
-unique constraint, primary key, check constraint or foreign key to an existing table; or adds a foreign key that
-restricts deleting rows of an existing table. A migration that runs raw SQL or changes seed data says what that does to
-the previous release: `[ExpandMigration("why")]` when that release still reads every row it writes,
-`[ContractMigration("why")]` when it does not. A deliberate contract step carries `[ContractMigration("why")]`, whose
-reason names the release that stopped reading the old shape
-([ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
-[ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+### Each context has one `InitialCreate` until the first stable release
 
 Until the first stable release ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each context has one
 migration, `InitialCreate`, which creates its whole model and changes no data
@@ -169,10 +146,41 @@ dotnet ef migrations add InitialCreate `
   --output-dir Migrations/OpenId
 ```
 
-Strip the UTF-8 BOM the scaffolder writes from each generated file. Renaming, retiring or narrowing a setting edits its
-descriptor and needs no migration: a stored settings document that names an unregistered setting fails closed
+The Data Protection context scaffolds the same way with `--context DeveloperDataProtectionDbContext` and
+`--output-dir Migrations/DataProtection`. Strip the UTF-8 BOM the scaffolder writes from each generated file.
+`InitialCreateTests` fails a context that holds any migration but `InitialCreate`, and a migration that changes data.
+Renaming, retiring or narrowing a setting edits its descriptor and needs no migration: a stored settings document that
+names an unregistered setting fails closed
 ([ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md)).
-A local database that an earlier `InitialCreate` built is reset with `build/dev-db-reset.ps1` (below).
+A re-scaffold gives `InitialCreate` a fresh identifier, which the migration worker cannot apply over a schema another
+identifier created; `build/dev-db-reset.ps1` resets the local database (below).
+
+### From the first stable release, every migration keeps the previous release working
+
+At the first stable release each context's `InitialCreate` becomes the baseline, and every model change adds a
+migration. The previous release keeps serving while the new schema is applied and until the rollout replaces its last
+pod, and a rollback returns to it. So every migration must work with the release before it — **expand, then
+contract**:
+
+- **Expand** in the release that needs the change: add a table, add a nullable column or one with a default, or add an
+  index. Never rename, drop, or tighten anything the previous release reads or writes. A unique index, a constraint or a
+  foreign key goes only on a table the same migration creates.
+- **Migrate the data** in code or in a later migration while both shapes are valid.
+- **Contract** only in a later release, once no running version uses the old shape: drop the old column or table, or
+  make the new column required.
+
+A rename is an add, a copy, and a later drop: three steps across at least two releases.
+
+The Definition of Done enforces the rule. `ExpandOnlyRuleTests` runs `ExpandOnlyRule.Check` over every migration, the
+`InitialCreate` migrations included, and fails one that drops or renames a table or column; adds a required column
+without a default; makes a column required, removes the default of a required column, changes its type, or shortens it
+or its precision; adds a unique index, unique constraint, primary key, check constraint or foreign key to an existing
+table; or adds a foreign key that restricts deleting rows of an existing table. A migration that runs raw SQL or
+changes seed data says what that does to the previous release: `[ExpandMigration("why")]` when that release still reads
+every row it writes, `[ContractMigration("why")]` when it does not. A deliberate contract step carries
+`[ContractMigration("why")]`, whose reason names the release that stopped reading the old shape
+([ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
+[ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
 
 The Definition of Done fails if the model has changes no migration captures (`dotnet ef migrations
 has-pending-model-changes`, run for both contexts), so scaffold the migration before pushing.

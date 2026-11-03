@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): a consent denial
-  answers the parked authorization request with access_denied)
+  answers the parked authorization request with access_denied; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, which
+  creates the schema this record names)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 

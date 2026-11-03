@@ -157,5 +157,4 @@ API operation.
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/DefaultAuthorizationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Settings/DefaultClientSettingDescriptorDataSource.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/20261019163430_RegisterClientAuthenticationMethod.cs`.
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.

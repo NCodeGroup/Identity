@@ -66,9 +66,9 @@ settings update to accept it, would carry a design with no instance in every `IS
 
 - A setting vocabulary change touches the descriptor, the code that reads the setting, and nothing under the host's
   `Migrations/` folder.
-- A stored development document that still names a removed setting answers `409` from the management API and fails the
-  request that loads it, as any unregistered name does, until the developer resets the database or removes the key
-  through the management API.
+- A stored document that names an unregistered setting answers `409` from the management API and fails the request
+  that loads it. A settings write that replaces the document clears it, and `build/dev-db-reset.ps1` resets a local
+  database.
 - `ISettingSerializer` has one validation member, and a management update needs no stored document to validate.
 - [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this record when it decides how a released setting
   retires or is renamed.

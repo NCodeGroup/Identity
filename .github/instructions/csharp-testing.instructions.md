@@ -160,7 +160,8 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   the retrieval runs on its own token and its own copy (`DefaultClientCertificateRevocationCheckerTests`).
 - 👁 **Test a migration rule with synthetic migrations.** Private sealed `Migration` subclasses in the test file,
   carrying the markers under test, exercise `ExpandOnlyRule.Check` without a database; a theory over the host's real
-  migrations proves that each one is classified (`ExpandOnlyRuleTests`).
+  migrations proves that each one is classified (`ExpandOnlyRuleTests`), and `InitialCreateTests` reads the same
+  migrations through `HostMigrationCatalog`.
 
 ## Persistence & integration tests
 

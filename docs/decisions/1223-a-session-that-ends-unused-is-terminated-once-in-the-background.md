@@ -8,7 +8,8 @@
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a replica materializes its
   server when it starts, so a pass runs from then, or from the first request when the store cannot be read at start;
   [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md): the pass
-  selects only grants whose expiration has passed, so a grant without one is not selected)
+  selects only grants whose expiration has passed, so a grant without one is not selected, and it logs and skips a
+  session it cannot terminate, so the tenant's other sessions are terminated)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

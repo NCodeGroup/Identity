@@ -15,8 +15,7 @@
 
 The family is greenfield and pre-release
 ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)): no released package, deployed database or consumer
-holds a stored record. Every record a store holds is one that the serving code wrote, or one in a development database
-that a reset discards.
+holds a stored record. Every record a store holds is one that the serving code wrote.
 
 A reader that accepts a record lacking what the serving code writes gives that record a meaning the serving code never
 gives it:
@@ -56,17 +55,21 @@ gives it:
    required and not nullable, like the other members the serving code always writes (`AuthTime`, `ClientIds`,
    `LastActivityWhen`). A stored session that lacks one does not deserialize, so it is never served as a valid session.
    A session grant is always stored with an expiration; one without it is malformed, and a request that reads it
-   throws an `InvalidOperationException` rather than serving it. A session ends at `AbsoluteExpiresWhen`, when its
-   grant's expiry has passed, or when its idle window has lapsed, and a touch changes only `LastActivityWhen` and the
-   grant's expiry.
+   throws an `InvalidOperationException` rather than serving it; the background pass skips it (decision 4). A session
+   ends at `AbsoluteExpiresWhen`, when its grant's expiry has passed, or when its idle window has lapsed, and a touch
+   changes only `LastActivityWhen` and the grant's expiry.
 4. **The ended-session pass selects grants whose expiry has passed.**
    `IGrantStore.GetUnrevokedExpiredPageAsync` selects the grants of the type that are not revoked and whose expiration
    is at or before `expiredAt`, of a tenant that is not disabled. A grant without an expiration has not expired, and
-   the pass does not select it; a session grant without one is malformed (decision 3).
-5. **Until the first stable release, a stored shape changes in place.** A grant payload's members are added (required
+   the pass does not select it; a session grant without one is malformed (decision 3). The pass terminates each
+   selected session on its own: a session that it cannot terminate, such as a malformed one, is logged with its
+   identifier as `EndedSessionTerminationFailedForSession` (event 2070, Warning) and skipped, so the tenant's other
+   ended sessions are terminated. `EndedSessionTerminationFailedForTenant` covers only a tenant whose context cannot be
+   created.
+5. **Until the first stable release, a stored payload has one shape.** A grant payload's members are added (required
    when the serving code always writes them), renamed, retyped or removed at the payload's current schema version,
-   with no `[PersistedPayloadVersion]` bump, no upcaster and no reader for the earlier shape. A development database
-   that holds the earlier shape is reset. From the first stable release, the additive-only contract of ADR-1113 and
+   with no `[PersistedPayloadVersion]` bump and no upcaster. A stored record that lacks what the serving code writes is
+   malformed and fails closed (decision 1). From the first stable release, the additive-only contract of ADR-1113 and
    the version-and-upcaster step govern every change to the released shape, and
    [#535](https://github.com/NCodeGroup/Identity/issues/535) retires this decision then.
 
@@ -93,6 +96,11 @@ gives it:
   ([ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md)).
 - The background pass does not select a session grant without an expiration; the server adds every session grant with
   a lifetime, so the pass reaches every session the server creates.
+- The background pass skips a malformed session where a request fails closed. A request has a caller that the failure
+  reaches, and serving the record instead would admit it; the pass has no caller, and stopping at one malformed session
+  would leave every later ended session, and the tokens issued under it, active at every pass. The pass logs the
+  skipped session with its tenant and identifier at each pass until the record is removed, and it never serves or
+  reinterprets the record.
 - Before the first stable release, a change to a payload's shape is one edit of its type, with no upcaster, no version
   bump and no compatibility test. The rule in
   [`csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md) states both
@@ -112,4 +120,5 @@ gives it:
 - [`DefaultPersistedPayloadSerializer`](../../src/NCode.Identity.OpenId.Authentication/Persistence/DefaultPersistedPayloadSerializer.cs)
 - [`SessionGrant`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Sessions/SessionGrant.cs)
 - [`DefaultSessionService`](../../src/NCode.Identity.OpenId.Authentication/Sessions/DefaultSessionService.cs)
+- [`EndedSessionTerminationService`](../../src/NCode.Identity.OpenId.Authentication/Sessions/EndedSessionTerminationService.cs)
 - [`GrantStore`](../../src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/GrantStore.cs)

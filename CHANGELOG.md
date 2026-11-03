@@ -4143,15 +4143,18 @@ describes the family as it is rather than its changes
   `OpenId:EndedSessionTermination:Interval` (one minute by default) revokes the grants issued under each session that
   ended unused, sends back-channel logout to its relying parties (`idle_timeout` or `absolute_expiry`), and audits the
   termination, once: a request and the pass that find the same ended session terminate it once. The claim revokes the
-  grants issued under the session in one unit of work, so a failure after it leaves no token of the session active. The
-  grant prune keeps a session until it is terminated and removes it one retention after.
+  grants issued under the session in one unit of work, so a failure after it leaves no token of the session active. A
+  session the pass cannot terminate, such as a malformed one, is logged with its tenant and identifier and skipped, so
+  the tenant's other ended sessions are terminated; a request that reads a malformed session fails closed. The grant
+  prune keeps a session until it is terminated and removes it one retention after.
   `IPersistedGrantService.SetRevokedOnceAsync` returns `bool`, `IGrantStore.RemoveEndedBeforeAsync` takes the grant
   types that end by revocation, and `IGrantStore.GetUnrevokedExpiredPageAsync`,
   `IPersistedGrantService.RevokeSessionOnceAsync`, `ISessionService.TerminateIfEndedAsync`,
   `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedServerAccessor` serve the pass, which the grants
   table's index on grant type, revocation and expiry supports
-  ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md), issue
-  [#281](https://github.com/NCodeGroup/Identity/issues/281)).
+  ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
+  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  issue [#281](https://github.com/NCodeGroup/Identity/issues/281)).
 
 - **Logout revokes only the terminating session's grants**, so signing out of one login leaves the subject's other
   sessions intact (issue [#55](https://github.com/NCodeGroup/Identity/issues/55),

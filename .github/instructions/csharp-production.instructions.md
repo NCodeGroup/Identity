@@ -164,9 +164,9 @@ than inlining the rationale.
   `[JsonExtensionData]` bag above so a read-modify-write never drops a member it does not model. Payload members never
   begin with `$` (reserved for the envelope). **Until the first stable release**
   ([#535](https://github.com/NCodeGroup/Identity/issues/535)) a payload's shape changes in place at its current
-  version: a member the serving code always writes is `required`, and a member is added, renamed, removed or retyped
-  with no version bump, no upcaster and no reader for the earlier shape; a development store that holds the earlier
-  shape is reset
+  version: a stored payload has one shape, a member the serving code always writes is `required`, and a member is
+  added, renamed, removed or retyped with no version bump and no upcaster; a stored record that lacks what the serving
+  code writes is malformed and fails closed
   ([ADR-1395](../../docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
   **From the first stable release** the released shape evolves additively: a new member is optional (nullable or
   defaulted), never `required` (`System.Text.Json` enforces `required` on read, breaking every stored row); a member is

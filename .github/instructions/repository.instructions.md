@@ -5,6 +5,35 @@ applyTo: "**"
 
 # NCode.Identity — repository instructions
 
+## Standing direction from the project owner
+
+The project owner's words, which hold until the first stable release
+([#535](https://github.com/NCodeGroup/Identity/issues/535) retires them then):
+
+> I want the best option long term that is cohesive and comprehensive, irrelevant of how difficult it would be to
+> refactor now to accomplish that. This entire project is greenfield: it is in active development, nothing is shipped,
+> breaking changes are allowed and must not be tracked (no temporal content).
+
+This is a settled decision, not a question. Apply it without asking, and never re-argue it:
+
+- **Choose the comprehensive design.** When the options are a minimal fix and the cohesive, comprehensive model, take
+  the model. The size of the refactor, the number of files it touches, public API churn, renames and moved types are
+  never reasons to settle for less. Decline a review finding only when it is wrong on the merits, never because the
+  right fix is too much work. A partial fix is unfinished work, not a resting point.
+- **Nothing is shipped, so there is nothing to keep compatible.** There are no released packages, deployed data,
+  issued tokens or consumers to keep working. Never add or keep a compatibility shim, a reader for an older format, a
+  transition path, "keeps working until it is rotated" behavior, or a rolling-deploy, rollback, upgrade or migration
+  note for anything that has only existed in this repository.
+- **Breaking changes are allowed and never tracked.** Every text describes the product as it is, never how it
+  differs from an earlier state. That covers code, comments, docs, the changelog, decision records, test names,
+  commit messages and pull requests. How:
+  [The product is described as it is](#the-product-is-described-as-it-is--changes-are-not-tracked).
+- **It binds everything an agent writes and everything it delegates.** It applies to the prompts and instructions an
+  agent gives subagents, workflows and other sessions, so never instruct one to preserve compatibility or document an
+  upgrade. A review bot's finding that asks for a breaking-change label, a compatibility note or a migration path is
+  answered by citing this section. Where another instruction file, a template rule or a prompt says otherwise, this
+  section wins.
+
 ## Design posture (greenfield, pre-release)
 
 This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to
@@ -14,6 +43,33 @@ comprehensive, correct model, choose the comprehensive model **without** weighin
 breakage — PublicAPI churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected
 and preferred over shims. Surface a fork for the user to decide **only** when the options are genuinely equal in quality
 (a real value/security/semantics trade-off), not when one is merely more work.
+
+### The product is described as it is — changes are not tracked
+
+Breaking changes are allowed and **never tracked**
+([ADR-1393](../../docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)).
+Every text a change writes — a `CHANGELOG.md` entry, a document, a code comment, an XML doc, a decision record's text,
+a test name, a commit message, a pull request's title and description — describes the product **as it is**: what a
+package, type, setting, endpoint or behavior is and does, never how it differs from an earlier unreleased state.
+
+- **No delta phrasing.** No `**Breaking:**` label; no "now", "new"/"newly" set against an earlier state, "no longer",
+  "previously", "used to", "replaces"/"is replaced by", "instead of the old", "renamed", "moved", "migrated", "before
+  this change" or "after this change"; no name of a removed or renamed member; no upgrade, migration, rollback,
+  compatibility or "keeps working until" note. The product's own mechanisms keep their words: an EF Core migration, a
+  key that rotation replaces and a new session are behavior, described as such.
+- **Fixes are not tracked.** A fix to unreleased behavior records nothing about what was wrong; the behavior it
+  establishes is described as a capability or a protection, and needs no text when the text already describes it.
+- **The changelog is a catalog.** Until the first stable release, `## [Unreleased]` in
+  [`CHANGELOG.md`](../../CHANGELOG.md) is a present-tense catalog of what the family does, under `### Added`
+  (capabilities) and `### Security` (security posture and protections) only. A change edits it in place to match the
+  code: it adds an entry, rewrites the entry whose capability it reshapes, and deletes the entry whose capability it
+  removes. This overrides the template's `### Changed`, `### Deprecated`, `### Removed` and `### Fixed` groups and its
+  `**Breaking:**` label.
+- **No breaking marker.** Commit subjects and pull request titles never carry the conventional-commit `!` marker
+  (`feat:`, never `feat!:`), and no commit message or pull request description carries a `BREAKING CHANGE:` footer.
+- **Decision records relate through their metadata.** A record's `Status`, `Amends`, `Supersedes`, `Refines` and
+  `Conflicts with` lines are the decision-record mechanism, not change tracking; its Context states its forces in the
+  present tense.
 
 ### Extensibility is the goal — nothing closed by default
 

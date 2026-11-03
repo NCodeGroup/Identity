@@ -35,18 +35,40 @@ internal partial class JoseSerializer(
     /// <param name="isSensitive">Indicates whether the buffer should be pinned during it's lifetime and securely zeroed when returned.</param>
     /// <param name="bytes">When this method returns, contains the buffer with the decoded data.</param>
     /// <returns>An <see cref="IDisposable"/> that manages the lifetime of the lease.</returns>
+    /// <exception cref="JoseException"><paramref name="chars"/> is not valid base64url.</exception>
     public static IDisposable DecodeBase64Url(
         ReadOnlySpan<char> chars,
         bool isSensitive,
         out Span<byte> bytes
     )
     {
-        var byteCount = Base64Url.GetByteCountForDecode(chars.Length);
+        int byteCount;
+        try
+        {
+            byteCount = Base64Url.GetByteCountForDecode(chars.Length);
+        }
+        catch (FormatException exception)
+        {
+            throw InvalidBase64Url(exception);
+        }
+
         var lease = BufferFactory.Rent(byteCount, isSensitive, out bytes);
         try
         {
-            var decodeResult = Base64Url.TryDecode(chars, bytes, out var bytesWritten);
-            Debug.Assert(decodeResult && bytesWritten == byteCount);
+            // The data is read from a token, so data that does not decode whole is refused, never read from a buffer
+            // the decoder wrote only in part.
+            if (
+                !Base64Url.TryDecode(chars, bytes, out var bytesWritten)
+                || bytesWritten != byteCount
+            )
+            {
+                throw InvalidBase64Url();
+            }
+        }
+        catch (FormatException exception)
+        {
+            lease.Dispose();
+            throw InvalidBase64Url(exception);
         }
         catch
         {
@@ -56,6 +78,32 @@ internal partial class JoseSerializer(
 
         return lease;
     }
+
+    /// <summary>
+    /// Decodes binary data from Base64Url encoding into the specified buffer writer.
+    /// </summary>
+    /// <param name="chars">The base64url data to decode.</param>
+    /// <param name="writer">The buffer writer that receives the decoded data.</param>
+    /// <exception cref="JoseException"><paramref name="chars"/> is not valid base64url.</exception>
+    internal static void DecodeBase64Url(ReadOnlySpan<char> chars, IBufferWriter<byte> writer)
+    {
+        try
+        {
+            Base64Url.Decode(chars, writer);
+        }
+        catch (FormatException exception)
+        {
+            throw InvalidBase64Url(exception);
+        }
+    }
+
+    private const string InvalidBase64UrlMessage =
+        "The JOSE token contains a segment that is not valid base64url.";
+
+    private static JoseException InvalidBase64Url() => new(InvalidBase64UrlMessage);
+
+    private static JoseException InvalidBase64Url(FormatException exception) =>
+        new(InvalidBase64UrlMessage, exception);
 
     private JoseSerializerOptions JoseSerializerOptions { get; } = optionsAccessor.Value;
 

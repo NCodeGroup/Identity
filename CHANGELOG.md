@@ -515,16 +515,29 @@ describes the family as it is rather than its changes
   `IAlgorithmCollection` returns a registered signature or key-management algorithm with the use it implies.
   `TryResolveKeyGeneration` resolves a `KeyGenerationDeclaration` (CLR type, optional size, optional curve, use and
   algorithm) into a `ResolvedKeyGeneration`: for a key type on curves the key is generated on the named curve, which the
-  algorithm must accept, or on the first curve it accepts that has the requested size, and its size is its curve's; a
-  curve named for a key type the algorithm binds to no curve is refused. Tenant key provisioning and management secret
-  creation share it, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for
-  `ECDH-ES`, are generated on the right curve. `ValidateKeyAlgorithm` checks a declared key itself: a
-  `KeyAlgorithmDeclaration` carries the key, whose type, size and curve the algorithm checks with `IsKeyCompatible`.
-  `ValidateKeySize` checks a held key of a type without curves, such as a stored symmetric key, by a
-  `KeySizeDeclaration` of its type and size, and refuses an algorithm that binds the type to curves
-  ([#327](https://github.com/NCodeGroup/Identity/issues/327), [#337](https://github.com/NCodeGroup/Identity/issues/337),
+  algorithm must accept, or on the one curve it accepts that has the requested size (`AlgorithmKeyType.GetCurves`), or
+  on its first curve when neither is given; a size that two of the algorithm's curves have, such as P-256 and a
+  contributed Brainpool curve for `ECDH-ES`, is refused with the curves that have it, and a curve named for a key type
+  the algorithm binds to no curve is refused. Tenant key provisioning and management secret creation share it, so
+  `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`, are generated on
+  the right curve. `ValidateKeyAlgorithm` checks a declared key itself: a `KeyAlgorithmDeclaration` carries the key,
+  whose type, size and curve the algorithm checks with `IsKeyCompatible`. `ValidateKeySize` checks a held symmetric
+  key, whose material is not at hand, by a `KeySizeDeclaration` of its type and size, and refuses an asymmetric key
+  type, which is checked by its stored public half ([#327](https://github.com/NCodeGroup/Identity/issues/327),
+  [#337](https://github.com/NCodeGroup/Identity/issues/337), [#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+
+- **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
+  and `AKP` secret key types refuse generation parameters that name a curve, or an ML-DSA parameter set, whose keys
+  are not the requested `SecretKeyGenerationParameters.KeySizeBits`, such as P-256 at 384 bits or Ed25519 at 456 bits.
+  An `ecc` key requested without a curve is generated on the one curve of the elliptic-curve catalog whose keys are
+  that size (`IEccCurveCatalog.GetByCurveSizeBits`) and refused, with the curves named, when several catalog curves
+  share it, as P-256 and secp256k1 do with `AddSecp256k1()`; an `okp` key is generated only on a named curve.
+  Management secret creation, tenant key provisioning and every other caller of the key types meet the same checks
+  ([#534](https://github.com/NCodeGroup/Identity/issues/534),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar
   and group arithmetic and the Ed25519 and Ed448 signing and verification of `NCode.Identity.Jose.EdDsa` with
@@ -728,18 +741,22 @@ describes the family as it is rather than its changes
   optional `KeySizeBits`, an optional `SecretType` that selects which of the algorithm's key types the key is generated
   as, and an optional `Curve` that selects which of the algorithm's curves it is generated on, such as a contributed
   curve that shares P-256's size for `ECDH-ES`. Unset, the type is the algorithm's first key type that has a registered
-  secret key type and can be provisioned, and the curve is the first the algorithm accepts that has the configured
-  size, or the algorithm's first curve; a secret type or curve the algorithm does not accept is reported with the ones
-  it does. Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies
-  a configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored
-  key whose public half is missing or unreadable does not suppress generation.
+  asymmetric secret key type and accepts the configured curve and size, and that key type reports a configuration it
+  refuses; the curve is the one the algorithm accepts that has the configured size, or the algorithm's first curve. A
+  size that two of the algorithm's curves have is reported until `Curve` names one, a curve configured with another
+  size is reported, a secret type the algorithm does not accept is reported with the ones it does, and a curve or size
+  none of the algorithm's key types accepts is reported with the curves and sizes each of them accepts.
+  Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies a
+  configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored key
+  whose public half is missing or unreadable does not suppress generation.
   `OpenId:Tenant:KeyProvisioning:Enabled=false` turns provisioning off for a deployment that brings its own keys. A key
   the tenant already holds — imported or generated — suppresses generation and is never overwritten, rotated, or
   removed, and a key the tenant cannot unprotect fails the tenant with a message naming the tenant and the master key or
   root key to restore, rather than being regenerated
   ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [#327](https://github.com/NCodeGroup/Identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [#327](https://github.com/NCodeGroup/Identity/issues/327), [#534](https://github.com/NCodeGroup/Identity/issues/534),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto the server's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -3537,11 +3554,14 @@ describes the family as it is rather than its changes
   X25519 key for `EdDSA`, a P-256 key for `ES256K` or a secp256k1 key for `ES256`, the signing and agreement confusion
   RFC 8037 §3.1 and §3.2 forbid. A curve's kind keeps the `OKP` curves apart: an X25519 or X448 key is never accepted
   for `EdDSA`, `Ed25519` or `Ed448`, and an Ed25519 or Ed448 key never for `ECDH-ES`. A key to generate is resolved onto
-  one of its algorithm's curves, so no path checks a curve-bound algorithm by type and size alone. A JWE decryption key
+  one of its algorithm's curves, so no path checks a curve-bound algorithm by type and size alone, and a held
+  asymmetric key is checked by its stored public half, never by its type and size. A JWE decryption key
   on a curve the algorithm refuses is reported as the caller's configuration error rather than as a failed
   authentication tag ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [#336](https://github.com/NCodeGroup/Identity/issues/336), [#337](https://github.com/NCodeGroup/Identity/issues/337),
+  [#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
   [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 
 - **ECDH-ES publishes only the public half of its ephemeral key and refuses a degenerate agreement.** The `ECDH-ES`
@@ -3558,6 +3578,14 @@ describes the family as it is rather than its changes
   `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
   ([ADR-1296](docs/decisions/1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
   [#380](https://github.com/NCodeGroup/Identity/issues/380)).
+
+- **A JOSE token's encoded members are decoded whole or refused.** Every base64url segment of a JWS or JWE, the
+  `PBES2` salt input (`p2s`), the AES-GCM key wrap's `iv` and `tag`, and the `x5t` and `x5t#S256` certificate
+  thumbprints a JWT names are read only when they decode whole to the size they must have. A value that is not
+  base64url or has another size fails with `JoseException`, or `JwtValidationException` for a thumbprint, before any
+  key is derived from it or compared with it, and `PBES2` refuses an iteration count (`p2c`) outside its bounds and an
+  encrypted key that is not a whole AES key wrap before it derives a key encryption key
+  ([#541](https://github.com/NCodeGroup/Identity/issues/541)).
 
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed
   before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release

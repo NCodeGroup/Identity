@@ -172,17 +172,14 @@ public sealed class AlgorithmKeyType
     }
 
     /// <summary>
-    /// Gets the first of <see cref="Curves"/> whose keys have the specified size, the curve a key of that size is
-    /// generated on for the algorithm when no curve is named.
+    /// Gets those of <see cref="Curves"/> whose keys have the specified size, in the algorithm's order of preference. A
+    /// size identifies a curve only when exactly one curve has it: two curves can share a size, as P-256 and a Brainpool
+    /// curve do for <c>ECDH-ES</c> when a package contributes one.
     /// </summary>
     /// <param name="keySizeBits">The size, in bits, of the key.</param>
-    /// <param name="curve">When this method returns <c>true</c>, the curve.</param>
-    /// <returns><c>true</c> when one of <see cref="Curves"/> has keys of the size; otherwise, <c>false</c>.</returns>
-    public bool TryGetCurve(int keySizeBits, [NotNullWhen(true)] out AlgorithmCurve? curve)
-    {
-        curve = Curves.FirstOrDefault(candidate => candidate.KeySizeBits == keySizeBits);
-        return curve is not null;
-    }
+    /// <returns>The curves whose keys have the size, or an empty list when none does.</returns>
+    public IReadOnlyList<AlgorithmCurve> GetCurves(int keySizeBits) =>
+        [.. Curves.Where(candidate => candidate.KeySizeBits == keySizeBits)];
 
     /// <summary>
     /// Gets the one of <see cref="Curves"/> with the specified <c>JWK</c> <c>crv</c> name.

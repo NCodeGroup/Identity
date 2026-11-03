@@ -1,6 +1,9 @@
 # 1392. ES256K is an opt-in package that registers a curve and an ECDSA algorithm as data
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md): the `ecc` key type selects a
+  curve by size only when it is the one catalog curve of that size, so with secp256k1 registered a 256-bit `ecc`
+  key names its curve)
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), the construction

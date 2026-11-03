@@ -237,4 +237,41 @@ public class AesGcmKeyManagementAlgorithmTests : BaseTests
             exception.Message
         );
     }
+
+    // A length no base64url value has, which a decoder refuses before it decodes.
+    [Fact]
+    public void ValidateHeaderForUnwrap_WhenIvHasAnImpossibleLength_Throws()
+    {
+        var iv = new byte[96 >> 3];
+        var tag = new byte[128 >> 3];
+        var header = new JsonObject { ["iv"] = new string('A', 17) };
+
+        var headerForUnwrap = header.Deserialize<JsonElement>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
+
+        Assert.Equal("The 'iv' field in the JWT header has an invalid size.", exception.Message);
+    }
+
+    [Fact]
+    public void ValidateHeaderForUnwrap_WhenTagHasAnImpossibleLength_Throws()
+    {
+        var iv = new byte[96 >> 3];
+        var tag = new byte[128 >> 3];
+        var header = new JsonObject
+        {
+            ["iv"] = Base64Url.Encode(iv),
+            ["tag"] = new string('A', 21),
+        };
+
+        var headerForUnwrap = header.Deserialize<JsonElement>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            AesGcmKeyManagementAlgorithm.ValidateHeaderForUnwrap(headerForUnwrap, iv, tag)
+        );
+
+        Assert.Equal("The 'tag' field in the JWT header has an invalid size.", exception.Message);
+    }
 }

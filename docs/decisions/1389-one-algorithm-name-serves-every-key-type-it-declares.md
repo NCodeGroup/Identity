@@ -1,6 +1,9 @@
 # 1389. One algorithm name serves every key type it declares
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md): a size selects a curve only when
+  no other curve of the algorithm shares it, a key type refuses a curve requested with another size, a tenant key's
+  type is the first that accepts its configuration, and only a symmetric key is checked by its type and size)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md), the shape of the

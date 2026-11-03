@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -91,7 +93,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenEccWithKnownCurve_ReturnsNull()
     {
-        Assert.Null(CreateError(CreateRequest("ecc", 0, curve: "P-384")));
+        Assert.Null(CreateError(CreateRequest("ecc", 384, curve: "P-384")));
     }
 
     [Fact]
@@ -135,6 +137,114 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.Null(CreateError(CreateRequest("ecc", 256, algorithm: BrainpoolAlgorithm)));
     }
 
+    // See ADR-1398: a curve fixes the size of its keys, so a request that names a curve and another size is refused,
+    // with or without an algorithm.
+    [Theory]
+    [InlineData(0, null, "P-384", 384)]
+    [InlineData(256, null, "P-384", 384)]
+    [InlineData(384, "ECDH-ES", "P-256", 256)]
+    [InlineData(384, BrainpoolAlgorithm, "brainpoolP256r1", 256)]
+    public void ValidateCreate_WhenTheCurvesSizeIsNotTheRequestedSize_Returns400(
+        int keySizeBits,
+        string? algorithm,
+        string curve,
+        int curveSizeBits
+    )
+    {
+        var error = CreateError(
+            CreateRequest("ecc", keySizeBits, algorithm: algorithm, curve: curve)
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            $"The ECC key size '{keySizeBits}' bits is invalid for the curve '{curve}', whose keys are "
+                + $"{curveSizeBits} bits.",
+            error.Detail
+        );
+    }
+
+    // Gives the ECDH-ES algorithms a Brainpool curve beside the core's NIST curves, so two of their curves share the
+    // 256-bit size; validation never performs an agreement.
+    private sealed class BrainpoolAgreementStub : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(
+                typeof(EccSecretKey),
+                [new AlgorithmCurve(Brainpool256.CurveName, Brainpool256.CurveSizeBits)]
+            );
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    private static ServiceProvider BuildBrainpoolEcdhServiceProvider()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddPersistenceLibrary();
+        secrets.AddJoseLibrary();
+        serviceCollection.AddSingleton(Brainpool256);
+        serviceCollection.AddSingleton<IEcdhKeyAgreement, BrainpoolAgreementStub>();
+        return serviceCollection.BuildServiceProvider();
+    }
+
+    private static DefaultSecretValidator CreateValidator(IServiceProvider serviceProvider) =>
+        new(
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            serviceProvider.GetRequiredService<ISecretSerializer>()
+        );
+
+    // See ADR-1398: P-256 and brainpoolP256r1 are both 256 bits, so the size selects neither.
+    [Fact]
+    public async Task ValidateCreate_WhenTwoOfTheAlgorithmsCurvesHaveTheRequestedSize_Returns400()
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var error = CreateValidator(serviceProvider)
+            .ValidateCreate(CreateRequest("ecc", 256, algorithm: "ECDH-ES"))
+            .Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The key size '256' bits does not select a curve for algorithm 'ECDH-ES', which accepts 'P-256', "
+                + "'brainpoolP256r1' at that size; name the curve.",
+            error.Detail
+        );
+    }
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("brainpoolP256r1")]
+    public async Task ValidateCreate_WhenTheCurveSelectsAmongCurvesOfOneSize_GeneratesOnIt(
+        string curve
+    )
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var validation = CreateValidator(serviceProvider)
+            .ValidateCreate(CreateRequest("ecc", 256, algorithm: "ECDH-ES", curve: curve));
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(curve, validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
     #endregion
 
     #region GenerationParameters Tests
@@ -172,7 +282,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("ecc", 256, null, null)]
+    [InlineData("ecc", 384, null, null)]
     [InlineData("ecc", 384, null, "P-384")]
     [InlineData("rsa", 2048, "RS256", null)]
     public void ValidateCreate_WhenNoAlgorithmCurveApplies_GeneratesWithTheRequestsParameters(
@@ -208,7 +318,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Theory]
     [InlineData("symmetric", 256)]
     [InlineData("rsa", 2048)]
-    [InlineData("ecc", 256)]
+    [InlineData("ecc", 384)]
     public void ValidateCreate_WhenKnownSecretTypeAndNoUseOrAlgorithm_ReturnsNull(
         string secretType,
         int keySizeBits
@@ -285,7 +395,6 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData(256)]
     [InlineData(384)]
     [InlineData(521)]
     public void ValidateCreate_WhenEccKeySizeValid_ReturnsNull(int keySizeBits)
@@ -293,6 +402,36 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         var error = CreateError(CreateRequest("ecc", keySizeBits));
 
         Assert.Null(error);
+    }
+
+    // See ADR-1398: a request without an algorithm reaches the key type alone, whose catalog holds P-256 and
+    // brainpoolP256r1 at 256 bits, so the size selects neither.
+    [Fact]
+    public void ValidateCreate_WhenTwoCatalogCurvesHaveTheRequestedSizeAndNoAlgorithm_Returns400()
+    {
+        var error = CreateError(CreateRequest("ecc", 256));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'brainpoolP256r1' have that size, so name "
+                + "the curve.",
+            error.Detail
+        );
+    }
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("brainpoolP256r1")]
+    public void ValidateCreate_WhenTheCurveSelectsAmongCatalogCurvesOfOneSizeAndNoAlgorithm_GeneratesOnIt(
+        string curve
+    )
+    {
+        var validation = Validator.ValidateCreate(CreateRequest("ecc", 256, curve: curve));
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(curve, validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
     }
 
     #endregion

@@ -79,23 +79,13 @@ internal static class DefaultValidationKeyResolver
             var expectedSha1 = hasThumbprintSha1 ? stackalloc byte[sha1HashSize] : default;
             if (hasThumbprintSha1)
             {
-                var result = Base64Url.TryDecode(
-                    thumbprintSha1,
-                    expectedSha1,
-                    out var bytesWritten
-                );
-                Debug.Assert(result && bytesWritten == sha1HashSize);
+                DecodeThumbprint(JoseClaimNames.Header.X5t, thumbprintSha1, expectedSha1);
             }
 
             var expectedSha256 = hasThumbprintSha256 ? stackalloc byte[sha256HashSize] : default;
             if (hasThumbprintSha256)
             {
-                var result = Base64Url.TryDecode(
-                    thumbprintSha256,
-                    expectedSha256,
-                    out var bytesWritten
-                );
-                Debug.Assert(result && bytesWritten == sha256HashSize);
+                DecodeThumbprint(JoseClaimNames.Header.X5tS256, thumbprintSha256, expectedSha256);
             }
 
             Span<byte> actualHash = stackalloc byte[sha256HashSize];
@@ -152,6 +142,35 @@ internal static class DefaultValidationKeyResolver
             (key.Metadata.Use is null || key.Metadata.Use == use)
             && (key.Metadata.Algorithm is null || key.Metadata.Algorithm == algorithm)
         );
+    }
+
+    // A thumbprint is read from the token's header, so one that does not decode to exactly its digest's size refuses the
+    // token, and no certificate is compared with a digest the decoder wrote only in part.
+    private static void DecodeThumbprint(string name, string? encoded, Span<byte> digest)
+    {
+        bool decoded;
+        var bytesWritten = 0;
+        try
+        {
+            decoded =
+                encoded is not null
+                && encoded.Length == Base64Url.GetCharCountForEncode(digest.Length)
+                && Base64Url.TryDecode(encoded, digest, out bytesWritten);
+        }
+        catch (FormatException exception)
+        {
+            throw new JwtValidationException(
+                $"The '{name}' header is not a base64url-encoded certificate thumbprint.",
+                exception
+            );
+        }
+
+        if (!decoded || bytesWritten != digest.Length)
+        {
+            throw new JwtValidationException(
+                $"The '{name}' header is not a base64url-encoded certificate thumbprint."
+            );
+        }
     }
 
     private static bool VerifyCertificateHash(

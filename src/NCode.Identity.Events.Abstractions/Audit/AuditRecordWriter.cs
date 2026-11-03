@@ -22,7 +22,7 @@ namespace NCode.Identity.Events.Audit;
 public static class AuditRecordWriter
 {
     /// <summary>
-    /// The version of the audit record's schema. A field added to the record bumps the minor version.
+    /// The version of the audit record's schema. A field added to a released schema bumps the minor version.
     /// </summary>
     public const string SchemaVersion = "1.0";
 

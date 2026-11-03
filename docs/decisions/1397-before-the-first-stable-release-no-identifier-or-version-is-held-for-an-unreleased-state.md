@@ -17,20 +17,19 @@ ID, so a shipped event ID is never renumbered or reused
 ([`csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md)).
 
 The family is greenfield and pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)): no audit
-record and no log line has reached a consumer of a release. Several records still count states that only the
-repository held:
+record and no log line has reached a consumer of a release. A version number or a reserved identifier that counts a
+state only the repository held protects no consumer:
 
 - [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) decision 9 sets
   `AuditRecordWriter.SchemaVersion` to `1.1` and counts `tenant_environment_type` as an additive change over a `1.0`
-  record, while [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) decision 4
-  defines the record's schema as `"1.0"`.
+  record that no release carries, while
+  [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) decision 4 defines the
+  record's schema as `"1.0"`. A first release whose records start at `1.1` names a version that no `1.0` reader saw.
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) decision 13,
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) and
-  [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) decision 9 keep the
-  log event IDs `14003`, `14004`, `2019` and `2044` unassigned, and `EventIds.cs` comments reserve them.
-
-The first release's audit records would then start at a version that no `1.0` reader ever saw, and its event-ID
-tables would carry gaps that protect no consumer and name events the code does not have.
+  [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) decision 9 hold the
+  log event IDs `14003`, `14004`, `2019` and `2044` unassigned. A first release whose event-ID tables hold those gaps
+  protects no consumer and names events the code does not have.
 
 ## Decision
 
@@ -58,8 +57,8 @@ tables would carry gaps that protect no consumer and name events the code does n
 
 - `AuditRecordWriter.SchemaVersion` is `"1.0"`, and [`docs/audit-records.md`](../audit-records.md) documents the
   `1.0` record with `tenant_environment_type`.
-- `EventIds.cs` in `NCode.Identity.Events` and `NCode.Identity.OpenId.Authentication` carry no reservation comments;
-  `14003`, `14004`, `2019`, `2034` and `2044` are unassigned and free.
+- `EventIds.cs` in `NCode.Identity.Events` and `NCode.Identity.OpenId.Authentication` list the assigned IDs only;
+  `14003`, `14004`, `2019` and `2044` are unassigned and free.
 - A reviewer rejects a version bump or an identifier reservation made for a pre-release state.
 
 ## References

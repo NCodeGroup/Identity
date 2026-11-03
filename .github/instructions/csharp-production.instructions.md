@@ -154,21 +154,24 @@ than inlining the rationale.
 - 👁 **A JSON-deserialized DTO captures unknown fields** with a
   `[JsonExtensionData] public Dictionary<string, JsonElement>? ExtensionData { get; set; }` member, so an unrecognized
   wire member round-trips instead of being silently dropped.
-- 👁 **A persisted-at-rest payload is schema-versioned and evolves additively.** A domain payload serialized into a
-  stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is written through the versioned seam
-  `IPersistedPayloadSerializer` ([ADR-1113](../../docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)),
-  not a bare `JsonSerializer` call. Evolve the DTO **additively**: a new member is optional (nullable or defaulted),
-  **never `required`** (`System.Text.Json` enforces `required` on read, breaking every older row); enums stay
-  string-valued, never ordinal; a member is never renamed, removed, or retyped in place. A **non-additive** change bumps
-  `[PersistedPayloadVersion(N)]` on the payload and ships one `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
-  A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) also carries the `[JsonExtensionData]` bag above
-  so a mixed-version node cannot drop members on a read-modify-write. Payload members never begin with `$` (reserved for
-  the envelope). A stored document that lacks what the serving code writes — the envelope, or a member the serving
-  code always sets — is malformed and fails closed: the reader throws rather than supplying a default or a fallback.
-  **Until the first stable release** the additive rule does not apply: a payload's shape changes in place at its
-  current version (a member the serving code always writes is `required`), with no version bump, no upcaster and no
-  reader for the earlier shape, and a development store that holds the earlier shape is reset
+- 👁 **A persisted-at-rest payload is schema-versioned, and a stored document that lacks what the serving code writes
+  fails closed.** A domain payload serialized into a stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is
+  written through the versioned seam `IPersistedPayloadSerializer`
+  ([ADR-1113](../../docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)), not a bare
+  `JsonSerializer` call. A stored document that lacks what the serving code writes — the envelope, or a member the
+  serving code always sets — is malformed: the reader throws rather than supplying a default or a fallback. Enums stay
+  string-valued, never ordinal. A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) carries the
+  `[JsonExtensionData]` bag above so a read-modify-write never drops a member it does not model. Payload members never
+  begin with `$` (reserved for the envelope). **Until the first stable release**
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)) a payload's shape changes in place at its current
+  version: a member the serving code always writes is `required`, and a member is added, renamed, removed or retyped
+  with no version bump, no upcaster and no reader for the earlier shape; a development store that holds the earlier
+  shape is reset
   ([ADR-1395](../../docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
+  **From the first stable release** the released shape evolves additively: a new member is optional (nullable or
+  defaulted), never `required` (`System.Text.Json` enforces `required` on read, breaking every stored row); a member is
+  never renamed, removed, or retyped in place; and a non-additive change bumps `[PersistedPayloadVersion(N)]` on the
+  payload and ships one `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
 - 👁 **Buffer by default; stream deliberately** — template
   [Types and Collections](csharp.instructions.md#types-and-collections).
 - 👁 **Own every stored collection; pick the concrete type by usage** — template

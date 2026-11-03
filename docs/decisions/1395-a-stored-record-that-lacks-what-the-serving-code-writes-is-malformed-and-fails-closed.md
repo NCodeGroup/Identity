@@ -33,8 +33,8 @@ gives it:
   bounds on every session, and `CreateSessionRequest.IdleTimeout` and `CreateSessionRequest.AbsoluteLifetime` are
   required, so the nullable members and the fallback describe a session the server does not create.
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) decision 4 selects session
-  grants without an expiration for termination, for a session the server does not create either: every session grant
-  is added with a lifetime.
+  grants without an expiration for termination, and a request serves such a session until its payload's bounds pass.
+  Both describe a session the server does not create either: every session grant is added with a lifetime.
 - The additive-only contract of ADR-0108 and
   [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) keeps every older stored document
   readable. Before the first stable release no older document is one a reader must keep: holding a pre-release payload
@@ -55,12 +55,14 @@ gives it:
 3. **A session always carries its bounds.** `SessionGrant.IdleTimeout` and `SessionGrant.AbsoluteExpiresWhen` are
    required and not nullable, like the other members the serving code always writes (`AuthTime`, `ClientIds`,
    `LastActivityWhen`). A stored session that lacks one does not deserialize, so it is never served as a valid session.
-   A session ends at `AbsoluteExpiresWhen`, when its grant's expiry has passed, or when its idle window has lapsed, and
-   a touch changes only `LastActivityWhen` and the grant's expiry.
+   A session grant is always stored with an expiration; one without it is malformed, and a request that reads it
+   throws an `InvalidOperationException` rather than serving it. A session ends at `AbsoluteExpiresWhen`, when its
+   grant's expiry has passed, or when its idle window has lapsed, and a touch changes only `LastActivityWhen` and the
+   grant's expiry.
 4. **The ended-session pass selects grants whose expiry has passed.**
    `IGrantStore.GetUnrevokedExpiredPageAsync` selects the grants of the type that are not revoked and whose expiration
    is at or before `expiredAt`, of a tenant that is not disabled. A grant without an expiration has not expired, and
-   the pass does not select it.
+   the pass does not select it; a session grant without one is malformed (decision 3).
 5. **Until the first stable release, a stored shape changes in place.** A grant payload's members are added (required
    when the serving code always writes them), renamed, retyped or removed at the payload's current schema version,
    with no `[PersistedPayloadVersion]` bump, no upcaster and no reader for the earlier shape. A development database
@@ -73,7 +75,7 @@ gives it:
 - **Keep the readers until the first stable release.** Rejected: they read records the server does not write, so they
   are untestable against real data, and the first release would carry them as if a released store needed them.
 - **Read a session without a bound as ended** (non-nullable members that deserialize to their defaults). Rejected: it
-  gives a malformed record a meaning, the same as the fallback it removes, and it leaves the session's type admitting a
+  gives a malformed record a meaning, as the fallback of ADR-1220 decision 2 does, and it leaves the session's type admitting a
   session without bounds, unlike its other always-written members.
 - **Fail closed on a record that lacks what the serving code writes (chosen).** Every reader has one shape to honor,
   and a corrupt record surfaces as an error instead of a silently reinterpreted one.
@@ -82,9 +84,15 @@ gives it:
 
 - A grant payload without the envelope, and a session payload without `idleTimeout` or `absoluteExpiresWhen`, throws
   a `JsonException` when it is read, as a corrupt document or a missing upcaster step does
-  ([ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)).
-- A session grant without an expiration is not terminated by the background pass; the server adds every session grant
-  with a lifetime, so the pass reaches every session the server creates.
+  ([ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)), and a session grant without an
+  expiration throws an `InvalidOperationException`. The exception fails the request that reads the record: an
+  authorize request that validates the session, a sign-in whose concurrent-session cap lists the subject's sessions,
+  and the subject's session listings at `/account/sessions/list` and in the management API. A listing does not skip a
+  malformed session, because skipping hides a record the store holds behind a listing that looks complete. A payload
+  that does not authenticate is a different case: the grant protector logs it and reads the grant as absent
+  ([ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md)).
+- The background pass does not select a session grant without an expiration; the server adds every session grant with
+  a lifetime, so the pass reaches every session the server creates.
 - Before the first stable release, a change to a payload's shape is one edit of its type, with no upcaster, no version
   bump and no compatibility test. The rule in
   [`csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md) states both

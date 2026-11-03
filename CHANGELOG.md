@@ -2330,8 +2330,9 @@ describes the family as it is rather than its changes
   stamped with the schema version declared by `[PersistedPayloadVersion(N)]` (default `1`). On read, registered
   `IPersistedPayloadUpcaster` steps bring an older stored document up to the current version before deserialization; a
   document newer than the current version is read forward-compatibly, and a document that is not an envelope, or that
-  lacks a member the serving code always writes, is rejected with a `JsonException`. The long-lived, in-place-mutated payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`) carry a
-  `[JsonExtensionData]` bag, so a mixed-version node never drops unknown members on a read-modify-write
+  lacks a member the serving code always writes, is rejected with a `JsonException`. The long-lived, in-place-mutated
+  payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`) carry a `[JsonExtensionData]` bag, so a mixed-version node
+  never drops unknown members on a read-modify-write
   ([ADR-1113](docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md),
   [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
 
@@ -4125,12 +4126,12 @@ describes the family as it is rather than its changes
   accepts one second to 365 days, and `session_idle_timeout` defaults to 3 days and accepts one second to 100 days; a
   zero value is refused. `CreateSessionRequest.AbsoluteLifetime` and `CreateSessionRequest.IdleTimeout` are required
   positive `TimeSpan`s, and the required `SessionGrant.IdleTimeout` and `SessionGrant.AbsoluteExpiresWhen` carry the
-  idle window and the absolute end with the session, so a stored session without them is never served. A session's grant
-  expires at the end of its idle window or, if earlier, at its absolute end, and each renewal of the window extends the
-  expiry through `IPersistedGrantService.UpdatePayloadAndExpirationAsync`, a member a custom implementation implements,
-  so the grant prune removes an abandoned session after the retention. `SessionInfo.ExpiresWhen`,
-  `SessionResource.ExpiresWhen` and `expiresWhen` of `/account/sessions/list` are the time the session ends unless it is
-  used again, never `null`. An authorize request that finds an ended session terminates it with `absolute_expiry` or
+  idle window and the absolute end with the session. A session's grant always expires, at the end of its idle window
+  or, if earlier, at its absolute end, and each renewal of the window extends the expiry in the same
+  `IPersistedGrantService.UpdatePayloadAsync` write (`PersistedGrantUpdate<TPayload>.ExpiresWhen`), so the grant prune
+  removes an abandoned session after the retention. A stored session without its bounds or its expiry is malformed:
+  reading it throws, so it is never served. `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen`
+  of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An authorize request that finds an ended session terminates it with `absolute_expiry` or
   `idle_timeout`, which revokes the grants issued under it and notifies its relying parties
   ([ADR-1220](docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md),
   [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),

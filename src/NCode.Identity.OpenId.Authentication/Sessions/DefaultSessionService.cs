@@ -59,17 +59,24 @@ internal class DefaultSessionService(
         return idleEnd < payload.AbsoluteExpiresWhen ? idleEnd : payload.AbsoluteExpiresWhen;
     }
 
-    // Why the session has ended at 'now', or null while it lasts.
+    // Why the session has ended at 'now', or null while it lasts. Every session grant is added with a lifetime, so one
+    // without an expiration is malformed and fails closed rather than lasting until its payload's bounds pass. See
+    // ADR-1395.
     private static string? GetEndReason(
         SessionGrant payload,
         DateTimeOffset? expiresWhen,
         DateTimeOffset now
     )
     {
+        if (expiresWhen is not { } grantExpiresWhen)
+            throw new InvalidOperationException(
+                "The session grant has no expiration and cannot be served."
+            );
+
         if (now >= payload.AbsoluteExpiresWhen)
             return SessionTerminationReasons.AbsoluteExpiry;
 
-        return expiresWhen <= now || now >= GetEnd(payload)
+        return grantExpiresWhen <= now || now >= GetEnd(payload)
             ? SessionTerminationReasons.IdleTimeout
             : null;
     }
@@ -469,6 +476,8 @@ internal class DefaultSessionService(
                 if (envelope.RevokedWhen is not null)
                     continue;
 
+                // A payload that does not authenticate reads as absent and is skipped; a malformed session throws, so
+                // the listing fails closed rather than hiding a session the subject holds. See ADR-1265 and ADR-1395.
                 var unprotected = await PayloadProtector.UnprotectOrDefaultAsync<SessionGrant>(
                     envelope.TenantId,
                     envelope.GrantType,

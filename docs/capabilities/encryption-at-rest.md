@@ -104,8 +104,8 @@ flowchart TB
 | Data                                                                                    | Owner                | At rest                                                                                                    |
 | --------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Server and tenant **private signing and encryption keys**                               | Server / tenant      | `nce1.` envelope                                                                                           |
-| **Client secrets** issued while the client only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
-| **Client secrets** issued while the client uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope. A client switched away from `client_secret_jwt`, and a secret stored before ADR-1391, keep a reversible secret until it is rotated |
+| **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
+| **Client secrets** of a client that uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope |
 | **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
 | ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Server               | Each key in an `nce1.` envelope                                                                            |
 | Your own application's sensitive data                                                   | Server / tenant      | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
@@ -223,7 +223,7 @@ A few rules make this hold everywhere:
 - **Producers write, callers own.** APIs write into a caller's `IBufferWriter<T>` instead of returning a fresh
   `byte[]`, so a secret never ends up in an allocation nobody will wipe.
 - **Constant-time comparisons.** Client secrets, MACs and password hashes are compared with
-  `CryptographicOperations.FixedTimeEquals`, a client secret only after both sides are hashed to the same length.
+  `CryptographicOperations.FixedTimeEquals`.
 - **No strings, except at the edge.** A `string` is created only for a value that isn't secret (an envelope, a wrapped
   key, a KMS context) and only where storage or the wire requires one.
 

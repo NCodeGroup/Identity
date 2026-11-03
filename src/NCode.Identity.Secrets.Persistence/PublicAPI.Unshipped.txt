@@ -21,10 +21,12 @@ const NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Min
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Iterations.get -> int
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Iterations.set -> void
-NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxConcurrency.get -> int
-NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxConcurrency.set -> void
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Pbkdf2SecretVerifierOptions() -> void
-NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxQueueLength.get -> int
-NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxQueueLength.set -> void
-NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.QueueTimeout.get -> System.TimeSpan
-NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.QueueTimeout.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.SecretVerificationGateOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.MaxConcurrency.get -> int
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.MaxConcurrency.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.MaxQueueLength.get -> int
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.MaxQueueLength.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.QueueTimeout.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.SecretVerificationGateOptions.QueueTimeout.set -> void

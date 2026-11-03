@@ -46,10 +46,7 @@ public class DefaultSecretVerifierSchemeCatalogTests
         var first = new NamedSecretVerifierScheme("custom");
         var second = new NamedSecretVerifierScheme("custom");
 
-        var catalog = new DefaultSecretVerifierSchemeCatalog(
-            [first, second],
-            [TestSecretVerifierSchemes.CreateDataSource("custom")]
-        );
+        var catalog = new DefaultSecretVerifierSchemeCatalog([first, second]);
 
         Assert.True(catalog.TryGet("custom", out var scheme));
         Assert.Same(second, scheme);
@@ -63,42 +60,7 @@ public class DefaultSecretVerifierSchemeCatalogTests
     public void Constructor_WhenANameIsInvalid_Throws(string name)
     {
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultSecretVerifierSchemeCatalog(
-                [new NamedSecretVerifierScheme(name)],
-                [TestSecretVerifierSchemes.CreateDataSource(name)]
-            )
-        );
-    }
-
-    [Fact]
-    public void Constructor_WhenASchemeHasNoDescriptor_ThrowsNamingIt()
-    {
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new DefaultSecretVerifierSchemeCatalog(
-                [new NamedSecretVerifierScheme("custom")],
-                [TestSecretVerifierSchemes.CreateDataSource()]
-            )
-        );
-
-        Assert.Equal(
-            "The secret verifier scheme 'custom' has no registered SecretVerifierSchemeDescriptor.",
-            exception.Message
-        );
-    }
-
-    [Fact]
-    public void Constructor_WhenADescriptorNamesNoScheme_ThrowsNamingIt()
-    {
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new DefaultSecretVerifierSchemeCatalog(
-                [],
-                [TestSecretVerifierSchemes.CreateDataSource("custom")]
-            )
-        );
-
-        Assert.Equal(
-            "The SecretVerifierSchemeDescriptor 'custom' names no registered secret verifier scheme.",
-            exception.Message
+            new DefaultSecretVerifierSchemeCatalog([new NamedSecretVerifierScheme(name)])
         );
     }
 

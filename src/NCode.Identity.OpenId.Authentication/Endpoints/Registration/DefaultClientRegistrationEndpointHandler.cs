@@ -55,7 +55,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     ISectorIdentifierValidator sectorIdentifierValidator,
     IClientScopeService clientScopeService,
     ISettingSerializer settingSerializer,
-    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     IClientCoherenceValidator clientCoherenceValidator
 ) : IEndpointProvider
 {
@@ -92,8 +91,6 @@ internal class DefaultClientRegistrationEndpointHandler(
         sectorIdentifierValidator;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
-    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
-        clientAuthenticationMethodCatalog;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
@@ -599,7 +596,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         client.Secrets.Value = await ReplacePublicKeysAsync(store, client, keys, cancellationToken);
 
-        var clientSecret = await ReissueClientSecretOrDefaultAsync(
+        var clientSecret = await ReconcileClientSecretsAsync(
             store,
             client,
             resolved.TokenEndpointAuthMethod,
@@ -659,68 +656,44 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Issues a new <c>client_secret</c> to an updated client whose registered method verifies one when none of the
-    /// client's shared secrets can authenticate it with that method, returning the one-time secret, or
-    /// <see langword="null"/> when the client keeps its secrets. A method that uses the secret as a key needs a secret
-    /// the server can read back, so a client switched to it from a method whose secrets are one-way verifiers is
-    /// issued one. The new secret replaces the client's other shared secrets, which the client discards
-    /// (RFC 7592 §2.2). None of them could authenticate the client any longer: each has expired, or is a one-way verifier
-    /// that the method cannot key from, and a client authenticates only with the method it is registered for.
+    /// Brings an updated client's shared secrets into the form its registered method needs, through the
+    /// <see cref="IClientSecretIssuer"/>, and returns the <c>client_secret</c> it issued, revealed once in the response
+    /// (RFC 7592 §2.2), or <see langword="null"/> when the client keeps a secret it holds. The client discards every
+    /// other shared secret, none of which can authenticate it.
     /// </summary>
     // See ADR-1391.
-    private async ValueTask<string?> ReissueClientSecretOrDefaultAsync(
+    private async ValueTask<string?> ReconcileClientSecretsAsync(
         IClientStore store,
         PersistedClient client,
         string tokenEndpointAuthMethod,
         CancellationToken cancellationToken
     )
     {
-        if (!IssuesClientSecret(tokenEndpointAuthMethod))
-        {
-            return null;
-        }
-
-        var now = TimeProvider.GetUtcNow();
-        var secrets = client.Secrets.Value;
-        if (
-            secrets.Any(secret =>
-                secret.ExpiresWhen > now
-                && ClientSecretIssuer.CanAuthenticate(secret, tokenEndpointAuthMethod)
-            )
-        )
-        {
-            return null;
-        }
-
         var protector = await SecretProtectorProvider.GetProtectorAsync(
             SecretOwner.ForTenant(client.TenantId),
             [],
             cancellationToken
         );
-        var generated = GenerateClientSecret(protector, tokenEndpointAuthMethod, now);
+        var reconciliation = ClientSecretIssuer.ReconcileClientSecrets(
+            protector,
+            tokenEndpointAuthMethod,
+            client.Secrets.Value
+        );
 
-        var kept = new List<PersistedSecret>(secrets.Count + 1);
-        foreach (var secret in secrets)
+        foreach (var secret in reconciliation.RemovedSecrets)
         {
-            if (IsSharedSecret(secret))
-            {
-                await store.RemoveSecretAsync(client.ClientId, secret.SecretId, cancellationToken);
-            }
-            else
-            {
-                kept.Add(secret);
-            }
+            await store.RemoveSecretAsync(client.ClientId, secret.SecretId, cancellationToken);
         }
 
-        await store.AddSecretAsync(client.ClientId, generated.Secret, cancellationToken);
-        kept.Add(generated.Secret);
-        client.Secrets.Value = kept;
+        foreach (var secret in reconciliation.AddedSecrets)
+        {
+            await store.AddSecretAsync(client.ClientId, secret, cancellationToken);
+        }
 
-        return generated.SecretMaterial;
+        client.Secrets.Value = [.. reconciliation.Secrets];
+
+        return reconciliation.IssuedSecret?.SecretMaterial;
     }
-
-    private static bool IsSharedSecret(PersistedSecret secret) =>
-        string.Equals(secret.SecretType, SecretTypes.Symmetric, StringComparison.Ordinal);
 
     private async ValueTask<IResult> DeleteClientAsync(
         string clientId,
@@ -1334,18 +1307,6 @@ internal class DefaultClientRegistrationEndpointHandler(
                 && x5c.GetArrayLength() > 0
             );
 
-    /// <summary>
-    /// Determines whether the registration issues a <c>client_secret</c> to a client that registers the specified
-    /// client-authentication method: the client is issued one when the method's descriptor requires a client secret;
-    /// a method that is not registered receives none.
-    /// </summary>
-    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
-    /// <returns><see langword="true"/> when the client is issued a <c>client_secret</c>.</returns>
-    // See ADR-1145 and ADR-1207.
-    internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
-        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
-        && descriptor.RequiresClientSecret;
-
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
         string description
@@ -1409,7 +1370,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         secrets = [];
         clientSecret = null;
 
-        if (IssuesClientSecret(tokenEndpointAuthMethod))
+        if (ClientSecretIssuer.RequiresClientSecret(tokenEndpointAuthMethod))
         {
             var generated = GenerateClientSecret(protector, tokenEndpointAuthMethod, createdWhen);
             clientSecret = generated.SecretMaterial;
@@ -1427,8 +1388,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Generates a <c>client_secret</c>, an opaque string the client later presents verbatim, with 256 bits of entropy
-    /// and no expiry, stored by the <see cref="IClientSecretIssuer"/> in the form the client's method needs.
+    /// Generates a <c>client_secret</c>, an opaque string the client later presents verbatim, with the policy's minimum
+    /// entropy and no expiry, stored by the <see cref="IClientSecretIssuer"/> in the form the client's method needs.
     /// </summary>
     // See ADR-1110 and ADR-1391.
     private GeneratedSecret GenerateClientSecret(
@@ -1439,13 +1400,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         ClientSecretIssuer.GenerateClientSecret(
             protector,
             tokenEndpointAuthMethod,
-            new GenerateSecretRequest
+            new SharedSecretRequest
             {
                 SecretId = CryptoService.GenerateResourceId(),
-                SecretType = SecretTypes.Symmetric,
-                KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
-                Use = null,
-                Algorithm = null,
                 CreatedWhen = createdWhen,
                 ExpiresWhen = DateTimeOffset.MaxValue,
             }

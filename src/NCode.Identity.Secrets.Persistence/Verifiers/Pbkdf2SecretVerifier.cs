@@ -9,8 +9,9 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
 /// <summary>
 /// Provides a <see cref="SecretVerifier"/> that holds a PBKDF2-HMAC-SHA256 derivation of a secret someone chose. A
-/// verification waits for a turn of the gate its scheme shares among every verifier it reads, so the derivations that
-/// run at once stay bounded however many presented secrets arrive, and one that finds the gate saturated is refused.
+/// verification waits for a turn of the process's <see cref="ISecretVerificationGate"/>, so the costly verifications
+/// that run at once stay bounded however many presented secrets arrive, and one that finds the gate saturated is
+/// refused.
 /// </summary>
 // See ADR-1391.
 internal sealed class Pbkdf2SecretVerifier(
@@ -18,13 +19,13 @@ internal sealed class Pbkdf2SecretVerifier(
     int iterations,
     byte[] salt,
     byte[] derivedKey,
-    SecretVerificationGate gate
+    ISecretVerificationGate gate
 ) : SecretVerifier
 {
     private int Iterations { get; } = iterations;
     private byte[] Salt { get; } = salt;
     private byte[] DerivedKey { get; } = derivedKey;
-    private SecretVerificationGate Gate { get; } = gate;
+    private ISecretVerificationGate Gate { get; } = gate;
 
     /// <inheritdoc />
     public override KeyMetadata Metadata { get; } = metadata;

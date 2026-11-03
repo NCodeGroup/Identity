@@ -2,46 +2,37 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
-using NCode.Collections.Providers;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence.Options;
 
 /// <summary>
-/// Validates <see cref="SharedSecretVerifierOptions"/> as the host starts: each scheme it names has a registered
-/// <see cref="SecretVerifierSchemeDescriptor"/>. It reads the descriptors, which are data, never the schemes, whose
-/// construction reads options of their own.
+/// Validates <see cref="SharedSecretVerifierOptions"/> as the host starts: each scheme it names is registered in the
+/// <see cref="ISecretVerifierSchemeCatalog"/>. A scheme reads its own options only when it makes or reads a verifier, so
+/// the validator reads none of them.
 /// </summary>
 // See ADR-1391.
 internal sealed class SharedSecretVerifierOptionsValidator(
-    IEnumerable<ICollectionDataSource<SecretVerifierSchemeDescriptor>> descriptorDataSources
+    ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog
 ) : IValidateOptions<SharedSecretVerifierOptions>
 {
-    private IEnumerable<
-        ICollectionDataSource<SecretVerifierSchemeDescriptor>
-    > DescriptorDataSources { get; } = descriptorDataSources;
+    private ISecretVerifierSchemeCatalog SecretVerifierSchemeCatalog { get; } =
+        secretVerifierSchemeCatalog;
 
     /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, SharedSecretVerifierOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var registeredNames = DescriptorDataSources
-            .SelectMany(dataSource => dataSource.Collection)
-            .Select(descriptor => descriptor.Name)
-            .ToHashSet(StringComparer.Ordinal);
-
         List<string> failures = [];
 
         AddIfNotRegistered(
             failures,
-            registeredNames,
             nameof(SharedSecretVerifierOptions.GeneratedSecretScheme),
             options.GeneratedSecretScheme
         );
         AddIfNotRegistered(
             failures,
-            registeredNames,
             nameof(SharedSecretVerifierOptions.SuppliedSecretScheme),
             options.SuppliedSecretScheme
         );
@@ -51,14 +42,12 @@ internal sealed class SharedSecretVerifierOptionsValidator(
             : ValidateOptionsResult.Fail(failures);
     }
 
-    private static void AddIfNotRegistered(
-        List<string> failures,
-        HashSet<string> registeredNames,
-        string optionName,
-        string? schemeName
-    )
+    private void AddIfNotRegistered(List<string> failures, string optionName, string? schemeName)
     {
-        if (string.IsNullOrEmpty(schemeName) || !registeredNames.Contains(schemeName))
+        if (
+            string.IsNullOrEmpty(schemeName)
+            || !SecretVerifierSchemeCatalog.TryGet(schemeName, out _)
+        )
         {
             failures.Add(
                 $"'{nameof(SharedSecretVerifierOptions)}.{optionName}' is '{schemeName}', which names no registered "

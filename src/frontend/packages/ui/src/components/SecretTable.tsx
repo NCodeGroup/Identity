@@ -22,7 +22,7 @@ export type SecretRow = {
    * Whether the server holds only a one-way verifier of the shared secret, which authenticates a method that compares
    * the secret and never one that uses it as a key, such as `client_secret_jwt`.
    */
-  readonly isVerifier?: boolean;
+  readonly isVerifier: boolean;
   readonly use: string | null;
   readonly algorithm: string | null;
   readonly createdWhen: string;
@@ -101,7 +101,7 @@ export function SecretTable({
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                   <span>{secret.secretType}</span>
                   {secret.isVerifier && (
-                    <Tooltip title="Stored as a one-way verifier: it authenticates client_secret_basic and client_secret_post, never client_secret_jwt">
+                    <Tooltip title="Stored as a one-way verifier: it authenticates a method that compares the secret, never one that uses it as a key, such as client_secret_jwt">
                       <Chip
                         size="small"
                         label="Verifier"

@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Moq;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Verifiers;
@@ -21,26 +23,29 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
         new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     );
 
+    private readonly DefaultSecretVerificationGate _gate;
+
     private readonly Pbkdf2SecretVerifierScheme _scheme;
 
     public Pbkdf2SecretVerifierSchemeTests()
     {
-        _scheme = CreateScheme(new Pbkdf2SecretVerifierOptions { MaxQueueLength = 1 });
+        _gate = CreateGate(maxQueueLength: 1);
+        _scheme = TestSecretVerifierSchemes.CreatePbkdf2Scheme(gate: _gate);
     }
 
-    public void Dispose() => _scheme.Dispose();
+    public void Dispose() => _gate.Dispose();
 
     // One turn, so a test that holds it saturates the gate.
-    private Pbkdf2SecretVerifierScheme CreateScheme(Pbkdf2SecretVerifierOptions options)
-    {
-        options.Iterations = TestSecretVerifierSchemes.Iterations;
-        options.MaxConcurrency = 1;
-        options.QueueTimeout = QueueTimeout;
-        return new Pbkdf2SecretVerifierScheme(
-            Microsoft.Extensions.Options.Options.Create(options),
+    private DefaultSecretVerificationGate CreateGate(int maxQueueLength) =>
+        TestSecretVerifierSchemes.CreateGate(
+            new SecretVerificationGateOptions
+            {
+                MaxConcurrency = 1,
+                MaxQueueLength = maxQueueLength,
+                QueueTimeout = QueueTimeout,
+            },
             _timeProvider
         );
-    }
 
     private static SecretVerifier CreateVerifier(Pbkdf2SecretVerifierScheme scheme)
     {
@@ -50,67 +55,23 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
         return verifier;
     }
 
-    // Takes the only turn, as a verification that is running holds it.
+    // Takes the only turn, as a running verification of any scheme holds it.
     private async Task HoldTheTurnAsync() =>
-        Assert.True(await _scheme.Gate.TryEnterAsync(CancellationToken.None));
+        Assert.True(await _gate.TryEnterAsync(CancellationToken.None));
 
     #region Constructor Tests
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void Constructor_WhenTheConcurrencyIsBelowOne_ThrowsNamingTheOption(int maxConcurrency)
-    {
-        var options = new Pbkdf2SecretVerifierOptions { MaxConcurrency = maxConcurrency };
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new Pbkdf2SecretVerifierScheme(
-                Microsoft.Extensions.Options.Options.Create(options),
-                _timeProvider
-            )
-        );
-
-        Assert.Equal(
-            $"'Pbkdf2SecretVerifierOptions.MaxConcurrency' is {maxConcurrency}; it must be at least 1.",
-            exception.Message
-        );
-    }
-
     [Fact]
-    public void Constructor_WhenTheQueueLengthIsBelowZero_ThrowsNamingTheOption()
+    public void Constructor_ReadsNoOptions()
     {
-        var options = new Pbkdf2SecretVerifierOptions { MaxQueueLength = -1 };
+        // The options that name a scheme are validated against the catalog, which constructs every scheme, so a scheme
+        // reads its own options only when it makes or reads a verifier.
+        var optionsAccessor = new Mock<IOptions<Pbkdf2SecretVerifierOptions>>(MockBehavior.Strict);
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new Pbkdf2SecretVerifierScheme(
-                Microsoft.Extensions.Options.Options.Create(options),
-                _timeProvider
-            )
-        );
+        var scheme = new Pbkdf2SecretVerifierScheme(optionsAccessor.Object, _gate);
 
-        Assert.Equal(
-            "'Pbkdf2SecretVerifierOptions.MaxQueueLength' is -1; it must be at least 0.",
-            exception.Message
-        );
-    }
-
-    [Fact]
-    public void Constructor_WhenTheQueueTimeoutIsZero_ThrowsNamingTheOption()
-    {
-        var options = new Pbkdf2SecretVerifierOptions { QueueTimeout = TimeSpan.Zero };
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new Pbkdf2SecretVerifierScheme(
-                Microsoft.Extensions.Options.Options.Create(options),
-                _timeProvider
-            )
-        );
-
-        Assert.StartsWith(
-            "'Pbkdf2SecretVerifierOptions.QueueTimeout' is 00:00:00;",
-            exception.Message,
-            StringComparison.Ordinal
-        );
+        Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, scheme.Name);
+        optionsAccessor.VerifyNoOtherCalls();
     }
 
     #endregion
@@ -131,7 +92,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
             await verifier.VerifyAsync(Secret.AsMemory(..^1), CancellationToken.None)
         );
 
-        Assert.Equal(1, _scheme.Gate.FreeTurnCount);
+        Assert.Equal(1, _gate.FreeTurnCount);
         Assert.True(verifier.HasWorkFactor);
     }
 
@@ -143,13 +104,13 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
 
         var verification = verifier.VerifyAsync(Secret, CancellationToken.None).AsTask();
         Assert.False(verification.IsCompleted);
-        Assert.Equal(1, _scheme.Gate.WaiterCount);
+        Assert.Equal(1, _gate.WaiterCount);
 
-        _scheme.Gate.Release();
+        _gate.Release();
 
         Assert.Equal(SecretVerificationResult.Success, await verification);
-        Assert.Equal(1, _scheme.Gate.FreeTurnCount);
-        Assert.Equal(0, _scheme.Gate.WaiterCount);
+        Assert.Equal(1, _gate.FreeTurnCount);
+        Assert.Equal(0, _gate.WaiterCount);
     }
 
     [Fact]
@@ -165,9 +126,9 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
 
         Assert.True(refused.IsCompleted);
         Assert.Equal(SecretVerificationResult.Unavailable, await refused);
-        Assert.Equal(1, _scheme.Gate.WaiterCount);
+        Assert.Equal(1, _gate.WaiterCount);
 
-        _scheme.Gate.Release();
+        _gate.Release();
         Assert.Equal(SecretVerificationResult.Success, await queued);
     }
 
@@ -182,24 +143,25 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
         _timeProvider.Advance(QueueTimeout);
 
         Assert.Equal(SecretVerificationResult.Unavailable, await queued);
-        Assert.Equal(0, _scheme.Gate.WaiterCount);
-        Assert.Equal(0, _scheme.Gate.FreeTurnCount);
-        _scheme.Gate.Release();
+        Assert.Equal(0, _gate.WaiterCount);
+        Assert.Equal(0, _gate.FreeTurnCount);
+        _gate.Release();
     }
 
     [Fact]
     public async Task VerifyAsync_WhenThereIsNoQueue_IsRefusedWhileEveryTurnIsTaken()
     {
-        using var scheme = CreateScheme(new Pbkdf2SecretVerifierOptions { MaxQueueLength = 0 });
+        using var gate = CreateGate(maxQueueLength: 0);
+        var scheme = TestSecretVerifierSchemes.CreatePbkdf2Scheme(gate: gate);
         var verifier = CreateVerifier(scheme);
-        Assert.True(await scheme.Gate.TryEnterAsync(CancellationToken.None));
+        Assert.True(await gate.TryEnterAsync(CancellationToken.None));
 
         Assert.Equal(
             SecretVerificationResult.Unavailable,
             await verifier.VerifyAsync(Secret, CancellationToken.None)
         );
 
-        scheme.Gate.Release();
+        gate.Release();
         Assert.Equal(
             SecretVerificationResult.Success,
             await verifier.VerifyAsync(Secret, CancellationToken.None)
@@ -217,15 +179,16 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => verification);
-        Assert.Equal(0, _scheme.Gate.WaiterCount);
-        _scheme.Gate.Release();
-        Assert.Equal(1, _scheme.Gate.FreeTurnCount);
+        Assert.Equal(0, _gate.WaiterCount);
+        _gate.Release();
+        Assert.Equal(1, _gate.FreeTurnCount);
     }
 
     [Fact]
-    public async Task VerifyAsync_WhenAnotherVerifierOfTheSchemeHoldsTheTurn_Waits()
+    public async Task VerifyAsync_WhenAnotherVerifierHoldsTheTurn_Waits()
     {
-        // Every verifier the scheme reads shares its gate, so the bound is the process's, not the verifier's.
+        // Every verifier with a work factor shares the process's gate, so the bound is the process's, not the
+        // verifier's or the scheme's.
         var holder = CreateVerifier(_scheme);
         var waiter = CreateVerifier(_scheme);
         await HoldTheTurnAsync();
@@ -233,7 +196,7 @@ public sealed class Pbkdf2SecretVerifierSchemeTests : IDisposable
         var verification = waiter.VerifyAsync(Secret, CancellationToken.None).AsTask();
         Assert.False(verification.IsCompleted);
 
-        _scheme.Gate.Release();
+        _gate.Release();
         Assert.Equal(SecretVerificationResult.Success, await verification);
         Assert.Equal(
             SecretVerificationResult.Success,

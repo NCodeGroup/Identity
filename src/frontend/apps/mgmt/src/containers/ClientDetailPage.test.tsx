@@ -314,5 +314,47 @@ describe('ClientDetailPage', () => {
       expect(patch?.url).toBe('https://api.test/api/tenants/acme/clients/web/settings');
       expect(JSON.parse(patch?.body ?? '[]')).toEqual([{ op: 'replace', path: '/a', value: 2 }]);
     });
+    expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
+  });
+
+  it('reveals once the secret a settings change issues for the client', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      if (url.endsWith('/clients/web/settings') && method === 'PATCH') {
+        return jsonResponse({
+          ...createdSecret,
+          secretId: 's-issued',
+          secretMaterial: 'issued-once',
+        });
+      }
+      if (url.endsWith('/clients/web/settings')) {
+        return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
+      }
+      if (url.endsWith('/clients/web/effective-settings')) {
+        return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('client-tab-settings'));
+
+    const editor = await screen.findByTestId('settings-json');
+    fireEvent.change(editor, {
+      target: { value: '{"a": 1, "token_endpoint_auth_method": "client_secret_jwt"}' },
+    });
+    fireEvent.click(screen.getByTestId('settings-save'));
+
+    expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent('issued-once');
+    expect(screen.getByTestId('reveal-secret-id')).toHaveTextContent('s-issued');
+    fireEvent.click(screen.getByTestId('reveal-secret-done'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
+    });
   });
 });

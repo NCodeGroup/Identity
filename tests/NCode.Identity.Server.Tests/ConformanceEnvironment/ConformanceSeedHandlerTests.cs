@@ -98,7 +98,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
     )
     {
         // The real protector provider, and an issuer over the real generator, because the generator's
-        // ImportOneWaySharedSecret takes a span that a Moq mock cannot set up. The crypto service hands out the id of the one secret that the seed path creates.
+        // ImportSharedSecretVerifier takes a span that a Moq mock cannot set up. The crypto service hands out the id of
+        // the one secret that the seed path creates.
         var mockCryptoService = CreateStrictMock<ICryptoService>();
         mockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -549,6 +550,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             ExpiresWhen = DateTimeOffset.MaxValue,
             SecretType = "ecc",
             SecretEncoding = "spki",
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "public-key",
         };

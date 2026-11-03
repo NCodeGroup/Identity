@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -9,32 +10,66 @@ using NCode.Identity.Secrets.Persistence.Protection;
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Issues a client's <c>client_secret</c> in the stored form that the client-authentication method it is registered for
-/// needs, the one rule every site that issues a client secret applies: the management API, dynamic client
-/// registration and the configuration seeds. A secret issued for a method whose
-/// <see cref="ClientAuthenticationMethodDescriptor.UsesClientSecretAsKey"/> is set is stored so the server can read it
-/// back; a secret issued for any other method, or for a method that is not registered, is stored only as a one-way
-/// verifier. The form is fixed when the secret is issued.
+/// Issues and keeps a client's shared secrets, its <c>client_secret</c>, in the stored form that the
+/// client-authentication method it is registered for needs: the one rule every site that issues a client secret or
+/// changes a client's method applies, the management API, dynamic client registration and the configuration seeds. A
+/// method whose <see cref="ClientAuthenticationMethodDescriptor.UsesClientSecretAsKey"/> is set needs a secret the
+/// server can read back; every other method, and a method that is not registered, gets only a one-way verifier, which
+/// the server can only compare a presented secret with.
 /// </summary>
 // See ADR-1391.
 [PublicAPI]
 public interface IClientSecretIssuer
 {
     /// <summary>
+    /// Resolves the client-authentication method a stored client is registered for: its effective
+    /// <c>token_endpoint_auth_method</c>, the server's, the tenant's and the client's settings merged as the runtime
+    /// merges them. When they cannot be merged, because the tenant's settings are absent or a settings document cannot
+    /// be honored, the client authenticates with no method until they are fixed, and the method resolved is
+    /// <c>client_secret_basic</c>, the default of RFC 7591 §2, whose secret is a one-way verifier.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant that owns the client.</param>
+    /// <param name="tenantSettings">The tenant's settings document as the store holds it, or <see langword="null"/>
+    /// when the store holds none.</param>
+    /// <param name="clientId">The identifier of the client.</param>
+    /// <param name="clientSettings">The client's settings document.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous
+    /// operation.</param>
+    /// <returns>A <see cref="ValueTask{TResult}"/> that represents the asynchronous operation, containing the client's
+    /// effective <c>token_endpoint_auth_method</c>.</returns>
+    ValueTask<string> GetTokenEndpointAuthMethodAsync(
+        string tenantId,
+        JsonElement? tenantSettings,
+        string clientId,
+        JsonElement clientSettings,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Determines whether a client registered for the specified method authenticates with a shared secret, so that it
+    /// is issued a <c>client_secret</c>: the method's <see cref="ClientAuthenticationMethodDescriptor.RequiresClientSecret"/>.
+    /// A method that is not registered requires none.
+    /// </summary>
+    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>.</param>
+    /// <returns><see langword="true"/> when the method authenticates with a shared secret; otherwise,
+    /// <see langword="false"/>.</returns>
+    bool RequiresClientSecret(string tokenEndpointAuthMethod);
+
+    /// <summary>
     /// Generates a <c>client_secret</c> for a client registered for the specified method and returns it as the
     /// one-time <see cref="GeneratedSecret.SecretMaterial"/>, alongside the <see cref="PersistedSecret"/> that stores it
     /// in the form the method needs.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
-    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>, or
-    /// <see langword="null"/> when it is not known, which stores a one-way verifier.</param>
-    /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the shared secret to generate.</param>
+    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>.</param>
+    /// <param name="request">The <see cref="SharedSecretRequest"/> describing the secret, whose entropy defaults to
+    /// <see cref="SharedSecretPolicy.MinimumEntropyBits"/>.</param>
     /// <returns>The <see cref="GeneratedSecret"/> with the protected stored form and the one-time secret to
     /// reveal.</returns>
     GeneratedSecret GenerateClientSecret(
         ISecretProtector protector,
-        string? tokenEndpointAuthMethod,
-        GenerateSecretRequest request
+        string tokenEndpointAuthMethod,
+        SharedSecretRequest request
     );
 
     /// <summary>
@@ -42,28 +77,35 @@ public interface IClientSecretIssuer
     /// the form the method needs. Nothing is revealed, because the caller already holds the value.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
-    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>, or
-    /// <see langword="null"/> when it is not known, which stores a one-way verifier.</param>
-    /// <param name="request">The <see cref="ImportSharedSecretRequest"/> describing the secret's metadata.</param>
+    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>.</param>
+    /// <param name="request">The <see cref="SharedSecretRequest"/> describing the secret's metadata.</param>
     /// <param name="secretValue">The UTF-8 octets of the opaque <c>client_secret</c>. Must not be empty.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the protected stored form.</returns>
     /// <exception cref="ArgumentException"><paramref name="secretValue"/> is empty.</exception>
     PersistedSecret ImportClientSecret(
         ISecretProtector protector,
-        string? tokenEndpointAuthMethod,
-        ImportSharedSecretRequest request,
+        string tokenEndpointAuthMethod,
+        SharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
     );
 
     /// <summary>
-    /// Determines whether a stored secret's form can authenticate a client registered for the specified method: it is a
-    /// shared secret, and when the method uses the secret as a key, the server can read it back. Whether it has expired
-    /// is not judged.
+    /// Brings a client's shared secrets into the form the method it is registered for needs, when its settings change
+    /// that method. For a method that does not use the secret as a key, each shared secret stored as its octets is replaced
+    /// by its one-way verifier, made with the scheme that fits the secret's <see cref="PersistedSecret.Origin"/>, so the
+    /// client keeps its secret. When the method authenticates with a shared secret and none of the client's unexpired
+    /// shared secrets can serve it, as a verifier cannot serve a method that keys from its secret, a new secret is
+    /// issued in the method's form and replaces every other shared secret, none of which can authenticate the client.
+    /// The client's other secrets are kept.
     /// </summary>
-    /// <param name="secret">The stored secret.</param>
-    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>, or
-    /// <see langword="null"/> when it is not known.</param>
-    /// <returns><see langword="true"/> when the stored form can authenticate the client; otherwise,
-    /// <see langword="false"/>.</returns>
-    bool CanAuthenticate(PersistedSecret secret, string? tokenEndpointAuthMethod);
+    /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secrets.</param>
+    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>.</param>
+    /// <param name="secrets">The client's stored secrets.</param>
+    /// <returns>The <see cref="ClientSecretReconciliation"/> with the client's secrets afterward, the secrets to remove
+    /// from the store and to add to it, and the secret issued, if any, to reveal once.</returns>
+    ClientSecretReconciliation ReconcileClientSecrets(
+        ISecretProtector protector,
+        string tokenEndpointAuthMethod,
+        IReadOnlyCollection<PersistedSecret> secrets
+    );
 }

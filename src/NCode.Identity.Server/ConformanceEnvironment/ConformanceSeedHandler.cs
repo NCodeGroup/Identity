@@ -349,12 +349,10 @@ internal sealed class ConformanceSeedHandler(
 
         // Persist the given client_secret through the client-secret issuer (ADR-1110), in the form the client's method
         // needs: a supplied secret is stored as its PBKDF2 verifier unless the method keys from it (ADR-1391).
-        var request = new ImportSharedSecretRequest
+        var request = new SharedSecretRequest
         {
             // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.
             SecretId = CryptoService.GenerateResourceId(),
-            Use = null,
-            Algorithm = null,
             CreatedWhen = now,
             ExpiresWhen = now.AddYears(100),
         };

@@ -41,7 +41,6 @@ internal sealed class BootstrapAdminSeedHandler(
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
-    IEffectiveSettingsResolver effectiveSettingsResolver,
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -56,8 +55,6 @@ internal sealed class BootstrapAdminSeedHandler(
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
-    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
-        effectiveSettingsResolver;
     private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -97,11 +94,13 @@ internal sealed class BootstrapAdminSeedHandler(
         {
             // The configured secret is authoritative. It is stored again under the tenant's current master key, so a
             // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently unable
-            // to authenticate. Its form follows the method the client is registered for now, which an operator may have
-            // changed since it was seeded (ADR-1391).
-            var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
-                context.Tenant,
-                existing,
+            // to authenticate. Its form follows the method the client is registered for, which an operator may set to
+            // another method than the seeded one (ADR-1391).
+            var tokenEndpointAuthMethod = await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
+                tenantId,
+                context.Tenant.Settings.Value,
+                existing.ClientId,
+                existing.Settings.Value,
                 cancellationToken
             );
             var refreshProtector = await GetProtectorAsync(tenantId, cancellationToken);
@@ -152,41 +151,6 @@ internal sealed class BootstrapAdminSeedHandler(
             [],
             cancellationToken
         );
-
-    // The method an existing client is registered for now decides the form its refreshed secret is stored in. A client
-    // whose settings cannot be read authenticates with no method until they are fixed, so its secret is stored in the
-    // form the method it is seeded with needs, client_secret_basic's one-way verifier. See ADR-1391.
-    private async ValueTask<string> GetTokenEndpointAuthMethodAsync(
-        PersistedTenant tenant,
-        PersistedClient client,
-        CancellationToken cancellationToken
-    )
-    {
-        try
-        {
-            var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(
-                cancellationToken
-            );
-            var tenantSettings = EffectiveSettingsResolver.ResolveStored(
-                serverSettings,
-                OpenIdSettingScopes.Tenant,
-                tenant.TenantId,
-                tenant.Settings.Value
-            );
-            var clientSettings = EffectiveSettingsResolver.ResolveStored(
-                tenantSettings,
-                OpenIdSettingScopes.Client,
-                client.ClientId,
-                client.Settings.Value
-            );
-
-            return clientSettings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod);
-        }
-        catch (UnreadableSettingsException)
-        {
-            return SeededAuthenticationMethod;
-        }
-    }
 
     private async ValueTask RefreshClientSecretAsync(
         IClientStore store,
@@ -270,13 +234,11 @@ internal sealed class BootstrapAdminSeedHandler(
 
         // Persist the configured client_secret through the client-secret issuer (ADR-1110), in the form the client's
         // method needs: a PBKDF2 verifier when the method only compares it, reversible when it keys from it (ADR-1391).
-        var request = new ImportSharedSecretRequest
+        var request = new SharedSecretRequest
         {
             // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
             // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
             SecretId = CryptoService.GenerateResourceId(),
-            Use = null,
-            Algorithm = null,
             CreatedWhen = now,
             ExpiresWhen = now.AddYears(100),
         };

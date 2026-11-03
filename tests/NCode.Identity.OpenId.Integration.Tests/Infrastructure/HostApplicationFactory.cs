@@ -408,6 +408,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                         ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
                         SecretType = secret.SecretType,
                         SecretEncoding = secret.SecretEncoding,
+                        Origin = secret.Origin,
                         KeySizeBits = secret.KeySizeBits,
                         EncodedValue = secret.EncodedValue,
                         PublicKey = secret.PublicKey,
@@ -454,20 +455,20 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             .GetRequiredService<ISecretProtectorProvider>()
             .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
 
-        var request = new ImportSharedSecretRequest
+        var request = new SharedSecretRequest
         {
             SecretId = secretId,
-            Use = null,
-            Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
         };
 
+        // A client whose settings register no method is registered for client_secret_basic, RFC 7591's default.
         return serviceProvider
             .GetRequiredService<IClientSecretIssuer>()
             .ImportClientSecret(
                 protector,
-                tokenEndpointAuthMethod,
+                tokenEndpointAuthMethod
+                    ?? OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
                 request,
                 SecureEncoding.UTF8.GetBytes(clientSecret)
             );
@@ -616,6 +617,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             // A certificate is persisted as its crypto family plus the x509 encoding (ADR-1104).
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(certificateBytes),
         };
@@ -758,6 +760,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(certificateBytes),
         };

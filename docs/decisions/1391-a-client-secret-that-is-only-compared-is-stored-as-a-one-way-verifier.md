@@ -34,19 +34,21 @@ conformance clients and test seeds, and its entropy is unknown.
 
 ## Decision
 
-A shared secret's stored form is chosen when the secret is issued, from the method its client is registered for then:
-a method that uses the secret as a key keeps it reversible, and every other method stores only a one-way verifier.
+A shared secret's stored form always matches the client-authentication method its client is registered for: a method
+that uses the secret as a key keeps it reversible, and every other method holds only a one-way verifier.
 
-1. **Two stored forms.** A verifier is a `symmetric` `PersistedSecret` with the encoding `verifier`
-   (`SecretEncodings.Verifier`). Its value is the envelope of a self-describing verifier text, so the verifier is
-   encrypted at rest like every other non-public encoding, and a backup without the root key holds not even the
-   verifier. A reversible secret keeps the `symmetric_raw` encoding of ADR-1110. Both store the bit length of the
-   secret's UTF-8 octets as `KeySizeBits`, so a rotation keeps the rotated secret's entropy either way.
+1. **Two stored forms, and the secret's origin.** A verifier is a `symmetric` `PersistedSecret` with the encoding
+   `verifier` (`SecretEncodings.Verifier`). Its value is the envelope of a self-describing verifier text, so the
+   verifier is encrypted at rest like every other non-public encoding, and a backup without the root key holds not even
+   the verifier. A reversible secret keeps the `symmetric_raw` encoding of ADR-1110. Both store the bit length of the
+   secret's UTF-8 octets as `KeySizeBits`, so a rotation keeps the rotated secret's entropy either way. Every
+   `PersistedSecret` records its `Origin` (`SecretOrigins`): `generated` when the server generated its material, and
+   `supplied` when a caller supplied it, so the verifier that fits a reversible secret is known whenever it is made.
 
 2. **Registered verifier schemes, each named in the text.** The text is `$<scheme>$<parameters>`, so the scheme and its
    parameters can change for new secrets while every stored verifier keeps verifying. A scheme is an
-   `ISecretVerifierScheme` that writes and reads its parameters, registered as a collection and looked up by name
-   through `ISecretVerifierSchemeCatalog`, so the vocabulary is open
+   `ISecretVerifierScheme` that writes and reads its parameters, registered once as a member of a collection and looked
+   up by name through `ISecretVerifierSchemeCatalog`, so the vocabulary is open
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)): a package adds a scheme, such as Argon2id or a
    FIPS-only one, by registering it, and a later registration under a name replaces the earlier one. A name is
    printable ASCII without `$`. The family registers two, named by `SecretVerifierSchemes`:
@@ -59,49 +61,49 @@ a method that uses the secret as a key keeps it reversible, and every other meth
       normalized as a password is, because a `client_secret` is an opaque string.
 
    `SharedSecretVerifierOptions.GeneratedSecretScheme` and `SuppliedSecretScheme` name the schemes new secrets use,
-   `ncode-sha256` and `ncode-pbkdf2-sha256` by default. A scheme's own parameters are its own options. Beside each
-   scheme a package registers a `SecretVerifierSchemeDescriptor` of its name, contributed through
-   `ICollectionDataSource<SecretVerifierSchemeDescriptor>` as a client-authentication method's descriptor is
-   ([ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md)), and the catalog refuses
-   a scheme without a descriptor or a descriptor without a scheme. The options are validated as the host starts: each
-   named scheme has a descriptor, which the validator reads instead of constructing the schemes, whose constructors read
-   options of their own; the work factor and the concurrency are at least 1, the queue length at least 0, and the queue
-   timeout from 1 millisecond to `int.MaxValue` milliseconds. A stored verifier of a scheme that is not registered, or
-   with invalid parameters, fails the client's resolution as an unreadable credential, which authenticates nothing.
+   `ncode-sha256` and `ncode-pbkdf2-sha256` by default. A scheme's own parameters are its own options, which it reads
+   only when it makes or reads a verifier, so constructing a scheme reads no options. The options are validated as the
+   host starts: each named scheme is registered in the catalog, the work factor is at least 1, and the limits of the
+   verification gate (decision 5) are in range. Each rule is checked in one place, the options' validator, which runs
+   wherever the options are read. A stored verifier of a scheme that is not registered, or with invalid parameters,
+   fails the client's resolution as an unreadable credential, which authenticates nothing.
 
-3. **The method decides the form, in one place.** `ClientAuthenticationMethodDescriptor.UsesClientSecretAsKey` marks a
-   method that keys from the secret; `client_secret_jwt` is the only such method the family registers. The trait is
-   `required`, with `RequiresClientSecret`, so every descriptor a package contributes declares both instead of
-   inheriting a `false` that would silently issue verifiers to a method that keys from its secret, and the method
-   catalog refuses a descriptor that keys from a secret it does not require. `ISecretGenerator.GenerateOneWaySharedSecret`
-   and `ImportOneWaySharedSecret` store a verifier; `GenerateReversibleSharedSecret` and `ImportReversibleSharedSecret`
-   store the UTF-8 octets. The names state the form, so a caller of the reversible methods from before this decision
-   no longer compiles rather than silently receiving a verifier. One seam, `IClientSecretIssuer`, maps the client's
-   effective `token_endpoint_auth_method` to the form and issues the secret; a method that is unknown or not
-   registered gets a verifier. Every site that issues a client's secret calls it: the management API's create and
-   rotate, dynamic client registration and its update, the conformance seed, the test seeds, and the bootstrap
-   administrator. Each site only resolves the method it issues for. The bootstrap administrator is seeded for
+3. **The method decides the form, in one place.** `ClientAuthenticationMethodDescriptor.RequiresClientSecret` marks a
+   method that authenticates with a shared secret, and `UsesClientSecretAsKey` one that keys from it;
+   `client_secret_jwt` is the only such method the family registers. Both traits are `required`, so every descriptor a
+   package contributes declares them instead of inheriting a `false` that would silently issue verifiers to a method
+   that keys from its secret, and the method catalog refuses a descriptor that keys from a secret it does not require.
+   `ISecretGenerator.GenerateSharedSecretVerifier` and `ImportSharedSecretVerifier` store a verifier, and
+   `GenerateReversibleSharedSecret` and `ImportReversibleSharedSecret` store the UTF-8 octets; each name states the
+   stored form it produces. All four take one `SharedSecretRequest`, whose `EntropyBits`, the policy minimum by
+   default, sets a generated secret's entropy. One seam, `IClientSecretIssuer`, owns the rule. It resolves a stored
+   client's effective `token_endpoint_auth_method` from the server's, the tenant's and the client's settings, as the
+   runtime merges them; a client whose settings cannot be merged authenticates with no method until they are fixed,
+   and resolves to `client_secret_basic`, RFC 7591's default, whose secret is a verifier, the form that reveals
+   nothing. It answers whether a method requires a secret, and issues a generated or supplied secret in the form the
+   method needs; a method that is not registered requires none and gets a verifier. Every site that issues a client's
+   secret calls it: the management API's create and rotate, dynamic client registration and its update, the
+   conformance seed, the test seeds, and the bootstrap administrator. The bootstrap administrator is seeded for
    `client_secret_basic`, so its configured secret is stored as a PBKDF2 verifier. Its secret is stored again at each
-   start-up, replacing the stored one, in the form the method the existing client is registered for then needs, so an
-   operator who moves it to `client_secret_jwt` does not lose the break-glass credential; for a client whose settings
-   cannot be read it is stored in the form of the method it is seeded with, a verifier.
+   start-up, replacing the stored one, in the form the method the existing client is registered for needs, so an
+   operator who moves it to `client_secret_jwt` does not lose the break-glass credential.
 
-4. **Verification is constant-time and cheap first.** `CommonClientAuthenticationHandler` compares the presented
-   secret with each of the client's verifiers that has no work factor (`SecretVerifier.HasWorkFactor`, which each
-   verifier declares), then with each reversible secret it holds, and only then with each verifier that has one, so a
-   generated secret never waits for a turn and a wrong secret costs a derivation only for a client that holds a
-   supplied one. A verifier compares fixed-length digests with `CryptographicOperations.FixedTimeEquals`; a reversible
-   secret and the presented secret are both hashed with SHA-256 first, so neither comparison returns early on a length
-   or a differing byte. The client is authenticated with the credential that matched, which
-   `OpenIdConfidentialClient.CredentialId` names.
+4. **Verification is constant-time and cheap first.** A method that compares its secret authenticates only against the
+   client's verifiers, and a method that keys from it only against its reversible secrets.
+   `CommonClientAuthenticationHandler` compares the presented secret with each of the client's verifiers that has no
+   work factor (`SecretVerifier.HasWorkFactor`, which each verifier declares) before each that has one, so a generated
+   secret never waits for a turn and a wrong secret costs a derivation only for a client that holds a supplied one. A
+   verifier compares fixed-length digests with `CryptographicOperations.FixedTimeEquals`. The client is authenticated
+   with the credential that matched, which `OpenIdConfidentialClient.CredentialId` names.
 
 5. **The work factor is bounded, and excess work fails fast.** Anyone who knows a `client_id` can make the server
    verify a presented secret before the client is authenticated, and the per-client rate limit applies only after
-   authentication. A PBKDF2 verification therefore takes a turn of one gate that every PBKDF2 verifier of the process
-   shares: at most `Pbkdf2SecretVerifierOptions.MaxConcurrency` derivations run at once, half the processors by
-   default; at most `MaxQueueLength` wait for a turn, 16 by default; and a waiter gives up after `QueueTimeout`, two
-   seconds by default. The wait holds no thread and ends when the request is cancelled. A verification that finds the
-   queue full or waits too long is not run at all: `SecretVerifier.VerifyAsync` answers
+   authentication. A verification with a work factor therefore takes a turn of the one `ISecretVerificationGate` of
+   the process, which every verifier with a work factor shares, whatever its scheme, so a package's scheme draws on
+   the same budget: at most `SecretVerificationGateOptions.MaxConcurrency` costly verifications run at once, half the
+   processors by default; at most `MaxQueueLength` wait for a turn, 16 by default; and a waiter gives up after
+   `QueueTimeout`, two seconds by default. The wait holds no thread and ends when the request is cancelled. A
+   verification that finds the queue full or waits too long is not run at all: `SecretVerifier.VerifyAsync` answers
    `SecretVerificationResult.Unavailable`, and the client-authentication handler answers the request with
    `503 Service Unavailable`, the `temporarily_unavailable` error code, `Retry-After: 1` and `Cache-Control: no-store`.
    A flood of guesses therefore holds at most a bounded queue of requests, never memory and connections without limit,
@@ -114,10 +116,10 @@ a method that uses the secret as a key keeps it reversible, and every other meth
    reveals nothing about it, and `invalid_client` would tell a legitimate client that its credential is wrong, which a
    client acts on by giving up or alerting an operator rather than retrying; the template's security defaults answer a
    store outage with `503` for the same reason, so an outage never reads as a failed credential.
-   RFC 6749 §5.2 lists no error code for a token endpoint that cannot serve now; the family already answers its rate
-   limits there with `temporarily_unavailable` (RFC 6749 §4.1.2.1's code) and `429`, and a client that knows only the
-   §5.2 codes still sees an HTTP `503` with `Retry-After`, which generic HTTP retry handles. The trade-off: a refusal
-   tells the caller that the client holds a supplied secret and that the gate is saturated, which the bootstrap
+   RFC 6749 §5.2 lists no error code for a token endpoint that is temporarily unable to serve; the family answers its rate limits
+   there with `temporarily_unavailable` (RFC 6749 §4.1.2.1's code) and `429`, and a client that knows only the §5.2
+   codes still sees an HTTP `503` with `Retry-After`, which generic HTTP retry handles. The trade-off: a refusal tells
+   the caller that the client holds a supplied secret and that the gate is saturated, which the bootstrap
    administrator's and the conformance clients' known `client_id`s already reveal. Default limits on failed client
    authentications, counted before the client is authenticated, are tracked in
    [#533](https://github.com/NCodeGroup/Identity/issues/533).
@@ -136,33 +138,26 @@ a method that uses the secret as a key keeps it reversible, and every other meth
    `invalid_client_metadata` and the management API refuses the settings instead of accepting a client whose request
    objects can never be verified. A value the client inherits from its tenant is not judged.
 
-7. **Changing the registered method.** The form is fixed when the secret is issued and never converted:
-    - A client switched **to** `client_secret_jwt` needs a new secret: its verifiers authenticate no assertion until
-      the management API issues one, which is then reversible. The management API's `SecretResource` and
-      `CreatedSecretResource` carry `IsVerifier`, which the console shows on each secret, so the operator sees that
-      the client's secrets cannot sign an assertion. A dynamic client registration update that switches a
-      client to a method whose secret none of the client's unexpired shared secrets can serve issues a new
-      `client_secret` in its response (RFC 7592 §2.2) and removes the client's other shared secrets, which the client
-      discards. None of them could authenticate the client any longer: for a compared method each has expired, and for
-      a method that keys from its secret each is a verifier, which no method the client may use accepts, because a
-      client authenticates only with the method it is registered for
-      ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)).
-    - A client switched **away** from `client_secret_jwt` keeps its reversible secret, which still authenticates a
-      compared method. Its replacement on the next rotation is a verifier.
+7. **The stored form follows the method.** A client's method changes only through its own settings, which dynamic
+   client registration's update and the management API's settings update write, and both bring the client's shared
+   secrets into the method's form through `IClientSecretIssuer.ReconcileClientSecrets`, the same rule at both entry
+   points:
+    - For a method that does not use the secret as a key, each shared secret stored as its octets is replaced by its
+      verifier, made with the scheme its `Origin` fits: the generated-secret scheme for a secret the server generated,
+      and the supplied-secret scheme otherwise. The client keeps its secret, and the server cannot read it back.
+    - When the method authenticates with a shared secret and none of the client's unexpired shared secrets can serve
+      it, as a verifier cannot serve a method that keys from its secret, a new secret is issued in the method's form
+      and replaces every other shared secret. None of them could authenticate the client any longer, because a client
+      authenticates only with the method it is registered for
+      ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)). Dynamic client registration
+      returns the issued `client_secret` in its response (RFC 7592 §2.2), and the management API's settings update
+      answers `200 OK` with the `CreatedSecretResource` of the issued secret, revealed only there, and `204 No Content`
+      when the client keeps a secret it holds. Issuing the secret needs the authority creating a secret needs.
 
-8. **Existing secrets cut over cleanly; replicas upgrade together.** No migration converts stored secrets: the
-   encoding is a column the schema already has, and a `symmetric_raw` secret stored before this decision authenticates
-   as a reversible one until it is rotated or deleted. Nothing is shipped
-   ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so no deployment has to be rewritten. A replica of
-   the previous build reads a `verifier` row as a symmetric key, whose type refuses the encoding by name, so it fails
-   closed ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)): the client's resolution fails as an
-   unreadable credential, answered `invalid_client`, and the client authenticates nowhere on that replica, with no
-   credential either. During a rolling deployment a client issued a verifier by an upgraded replica therefore fails on
-   the replicas not yet upgraded, so every replica is upgraded together. Rolling back after verifiers are issued leaves
-   each such client unable to authenticate until it is issued a new secret by the rolled-back build: rotate it through
-   the management API, or restart the seeds for the bootstrap administrator and the conformance clients.
+   The management API's `SecretResource` and `CreatedSecretResource` carry `IsVerifier`, which the console shows on
+   each secret, so an operator sees which secrets cannot sign an assertion.
 
-9. **Shown once.** A generated secret is still revealed only in the response that issues it
+8. **Shown once.** A generated secret is revealed only in the response that issues it
    ([ADR-1050](1050-secret-material-revealed-once-on-create.md)); a verifier gives no read path anything to return.
 
 ## Options considered
@@ -176,12 +171,14 @@ a method that uses the secret as a key keeps it reversible, and every other meth
 - **Store the verifier without the envelope.** Rejected: every non-public encoding is an envelope
   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), and the envelope
   keeps a supplied secret's verifier from being searched offline without the root key.
-- **Convert a reversible secret to a verifier when its client leaves `client_secret_jwt`.** Rejected: whether the
-  stored secret was generated or supplied, and so which scheme fits it, is not recorded; the rotation that retires it
-  issues a verifier anyway.
-- **Refuse a switch to `client_secret_jwt` while the client holds only verifiers.** Rejected: the operator would have
-  to delete the client's secrets before switching and issue one after, and the switch already leaves the verifiers
-  unable to sign an assertion.
+- **Keep a client's reversible secret when its method stops using the secret as a key.** Rejected: the secret would
+  stay readable by whoever holds the root key for as long as the client keeps it, which is what this decision
+  forbids, and a method that compares its secret would have to compare it with keys as well as verifiers.
+- **Make every converted secret's verifier with the supplied-secret scheme.** Rejected: a generated secret would then
+  cost a derivation on every authentication; recording the origin makes the right scheme known.
+- **Refuse a switch to a method none of the client's secrets can serve.** Rejected: a client of dynamic client
+  registration cannot delete its secrets, so it could never make the switch, and an operator would have to delete the
+  client's secrets before the switch and issue one after; issuing the secret in the response does both.
 - **Issue a reversible secret to a client whose request objects are signed with `HS256`.** Rejected: whether a
   client's request objects are symmetric is a list of permitted values that its tenant may also supply, so the form
   would depend on settings that change after the secret is issued; a client that signs with its secret registers
@@ -190,14 +187,17 @@ a method that uses the secret as a key keeps it reversible, and every other meth
   anyone who knows a `client_id`, such as the bootstrap administrator's, could lock that client out, while the gate
   bounds the processors. Default limits on failed authentications are tracked in
   [#533](https://github.com/NCodeGroup/Identity/issues/533) as a complement, not a replacement.
-- **Let a verification wait for a turn without bound.** Rejected: the queue is then the attacker's, every PBKDF2
+- **Let a verification wait for a turn without bound.** Rejected: the queue is then the attacker's, every costly
   verification in the process waits behind it, and each waiter holds its request's connection and memory.
 - **Answer a refused verification with `invalid_client`.** Rejected: the secret was not compared, and a legitimate
   client told its credential is wrong stops instead of retrying.
+- **A gate for each scheme.** Rejected: each scheme with a work factor would have a concurrency budget of its own, so a
+  package's scheme would add processors to the bound instead of sharing it.
 - **Cap the supplied-secret verifiers a client holds.** Not needed: only the seeds store supplied secrets, one per
   client (decision 5).
-- **Validate the scheme names against the registered schemes.** Rejected: the validator would construct every scheme,
-  each reading options of its own, inside options validation; a descriptor is data.
+- **Register a descriptor of each scheme beside it, for the options validator to read.** Rejected: every package that
+  adds a scheme would keep two registrations in step; a scheme that reads its options only when it is used lets the
+  validator read the catalog itself.
 - **Cache a successful verification.** Rejected: it spares only a client that already authenticated, keeps a fast
   check of the secret in memory, and bounds nothing an attacker sends.
 - **A closed set of schemes.** Rejected: another scheme, such as Argon2id for supplied secrets or a FIPS-only one, is a
@@ -208,26 +208,30 @@ a method that uses the secret as a key keeps it reversible, and every other meth
 - A database backup and the root key together yield no `client_secret` of a client that compares its secret.
 - A client registered for `client_secret_basic` or `client_secret_post` cannot sign a request object with `HS256`,
   because its secret is no key, and registering such a value in its own settings is refused.
-- Each authentication of a client with a supplied secret that the cheap comparisons do not match costs one PBKDF2
-  derivation per stored PBKDF2 verifier, and waits for a turn when `Pbkdf2SecretVerifierOptions.MaxConcurrency`
-  derivations already run; under a flood of guesses, such a client's own requests wait with the guesses, and are
-  refused with `503` once the queue is full or the wait times out. A host can raise the work factor, or lower it
-  outside Production, and size the concurrency, the queue and its timeout with `Pbkdf2SecretVerifierOptions`.
-- A package that adds a secret verifier scheme registers its `SecretVerifierSchemeDescriptor` beside it, and a package
-  that adds a client-authentication method declares both of its secret traits.
-- Every replica is upgraded together, and a rollback after verifiers are issued needs those secrets reissued.
-- A client switched to `client_secret_jwt` through the management API fails authentication until a new secret is
-  created for it, and each of its secrets reports `IsVerifier` until then.
+- Each authentication of a client with a supplied secret that its verifiers without a work factor do not match costs
+  one PBKDF2 derivation per stored PBKDF2 verifier, and waits for a turn when
+  `SecretVerificationGateOptions.MaxConcurrency` costly verifications already run; under a flood of guesses, such a
+  client's own requests wait with the guesses, and are refused with `503` once the queue is full or the wait times
+  out. A host can raise the work factor with `Pbkdf2SecretVerifierOptions`, or lower it outside Production, and size
+  the concurrency, the queue and its timeout with `SecretVerificationGateOptions`.
+- A package that adds a secret verifier scheme registers it once, and a scheme with a work factor takes its turns from
+  `ISecretVerificationGate`; a package that adds a client-authentication method declares both of its secret traits.
+- A change of a client's method through its settings can replace its shared secrets: a reversible secret becomes a
+  verifier of the same secret, and a client left with no secret its method can use is issued one, which the response
+  to the change reveals once. A caller of the management API's settings update reads that response.
+- Every `PersistedSecret` carries its `Origin`, which every store of secrets persists.
 
 ## References
 
 - [`ISecretGenerator`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/ISecretGenerator.cs),
+  [`SecretOrigins`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/SecretOrigins.cs),
   [`SecretVerifierFormat`](../../src/NCode.Identity.Secrets.Persistence/Verifiers/SecretVerifierFormat.cs),
   [`Pbkdf2SecretVerifierScheme`](../../src/NCode.Identity.Secrets.Persistence/Verifiers/Pbkdf2SecretVerifierScheme.cs),
   [`SecretVerifier`](../../src/NCode.Identity.Secrets.Abstractions/Verifiers/SecretVerifier.cs),
-  [`ISecretVerifierScheme`](../../src/NCode.Identity.Secrets.Abstractions/Verifiers/ISecretVerifierScheme.cs)
+  [`ISecretVerifierScheme`](../../src/NCode.Identity.Secrets.Abstractions/Verifiers/ISecretVerifierScheme.cs),
+  [`ISecretVerificationGate`](../../src/NCode.Identity.Secrets.Abstractions/Verifiers/ISecretVerificationGate.cs)
 - [`IClientSecretIssuer`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Clients/IClientSecretIssuer.cs),
-  [`SecretVerificationGate`](../../src/NCode.Identity.Secrets.Persistence/Verifiers/SecretVerificationGate.cs),
+  [`DefaultSecretVerificationGate`](../../src/NCode.Identity.Secrets.Persistence/Verifiers/DefaultSecretVerificationGate.cs),
   [`CommonClientAuthenticationHandler`](../../src/NCode.Identity.OpenId.Authentication/Clients/Handlers/CommonClientAuthenticationHandler.cs),
   [`DefaultOpenIdClientResolver`](../../src/NCode.Identity.OpenId.Authentication/Clients/DefaultOpenIdClientResolver.cs)
 - [`ClientSecretKeyCoherenceRule`](../../src/NCode.Identity.OpenId.Authentication/Clients/Coherence/ClientSecretKeyCoherenceRule.cs),

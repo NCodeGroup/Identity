@@ -103,7 +103,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Mock the enumerator the code actually calls** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
 - 👁 **Moq cannot match a `ReadOnlySpan<T>` / `Span<T>` argument** — template
-  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ISecretGenerator.ImportOneWaySharedSecret`).
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ISecretGenerator.ImportSharedSecretVerifier`).
 - 👁 **Compute a setup's expected value outside the Moq expression** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`CS8640`, `CS9226`):
   `var expectedKey = ExpiringKeys.Create(…);`.

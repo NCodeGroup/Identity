@@ -12,10 +12,10 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides the ability to produce a <see cref="PersistedSecret"/> whose stored value is protected under the owner's
 /// master key. The <c>Generate…</c> methods create fresh material server-side, so private key material is never
 /// supplied by the caller; the <c>Import…</c> methods persist a <strong>caller-supplied</strong> shared-secret value.
-/// A shared secret (for example an OAuth <c>client_secret</c>) is stored in one of two forms, chosen when it is issued:
-/// as a one-way verifier (<see cref="SecretEncodings.Verifier"/>) when it is only ever compared, or as its UTF-8 octets
+/// A shared secret (for example an OAuth <c>client_secret</c>) is stored in one of two forms: as a one-way verifier
+/// (<see cref="SecretEncodings.Verifier"/>) when it is only ever compared, or as its UTF-8 octets
 /// (<see cref="SecretEncodings.SymmetricRaw"/>) when the server also uses it as a key, as <c>client_secret_jwt</c>
-/// uses it as an HMAC key.
+/// uses it as an HMAC key. Every secret records its <see cref="PersistedSecret.Origin"/>.
 /// </summary>
 // See ADR-1110 and ADR-1391.
 [PublicAPI]
@@ -39,18 +39,18 @@ public interface ISecretGenerator
     /// one-time <see cref="GeneratedSecret.SecretMaterial"/>, alongside a <see cref="PersistedSecret"/> that stores
     /// only its one-way verifier, made by the scheme configured for generated secrets (by default
     /// <see cref="SecretVerifierSchemes.Sha256"/>), protected under the owner's master key with the specified
-    /// <paramref name="protector"/>. The secret cannot be read back from what is stored. The
-    /// request's <see cref="GenerateSecretRequest.KeySizeBits"/> sets the random entropy; it must be a multiple of 8
-    /// and at least <see cref="SharedSecretPolicy.MinimumEntropyBits"/>; its
-    /// <see cref="GenerateSecretRequest.SecretType"/> must be <c>Symmetric</c>.
+    /// <paramref name="protector"/>. The secret cannot be read back from what is stored.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
-    /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the shared secret to generate.</param>
+    /// <param name="request">The <see cref="SharedSecretRequest"/> describing the shared secret to generate, whose
+    /// <see cref="SharedSecretRequest.EntropyBits"/> sets the random entropy.</param>
     /// <returns>The <see cref="GeneratedSecret"/> with the protected verifier and the one-time opaque secret string to
     /// reveal.</returns>
-    GeneratedSecret GenerateOneWaySharedSecret(
+    /// <exception cref="System.ArgumentException">The entropy is not a multiple of 8 or is below
+    /// <see cref="SharedSecretPolicy.MinimumEntropyBits"/>.</exception>
+    GeneratedSecret GenerateSharedSecretVerifier(
         ISecretProtector protector,
-        GenerateSecretRequest request
+        SharedSecretRequest request
     );
 
     /// <summary>
@@ -58,16 +58,18 @@ public interface ISecretGenerator
     /// <c>client_secret</c> of a <c>client_secret_jwt</c> client, its HMAC key) and returns it as the one-time
     /// <see cref="GeneratedSecret.SecretMaterial"/>, alongside a <see cref="PersistedSecret"/> whose stored symmetric
     /// key material is the <strong>UTF-8 bytes of that string</strong>, protected under the owner's master key with the
-    /// specified <paramref name="protector"/>. The request is checked as
-    /// <see cref="GenerateOneWaySharedSecret(ISecretProtector, GenerateSecretRequest)"/> checks it.
+    /// specified <paramref name="protector"/>.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
-    /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the shared secret to generate.</param>
+    /// <param name="request">The <see cref="SharedSecretRequest"/> describing the shared secret to generate, whose
+    /// <see cref="SharedSecretRequest.EntropyBits"/> sets the random entropy.</param>
     /// <returns>The <see cref="GeneratedSecret"/> with the protected UTF-8 key material and the one-time opaque
     /// secret string to reveal.</returns>
+    /// <exception cref="System.ArgumentException">The entropy is not a multiple of 8 or is below
+    /// <see cref="SharedSecretPolicy.MinimumEntropyBits"/>.</exception>
     GeneratedSecret GenerateReversibleSharedSecret(
         ISecretProtector protector,
-        GenerateSecretRequest request
+        SharedSecretRequest request
     );
 
     /// <summary>
@@ -75,17 +77,17 @@ public interface ISecretGenerator
     /// <c>client_secret</c> an operator chose for a <c>client_secret_basic</c> client) as a <see cref="PersistedSecret"/>
     /// that stores only its one-way verifier, made by the scheme configured for supplied secrets (by default the
     /// PBKDF2-HMAC-SHA256 <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/>), protected under the owner's master key
-    /// with the specified <paramref name="protector"/>. Nothing is revealed, because the
-    /// caller already holds the value. The secret's bit length is derived from <paramref name="secretValue"/>.
+    /// with the specified <paramref name="protector"/>. Nothing is revealed, because the caller already holds the
+    /// value. The secret's bit length is derived from <paramref name="secretValue"/>.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
-    /// <param name="request">The <see cref="ImportSharedSecretRequest"/> describing the secret's metadata.</param>
+    /// <param name="request">The <see cref="SharedSecretRequest"/> describing the secret's metadata.</param>
     /// <param name="secretValue">The UTF-8 octets of the opaque shared-secret string. Must not be empty.</param>
     /// <returns>The imported <see cref="PersistedSecret"/> with the protected verifier.</returns>
     /// <exception cref="System.ArgumentException"><paramref name="secretValue"/> is empty.</exception>
-    PersistedSecret ImportOneWaySharedSecret(
+    PersistedSecret ImportSharedSecretVerifier(
         ISecretProtector protector,
-        ImportSharedSecretRequest request,
+        SharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
     );
 
@@ -94,17 +96,40 @@ public interface ISecretGenerator
     /// the <c>client_secret</c> an operator chose for a <c>client_secret_jwt</c> client) as a <c>Symmetric</c>
     /// <see cref="PersistedSecret"/> whose stored key material is exactly the supplied UTF-8 octets, protected under the
     /// owner's master key with the specified <paramref name="protector"/>, in the shape
-    /// <see cref="GenerateReversibleSharedSecret(ISecretProtector, GenerateSecretRequest)"/> produces. The secret's bit
+    /// <see cref="GenerateReversibleSharedSecret(ISecretProtector, SharedSecretRequest)"/> produces. The secret's bit
     /// length is derived from <paramref name="secretValue"/>.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
-    /// <param name="request">The <see cref="ImportSharedSecretRequest"/> describing the secret's metadata.</param>
+    /// <param name="request">The <see cref="SharedSecretRequest"/> describing the secret's metadata.</param>
     /// <param name="secretValue">The UTF-8 octets of the opaque shared-secret string. Must not be empty.</param>
     /// <returns>The imported <see cref="PersistedSecret"/> with the protected UTF-8 key material.</returns>
     /// <exception cref="System.ArgumentException"><paramref name="secretValue"/> is empty.</exception>
     PersistedSecret ImportReversibleSharedSecret(
         ISecretProtector protector,
-        ImportSharedSecretRequest request,
+        SharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
+    );
+
+    /// <summary>
+    /// Stores the one-way verifier of a shared secret that is stored as its UTF-8 octets, as a new
+    /// <see cref="PersistedSecret"/> under the specified identifier that keeps the secret's use, algorithm, dates, size
+    /// and origin. The verifier is made by the scheme configured for the secret's
+    /// <see cref="PersistedSecret.Origin"/>: the scheme for generated secrets when the server generated it, and the
+    /// scheme for supplied secrets otherwise. The secret that is converted is left as it is, for the caller to remove.
+    /// </summary>
+    /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret, which unprotects the
+    /// stored octets and protects the verifier.</param>
+    /// <param name="secret">The shared secret stored as its UTF-8 octets
+    /// (<see cref="SecretEncodings.SymmetricRaw"/>).</param>
+    /// <param name="secretId">The natural identifier to assign to the verifier.</param>
+    /// <returns>The <see cref="PersistedSecret"/> with the protected verifier.</returns>
+    /// <exception cref="System.InvalidOperationException"><paramref name="secret"/> is not a symmetric secret stored
+    /// as its octets.</exception>
+    /// <exception cref="System.Security.Cryptography.CryptographicException">The stored octets cannot be
+    /// unprotected.</exception>
+    PersistedSecret ConvertToSharedSecretVerifier(
+        ISecretProtector protector,
+        PersistedSecret secret,
+        string secretId
     );
 }

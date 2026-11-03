@@ -120,6 +120,7 @@ internal class ClientApiEndpointHandler(
             ExpiresWhen = metadata.ExpiresWhen,
             SecretType = secret.SecretType,
             SecretEncoding = secret.SecretEncoding,
+            Origin = secret.Origin,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
             PublicKey = secret.PublicKey,
@@ -174,10 +175,13 @@ internal class ClientApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
 
         clients.MapGet("/{clientId}/settings", GetSettingsAsync).Produces<ClientSettingsResource>();
+        // The response may reveal a secret the change issues, so no cache may keep it (ADR-1345).
         clients
             .MapPatch("/{clientId}/settings", UpdateSettingsAsync)
+            .Produces<CreatedSecretResource>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status204NoContent)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .WithNoStore();
         clients
             .MapGet("/{clientId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ClientEffectiveSettingsResource>();
@@ -374,34 +378,34 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Resolves the client-authentication method a shared secret issued to a client is stored for: the client's
-    /// effective <c>token_endpoint_auth_method</c>, resolved as the runtime resolves it. The
-    /// <see cref="IClientSecretIssuer"/> stores the secret in the form that method needs, so a client switched to a
-    /// method that uses the secret as a key needs a new secret.
+    /// Resolves the client-authentication method a client with the specified settings document is registered for,
+    /// through the <see cref="IClientSecretIssuer"/>, which stores the client's shared secrets in the form that method
+    /// needs.
     /// </summary>
-    /// <param name="client">The <see cref="PersistedClient"/> the secret is issued to.</param>
+    /// <param name="client">The <see cref="PersistedClient"/>.</param>
+    /// <param name="clientSettings">The client's settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective method, or <see langword="null"/> when the owning tenant's settings are absent,
-    /// which the issuer stores as a one-way verifier.</returns>
-    /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or the server's cannot be
-    /// honored.</exception>
+    /// <returns>The client's effective <c>token_endpoint_auth_method</c>.</returns>
     // See ADR-1391.
-    internal virtual async ValueTask<string?> GetTokenEndpointAuthMethodAsync(
+    private async ValueTask<string> GetTokenEndpointAuthMethodAsync(
         PersistedClient client,
+        JsonElement clientSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var effectiveSettings = await MergeClientSettingsAsync(
+        var tenantSettings = await storeManager
+            .GetStore<ITenantStore>()
+            .GetSettingsOrDefaultAsync(client.TenantId, cancellationToken);
+
+        return await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
             client.TenantId,
+            tenantSettings?.Value,
             client.ClientId,
-            client.Settings.Value,
-            storeManager,
+            clientSettings,
             cancellationToken
         );
-
-        return effectiveSettings?.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod);
     }
 
     /// <summary>
@@ -927,14 +931,20 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Updates a client's settings.
+    /// Updates a client's settings. The client's shared secrets are brought into the form the method the settings
+    /// register needs, through the <see cref="IClientSecretIssuer"/>: a secret stored as its octets is replaced by its
+    /// one-way verifier when the method only compares it, and when the method authenticates with a shared secret that
+    /// none of the client's unexpired secrets can serve, a new secret takes their place and is revealed in this
+    /// response only.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="204">The client's settings were updated.</response>
+    /// <response code="200">The client's settings were updated, and the client was issued the secret in the body, whose
+    /// material is revealed only here.</response>
+    /// <response code="204">The client's settings were updated, and the client keeps a secret it holds.</response>
     [EndpointName("api/clients/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -1018,9 +1028,52 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(effectiveSettingErrors);
         }
 
+        // The client's shared secrets follow the method the settings register: the same rule dynamic client registration
+        // applies to an update. See ADR-1391.
+        var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
+            client,
+            settingsValue,
+            storeManager,
+            cancellationToken
+        );
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+        var reconciliation = ClientSecretIssuer.ReconcileClientSecrets(
+            protector,
+            tokenEndpointAuthMethod,
+            client.Secrets.Value
+        );
+
+        // Issuing a secret is creating one, which needs the authority CreateSecretAsync needs.
+        if (reconciliation.IssuedSecret is not null)
+        {
+            var createResult = await AuthorizationService.AuthorizeAsync(
+                httpContext.User,
+                client,
+                Operations.Create
+            );
+            if (!createResult.Succeeded)
+            {
+                return AuthorizationFailed(httpContext);
+            }
+        }
+
         clientSettings.Value = settingsValue;
 
         await store.UpdateSettingsAsync(clientSettings, cancellationToken);
+
+        foreach (var secret in reconciliation.RemovedSecrets)
+        {
+            await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
+        }
+
+        foreach (var secret in reconciliation.AddedSecrets)
+        {
+            await store.AddSecretAsync(clientId, secret, cancellationToken);
+        }
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -1033,9 +1086,48 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
+        await RecordSecretChangesAsync(httpContext, client, reconciliation, cancellationToken);
+
         httpContext.Response.Headers.ETag = clientSettings.ConcurrencyToken;
 
-        return TypedResults.NoContent();
+        // The issued secret's material is revealed here only (ADR-1050).
+        return reconciliation.IssuedSecret is { } issued
+            ? TypedResults.Ok(ToCreatedSecretResource(issued.Secret, issued.SecretMaterial))
+            : TypedResults.NoContent();
+    }
+
+    private async ValueTask RecordSecretChangesAsync(
+        HttpContext httpContext,
+        PersistedClient client,
+        ClientSecretReconciliation reconciliation,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var secret in reconciliation.RemovedSecrets)
+        {
+            await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+                httpContext,
+                client.TenantId,
+                client.ClientId,
+                secret.SecretId,
+                ResourceChangeTypes.Deleted,
+                ToResourceValues(ToSecretResource(secret)),
+                cancellationToken
+            );
+        }
+
+        foreach (var secret in reconciliation.AddedSecrets)
+        {
+            await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+                httpContext,
+                client.TenantId,
+                client.ClientId,
+                secret.SecretId,
+                ResourceChangeTypes.Created,
+                ToResourceValues(ToSecretResource(secret)),
+                cancellationToken
+            );
+        }
     }
 
     /// <summary>
@@ -1131,7 +1223,12 @@ internal class ClientApiEndpointHandler(
 
         var isSharedSecret = request.SecretType == SecretTypes.Symmetric;
         var tokenEndpointAuthMethod = isSharedSecret
-            ? await GetTokenEndpointAuthMethodAsync(client, storeManager, cancellationToken)
+            ? await GetTokenEndpointAuthMethodAsync(
+                client,
+                client.Settings.Value,
+                storeManager,
+                cancellationToken
+            )
             : null;
 
         var secretId = CryptoService.GenerateResourceId();
@@ -1145,29 +1242,40 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            var generateRequest = new GenerateSecretRequest
-            {
-                SecretId = secretId,
-                SecretType = request.SecretType,
-                KeySizeBits = request.KeySizeBits,
-                Curve = request.Curve,
-                Use = request.Use,
-                Algorithm = request.Algorithm,
-                CreatedWhen = TimeProvider.GetUtcNow(),
-                ExpiresWhen = request.ExpiresWhen,
-            };
+            var createdWhen = TimeProvider.GetUtcNow();
 
             // A client's symmetric secret is its client_secret, presented verbatim for client_secret_basic/post and
             // used as the HMAC key for client_secret_jwt: the issuer stores it in the form the client's method needs,
             // never as the raw-byte / base64url-reveal crypto-key material GenerateSecret produces (which never UTF-8
             // round-trips). See ADR-1110 and ADR-1391.
-            generatedSecret = isSharedSecret
+            generatedSecret = tokenEndpointAuthMethod is not null
                 ? ClientSecretIssuer.GenerateClientSecret(
                     protector,
                     tokenEndpointAuthMethod,
-                    generateRequest
+                    new SharedSecretRequest
+                    {
+                        SecretId = secretId,
+                        Use = request.Use,
+                        Algorithm = request.Algorithm,
+                        CreatedWhen = createdWhen,
+                        ExpiresWhen = request.ExpiresWhen,
+                        EntropyBits = request.KeySizeBits,
+                    }
                 )
-                : SecretGenerator.GenerateSecret(protector, generateRequest);
+                : SecretGenerator.GenerateSecret(
+                    protector,
+                    new GenerateSecretRequest
+                    {
+                        SecretId = secretId,
+                        SecretType = request.SecretType,
+                        KeySizeBits = request.KeySizeBits,
+                        Curve = request.Curve,
+                        Use = request.Use,
+                        Algorithm = request.Algorithm,
+                        CreatedWhen = createdWhen,
+                        ExpiresWhen = request.ExpiresWhen,
+                    }
+                );
         }
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)
@@ -1643,9 +1751,10 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        // The replacement's form follows the method the client is registered for now, not the rotated secret's.
+        // The replacement's form follows the method the client is registered for, whatever the rotated secret's form.
         var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
             client,
+            client.Settings.Value,
             storeManager,
             cancellationToken
         );
@@ -1666,15 +1775,14 @@ internal class ClientApiEndpointHandler(
             generatedSecret = ClientSecretIssuer.GenerateClientSecret(
                 protector,
                 tokenEndpointAuthMethod,
-                new GenerateSecretRequest
+                new SharedSecretRequest
                 {
                     SecretId = replacementId,
-                    SecretType = createRequest.SecretType,
-                    KeySizeBits = createRequest.KeySizeBits,
                     Use = createRequest.Use,
                     Algorithm = createRequest.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),
                     ExpiresWhen = createRequest.ExpiresWhen,
+                    EntropyBits = createRequest.KeySizeBits,
                 }
             );
         }

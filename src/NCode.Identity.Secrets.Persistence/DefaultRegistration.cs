@@ -5,7 +5,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Collections.Providers;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -50,8 +49,9 @@ public static class DefaultRegistration
         /// material.</description></item>
         /// <item><description><see cref="ISecretVerifierSchemeCatalog"/> - Looks up the registered
         /// <see cref="ISecretVerifierScheme"/> instances, which the <see cref="SecretVerifierSchemes.Sha256"/> and
-        /// <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/> schemes join as a collection, each with a
-        /// <see cref="SecretVerifierSchemeDescriptor"/> that the options are validated against.</description></item>
+        /// <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/> schemes join as a collection.</description></item>
+        /// <item><description><see cref="ISecretVerificationGate"/> - Bounds the verifications with a work factor that
+        /// run and wait at once, whatever their scheme.</description></item>
         /// <item><description><see cref="TimeProvider"/> - Supplies the current time, defaulting to
         /// <see cref="TimeProvider.System"/>.</description></item>
         /// <item><description><see cref="IKeyWrapper"/> - The ephemeral and local root key providers,
@@ -64,8 +64,8 @@ public static class DefaultRegistration
         /// the cached, persisted master key ring.</description></item>
         /// <item><description>Options for <see cref="SecretProtectionOptions"/> and
         /// <see cref="LocalKeyWrapperOptions"/>, which are bound to configuration elsewhere, and for
-        /// <see cref="SharedSecretVerifierOptions"/> and <see cref="Pbkdf2SecretVerifierOptions"/>, which are validated
-        /// as the host starts.</description></item>
+        /// <see cref="SharedSecretVerifierOptions"/>, <see cref="Pbkdf2SecretVerifierOptions"/> and
+        /// <see cref="SecretVerificationGateOptions"/>, which are validated as the host starts.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAdd*</c> semantics, meaning existing registrations
@@ -83,8 +83,8 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ISecretGenerator, DefaultSecretGenerator>();
             serviceCollection.TryAddSingleton<ISecretImporter, DefaultSecretImporter>();
 
-            // Shared secret verifiers: a package adds a scheme by registering another ISecretVerifierScheme and a
-            // SecretVerifierSchemeDescriptor of its name. See ADR-1391.
+            // Shared secret verifiers: a package adds a scheme by registering another ISecretVerifierScheme, and a scheme
+            // with a work factor takes its turns from the one ISecretVerificationGate. See ADR-1391.
             serviceCollection.TryAddSingleton<
                 ISecretVerifierSchemeCatalog,
                 DefaultSecretVerifierSchemeCatalog
@@ -95,12 +95,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ISecretVerifierScheme, Pbkdf2SecretVerifierScheme>()
             );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    ICollectionDataSource<SecretVerifierSchemeDescriptor>,
-                    DefaultSecretVerifierSchemeDataSource
-                >()
-            );
+            serviceCollection.TryAddSingleton<
+                ISecretVerificationGate,
+                DefaultSecretVerificationGate
+            >();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<SharedSecretVerifierOptions>,
@@ -111,6 +109,12 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     IValidateOptions<Pbkdf2SecretVerifierOptions>,
                     Pbkdf2SecretVerifierOptionsValidator
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<SecretVerificationGateOptions>,
+                    SecretVerificationGateOptionsValidator
                 >()
             );
 
@@ -130,6 +134,7 @@ public static class DefaultRegistration
             serviceCollection.AddOptions<LocalKeyWrapperOptions>();
             serviceCollection.AddOptions<SharedSecretVerifierOptions>().ValidateOnStart();
             serviceCollection.AddOptions<Pbkdf2SecretVerifierOptions>().ValidateOnStart();
+            serviceCollection.AddOptions<SecretVerificationGateOptions>().ValidateOnStart();
 
             return newBuilder;
         }

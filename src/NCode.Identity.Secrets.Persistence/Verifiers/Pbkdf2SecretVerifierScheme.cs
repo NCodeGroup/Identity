@@ -16,13 +16,15 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 /// Provides the <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/> scheme,
 /// <c>$ncode-pbkdf2-sha256$&lt;iterations&gt;$&lt;salt&gt;$&lt;derived key&gt;</c> with the salt and the derived key
 /// base64url-encoded: the format and the parameters of the family's password hashes. It verifies a secret someone
-/// chose, whose entropy is unknown. Every verifier it reads shares one gate, so at most
-/// <see cref="Pbkdf2SecretVerifierOptions.MaxConcurrency"/> derivations run at once in the process and at most
-/// <see cref="Pbkdf2SecretVerifierOptions.MaxQueueLength"/> wait, each for at most
-/// <see cref="Pbkdf2SecretVerifierOptions.QueueTimeout"/>.
+/// chose, whose entropy is unknown. Every verifier it reads takes its turns from the process's
+/// <see cref="ISecretVerificationGate"/>. Constructing the scheme reads no options, so the options that choose a scheme
+/// by name are validated against the catalog without reading the options of the scheme.
 /// </summary>
 // See ADR-1391.
-internal sealed class Pbkdf2SecretVerifierScheme : ISecretVerifierScheme, IDisposable
+internal sealed class Pbkdf2SecretVerifierScheme(
+    IOptions<Pbkdf2SecretVerifierOptions> optionsAccessor,
+    ISecretVerificationGate gate
+) : ISecretVerifierScheme
 {
     /// <summary>
     /// Gets the length, in bytes, of the random salt of a new verifier, as the family's password hashes use.
@@ -38,98 +40,18 @@ internal sealed class Pbkdf2SecretVerifierScheme : ISecretVerifierScheme, IDispo
     private const int MinDerivedKeyByteCount = 16;
     private const int MaxByteCount = 256;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Pbkdf2SecretVerifierScheme"/> class.
-    /// </summary>
-    /// <param name="optionsAccessor">The accessor of the <see cref="Pbkdf2SecretVerifierOptions"/>.</param>
-    /// <param name="timeProvider">The <see cref="TimeProvider"/> that times a verification's wait for its turn.</param>
-    /// <exception cref="InvalidOperationException">The options name a concurrency, a queue length or a queue timeout
-    /// out of range, which their validator reports as the host starts.</exception>
-    public Pbkdf2SecretVerifierScheme(
-        IOptions<Pbkdf2SecretVerifierOptions> optionsAccessor,
-        TimeProvider timeProvider
-    )
-    {
-        var options = optionsAccessor.Value;
-        Iterations = options.Iterations;
-        Gate = CreateGate(options, timeProvider);
-    }
+    private IOptions<Pbkdf2SecretVerifierOptions> OptionsAccessor { get; } = optionsAccessor;
 
-    private int Iterations { get; }
-
-    /// <summary>
-    /// Gets the gate that every verifier the scheme reads waits on for its turn.
-    /// </summary>
-    internal SecretVerificationGate Gate { get; }
-
-    // The validator reports an option out of range as the host starts; a scheme constructed without it fails by the
-    // option's name rather than as a caller's bad argument.
-    private static SecretVerificationGate CreateGate(
-        Pbkdf2SecretVerifierOptions options,
-        TimeProvider timeProvider
-    )
-    {
-        if (options.MaxConcurrency < 1)
-        {
-            throw OptionOutOfRange(
-                nameof(Pbkdf2SecretVerifierOptions.MaxConcurrency),
-                options.MaxConcurrency,
-                "at least 1"
-            );
-        }
-
-        if (options.MaxQueueLength < 0)
-        {
-            throw OptionOutOfRange(
-                nameof(Pbkdf2SecretVerifierOptions.MaxQueueLength),
-                options.MaxQueueLength,
-                "at least 0"
-            );
-        }
-
-        if (!SecretVerificationGate.IsValidQueueTimeout(options.QueueTimeout))
-        {
-            throw OptionOutOfRange(
-                nameof(Pbkdf2SecretVerifierOptions.QueueTimeout),
-                options.QueueTimeout,
-                $"from 1 millisecond to {int.MaxValue} milliseconds"
-            );
-        }
-
-        return new SecretVerificationGate(
-            options.MaxConcurrency,
-            options.MaxQueueLength,
-            options.QueueTimeout,
-            timeProvider
-        );
-    }
-
-    private static InvalidOperationException OptionOutOfRange(
-        string optionName,
-        object value,
-        string range
-    ) =>
-        new(
-            $"'{nameof(Pbkdf2SecretVerifierOptions)}.{optionName}' is {value}; it must be {range}."
-        );
+    private ISecretVerificationGate Gate { get; } = gate;
 
     /// <inheritdoc />
     public string Name => SecretVerifierSchemes.Pbkdf2Sha256;
 
     /// <inheritdoc />
-    public void Dispose() => Gate.Dispose();
-
-    /// <inheritdoc />
     public void WriteParameters(ReadOnlySpan<byte> secret, IBufferWriter<byte> destination)
     {
-        var iterations = Iterations;
-        if (iterations < 1)
-        {
-            throw new InvalidOperationException(
-                $"'{nameof(Pbkdf2SecretVerifierOptions)}.{nameof(Pbkdf2SecretVerifierOptions.Iterations)}' is "
-                    + $"{iterations}; it must be at least 1."
-            );
-        }
+        // Pbkdf2SecretVerifierOptionsValidator checks the options when they are read.
+        var iterations = OptionsAccessor.Value.Iterations;
 
         Span<byte> salt = stackalloc byte[SaltByteCount];
         Span<byte> derivedKey = stackalloc byte[DerivedKeyByteCount];

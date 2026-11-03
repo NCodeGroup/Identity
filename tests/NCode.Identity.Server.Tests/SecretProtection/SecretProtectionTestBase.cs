@@ -51,10 +51,10 @@ public abstract class SecretProtectionTestBase : BaseTests
     /// <returns>The service provider, which is disposed with the test.</returns>
     protected ServiceProvider CreateSecretServices(SecretOwner owner)
     {
-        // The members that take a span (ImportOneWaySharedSecret, Unprotect) cannot be set up on a Moq mock, so a test of code
-        // that calls them uses the real services, built through the public registration. Only the master key store,
-        // which would otherwise be the database, is a strict mock that expects the ring to create the first master key
-        // of the owner and to save it.
+        // The members that take a span (ImportSharedSecretVerifier, Unprotect) cannot be set up on a Moq mock, so a test
+        // of code that calls them uses the real services, built through the public registration. Only the master key
+        // store, which would otherwise be the database, is a strict mock that expects the ring to create the first
+        // master key of the owner and to save it.
         var store = CreateStrictMock<IMasterKeyStore>();
         store
             .Setup(x => x.FindActiveAsync(owner, It.IsAny<CancellationToken>()))

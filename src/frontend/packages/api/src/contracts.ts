@@ -251,9 +251,8 @@ export type SecretResource = {
   readonly keySizeBits: number;
   // See ADR-1391.
   /**
-   * Whether the server holds only a one-way verifier of the shared secret: it authenticates `client_secret_basic` and
-   * `client_secret_post`, never `client_secret_jwt` or an `HS256` request object, so a client switched to such a method
-   * needs a new secret.
+   * Whether the server holds only a one-way verifier of the shared secret: it authenticates a method that compares the
+   * secret, never one that uses it as a key, such as `client_secret_jwt` or an `HS256` request object.
    */
   readonly isVerifier: boolean;
 };

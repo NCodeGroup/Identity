@@ -124,6 +124,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             ExpiresWhen = expiresWhen,
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "encoded",
         };

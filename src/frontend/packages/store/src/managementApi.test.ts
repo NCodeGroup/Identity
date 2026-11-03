@@ -1674,7 +1674,7 @@ describe('managementApi owner-generic cache invalidation', () => {
   );
 
   it.each(ownerCases)(
-    'updateSettings for the $key owner refetches only its settings',
+    'updateSettings for the $key owner refetches only its settings and secrets',
     async ({ key, owner }) => {
       const refetched = await refetchedByOwnerMutation((s) =>
         s.dispatch(
@@ -1687,7 +1687,10 @@ describe('managementApi owner-generic cache invalidation', () => {
         ),
       );
 
-      expect(refetched).toEqual([`settings:${key}`, `effective:${key}`]);
+      // A client's settings change can issue or convert its secrets, so the owner's secrets are refetched too.
+      expect([...refetched].sort()).toEqual(
+        [`effective:${key}`, `secrets:${key}`, `settings:${key}`].sort(),
+      );
     },
   );
 

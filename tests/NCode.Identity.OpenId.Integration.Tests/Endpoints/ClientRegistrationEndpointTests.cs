@@ -782,7 +782,7 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PutRegistration_WhenTheClientKeepsAUsableSecret_IssuesNoNewSecret()
+    public async Task PutRegistration_WhenSwitchedAwayFromClientSecretJwt_KeepsTheSecretAsAVerifier()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = factory.CreateClient(
@@ -794,7 +794,8 @@ public class ClientRegistrationEndpointTests
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
         );
 
-        // A secret the server can read back still authenticates a client that only compares it.
+        // The client keeps its secret, and the server cannot read it back: its octets are replaced by the verifier that
+        // fits a generated secret. See ADR-1391.
         var update = await UpdateAuthenticationMethodAsync(
             client,
             registration,
@@ -802,7 +803,9 @@ public class ClientRegistrationEndpointTests
         );
 
         Assert.False(update.TryGetProperty("client_secret", out _));
-        Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, stored.SecretEncoding);
+        Assert.Equal(SecretOrigins.Generated, stored.Origin);
         Assert.Null(
             await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
         );

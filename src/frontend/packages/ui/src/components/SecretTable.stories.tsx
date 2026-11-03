@@ -14,6 +14,7 @@ type Story = StoryObj<typeof SecretTable>;
 const base = {
   use: null,
   algorithm: null,
+  isVerifier: false,
   createdWhen: '2026-01-01T12:00:00Z',
 };
 

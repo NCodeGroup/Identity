@@ -143,23 +143,6 @@ public class SecretVerifierFormatTests
         Assert.False(await VerifyAsync(verifier, OtherSecret));
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-5)]
-    public void Write_WhenPbkdf2IterationsAreBelowOne_Throws(int iterations)
-    {
-        using var scheme = new Pbkdf2SecretVerifierScheme(
-            Microsoft.Extensions.Options.Options.Create(
-                TestSecretVerifierSchemes.CreateOptions(iterations)
-            ),
-            TimeProvider.System
-        );
-
-        Assert.Throws<InvalidOperationException>(() =>
-            SecretVerifierFormat.Write(scheme, Secret, new ArrayBufferWriter<byte>())
-        );
-    }
-
     #endregion
 
     #region TryParse Tests

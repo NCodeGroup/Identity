@@ -1562,6 +1562,7 @@ internal class TenantApiEndpointHandler(
             ExpiresWhen = request.ExpiresWhen,
             SecretType = secret.SecretType,
             SecretEncoding = secret.SecretEncoding,
+            Origin = secret.Origin,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
             PublicKey = secret.PublicKey,

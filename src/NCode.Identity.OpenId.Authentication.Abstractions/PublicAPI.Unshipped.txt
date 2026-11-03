@@ -1829,6 +1829,19 @@ NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescripto
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.SecretVerifiers.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Verifiers.SecretVerifier!>!
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.SecretVerifiers.init -> void
 NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer
-NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.CanAuthenticate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, string? tokenEndpointAuthMethod) -> bool
-NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.GenerateClientSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string? tokenEndpointAuthMethod, NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
-NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.ImportClientSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string? tokenEndpointAuthMethod, NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.GetTokenEndpointAuthMethodAsync(string! tenantId, System.Text.Json.JsonElement? tenantSettings, string! clientId, System.Text.Json.JsonElement clientSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.RequiresClientSecret(string! tokenEndpointAuthMethod) -> bool
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.GenerateClientSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string! tokenEndpointAuthMethod, NCode.Identity.Secrets.Persistence.SharedSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.ImportClientSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string! tokenEndpointAuthMethod, NCode.Identity.Secrets.Persistence.SharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.ReconcileClientSecrets(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string! tokenEndpointAuthMethod, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! secrets) -> NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation!
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.ClientSecretReconciliation() -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.Secrets.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.Secrets.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.RemovedSecrets.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.RemovedSecrets.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.AddedSecrets.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.AddedSecrets.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.IssuedSecret.get -> NCode.Identity.Secrets.Persistence.GeneratedSecret?
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.IssuedSecret.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.HasChanges.get -> bool

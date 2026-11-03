@@ -48,7 +48,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         IClientScopeService clientScopeService,
         ISecretSerializer secretSerializer,
         ISecretKeyTypeCatalog secretKeyTypeCatalog,
-        IClientAuthenticationMethodCatalog? clientAuthenticationMethodCatalog = null,
         IClientCoherenceValidator? clientCoherenceValidator = null
     ) =>
         new(
@@ -66,8 +65,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<ISectorIdentifierValidator>().Object,
             clientScopeService,
             CreateStrictMock<ISettingSerializer>().Object,
-            clientAuthenticationMethodCatalog
-                ?? CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
             clientCoherenceValidator ?? CreateStrictMock<IClientCoherenceValidator>().Object
         );
 
@@ -620,54 +617,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void IssuesClientSecret_WhenTheMethodIsRegistered_FollowsItsDescriptor(
-        bool requiresClientSecret
-    )
-    {
-        ClientAuthenticationMethodDescriptor? descriptor = new()
-        {
-            Name = "test_method",
-            RequiresClientSecret = requiresClientSecret,
-            UsesClientSecretAsKey = false,
-        };
-        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
-        mockCatalog.Setup(x => x.TryGet("test_method", out descriptor)).Returns(true).Verifiable();
-        var handler = CreateHandler(
-            CreateStrictMock<IClientScopeService>().Object,
-            CreateStrictMock<ISecretSerializer>().Object,
-            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
-            clientAuthenticationMethodCatalog: mockCatalog.Object
-        );
-
-        var issues = handler.IssuesClientSecret("test_method");
-
-        Assert.Equal(requiresClientSecret, issues);
-    }
-
-    [Fact]
-    public void IssuesClientSecret_WhenTheMethodIsNotRegistered_IssuesNone()
-    {
-        ClientAuthenticationMethodDescriptor? descriptor = null;
-        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
-        mockCatalog
-            .Setup(x => x.TryGet("unregistered_method", out descriptor))
-            .Returns(false)
-            .Verifiable();
-        var handler = CreateHandler(
-            CreateStrictMock<IClientScopeService>().Object,
-            CreateStrictMock<ISecretSerializer>().Object,
-            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
-            clientAuthenticationMethodCatalog: mockCatalog.Object
-        );
-
-        var issues = handler.IssuesClientSecret("unregistered_method");
-
-        Assert.False(issues);
-    }
-
     #endregion
 
     #region BuildSettingsObject
@@ -1129,6 +1078,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             ExpiresWhen = DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = secretEncoding,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
             PublicKey = publicKey,

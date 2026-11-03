@@ -11,10 +11,11 @@ namespace NCode.Identity.Secrets.Verifiers;
 /// <summary>
 /// Describes a scheme that makes and reads the one-way verifiers of shared secrets. A stored verifier is the text
 /// <c>$&lt;name&gt;$&lt;parameters&gt;</c>: the scheme's <see cref="Name"/>, then the parameters the scheme writes and
-/// reads. A package adds a scheme by registering it with a <see cref="SecretVerifierSchemeDescriptor"/> of the same
-/// name, and a stored verifier is read by the scheme its text names, so a verifier made with any registered scheme keeps
-/// verifying when the scheme chosen for new secrets changes. See <see cref="SecretVerifierSchemes"/> for the schemes
-/// the family registers.
+/// reads. A package adds a scheme by registering it, and a stored verifier is read by the scheme its text names, so a
+/// verifier made with any registered scheme keeps verifying when the scheme chosen for new secrets changes. A scheme
+/// whose verifiers have a work factor takes their turns from the <see cref="ISecretVerificationGate"/>, and reads its
+/// own options only when it makes or reads a verifier. See <see cref="SecretVerifierSchemes"/> for the schemes the
+/// family registers.
 /// </summary>
 // See ADR-1150 and ADR-1391.
 [PublicAPI]

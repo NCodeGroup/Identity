@@ -35,7 +35,7 @@ public sealed class OpenIdClientDefinition
     /// <summary>
     /// Gets the one-way verifiers of the shared secrets the client presents that the server only compares.
     /// </summary>
-    public IReadOnlyCollection<SecretVerifier> SecretVerifiers { get; init; } = [];
+    public required IReadOnlyCollection<SecretVerifier> SecretVerifiers { get; init; }
 
     /// <summary>
     /// Gets the identifier of the resource server the client acts for, or <c>null</c> for an ordinary client.

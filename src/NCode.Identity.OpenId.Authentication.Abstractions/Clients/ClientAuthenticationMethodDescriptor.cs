@@ -22,8 +22,8 @@ public sealed class ClientAuthenticationMethodDescriptor
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the method verifies a shared secret, so that a dynamically registered client of
-    /// the method is issued a <c>client_secret</c>. Every descriptor declares it.
+    /// Gets a value indicating whether the method verifies a shared secret, so that a client registered for the method
+    /// is issued a <c>client_secret</c> when it holds none the method can use. Every descriptor declares it.
     /// </summary>
     public required bool RequiresClientSecret { get; init; }
 

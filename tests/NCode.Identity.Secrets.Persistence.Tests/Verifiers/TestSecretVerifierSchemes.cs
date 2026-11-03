@@ -1,9 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Collections.Providers;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
@@ -18,21 +16,27 @@ internal static class TestSecretVerifierSchemes
     public static Pbkdf2SecretVerifierOptions CreateOptions(int iterations = Iterations) =>
         new() { Iterations = iterations };
 
-    public static DefaultSecretVerifierSchemeCatalog CreateCatalog(
-        Pbkdf2SecretVerifierOptions? options = null
+    public static DefaultSecretVerificationGate CreateGate(
+        SecretVerificationGateOptions? options = null,
+        TimeProvider? timeProvider = null
     ) =>
         new(
-            [
-                new Sha256SecretVerifierScheme(),
-                new Pbkdf2SecretVerifierScheme(
-                    Microsoft.Extensions.Options.Options.Create(options ?? CreateOptions()),
-                    TimeProvider.System
-                ),
-            ],
-            [new DefaultSecretVerifierSchemeDataSource()]
+            Microsoft.Extensions.Options.Options.Create(
+                options ?? new SecretVerificationGateOptions()
+            ),
+            timeProvider ?? TimeProvider.System
         );
 
-    public static ICollectionDataSource<SecretVerifierSchemeDescriptor> CreateDataSource(
-        params string[] names
-    ) => new TestSecretVerifierSchemeDataSource(names);
+    public static Pbkdf2SecretVerifierScheme CreatePbkdf2Scheme(
+        Pbkdf2SecretVerifierOptions? options = null,
+        DefaultSecretVerificationGate? gate = null
+    ) =>
+        new(
+            Microsoft.Extensions.Options.Options.Create(options ?? CreateOptions()),
+            gate ?? CreateGate()
+        );
+
+    public static DefaultSecretVerifierSchemeCatalog CreateCatalog(
+        Pbkdf2SecretVerifierOptions? options = null
+    ) => new([new Sha256SecretVerifierScheme(), CreatePbkdf2Scheme(options)]);
 }

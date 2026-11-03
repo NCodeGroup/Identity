@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -45,8 +44,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         SeededClientValidator? seededClientValidator = null
     )
     {
-        // The settings resolver is asked only when an existing client's secret is refreshed. Strict mocks: none of these
-        // collaborators are touched on the no-op guard paths.
+        // Strict mocks: none of these collaborators are touched on the no-op guard paths.
         var mockClientSecretIssuer = CreateStrictMock<IClientSecretIssuer>();
         var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
@@ -59,7 +57,6 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             mockCryptoService.Object,
             TimeProvider.System,
             seededClientValidator ?? CreateStrictSeededClientValidator(),
-            CreateStrictMock<IEffectiveSettingsResolver>().Object,
             mockLogger.Object
         );
     }
@@ -68,12 +65,12 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         BootstrapAdminOptions bootstrapOptions,
         ServiceProvider secretServices,
         SeededClientValidator? seededClientValidator = null,
-        IEffectiveSettingsResolver? effectiveSettingsResolver = null,
         IClientSecretIssuer? clientSecretIssuer = null
     )
     {
-        // The real generator and protector provider, because the generator's ImportOneWaySharedSecret takes a span that a
-        // Moq mock cannot set up; by default no method keys from its secret. The crypto service hands out the id of the one secret that the seed path creates.
+        // The real generator and protector provider, because the generator's ImportSharedSecretVerifier takes a span that
+        // a Moq mock cannot set up; by default no method keys from its secret. The crypto service hands out the id of the
+        // one secret that the seed path creates.
         var mockCryptoService = CreateStrictMock<ICryptoService>();
         mockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -91,54 +88,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             mockCryptoService.Object,
             TimeProvider.System,
             seededClientValidator ?? CreateStrictSeededClientValidator(),
-            effectiveSettingsResolver ?? CreateStrictMock<IEffectiveSettingsResolver>().Object,
             mockLogger.Object
         );
-    }
-
-    // Resolves the existing client's settings as the runtime resolves them, server, then tenant, then client, to the
-    // method the client is registered for now.
-    private IEffectiveSettingsResolver CreateExistingClientResolver(
-        JsonElement clientSettings,
-        string tokenEndpointAuthMethod
-    )
-    {
-        var server = CreateLooseMock<ISettingCollection>().Object;
-        var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
-        var mockClientSettings = CreateStrictMock<ISettingCollection>();
-        mockClientSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod))
-            .Returns(tokenEndpointAuthMethod)
-            .Verifiable();
-
-        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
-        mockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server)
-            .Verifiable();
-        mockResolver
-            .Setup(x =>
-                x.ResolveStored(
-                    server,
-                    OpenIdSettingScopes.Tenant,
-                    WorkloadTenantId,
-                    It.IsAny<JsonElement>()
-                )
-            )
-            .Returns(tenantSettings)
-            .Verifiable();
-        mockResolver
-            .Setup(x =>
-                x.ResolveStored(
-                    tenantSettings,
-                    OpenIdSettingScopes.Client,
-                    ClientId,
-                    clientSettings
-                )
-            )
-            .Returns(mockClientSettings.Object)
-            .Verifiable();
-        return mockResolver.Object;
     }
 
     // Strict mocks: none of the validator's collaborators is touched unless the seed reaches the check.
@@ -336,8 +287,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         bool usesClientSecretAsKey
     )
     {
-        // The refreshed secret's form follows the method the client is registered for now, which an operator may have
-        // changed since it was seeded. See ADR-1391.
+        // The refreshed secret's form follows the method the client is registered for, which an operator may set to
+        // another method than the seeded one. See ADR-1391.
         var owner = SecretOwner.ForTenant(WorkloadTenantId);
         var secretServices = CreateSecretServices(owner);
         var clientSettings = JsonElement.Parse(
@@ -346,14 +297,13 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         var issuer = new TestClientSecretIssuer(
             secretServices.GetRequiredService<ISecretGenerator>(),
             usesClientSecretAsKey ? [tokenEndpointAuthMethod] : []
-        );
+        )
+        {
+            ResolvedMethod = tokenEndpointAuthMethod,
+        };
         var handler = CreateHandler(
             CreateConfiguredOptions(),
             secretServices,
-            effectiveSettingsResolver: CreateExistingClientResolver(
-                clientSettings,
-                tokenEndpointAuthMethod
-            ),
             clientSecretIssuer: issuer
         );
 
@@ -385,6 +335,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = SecretEncodings.SymmetricRaw,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 8,
             EncodedValue = "nce1.stale",
         };
@@ -432,6 +383,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             CancellationToken.None
         );
 
+        var resolvedSettings = Assert.Single(issuer.ResolvedClientSettings);
+        Assert.Equal(clientSettings.GetRawText(), resolvedSettings.GetRawText());
         Assert.Equal([tokenEndpointAuthMethod], issuer.IssuedMethods);
         Assert.NotNull(addedSecret);
         if (usesClientSecretAsKey)
@@ -454,101 +407,6 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
                 SecretText
             );
         }
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenTheExistingClientsSettingsCannotBeRead_StoresAVerifier()
-    {
-        // A client whose settings cannot be read authenticates with no method, so the refresh still heals its secret,
-        // in the form its seeded client_secret_basic needs.
-        var owner = SecretOwner.ForTenant(WorkloadTenantId);
-        var secretServices = CreateSecretServices(owner);
-        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
-        mockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(
-                new UnreadableSettingsException(
-                    OpenIdSettingScopes.Server,
-                    "server",
-                    new JsonException("unreadable")
-                )
-            )
-            .Verifiable();
-        var issuer = new TestClientSecretIssuer(
-            secretServices.GetRequiredService<ISecretGenerator>(),
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
-        );
-        var handler = CreateHandler(
-            CreateConfiguredOptions(),
-            secretServices,
-            effectiveSettingsResolver: mockResolver.Object,
-            clientSecretIssuer: issuer
-        );
-
-        var existingClient = new PersistedClient
-        {
-            TenantId = WorkloadTenantId,
-            ClientId = ClientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = ClientId,
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = ClientId,
-                Value = [],
-            },
-        };
-
-        PersistedSecret? addedSecret = null;
-        var mockClientStore = CreateStrictMock<IClientStore>();
-        mockClientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<PersistedClient?>(existingClient))
-            .Verifiable();
-        mockClientStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<PersistedClientSecrets?>((PersistedClientSecrets?)null))
-            .Verifiable();
-        mockClientStore
-            .Setup(x =>
-                x.AddSecretAsync(
-                    ClientId,
-                    It.IsAny<PersistedSecret>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Callback(
-                (string _, PersistedSecret secret, CancellationToken _) => addedSecret = secret
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        await handler.HandleAsync(
-            CreateCommand(
-                WorkloadTenantId,
-                TenantPlane.Workload,
-                CreateStoreManager(mockClientStore.Object)
-            ),
-            CancellationToken.None
-        );
-
-        Assert.Equal(
-            [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic],
-            issuer.IssuedMethods
-        );
-        Assert.NotNull(addedSecret);
-        await AssertSecretIsVerifierUnderTenantAsync(
-            secretServices,
-            owner,
-            addedSecret,
-            GeneratedSecretId,
-            SecretText
-        );
     }
 
     [Fact]

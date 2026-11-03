@@ -229,7 +229,6 @@ NCode.Identity.Secrets.Verifiers.SecretVerificationResult
 NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Failed = 0 -> NCode.Identity.Secrets.Verifiers.SecretVerificationResult
 NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Success = 1 -> NCode.Identity.Secrets.Verifiers.SecretVerificationResult
 NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Unavailable = 2 -> NCode.Identity.Secrets.Verifiers.SecretVerificationResult
-NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor
-NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor.Name.get -> string!
-NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor.Name.init -> void
-NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor.SecretVerifierSchemeDescriptor() -> void
+NCode.Identity.Secrets.Verifiers.ISecretVerificationGate
+NCode.Identity.Secrets.Verifiers.ISecretVerificationGate.Release() -> void
+NCode.Identity.Secrets.Verifiers.ISecretVerificationGate.TryEnterAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

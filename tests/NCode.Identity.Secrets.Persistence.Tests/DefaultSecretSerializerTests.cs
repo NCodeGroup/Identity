@@ -90,6 +90,7 @@ public class DefaultSecretSerializerTests
             ExpiresWhen = expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = encodedValue,
             PublicKey = publicKey,
@@ -513,14 +514,7 @@ public class DefaultSecretSerializerTests
     {
         var serializer = new DefaultSecretSerializer(
             _catalog,
-            new DefaultSecretVerifierSchemeCatalog(
-                [new PlainTextSecretVerifierScheme()],
-                [
-                    TestSecretVerifierSchemes.CreateDataSource(
-                        PlainTextSecretVerifierScheme.SchemeName
-                    ),
-                ]
-            )
+            new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()])
         );
         var protector = CreateProtector();
         var persisted = CreateVerifierSecret(protector, "$test-plain$secret");

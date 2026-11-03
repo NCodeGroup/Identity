@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Moq;
 using NCode.Identity.Secrets.Persistence.Verifiers;
 using NCode.Identity.Secrets.Verifiers;
 using NCode.Registration;
@@ -12,7 +13,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 public class SharedSecretVerifierOptionsValidatorTests
 {
     private static SharedSecretVerifierOptionsValidator CreateValidator() =>
-        new([new DefaultSecretVerifierSchemeDataSource()]);
+        new(TestSecretVerifierSchemes.CreateCatalog());
 
     #region Validate Tests
 
@@ -39,17 +40,22 @@ public class SharedSecretVerifierOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_WhenAPackageDescribesAScheme_Succeeds()
+    public void Validate_WhenAPackageRegistersAScheme_Succeeds()
     {
-        var validator = new SharedSecretVerifierOptionsValidator([
-            new DefaultSecretVerifierSchemeDataSource(),
-            TestSecretVerifierSchemes.CreateDataSource("package-scheme"),
-        ]);
+        var packageScheme = new Mock<ISecretVerifierScheme>(MockBehavior.Strict);
+        packageScheme.Setup(scheme => scheme.Name).Returns("package-scheme").Verifiable();
+        var validator = new SharedSecretVerifierOptionsValidator(
+            new DefaultSecretVerifierSchemeCatalog([
+                new Sha256SecretVerifierScheme(),
+                packageScheme.Object,
+            ])
+        );
         var options = new SharedSecretVerifierOptions { SuppliedSecretScheme = "package-scheme" };
 
         var result = validator.Validate(null, options);
 
         Assert.True(result.Succeeded);
+        packageScheme.Verify();
     }
 
     [Fact]
@@ -123,6 +129,24 @@ public class SharedSecretVerifierOptionsValidatorTests
         var failure = Assert.Single(exception.Failures);
         Assert.Equal(
             "'Pbkdf2SecretVerifierOptions.Iterations' is 0; it must be at least 1.",
+            failure
+        );
+    }
+
+    [Fact]
+    public void AddPersistenceLibrary_WhenTheGateOptionsAreOutOfRange_FailsAsTheHostStarts()
+    {
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            ValidateOnStart(services =>
+                services.Configure<SecretVerificationGateOptions>(options =>
+                    options.MaxConcurrency = 0
+                )
+            )
+        );
+
+        var failure = Assert.Single(exception.Failures);
+        Assert.Equal(
+            "'SecretVerificationGateOptions.MaxConcurrency' is 0; it must be at least 1.",
             failure
         );
     }

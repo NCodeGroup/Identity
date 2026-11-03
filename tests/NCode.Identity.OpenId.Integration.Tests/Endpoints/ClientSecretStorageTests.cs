@@ -12,13 +12,14 @@ using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A client secret the server only compares is stored as a one-way verifier; a client registered for client_secret_jwt,
-// which keys an HMAC from its secret, is issued one the server can read back. The form is chosen when the secret is
-// issued, from the method the client is registered for then (ADR-1391).
+// which keys an HMAC from its secret, is issued one the server can read back. The stored form always matches the method
+// the client is registered for (ADR-1391).
 public class ClientSecretStorageTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
@@ -91,7 +92,7 @@ public class ClientSecretStorageTests
     }
 
     [Fact]
-    public async Task PatchSettings_WhenSwitchedToClientSecretJwt_NeedsANewSecret()
+    public async Task PatchSettings_WhenSwitchedToClientSecretJwt_IssuesASecretThatKeysTheAssertionAndRevealsItOnce()
     {
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
@@ -104,14 +105,29 @@ public class ClientSecretStorageTests
         );
         var (verifiedSecretId, verifiedSecret) = await CreateSecretAsync(administrator, clientId);
 
-        await SetAuthenticationMethodAsync(
+        // A verifier is no HMAC key, so the change issues a secret the server can read back, revealed only in its
+        // response, and removes the verifier, which cannot authenticate the client with that method.
+        var issued = await SetAuthenticationMethodAsync(
             administrator,
             clientId,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
         );
 
-        // A verifier is no HMAC key, so the secret issued for client_secret_post cannot sign an assertion, and the
-        // secret's resource says so, which tells the operator to create a new one.
+        Assert.NotNull(issued);
+        var (issuedSecretId, issuedSecret) = issued.Value;
+        Assert.NotEqual(verifiedSecretId, issuedSecretId);
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Equal(issuedSecretId, stored.SecretId);
+        Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
+        Assert.False(await IsVerifierAsync(administrator, clientId, issuedSecretId));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                issuedSecret,
+                issuer
+            )
+        );
         Assert.Equal(
             "invalid_client",
             await ClientAuthenticationProbe.RevokeWithAssertionAsync(
@@ -121,28 +137,10 @@ public class ClientSecretStorageTests
                 issuer
             )
         );
-        Assert.True(await IsVerifierAsync(administrator, clientId, verifiedSecretId));
-
-        var (keySecretId, keySecret) = await CreateSecretAsync(administrator, clientId);
-        Assert.False(await IsVerifierAsync(administrator, clientId, keySecretId));
-
-        var stored = Assert.Single(
-            await factory.GetClientSecretsAsync(clientId),
-            secret => secret.SecretId == keySecretId
-        );
-        Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
-        Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
-                client,
-                clientId,
-                keySecret,
-                issuer
-            )
-        );
     }
 
     [Fact]
-    public async Task PatchSettings_WhenSwitchedAwayFromClientSecretJwt_KeepsTheSecretAndRotatesToAVerifier()
+    public async Task PatchSettings_WhenSwitchedAwayFromClientSecretJwt_StoresTheSecretAsAVerifier()
     {
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
@@ -154,41 +152,30 @@ public class ClientSecretStorageTests
         );
         var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
 
-        await SetAuthenticationMethodAsync(
+        var issued = await SetAuthenticationMethodAsync(
             administrator,
             clientId,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
-        // The secret stays as it was issued, and a presented copy of it still authenticates.
+        // The client keeps its secret, which the server cannot read back: its octets are replaced by the
+        // verifier that fits a generated secret, and a presented copy of it authenticates the client.
+        Assert.Null(issued);
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.NotEqual(secretId, stored.SecretId);
+        Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
+        Assert.Equal(SecretOrigins.Generated, stored.Origin);
+        Assert.True(await IsVerifierAsync(administrator, clientId, stored.SecretId));
         Assert.Null(
             await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
         );
-
-        // Its replacement takes the form of the method the client is registered for now.
-        var (replacementId, replacementMaterial) = await RotateAsync(
-            administrator,
-            clientId,
-            secretId
-        );
-        var secrets = await factory.GetClientSecretsAsync(clientId);
         Assert.Equal(
-            SecretEncodings.SymmetricRaw,
-            Assert.Single(secrets, secret => secret.SecretId == secretId).SecretEncoding
-        );
-        Assert.Equal(
-            SecretEncodings.Verifier,
-            Assert.Single(secrets, secret => secret.SecretId == replacementId).SecretEncoding
-        );
-        Assert.Null(
+            "invalid_client",
             await ClientAuthenticationProbe.RevokeWithSecretAsync(
                 client,
                 clientId,
-                replacementMaterial
+                secretMaterial + "x"
             )
-        );
-        Assert.Null(
-            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
         );
     }
 
@@ -296,7 +283,11 @@ public class ClientSecretStorageTests
         return GetRequiredString(JsonElement.Parse(body), "clientId");
     }
 
-    private static async Task SetAuthenticationMethodAsync(
+    // Returns the secret the change issued, which its response reveals once, or null when the client keeps its secret.
+    private static async Task<(
+        string SecretId,
+        string SecretMaterial
+    )?> SetAuthenticationMethodAsync(
         HttpClient administrator,
         string clientId,
         string tokenEndpointAuthMethod
@@ -325,7 +316,18 @@ public class ClientSecretStorageTests
 
         using var response = await administrator.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
+        if (response.StatusCode == HttpStatusCode.NoContent)
+        {
+            return null;
+        }
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        Assert.True(response.Headers.CacheControl?.NoStore, body);
+        var jsonElement = JsonElement.Parse(body);
+        return (
+            GetRequiredString(jsonElement, "secretId"),
+            GetRequiredString(jsonElement, "secretMaterial")
+        );
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(
@@ -363,25 +365,6 @@ public class ClientSecretStorageTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body).GetProperty("isVerifier").GetBoolean();
-    }
-
-    private static async Task<(string SecretId, string SecretMaterial)> RotateAsync(
-        HttpClient administrator,
-        string clientId,
-        string secretId
-    )
-    {
-        using var response = await administrator.PostAsJsonAsync(
-            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}/rotate",
-            new { expiresWhen = DateTimeOffset.UtcNow.AddYears(1) }
-        );
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        var jsonElement = JsonElement.Parse(body);
-        return (
-            GetRequiredString(jsonElement, "secretId"),
-            GetRequiredString(jsonElement, "secretMaterial")
-        );
     }
 
     private static string GetRequiredString(JsonElement jsonElement, string propertyName)

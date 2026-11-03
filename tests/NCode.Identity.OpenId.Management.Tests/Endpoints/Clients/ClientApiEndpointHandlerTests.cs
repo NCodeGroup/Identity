@@ -422,6 +422,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
         };
@@ -440,6 +441,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "encoded",
         };
@@ -1171,12 +1173,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     // The client's effective token_endpoint_auth_method, which the client-secret issuer is handed to decide the form its
     // shared secret is issued in. See ADR-1391.
-    private void SetupRegisteredAuthenticationMethod(bool usesClientSecretAsKey)
-    {
-        var method = usesClientSecretAsKey
-            ? OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
-            : OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
+    private void SetupRegisteredAuthenticationMethod(bool usesClientSecretAsKey) =>
+        SetupRegisteredAuthenticationMethod(
+            usesClientSecretAsKey
+                ? OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+                : OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
 
+    // The issuer resolves the method from the tenant's stored settings and the client's settings document.
+    private void SetupRegisteredAuthenticationMethod(string method)
+    {
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(MockTenantStore.Object)
@@ -1185,12 +1191,18 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
-        var mockEffectiveSettings = MockRepository.Create<ISettingCollection>();
-        mockEffectiveSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod))
-            .Returns(method)
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GetTokenEndpointAuthMethodAsync(
+                    TenantId,
+                    It.Is<JsonElement?>(settings => settings.HasValue),
+                    ClientId,
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(method)
             .Verifiable();
-        SetupEffectiveSettingsResolver(mockEffectiveSettings.Object);
     }
 
     private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
@@ -1283,6 +1295,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
+        SetupReconciliation(UnchangedSecrets());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1430,6 +1443,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
+        SetupReconciliation(UnchangedSecrets());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1442,6 +1456,207 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    private static ClientSecretReconciliation UnchangedSecrets() =>
+        new()
+        {
+            Secrets = [],
+            RemovedSecrets = [],
+            AddedSecrets = [],
+        };
+
+    // The settings register client_secret_post; the issuer brings the client's secrets into its form.
+    private ISecretProtector SetupReconciliation(ClientSecretReconciliation reconciliation)
+    {
+        SetupRegisteredAuthenticationMethod(usesClientSecretAsKey: false);
+        var protector = SetupGenerateSecretProtector();
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.ReconcileClientSecrets(
+                    protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    It.IsAny<IReadOnlyCollection<PersistedSecret>>()
+                )
+            )
+            .Returns(reconciliation)
+            .Verifiable();
+        return protector;
+    }
+
+    private void SetupSettingsWrite()
+    {
+        MockClientStore
+            .Setup(x =>
+                x.UpdateSettingsAsync(
+                    It.IsAny<PersistedClientSettings>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenNoSharedSecretCanServeTheMethod_RevealsTheIssuedSecretOnce()
+    {
+        // The settings register a method none of the client's secrets can serve, so the issuer issues one, which this
+        // response reveals once, as dynamic client registration does. See ADR-1391.
+        var verifier = CreatePersistedSecret("verifier-1");
+        var issued = CreatePersistedSecret("issued-1", "issued-ct");
+        SetupClientChangedAudit();
+        SetupClientSecretChangedAudit();
+        SetupValidSettingsUpdate();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), verifier))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupEffectiveSettings();
+        SetupReconciliation(
+            new ClientSecretReconciliation
+            {
+                Secrets = [issued],
+                RemovedSecrets = [verifier],
+                AddedSecrets = [issued],
+                IssuedSecret = new GeneratedSecret
+                {
+                    Secret = issued,
+                    SecretMaterial = "issued-material",
+                },
+            }
+        );
+        SetupSettingsWrite();
+        MockClientStore
+            .Setup(x => x.RemoveSecretAsync(ClientId, "verifier-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, issued, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<CreatedSecretResource>>(result);
+        Assert.Equal("issued-1", ok.Value?.SecretId);
+        Assert.Equal("issued-material", ok.Value?.SecretMaterial);
+        Assert.Equal("settings-ct", httpContext.Response.Headers.ETag);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheIssuerConvertsASecret_StoresTheConversionAndRevealsNothing()
+    {
+        var reversible = CreatePersistedSecret("reversible-1");
+        var converted = CreatePersistedSecret("converted-1");
+        SetupClientChangedAudit();
+        SetupClientSecretChangedAudit();
+        SetupValidSettingsUpdate();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), reversible))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupEffectiveSettings();
+        SetupReconciliation(
+            new ClientSecretReconciliation
+            {
+                Secrets = [converted],
+                RemovedSecrets = [reversible],
+                AddedSecrets = [converted],
+            }
+        );
+        SetupSettingsWrite();
+        MockClientStore
+            .Setup(x =>
+                x.RemoveSecretAsync(ClientId, "reversible-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, converted, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheCallerMayNotCreateTheIssuedSecret_ReturnsForbiddenWithoutWriting()
+    {
+        // Issuing a secret is creating one, which needs the authority creating a secret needs.
+        var issued = CreatePersistedSecret("issued-1");
+        SetupValidSettingsUpdate();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        MockAuthorizationService
+            .SetupSequence(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .ReturnsAsync(AuthorizationResult.Failed());
+        SetupEffectiveSettings();
+        SetupReconciliation(
+            new ClientSecretReconciliation
+            {
+                Secrets = [issued],
+                RemovedSecrets = [],
+                AddedSecrets = [issued],
+                IssuedSecret = new GeneratedSecret
+                {
+                    Secret = issued,
+                    SecretMaterial = "issued-material",
+                },
+            }
+        );
+
+        // Strict mocks: no UpdateSettingsAsync / AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+        MockAuthorizationService.Verify(
+            x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                ),
+            Times.Exactly(2)
+        );
     }
 
     #endregion
@@ -1591,7 +1806,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateClientSecret(
                     protector,
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-                    It.IsAny<GenerateSecretRequest>()
+                    It.IsAny<SharedSecretRequest>()
                 )
             )
             .Returns(
@@ -1646,7 +1861,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateClientSecret(
                     protector,
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
-                    It.IsAny<GenerateSecretRequest>()
+                    It.IsAny<SharedSecretRequest>()
                 )
             )
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "key-material" })
@@ -1853,7 +2068,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateClientSecret(
                     protector,
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-                    It.IsAny<GenerateSecretRequest>()
+                    It.IsAny<SharedSecretRequest>()
                 )
             )
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "material" })
@@ -2211,6 +2426,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                         ExpiresWhen = stored.ExpiresWhen,
                         SecretType = stored.SecretType,
                         SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Verifier,
+                        Origin = SecretOrigins.Generated,
                         KeySizeBits = stored.KeySizeBits,
                         EncodedValue = stored.EncodedValue,
                     },
@@ -2545,10 +2761,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateClientSecret(
                     protector,
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-                    It.Is<GenerateSecretRequest>(generate =>
+                    It.Is<SharedSecretRequest>(generate =>
                         generate.SecretId == "secret-2"
-                        && generate.SecretType == rotated.SecretType
-                        && generate.KeySizeBits == 256
+                        && generate.EntropyBits == 256
                         && generate.Use == rotated.Use
                         && generate.Algorithm == rotated.Algorithm
                         && generate.ExpiresWhen == expiresWhen
@@ -2675,7 +2890,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateClientSecret(
                     protector,
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
-                    It.Is<GenerateSecretRequest>(generate => generate.SecretId == "secret-2")
+                    It.Is<SharedSecretRequest>(generate => generate.SecretId == "secret-2")
                 )
             )
             .Returns(new GeneratedSecret { Secret = replacement, SecretMaterial = "key-material" })
@@ -2807,7 +3022,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateClientSecret(
                     protector,
                     OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-                    It.Is<GenerateSecretRequest>(generate => generate.SecretId == "secret-2")
+                    It.Is<SharedSecretRequest>(generate => generate.SecretId == "secret-2")
                 )
             )
             .Returns(

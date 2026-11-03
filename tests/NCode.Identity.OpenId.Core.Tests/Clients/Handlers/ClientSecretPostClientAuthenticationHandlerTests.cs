@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
@@ -9,7 +8,6 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
-using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Verifiers;
 using Xunit;
@@ -64,22 +62,6 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         }
     }
 
-    // A shared secret the client holds as a key, as a client issued a secret for client_secret_jwt does.
-    private sealed class FakeSymmetricSecretKey(string keyId, string secret) : SymmetricSecretKey
-    {
-        private byte[] Secret { get; } = SecureEncoding.UTF8.GetBytes(secret);
-
-        public override KeyMetadata Metadata { get; } = new() { KeyId = keyId };
-
-        public override int KeySizeBits => Secret.Length * 8;
-
-        public override void ExportPrivateKey<TWriter>(ref TWriter destination)
-        {
-            Secret.CopyTo(destination.GetSpan(Secret.Length));
-            destination.Advance(Secret.Length);
-        }
-    }
-
     private ClientSecretPostClientAuthenticationHandler CreateHandler() =>
         new(
             MockClientResolver.Object,
@@ -88,11 +70,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             CreateLogger<ClientSecretPostClientAuthenticationHandler>()
         );
 
-    // The secret keys are set up only for a test whose presented secret matches no verifier, so it reaches them; a
-    // test that passes none proves through the strict client mock that a matching verifier ends the search.
+    // The client's keys are never set up: a method that compares its secret authenticates only against the client's
+    // verifiers, so the strict client mock proves the handler never reads them.
     private OpenIdClient CreateRegisteredClient(
         IReadOnlyCollection<SecretVerifier> verifiers,
-        IReadOnlyCollection<SecretKey>? secretKeys,
         bool readsClientId
     )
     {
@@ -102,20 +83,6 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             readsClientId
         );
         Mock.Get(client).SetupGet(x => x.SecretVerifiers).Returns(verifiers).Verifiable();
-        if (secretKeys is not null)
-        {
-            var mockSecretKeys = CreateStrictMock<ISecretKeyCollection>();
-            mockSecretKeys
-                .As<IEnumerable>()
-                .Setup(x => x.GetEnumerator())
-                .Returns(() => secretKeys.GetEnumerator())
-                .Verifiable();
-            Mock.Get(client)
-                .SetupGet(x => x.SecretKeys)
-                .Returns(mockSecretKeys.Object)
-                .Verifiable();
-        }
-
         return client;
     }
 
@@ -247,22 +214,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
     {
         SetupCredentialsForm();
         SetupErrorFactory();
-        var mockSecretKeys = CreateStrictMock<ISecretKeyCollection>();
-        mockSecretKeys
-            .As<IEnumerable>()
-            .Setup(x => x.GetEnumerator())
-            .Returns(() => Array.Empty<SecretKey>().GetEnumerator())
-            .Verifiable();
-        var client = CreateClient(
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost],
+        var client = CreateRegisteredClient(
+            [new FakeSecretVerifier("verifier-1", "another-secret")],
             readsClientId: true
         );
-        Mock.Get(client).SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object).Verifiable();
-        Mock.Get(client)
-            .SetupGet(x => x.SecretVerifiers)
-            .Returns([new FakeSecretVerifier("verifier-1", "another-secret")])
-            .Verifiable();
         SetupResolvedClient(client);
         SetupAudit("invalid_client_secret");
         var handler = CreateHandler();
@@ -285,38 +240,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
                 new FakeSecretVerifier("verifier-1", "another-secret"),
                 new FakeSecretVerifier("verifier-2", "presented-secret"),
             ],
-            secretKeys: null,
             readsClientId: false
         );
         SetupResolvedClient(client);
         var expected = SetupConfidentialClient(client, "verifier-2");
-        var handler = CreateHandler();
-
-        var result = await handler.AuthenticateClientAsync(
-            MockContext.Object,
-            CancellationToken.None
-        );
-
-        Assert.True(result.IsConfidential);
-        Assert.Same(expected, result.ConfidentialClient);
-    }
-
-    [Fact]
-    public async Task AuthenticateClientAsync_WhenTheSecretMatchesASecretHeldAsAKey_AuthenticatesWithThatSecret()
-    {
-        // A secret issued while the client was registered for client_secret_jwt is held as a key, and still
-        // authenticates the client once it is registered for a method that compares the secret.
-        SetupCredentialsForm();
-        var client = CreateRegisteredClient(
-            [new FakeSecretVerifier("verifier-1", "another-secret")],
-            [
-                new FakeSymmetricSecretKey("key-1", "presented-secret-but-longer"),
-                new FakeSymmetricSecretKey("key-2", "presented-secret"),
-            ],
-            readsClientId: false
-        );
-        SetupResolvedClient(client);
-        var expected = SetupConfidentialClient(client, "key-2");
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -335,7 +262,6 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         SetupErrorFactory();
         var client = CreateRegisteredClient(
             [new FakeSecretVerifier("verifier-1", "presented-secret-2")],
-            [new FakeSymmetricSecretKey("key-1", "presented-secret-2")],
             readsClientId: true
         );
         SetupResolvedClient(client);
@@ -351,19 +277,18 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
     }
 
     [Fact]
-    public async Task AuthenticateClientAsync_WhenASecretHeldAsAKeyMatches_SkipsTheCostlyVerifiers()
+    public async Task AuthenticateClientAsync_WhenAVerifierWithoutAWorkFactorMatches_SkipsTheCostlyVerifiers()
     {
-        // The cheap comparisons run first, so a matching key costs no derivation, whatever the storage order. See
-        // ADR-1391.
+        // The verifiers without a work factor run first, so a generated secret costs no derivation, whatever the storage
+        // order. See ADR-1391.
         SetupCredentialsForm();
         var costly = new FakeSecretVerifier("verifier-1", "presented-secret", hasWorkFactor: true);
         var client = CreateRegisteredClient(
-            [costly, new FakeSecretVerifier("verifier-2", "another-secret")],
-            [new FakeSymmetricSecretKey("key-1", "presented-secret")],
+            [costly, new FakeSecretVerifier("verifier-2", "presented-secret")],
             readsClientId: false
         );
         SetupResolvedClient(client);
-        var expected = SetupConfidentialClient(client, "key-1");
+        var expected = SetupConfidentialClient(client, "verifier-2");
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -383,7 +308,6 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         var cheap = new FakeSecretVerifier("verifier-1", "another-secret");
         var client = CreateRegisteredClient(
             [new FakeSecretVerifier("verifier-2", "presented-secret", hasWorkFactor: true), cheap],
-            [new FakeSymmetricSecretKey("key-1", "another-secret")],
             readsClientId: false
         );
         SetupResolvedClient(client);
@@ -415,7 +339,6 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
                     isUnavailable: true
                 ),
             ],
-            [],
             readsClientId: true
         );
         SetupResolvedClient(client);

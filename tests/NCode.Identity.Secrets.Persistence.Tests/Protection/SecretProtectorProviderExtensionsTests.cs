@@ -39,6 +39,7 @@ public class SecretProtectorProviderExtensionsTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch,
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = encodedValue,
         };

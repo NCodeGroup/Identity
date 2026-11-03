@@ -14,6 +14,7 @@ type Story = StoryObj<typeof SecretTable>;
 const base = {
   use: null,
   algorithm: null,
+  isVerifier: false,
   createdWhen: '2026-01-01T12:00:00Z',
 };
 
@@ -26,6 +27,8 @@ export const Populated: Story = {
         keyId: 's-active',
         secretType: 'symmetric',
         keySizeBits: 256,
+        // A client secret its method only compares, held as a one-way verifier (ADR-1391).
+        isVerifier: true,
         expiresWhen: '2099-01-01T12:00:00Z',
       },
       {

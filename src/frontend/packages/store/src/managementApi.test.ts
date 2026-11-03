@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CreateSecretRequest, ManagementOwner } from '@ncode/api';
+import type { CreateSecretRequest, CreatedSecretResource, ManagementOwner } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { createAppStore, type AppStore } from './store.js';
 import { managementApi } from './managementApi.js';
@@ -1559,21 +1559,58 @@ describe('managementApi owner-generic secrets and settings requests', () => {
       const captured = mockFetch(new Response(null, { status: 204 }));
       const store = createStore();
 
-      await store.dispatch(
-        managementApi.endpoints.updateSettings.initiate({
-          owner,
-          concurrencyToken: 'etag',
-          original: { keep: 1, drop: 2 },
-          desired: { keep: 1 },
-        }),
-      );
+      const issued = await store
+        .dispatch(
+          managementApi.endpoints.updateSettings.initiate({
+            owner,
+            concurrencyToken: 'etag',
+            original: { keep: 1, drop: 2 },
+            desired: { keep: 1 },
+          }),
+        )
+        .unwrap();
 
       expect(captured[0]?.url).toBe(`https://api.test${path}/settings`);
       expect(captured[0]?.method).toBe('PATCH');
       expect(captured[0]?.ifMatch).toBe('etag');
       expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([{ op: 'remove', path: '/drop' }]);
+      // A 204 issues no secret, so the mutation resolves to null rather than an empty body.
+      expect(issued).toBeNull();
     },
   );
+
+  it('updateSettings resolves to the secret a client settings change issues, revealed once', async () => {
+    // A change to the client's authentication method can issue the shared secret the method needs, which the server
+    // answers with 200 and the created secret (ADR-1391).
+    const created: CreatedSecretResource = {
+      secretId: 's-issued',
+      keyId: 's-issued',
+      concurrencyToken: 'sc1',
+      use: null,
+      algorithm: null,
+      createdWhen: '2026-01-01T00:00:00Z',
+      expiresWhen: '2027-01-01T00:00:00Z',
+      secretType: 'symmetric',
+      keySizeBits: 256,
+      isVerifier: false,
+      secretMaterial: 'issued-once',
+    };
+    mockFetch(jsonResponse(created));
+    const store = createStore();
+
+    const issued = await store
+      .dispatch(
+        managementApi.endpoints.updateSettings.initiate({
+          owner: { kind: 'client', scope: acme, clientId: 'web' },
+          concurrencyToken: 'etag',
+          original: {},
+          desired: { token_endpoint_auth_method: 'client_secret_jwt' },
+        }),
+      )
+      .unwrap();
+
+    expect(issued).toEqual(created);
+  });
 
   it('rotateSecret POSTs the replacement expiry to the secret rotate path of a client', async () => {
     const captured = mockFetch(jsonResponse({ secretId: 's-2' }, 201));
@@ -1674,7 +1711,7 @@ describe('managementApi owner-generic cache invalidation', () => {
   );
 
   it.each(ownerCases)(
-    'updateSettings for the $key owner refetches only its settings',
+    'updateSettings for the $key owner refetches only its settings and secrets',
     async ({ key, owner }) => {
       const refetched = await refetchedByOwnerMutation((s) =>
         s.dispatch(
@@ -1687,7 +1724,10 @@ describe('managementApi owner-generic cache invalidation', () => {
         ),
       );
 
-      expect(refetched).toEqual([`settings:${key}`, `effective:${key}`]);
+      // A client's settings change can issue or convert its secrets, so the owner's secrets are refetched too.
+      expect([...refetched].sort()).toEqual(
+        [`effective:${key}`, `secrets:${key}`, `settings:${key}`].sort(),
+      );
     },
   );
 

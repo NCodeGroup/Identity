@@ -18,6 +18,11 @@ export type SecretRow = {
   readonly keyId: string;
   readonly secretType: string;
   readonly keySizeBits: number;
+  /**
+   * Whether the server holds only a one-way verifier of the shared secret, which authenticates a method that compares
+   * the secret and never one that uses it as a key, such as `client_secret_jwt`.
+   */
+  readonly isVerifier: boolean;
   readonly use: string | null;
   readonly algorithm: string | null;
   readonly createdWhen: string;
@@ -54,10 +59,12 @@ function formatInstant(value: string): string {
   return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString();
 }
 
+// See ADR-1050 (secret material is revealed once) and ADR-1391 (a compared secret is stored as a verifier).
 /**
- * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation,
- * ADR-1050); this lists only metadata. An expired secret is flagged. Receives rows and a callback as
- * props; holds no state and does no fetching, so it renders directly in Storybook and under RTL.
+ * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation); this lists only
+ * metadata. An expired secret is flagged, and so is a shared secret held only as a one-way verifier, which a method
+ * that uses the secret as a key cannot use. Receives rows and a callback as props; holds no state and does no
+ * fetching, so it renders directly in Storybook and under RTL.
  */
 export function SecretTable({
   secrets,
@@ -90,7 +97,20 @@ export function SecretTable({
             <TableRow key={secret.secretId} data-testid={`secret-row-${secret.secretId}`}>
               <TableCell>{secret.secretId}</TableCell>
               <TableCell data-testid={`secret-kid-${secret.secretId}`}>{secret.keyId}</TableCell>
-              <TableCell>{secret.secretType}</TableCell>
+              <TableCell>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <span>{secret.secretType}</span>
+                  {secret.isVerifier && (
+                    <Tooltip title="Stored as a one-way verifier: it authenticates a method that compares the secret, never one that uses it as a key, such as client_secret_jwt">
+                      <Chip
+                        size="small"
+                        label="Verifier"
+                        data-testid={`secret-verifier-${secret.secretId}`}
+                      />
+                    </Tooltip>
+                  )}
+                </Stack>
+              </TableCell>
               <TableCell>{secret.keySizeBits}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>

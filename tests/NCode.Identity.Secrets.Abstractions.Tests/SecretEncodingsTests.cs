@@ -51,4 +51,37 @@ public class SecretEncodingsTests
     }
 
     #endregion
+
+    #region IsVerifier Tests
+
+    [Fact]
+    public void IsPublic_Verifier_ReturnsFalse()
+    {
+        // A verifier is not public: it is stored encrypted like every other non-public encoding.
+        Assert.False(SecretEncodings.IsPublic(SecretEncodings.Verifier));
+    }
+
+    [Fact]
+    public void IsVerifier_Verifier_ReturnsTrue()
+    {
+        Assert.True(SecretEncodings.IsVerifier(SecretEncodings.Verifier));
+    }
+
+    [Theory]
+    [InlineData(SecretEncodings.SymmetricRaw)]
+    [InlineData(SecretEncodings.Pkcs8)]
+    [InlineData(SecretEncodings.Spki)]
+    [InlineData("VERIFIER")]
+    public void IsVerifier_AnotherEncoding_ReturnsFalse(string secretEncoding)
+    {
+        Assert.False(SecretEncodings.IsVerifier(secretEncoding));
+    }
+
+    [Fact]
+    public void IsVerifier_Null_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => SecretEncodings.IsVerifier(null!));
+    }
+
+    #endregion
 }

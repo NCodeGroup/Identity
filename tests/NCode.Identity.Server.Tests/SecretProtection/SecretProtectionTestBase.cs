@@ -12,6 +12,7 @@ using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -50,10 +51,10 @@ public abstract class SecretProtectionTestBase : BaseTests
     /// <returns>The service provider, which is disposed with the test.</returns>
     protected ServiceProvider CreateSecretServices(SecretOwner owner)
     {
-        // The members that take a span (ImportSharedSecret, Unprotect) cannot be set up on a Moq mock, so a test of code
-        // that calls them uses the real services, built through the public registration. Only the master key store,
-        // which would otherwise be the database, is a strict mock that expects the ring to create the first master key
-        // of the owner and to save it.
+        // The members that take a span (ImportSharedSecretVerifier, Unprotect) cannot be set up on a Moq mock, so a test
+        // of code that calls them uses the real services, built through the public registration. Only the master key
+        // store, which would otherwise be the database, is a strict mock that expects the ring to create the first
+        // master key of the owner and to save it.
         var store = CreateStrictMock<IMasterKeyStore>();
         store
             .Setup(x => x.FindActiveAsync(owner, It.IsAny<CancellationToken>()))
@@ -91,6 +92,11 @@ public abstract class SecretProtectionTestBase : BaseTests
             options.RootKeyProvider = KeyWrapperNames.Ephemeral;
             options.Recovery = new RecoveryKeyOptions { Disabled = true };
         });
+
+        // A verifier records its own work factor, so a low one exercises the same path faster.
+        serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options =>
+            options.Iterations = 1_000
+        );
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
         ServiceProviders.Add(serviceProvider);
@@ -144,6 +150,50 @@ public abstract class SecretProtectionTestBase : BaseTests
         Assert.Equal(
             SecureEncoding.UTF8.GetBytes(expectedSecretText),
             writer.WrittenSpan.ToArray()
+        );
+    }
+
+    /// <summary>
+    /// Asserts that a stored secret is the one-way verifier of the expected text, protected under the owner's master
+    /// key: it is a <c>verifier</c> envelope that the real serializer opens with the owner's protector to a PBKDF2
+    /// verifier that confirms the expected text and nothing else.
+    /// </summary>
+    /// <param name="services">The service provider that <see cref="CreateSecretServices"/> built.</param>
+    /// <param name="owner">The owner whose protector opens the secret.</param>
+    /// <param name="secret">The stored secret to assert on.</param>
+    /// <param name="expectedSecretId">The id that the secret is expected to carry.</param>
+    /// <param name="expectedSecretText">The text whose UTF-8 bytes the verifier is expected to confirm.</param>
+    // See ADR-1391.
+    protected static async Task AssertSecretIsVerifierUnderTenantAsync(
+        ServiceProvider services,
+        SecretOwner owner,
+        PersistedSecret secret,
+        string expectedSecretId,
+        string expectedSecretText
+    )
+    {
+        Assert.Equal(expectedSecretId, secret.SecretId);
+        Assert.Equal(SecretEncodings.Verifier, secret.SecretEncoding);
+        Assert.StartsWith("nce1.", secret.EncodedValue, StringComparison.Ordinal);
+
+        var protector = await GetProtectorAsync(services, owner);
+        var serializer = services.GetRequiredService<ISecretSerializer>();
+        var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [secret]));
+
+        Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await verifier.VerifyAsync(
+                SecureEncoding.UTF8.GetBytes(expectedSecretText),
+                CancellationToken.None
+            )
+        );
+        Assert.Equal(
+            SecretVerificationResult.Failed,
+            await verifier.VerifyAsync(
+                SecureEncoding.UTF8.GetBytes(expectedSecretText + "x"),
+                CancellationToken.None
+            )
         );
     }
 }

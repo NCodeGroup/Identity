@@ -56,8 +56,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
     )
     {
         // Strict mocks: on the guard paths under test the secret, protector, crypto, and time dependencies are
-        // untouched, and a client without a secret never loads the tenant's protector.
-        var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
+        // untouched, and a client without a secret never loads the tenant's protector or asks for a secret.
+        var mockClientSecretIssuer = CreateStrictMock<IClientSecretIssuer>();
         var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
 
@@ -72,7 +72,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         return new ConformanceSeedHandler(
             options,
-            mockSecretGenerator.Object,
+            mockClientSecretIssuer.Object,
             mockSecretProtectorProvider.Object,
             clientKeyImporter ?? CreateStrictMock<IClientKeyImporter>().Object,
             mockCryptoService.Object,
@@ -93,11 +93,13 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         ISettingSerializer settingSerializer,
         IOpenIdEnvironmentProvider openIdEnvironmentProvider,
         CoherencePolicy coherencePolicy,
-        ServiceProvider secretServices
+        ServiceProvider secretServices,
+        IClientSecretIssuer clientSecretIssuer
     )
     {
-        // The real generator and protector provider, because the generator's ImportSharedSecret takes a span that a
-        // Moq mock cannot set up. The crypto service hands out the id of the one secret that the seed path creates.
+        // The real protector provider, and an issuer over the real generator, because the generator's
+        // ImportSharedSecretVerifier takes a span that a Moq mock cannot set up. The crypto service hands out the id of
+        // the one secret that the seed path creates.
         var mockCryptoService = CreateStrictMock<ICryptoService>();
         mockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -106,7 +108,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         return new ConformanceSeedHandler(
             options,
-            secretServices.GetRequiredService<ISecretGenerator>(),
+            clientSecretIssuer,
             secretServices.GetRequiredService<ISecretProtectorProvider>(),
             CreateStrictMock<IClientKeyImporter>().Object,
             mockCryptoService.Object,
@@ -548,6 +550,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             ExpiresWhen = DateTimeOffset.MaxValue,
             SecretType = "ecc",
             SecretEncoding = "spki",
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "public-key",
         };
@@ -761,13 +764,23 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         Assert.Contains(redirectUri, exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task HandleAsync_WhenClientHasASecret_StoresItProtectedUnderTheTenantsMasterKey()
+    [Theory]
+    [InlineData("client_secret_basic", false)]
+    [InlineData("client_secret_post", false)]
+    [InlineData("client_secret_jwt", true)]
+    public async Task HandleAsync_WhenClientHasASecret_StoresItProtectedUnderTheTenantsMasterKey(
+        string tokenEndpointAuthMethod,
+        bool usesClientSecretAsKey
+    )
     {
         // The settings pass the validation and the coherence rules, so the seeding reaches the secret: it is imported
         // through the real generator and protected with the master key of the tenant that the client is seeded into.
         var owner = SecretOwner.ForTenant(WorkloadTenantId);
         var secretServices = CreateSecretServices(owner);
+        var issuer = new TestClientSecretIssuer(
+            secretServices.GetRequiredService<ISecretGenerator>(),
+            usesClientSecretAsKey ? [tokenEndpointAuthMethod] : []
+        );
 
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
@@ -790,7 +803,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
                 {
                     ClientSecret = EncodedSecret,
                     RedirectUris = ["https://client.example/callback"],
-                    TokenEndpointAuthMethod = "client_secret_post",
+                    TokenEndpointAuthMethod = tokenEndpointAuthMethod,
                 },
             },
             TestUserPassword = null,
@@ -800,7 +813,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
             CreateCoherencePolicy(),
-            secretServices
+            secretServices,
+            issuer
         );
 
         PersistedClient? storedClient = null;
@@ -828,14 +842,29 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         Assert.NotNull(storedClient);
         Assert.Equal(WorkloadTenantId, storedClient.TenantId);
         Assert.Equal("client", storedClient.ClientId);
+        Assert.Equal([tokenEndpointAuthMethod], issuer.IssuedMethods);
+        // A secret client_secret_jwt keys an HMAC from is kept reversible; any other is stored as a verifier.
         var secret = Assert.Single(storedClient.Secrets.Value);
-        await AssertSecretIsProtectedUnderTenantAsync(
-            secretServices,
-            owner,
-            secret,
-            GeneratedSecretId,
-            SecretText
-        );
+        if (usesClientSecretAsKey)
+        {
+            await AssertSecretIsProtectedUnderTenantAsync(
+                secretServices,
+                owner,
+                secret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
+        else
+        {
+            await AssertSecretIsVerifierUnderTenantAsync(
+                secretServices,
+                owner,
+                secret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
     }
 
     private static IEnumerable<string?> GetStrings(JsonElement jsonElement, string propertyName) =>

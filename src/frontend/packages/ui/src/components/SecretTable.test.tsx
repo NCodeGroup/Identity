@@ -8,6 +8,7 @@ const now = Date.parse('2026-06-01T00:00:00Z');
 const base = {
   use: null,
   algorithm: null,
+  isVerifier: false,
   createdWhen: '2026-01-01T12:00:00Z',
 };
 
@@ -18,6 +19,7 @@ const secrets: SecretRow[] = [
     keyId: 's-active',
     secretType: 'symmetric',
     keySizeBits: 256,
+    isVerifier: true,
     expiresWhen: '2099-01-01T12:00:00Z',
   },
   {
@@ -48,6 +50,12 @@ describe('SecretTable', () => {
     render(<SecretTable secrets={secrets} now={now} />);
     expect(screen.getByTestId('secret-row-s-expired')).toHaveTextContent('Expired');
     expect(screen.getByTestId('secret-row-s-active')).not.toHaveTextContent('Expired');
+  });
+
+  it('flags a shared secret held only as a one-way verifier', () => {
+    render(<SecretTable secrets={secrets} now={now} />);
+    expect(screen.getByTestId('secret-verifier-s-active')).toHaveTextContent('Verifier');
+    expect(screen.queryByTestId('secret-verifier-s-expired')).not.toBeInTheDocument();
   });
 
   it('invokes onDelete with the secret id', () => {

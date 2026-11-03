@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import type { ServerResource } from '@ncode/api';
+import type { SecretResource, ServerResource } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ServerDetailPage } from './ServerDetailPage.js';
 
@@ -60,8 +60,9 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-const rsaSecret = {
+const rsaSecret: SecretResource = {
   secretId: 's-rsa',
+  keyId: 's-rsa',
   concurrencyToken: 'sc1',
   use: 'sig',
   algorithm: 'RS256',
@@ -69,6 +70,7 @@ const rsaSecret = {
   expiresWhen: '2099-01-01T00:00:00Z',
   secretType: 'rsa',
   keySizeBits: 2048,
+  isVerifier: false,
 };
 
 const capabilities = {

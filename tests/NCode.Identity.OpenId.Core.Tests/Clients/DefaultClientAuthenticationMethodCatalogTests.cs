@@ -26,10 +26,27 @@ public class DefaultClientAuthenticationMethodCatalogTests : BaseTests
     {
         var catalog = CreateCatalog(
             [
-                new ClientAuthenticationMethodDescriptor { Name = "zeta" },
-                new ClientAuthenticationMethodDescriptor { Name = "alpha" },
+                new ClientAuthenticationMethodDescriptor
+                {
+                    Name = "zeta",
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = false,
+                },
+                new ClientAuthenticationMethodDescriptor
+                {
+                    Name = "alpha",
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = false,
+                },
             ],
-            [new ClientAuthenticationMethodDescriptor { Name = "mu" }]
+            [
+                new ClientAuthenticationMethodDescriptor
+                {
+                    Name = "mu",
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = false,
+                },
+            ]
         );
 
         Assert.Equal(["zeta", "alpha", "mu"], catalog.MethodNames);
@@ -46,9 +63,17 @@ public class DefaultClientAuthenticationMethodCatalogTests : BaseTests
         {
             Name = "client_secret_basic",
             RequiresClientSecret = true,
+            UsesClientSecretAsKey = false,
         };
         var catalog = CreateCatalog(
-            [new ClientAuthenticationMethodDescriptor { Name = "none" }],
+            [
+                new ClientAuthenticationMethodDescriptor
+                {
+                    Name = "none",
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = false,
+                },
+            ],
             [descriptor]
         );
 
@@ -61,7 +86,14 @@ public class DefaultClientAuthenticationMethodCatalogTests : BaseTests
     [Fact]
     public void TryGet_WhenTheMethodIsNotRegistered_ReturnsFalse()
     {
-        var catalog = CreateCatalog([new ClientAuthenticationMethodDescriptor { Name = "none" }]);
+        var catalog = CreateCatalog([
+            new ClientAuthenticationMethodDescriptor
+            {
+                Name = "none",
+                RequiresClientSecret = false,
+                UsesClientSecretAsKey = false,
+            },
+        ]);
 
         var actual = catalog.TryGet("client_secret_basic", out var found);
 
@@ -78,8 +110,22 @@ public class DefaultClientAuthenticationMethodCatalogTests : BaseTests
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             CreateCatalog(
-                [new ClientAuthenticationMethodDescriptor { Name = "none" }],
-                [new ClientAuthenticationMethodDescriptor { Name = "none" }]
+                [
+                    new ClientAuthenticationMethodDescriptor
+                    {
+                        Name = "none",
+                        RequiresClientSecret = false,
+                        UsesClientSecretAsKey = false,
+                    },
+                ],
+                [
+                    new ClientAuthenticationMethodDescriptor
+                    {
+                        Name = "none",
+                        RequiresClientSecret = false,
+                        UsesClientSecretAsKey = false,
+                    },
+                ]
             )
         );
 
@@ -95,11 +141,39 @@ public class DefaultClientAuthenticationMethodCatalogTests : BaseTests
     public void Constructor_WhenANameIsEmptyOrHasWhitespace_Throws(string name)
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            CreateCatalog([new ClientAuthenticationMethodDescriptor { Name = name }])
+            CreateCatalog([
+                new ClientAuthenticationMethodDescriptor
+                {
+                    Name = name,
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = false,
+                },
+            ])
         );
 
         Assert.Equal(
             "A client-authentication method descriptor must have a name that is not empty and contains no whitespace.",
+            exception.Message
+        );
+    }
+
+    [Fact]
+    public void Constructor_WhenADescriptorUsesTheSecretAsAKeyWithoutRequiringOne_Throws()
+    {
+        // A method that keys from the client_secret needs one issued. See ADR-1391.
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            CreateCatalog([
+                new ClientAuthenticationMethodDescriptor
+                {
+                    Name = "keyed_method",
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = true,
+                },
+            ])
+        );
+
+        Assert.Equal(
+            "The client-authentication method 'keyed_method' uses the client secret as a key but does not require one.",
             exception.Message
         );
     }

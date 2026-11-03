@@ -382,14 +382,17 @@ internal class ClientApiEndpointHandler(
     /// through the <see cref="IClientSecretIssuer"/>, which stores the client's shared secrets in the form that method
     /// needs.
     /// </summary>
-    /// <param name="client">The <see cref="PersistedClient"/>.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="clientSettings">The client's settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective <c>token_endpoint_auth_method</c>.</returns>
+    /// <returns>The client's effective <c>token_endpoint_auth_method</c>, or <see langword="null"/> when the settings
+    /// cannot be merged.</returns>
     // See ADR-1391.
-    private async ValueTask<string> GetTokenEndpointAuthMethodAsync(
-        PersistedClient client,
+    private async ValueTask<string?> GetTokenEndpointAuthMethodAsync(
+        string tenantId,
+        string clientId,
         JsonElement clientSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
@@ -397,15 +400,45 @@ internal class ClientApiEndpointHandler(
     {
         var tenantSettings = await storeManager
             .GetStore<ITenantStore>()
-            .GetSettingsOrDefaultAsync(client.TenantId, cancellationToken);
+            .GetSettingsOrDefaultAsync(tenantId, cancellationToken);
 
         return await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
-            client.TenantId,
+            tenantId,
             tenantSettings?.Value,
-            client.ClientId,
+            clientId,
             clientSettings,
             cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Writes the client-authentication method a client is registered for into its settings document when the document
+    /// names none, so every stored client names its method and a change to its server's or tenant's
+    /// <c>token_endpoint_auth_method</c> never moves the method its shared secrets are stored for.
+    /// </summary>
+    /// <param name="clientSettings">The client's settings document.</param>
+    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>, or
+    /// <see langword="null"/> when it cannot be resolved.</param>
+    /// <returns>The settings document that names the client's method.</returns>
+    // See ADR-1391.
+    internal virtual JsonElement NameTokenEndpointAuthMethod(
+        JsonElement clientSettings,
+        string? tokenEndpointAuthMethod
+    )
+    {
+        if (tokenEndpointAuthMethod is null)
+        {
+            return clientSettings;
+        }
+
+        var settings = ToJsonObject(clientSettings);
+        if (settings.ContainsKey(OpenIdSettingNames.TokenEndpointAuthMethod))
+        {
+            return clientSettings;
+        }
+
+        settings[OpenIdSettingNames.TokenEndpointAuthMethod] = tokenEndpointAuthMethod;
+        return SerializeToElement(settings);
     }
 
     /// <summary>
@@ -606,7 +639,8 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Creates a client.
+    /// Creates a client. The stored settings document names the method the client is registered for, its tenant's
+    /// when the request names none.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
@@ -689,6 +723,18 @@ internal class ClientApiEndpointHandler(
         {
             return SettingsValidationProblem(effectiveSettingErrors);
         }
+
+        var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
+            tenantId,
+            clientId,
+            client.Settings.Value,
+            storeManager,
+            cancellationToken
+        );
+        client.Settings.Value = NameTokenEndpointAuthMethod(
+            client.Settings.Value,
+            tokenEndpointAuthMethod
+        );
 
         await store.AddAsync(client, cancellationToken);
         await ResourceOwnershipService.AssignCreatorAsync(
@@ -931,11 +977,12 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Updates a client's settings. The client's shared secrets are brought into the form the method the settings
-    /// register needs, through the <see cref="IClientSecretIssuer"/>: a secret stored as its octets is replaced by its
-    /// one-way verifier when the method only compares it, and when the method authenticates with a shared secret that
-    /// none of the client's unexpired secrets can serve, a new secret takes their place and is revealed in this
-    /// response only.
+    /// Updates a client's settings. The stored document names the method the client is registered for, its tenant's
+    /// when the document names none. When the settings change that method, the client's shared secrets are brought into
+    /// the form the method needs, through the <see cref="IClientSecretIssuer"/>: a secret stored as its octets is
+    /// replaced by its one-way verifier when the method only compares it, and when the method authenticates with a
+    /// shared secret that none of the client's unexpired secrets can serve, a new secret takes their place and is
+    /// revealed in this response only. Settings that leave the method as it is leave the secrets as they are.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
@@ -1028,24 +1075,45 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(effectiveSettingErrors);
         }
 
-        // The client's shared secrets follow the method the settings register: the same rule dynamic client registration
-        // applies to an update. See ADR-1391.
+        // The client's shared secrets follow the method the settings register when they change it, through the rule
+        // dynamic client registration applies to an update. Settings that leave the method as it is leave the secrets
+        // as they are, so an edit never issues a secret to a client that holds none. See ADR-1391.
+        var storedTokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
+            client.TenantId,
+            client.ClientId,
+            clientSettings.Value,
+            storeManager,
+            cancellationToken
+        );
         var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
-            client,
+            client.TenantId,
+            client.ClientId,
             settingsValue,
             storeManager,
             cancellationToken
         );
-        var protector = await SecretProtectorProvider.GetProtectorAsync(
-            SecretOwner.ForTenant(client.TenantId),
-            [],
-            cancellationToken
-        );
-        var reconciliation = ClientSecretIssuer.ReconcileClientSecrets(
-            protector,
+        settingsValue = NameTokenEndpointAuthMethod(settingsValue, tokenEndpointAuthMethod);
+
+        var reconciliation = string.Equals(
+            storedTokenEndpointAuthMethod,
             tokenEndpointAuthMethod,
-            client.Secrets.Value
-        );
+            StringComparison.Ordinal
+        )
+            ? new ClientSecretReconciliation
+            {
+                Secrets = [.. client.Secrets.Value],
+                RemovedSecrets = [],
+                AddedSecrets = [],
+            }
+            : ClientSecretIssuer.ReconcileClientSecrets(
+                await SecretProtectorProvider.GetProtectorAsync(
+                    SecretOwner.ForTenant(client.TenantId),
+                    [],
+                    cancellationToken
+                ),
+                tokenEndpointAuthMethod,
+                client.Secrets.Value
+            );
 
         // Issuing a secret is creating one, which needs the authority CreateSecretAsync needs.
         if (reconciliation.IssuedSecret is not null)
@@ -1224,7 +1292,8 @@ internal class ClientApiEndpointHandler(
         var isSharedSecret = request.SecretType == SecretTypes.Symmetric;
         var tokenEndpointAuthMethod = isSharedSecret
             ? await GetTokenEndpointAuthMethodAsync(
-                client,
+                client.TenantId,
+                client.ClientId,
                 client.Settings.Value,
                 storeManager,
                 cancellationToken
@@ -1248,7 +1317,7 @@ internal class ClientApiEndpointHandler(
             // used as the HMAC key for client_secret_jwt: the issuer stores it in the form the client's method needs,
             // never as the raw-byte / base64url-reveal crypto-key material GenerateSecret produces (which never UTF-8
             // round-trips). See ADR-1110 and ADR-1391.
-            generatedSecret = tokenEndpointAuthMethod is not null
+            generatedSecret = isSharedSecret
                 ? ClientSecretIssuer.GenerateClientSecret(
                     protector,
                     tokenEndpointAuthMethod,
@@ -1753,7 +1822,8 @@ internal class ClientApiEndpointHandler(
 
         // The replacement's form follows the method the client is registered for, whatever the rotated secret's form.
         var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
-            client,
+            client.TenantId,
+            client.ClientId,
             client.Settings.Value,
             storeManager,
             cancellationToken

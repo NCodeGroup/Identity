@@ -157,7 +157,7 @@ internal sealed class BootstrapAdminSeedHandler(
         ISecretProtector protector,
         string clientId,
         ReadOnlyMemory<byte> clientSecret,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         CancellationToken cancellationToken
     )
     {
@@ -227,7 +227,7 @@ internal sealed class BootstrapAdminSeedHandler(
     private PersistedSecret CreatePersistedSecret(
         ISecretProtector protector,
         ReadOnlyMemory<byte> clientSecret,
-        string tokenEndpointAuthMethod
+        string? tokenEndpointAuthMethod
     )
     {
         var now = TimeProvider.GetUtcNow();

@@ -24,12 +24,6 @@ internal sealed class DefaultClientSecretIssuer(
     TimeProvider timeProvider
 ) : IClientSecretIssuer
 {
-    // The method a client whose settings cannot be merged is issued for: RFC 7591's default, whose secret is a
-    // one-way verifier, the form that reveals nothing.
-    private const string UnresolvedTokenEndpointAuthMethod = OpenIdProtocol
-        .ClientAuthenticationMethods
-        .ClientSecretBasic;
-
     private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
         clientAuthenticationMethodCatalog;
 
@@ -43,7 +37,7 @@ internal sealed class DefaultClientSecretIssuer(
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
-    public async ValueTask<string> GetTokenEndpointAuthMethodAsync(
+    public async ValueTask<string?> GetTokenEndpointAuthMethodAsync(
         string tenantId,
         JsonElement? tenantSettings,
         string clientId,
@@ -53,7 +47,7 @@ internal sealed class DefaultClientSecretIssuer(
     {
         if (tenantSettings is not { } tenantDocument)
         {
-            return UnresolvedTokenEndpointAuthMethod;
+            return null;
         }
 
         try
@@ -78,7 +72,7 @@ internal sealed class DefaultClientSecretIssuer(
         }
         catch (UnreadableSettingsException)
         {
-            return UnresolvedTokenEndpointAuthMethod;
+            return null;
         }
     }
 
@@ -90,7 +84,7 @@ internal sealed class DefaultClientSecretIssuer(
     /// <inheritdoc />
     public GeneratedSecret GenerateClientSecret(
         ISecretProtector protector,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         SharedSecretRequest request
     ) =>
         UsesClientSecretAsKey(tokenEndpointAuthMethod)
@@ -100,7 +94,7 @@ internal sealed class DefaultClientSecretIssuer(
     /// <inheritdoc />
     public PersistedSecret ImportClientSecret(
         ISecretProtector protector,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         SharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
     ) =>
@@ -111,10 +105,17 @@ internal sealed class DefaultClientSecretIssuer(
     /// <inheritdoc />
     public ClientSecretReconciliation ReconcileClientSecrets(
         ISecretProtector protector,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         IReadOnlyCollection<PersistedSecret> secrets
     )
     {
+        // A conversion to a verifier cannot be undone, so nothing is rewritten for a method that cannot be resolved.
+        // See ADR-1391.
+        if (tokenEndpointAuthMethod is null)
+        {
+            return Unchanged(secrets);
+        }
+
         var usesClientSecretAsKey = UsesClientSecretAsKey(tokenEndpointAuthMethod);
         var now = TimeProvider.GetUtcNow();
 
@@ -231,9 +232,10 @@ internal sealed class DefaultClientSecretIssuer(
             StringComparison.Ordinal
         );
 
-    // A method that is not registered keys nothing from the secret, so its secret is stored as a one-way verifier,
-    // which fails closed: it authenticates no method that needs the secret back.
-    private bool UsesClientSecretAsKey(string tokenEndpointAuthMethod) =>
-        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
+    // A method that cannot be resolved or is not registered keys nothing from the secret, so its secret is stored as a
+    // one-way verifier, which fails closed: it authenticates no method that needs the secret back.
+    private bool UsesClientSecretAsKey(string? tokenEndpointAuthMethod) =>
+        tokenEndpointAuthMethod is not null
+        && ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
         && descriptor.UsesClientSecretAsKey;
 }

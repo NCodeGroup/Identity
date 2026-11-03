@@ -522,6 +522,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
+        SetupCreatedClientAuthenticationMethod();
 
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
@@ -539,7 +540,30 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(TenantId, captured.Settings.TenantId);
         Assert.Equal(TenantId, captured.Secrets.TenantId);
         Assert.Null(captured.ResourceServerId);
+
+        // The request names no method, so the stored document names the tenant's. See ADR-1391.
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            captured
+                .Settings.Value.GetProperty(OpenIdSettingNames.TokenEndpointAuthMethod)
+                .GetString()
+        );
     }
+
+    // The issuer resolves the created client's method from the tenant's stored settings.
+    private void SetupCreatedClientAuthenticationMethod() =>
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GetTokenEndpointAuthMethodAsync(
+                    TenantId,
+                    It.Is<JsonElement?>(settings => settings.HasValue),
+                    "generated-id",
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic)
+            .Verifiable();
 
     [Fact]
     public async Task CreateClientAsync_WhenBoundToAResourceServer_PersistsAndReturnsTheBinding()
@@ -576,6 +600,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
+        SetupCreatedClientAuthenticationMethod();
 
         var request = new CreateClientRequest
         {
@@ -1280,12 +1305,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync(CreateClient("client-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        JsonElement? stored = null;
         MockClientStore
             .Setup(x =>
                 x.UpdateSettingsAsync(
                     It.IsAny<PersistedClientSettings>(),
                     It.IsAny<CancellationToken>()
                 )
+            )
+            .Callback(
+                (PersistedClientSettings settings, CancellationToken _) => stored = settings.Value
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -1295,7 +1324,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
-        SetupReconciliation(UnchangedSecrets());
+        // The settings leave the method as it is, so the secrets are left as they are: no reconciliation is set up.
+        SetupResolvedAuthenticationMethods(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1308,6 +1340,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NoContent>(result);
+
+        // The settings name no method, so the stored document names the tenant's, which a later change to the tenant's
+        // settings cannot move. See ADR-1391.
+        Assert.NotNull(stored);
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            stored.Value.GetProperty(OpenIdSettingNames.TokenEndpointAuthMethod).GetString()
+        );
+        Assert.Equal("value", stored.Value.GetProperty("name").GetString());
     }
 
     [Fact]
@@ -1443,7 +1484,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
-        SetupReconciliation(UnchangedSecrets());
+        // The settings leave the method as it is, so the secrets are left as they are: no reconciliation is set up.
+        SetupResolvedAuthenticationMethods(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1458,30 +1502,60 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.IsType<NoContent>(result);
     }
 
-    private static ClientSecretReconciliation UnchangedSecrets() =>
-        new()
-        {
-            Secrets = [],
-            RemovedSecrets = [],
-            AddedSecrets = [],
-        };
-
-    // The settings register client_secret_post; the issuer brings the client's secrets into its form.
-    private ISecretProtector SetupReconciliation(ClientSecretReconciliation reconciliation)
+    // The issuer resolves the stored settings to the stored method and the patched settings to the method they
+    // register, and brings the client's secrets into that method's form.
+    private ISecretProtector SetupReconciliation(
+        ClientSecretReconciliation reconciliation,
+        string storedMethod,
+        string method
+    )
     {
-        SetupRegisteredAuthenticationMethod(usesClientSecretAsKey: false);
+        SetupResolvedAuthenticationMethods(storedMethod);
         var protector = SetupGenerateSecretProtector();
         MockClientSecretIssuer
             .Setup(x =>
                 x.ReconcileClientSecrets(
                     protector,
-                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    method,
                     It.IsAny<IReadOnlyCollection<PersistedSecret>>()
                 )
             )
             .Returns(reconciliation)
             .Verifiable();
         return protector;
+    }
+
+    // A settings document that names a method resolves to it, and one that names none to the tenant's method.
+    private void SetupResolvedAuthenticationMethods(string tenantMethod)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenantSettings())
+            .Verifiable();
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GetTokenEndpointAuthMethodAsync(
+                    TenantId,
+                    It.Is<JsonElement?>(settings => settings.HasValue),
+                    ClientId,
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (string _, JsonElement? _, string _, JsonElement settings, CancellationToken _) =>
+                    settings.TryGetProperty(
+                        OpenIdSettingNames.TokenEndpointAuthMethod,
+                        out var method
+                    )
+                        ? method.GetString()
+                        : tenantMethod
+            )
+            .Verifiable();
     }
 
     private void SetupSettingsWrite()
@@ -1529,7 +1603,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     Secret = issued,
                     SecretMaterial = "issued-material",
                 },
-            }
+            },
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
         SetupSettingsWrite();
         MockClientStore
@@ -1577,7 +1653,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 Secrets = [converted],
                 RemovedSecrets = [reversible],
                 AddedSecrets = [converted],
-            }
+            },
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
         SetupSettingsWrite();
         MockClientStore
@@ -1635,7 +1713,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     Secret = issued,
                     SecretMaterial = "issued-material",
                 },
-            }
+            },
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
 
         // Strict mocks: no UpdateSettingsAsync / AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
@@ -1657,6 +1737,62 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 ),
             Times.Exactly(2)
         );
+    }
+
+    #endregion
+
+    #region NameTokenEndpointAuthMethod Tests
+
+    [Fact]
+    public void NameTokenEndpointAuthMethod_WhenTheSettingsNameNone_NamesTheResolvedMethod()
+    {
+        var settings = JsonSerializer.SerializeToElement(
+            new JsonObject { [OpenIdSettingNames.ClientName] = "client" }
+        );
+
+        var named = Handler.NameTokenEndpointAuthMethod(
+            settings,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+        );
+
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            named.GetProperty(OpenIdSettingNames.TokenEndpointAuthMethod).GetString()
+        );
+        Assert.Equal("client", named.GetProperty(OpenIdSettingNames.ClientName).GetString());
+    }
+
+    [Fact]
+    public void NameTokenEndpointAuthMethod_WhenTheSettingsNameOne_KeepsIt()
+    {
+        var settings = JsonSerializer.SerializeToElement(
+            new JsonObject
+            {
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .PrivateKeyJwt,
+            }
+        );
+
+        var named = Handler.NameTokenEndpointAuthMethod(
+            settings,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+            named.GetProperty(OpenIdSettingNames.TokenEndpointAuthMethod).GetString()
+        );
+    }
+
+    [Fact]
+    public void NameTokenEndpointAuthMethod_WhenTheMethodCannotBeResolved_KeepsTheSettings()
+    {
+        var settings = EmptyObject();
+
+        var named = Handler.NameTokenEndpointAuthMethod(settings, null);
+
+        Assert.False(named.TryGetProperty(OpenIdSettingNames.TokenEndpointAuthMethod, out _));
     }
 
     #endregion

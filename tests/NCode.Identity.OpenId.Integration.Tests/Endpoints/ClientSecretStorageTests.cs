@@ -180,6 +180,69 @@ public class ClientSecretStorageTests
     }
 
     [Fact]
+    public async Task PatchSettings_WhenTheMethodIsUnchanged_IssuesNoSecret()
+    {
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        // A client created without a secret keeps none when other settings change, so an edit never issues one.
+        var clientId = await CreateClientAsync(
+            administrator,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var (statusCode, body) = await PatchSettingsAsync(
+            administrator,
+            $"{TenantApiPath}/clients/{clientId}/settings",
+            "client_name",
+            "renamed client"
+        );
+
+        Assert.True(statusCode == HttpStatusCode.NoContent, body);
+        Assert.Empty(await factory.GetClientSecretsAsync(clientId));
+    }
+
+    [Fact]
+    public async Task PatchTenantSettings_WhenTheTenantsMethodChanges_KeepsEveryStoredClientsMethod()
+    {
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var client = CreateHttpClient(factory);
+
+        var (tenantStatusCode, tenantBody) = await PatchSettingsAsync(
+            administrator,
+            $"{TenantApiPath}/settings",
+            "token_endpoint_auth_method",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+        Assert.True(tenantStatusCode == HttpStatusCode.NoContent, tenantBody);
+
+        // The client names no method, so it is registered for the tenant's, and its secret is stored as a verifier.
+        using var createResponse = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients",
+            new { isDisabled = false, settings = new Dictionary<string, object>() }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+        var clientId = GetRequiredString(JsonElement.Parse(createBody), "clientId");
+        var (secretId, secretMaterial) = await CreateSecretAsync(administrator, clientId);
+        Assert.True(await IsVerifierAsync(administrator, clientId, secretId));
+
+        (tenantStatusCode, tenantBody) = await PatchSettingsAsync(
+            administrator,
+            $"{TenantApiPath}/settings",
+            "token_endpoint_auth_method",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+        );
+        Assert.True(tenantStatusCode == HttpStatusCode.NoContent, tenantBody);
+
+        // The tenant's new method moves no stored client's method, so the client still authenticates with its verifier.
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+        );
+    }
+
+    [Fact]
     public async Task PostClient_WhenAComparedSecretWouldSignRequestObjects_RefusesTheSettings()
     {
         // A secret stored as a one-way verifier keys no HS256 request object. See ADR-1391.
@@ -328,6 +391,35 @@ public class ClientSecretStorageTests
             GetRequiredString(jsonElement, "secretId"),
             GetRequiredString(jsonElement, "secretMaterial")
         );
+    }
+
+    private static async Task<(HttpStatusCode StatusCode, string Body)> PatchSettingsAsync(
+        HttpClient administrator,
+        string path,
+        string settingName,
+        string value
+    )
+    {
+        var operations = new[]
+        {
+            new
+            {
+                op = "add",
+                path = $"/{settingName}",
+                value,
+            },
+        };
+        using var request = new HttpRequestMessage(HttpMethod.Patch, path)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(operations),
+                SecureEncoding.UTF8,
+                "application/json-patch+json"
+            ),
+        };
+
+        using var response = await administrator.SendAsync(request);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> CreateSecretAsync(

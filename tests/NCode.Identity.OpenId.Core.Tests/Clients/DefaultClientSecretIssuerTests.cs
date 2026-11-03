@@ -207,7 +207,7 @@ public class DefaultClientSecretIssuerTests : BaseTests
     }
 
     [Fact]
-    public async Task GetTokenEndpointAuthMethodAsync_WhenTheTenantHasNoSettings_ResolvesClientSecretBasic()
+    public async Task GetTokenEndpointAuthMethodAsync_WhenTheTenantHasNoSettings_ResolvesNoMethod()
     {
         var method = await CreateIssuer()
             .GetTokenEndpointAuthMethodAsync(
@@ -218,11 +218,11 @@ public class DefaultClientSecretIssuerTests : BaseTests
                 CancellationToken.None
             );
 
-        Assert.Equal(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic, method);
+        Assert.Null(method);
     }
 
     [Fact]
-    public async Task GetTokenEndpointAuthMethodAsync_WhenASettingsDocumentIsUnreadable_ResolvesClientSecretBasic()
+    public async Task GetTokenEndpointAuthMethodAsync_WhenASettingsDocumentIsUnreadable_ResolvesNoMethod()
     {
         MockResolver
             .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
@@ -244,7 +244,7 @@ public class DefaultClientSecretIssuerTests : BaseTests
                 CancellationToken.None
             );
 
-        Assert.Equal(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic, method);
+        Assert.Null(method);
     }
 
     #endregion
@@ -316,6 +316,21 @@ public class DefaultClientSecretIssuerTests : BaseTests
         Assert.Same(expected, actual);
     }
 
+    [Fact]
+    public void GenerateClientSecret_WhenTheMethodCannotBeResolved_GeneratesAVerifier()
+    {
+        var request = CreateRequest();
+        var expected = CreateGeneratedSecret("secret-1", SecretEncodings.Verifier);
+        MockSecretGenerator
+            .Setup(x => x.GenerateSharedSecretVerifier(Protector, request))
+            .Returns(expected)
+            .Verifiable();
+
+        var actual = CreateIssuer().GenerateClientSecret(Protector, null, request);
+
+        Assert.Same(expected, actual);
+    }
+
     #endregion
 
     #region ReconcileClientSecrets Tests
@@ -341,7 +356,6 @@ public class DefaultClientSecretIssuerTests : BaseTests
         Assert.Equal([reversible], reconciliation.RemovedSecrets);
         Assert.Equal([converted], reconciliation.AddedSecrets);
         Assert.Null(reconciliation.IssuedSecret);
-        Assert.True(reconciliation.HasChanges);
     }
 
     [Fact]
@@ -377,7 +391,6 @@ public class DefaultClientSecretIssuerTests : BaseTests
         Assert.Empty(reconciliation.RemovedSecrets);
         Assert.Empty(reconciliation.AddedSecrets);
         Assert.Null(reconciliation.IssuedSecret);
-        Assert.False(reconciliation.HasChanges);
     }
 
     [Fact]
@@ -447,7 +460,22 @@ public class DefaultClientSecretIssuerTests : BaseTests
             .ReconcileClientSecrets(Protector, KeylessMethod, [publicKey]);
 
         Assert.Equal([publicKey], reconciliation.Secrets);
-        Assert.False(reconciliation.HasChanges);
+        Assert.Empty(reconciliation.RemovedSecrets);
+        Assert.Empty(reconciliation.AddedSecrets);
+    }
+
+    [Fact]
+    public void ReconcileClientSecrets_WhenTheMethodCannotBeResolved_KeepsEverySecret()
+    {
+        // Strict mocks: no catalog or generator setup, so converting a secret would fail the test.
+        var reversible = CreateReversibleSecret("reversible-1");
+
+        var reconciliation = CreateIssuer().ReconcileClientSecrets(Protector, null, [reversible]);
+
+        Assert.Equal([reversible], reconciliation.Secrets);
+        Assert.Empty(reconciliation.RemovedSecrets);
+        Assert.Empty(reconciliation.AddedSecrets);
+        Assert.Null(reconciliation.IssuedSecret);
     }
 
     #endregion

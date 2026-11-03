@@ -38,9 +38,4 @@ public sealed class ClientSecretReconciliation
     /// <see langword="null"/> when the client keeps a secret it holds.
     /// </summary>
     public GeneratedSecret? IssuedSecret { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the client's secrets change.
-    /// </summary>
-    public bool HasChanges => RemovedSecrets.Count > 0 || AddedSecrets.Count > 0;
 }

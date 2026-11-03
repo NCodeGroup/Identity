@@ -79,9 +79,9 @@ that uses the secret as a key keeps it reversible, and every other method holds 
    default, sets a generated secret's entropy. One seam, `IClientSecretIssuer`, owns the rule. It resolves a stored
    client's effective `token_endpoint_auth_method` from the server's, the tenant's and the client's settings, as the
    runtime merges them; a client whose settings cannot be merged authenticates with no method until they are fixed,
-   and resolves to `client_secret_basic`, RFC 7591's default, whose secret is a verifier, the form that reveals
-   nothing. It answers whether a method requires a secret, and issues a generated or supplied secret in the form the
-   method needs; a method that is not registered requires none and gets a verifier. Every site that issues a client's
+   and resolves to no method. It answers whether a method requires a secret, and issues a generated or supplied secret
+   in the form the method needs; a method that is not registered requires none, and a secret issued for it or for a
+   method that cannot be resolved is a verifier, the form that reveals nothing. Every site that issues a client's
    secret calls it: the management API's create and rotate, dynamic client registration and its update, the
    conformance seed, the test seeds, and the bootstrap administrator. The bootstrap administrator is seeded for
    `client_secret_basic`, so its configured secret is stored as a PBKDF2 verifier. Its secret is stored again at each
@@ -138,10 +138,15 @@ that uses the secret as a key keeps it reversible, and every other method holds 
    `invalid_client_metadata` and the management API refuses the settings instead of accepting a client whose request
    objects can never be verified. A value the client inherits from its tenant is not judged.
 
-7. **The stored form follows the method.** A client's method changes only through its own settings, which dynamic
-   client registration's update and the management API's settings update write, and both bring the client's shared
-   secrets into the method's form through `IClientSecretIssuer.ReconcileClientSecrets`, the same rule at both entry
-   points:
+7. **The stored form follows the method.** `token_endpoint_auth_method` applies to clients, and a server's or tenant's
+   value cascades into each client that names none. Every stored client therefore names its method in its own
+   settings document: dynamic client registration, the configuration seeds, and the management API's create and
+   settings update each write the client's effective method into the document when it names none. A server's or
+   tenant's value is the method a client is registered for when it names none, and a change to it moves no stored
+   client's method; were it to, every client inheriting it would hold secrets in a form its method cannot use.
+   A client's method changes only through its own settings, which dynamic client registration's update and the
+   management API's settings update write, and both bring the client's shared secrets into the method's form through
+   `IClientSecretIssuer.ReconcileClientSecrets`, the same rule at both entry points:
     - For a method that does not use the secret as a key, each shared secret stored as its octets is replaced by its
       verifier, made with the scheme its `Origin` fits: the generated-secret scheme for a secret the server generated,
       and the supplied-secret scheme otherwise. The client keeps its secret, and the server cannot read it back.
@@ -153,6 +158,16 @@ that uses the secret as a key keeps it reversible, and every other method holds 
       returns the issued `client_secret` in its response (RFC 7592 §2.2), and the management API's settings update
       answers `200 OK` with the `CreatedSecretResource` of the issued secret, revealed only there, and `204 No Content`
       when the client keeps a secret it holds. Issuing the secret needs the authority creating a secret needs.
+
+   Dynamic client registration applies the rule on every update, because an update is how a registered client whose
+   secret expired obtains another (RFC 7591 §3.2.1, RFC 7592 §2.2), and such a client has no other way to obtain a
+   secret. The management API's settings update applies it only when the update changes the client's method: an
+   operator creates a secret through the secrets endpoints, and an edit of other settings never issues one to a client
+   that holds none, such as one the management API created without one, one whose secrets expired, or one whose
+   operator deleted its secrets. When the method cannot be resolved, because the tenant's settings are absent or a
+   settings document cannot be honored, `ReconcileClientSecrets` rewrites nothing: a verifier cannot be turned back
+   into its secret, so a conversion made for a method that is not the client's would destroy a secret its method
+   needs.
 
    The management API's `SecretResource` and `CreatedSecretResource` carry `IsVerifier`, which the console shows on
    each secret, so an operator sees which secrets cannot sign an assertion.
@@ -174,6 +189,17 @@ that uses the secret as a key keeps it reversible, and every other method holds 
 - **Keep a client's reversible secret when its method stops using the secret as a key.** Rejected: the secret would
   stay readable by whoever holds the root key for as long as the client keeps it, which is what this decision
   forbids, and a method that compares its secret would have to compare it with keys as well as verifiers.
+- **Bring every inheriting client's secrets into the new method's form when a server's or tenant's
+  `token_endpoint_auth_method` changes.** Rejected: the server's settings come from configuration, a change would
+  rewrite the secrets of every client of every tenant it reaches, and a secret it issues has no response to be
+  revealed in. Naming the method in each client's document keeps the method a fact of the client's registration, as
+  RFC 7591 §2 has it.
+- **Compare a presented secret with a client's reversible secrets as well as its verifiers.** Rejected: it would
+  keep an inheriting client authenticating after its tenant's method changed, but its secret would stay readable,
+  and a client whose method keys from its secret would still hold only verifiers.
+- **Bring a client's secrets into its method's form on every management settings update.** Rejected: an edit of
+  other settings would issue a secret to a client that holds none, which re-enables a client whose operator deleted
+  its secrets and needs the authority to create a secret for an edit that creates none.
 - **Make every converted secret's verifier with the supplied-secret scheme.** Rejected: a generated secret would then
   cost a derivation on every authentication; recording the origin makes the right scheme known.
 - **Refuse a switch to a method none of the client's secrets can serve.** Rejected: a client of dynamic client
@@ -219,6 +245,9 @@ that uses the secret as a key keeps it reversible, and every other method holds 
 - A change of a client's method through its settings can replace its shared secrets: a reversible secret becomes a
   verifier of the same secret, and a client left with no secret its method can use is issued one, which the response
   to the change reveals once. A caller of the management API's settings update reads that response.
+- Every stored client names its `token_endpoint_auth_method`, so a server's or tenant's value is the method a client
+  is registered for when it names none, and the stored document of a client the management API creates or updates
+  carries it even when the request named none.
 - Every `PersistedSecret` carries its `Origin`, which every store of secrets persists.
 
 ## References

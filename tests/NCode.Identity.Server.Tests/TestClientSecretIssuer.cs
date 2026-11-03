@@ -40,9 +40,9 @@ internal sealed class TestClientSecretIssuer(
     /// <summary>
     /// Gets the method each secret was issued for, in order.
     /// </summary>
-    public List<string> IssuedMethods { get; } = [];
+    public List<string?> IssuedMethods { get; } = [];
 
-    public ValueTask<string> GetTokenEndpointAuthMethodAsync(
+    public ValueTask<string?> GetTokenEndpointAuthMethodAsync(
         string tenantId,
         JsonElement? tenantSettings,
         string clientId,
@@ -51,7 +51,7 @@ internal sealed class TestClientSecretIssuer(
     )
     {
         ResolvedClientSettings.Add(clientSettings);
-        return ValueTask.FromResult(ResolvedMethod);
+        return ValueTask.FromResult<string?>(ResolvedMethod);
     }
 
     public bool RequiresClientSecret(string tokenEndpointAuthMethod) =>
@@ -59,26 +59,26 @@ internal sealed class TestClientSecretIssuer(
 
     public GeneratedSecret GenerateClientSecret(
         ISecretProtector protector,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         SharedSecretRequest request
     ) => throw new NotSupportedException("A seed imports the secret it is configured with.");
 
     public PersistedSecret ImportClientSecret(
         ISecretProtector protector,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         SharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
     )
     {
         IssuedMethods.Add(tokenEndpointAuthMethod);
-        return KeyedMethods.Contains(tokenEndpointAuthMethod)
+        return tokenEndpointAuthMethod is not null && KeyedMethods.Contains(tokenEndpointAuthMethod)
             ? SecretGenerator.ImportReversibleSharedSecret(protector, request, secretValue)
             : SecretGenerator.ImportSharedSecretVerifier(protector, request, secretValue);
     }
 
     public ClientSecretReconciliation ReconcileClientSecrets(
         ISecretProtector protector,
-        string tokenEndpointAuthMethod,
+        string? tokenEndpointAuthMethod,
         IReadOnlyCollection<PersistedSecret> secrets
     ) => throw new NotSupportedException("A seed never changes a client's method.");
 }

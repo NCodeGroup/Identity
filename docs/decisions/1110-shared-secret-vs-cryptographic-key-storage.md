@@ -1,6 +1,6 @@
 # 1110. A shared secret is stored as the UTF-8 bytes of its opaque string, distinct from a cryptographic key
 
-- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a shared secret that is only compared is stored as a one-way verifier; the UTF-8 form this record describes is the reversible form `GenerateReversibleSharedSecret` and `ImportReversibleSharedSecret` store, for a secret its client uses as a key)
+- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a shared secret that is only compared is stored as a one-way verifier, which `GenerateSharedSecretVerifier` and `ImportSharedSecretVerifier` store and `SecretVerifier` compares; the UTF-8 form this record describes is the reversible form `GenerateReversibleSharedSecret` and `ImportReversibleSharedSecret` store, for a secret its client uses as a key)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md) (with [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md))

@@ -41,14 +41,14 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
-    public async Task GetDiscovery_DoesNotExposeNonDiscoverableSettings_EvenWithShowAllQuery()
+    public async Task GetDiscovery_DoesNotExposeNonDiscoverableSettings_WhateverTheQuery()
     {
         var client = Factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
 
-        // The 'showAll' override was removed; passing it must have no effect and non-discoverable
-        // settings must stay hidden from anonymous discovery.
+        // Anonymous discovery has no query override: a query such as 'showAll' has no effect and non-discoverable
+        // settings stay hidden.
         using var response = await client.GetAsync(
             "/.well-known/openid-configuration?showAll=true"
         );
@@ -80,7 +80,7 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         var jsonElement = JsonElement.Parse(json);
         var root = jsonElement;
 
-        // The 'claims' request parameter is now honored end-to-end (ADR-1039), so it is advertised.
+        // The 'claims' request parameter is honored end-to-end (ADR-1039), so it is advertised.
         Assert.True(
             root.TryGetProperty("claims_parameter_supported", out var claimsParameterSupported)
         );

@@ -11,7 +11,7 @@ namespace NCode.Identity.Events.Audit;
 /// <remarks>
 /// Outcome is an extensible string vocabulary, not a closed enumeration, so a consumer or sibling
 /// package can introduce additional outcomes (for example <c>denied</c>, <c>error</c>, or
-/// <c>challenge</c>) without a breaking change. Values are lower-case and stable, suitable for use as
+/// <c>challenge</c>) without editing this package. Values are lower-case and stable, suitable for use as
 /// a log or metric dimension.
 /// </remarks>
 [PublicAPI]

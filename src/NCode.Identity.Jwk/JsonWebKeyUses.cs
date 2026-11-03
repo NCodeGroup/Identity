@@ -7,8 +7,8 @@ namespace NCode.Identity.Jwk;
 
 /// <summary>
 /// Defines the values of the <c>use</c> member of a <c>JSON Web Key</c> (RFC 7517 §4.2). This is an extensible
-/// vocabulary of string constants, not a closed enumeration, so a custom use can be contributed without a breaking
-/// change.
+/// vocabulary of string constants, not a closed enumeration, so a custom use can be contributed without editing
+/// this package.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517#section-4.2">RFC 7517 - The "use" (Public Key Use) Parameter</seealso>
 [PublicAPI]

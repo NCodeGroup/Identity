@@ -303,10 +303,10 @@ describe('probeUserInfoUnauthorized', () => {
 });
 
 describe('probePar', () => {
-  it('skips when no PAR endpoint is advertised (the common gap)', async () => {
+  it('skips when no PAR endpoint is advertised', async () => {
     const result = await probePar(discovery, vi.fn(), 'playground-spa');
     expect(result.outcome).toBe('skipped');
-    expect(result.detail).toContain('#46');
+    expect(result.detail).toBe("'pushed_authorization_request_endpoint' is not advertised.");
   });
 
   it('verifies a 201 with a request_uri when PAR is advertised', async () => {

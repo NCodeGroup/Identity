@@ -7,8 +7,8 @@ namespace NCode.Identity.Jwk;
 
 /// <summary>
 /// Defines the values of the <c>key_ops</c> member of a <c>JSON Web Key</c> (RFC 7517 §4.3). This is an extensible
-/// vocabulary of string constants, not a closed enumeration, so a custom operation can be contributed without a
-/// breaking change.
+/// vocabulary of string constants, not a closed enumeration, so a custom operation can be contributed without
+/// editing this package.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517#section-4.3">RFC 7517 - The "key_ops" (Key Operations) Parameter</seealso>
 [PublicAPI]

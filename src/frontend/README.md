@@ -4,8 +4,8 @@ A single, cohesive TypeScript presentation platform shared by every NCode.Identi
 Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision record:
 [ADR-1064](../../docs/decisions/1064-frontend-presentation-platform.md).
 
-> **Monorepo now, clean split later.** This lives in the monorepo under `src/frontend/` today. At GA
-> the repo may be reorganized, so every shared concern is a scoped `@ncode/*` package consumed only
+> **One monorepo, split-ready.** This lives in the monorepo under `src/frontend/`. At GA the repo
+> may be reorganized, so every shared concern is a scoped `@ncode/*` package consumed only
 > through its public entry point (no deep cross-package imports). Extraction should be a folder move,
 > not a refactor.
 
@@ -22,7 +22,7 @@ This toolchain is intentionally **outside** the .NET `dod.ps1` inner loop; it ha
 ### Package manager — pnpm, pinned by `packageManager`
 
 The pnpm version is pinned in the root [`package.json`](package.json) `packageManager` field, so every machine and CI
-runner uses the exact same pnpm. Node no longer bundles Corepack, so nothing activates it implicitly:
+runner uses the exact same pnpm. Node does not bundle Corepack, so nothing activates it implicitly:
 [`build/frontend-install.ps1`](../../build/frontend-install.ps1) installs the pinned version with the pinned Node's
 npm, and CI installs it with `pnpm/action-setup`. A globally installed pnpm 10 or later also switches to the pinned
 version by itself. The pin stays on the newest pnpm major Dependabot supports (10), and Dependabot does not bump it, so
@@ -76,11 +76,11 @@ src/frontend/
     test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard and the Testing Library wait timeout)
     vite-config/  @ncode/vite-config — the Vite/Vitest preset every workspace builds and tests from
   apps/
-    mgmt/     @ncode/app-mgmt — Management console (first surface)
+    mgmt/     @ncode/app-mgmt — Management console
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
     playground/   @ncode/app-playground — OAuth 2.1 / OIDC authorization-code + PKCE flow explorer (dev server :5174)
     conformance/  @ncode/app-conformance — Security-posture & conformance-readiness dashboard (dev server :5175)
-    conformance-runner/ @ncode/app-conformance-runner — headless CLI probing the confidential/server-initiated legs (ADR-1084 Phase 3)
+    conformance-runner/ @ncode/app-conformance-runner — headless CLI probing the confidential/server-initiated legs (ADR-1084)
 ```
 
 ## Architectural invariants
@@ -266,7 +266,7 @@ Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
 Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
 conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
-**healthy** (`WaitFor` + `/health/ready`), so the browser UIs no longer race the API, and its **dashboard** is one place
+**healthy** (`WaitFor` + `/health/ready`), so no browser UI races the API, and its **dashboard** is one place
 for ordered startup, logs, and traces.
 
 One-time setup (**required** before the first launch, and again whenever dependencies or the pinned Node/pnpm change):
@@ -300,7 +300,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
 > Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`https://localhost:5173`) can read
 > discovery and call the management API cross-origin. Without a seeded public SPA client the UI renders in **open
 > mode** and management calls return `401`; the development seeder (`AddDeveloperInteractiveSeed`) and the interactive
-> login surface ([#125](https://github.com/NCodeGroup/Identity/issues/125), done) close that gap for local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).
+> login surface ([#125](https://github.com/NCodeGroup/Identity/issues/125)) provide local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).
 
 ## Gotchas (hard-won)
 
@@ -440,11 +440,11 @@ with an error naming that script when the files are missing; under Aspire the Ap
   (`npx @mui/codemod@<version> v9.0.0/system-props <path>` and `deprecations/all`). Pin the version: 9.5.0's CLI is
   broken (`yargs.command is not a function`), so use 9.4.0. Run them on LF checkouts and re-run Prettier afterwards,
   because jscodeshift writes CRLF on Windows and expands every object it touches.
-- **Test type entry points are the Vitest ones.** Vitest no longer pulls Jest's global matcher namespace or
+- **Test type entry points are the Vitest ones.** Vitest does not pull Jest's global matcher namespace or
   `@types/node` into a test program, so name them explicitly: a tsconfig lists `@testing-library/jest-dom/vitest` in
   `types` (the bare `@testing-library/jest-dom` entry augments Jest only, and `toBeInTheDocument` stops type-checking);
   a `vite.config.ts` with a `test` block starts with `/// <reference types="vitest/config" />` (the bare `vitest`
-  reference no longer types that key — configs are not in any tsconfig, so only the editor shows it); and a jsdom app
+  reference does not type that key — configs are not in any tsconfig, so only the editor shows it); and a jsdom app
   whose tests import `node:` modules lists `"node"` in `types` (as [`apps/playground`](apps/playground) does for
   `webcrypto`, which jsdom lacks).
 - **`@types/node` is pinned to the runtime major workspace-wide.** The root `devDependency` is the one range; an

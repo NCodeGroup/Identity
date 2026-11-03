@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Verifies <c>private_key_jwt</c> client authentication (OpenID Connect Core §9, RFC 7523) where the client's public
-/// verification key is resolved at runtime from its <c>jwks_uri</c> rather than a stored secret (issue #54 Phase 0).
+/// verification key is resolved at runtime from its <c>jwks_uri</c> rather than a stored secret.
 /// </summary>
 public class TokenEndpointClientJwksUriTests
 {

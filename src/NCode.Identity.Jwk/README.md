@@ -7,18 +7,17 @@ First-class **JSON Web Key** (JWK, RFC 7517), **JSON Web Key Set** (JWKS, RFC 75
 ## Why there is no `NCode.Identity.Jwk.Abstractions` package
 
 This is intentional, and it is the one place in the family where a type is deliberately **not** split into a contracts
-package. If this comes up again, the decision has already been made — see
-[ADR-1119](../../docs/decisions/1119-first-class-jwk-jwks-and-thumbprint.md) for the full record. In short:
+package. The decision is
+[ADR-1119](../../docs/decisions/1119-first-class-jwk-jwks-and-thumbprint.md). In short:
 
 - **Our `*.Abstractions` packages hold contracts only — no logic.** That rule is what the whole Abstractions/impl split
   exists to enforce.
 - **A JWK is a genuinely *used*, behavior-bearing type**, not a dumb DTO. It produces its typed members, computes the
   RFC 7638 canonical thumbprint, and is consumed to verify proofs and assemble a JWKS. That behavior must not live in an
   abstractions package — so a JWK type cannot simply be dropped into one.
-- **A "dumb DTO" JWK was tried and rejected as duct tape.** Making `JsonWebKey` a logic-free DTO (typed members +
-  `[JsonExtensionData]`) in an abstractions package satisfied the no-logic rule on paper but left every real consumer
-  still hand-rolling `JsonObject` / `JsonElement` and converting only at the serialization edges. The type was bolted
-  on, not used.
+- **A "dumb DTO" JWK is duct tape.** A logic-free `JsonWebKey` DTO (typed members + `[JsonExtensionData]`) in an
+  abstractions package satisfies the no-logic rule on paper but leaves every real consumer hand-rolling `JsonObject` /
+  `JsonElement` and converting only at the serialization edges: the type is bolted on, not used.
 - **It must be first-class in *both* the Secrets and JOSE stacks.** `Secrets.Abstractions` is the lowest shared layer
   (`Jose.Abstractions` depends on it) and is where the descriptor seam that produces JWK members lives. So a single
   shared JWK type cannot live in `Jose.Abstractions` (Secrets could not see it), and putting a behavior-bearing type in

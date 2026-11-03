@@ -2,7 +2,12 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import { tenantScope, type ClientResource } from '@ncode/api';
+import {
+  tenantScope,
+  type ClientResource,
+  type CreatedSecretResource,
+  type SecretResource,
+} from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ClientDetailPage } from './ClientDetailPage.js';
 
@@ -70,8 +75,11 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-const createdSecret = {
+// A client registered for a method that compares its secret, such as client_secret_basic, holds a one-way verifier
+// (ADR-1391).
+const createdSecret: CreatedSecretResource = {
   secretId: 's-new',
+  keyId: 's-new',
   concurrencyToken: 'sc1',
   use: null,
   algorithm: null,
@@ -79,6 +87,7 @@ const createdSecret = {
   expiresWhen: '2027-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
+  isVerifier: true,
   secretMaterial: 'one-time-material',
 };
 
@@ -259,6 +268,7 @@ describe('ClientDetailPage', () => {
           secrets: [
             {
               secretId: 's-rsa',
+              keyId: 's-rsa',
               concurrencyToken: 'sc1',
               use: null,
               algorithm: null,
@@ -266,7 +276,8 @@ describe('ClientDetailPage', () => {
               expiresWhen: '2099-01-01T00:00:00Z',
               secretType: 'rsa',
               keySizeBits: 2048,
-            },
+              isVerifier: false,
+            } satisfies SecretResource,
           ],
         });
       }
@@ -329,6 +340,9 @@ describe('ClientDetailPage', () => {
         return jsonResponse({
           ...createdSecret,
           secretId: 's-issued',
+          keyId: 's-issued',
+          // client_secret_jwt uses the secret as its HMAC key, so the server keeps it rather than a verifier.
+          isVerifier: false,
           secretMaterial: 'issued-once',
         });
       }

@@ -249,6 +249,12 @@ export type SecretResource = {
   readonly expiresWhen: string;
   readonly secretType: string;
   readonly keySizeBits: number;
+  // See ADR-1391.
+  /**
+   * Whether the server holds only a one-way verifier of the shared secret: it authenticates a method that compares the
+   * secret, never one that uses it as a key, such as `client_secret_jwt` or an `HS256` request object.
+   */
+  readonly isVerifier: boolean;
 };
 
 /**

@@ -43,4 +43,12 @@ public sealed class SecretResource
 
     /// <inheritdoc cref="PersistedSecret.KeySizeBits"/>
     public required int KeySizeBits { get; init; }
+
+    /// <summary>
+    /// Gets whether the server holds only a one-way verifier of the shared secret: it authenticates a
+    /// client-authentication method that compares the secret, such as <c>client_secret_basic</c>, and never one that uses
+    /// the secret as a key, such as <c>client_secret_jwt</c> or an <c>HS256</c> request object. A client switched to such
+    /// a method needs a new secret, issued while it is registered for that method.
+    /// </summary>
+    public required bool IsVerifier { get; init; }
 }

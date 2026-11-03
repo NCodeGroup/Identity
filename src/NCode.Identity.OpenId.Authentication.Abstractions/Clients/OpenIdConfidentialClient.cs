@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -21,9 +20,11 @@ public abstract class OpenIdConfidentialClient : OpenIdClient
     public abstract string AuthenticationMethod { get; }
 
     /// <summary>
-    /// Gets the <see cref="SecretKey"/> that was used to authenticate the client.
+    /// Gets the identifier of the registered credential the client authenticated with: the key identifier of the key
+    /// or certificate it proved possession of, or of the shared secret it presented; or <c>null</c> when that
+    /// credential has no identifier, such as a key without a <c>kid</c> published at the client's <c>jwks_uri</c>.
     /// </summary>
-    public abstract SecretKey SecretKey { get; }
+    public abstract string? CredentialId { get; }
 
     /// <summary>
     /// Gets a <see cref="bool"/> value indicating whether the client was authenticated using a proof-of-possession key.

@@ -28,6 +28,7 @@ public sealed class PersistedSecretExtensionsTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = "test",
             SecretEncoding = secretEncoding,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "value",
             PublicKey = publicKey,

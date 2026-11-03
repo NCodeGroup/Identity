@@ -19,7 +19,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// </para>
 /// <para>
 /// The constructor throws an <see cref="InvalidOperationException"/> when the registered descriptors are inconsistent:
-/// a descriptor has an empty name, a name that contains whitespace, or the same name as another descriptor.
+/// a descriptor has an empty name, a name that contains whitespace, or the same name as another descriptor, or it uses
+/// the client secret as a key without requiring one.
 /// </para>
 /// </remarks>
 // See ADR-1207.
@@ -52,6 +53,12 @@ internal sealed class DefaultClientAuthenticationMethodCatalog : IClientAuthenti
                 if (string.IsNullOrEmpty(name) || name.Any(char.IsWhiteSpace))
                     throw new InvalidOperationException(
                         "A client-authentication method descriptor must have a name that is not empty and contains no whitespace."
+                    );
+
+                // A method that keys from the client_secret needs one issued; see ADR-1391.
+                if (descriptor.UsesClientSecretAsKey && !descriptor.RequiresClientSecret)
+                    throw new InvalidOperationException(
+                        $"The client-authentication method '{name}' uses the client secret as a key but does not require one."
                     );
 
                 if (!descriptorsByName.TryAdd(name, descriptor))

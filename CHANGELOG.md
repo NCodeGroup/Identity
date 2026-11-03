@@ -856,22 +856,27 @@ describes the family as it is rather than its changes
   RSA and EC, and the key-to-algorithm rule is `IAlgorithmCollection.ValidateKeyAlgorithm` (`KeyAlgorithmDeclaration`)
   ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
 
-- **A client secret is stored as the UTF-8 bytes of the string it reveals, and a cryptographic key as raw bytes.** A
-  symmetric `PersistedSecret` serves two purposes with two storage shapes: a shared secret an external party presents
-  (an OAuth `client_secret`) is stored as the UTF-8 bytes of its opaque string, whereas a cryptographic key the server
-  itself uses (an `HS256` key, a symmetric JWE key) is stored as raw CSPRNG bytes and revealed `base64url`.
-  `ISecretGenerator.GenerateSharedSecret` generates a URL-safe random string and persists it in the first shape, and
-  `ISecretGenerator.GenerateSecret` produces the second, for asymmetric and server-side cryptographic keys.
-  `ISecretGenerator.ImportSharedSecret` persists a caller-supplied `client_secret`, given as the UTF-8 octets of its
-  opaque string with `ImportSharedSecretRequest` metadata, in the same `symmetric_raw` shape, deriving the bit length
-  from the value and sharing one internal construction with `GenerateSharedSecret`, so the stored UTF-8 contract is the
-  same for both. The distinction is made at the call site, per the no-flag-argument convention, so a client-secret
-  issuer cannot pick the wrong representation. Dynamic client registration and the management API's create-client-secret
-  endpoint generate client secrets with `GenerateSharedSecret`; the conformance and bootstrap-admin seed handlers and
-  the integration-test host factory persist their client secrets with `ImportSharedSecret`. Client authentication
-  compares against these bytes, and `client_secret_jwt` keys its HMAC from them
+- **A client secret is stored as a one-way verifier or as the UTF-8 bytes of the string it reveals, and a cryptographic
+  key as raw bytes.** A symmetric `PersistedSecret` serves three purposes with three storage shapes: a shared secret an
+  external party presents and the server only compares (the `client_secret` of `client_secret_basic` or
+  `client_secret_post`) is stored as its one-way verifier (`SecretEncodings.Verifier`); a shared secret the server also
+  keys from (the `client_secret` of `client_secret_jwt`) is stored as the UTF-8 bytes of its opaque string
+  (`SecretEncodings.SymmetricRaw`); and a cryptographic key the server itself uses (an `HS256` key, a symmetric JWE key)
+  is stored as raw CSPRNG bytes and revealed `base64url`. `ISecretGenerator.GenerateSharedSecretVerifier` and
+  `GenerateReversibleSharedSecret` generate a URL-safe random string and persist it in the first or the second shape;
+  `ImportSharedSecretVerifier` and `ImportReversibleSharedSecret` persist a caller-supplied `client_secret`, given as the
+  UTF-8 octets of its opaque string, in the same shapes, deriving the bit length from the value; all four take a
+  `SharedSecretRequest`, and `ISecretGenerator.GenerateSecret` produces the third shape, for asymmetric and server-side
+  cryptographic keys. `ConvertToSharedSecretVerifier` stores the verifier of a secret held as its octets. Every stored
+  secret records its `PersistedSecret.Origin` (`SecretOrigins.Generated` or `SecretOrigins.Supplied`), which picks the
+  verifier scheme. The distinction is made at the call site, per the no-flag-argument convention, so a client-secret
+  issuer cannot pick the wrong representation. Verifier schemes are an open vocabulary: each is a registered
+  `ISecretVerifierScheme`, looked up by name through `ISecretVerifierSchemeCatalog`, and `SharedSecretVerifierOptions`
+  names the scheme for generated secrets (`GeneratedSecretScheme`, `SecretVerifierSchemes.Sha256` by default) and for
+  supplied ones (`SuppliedSecretScheme`, `SecretVerifierSchemes.Pbkdf2Sha256`). Client authentication compares a
+  presented secret with its verifier, and `client_secret_jwt` keys its HMAC from the stored bytes
   ([ADR-1110](docs/decisions/1110-shared-secret-vs-cryptographic-key-storage.md),
-  [#69](https://github.com/NCodeGroup/Identity/issues/69)).
+  [#69](https://github.com/NCodeGroup/Identity/issues/69), [#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **Hash algorithms and binary encodings are open vocabularies.** `ICryptoService.HashValue` takes the framework's
   `HashAlgorithmName` and computes the digest with `CryptographicOperations`, so SHA-384 and SHA-3 are available.
@@ -1189,13 +1194,14 @@ describes the family as it is rather than its changes
   [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
 
 - **Client-authentication methods are named by registered descriptors.** `ClientAuthenticationMethodDescriptor` names a
-  method and says whether it requires a client secret. A package contributes one through
+  method, says whether it authenticates with a client secret (`RequiresClientSecret`) and whether it keys from that
+  secret (`UsesClientSecretAsKey`), which decides the form the secret is stored in. A package contributes one through
   `ICollectionDataSource<ClientAuthenticationMethodDescriptor>`, and `IClientAuthenticationMethodCatalog` lists the
   registered names and finds a descriptor without constructing a handler. Every client-authentication handler is paired
   with a registered descriptor: the host does not compose when the registered handlers and descriptors differ, and
   options validation constructs no handler
   ([ADR-1207](docs/decisions/1207-client-authentication-methods-are-named-by-registered-descriptors.md), issue
-  [#251](https://github.com/NCodeGroup/Identity/issues/251)).
+  [#251](https://github.com/NCodeGroup/Identity/issues/251), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`)** (issue
   [#54](https://github.com/NCodeGroup/Identity/issues/54),
@@ -1284,7 +1290,8 @@ describes the family as it is rather than its changes
   `client_secret` for a confidential client, and a `registration_access_token` with a `registration_client_uri`; the
   per-client management endpoint (`GET`/`PUT`/`DELETE /oauth2/register/{client_id}`, RFC 7592) lets the client read,
   update or delete its registration with that token. Metadata maps onto the client settings document and the
-  `client_secret` is the standard one-time secret, so client authentication is the same as for any client; the
+  `client_secret` is the standard one-time secret, issued in the form the client's method needs, so client
+  authentication is the same as for any client; the
   `registration_access_token` and the RFC 7591 `initial_access_token` are hash-keyed persisted grants. The
   deployment-specific `IInitialAccessTokenValidator` seam decides what counts as a valid initial access token. The error
   codes `invalid_client_metadata` and `invalid_redirect_uri` are defined
@@ -1954,6 +1961,11 @@ describes the family as it is rather than its changes
   ([#337](https://github.com/NCodeGroup/Identity/issues/337),
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 
+- **The management API and its console show how a secret is stored.** `SecretResource.IsVerifier` is `true` for a
+  secret stored as a one-way verifier, which authenticates a method that compares the secret and never one that keys
+  from it, such as `client_secret_jwt`, and the management console marks such a secret with a `Verifier` chip from the
+  contract's `isVerifier` ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+
 - **The management API reads an asymmetric secret's public key.** The read-only sub-resource
   `GET /api/…/{servers|tenants|clients|resource-servers}/{ownerId}/secrets/{secretId}/public-key` returns a
   `PublicKeyResource` carrying both a JWK (RFC 7517, the representation the JWKS endpoint publishes, produced by the
@@ -1964,7 +1976,7 @@ describes the family as it is rather than its changes
 
 - **Rotating a client secret keeps the rotated secret beside its replacement.**
   `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate` generates a replacement shared secret with
-  the rotated secret's type, entropy, `use` and `alg` and the expiry the request names (`RotateSecretRequest`), adds it
+  the rotated secret's type, entropy, `use` and `alg`, stored in the form the client's method needs, and the expiry the request names (`RotateSecretRequest`), adds it
   beside the rotated secret so both authenticate while its holder switches, and returns the replacement's
   `CreatedSecretResource`, the only place its material appears; delete the rotated secret when the switch is done. The
   optional `rotatedExpiresWhen` shortens the rotated secret's expiry and never extends it. Rotation is authorized as
@@ -3606,6 +3618,18 @@ describes the family as it is rather than its changes
   ([ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md),
   [#495](https://github.com/NCodeGroup/Identity/issues/495)).
 
+- **A client secret that is only compared is stored as a one-way verifier, and its verification is bounded.** The
+  `client_secret` of a client whose method compares it (`client_secret_basic`, `client_secret_post`) is stored only as a
+  verifier in its `nce1.` envelope (`SecretEncodings.Verifier`), so not even the root key recovers it:
+  `$ncode-sha256$…` for a secret the server generates, and `$ncode-pbkdf2-sha256$…`, the format and parameters of the
+  family's password hashes, for one an operator supplies. A client whose method keys from its secret
+  (`client_secret_jwt`) keeps it reversible. `Pbkdf2SecretVerifierOptions.Iterations` sets the PBKDF2 work factor
+  (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
+  process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
+  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound. Limits on
+  failed client authentications are tracked in [#533](https://github.com/NCodeGroup/Identity/issues/533)
+  ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+
 - **The Data Protection key ring is encrypted under the server master key, and a key it cannot decrypt stops the host.**
   The host configures the key ring through the `SecretProtection` section, and the Helm chart through its
   `secretProtection` values, which the chart's schema, render-time refusals and CI releases check.
@@ -3858,9 +3882,11 @@ describes the family as it is rather than its changes
   decides the client's type: `none` registers a public client, any other method a confidential one. A confidential
   client that presents only its `client_id`, a credential of another method, and a secret presented by a public client
   are `invalid_client`, as is a request without a secret in HTTP Basic credentials (no colon). A client that registers
-  no method uses the RFC 7591 default, `client_secret_basic`, unless its server or tenant configures another, so a
-  client created through the management API without one is a confidential client that authenticates with HTTP Basic once
-  it holds a secret; an empty `token_endpoint_auth_method` is not a valid value. `token_endpoint_auth_methods_supported`
+  no method uses the RFC 7591 default, `client_secret_basic`, unless its server or tenant configures another, and
+  every stored client names its method: the management API's client create and settings update write the client's
+  effective method into its settings document when it names none, so a client created without one is a confidential
+  client that authenticates with HTTP Basic once it holds a secret, and a change to the server's or tenant's
+  `token_endpoint_auth_method` moves no stored client's method; an empty `token_endpoint_auth_method` is not a valid value. `token_endpoint_auth_methods_supported`
   is the ceiling the server, tenant and security profile impose over the registered method: a client registered outside
   it cannot authenticate, dynamic client registration refuses such a method with `invalid_client_metadata`, and an empty
   list permits no method, so disjoint ceilings, such as a tenant that allows only `client_secret_basic` and a client
@@ -3870,12 +3896,27 @@ describes the family as it is rather than its changes
   with `invalid_request`. The developer single-page-application clients register `none`, a conformance client registers
   only its configured method, and the bootstrap administrator registers `client_secret_basic` and presents its secret
   with HTTP Basic, as does the API reference's client-credentials login
-  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)).
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+
+- **Every client secret is held in the form its client's method needs.** `IClientSecretIssuer` issues every client
+  secret, for the management API, dynamic client registration and the seeds, as `ClientAuthenticationMethodDescriptor`'s
+  `RequiresClientSecret` and `UsesClientSecretAsKey` call for: a one-way verifier for a method that compares the secret,
+  the reversible UTF-8 octets for a method that keys from it, and a verifier for a method that cannot be resolved or is
+  not registered. When a client's settings change its method, through either API, `ReconcileClientSecrets` stores a
+  reversible secret's verifier in its place or issues a secret the method can use, revealed once in the response (the
+  registration's `client_secret`, or the management API's `200 OK` with a `CreatedSecretResource`, which the console
+  shows); a registration update also issues one to a client whose secrets expired, a management settings update that
+  leaves the method as it is leaves the client's secrets as they are, and neither rewrites a secret when the client's
+  method cannot be resolved. `OpenIdClient.SecretVerifiers` holds the verifiers and `SecretKeys` never does, so a client
+  that compares its secret cannot register a symmetric request-object algorithm such as `HS256`, and
+  `OpenIdConfidentialClient.CredentialId` names the credential that authenticated the client. A verification refused a
+  turn of the `ISecretVerificationGate` is answered `503 Service Unavailable` with `temporarily_unavailable` and
+  `Retry-After: 1`, because the secret was never compared ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **Client credentials stop authenticating at their expiry, and client secrets have at least 256 bits.** A client secret
   or registered key whose `expiresWhen` has passed does not authenticate its client.
   `SharedSecretPolicy.MinimumEntropyBits` (256) is the floor for every generated shared secret:
-  `ISecretGenerator.GenerateSharedSecret` throws below it, and creating a client secret below it answers `400`
+  `ISecretGenerator.GenerateSharedSecretVerifier` and `GenerateReversibleSharedSecret` throw below it, and creating a client secret below it answers `400`
   ([#445](https://github.com/NCodeGroup/Identity/issues/445),
   [ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)).
 
@@ -4441,9 +4482,10 @@ describes the family as it is rather than its changes
   ([ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
 
 - **The bootstrap administrator's `ClientSecret` is supplied Base64Url-encoded and kept off the GC heap.** The seed
-  handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`), and the OpenAPI example and
+  handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2
+  verifier, because the administrator registers `client_secret_basic`, and the OpenAPI example and
   Scalar prefill that surface the presentable secret appear only in the development environment. See
-  [ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md).
+  [ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md) and [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
 
 - **Every owner's keys are imported and updated under the client-key policy.** The client, tenant, server and
   resource-server import endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose
@@ -4456,8 +4498,8 @@ describes the family as it is rather than its changes
   resource server with `409 Conflict`, and issuance ignores any key stored on one
   ([ADR-1167](docs/decisions/1167-the-server-validates-the-tokens-it-issued-under-one-policy.md)).
 
-- **Responses that reveal a secret are never cached.** Creating or rotating a client secret, creating a resource server
-  key, minting an initial access token, and dynamic client registration (the RFC 7591 registration and the RFC 7592 read
+- **Responses that reveal a secret are never cached.** Creating or rotating a client secret, a client settings update
+  that issues one, creating a resource server key, minting an initial access token, and dynamic client registration (the RFC 7591 registration and the RFC 7592 read
   and update) answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so no browser, proxy or
   gateway cache keeps the one-time secret. An endpoint opts in with the `.WithNoStore()` endpoint convention, and
   `HttpResponse.SetNoStore()` is public in the `NCode.AspNetCore` package

@@ -975,6 +975,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = encoding,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = "AA",
         };

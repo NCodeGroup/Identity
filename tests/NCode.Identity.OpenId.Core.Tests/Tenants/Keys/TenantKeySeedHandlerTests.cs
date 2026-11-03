@@ -427,6 +427,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretKeyTypes.Rsa,
             SecretEncoding = SecretEncodings.Pkcs8,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 3072,
             EncodedValue = "AA",
         };

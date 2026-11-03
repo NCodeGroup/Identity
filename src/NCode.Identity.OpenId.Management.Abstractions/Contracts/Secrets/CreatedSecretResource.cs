@@ -48,6 +48,14 @@ public sealed class CreatedSecretResource
     public required int KeySizeBits { get; init; }
 
     /// <summary>
+    /// Gets whether the server holds only a one-way verifier of the shared secret: it authenticates a
+    /// client-authentication method that compares the secret, such as <c>client_secret_basic</c>, and never one that uses
+    /// the secret as a key, such as <c>client_secret_jwt</c> or an <c>HS256</c> request object. A client switched to such
+    /// a method needs a new secret, issued while it is registered for that method.
+    /// </summary>
+    public required bool IsVerifier { get; init; }
+
+    /// <summary>
     /// Gets the one-time unprotected key material, base64url-encoded, or <c>null</c> when the secret has no
     /// externally-held material to reveal (asymmetric secrets). This value appears only in this create response
     /// and is never persisted, logged, audited, or returned by any read path.

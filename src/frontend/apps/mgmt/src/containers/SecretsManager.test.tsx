@@ -30,6 +30,7 @@ const rsaSecret: SecretResource = {
   expiresWhen: '2099-01-01T00:00:00Z',
   secretType: 'rsa',
   keySizeBits: 2048,
+  isVerifier: false,
 };
 
 const symmetricSecret: SecretResource = {

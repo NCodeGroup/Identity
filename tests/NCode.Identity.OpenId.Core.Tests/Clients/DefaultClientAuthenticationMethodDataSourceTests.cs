@@ -58,5 +58,29 @@ public class DefaultClientAuthenticationMethodDataSourceTests : BaseTests
         Assert.Equal(expected, descriptor.RequiresClientSecret);
     }
 
+    [Theory]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt, true)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth, false)]
+    [InlineData(OpenIdProtocol.ClientAuthenticationMethods.None, false)]
+    public void Collection_UsesTheClientSecretAsAKeyOnlyForClientSecretJwt(
+        string method,
+        bool expected
+    )
+    {
+        // Only client_secret_jwt keys an HMAC from the secret, so only its secrets are stored reversibly. See ADR-1391.
+        var dataSource = CreateDataSource();
+
+        var descriptor = Assert.Single(
+            dataSource.Collection,
+            candidate => candidate.Name == method
+        );
+
+        Assert.Equal(expected, descriptor.UsesClientSecretAsKey);
+    }
+
     #endregion
 }

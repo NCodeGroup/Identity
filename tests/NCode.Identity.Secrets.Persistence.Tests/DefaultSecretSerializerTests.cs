@@ -4,13 +4,17 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Buffers;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -18,6 +22,7 @@ public class DefaultSecretSerializerTests
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
+    private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultSecretSerializer _serializer;
 
     public DefaultSecretSerializerTests()
@@ -36,7 +41,11 @@ public class DefaultSecretSerializerTests
             new EccSecretKeyTypeDescriptor(secretKeyFactory, new DefaultEccCurveCatalog([])),
         ]);
 
-        _serializer = new DefaultSecretSerializer(catalog);
+        _catalog = catalog;
+        _serializer = new DefaultSecretSerializer(
+            catalog,
+            TestSecretVerifierSchemes.CreateCatalog()
+        );
     }
 
     private static PersistedSecret CreatePersistedSecret(
@@ -82,6 +91,7 @@ public class DefaultSecretSerializerTests
             ExpiresWhen = expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = encodedValue,
             PublicKey = publicKey,
@@ -105,6 +115,25 @@ public class DefaultSecretSerializerTests
         string secretId,
         ReadOnlySpan<byte> rawBytes
     ) => protector.ProtectToString(rawBytes, SecretProtectionContext.ForPersistedSecret(secretId));
+
+    private static PersistedSecret CreateVerifierSecret(
+        ISecretProtector protector,
+        string verifierText,
+        string secretId = "secret-1",
+        string? keyId = null
+    ) =>
+        CreatePersistedSecretFromEncodedValue(
+            SecretTypes.Symmetric,
+            SecretEncodings.Verifier,
+            256,
+            CreateEnvelope(protector, secretId, SecureEncoding.ASCII.GetBytes(verifierText)),
+            secretId,
+            keyId: keyId
+        );
+
+    private static string Sha256Text(string secret) =>
+        "$ncode-sha256$"
+        + Base64Url.EncodeToString(SHA256.HashData(SecureEncoding.UTF8.GetBytes(secret)));
 
     #region DeserializeSecret KeyId Tests
 
@@ -169,6 +198,17 @@ public class DefaultSecretSerializerTests
         Assert.Contains("unsupported", exception.Message);
     }
 
+    [Fact]
+    public void DeserializeSecret_WhenTheSecretHoldsAVerifier_Throws()
+    {
+        var protector = CreateProtector();
+        var persisted = CreateVerifierSecret(protector, Sha256Text("secret"));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecret(protector, persisted)
+        );
+    }
+
     #endregion
 
     #region DeserializeSecrets Tests
@@ -210,6 +250,25 @@ public class DefaultSecretSerializerTests
 
         Assert.Equal(2, secretKeys.Count);
         Assert.Equal(["later", "earlier"], secretKeys.Select(x => x.KeyId));
+    }
+
+    [Fact]
+    public void DeserializeSecrets_WhenASecretHoldsAVerifier_Throws()
+    {
+        // The resolver reads a client's key material with this overload, so a verifier never becomes a key.
+        var protector = CreateProtector();
+        var key = CreatePersistedSecret(
+            protector,
+            SecretTypes.Symmetric,
+            256,
+            RandomNumberGenerator.GetBytes(32),
+            "key-1"
+        );
+        var verifier = CreateVerifierSecret(protector, Sha256Text("secret"), "verifier-1");
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeSecrets(protector, [key, verifier])
+        );
     }
 
     #endregion
@@ -372,6 +431,172 @@ public class DefaultSecretSerializerTests
 
         Assert.Throws<InvalidOperationException>(() =>
             _serializer.DeserializePublicSecret(persisted)
+        );
+    }
+
+    #endregion
+
+    #region DeserializeVerifiers Tests
+
+    // A scheme a package registers: its parameters are the secret itself, which only a test would store.
+    private sealed class PlainTextSecretVerifierScheme : ISecretVerifierScheme
+    {
+        public const string SchemeName = "test-plain";
+
+        public string Name => SchemeName;
+
+        public void WriteParameters(ReadOnlySpan<byte> secret, IBufferWriter<byte> destination) =>
+            destination.Write(secret);
+
+        public bool TryReadParameters(
+            KeyMetadata metadata,
+            ReadOnlySpan<byte> parameters,
+            [NotNullWhen(true)] out SecretVerifier? verifier
+        )
+        {
+            verifier = new PlainTextSecretVerifier(metadata, parameters.ToArray());
+            return true;
+        }
+    }
+
+    // The verifier PlainTextSecretVerifierScheme reads, which compares the presented secret with the stored one.
+    private sealed class PlainTextSecretVerifier(KeyMetadata metadata, byte[] secret)
+        : SecretVerifier
+    {
+        public override KeyMetadata Metadata { get; } = metadata;
+
+        public override string Scheme => PlainTextSecretVerifierScheme.SchemeName;
+
+        public override bool HasWorkFactor => false;
+
+        public override ValueTask<SecretVerificationResult> VerifyAsync(
+            ReadOnlyMemory<byte> presented,
+            CancellationToken cancellationToken
+        ) =>
+            ValueTask.FromResult(
+                presented.Span.SequenceEqual(secret)
+                    ? SecretVerificationResult.Success
+                    : SecretVerificationResult.Failed
+            );
+    }
+
+    [Fact]
+    public async Task DeserializeVerifiers_ReadsEachVerifierWithItsMetadata()
+    {
+        var protector = CreateProtector();
+        var first = CreateVerifierSecret(protector, Sha256Text("first"), "first");
+        var second = CreateVerifierSecret(protector, Sha256Text("second"), "second", "kid-2");
+
+        var verifiers = _serializer.DeserializeVerifiers(protector, [first, second]);
+
+        Assert.Equal(2, verifiers.Count);
+        var firstVerifier = verifiers.ElementAt(0);
+        Assert.Equal("first", firstVerifier.KeyId);
+        Assert.Equal(SecretVerifierSchemes.Sha256, firstVerifier.Scheme);
+        Assert.Equal(first.ExpiresWhen, firstVerifier.Metadata.ExpiresWhen);
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await firstVerifier.VerifyAsync("first"u8.ToArray(), CancellationToken.None)
+        );
+        Assert.Equal(
+            SecretVerificationResult.Failed,
+            await firstVerifier.VerifyAsync("second"u8.ToArray(), CancellationToken.None)
+        );
+        var secondVerifier = verifiers.ElementAt(1);
+        Assert.Equal("kid-2", secondVerifier.KeyId);
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await secondVerifier.VerifyAsync("second"u8.ToArray(), CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task DeserializeVerifiers_WhenAPackageRegistersAScheme_ReadsItsVerifiers()
+    {
+        var serializer = new DefaultSecretSerializer(
+            _catalog,
+            new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()])
+        );
+        var protector = CreateProtector();
+        var persisted = CreateVerifierSecret(protector, "$test-plain$secret");
+
+        var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [persisted]));
+
+        Assert.Equal("test-plain", verifier.Scheme);
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await verifier.VerifyAsync("secret"u8.ToArray(), CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public void DeserializeVerifiers_WhenEmpty_ReturnsEmpty()
+    {
+        var protector = CreateProtector();
+
+        Assert.Empty(_serializer.DeserializeVerifiers(protector, []));
+    }
+
+    [Fact]
+    public void DeserializeVerifiers_WhenTheSecretHoldsKeyMaterial_Throws()
+    {
+        var protector = CreateProtector();
+        var persisted = CreatePersistedSecretFromEncodedValue(
+            SecretTypes.Symmetric,
+            SecretEncodings.SymmetricRaw,
+            256,
+            CreateEnvelope(protector, "secret-1", RandomNumberGenerator.GetBytes(32))
+        );
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeVerifiers(protector, [persisted])
+        );
+    }
+
+    [Fact]
+    public void DeserializeVerifiers_WhenTheVerifierIsOfAnUnknownScheme_ThrowsFormatException()
+    {
+        var protector = CreateProtector();
+        var persisted = CreateVerifierSecret(protector, "$ncode-argon9$AAAA");
+
+        Assert.Throws<FormatException>(() =>
+            _serializer.DeserializeVerifiers(protector, [persisted])
+        );
+    }
+
+    [Fact]
+    public void DeserializeVerifiers_WhenTheVerifierIsNotAnEnvelope_ThrowsCryptographicException()
+    {
+        var protector = CreateProtector();
+        var persisted = CreatePersistedSecretFromEncodedValue(
+            SecretTypes.Symmetric,
+            SecretEncodings.Verifier,
+            256,
+            Sha256Text("plain")
+        );
+
+        Assert.Throws<CryptographicException>(() =>
+            _serializer.DeserializeVerifiers(protector, [persisted])
+        );
+    }
+
+    [Fact]
+    public void DeserializeVerifiers_WhenTheEnvelopeBelongsToAnotherSecret_ThrowsCryptographicException()
+    {
+        var protector = CreateProtector();
+        var persisted = CreatePersistedSecretFromEncodedValue(
+            SecretTypes.Symmetric,
+            SecretEncodings.Verifier,
+            256,
+            CreateEnvelope(
+                protector,
+                "another-secret",
+                SecureEncoding.ASCII.GetBytes(Sha256Text("moved"))
+            )
+        );
+
+        Assert.Throws<CryptographicException>(() =>
+            _serializer.DeserializeVerifiers(protector, [persisted])
         );
     }
 

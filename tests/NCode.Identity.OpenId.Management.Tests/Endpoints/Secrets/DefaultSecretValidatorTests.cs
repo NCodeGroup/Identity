@@ -433,6 +433,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = SecretEncodings.Spki,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(subjectPublicKeyInfo),
         };
@@ -545,6 +546,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = "unknown",
             SecretEncoding = secret.SecretEncoding,
+            Origin = secret.Origin,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
         };

@@ -29,17 +29,21 @@ internal sealed class DefaultClientAuthenticationMethodDataSource(INullChangeTok
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
                 RequiresClientSecret = true,
+                UsesClientSecretAsKey = false,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                 RequiresClientSecret = true,
+                UsesClientSecretAsKey = false,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
+                RequiresClientSecret = false,
+                UsesClientSecretAsKey = false,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
@@ -52,16 +56,22 @@ internal sealed class DefaultClientAuthenticationMethodDataSource(INullChangeTok
             yield return new ClientAuthenticationMethodDescriptor
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.TlsClientAuth,
+                RequiresClientSecret = false,
+                UsesClientSecretAsKey = false,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+                RequiresClientSecret = false,
+                UsesClientSecretAsKey = false,
             };
 
             yield return new ClientAuthenticationMethodDescriptor
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.None,
+                RequiresClientSecret = false,
+                UsesClientSecretAsKey = false,
             };
         }
     }

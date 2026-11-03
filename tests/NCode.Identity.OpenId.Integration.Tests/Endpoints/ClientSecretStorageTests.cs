@@ -5,7 +5,6 @@ using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -43,10 +42,16 @@ public class ClientSecretStorageTests
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.Equal(secretId, stored.SecretId);
         Assert.Equal(SecretEncodings.Verifier, stored.SecretEncoding);
-        Assert.Null(await AuthenticateWithSecretAsync(client, clientId, secretMaterial));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+        );
         Assert.Equal(
             "invalid_client",
-            await AuthenticateWithSecretAsync(client, clientId, secretMaterial + "x")
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                secretMaterial + "x"
+            )
         );
 
         // No read returns the material again.
@@ -65,7 +70,7 @@ public class ClientSecretStorageTests
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
 
         var clientId = await CreateClientAsync(
             administrator,
@@ -75,7 +80,14 @@ public class ClientSecretStorageTests
 
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
-        Assert.Null(await AuthenticateWithAssertionAsync(client, clientId, secretMaterial, issuer));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                secretMaterial,
+                issuer
+            )
+        );
     }
 
     [Fact]
@@ -84,7 +96,7 @@ public class ClientSecretStorageTests
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateHttpClient(factory);
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
 
         var clientId = await CreateClientAsync(
             administrator,
@@ -102,7 +114,12 @@ public class ClientSecretStorageTests
         // secret's resource says so, which tells the operator to create a new one.
         Assert.Equal(
             "invalid_client",
-            await AuthenticateWithAssertionAsync(client, clientId, verifiedSecret, issuer)
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                verifiedSecret,
+                issuer
+            )
         );
         Assert.True(await IsVerifierAsync(administrator, clientId, verifiedSecretId));
 
@@ -114,7 +131,14 @@ public class ClientSecretStorageTests
             secret => secret.SecretId == keySecretId
         );
         Assert.Equal(SecretEncodings.SymmetricRaw, stored.SecretEncoding);
-        Assert.Null(await AuthenticateWithAssertionAsync(client, clientId, keySecret, issuer));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                keySecret,
+                issuer
+            )
+        );
     }
 
     [Fact]
@@ -137,7 +161,9 @@ public class ClientSecretStorageTests
         );
 
         // The secret stays as it was issued, and a presented copy of it still authenticates.
-        Assert.Null(await AuthenticateWithSecretAsync(client, clientId, secretMaterial));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+        );
 
         // Its replacement takes the form of the method the client is registered for now.
         var (replacementId, replacementMaterial) = await RotateAsync(
@@ -154,8 +180,16 @@ public class ClientSecretStorageTests
             SecretEncodings.Verifier,
             Assert.Single(secrets, secret => secret.SecretId == replacementId).SecretEncoding
         );
-        Assert.Null(await AuthenticateWithSecretAsync(client, clientId, replacementMaterial));
-        Assert.Null(await AuthenticateWithSecretAsync(client, clientId, secretMaterial));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                replacementMaterial
+            )
+        );
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, secretMaterial)
+        );
     }
 
     [Fact]
@@ -203,13 +237,6 @@ public class ClientSecretStorageTests
 
     private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static async Task<string> GetIssuerAsync(HttpClient client)
-    {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return GetRequiredString(jsonElement, "issuer");
-    }
 
     private static async Task<HttpClient> CreateAdministratorClientAsync(
         HostApplicationFactory factory
@@ -362,85 +389,6 @@ public class ClientSecretStorageTests
         var value = jsonElement.GetProperty(propertyName).GetString();
         Assert.NotNull(value);
         return value;
-    }
-
-    // Revoking an unknown token is a no-op once the client authenticates (RFC 7009 §2.2), so the response reports only
-    // whether the client was accepted: no error, or the error the endpoint returned.
-    private static async Task<string?> RevokeAsync(
-        HttpClient client,
-        Dictionary<string, string> credentials
-    )
-    {
-        credentials["token"] = "not-a-real-token";
-        using var content = new FormUrlEncodedContent(credentials);
-        using var response = await client.PostAsync("/oauth2/revoke", content);
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            return null;
-        }
-
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return jsonElement.GetProperty("error").GetString();
-    }
-
-    private static Task<string?> AuthenticateWithSecretAsync(
-        HttpClient client,
-        string clientId,
-        string clientSecret
-    ) =>
-        RevokeAsync(
-            client,
-            new Dictionary<string, string>
-            {
-                ["client_id"] = clientId,
-                ["client_secret"] = clientSecret,
-            }
-        );
-
-    private static Task<string?> AuthenticateWithAssertionAsync(
-        HttpClient client,
-        string clientId,
-        string clientSecret,
-        string audience
-    ) =>
-        RevokeAsync(
-            client,
-            new Dictionary<string, string>
-            {
-                ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
-                ["client_assertion"] = BuildClientSecretJwt(clientId, clientSecret, audience),
-            }
-        );
-
-    // A client_secret_jwt assertion (OpenID Connect Core §9): an HS256 JWT keyed by the UTF-8 bytes of the secret.
-    private static string BuildClientSecretJwt(
-        string clientId,
-        string clientSecret,
-        string audience
-    )
-    {
-        var now = DateTimeOffset.UtcNow;
-        var header = new Dictionary<string, object> { ["alg"] = "HS256", ["typ"] = "JWT" };
-        var payload = new Dictionary<string, object>
-        {
-            ["iss"] = clientId,
-            ["sub"] = clientId,
-            ["aud"] = audience,
-            ["jti"] = Guid.NewGuid().ToString("N"),
-            ["iat"] = now.ToUnixTimeSeconds(),
-            ["exp"] = now.AddMinutes(5).ToUnixTimeSeconds(),
-        };
-
-        var encodedHeader = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(header));
-        var encodedPayload = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload));
-        var signingInput = $"{encodedHeader}.{encodedPayload}";
-
-        var signature = HMACSHA256.HashData(
-            SecureEncoding.UTF8.GetBytes(clientSecret),
-            SecureEncoding.ASCII.GetBytes(signingInput)
-        );
-
-        return $"{signingInput}.{Base64Url.EncodeToString(signature)}";
     }
 
     private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory

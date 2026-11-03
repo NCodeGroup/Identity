@@ -36,6 +36,8 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IClientKeyImporter, DefaultClientKeyImporter>();
 
+            serviceCollection.TryAddSingleton<IClientSecretIssuer, DefaultClientSecretIssuer>();
+
             serviceCollection.TryAddSingleton<IClientKeyResolver, DefaultClientKeyResolver>();
 
             serviceCollection.TryAddSingleton<

@@ -686,7 +686,7 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
 
         var (clientId, clientSecret, _) = await RegisterSharedSecretClientAsync(
             client,
@@ -695,7 +695,14 @@ public class ClientRegistrationEndpointTests
 
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.SymmetricRaw, stored.SecretEncoding);
-        Assert.Null(await RevokeWithAssertionAsync(client, clientId, clientSecret, issuer));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                clientSecret,
+                issuer
+            )
+        );
     }
 
     [Fact]
@@ -713,10 +720,16 @@ public class ClientRegistrationEndpointTests
 
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, stored.SecretEncoding);
-        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+        );
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            await RevokeWithSecretAsync(client, clientId, clientSecret + "x")
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(
+                client,
+                clientId,
+                clientSecret + "x"
+            )
         );
     }
 
@@ -727,7 +740,7 @@ public class ClientRegistrationEndpointTests
         var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var issuer = await GetIssuerAsync(client);
+        var issuer = await ClientAuthenticationProbe.GetIssuerAsync(client);
 
         var (clientId, verifiedSecret, registration) = await RegisterSharedSecretClientAsync(
             client,
@@ -749,10 +762,22 @@ public class ClientRegistrationEndpointTests
 
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.SymmetricRaw, stored.SecretEncoding);
-        Assert.Null(await RevokeWithAssertionAsync(client, clientId, newSecret, issuer));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                newSecret,
+                issuer
+            )
+        );
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            await RevokeWithAssertionAsync(client, clientId, verifiedSecret, issuer)
+            await ClientAuthenticationProbe.RevokeWithAssertionAsync(
+                client,
+                clientId,
+                verifiedSecret,
+                issuer
+            )
         );
     }
 
@@ -778,7 +803,9 @@ public class ClientRegistrationEndpointTests
 
         Assert.False(update.TryGetProperty("client_secret", out _));
         Assert.Single(await factory.GetClientSecretsAsync(clientId));
-        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+        );
     }
 
     [Fact]
@@ -818,7 +845,9 @@ public class ClientRegistrationEndpointTests
         Assert.Contains(stored, secret => secret.SecretType == SecretTypes.Rsa);
         var shared = Assert.Single(stored, secret => secret.SecretType == SecretTypes.Symmetric);
         Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, shared.SecretEncoding);
-        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+        );
     }
 
     [Fact]
@@ -846,10 +875,12 @@ public class ClientRegistrationEndpointTests
         Assert.NotEqual(expiredSecret, newSecret);
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.True(stored.ExpiresWhen > DateTimeOffset.UtcNow);
-        Assert.Null(await RevokeWithSecretAsync(client, clientId, newSecret));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, newSecret)
+        );
         Assert.Equal(
             OpenIdProtocol.ErrorCodes.InvalidClient,
-            await RevokeWithSecretAsync(client, clientId, expiredSecret)
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, expiredSecret)
         );
     }
 
@@ -873,7 +904,9 @@ public class ClientRegistrationEndpointTests
 
         Assert.False(update.TryGetProperty("client_secret", out _));
         Assert.Single(await factory.GetClientSecretsAsync(clientId));
-        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+        Assert.Null(
+            await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
+        );
     }
 
     [Fact]
@@ -1678,15 +1711,6 @@ public class ClientRegistrationEndpointTests
 
     #endregion
 
-    private static async Task<string> GetIssuerAsync(HttpClient client)
-    {
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        var issuer = jsonElement.GetProperty("issuer").GetString();
-        Assert.NotNull(issuer);
-        return issuer;
-    }
-
     private static async Task<(
         string ClientId,
         string ClientSecret,
@@ -1749,75 +1773,5 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
-    }
-
-    // Revoking an unknown token is a no-op once the client authenticates (RFC 7009 §2.2), so the response reports only
-    // whether the client was accepted: no error, or the error the endpoint returned.
-    private static async Task<string?> RevokeAsync(
-        HttpClient client,
-        Dictionary<string, string> credentials
-    )
-    {
-        credentials["token"] = "not-a-real-token";
-        using var content = new FormUrlEncodedContent(credentials);
-        using var response = await client.PostAsync("/oauth2/revoke", content);
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            return null;
-        }
-
-        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
-        return jsonElement.GetProperty("error").GetString();
-    }
-
-    private static Task<string?> RevokeWithSecretAsync(
-        HttpClient client,
-        string clientId,
-        string clientSecret
-    ) =>
-        RevokeAsync(
-            client,
-            new Dictionary<string, string>
-            {
-                ["client_id"] = clientId,
-                ["client_secret"] = clientSecret,
-            }
-        );
-
-    // A client_secret_jwt assertion (OpenID Connect Core §9): an HS256 JWT keyed by the UTF-8 bytes of the secret.
-    private static Task<string?> RevokeWithAssertionAsync(
-        HttpClient client,
-        string clientId,
-        string clientSecret,
-        string audience
-    )
-    {
-        var now = DateTimeOffset.UtcNow;
-        var header = new Dictionary<string, object> { ["alg"] = "HS256", ["typ"] = "JWT" };
-        var payload = new Dictionary<string, object>
-        {
-            ["iss"] = clientId,
-            ["sub"] = clientId,
-            ["aud"] = audience,
-            ["jti"] = Guid.NewGuid().ToString("N"),
-            ["iat"] = now.ToUnixTimeSeconds(),
-            ["exp"] = now.AddMinutes(5).ToUnixTimeSeconds(),
-        };
-        var signingInput =
-            $"{Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(header))}."
-            + Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload));
-        var signature = HMACSHA256.HashData(
-            SecureEncoding.UTF8.GetBytes(clientSecret),
-            SecureEncoding.ASCII.GetBytes(signingInput)
-        );
-
-        return RevokeAsync(
-            client,
-            new Dictionary<string, string>
-            {
-                ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
-                ["client_assertion"] = $"{signingInput}.{Base64Url.EncodeToString(signature)}",
-            }
-        );
     }
 }

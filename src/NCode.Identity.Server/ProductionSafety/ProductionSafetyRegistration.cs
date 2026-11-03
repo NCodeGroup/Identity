@@ -52,12 +52,6 @@ public static class ProductionSafetyRegistration
         "Refusing to start in the Production environment: the Data Protection key ring has no XmlEncryptor. "
         + "Configure the 'SecretProtection' section: its root key protects the key ring and every stored secret.";
 
-    internal const string Pbkdf2IterationsTooLowMessage =
-        "Refusing to start in the Production environment: 'Pbkdf2SecretVerifierOptions.Iterations' is below "
-        + "600000, the OWASP recommendation for PBKDF2-HMAC-SHA256. A supplied client secret is stored as a "
-        + "PBKDF2 verifier, and a lower work factor lets whoever holds the root key and the database search it "
-        + "faster. Remove the override from this deployment.";
-
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
@@ -100,15 +94,13 @@ public static class ProductionSafetyRegistration
 
             // A supplied client secret's verifier keeps at least the recommended work factor (ADR-1391). The options
             // are configured in code, so they are checked as the host starts.
-            serviceCollection
-                .AddOptions<Pbkdf2SecretVerifierOptions>()
-                .Validate(
-                    options =>
-                        options.Iterations
-                        >= Pbkdf2SecretVerifierOptions.MinimumProductionIterations,
-                    Pbkdf2IterationsTooLowMessage
-                )
-                .ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<Pbkdf2SecretVerifierOptions>,
+                    ProductionPbkdf2IterationsValidator
+                >()
+            );
+            serviceCollection.AddOptions<Pbkdf2SecretVerifierOptions>().ValidateOnStart();
 
             // The server-wide environment type needs the registered types, so it is checked as the host starts too.
             serviceCollection.TryAddEnumerable(

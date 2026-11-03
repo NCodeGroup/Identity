@@ -1,29 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
 public class DefaultSecretVerifierSchemeCatalogTests
 {
-    private sealed class NamedScheme(string name) : ISecretVerifierScheme
-    {
-        public string Name { get; } = name;
-
-        public void WriteParameters(ReadOnlySpan<byte> secret, IBufferWriter<byte> destination) =>
-            throw new NotSupportedException();
-
-        public bool TryReadParameters(
-            KeyMetadata metadata,
-            ReadOnlySpan<byte> parameters,
-            [NotNullWhen(true)] out SecretVerifier? verifier
-        ) => throw new NotSupportedException();
-    }
-
     #region Constructor Tests
 
     [Fact]
@@ -42,10 +25,13 @@ public class DefaultSecretVerifierSchemeCatalogTests
     [Fact]
     public void Constructor_WhenTwoSchemesShareAName_KeepsTheLaterOne()
     {
-        var first = new NamedScheme("custom");
-        var second = new NamedScheme("custom");
+        var first = new NamedSecretVerifierScheme("custom");
+        var second = new NamedSecretVerifierScheme("custom");
 
-        var catalog = new DefaultSecretVerifierSchemeCatalog([first, second]);
+        var catalog = new DefaultSecretVerifierSchemeCatalog(
+            [first, second],
+            [TestSecretVerifierSchemes.CreateDataSource("custom")]
+        );
 
         Assert.True(catalog.TryGet("custom", out var scheme));
         Assert.Same(second, scheme);
@@ -59,7 +45,42 @@ public class DefaultSecretVerifierSchemeCatalogTests
     public void Constructor_WhenANameIsInvalid_Throws(string name)
     {
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultSecretVerifierSchemeCatalog([new NamedScheme(name)])
+            new DefaultSecretVerifierSchemeCatalog(
+                [new NamedSecretVerifierScheme(name)],
+                [TestSecretVerifierSchemes.CreateDataSource(name)]
+            )
+        );
+    }
+
+    [Fact]
+    public void Constructor_WhenASchemeHasNoDescriptor_ThrowsNamingIt()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new DefaultSecretVerifierSchemeCatalog(
+                [new NamedSecretVerifierScheme("custom")],
+                [TestSecretVerifierSchemes.CreateDataSource()]
+            )
+        );
+
+        Assert.Equal(
+            "The secret verifier scheme 'custom' has no registered SecretVerifierSchemeDescriptor.",
+            exception.Message
+        );
+    }
+
+    [Fact]
+    public void Constructor_WhenADescriptorNamesNoScheme_ThrowsNamingIt()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new DefaultSecretVerifierSchemeCatalog(
+                [],
+                [TestSecretVerifierSchemes.CreateDataSource("custom")]
+            )
+        );
+
+        Assert.Equal(
+            "The SecretVerifierSchemeDescriptor 'custom' names no registered secret verifier scheme.",
+            exception.Message
         );
     }
 

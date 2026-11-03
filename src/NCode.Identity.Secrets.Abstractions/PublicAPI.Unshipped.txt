@@ -207,7 +207,8 @@ const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Local = "local" -> stri
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2Collection! certificates) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!
 abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
 abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Scheme.get -> string!
-abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.VerifyAsync(System.ReadOnlyMemory<byte> secret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.HasWorkFactor.get -> bool
+abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.VerifyAsync(System.ReadOnlyMemory<byte> secret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Verifiers.SecretVerificationResult>
 const NCode.Identity.Secrets.SecretEncodings.Verifier = "verifier" -> string!
 const NCode.Identity.Secrets.Verifiers.SecretVerifierSchemes.Pbkdf2Sha256 = "ncode-pbkdf2-sha256" -> string!
 const NCode.Identity.Secrets.Verifiers.SecretVerifierSchemes.Sha256 = "ncode-sha256" -> string!
@@ -224,3 +225,11 @@ NCode.Identity.Secrets.Verifiers.ISecretVerifierScheme.WriteParameters(System.Re
 NCode.Identity.Secrets.Verifiers.ISecretVerifierSchemeCatalog
 NCode.Identity.Secrets.Verifiers.ISecretVerifierSchemeCatalog.Schemes.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Verifiers.ISecretVerifierScheme!>!
 NCode.Identity.Secrets.Verifiers.ISecretVerifierSchemeCatalog.TryGet(string! name, out NCode.Identity.Secrets.Verifiers.ISecretVerifierScheme? scheme) -> bool
+NCode.Identity.Secrets.Verifiers.SecretVerificationResult
+NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Failed = 0 -> NCode.Identity.Secrets.Verifiers.SecretVerificationResult
+NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Success = 1 -> NCode.Identity.Secrets.Verifiers.SecretVerificationResult
+NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Unavailable = 2 -> NCode.Identity.Secrets.Verifiers.SecretVerificationResult
+NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor
+NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor.Name.get -> string!
+NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor.Name.init -> void
+NCode.Identity.Secrets.Verifiers.SecretVerifierSchemeDescriptor.SecretVerifierSchemeDescriptor() -> void

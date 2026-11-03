@@ -77,7 +77,7 @@ internal class ClientApiEndpointHandler(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
     IClientCoherenceReporter clientCoherenceReporter,
-    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
+    IClientSecretIssuer clientSecretIssuer,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
@@ -143,9 +143,7 @@ internal class ClientApiEndpointHandler(
         effectiveSettingsResolver;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
-
-    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
-        clientAuthenticationMethodCatalog;
+    private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -376,19 +374,20 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Determines whether a shared secret issued to a client is stored so the server can read it back: the client's
-    /// effective <c>token_endpoint_auth_method</c>, resolved as the runtime resolves it, uses the <c>client_secret</c>
-    /// as a key, as <c>client_secret_jwt</c> does. Any other client's shared secret is stored as a one-way verifier. The
-    /// decision is made when the secret is issued, so a client switched to such a method needs a new secret.
+    /// Resolves the client-authentication method a shared secret issued to a client is stored for: the client's
+    /// effective <c>token_endpoint_auth_method</c>, resolved as the runtime resolves it. The
+    /// <see cref="IClientSecretIssuer"/> stores the secret in the form that method needs, so a client switched to a
+    /// method that uses the secret as a key needs a new secret.
     /// </summary>
     /// <param name="client">The <see cref="PersistedClient"/> the secret is issued to.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns><see langword="true"/> when the secret is stored so the server can read it back.</returns>
+    /// <returns>The client's effective method, or <see langword="null"/> when the owning tenant's settings are absent,
+    /// which the issuer stores as a one-way verifier.</returns>
     /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or the server's cannot be
     /// honored.</exception>
     // See ADR-1391.
-    internal virtual async ValueTask<bool> UsesClientSecretAsKeyAsync(
+    internal virtual async ValueTask<string?> GetTokenEndpointAuthMethodAsync(
         PersistedClient client,
         IStoreManager storeManager,
         CancellationToken cancellationToken
@@ -402,27 +401,8 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
-        return effectiveSettings is not null
-            && ClientAuthenticationMethodCatalog.TryGet(
-                effectiveSettings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod),
-                out var descriptor
-            )
-            && descriptor.UsesClientSecretAsKey;
+        return effectiveSettings?.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod);
     }
-
-    /// <summary>
-    /// Generates a client's shared secret, stored as the UTF-8 bytes of the opaque string when the client uses it as a
-    /// key, and as its one-way verifier otherwise.
-    /// </summary>
-    // See ADR-1110 and ADR-1391.
-    private GeneratedSecret GenerateClientSharedSecret(
-        ISecretProtector protector,
-        GenerateSecretRequest request,
-        bool usesClientSecretAsKey
-    ) =>
-        usesClientSecretAsKey
-            ? SecretGenerator.GenerateReversibleSharedSecret(protector, request)
-            : SecretGenerator.GenerateSharedSecret(protector, request);
 
     /// <summary>
     /// Maps an OpenID Client's effective <see cref="IReadOnlySettingCollection"/> to its
@@ -1150,9 +1130,9 @@ internal class ClientApiEndpointHandler(
         }
 
         var isSharedSecret = request.SecretType == SecretTypes.Symmetric;
-        var usesClientSecretAsKey =
-            isSharedSecret
-            && await UsesClientSecretAsKeyAsync(client, storeManager, cancellationToken);
+        var tokenEndpointAuthMethod = isSharedSecret
+            ? await GetTokenEndpointAuthMethodAsync(client, storeManager, cancellationToken)
+            : null;
 
         var secretId = CryptoService.GenerateResourceId();
 
@@ -1178,11 +1158,15 @@ internal class ClientApiEndpointHandler(
             };
 
             // A client's symmetric secret is its client_secret, presented verbatim for client_secret_basic/post and
-            // used as the HMAC key for client_secret_jwt: it is stored as a one-way verifier unless the client uses it
-            // as a key, and then as the UTF-8 bytes of the opaque string, never as the raw-byte / base64url-reveal
-            // crypto-key material GenerateSecret produces (which never UTF-8 round-trips). See ADR-1110 and ADR-1391.
+            // used as the HMAC key for client_secret_jwt: the issuer stores it in the form the client's method needs,
+            // never as the raw-byte / base64url-reveal crypto-key material GenerateSecret produces (which never UTF-8
+            // round-trips). See ADR-1110 and ADR-1391.
             generatedSecret = isSharedSecret
-                ? GenerateClientSharedSecret(protector, generateRequest, usesClientSecretAsKey)
+                ? ClientSecretIssuer.GenerateClientSecret(
+                    protector,
+                    tokenEndpointAuthMethod,
+                    generateRequest
+                )
                 : SecretGenerator.GenerateSecret(protector, generateRequest);
         }
         catch (Exception exception)
@@ -1660,7 +1644,7 @@ internal class ClientApiEndpointHandler(
         }
 
         // The replacement's form follows the method the client is registered for now, not the rotated secret's.
-        var usesClientSecretAsKey = await UsesClientSecretAsKeyAsync(
+        var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
             client,
             storeManager,
             cancellationToken
@@ -1677,10 +1661,11 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            // A client's shared secret is its client_secret (ADR-1110), stored as a one-way verifier unless the client
-            // uses it as a key (ADR-1391).
-            generatedSecret = GenerateClientSharedSecret(
+            // A client's shared secret is its client_secret (ADR-1110), stored in the form the client's method needs
+            // (ADR-1391).
+            generatedSecret = ClientSecretIssuer.GenerateClientSecret(
                 protector,
+                tokenEndpointAuthMethod,
                 new GenerateSecretRequest
                 {
                     SecretId = replacementId,
@@ -1690,8 +1675,7 @@ internal class ClientApiEndpointHandler(
                     Algorithm = createRequest.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),
                     ExpiresWhen = createRequest.ExpiresWhen,
-                },
-                usesClientSecretAsKey
+                }
             );
         }
         catch (Exception exception)

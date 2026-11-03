@@ -18,8 +18,8 @@ public class SecretVerifierFormatTests
         ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
     };
 
-    private static readonly byte[] Secret = SecureEncoding.UTF8.GetBytes("the-client-secret");
-    private static readonly byte[] OtherSecret = SecureEncoding.UTF8.GetBytes("the-client-secreT");
+    private static readonly byte[] Secret = "the-client-secret"u8.ToArray();
+    private static readonly byte[] OtherSecret = "the-client-secreT"u8.ToArray();
 
     private static string Sha256Text(byte[] secret) =>
         "$ncode-sha256$" + Base64Url.EncodeToString(SHA256.HashData(secret));
@@ -74,8 +74,9 @@ public class SecretVerifierFormatTests
         Assert.Null(verifier);
     }
 
-    private static Task<bool> VerifyAsync(SecretVerifier verifier, byte[] secret) =>
-        verifier.VerifyAsync(secret, CancellationToken.None).AsTask();
+    private static async Task<bool> VerifyAsync(SecretVerifier verifier, byte[] secret) =>
+        await verifier.VerifyAsync(secret, CancellationToken.None)
+        == SecretVerificationResult.Success;
 
     #region Write Tests
 
@@ -147,10 +148,11 @@ public class SecretVerifierFormatTests
     [InlineData(-5)]
     public void Write_WhenPbkdf2IterationsAreBelowOne_Throws(int iterations)
     {
-        var scheme = new Pbkdf2SecretVerifierScheme(
+        using var scheme = new Pbkdf2SecretVerifierScheme(
             Microsoft.Extensions.Options.Options.Create(
                 TestSecretVerifierSchemes.CreateOptions(iterations)
-            )
+            ),
+            TimeProvider.System
         );
 
         Assert.Throws<InvalidOperationException>(() =>

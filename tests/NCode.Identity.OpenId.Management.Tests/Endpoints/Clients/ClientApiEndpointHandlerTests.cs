@@ -60,7 +60,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
     private Mock<IClientCoherenceReporter> MockClientCoherenceReporter { get; }
-    private Mock<IClientAuthenticationMethodCatalog> MockClientAuthenticationMethodCatalog { get; }
+    private Mock<IClientSecretIssuer> MockClientSecretIssuer { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -93,8 +93,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
         MockClientCoherenceReporter = MockRepository.Create<IClientCoherenceReporter>();
-        MockClientAuthenticationMethodCatalog =
-            MockRepository.Create<IClientAuthenticationMethodCatalog>();
+        MockClientSecretIssuer = MockRepository.Create<IClientSecretIssuer>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
 
@@ -117,7 +116,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockEffectiveSettingsResolver.Object,
             MockClientCoherenceValidator.Object,
             MockClientCoherenceReporter.Object,
-            MockClientAuthenticationMethodCatalog.Object,
+            MockClientSecretIssuer.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
@@ -1170,7 +1169,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
     }
 
-    // The client's effective token_endpoint_auth_method decides the form its shared secret is issued in. See ADR-1391.
+    // The client's effective token_endpoint_auth_method, which the client-secret issuer is handed to decide the form its
+    // shared secret is issued in. See ADR-1391.
     private void SetupRegisteredAuthenticationMethod(bool usesClientSecretAsKey)
     {
         var method = usesClientSecretAsKey
@@ -1191,17 +1191,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(method)
             .Verifiable();
         SetupEffectiveSettingsResolver(mockEffectiveSettings.Object);
-
-        ClientAuthenticationMethodDescriptor? descriptor = new()
-        {
-            Name = method,
-            RequiresClientSecret = true,
-            UsesClientSecretAsKey = usesClientSecretAsKey,
-        };
-        MockClientAuthenticationMethodCatalog
-            .Setup(x => x.TryGet(method, out descriptor))
-            .Returns(true)
-            .Verifiable();
     }
 
     private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
@@ -1597,8 +1586,14 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
-        MockSecretGenerator
-            .Setup(x => x.GenerateSharedSecret(protector, It.IsAny<GenerateSecretRequest>()))
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GenerateClientSecret(
+                    protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    It.IsAny<GenerateSecretRequest>()
+                )
+            )
             .Returns(
                 new GeneratedSecret { Secret = generated, SecretMaterial = "revealed-material" }
             )
@@ -1629,10 +1624,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task CreateSecretAsync_WhenTheClientUsesItsSecretAsAKey_GeneratesAReversibleSecret()
+    public async Task CreateSecretAsync_WhenTheClientUsesItsSecretAsAKey_IssuesTheSecretForItsMethod()
     {
-        // A client registered for client_secret_jwt keys an HMAC from its secret, so the server keeps one it can read
-        // back; any other client's secret is stored as a one-way verifier. See ADR-1391.
+        // The secret is issued for the client's effective method, client_secret_jwt here, which the client-secret
+        // issuer stores so the server can read it back. See ADR-1391.
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -1646,9 +1641,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
-        MockSecretGenerator
+        MockClientSecretIssuer
             .Setup(x =>
-                x.GenerateReversibleSharedSecret(protector, It.IsAny<GenerateSecretRequest>())
+                x.GenerateClientSecret(
+                    protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+                    It.IsAny<GenerateSecretRequest>()
+                )
             )
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "key-material" })
             .Verifiable();
@@ -1671,14 +1670,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var created = Assert.IsType<Created<CreatedSecretResource>>(result);
         Assert.Equal("key-material", created.Value?.SecretMaterial);
-        MockSecretGenerator.Verify(
-            x =>
-                x.GenerateSharedSecret(
-                    It.IsAny<ISecretProtector>(),
-                    It.IsAny<GenerateSecretRequest>()
-                ),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -1857,8 +1848,14 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
-        MockSecretGenerator
-            .Setup(x => x.GenerateSharedSecret(protector, It.IsAny<GenerateSecretRequest>()))
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GenerateClientSecret(
+                    protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    It.IsAny<GenerateSecretRequest>()
+                )
+            )
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "material" })
             .Verifiable();
         MockClientStore
@@ -2543,10 +2540,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var protector = SetupGenerateSecretProtector();
         var expiresWhen = DateTimeOffset.UnixEpoch.AddYears(3);
         var replacement = CreatePersistedSecret("secret-2", "replacement-ct");
-        MockSecretGenerator
+        MockClientSecretIssuer
             .Setup(x =>
-                x.GenerateSharedSecret(
+                x.GenerateClientSecret(
                     protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                     It.Is<GenerateSecretRequest>(generate =>
                         generate.SecretId == "secret-2"
                         && generate.SecretType == rotated.SecretType
@@ -2655,7 +2653,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task RotateSecretAsync_WhenTheClientUsesItsSecretAsAKey_GeneratesAReversibleReplacement()
+    public async Task RotateSecretAsync_WhenTheClientUsesItsSecretAsAKey_IssuesTheReplacementForItsMethod()
     {
         // The replacement's form follows the method the client is registered for when it is rotated. See ADR-1391.
         SetupSecretCreateValidation();
@@ -2672,10 +2670,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var protector = SetupGenerateSecretProtector();
         var replacement = CreatePersistedSecret("secret-2", "replacement-ct");
-        MockSecretGenerator
+        MockClientSecretIssuer
             .Setup(x =>
-                x.GenerateReversibleSharedSecret(
+                x.GenerateClientSecret(
                     protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
                     It.Is<GenerateSecretRequest>(generate => generate.SecretId == "secret-2")
                 )
             )
@@ -2803,10 +2802,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var protector = SetupGenerateSecretProtector();
         var expiresWhen = DateTimeOffset.UnixEpoch.AddYears(3);
         var replacement = CreatePersistedSecret("secret-2", "replacement-ct");
-        MockSecretGenerator
+        MockClientSecretIssuer
             .Setup(x =>
-                x.GenerateSharedSecret(
+                x.GenerateClientSecret(
                     protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                     It.Is<GenerateSecretRequest>(generate => generate.SecretId == "secret-2")
                 )
             )

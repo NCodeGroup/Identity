@@ -51,7 +51,7 @@ public abstract class SecretProtectionTestBase : BaseTests
     /// <returns>The service provider, which is disposed with the test.</returns>
     protected ServiceProvider CreateSecretServices(SecretOwner owner)
     {
-        // The members that take a span (ImportSharedSecret, Unprotect) cannot be set up on a Moq mock, so a test of code
+        // The members that take a span (ImportOneWaySharedSecret, Unprotect) cannot be set up on a Moq mock, so a test of code
         // that calls them uses the real services, built through the public registration. Only the master key store,
         // which would otherwise be the database, is a strict mock that expects the ring to create the first master key
         // of the owner and to save it.
@@ -181,13 +181,15 @@ public abstract class SecretProtectionTestBase : BaseTests
         var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [secret]));
 
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
-        Assert.True(
+        Assert.Equal(
+            SecretVerificationResult.Success,
             await verifier.VerifyAsync(
                 SecureEncoding.UTF8.GetBytes(expectedSecretText),
                 CancellationToken.None
             )
         );
-        Assert.False(
+        Assert.Equal(
+            SecretVerificationResult.Failed,
             await verifier.VerifyAsync(
                 SecureEncoding.UTF8.GetBytes(expectedSecretText + "x"),
                 CancellationToken.None

@@ -24,3 +24,7 @@ NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Iteration
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxConcurrency.get -> int
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxConcurrency.set -> void
 NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Pbkdf2SecretVerifierOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxQueueLength.get -> int
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxQueueLength.set -> void
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.QueueTimeout.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.QueueTimeout.set -> void

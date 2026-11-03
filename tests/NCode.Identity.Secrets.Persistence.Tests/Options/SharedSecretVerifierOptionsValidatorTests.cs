@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 public class SharedSecretVerifierOptionsValidatorTests
 {
     private static SharedSecretVerifierOptionsValidator CreateValidator() =>
-        new(TestSecretVerifierSchemes.CreateCatalog());
+        new([new DefaultSecretVerifierSchemeDataSource()]);
 
     #region Validate Tests
 
@@ -34,6 +34,20 @@ public class SharedSecretVerifierOptionsValidatorTests
         };
 
         var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenAPackageDescribesAScheme_Succeeds()
+    {
+        var validator = new SharedSecretVerifierOptionsValidator([
+            new DefaultSecretVerifierSchemeDataSource(),
+            TestSecretVerifierSchemes.CreateDataSource("package-scheme"),
+        ]);
+        var options = new SharedSecretVerifierOptions { SuppliedSecretScheme = "package-scheme" };
+
+        var result = validator.Validate(null, options);
 
         Assert.True(result.Succeeded);
     }

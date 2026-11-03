@@ -48,7 +48,10 @@ public interface ISecretGenerator
     /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the shared secret to generate.</param>
     /// <returns>The <see cref="GeneratedSecret"/> with the protected verifier and the one-time opaque secret string to
     /// reveal.</returns>
-    GeneratedSecret GenerateSharedSecret(ISecretProtector protector, GenerateSecretRequest request);
+    GeneratedSecret GenerateOneWaySharedSecret(
+        ISecretProtector protector,
+        GenerateSecretRequest request
+    );
 
     /// <summary>
     /// Generates an opaque, URL-safe shared-secret string that the server also uses as a key (for example the
@@ -56,7 +59,7 @@ public interface ISecretGenerator
     /// <see cref="GeneratedSecret.SecretMaterial"/>, alongside a <see cref="PersistedSecret"/> whose stored symmetric
     /// key material is the <strong>UTF-8 bytes of that string</strong>, protected under the owner's master key with the
     /// specified <paramref name="protector"/>. The request is checked as
-    /// <see cref="GenerateSharedSecret(ISecretProtector, GenerateSecretRequest)"/> checks it.
+    /// <see cref="GenerateOneWaySharedSecret(ISecretProtector, GenerateSecretRequest)"/> checks it.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>
     /// <param name="request">The <see cref="GenerateSecretRequest"/> describing the shared secret to generate.</param>
@@ -80,7 +83,7 @@ public interface ISecretGenerator
     /// <param name="secretValue">The UTF-8 octets of the opaque shared-secret string. Must not be empty.</param>
     /// <returns>The imported <see cref="PersistedSecret"/> with the protected verifier.</returns>
     /// <exception cref="System.ArgumentException"><paramref name="secretValue"/> is empty.</exception>
-    PersistedSecret ImportSharedSecret(
+    PersistedSecret ImportOneWaySharedSecret(
         ISecretProtector protector,
         ImportSharedSecretRequest request,
         ReadOnlySpan<byte> secretValue

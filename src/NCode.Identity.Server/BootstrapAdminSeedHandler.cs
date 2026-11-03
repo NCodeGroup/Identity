@@ -36,26 +36,28 @@ namespace NCode.Identity.Server;
 // ADR-1219 (an existing client is reported by the reconciliation).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
-    ISecretGenerator secretGenerator,
+    IClientSecretIssuer clientSecretIssuer,
     ISecretProtectorProvider secretProtectorProvider,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
     IEffectiveSettingsResolver effectiveSettingsResolver,
-    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
+    // The bootstrap credential is a shared secret, which RFC 6749 §2.3.1 has the client present with HTTP Basic.
+    private const string SeededAuthenticationMethod = OpenIdProtocol
+        .ClientAuthenticationMethods
+        .ClientSecretBasic;
+
     private BootstrapAdminOptions Options { get; } = bootstrapOptionsAccessor.Value;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
-        clientAuthenticationMethodCatalog;
     private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -97,7 +99,7 @@ internal sealed class BootstrapAdminSeedHandler(
             // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently unable
             // to authenticate. Its form follows the method the client is registered for now, which an operator may have
             // changed since it was seeded (ADR-1391).
-            var usesClientSecretAsKey = await UsesClientSecretAsKeyAsync(
+            var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
                 context.Tenant,
                 existing,
                 cancellationToken
@@ -108,7 +110,7 @@ internal sealed class BootstrapAdminSeedHandler(
                 refreshProtector,
                 clientId,
                 clientSecretBytes,
-                usesClientSecretAsKey,
+                tokenEndpointAuthMethod,
                 cancellationToken
             );
             Logger.BootstrapAdminClientSecretRefreshed(clientId, tenantId);
@@ -151,10 +153,10 @@ internal sealed class BootstrapAdminSeedHandler(
             cancellationToken
         );
 
-    // An existing client keeps a secret the server can read back when its effective method uses the secret as a key,
-    // as client_secret_jwt does; any other client's secret is stored as a verifier. A client whose settings cannot be
-    // read authenticates with no method, so its secret is stored as the verifier its seeded method needs. See ADR-1391.
-    private async ValueTask<bool> UsesClientSecretAsKeyAsync(
+    // The method an existing client is registered for now decides the form its refreshed secret is stored in. A client
+    // whose settings cannot be read authenticates with no method until they are fixed, so its secret is stored in the
+    // form the method it is seeded with needs, client_secret_basic's one-way verifier. See ADR-1391.
+    private async ValueTask<string> GetTokenEndpointAuthMethodAsync(
         PersistedTenant tenant,
         PersistedClient client,
         CancellationToken cancellationToken
@@ -178,14 +180,11 @@ internal sealed class BootstrapAdminSeedHandler(
                 client.Settings.Value
             );
 
-            return ClientAuthenticationMethodCatalog.TryGet(
-                    clientSettings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod),
-                    out var descriptor
-                ) && descriptor.UsesClientSecretAsKey;
+            return clientSettings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod);
         }
         catch (UnreadableSettingsException)
         {
-            return false;
+            return SeededAuthenticationMethod;
         }
     }
 
@@ -194,7 +193,7 @@ internal sealed class BootstrapAdminSeedHandler(
         ISecretProtector protector,
         string clientId,
         ReadOnlyMemory<byte> clientSecret,
-        bool usesClientSecretAsKey,
+        string tokenEndpointAuthMethod,
         CancellationToken cancellationToken
     )
     {
@@ -209,7 +208,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
         await store.AddSecretAsync(
             clientId,
-            CreatePersistedSecret(protector, clientSecret, usesClientSecretAsKey),
+            CreatePersistedSecret(protector, clientSecret, tokenEndpointAuthMethod),
             cancellationToken
         );
     }
@@ -220,13 +219,10 @@ internal sealed class BootstrapAdminSeedHandler(
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
     private static JsonElement CreateSettings() =>
-        // The bootstrap credential is a shared secret, which RFC 6749 §2.3.1 has the client present with HTTP Basic.
         JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
             {
-                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .ClientSecretBasic,
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = SeededAuthenticationMethod,
             }
         );
 
@@ -238,11 +234,10 @@ internal sealed class BootstrapAdminSeedHandler(
         ISecretProtector protector
     )
     {
-        // The client registers client_secret_basic, which only compares the secret.
         var persistedSecret = CreatePersistedSecret(
             protector,
             clientSecret,
-            usesClientSecretAsKey: false
+            SeededAuthenticationMethod
         );
 
         return new PersistedClient
@@ -268,13 +263,13 @@ internal sealed class BootstrapAdminSeedHandler(
     private PersistedSecret CreatePersistedSecret(
         ISecretProtector protector,
         ReadOnlyMemory<byte> clientSecret,
-        bool usesClientSecretAsKey
+        string tokenEndpointAuthMethod
     )
     {
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the configured client_secret through the shared-secret primitives (ADR-1110): as its PBKDF2 verifier
-        // when the client only compares it, and reversible when its method uses it as a key (ADR-1391).
+        // Persist the configured client_secret through the client-secret issuer (ADR-1110), in the form the client's
+        // method needs: a PBKDF2 verifier when the method only compares it, reversible when it keys from it (ADR-1391).
         var request = new ImportSharedSecretRequest
         {
             // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
@@ -286,8 +281,11 @@ internal sealed class BootstrapAdminSeedHandler(
             ExpiresWhen = now.AddYears(100),
         };
 
-        return usesClientSecretAsKey
-            ? SecretGenerator.ImportReversibleSharedSecret(protector, request, clientSecret.Span)
-            : SecretGenerator.ImportSharedSecret(protector, request, clientSecret.Span);
+        return ClientSecretIssuer.ImportClientSecret(
+            protector,
+            tokenEndpointAuthMethod,
+            request,
+            clientSecret.Span
+        );
     }
 }

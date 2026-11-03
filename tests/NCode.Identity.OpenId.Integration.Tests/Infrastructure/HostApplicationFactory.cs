@@ -20,6 +20,7 @@ using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -436,9 +437,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
-    /// Stores a known <c>client_secret</c> as production stores a supplied one: as its one-way verifier, unless the
-    /// client is registered for a method that uses the secret as a key, such as <c>client_secret_jwt</c>, which keeps it
-    /// as the UTF-8 bytes the method keys from.
+    /// Stores a known <c>client_secret</c> as production stores a supplied one: through the
+    /// <see cref="IClientSecretIssuer"/>, which reads the registered method's descriptor, so a method that uses the secret
+    /// as a key, such as <c>client_secret_jwt</c>, keeps it as the UTF-8 bytes the method keys from and any other stores
+    /// its one-way verifier.
     /// </summary>
     // See ADR-1391.
     private static async Task<PersistedSecret> CreateSharedSecretAsync(
@@ -460,16 +462,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
         };
-        var secretGenerator = serviceProvider.GetRequiredService<ISecretGenerator>();
-        var secretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
 
-        return string.Equals(
-            tokenEndpointAuthMethod,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
-            StringComparison.Ordinal
-        )
-            ? secretGenerator.ImportReversibleSharedSecret(protector, request, secretBytes)
-            : secretGenerator.ImportSharedSecret(protector, request, secretBytes);
+        return serviceProvider
+            .GetRequiredService<IClientSecretIssuer>()
+            .ImportClientSecret(
+                protector,
+                tokenEndpointAuthMethod,
+                request,
+                SecureEncoding.UTF8.GetBytes(clientSecret)
+            );
     }
 
     private async Task SeedSharedSecretClientAsync(

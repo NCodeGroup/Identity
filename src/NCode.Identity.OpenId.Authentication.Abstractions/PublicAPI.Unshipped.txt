@@ -1828,3 +1828,7 @@ NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescripto
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor.UsesClientSecretAsKey.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.SecretVerifiers.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Verifiers.SecretVerifier!>!
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.SecretVerifiers.init -> void
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.CanAuthenticate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, string? tokenEndpointAuthMethod) -> bool
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.GenerateClientSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string? tokenEndpointAuthMethod, NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
+NCode.Identity.OpenId.Authentication.Clients.IClientSecretIssuer.ImportClientSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, string? tokenEndpointAuthMethod, NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!

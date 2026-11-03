@@ -55,10 +55,9 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         SeededLocalAccountValidator? seededLocalAccountValidator = null
     )
     {
-        // A client without a secret never asks how its method uses the secret, so the catalog is a bare strict mock.
         // Strict mocks: on the guard paths under test the secret, protector, crypto, and time dependencies are
-        // untouched, and a client without a secret never loads the tenant's protector.
-        var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
+        // untouched, and a client without a secret never loads the tenant's protector or asks for a secret.
+        var mockClientSecretIssuer = CreateStrictMock<IClientSecretIssuer>();
         var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
 
@@ -73,10 +72,9 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         return new ConformanceSeedHandler(
             options,
-            mockSecretGenerator.Object,
+            mockClientSecretIssuer.Object,
             mockSecretProtectorProvider.Object,
             clientKeyImporter ?? CreateStrictMock<IClientKeyImporter>().Object,
-            CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
             mockCryptoService.Object,
             TimeProvider.System,
             new SeededClientValidator(
@@ -96,11 +94,11 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         IOpenIdEnvironmentProvider openIdEnvironmentProvider,
         CoherencePolicy coherencePolicy,
         ServiceProvider secretServices,
-        IClientAuthenticationMethodCatalog methodCatalog
+        IClientSecretIssuer clientSecretIssuer
     )
     {
-        // The real generator and protector provider, because the generator's ImportSharedSecret takes a span that a
-        // Moq mock cannot set up. The crypto service hands out the id of the one secret that the seed path creates.
+        // The real protector provider, and an issuer over the real generator, because the generator's
+        // ImportOneWaySharedSecret takes a span that a Moq mock cannot set up. The crypto service hands out the id of the one secret that the seed path creates.
         var mockCryptoService = CreateStrictMock<ICryptoService>();
         mockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -109,10 +107,9 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         return new ConformanceSeedHandler(
             options,
-            secretServices.GetRequiredService<ISecretGenerator>(),
+            clientSecretIssuer,
             secretServices.GetRequiredService<ISecretProtectorProvider>(),
             CreateStrictMock<IClientKeyImporter>().Object,
-            methodCatalog,
             mockCryptoService.Object,
             TimeProvider.System,
             new SeededClientValidator(
@@ -127,24 +124,6 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             ),
             NullLogger<ConformanceSeedHandler>.Instance
         );
-    }
-
-    // The catalog answers for the one method the seeded client registers, and the test verifies that it was asked: the
-    // answer decides whether the secret is stored as a verifier or kept reversible. See ADR-1391.
-    private IClientAuthenticationMethodCatalog CreateMethodCatalog(
-        string name,
-        bool usesClientSecretAsKey
-    )
-    {
-        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
-        ClientAuthenticationMethodDescriptor? descriptor = new()
-        {
-            Name = name,
-            RequiresClientSecret = true,
-            UsesClientSecretAsKey = usesClientSecretAsKey,
-        };
-        mockCatalog.Setup(x => x.TryGet(name, out descriptor)).Returns(true).Verifiable();
-        return mockCatalog.Object;
     }
 
     private sealed record CoherencePolicy(
@@ -796,6 +775,10 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         // through the real generator and protected with the master key of the tenant that the client is seeded into.
         var owner = SecretOwner.ForTenant(WorkloadTenantId);
         var secretServices = CreateSecretServices(owner);
+        var issuer = new TestClientSecretIssuer(
+            secretServices.GetRequiredService<ISecretGenerator>(),
+            usesClientSecretAsKey ? [tokenEndpointAuthMethod] : []
+        );
 
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
@@ -829,7 +812,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             mockEnvironmentProvider.Object,
             CreateCoherencePolicy(),
             secretServices,
-            CreateMethodCatalog(tokenEndpointAuthMethod, usesClientSecretAsKey)
+            issuer
         );
 
         PersistedClient? storedClient = null;
@@ -857,6 +840,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         Assert.NotNull(storedClient);
         Assert.Equal(WorkloadTenantId, storedClient.TenantId);
         Assert.Equal("client", storedClient.ClientId);
+        Assert.Equal([tokenEndpointAuthMethod], issuer.IssuedMethods);
         // A secret client_secret_jwt keys an HMAC from is kept reversible; any other is stored as a verifier.
         var secret = Assert.Single(storedClient.Secrets.Value);
         if (usesClientSecretAsKey)

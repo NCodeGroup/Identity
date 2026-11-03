@@ -41,10 +41,9 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 // See ADR-1140.
 internal sealed class ConformanceSeedHandler(
     ConformanceSeedOptions options,
-    ISecretGenerator secretGenerator,
+    IClientSecretIssuer clientSecretIssuer,
     ISecretProtectorProvider secretProtectorProvider,
     IClientKeyImporter clientKeyImporter,
-    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
@@ -59,12 +58,9 @@ internal sealed class ConformanceSeedHandler(
         OpenIdProtocol.GrantTypes.RefreshToken,
     ];
     private ConformanceSeedOptions Options { get; } = options;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
-
-    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
-        clientAuthenticationMethodCatalog;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
@@ -153,7 +149,7 @@ internal sealed class ConformanceSeedHandler(
                 CreatePersistedSecret(
                     protector,
                     client.ClientSecret,
-                    UsesClientSecretAsKey(client.TokenEndpointAuthMethod)
+                    client.TokenEndpointAuthMethod
                 )
             );
         }
@@ -336,16 +332,10 @@ internal sealed class ConformanceSeedHandler(
         // runtime must not inherit the conformance clients and test user.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
-    // A client registered for a method that uses its secret as a key (client_secret_jwt) keeps a secret the server can
-    // read back; every other client's secret is stored as a one-way verifier. See ADR-1391.
-    private bool UsesClientSecretAsKey(string tokenEndpointAuthMethod) =>
-        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
-        && descriptor.UsesClientSecretAsKey;
-
     private PersistedSecret CreatePersistedSecret(
         ISecretProtector protector,
         string encodedSecret,
-        bool usesClientSecretAsKey
+        string tokenEndpointAuthMethod
     )
     {
         // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
@@ -357,9 +347,8 @@ internal sealed class ConformanceSeedHandler(
 
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the given client_secret through the shared-secret primitives (ADR-1110) so its stored shape cannot
-        // drift from generated secrets: a supplied secret is stored as its PBKDF2 verifier unless the client uses it as
-        // a key (ADR-1391).
+        // Persist the given client_secret through the client-secret issuer (ADR-1110), in the form the client's method
+        // needs: a supplied secret is stored as its PBKDF2 verifier unless the method keys from it (ADR-1391).
         var request = new ImportSharedSecretRequest
         {
             // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.
@@ -370,8 +359,11 @@ internal sealed class ConformanceSeedHandler(
             ExpiresWhen = now.AddYears(100),
         };
 
-        return usesClientSecretAsKey
-            ? SecretGenerator.ImportReversibleSharedSecret(protector, request, clientSecret)
-            : SecretGenerator.ImportSharedSecret(protector, request, clientSecret);
+        return ClientSecretIssuer.ImportClientSecret(
+            protector,
+            tokenEndpointAuthMethod,
+            request,
+            clientSecret
+        );
     }
 }

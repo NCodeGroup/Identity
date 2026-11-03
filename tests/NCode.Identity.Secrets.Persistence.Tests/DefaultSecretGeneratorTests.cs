@@ -153,13 +153,13 @@ public class DefaultSecretGeneratorTests
             }
         );
         var protector = CreateProtector();
-        var secretValue = SecureEncoding.UTF8.GetBytes("my-chosen-client-secret");
+        var secretValue = "my-chosen-client-secret"u8.ToArray();
 
-        var generated = generator.GenerateSharedSecret(
+        var generated = generator.GenerateOneWaySharedSecret(
             protector,
             CreateRequest(SecretTypes.Symmetric, 256)
         );
-        var imported = generator.ImportSharedSecret(
+        var imported = generator.ImportOneWaySharedSecret(
             protector,
             CreateImportRequest("import-5"),
             secretValue
@@ -171,7 +171,10 @@ public class DefaultSecretGeneratorTests
         );
         var importedVerifier = ReadVerifier(protector, imported);
         Assert.Equal(SecretVerifierSchemes.Sha256, importedVerifier.Scheme);
-        Assert.True(await importedVerifier.VerifyAsync(secretValue, CancellationToken.None));
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await importedVerifier.VerifyAsync(secretValue, CancellationToken.None)
+        );
     }
 
     #endregion
@@ -214,18 +217,18 @@ public class DefaultSecretGeneratorTests
 
     #endregion
 
-    #region GenerateSharedSecret Tests
+    #region GenerateOneWaySharedSecret Tests
 
     public static TheoryData<bool> BothSharedSecretForms => new() { false, true };
 
-    private GeneratedSecret GenerateSharedSecret(
+    private GeneratedSecret GenerateOneWaySharedSecret(
         DefaultSecretProtector protector,
         GenerateSecretRequest request,
         bool reversible
     ) =>
         reversible
             ? _generator.GenerateReversibleSharedSecret(protector, request)
-            : _generator.GenerateSharedSecret(protector, request);
+            : _generator.GenerateOneWaySharedSecret(protector, request);
 
     [Theory]
     [MemberData(nameof(BothSharedSecretForms))]
@@ -235,7 +238,7 @@ public class DefaultSecretGeneratorTests
         var request = CreateRequest(SecretTypes.Rsa, 2048);
 
         Assert.Throws<InvalidOperationException>(() =>
-            GenerateSharedSecret(protector, request, reversible)
+            GenerateOneWaySharedSecret(protector, request, reversible)
         );
     }
 
@@ -247,7 +250,7 @@ public class DefaultSecretGeneratorTests
         var request = CreateRequest(SecretTypes.Symmetric, 100);
 
         Assert.Throws<ArgumentException>(() =>
-            GenerateSharedSecret(protector, request, reversible)
+            GenerateOneWaySharedSecret(protector, request, reversible)
         );
     }
 
@@ -259,25 +262,25 @@ public class DefaultSecretGeneratorTests
         var request = CreateRequest(SecretTypes.Symmetric, 128);
 
         Assert.Throws<ArgumentException>(() =>
-            GenerateSharedSecret(protector, request, reversible)
+            GenerateOneWaySharedSecret(protector, request, reversible)
         );
     }
 
     #endregion
 
-    #region ImportSharedSecret Tests
+    #region ImportOneWaySharedSecret Tests
 
     [Fact]
     public async Task ImportSharedSecret_StoresAVerifierOfTheSameShapeAsGenerateSharedSecret()
     {
         var protector = CreateProtector();
-        var generated = _generator.GenerateSharedSecret(
+        var generated = _generator.GenerateOneWaySharedSecret(
             protector,
             CreateRequest(SecretTypes.Symmetric, 256)
         );
         var secretValue = SecureEncoding.UTF8.GetBytes(generated.SecretMaterial!);
 
-        var imported = _generator.ImportSharedSecret(
+        var imported = _generator.ImportOneWaySharedSecret(
             protector,
             CreateImportRequest("import-4"),
             secretValue
@@ -293,8 +296,14 @@ public class DefaultSecretGeneratorTests
         var importedVerifier = ReadVerifier(protector, imported);
         Assert.Equal(SecretVerifierSchemes.Sha256, generatedVerifier.Scheme);
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, importedVerifier.Scheme);
-        Assert.True(await generatedVerifier.VerifyAsync(secretValue, CancellationToken.None));
-        Assert.True(await importedVerifier.VerifyAsync(secretValue, CancellationToken.None));
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await generatedVerifier.VerifyAsync(secretValue, CancellationToken.None)
+        );
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await importedVerifier.VerifyAsync(secretValue, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -459,7 +468,7 @@ public class DefaultSecretGeneratorTests
     {
         var protector = CreateProtector();
 
-        var generated = _generator.GenerateSharedSecret(
+        var generated = _generator.GenerateOneWaySharedSecret(
             protector,
             CreateRequest(SecretTypes.Symmetric, 256)
         );
@@ -535,7 +544,7 @@ public class DefaultSecretGeneratorTests
     {
         var protector = CreateProtector();
 
-        var generated = _generator.GenerateSharedSecret(
+        var generated = _generator.GenerateOneWaySharedSecret(
             protector,
             CreateRequest(SecretTypes.Symmetric, 256)
         );
@@ -565,8 +574,12 @@ public class DefaultSecretGeneratorTests
 
         var verifier = ReadVerifier(protector, persisted);
         Assert.Equal("gen-1", verifier.KeyId);
-        Assert.True(await verifier.VerifyAsync(expected, CancellationToken.None));
-        Assert.False(
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await verifier.VerifyAsync(expected, CancellationToken.None)
+        );
+        Assert.Equal(
+            SecretVerificationResult.Failed,
             await verifier.VerifyAsync(
                 SecureEncoding.UTF8.GetBytes(generated.SecretMaterial + "x"),
                 CancellationToken.None
@@ -618,9 +631,9 @@ public class DefaultSecretGeneratorTests
     public async Task ImportSharedSecret_StoresOnlyThePbkdf2VerifierOfTheGivenSecret()
     {
         var protector = CreateProtector();
-        var secretValue = SecureEncoding.UTF8.GetBytes("my-chosen-client-secret");
+        var secretValue = "my-chosen-client-secret"u8.ToArray();
 
-        var persisted = _generator.ImportSharedSecret(
+        var persisted = _generator.ImportOneWaySharedSecret(
             protector,
             CreateImportRequest("import-1"),
             secretValue
@@ -644,7 +657,7 @@ public class DefaultSecretGeneratorTests
             StringComparison.Ordinal
         );
         Assert.DoesNotContain("my-chosen-client-secret", text, StringComparison.Ordinal);
-        var again = _generator.ImportSharedSecret(
+        var again = _generator.ImportOneWaySharedSecret(
             protector,
             CreateImportRequest("import-1"),
             secretValue
@@ -653,14 +666,19 @@ public class DefaultSecretGeneratorTests
 
         var verifier = ReadVerifier(protector, persisted);
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
-        Assert.True(await verifier.VerifyAsync(secretValue, CancellationToken.None));
-        Assert.False(
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await verifier.VerifyAsync(secretValue, CancellationToken.None)
+        );
+        Assert.Equal(
+            SecretVerificationResult.Failed,
             await verifier.VerifyAsync(
-                SecureEncoding.UTF8.GetBytes("my-chosen-client-secreT"),
+                "my-chosen-client-secreT"u8.ToArray(),
                 CancellationToken.None
             )
         );
-        Assert.False(
+        Assert.Equal(
+            SecretVerificationResult.Failed,
             await verifier.VerifyAsync(ReadOnlyMemory<byte>.Empty, CancellationToken.None)
         );
     }
@@ -669,7 +687,7 @@ public class DefaultSecretGeneratorTests
     public void ImportReversibleSharedSecret_StoresTheGivenUtf8BytesVerbatim()
     {
         var protector = CreateProtector();
-        var secretValue = SecureEncoding.UTF8.GetBytes("my-chosen-client-secret");
+        var secretValue = "my-chosen-client-secret"u8.ToArray();
 
         var persisted = _generator.ImportReversibleSharedSecret(
             protector,
@@ -711,7 +729,7 @@ public class DefaultSecretGeneratorTests
                     request,
                     ReadOnlySpan<byte>.Empty
                 )
-                : _generator.ImportSharedSecret(protector, request, ReadOnlySpan<byte>.Empty)
+                : _generator.ImportOneWaySharedSecret(protector, request, ReadOnlySpan<byte>.Empty)
         );
     }
 
@@ -731,10 +749,10 @@ public class DefaultSecretGeneratorTests
         var protector = CreateProtector();
 
         Assert.Throws<InvalidOperationException>(() =>
-            generator.ImportSharedSecret(
+            generator.ImportOneWaySharedSecret(
                 protector,
                 CreateImportRequest("import-6"),
-                SecureEncoding.UTF8.GetBytes("my-chosen-client-secret")
+                "my-chosen-client-secret"u8.ToArray()
             )
         );
     }

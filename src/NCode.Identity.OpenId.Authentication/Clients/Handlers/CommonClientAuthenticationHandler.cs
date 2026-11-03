@@ -6,12 +6,15 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
@@ -272,7 +275,8 @@ internal abstract class CommonClientAuthenticationHandler(
 
     // A presented secret is compared with the client's verifiers, and with the shared secrets it holds as keys, which a
     // client issued a secret for client_secret_jwt keeps when it is registered for another method. A verifier with a
-    // work factor waits for its turn, so unauthenticated requests cannot occupy every processor. See ADR-1391.
+    // work factor waits for its turn, so unauthenticated requests cannot occupy every processor, and one refused a turn
+    // answers 503 instead of invalid_client, because the secret was never compared. See ADR-1391.
     private async ValueTask<ClientAuthenticationResult> VerifyClientSecretAsync(
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
@@ -280,39 +284,54 @@ internal abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
-        var credentialId = await FindMatchingSecretAsync(
+        var match = await FindMatchingSecretAsync(
             publicClient,
             clientSecretBytes,
             cancellationToken
         );
-        if (credentialId is { } matchedCredentialId)
+
+        switch (match.Result)
         {
-            var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
-                openIdContext,
-                publicClient,
-                AuthenticationMethod,
-                matchedCredentialId.KeyId,
-                confirmation: null,
-                cancellationToken
-            );
+            case SecretVerificationResult.Success:
+                var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
+                    openIdContext,
+                    publicClient,
+                    AuthenticationMethod,
+                    match.CredentialId,
+                    confirmation: null,
+                    cancellationToken
+                );
+                return new ClientAuthenticationResult(confidentialClient);
 
-            return new ClientAuthenticationResult(confidentialClient);
+            case SecretVerificationResult.Unavailable:
+                Logger.ClientAuthenticationSecretVerificationUnavailable(publicClient.ClientId);
+                await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+                    openIdContext,
+                    publicClient.ClientId,
+                    AuthenticationMethod,
+                    "secret_verification_unavailable",
+                    cancellationToken
+                );
+                return new ClientAuthenticationResult(
+                    CreateVerificationUnavailableError(openIdContext)
+                );
+
+            default:
+                // client secret was specified but failed to verify
+                Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
+                return await FailAsync(
+                    openIdContext,
+                    publicClient.ClientId,
+                    "invalid_client_secret",
+                    cancellationToken
+                );
         }
-
-        // client secret was specified but failed to verify
-        Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
-        return await FailAsync(
-            openIdContext,
-            publicClient.ClientId,
-            "invalid_client_secret",
-            cancellationToken
-        );
     }
 
-    // The identifier of the credential that matched, which may itself be null; a null result means none matched.
-    private readonly record struct MatchedCredential(string? KeyId);
-
-    private static async ValueTask<MatchedCredential?> FindMatchingSecretAsync(
+    // The cheap comparisons run first, so a presented secret that matches a generated secret's SHA-256 verifier or a
+    // reversible secret never waits for a turn, and a wrong one costs a derivation only for a client that holds a
+    // supplied secret. Each comparison is constant-time; which one matched, if any, is what the caller learns anyway.
+    private static async ValueTask<ClientSecretMatch> FindMatchingSecretAsync(
         OpenIdClient client,
         ReadOnlyMemory<byte> clientSecretBytes,
         CancellationToken cancellationToken
@@ -320,9 +339,13 @@ internal abstract class CommonClientAuthenticationHandler(
     {
         foreach (var verifier in client.SecretVerifiers)
         {
-            if (await verifier.VerifyAsync(clientSecretBytes, cancellationToken))
+            if (
+                !verifier.HasWorkFactor
+                && await verifier.VerifyAsync(clientSecretBytes, cancellationToken)
+                    == SecretVerificationResult.Success
+            )
             {
-                return new MatchedCredential(verifier.KeyId);
+                return ClientSecretMatch.Matched(verifier.KeyId);
             }
         }
 
@@ -330,12 +353,41 @@ internal abstract class CommonClientAuthenticationHandler(
         {
             if (IsSecretEqual(secretKey, clientSecretBytes.Span))
             {
-                return new MatchedCredential(secretKey.KeyId);
+                return ClientSecretMatch.Matched(secretKey.KeyId);
             }
         }
 
-        return null;
+        foreach (var verifier in client.SecretVerifiers)
+        {
+            if (!verifier.HasWorkFactor)
+            {
+                continue;
+            }
+
+            var result = await verifier.VerifyAsync(clientSecretBytes, cancellationToken);
+            if (result == SecretVerificationResult.Success)
+            {
+                return ClientSecretMatch.Matched(verifier.KeyId);
+            }
+
+            if (result == SecretVerificationResult.Unavailable)
+            {
+                return ClientSecretMatch.Unavailable;
+            }
+        }
+
+        return ClientSecretMatch.Failed;
     }
+
+    // The server is saturated, not the client's credential wrong: 503 with temporarily_unavailable, as the rate limits
+    // answer temporarily_unavailable, and a Retry-After of one second. See ADR-1391.
+    private static IOpenIdError CreateVerificationUnavailableError(OpenIdContext openIdContext) =>
+        openIdContext
+            .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable)
+            .WithDescription("The client secret could not be verified now; retry later.")
+            .WithStatusCode(StatusCodes.Status503ServiceUnavailable)
+            .WithResponseHeader(HeaderNames.RetryAfter, "1")
+            .WithResponseHeader(HeaderNames.CacheControl, "no-store");
 
     /// <summary>
     /// Determines whether the specified symmetric <paramref name="secretKey"/> is equal to the specified

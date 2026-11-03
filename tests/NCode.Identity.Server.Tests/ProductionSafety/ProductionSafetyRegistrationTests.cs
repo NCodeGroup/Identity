@@ -235,7 +235,11 @@ public class ProductionSafetyRegistrationTests
         );
 
         Assert.Equal(
-            [ProductionSafetyRegistration.Pbkdf2IterationsTooLowMessage],
+            [
+                ProductionPbkdf2IterationsValidator.CreateMessage(
+                    Pbkdf2SecretVerifierOptions.MinimumProductionIterations - 1
+                ),
+            ],
             exception.Failures
         );
     }

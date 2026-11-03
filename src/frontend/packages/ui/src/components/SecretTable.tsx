@@ -59,11 +59,12 @@ function formatInstant(value: string): string {
   return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString();
 }
 
+// See ADR-1050 (secret material is revealed once) and ADR-1391 (a compared secret is stored as a verifier).
 /**
- * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation,
- * ADR-1050); this lists only metadata. An expired secret is flagged, and so is a shared secret held only as a one-way
- * verifier, which a method that uses the secret as a key cannot use (ADR-1391). Receives rows and a callback as
- * props; holds no state and does no fetching, so it renders directly in Storybook and under RTL.
+ * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation); this lists only
+ * metadata. An expired secret is flagged, and so is a shared secret held only as a one-way verifier, which a method
+ * that uses the secret as a key cannot use. Receives rows and a callback as props; holds no state and does no
+ * fetching, so it renders directly in Storybook and under RTL.
  */
 export function SecretTable({
   secrets,

@@ -22,14 +22,19 @@ internal sealed class Sha256SecretVerifier(KeyMetadata metadata, byte[] digest) 
     public override string Scheme => SecretVerifierSchemes.Sha256;
 
     /// <inheritdoc />
-    public override ValueTask<bool> VerifyAsync(
+    public override bool HasWorkFactor => false;
+
+    /// <inheritdoc />
+    public override ValueTask<SecretVerificationResult> VerifyAsync(
         ReadOnlyMemory<byte> secret,
         CancellationToken cancellationToken
     )
     {
         // One hash costs no more than the request that carries it, so the verification neither waits nor is bounded.
         cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(Verify(secret.Span));
+        return ValueTask.FromResult(
+            Verify(secret.Span) ? SecretVerificationResult.Success : SecretVerificationResult.Failed
+        );
     }
 
     private bool Verify(ReadOnlySpan<byte> secret)

@@ -98,34 +98,42 @@ internal class DefaultSecretGenerator(
     }
 
     /// <inheritdoc />
-    public GeneratedSecret GenerateSharedSecret(
+    public GeneratedSecret GenerateOneWaySharedSecret(
         ISecretProtector protector,
         GenerateSecretRequest request
     )
     {
+        var secretMaterial = GenerateSecretMaterial(request);
+        using var utf8Lease = RentUtf8(secretMaterial, out var utf8);
+
         // A generated secret has at least 256 bits of entropy, which no search can guess, so its scheme needs no work
         // factor.
-        var scheme = GeneratedSecretScheme;
-        return GenerateSharedSecretCore(
+        var secret = CreateVerifierSecret(
             protector,
-            request,
-            (utf8, protect) => (SecretEncodings.Verifier, ProtectVerifier(scheme, utf8, protect))
+            GeneratedSecretScheme,
+            SharedSecretMetadata.From(request),
+            utf8
         );
+
+        return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
     }
 
     /// <inheritdoc />
     public GeneratedSecret GenerateReversibleSharedSecret(
         ISecretProtector protector,
         GenerateSecretRequest request
-    ) =>
-        GenerateSharedSecretCore(
-            protector,
-            request,
-            static (utf8, protect) => (SecretEncodings.SymmetricRaw, protect(utf8))
-        );
+    )
+    {
+        var secretMaterial = GenerateSecretMaterial(request);
+        using var utf8Lease = RentUtf8(secretMaterial, out var utf8);
+
+        var secret = CreateReversibleSecret(protector, SharedSecretMetadata.From(request), utf8);
+
+        return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
+    }
 
     /// <inheritdoc />
-    public PersistedSecret ImportSharedSecret(
+    public PersistedSecret ImportOneWaySharedSecret(
         ISecretProtector protector,
         ImportSharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
@@ -135,37 +143,12 @@ internal class DefaultSecretGenerator(
 
         // A supplied secret was chosen by someone and its entropy is unknown, so its scheme carries the work factor of a
         // password hash.
-        var secretId = request.SecretId;
-        var encodedValue = ProtectVerifier(
+        return CreateVerifierSecret(
+            protector,
             SuppliedSecretScheme,
-            secretValue,
-            bytes => Protect(protector, secretId, bytes)
+            SharedSecretMetadata.From(request),
+            secretValue
         );
-
-        return CreateSharedSecret(
-            secretId,
-            request.Use,
-            request.Algorithm,
-            request.CreatedWhen,
-            request.ExpiresWhen,
-            SecretEncodings.Verifier,
-            secretValue.Length,
-            encodedValue
-        );
-    }
-
-    // Writes the scheme's verifier text of the secret into a sensitive buffer and protects it.
-    private static string ProtectVerifier(
-        ISecretVerifierScheme scheme,
-        ReadOnlySpan<byte> secret,
-        SecretKeyMaterialProtector protect
-    )
-    {
-        using var verifierBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, 128);
-        SecretVerifierFormat.Write(scheme, secret, verifierBuffer);
-
-        using var verifierSpanLease = verifierBuffer.GetSpanLease(isSensitive: true);
-        return protect(verifierSpanLease.Span);
     }
 
     /// <inheritdoc />
@@ -177,28 +160,12 @@ internal class DefaultSecretGenerator(
     {
         EnsureNotEmpty(secretValue);
 
-        return CreateSharedSecret(
-            request.SecretId,
-            request.Use,
-            request.Algorithm,
-            request.CreatedWhen,
-            request.ExpiresWhen,
-            SecretEncodings.SymmetricRaw,
-            secretValue.Length,
-            Protect(protector, request.SecretId, secretValue)
-        );
+        return CreateReversibleSecret(protector, SharedSecretMetadata.From(request), secretValue);
     }
 
-    private delegate (string SecretEncoding, string EncodedValue) SharedSecretEncoder(
-        ReadOnlySpan<byte> utf8SecretBytes,
-        SecretKeyMaterialProtector protect
-    );
-
-    private static GeneratedSecret GenerateSharedSecretCore(
-        ISecretProtector protector,
-        GenerateSecretRequest request,
-        SharedSecretEncoder encode
-    )
+    // Generates the opaque, URL-safe secret string an external party holds and later presents: the one-time reveal
+    // returned to the caller, a wire-boundary string.
+    private static string GenerateSecretMaterial(GenerateSecretRequest request)
     {
         if (request.SecretType != SecretTypes.Symmetric)
         {
@@ -223,8 +190,6 @@ internal class DefaultSecretGenerator(
             );
         }
 
-        // The opaque secret string is what an external party holds and later presents; what is stored is computed from
-        // its UTF-8 bytes, which is what a presented secret is compared as.
         var entropyByteLength = request.KeySizeBits >> 3;
         using var entropyLease = BufferFactory.Rent(
             entropyByteLength,
@@ -233,35 +198,50 @@ internal class DefaultSecretGenerator(
         );
         RandomNumberGenerator.Fill(entropy);
 
-        // The one-time reveal returned to the caller, a wire-boundary string.
-        var secretMaterial = Base64Url.Encode(entropy);
+        return Base64Url.Encode(entropy);
+    }
 
-        using var utf8Lease = BufferFactory.Rent(
+    // What is stored is computed from the secret's UTF-8 octets, which is what a presented secret is compared as.
+    private static IDisposable RentUtf8(string secretMaterial, out Span<byte> utf8)
+    {
+        var lease = BufferFactory.Rent(
             SecureEncoding.UTF8.GetByteCount(secretMaterial),
             isSensitive: true,
-            out Span<byte> utf8
+            out utf8
         );
         SecureEncoding.UTF8.GetBytes(secretMaterial, utf8);
-
-        var secretId = request.SecretId;
-        var (secretEncoding, encodedValue) = encode(
-            utf8,
-            bytes => Protect(protector, secretId, bytes)
-        );
-
-        var secret = CreateSharedSecret(
-            secretId,
-            request.Use,
-            request.Algorithm,
-            request.CreatedWhen,
-            request.ExpiresWhen,
-            secretEncoding,
-            utf8.Length,
-            encodedValue
-        );
-
-        return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
+        return lease;
     }
+
+    // Stores the scheme's one-way verifier of the secret, protected like key material.
+    private static PersistedSecret CreateVerifierSecret(
+        ISecretProtector protector,
+        ISecretVerifierScheme scheme,
+        SharedSecretMetadata metadata,
+        ReadOnlySpan<byte> secret
+    )
+    {
+        using var verifierBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, 128);
+        SecretVerifierFormat.Write(scheme, secret, verifierBuffer);
+
+        using var verifierSpanLease = verifierBuffer.GetSpanLease(isSensitive: true);
+        var encodedValue = Protect(protector, metadata.SecretId, verifierSpanLease.Span);
+
+        return CreateSharedSecret(metadata, SecretEncodings.Verifier, secret.Length, encodedValue);
+    }
+
+    // Stores the secret's UTF-8 octets themselves, protected, so a method that keys from the secret can read it back.
+    private static PersistedSecret CreateReversibleSecret(
+        ISecretProtector protector,
+        SharedSecretMetadata metadata,
+        ReadOnlySpan<byte> secret
+    ) =>
+        CreateSharedSecret(
+            metadata,
+            SecretEncodings.SymmetricRaw,
+            secret.Length,
+            Protect(protector, metadata.SecretId, secret)
+        );
 
     private static void EnsureNotEmpty(ReadOnlySpan<byte> secretValue)
     {
@@ -284,27 +264,21 @@ internal class DefaultSecretGenerator(
     // stored shape cannot drift between them: a Symmetric secret whose size is that of the secret's UTF-8 octets and
     // whose stored value is the protected verifier or the protected octets themselves. See ADR-1110 and ADR-1391.
     private static PersistedSecret CreateSharedSecret(
-        string secretId,
-        string? use,
-        string? algorithm,
-        DateTimeOffset createdWhen,
-        DateTimeOffset expiresWhen,
+        SharedSecretMetadata metadata,
         string secretEncoding,
         int utf8SecretByteCount,
         string encodedValue
-    )
-    {
-        return new PersistedSecret
+    ) =>
+        new()
         {
-            SecretId = secretId,
-            Use = use,
-            Algorithm = algorithm,
-            CreatedWhen = createdWhen,
-            ExpiresWhen = expiresWhen,
+            SecretId = metadata.SecretId,
+            Use = metadata.Use,
+            Algorithm = metadata.Algorithm,
+            CreatedWhen = metadata.CreatedWhen,
+            ExpiresWhen = metadata.ExpiresWhen,
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
             KeySizeBits = utf8SecretByteCount * 8,
             EncodedValue = encodedValue,
         };
-    }
 }

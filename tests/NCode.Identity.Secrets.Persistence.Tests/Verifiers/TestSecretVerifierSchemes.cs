@@ -1,7 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Collections.Providers;
 using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
@@ -19,10 +21,18 @@ internal static class TestSecretVerifierSchemes
     public static DefaultSecretVerifierSchemeCatalog CreateCatalog(
         Pbkdf2SecretVerifierOptions? options = null
     ) =>
-        new([
-            new Sha256SecretVerifierScheme(),
-            new Pbkdf2SecretVerifierScheme(
-                Microsoft.Extensions.Options.Options.Create(options ?? CreateOptions())
-            ),
-        ]);
+        new(
+            [
+                new Sha256SecretVerifierScheme(),
+                new Pbkdf2SecretVerifierScheme(
+                    Microsoft.Extensions.Options.Options.Create(options ?? CreateOptions()),
+                    TimeProvider.System
+                ),
+            ],
+            [new DefaultSecretVerifierSchemeDataSource()]
+        );
+
+    public static ICollectionDataSource<SecretVerifierSchemeDescriptor> CreateDataSource(
+        params string[] names
+    ) => new TestSecretVerifierSchemeDataSource(names);
 }

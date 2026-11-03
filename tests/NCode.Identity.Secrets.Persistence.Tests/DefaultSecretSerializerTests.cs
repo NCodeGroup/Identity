@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Frozen;
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
@@ -450,42 +449,20 @@ public class DefaultSecretSerializerTests
         Assert.Equal("first", firstVerifier.KeyId);
         Assert.Equal(SecretVerifierSchemes.Sha256, firstVerifier.Scheme);
         Assert.Equal(first.ExpiresWhen, firstVerifier.Metadata.ExpiresWhen);
-        Assert.True(await firstVerifier.VerifyAsync("first"u8.ToArray(), CancellationToken.None));
-        Assert.False(await firstVerifier.VerifyAsync("second"u8.ToArray(), CancellationToken.None));
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await firstVerifier.VerifyAsync("first"u8.ToArray(), CancellationToken.None)
+        );
+        Assert.Equal(
+            SecretVerificationResult.Failed,
+            await firstVerifier.VerifyAsync("second"u8.ToArray(), CancellationToken.None)
+        );
         var secondVerifier = verifiers.ElementAt(1);
         Assert.Equal("kid-2", secondVerifier.KeyId);
-        Assert.True(await secondVerifier.VerifyAsync("second"u8.ToArray(), CancellationToken.None));
-    }
-
-    // A scheme a package registers: its parameters are the secret itself, which only a test would store.
-    private sealed class PlainTextScheme : ISecretVerifierScheme
-    {
-        public string Name => "test-plain";
-
-        public void WriteParameters(ReadOnlySpan<byte> secret, IBufferWriter<byte> destination) =>
-            destination.Write(secret);
-
-        public bool TryReadParameters(
-            KeyMetadata metadata,
-            ReadOnlySpan<byte> parameters,
-            [NotNullWhen(true)] out SecretVerifier? verifier
-        )
-        {
-            verifier = new PlainTextVerifier(metadata, parameters.ToArray());
-            return true;
-        }
-    }
-
-    private sealed class PlainTextVerifier(KeyMetadata metadata, byte[] secret) : SecretVerifier
-    {
-        public override KeyMetadata Metadata { get; } = metadata;
-
-        public override string Scheme => "test-plain";
-
-        public override ValueTask<bool> VerifyAsync(
-            ReadOnlyMemory<byte> presented,
-            CancellationToken cancellationToken
-        ) => ValueTask.FromResult(presented.Span.SequenceEqual(secret));
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await secondVerifier.VerifyAsync("second"u8.ToArray(), CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -493,7 +470,14 @@ public class DefaultSecretSerializerTests
     {
         var serializer = new DefaultSecretSerializer(
             _catalog,
-            new DefaultSecretVerifierSchemeCatalog([new PlainTextScheme()])
+            new DefaultSecretVerifierSchemeCatalog(
+                [new PlainTextSecretVerifierScheme()],
+                [
+                    TestSecretVerifierSchemes.CreateDataSource(
+                        PlainTextSecretVerifierScheme.SchemeName
+                    ),
+                ]
+            )
         );
         var protector = CreateProtector();
         var persisted = CreateVerifierSecret(protector, "$test-plain$secret");
@@ -501,7 +485,10 @@ public class DefaultSecretSerializerTests
         var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [persisted]));
 
         Assert.Equal("test-plain", verifier.Scheme);
-        Assert.True(await verifier.VerifyAsync("secret"u8.ToArray(), CancellationToken.None));
+        Assert.Equal(
+            SecretVerificationResult.Success,
+            await verifier.VerifyAsync("secret"u8.ToArray(), CancellationToken.None)
+        );
     }
 
     [Fact]

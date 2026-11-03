@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 /// <summary>
 /// Provides a <see cref="SecretVerifier"/> that holds a PBKDF2-HMAC-SHA256 derivation of a secret someone chose. A
 /// verification waits for a turn of the gate its scheme shares among every verifier it reads, so the derivations that
-/// run at once stay bounded however many presented secrets arrive.
+/// run at once stay bounded however many presented secrets arrive, and one that finds the gate saturated is refused.
 /// </summary>
 // See ADR-1391.
 internal sealed class Pbkdf2SecretVerifier(
@@ -18,13 +18,13 @@ internal sealed class Pbkdf2SecretVerifier(
     int iterations,
     byte[] salt,
     byte[] derivedKey,
-    SemaphoreSlim gate
+    SecretVerificationGate gate
 ) : SecretVerifier
 {
     private int Iterations { get; } = iterations;
     private byte[] Salt { get; } = salt;
     private byte[] DerivedKey { get; } = derivedKey;
-    private SemaphoreSlim Gate { get; } = gate;
+    private SecretVerificationGate Gate { get; } = gate;
 
     /// <inheritdoc />
     public override KeyMetadata Metadata { get; } = metadata;
@@ -33,17 +33,27 @@ internal sealed class Pbkdf2SecretVerifier(
     public override string Scheme => SecretVerifierSchemes.Pbkdf2Sha256;
 
     /// <inheritdoc />
-    public override async ValueTask<bool> VerifyAsync(
+    public override bool HasWorkFactor => true;
+
+    /// <inheritdoc />
+    public override async ValueTask<SecretVerificationResult> VerifyAsync(
         ReadOnlyMemory<byte> secret,
         CancellationToken cancellationToken
     )
     {
         // Anyone who knows a client_id can make the server run a derivation, so a derivation waits for a turn rather
-        // than each request taking a processor of its own.
-        await Gate.WaitAsync(cancellationToken);
+        // than each request taking a processor of its own, and is refused without being run when the queue is full or no
+        // turn comes in time.
+        if (!await Gate.TryEnterAsync(cancellationToken))
+        {
+            return SecretVerificationResult.Unavailable;
+        }
+
         try
         {
-            return Verify(secret.Span);
+            return Verify(secret.Span)
+                ? SecretVerificationResult.Success
+                : SecretVerificationResult.Failed;
         }
         finally
         {

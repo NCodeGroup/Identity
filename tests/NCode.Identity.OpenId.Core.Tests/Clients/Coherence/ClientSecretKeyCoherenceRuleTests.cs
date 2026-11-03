@@ -22,8 +22,7 @@ public class ClientSecretKeyCoherenceRuleTests : BaseTests
 
     public ClientSecretKeyCoherenceRuleTests()
     {
-        // Loose: a setting the test does not set reads as unset.
-        MockRegisteredSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        MockRegisteredSettings = CreateStrictMock<IReadOnlySettingCollection>();
         MockEffectiveSettings = CreateStrictMock<IReadOnlySettingCollection>();
         MockMethodCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
         MockAlgorithmProvider = CreateStrictMock<IAlgorithmCollectionProvider>();
@@ -53,6 +52,17 @@ public class ClientSecretKeyCoherenceRuleTests : BaseTests
             .Verifiable();
     }
 
+    private void SetupNoRegisteredAlgorithms()
+    {
+        IReadOnlyCollection<string>? output = null;
+        MockRegisteredSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported, out output)
+            )
+            .Returns(false)
+            .Verifiable();
+    }
+
     private void SetupMethod(string method, bool usesClientSecretAsKey)
     {
         MockEffectiveSettings
@@ -63,6 +73,7 @@ public class ClientSecretKeyCoherenceRuleTests : BaseTests
         var descriptor = new ClientAuthenticationMethodDescriptor
         {
             Name = method,
+            RequiresClientSecret = true,
             UsesClientSecretAsKey = usesClientSecretAsKey,
         };
         MockMethodCatalog.Setup(x => x.TryGet(method, out descriptor)).Returns(true).Verifiable();
@@ -93,6 +104,8 @@ public class ClientSecretKeyCoherenceRuleTests : BaseTests
     public void FindViolations_WhenTheClientRegistersNoRequestObjectAlgorithm_ReturnsEmpty()
     {
         // An inherited list is the tenant's, not the client's registration, so the effective method is never read.
+        SetupNoRegisteredAlgorithms();
+
         var violations = CreateRule().FindViolations(CreateContext());
 
         Assert.Empty(violations);

@@ -84,4 +84,5 @@ internal static class EventIds
     public const int AuditRecordPruneFailed = Base + 67;
     public const int ClientJwksFetchSuppressed = Base + 68;
     public const int EndSessionContinuationSessionMismatch = Base + 69;
+    public const int ClientAuthenticationSecretVerificationUnavailable = Base + 70;
 }

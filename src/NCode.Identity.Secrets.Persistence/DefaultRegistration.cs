@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Collections.Providers;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -49,7 +50,8 @@ public static class DefaultRegistration
         /// material.</description></item>
         /// <item><description><see cref="ISecretVerifierSchemeCatalog"/> - Looks up the registered
         /// <see cref="ISecretVerifierScheme"/> instances, which the <see cref="SecretVerifierSchemes.Sha256"/> and
-        /// <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/> schemes join as a collection.</description></item>
+        /// <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/> schemes join as a collection, each with a
+        /// <see cref="SecretVerifierSchemeDescriptor"/> that the options are validated against.</description></item>
         /// <item><description><see cref="TimeProvider"/> - Supplies the current time, defaulting to
         /// <see cref="TimeProvider.System"/>.</description></item>
         /// <item><description><see cref="IKeyWrapper"/> - The ephemeral and local root key providers,
@@ -81,8 +83,8 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ISecretGenerator, DefaultSecretGenerator>();
             serviceCollection.TryAddSingleton<ISecretImporter, DefaultSecretImporter>();
 
-            // Shared secret verifiers: a package adds a scheme by registering another ISecretVerifierScheme. See
-            // ADR-1391.
+            // Shared secret verifiers: a package adds a scheme by registering another ISecretVerifierScheme and a
+            // SecretVerifierSchemeDescriptor of its name. See ADR-1391.
             serviceCollection.TryAddSingleton<
                 ISecretVerifierSchemeCatalog,
                 DefaultSecretVerifierSchemeCatalog
@@ -92,6 +94,12 @@ public static class DefaultRegistration
             );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ISecretVerifierScheme, Pbkdf2SecretVerifierScheme>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SecretVerifierSchemeDescriptor>,
+                    DefaultSecretVerifierSchemeDataSource
+                >()
             );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

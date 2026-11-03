@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -102,6 +103,15 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
+
+            // The locales the surface ships are the UI locales the tenant settings and discovery name, English first;
+            // a host adds one by registering another InteractiveLocale as an IUiLocale (ADR-1402).
+            foreach (var locale in InteractiveLocales.All)
+            {
+                serviceCollection.TryAddEnumerableInstance<IUiLocale>(locale);
+            }
+
+            serviceCollection.TryAddSingleton<InteractiveLocaleSelector>();
 
             // A credential backend that holds passwords replaces this default, which reports that no change is
             // supported.
@@ -208,8 +218,9 @@ public static class DefaultRegistration
 
     // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed
     // login path, as a root-relative URL so the request's Host contributes nothing; its return URL is the challenge's
-    // redirect URI, or the challenged request itself.
-    // See ADR-1365.
+    // redirect URI, or the challenged request itself. The challenge's ui_locales parameter, which the authorization
+    // endpoint sets from the request, reaches the page so it renders in the end-user's preferred language.
+    // See ADR-1365 and ADR-1402.
     private static string BuildLoginRedirectUri(
         RedirectContext<CookieAuthenticationOptions> context,
         InteractiveSurfacePaths surfacePaths
@@ -227,6 +238,14 @@ public static class DefaultRegistration
             InteractiveAuthenticationDefaults.LoginPath
         );
         var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
+        var uiLocales = context.Properties.GetParameter<string>(
+            OpenIdProtocol.Parameters.UiLocales
+        );
+        if (!string.IsNullOrEmpty(uiLocales))
+        {
+            query = query.Add(OpenIdProtocol.Parameters.UiLocales, uiLocales);
+        }
+
         return $"{loginPath}{query}";
     }
 

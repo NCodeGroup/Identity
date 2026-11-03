@@ -1844,3 +1844,5 @@ NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.AddedSec
 NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.AddedSecrets.init -> void
 NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.IssuedSecret.get -> NCode.Identity.Secrets.Persistence.GeneratedSecret?
 NCode.Identity.OpenId.Authentication.Clients.ClientSecretReconciliation.IssuedSecret.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest.UiLocales.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.IEndSessionRequest.UiLocales.set -> void

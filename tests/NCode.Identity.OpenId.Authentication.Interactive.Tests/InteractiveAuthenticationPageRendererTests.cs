@@ -36,6 +36,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/connect/authorize",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "token-123",
@@ -69,6 +70,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -90,6 +92,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -110,6 +113,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -133,6 +137,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -164,6 +169,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -188,6 +194,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: AcmeBranding,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -221,6 +228,7 @@ public class InteractiveAuthenticationPageRendererTests
                 null
             ),
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -242,6 +250,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: AcmeBranding,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -266,6 +275,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -290,6 +300,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -329,6 +340,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t"
@@ -356,6 +368,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t"
@@ -379,6 +392,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             errorCode: "unauthorized_client",
             errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
         );
@@ -405,6 +419,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -428,6 +443,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             errorCode: "\"><script>alert(1)</script>",
             errorDescription: null
         );
@@ -446,6 +462,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -466,6 +483,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: "/a&b/account/",
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -488,6 +506,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
+            locale: InteractiveLocales.English,
             errorCode: "invalid_client",
             errorDescription: "__NCODE_CSP_NONCE__"
         );
@@ -514,7 +533,8 @@ public class InteractiveAuthenticationPageRendererTests
             InteractiveBundleShell.TryCreate(BundleShell)!,
             SurfaceBase,
             branding: null,
-            nonce: Nonce
+            nonce: Nonce,
+            locale: InteractiveLocales.English
         );
 
         Assert.Equal(
@@ -533,7 +553,8 @@ public class InteractiveAuthenticationPageRendererTests
             InteractiveBundleShell.TryCreate(BundleShell)!,
             SurfaceBase,
             AcmeBranding,
-            nonce: Nonce
+            nonce: Nonce,
+            locale: InteractiveLocales.English
         );
 
         Assert.Equal(
@@ -553,7 +574,8 @@ public class InteractiveAuthenticationPageRendererTests
             InteractiveBundleShell.TryCreate(NonceBundleShell)!,
             SurfaceBase,
             branding: null,
-            nonce: Nonce
+            nonce: Nonce,
+            locale: InteractiveLocales.English
         );
 
         Assert.Equal(
@@ -563,6 +585,193 @@ public class InteractiveAuthenticationPageRendererTests
                 + "<body><div id=\"root\"></div></body></html>",
             writer.WrittenSpan.ToString()
         );
+    }
+
+    #endregion
+
+    #region Locale Tests
+
+    private const string LanguageBundleShell =
+        "<!doctype html><html lang=\"__NCODE_LANG__\"><head><meta property=\"csp-nonce\" nonce=\"__NCODE_CSP_NONCE__\"></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
+    [Fact]
+    public void RenderLoginPage_WhenStandalone_WritesTheLocaleIntoTheDocumentAndTheForm()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            locale: InteractiveLocales.French,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: InteractiveLocales.French.Messages.InvalidCredentialsError
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.StartsWith(
+            "<!doctype html><html lang=\"fr\"><head>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("<title>Se connecter</title>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Se connecter</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<label for=\"username\">Nom d", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "<label for=\"password\">Mot de passe</label>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(">Se connecter</button>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"fr\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sign in", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheShellCarriesTheLanguagePlaceholder_WritesTheLocaleInItsPlace()
+    {
+        var shell = InteractiveBundleShell.TryCreate(LanguageBundleShell);
+        Assert.NotNull(shell);
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            locale: InteractiveLocales.German,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.StartsWith(
+            "<!doctype html><html lang=\"de\"><head>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("nonce=\"n0nce\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            InteractiveBundleShell.LanguagePlaceholder,
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain(
+            InteractiveBundleShell.NoncePlaceholder,
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("<h1>Anmelden</h1>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderConsentPage_Always_PlacesTheEncodedApplicationNameInTheLocalesPrompt()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderConsentPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            locale: InteractiveLocales.Spanish,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            appName: "<Acme>",
+            scopes: []
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains("<h1>Autorizar acceso</h1>", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "<p>&lt;Acme&gt; solicita acceso a su cuenta. Elija qu",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(">Denegar</button>", html, StringComparison.Ordinal);
+        Assert.Contains(">Permitir</button>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"es\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderConsentPage_WhenTheFormatHasNoPlaceholder_WritesItAsItIs()
+    {
+        var locale = InteractiveLocales.English with
+        {
+            Messages = InteractiveLocales.English.Messages with
+            {
+                ConsentPromptFormat = "Choose what to allow:",
+            },
+        };
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderConsentPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            locale,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            appName: "Acme",
+            scopes: []
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains("<p>Choose what to allow:</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Acme", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLogoutConfirmationPage_Always_WritesTheLocalesText()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            locale: InteractiveLocales.French,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t"
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Se d&#xE9;connecter</h1>", html, StringComparison.Ordinal);
+        Assert.Contains(">Rester connect&#xE9;</button>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"fr\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderErrorPage_Always_WritesTheLocalesTitle()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            locale: InteractiveLocales.German,
+            errorCode: "invalid_client",
+            errorDescription: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains("<html lang=\"de\">", html, StringComparison.Ordinal);
+        Assert.Contains("<title>Autorisierungsfehler</title>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Autorisierungsfehler</h1>", html, StringComparison.Ordinal);
     }
 
     #endregion

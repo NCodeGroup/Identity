@@ -54,5 +54,12 @@ public sealed class EndSessionRequest : OpenIdMessage<EndSessionRequest>, IEndSe
     }
 
     /// <inheritdoc />
+    public List<string>? UiLocales
+    {
+        get => GetKnownParameter(OpenIdCommonParameters.UiLocales);
+        set => SetKnownParameter(OpenIdCommonParameters.UiLocales, value);
+    }
+
+    /// <inheritdoc />
     public override EndSessionRequest Clone() => new(this);
 }

@@ -3,13 +3,16 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
 using Xunit;
@@ -191,16 +194,97 @@ public sealed class DefaultRegistrationTests : IDisposable
         Assert.Equal(CookieSecurePolicy.SameAsRequest, cookie.SecurePolicy);
     }
 
-    #endregion
+    [Fact]
+    public void AddInteractiveAuthentication_RegistersTheLocalesTheSurfaceShipsEnglishFirst()
+    {
+        using var serviceProvider = BuildCookieServiceProvider();
 
-    private ServiceProvider BuildCookieServiceProvider()
+        var locales = serviceProvider.GetServices<IUiLocale>().ToList();
+
+        Assert.Equal(
+            InteractiveLocales.All.Select(locale => locale.LanguageTag),
+            locales.Select(locale => locale.LanguageTag)
+        );
+        Assert.Equal("en", locales[0].LanguageTag);
+        Assert.All(locales, locale => Assert.IsType<InteractiveLocale>(locale));
+    }
+
+    [Fact]
+    public void AddInteractiveAuthentication_WhenCalledTwice_RegistersEachLocaleOnce()
     {
         var configuration = new ConfigurationBuilder().Build();
         var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        Assert.Equal(
+            InteractiveLocales.All.Length,
+            serviceCollection.Count(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+        );
+    }
+
+    [Theory]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("fr-CA de", "&ui_locales=fr-CA%20de")]
+    public async Task AddInteractiveAuthentication_RedirectsALoginChallengeWithTheRequestsUiLocales(
+        string? uiLocales,
+        string expectedQuerySuffix
+    )
+    {
+        using var serviceProvider = BuildCookieServiceProvider(
+            RoutePatternFactory.Parse("/{tenantId}")
+        );
+        var options = serviceProvider
+            .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
+            .Get(InteractiveAuthenticationDefaults.CookieSchemeName);
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        httpContext.Request.RouteValues["tenantId"] = "acme";
+        const string continueUrl = "https://op.example/acme/oauth2/continue?state=k";
+        var properties = new AuthenticationProperties { RedirectUri = continueUrl };
+        properties.SetParameter("ui_locales", uiLocales);
+        var scheme = new AuthenticationScheme(
+            InteractiveAuthenticationDefaults.CookieSchemeName,
+            displayName: null,
+            typeof(CookieAuthenticationHandler)
+        );
+        var context = new RedirectContext<CookieAuthenticationOptions>(
+            httpContext,
+            scheme,
+            options,
+            properties,
+            "/ignored"
+        );
+
+        await options.Events.OnRedirectToLogin(context);
+
+        Assert.Equal(
+            "/acme/account/login?ReturnUrl="
+                + Uri.EscapeDataString(continueUrl)
+                + expectedQuerySuffix,
+            context.RedirectUri
+        );
+        Assert.Equal(context.RedirectUri, httpContext.Response.Headers.Location);
+    }
+
+    #endregion
+
+    private ServiceProvider BuildCookieServiceProvider(RoutePattern? tenantRoute = null)
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var tenantResolver = MockRepository.Create<ITenantResolver>();
+        if (tenantRoute is not null)
+        {
+            tenantResolver.Setup(x => x.GetTenantRoute()).Returns(tenantRoute).Verifiable();
+        }
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging().AddRouting();
-        serviceCollection.AddSingleton(MockRepository.Create<ITenantResolver>().Object);
+        serviceCollection.AddSingleton(tenantResolver.Object);
         serviceCollection
             .NewBuilder<OpenIdAuthenticationLibrary>()
             .AddInteractiveAuthentication(configuration, hostEnvironment.Object);

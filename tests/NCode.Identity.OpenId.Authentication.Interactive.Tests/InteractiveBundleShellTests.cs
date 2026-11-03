@@ -80,6 +80,7 @@ public class InteractiveBundleShellTests
             surfaceBase: "/acme/account/",
             branding: null,
             nonce: "n0nce",
+            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",

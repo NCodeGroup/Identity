@@ -346,6 +346,20 @@ public class DefaultDPoPProofServiceTests : BaseTests
         AssertRejected(tampered, CreateParameters(), "signature");
     }
 
+    // The signature segment is read from the proof, so one that is not base64url is a signature the proof does not
+    // carry.
+    [Theory]
+    [InlineData("!!!!")]
+    [InlineData("AAAAA")]
+    [InlineData("AA==")]
+    public void TryValidateProof_WhenSignatureIsNotBase64Url_Fails(string signature)
+    {
+        var proof = CreateProof(CreateCredentials("ES256"));
+        var lastDot = proof.LastIndexOf('.');
+
+        AssertRejected(proof[..(lastDot + 1)] + signature, CreateParameters(), "signature");
+    }
+
     [Theory]
     [InlineData("not-a-jwt")]
     [InlineData("a.b.c.d.e")]

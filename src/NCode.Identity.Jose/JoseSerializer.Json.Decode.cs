@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NCode.Buffers;
-using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
@@ -315,7 +314,7 @@ partial class JoseSerializer
                 b64 = true;
 
             if (b64)
-                Base64Url.Decode(encodedPayload, payloadWriter);
+                DecodeBase64Url(encodedPayload, payloadWriter);
             else
                 SecureEncoding.UTF8.GetBytes(encodedPayload, payloadWriter);
 

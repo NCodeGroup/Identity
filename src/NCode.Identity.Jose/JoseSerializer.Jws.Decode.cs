@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using NCode.Buffers;
-using NCode.Encoders;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
 
@@ -44,7 +43,7 @@ partial class JoseSerializer
 
         if (b64)
         {
-            Base64Url.Decode(encodedPayload, payloadWriter);
+            DecodeBase64Url(encodedPayload, payloadWriter);
         }
         else
         {

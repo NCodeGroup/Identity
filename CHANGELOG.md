@@ -3559,6 +3559,14 @@ describes the family as it is rather than its changes
   ([ADR-1296](docs/decisions/1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
   [#380](https://github.com/NCodeGroup/Identity/issues/380)).
 
+- **A JOSE token's encoded members are decoded whole or refused.** Every base64url segment of a JWS or JWE, the
+  `PBES2` salt input (`p2s`), the AES-GCM key wrap's `iv` and `tag`, and the `x5t` and `x5t#S256` certificate
+  thumbprints a JWT names are read only when they decode whole to the size they must have. A value that is not
+  base64url or has another size fails with `JoseException`, or `JwtValidationException` for a thumbprint, before any
+  key is derived from it or compared with it, and `PBES2` refuses an iteration count (`p2c`) outside its bounds and an
+  encrypted key that is not a whole AES key wrap before it derives a key encryption key
+  ([#541](https://github.com/NCodeGroup/Identity/issues/541)).
+
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed
   before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release
   ([#440](https://github.com/NCodeGroup/Identity/issues/440),

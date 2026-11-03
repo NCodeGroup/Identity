@@ -4,6 +4,17 @@ An open-source **OpenID Connect + OAuth 2.0** library family and reference serve
 of independently-published NuGet packages — JOSE/JWT, cryptographic secrets, the OpenID protocol model, persistence
 abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host` reference host.
 
+**Before any change, read the project owner's standing direction** at the top of
+[`repository.instructions.md`](.github/instructions/repository.instructions.md#standing-direction-from-the-project-owner).
+In short:
+
+- Always take the best long-term, cohesive and comprehensive design, however large the refactor.
+- The project is greenfield and nothing is shipped.
+- Breaking changes are allowed and never tracked: no temporal content.
+- No compatibility shims or upgrade notes, including in what you tell subagents.
+
+It holds until the first stable release.
+
 ## Project Template
 
 - @.github/instructions/project-template.instructions.md — the plan-then-execute workflow and base conventions, from the project template. Template updates replace it; never edit it. Where this file or a file it lists says otherwise, the project's instruction wins.
@@ -69,7 +80,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Seven family records override template records:
+so a bare ADR number names one record. Eight family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -92,6 +103,10 @@ so a bare ADR number names one record. Seven family records override template re
   same choice for `NCode.Identity.OpenId.Authentication`'s guarded outbound client, so no package of the family
   carries `Microsoft.Extensions.Http.Resilience`, and the build fails a shipping package that would replace its
   consumers' logging generator.
+- [ADR-1393](docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md) overrides the
+  project template's Keep a Changelog grouping and its `**Breaking:**` entry label, because nothing is shipped: until
+  the first stable release, `## [Unreleased]` is a present-tense catalog of what the family does under `### Added` and
+  `### Security` only, and no commit subject or pull request title carries the conventional-commit `!` marker.
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
@@ -299,8 +314,16 @@ follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more 
 [ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
 best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
-breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the
-[design posture](.github/instructions/repository.instructions.md#design-posture-greenfield-pre-release).
+breakage, and surface a fork for the user only when the options are genuinely equal in quality. Breaking changes are
+allowed and never tracked: every changelog entry, document, comment, XML doc, decision record, test name, commit
+message and pull request describes the product **as it is**, never as a delta from an earlier unreleased state — no
+`**Breaking:**` label, no "now", "no longer", "previously", "renamed", "moved" or "replaces", no name of a removed or
+renamed member, and no upgrade, migration or compatibility note. A fix to unreleased behavior is not tracked; what the
+fixed behavior is gets described as a capability. `CHANGELOG.md`'s `## [Unreleased]` is a present-tense catalog under
+`### Added` and `### Security` only, edited in place to match the code, and no commit subject or pull request title
+carries the conventional-commit `!` breaking marker
+([ADR-1393](docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)). Full
+statement: the [design posture](.github/instructions/repository.instructions.md#design-posture-greenfield-pre-release).
 
 ## Copilot cloud agent sessions
 

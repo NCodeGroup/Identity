@@ -457,4 +457,41 @@ public sealed class AuditEventShapeTests
         };
 
     #endregion
+
+    #region UserInfoAccessedAuditEvent Tests
+
+    [Fact]
+    public void Serialize_WhenUserInfoDisclosesClaims_WritesTheClaimNamesAsTheDetails()
+    {
+        var auditEvent = new UserInfoAccessedAuditEvent
+        {
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Success,
+            ClaimNames = ["email", "sub"],
+        };
+
+        var record = ParseRecord(auditEvent);
+
+        Assert.Equal(
+            """{"claim_names":["email","sub"]}""",
+            record.GetProperty("details").GetRawText()
+        );
+    }
+
+    [Fact]
+    public void Serialize_WhenUserInfoRefusesTheClaims_WritesNoDetails()
+    {
+        var auditEvent = new UserInfoAccessedAuditEvent
+        {
+            EventSource = AuditEventSources.OpenId,
+            Outcome = AuditOutcome.Denied,
+            ClaimNames = [],
+        };
+
+        var record = ParseRecord(auditEvent);
+
+        Assert.False(record.TryGetProperty("details", out _));
+    }
+
+    #endregion
 }

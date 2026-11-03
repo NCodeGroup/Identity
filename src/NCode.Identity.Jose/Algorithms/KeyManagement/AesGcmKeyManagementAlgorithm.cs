@@ -152,8 +152,9 @@ internal class AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
             throw new JoseException("The JWT header is missing the 'iv' field.");
         }
 
-        var ivByteCount = Base64Url.GetByteCountForDecode(ivString.Length);
-        if (ivByteCount != IvSizeBytes)
+        // The header's values are base64url without padding (RFC 7515 §2), so a value's length shows its decoded size
+        // without decoding it.
+        if (ivString.Length != Base64Url.GetCharCountForEncode(IvSizeBytes))
         {
             throw new JoseException("The 'iv' field in the JWT header has an invalid size.");
         }
@@ -182,8 +183,7 @@ internal class AesGcmKeyManagementAlgorithm(string code, int kekSizeBits)
             throw new JoseException("The JWT header is missing the 'tag' field.");
         }
 
-        var tagByteCount = Base64Url.GetByteCountForDecode(tagString.Length);
-        if (tagByteCount != TagSizeBytes)
+        if (tagString.Length != Base64Url.GetCharCountForEncode(TagSizeBytes))
         {
             throw new JoseException("The 'tag' field in the JWT header has an invalid size.");
         }

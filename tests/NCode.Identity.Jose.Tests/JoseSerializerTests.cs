@@ -13,6 +13,8 @@ using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using Base64Url = NCode.Encoders.Base64Url;
+using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
 namespace NCode.Identity.Jose.Tests;
 
@@ -501,6 +503,115 @@ public class JoseSerializerTests : BaseTests
 
         Assert.Equal(
             "The `none` algorithm is not supported for digital signatures.",
+            exception.Message
+        );
+    }
+
+    [Fact]
+    public void DecodeBase64Url_WhenTheDataIsBase64Url_DecodesIt()
+    {
+        var expected = RandomNumberGenerator.GetBytes(33);
+
+        using var lease = global::NCode.Identity.Jose.JoseSerializer.DecodeBase64Url(
+            Base64Url.Encode(expected),
+            isSensitive: false,
+            out var bytes
+        );
+
+        Assert.Equal(expected, bytes.ToArray());
+    }
+
+    // A length no base64url value has, characters outside the base64url alphabet, and padding, which JOSE omits
+    // (RFC 7515 §2).
+    [Theory]
+    [InlineData("AAAAA")]
+    [InlineData("!!!!")]
+    [InlineData("AAA+")]
+    [InlineData("AAA/")]
+    [InlineData("AA==")]
+    public void DecodeBase64Url_WhenTheDataIsNotBase64Url_ThrowsJoseException(string chars)
+    {
+        var exception = Assert.Throws<JoseException>(() =>
+        {
+            using var lease = global::NCode.Identity.Jose.JoseSerializer.DecodeBase64Url(
+                chars,
+                isSensitive: false,
+                out _
+            );
+        });
+
+        Assert.Equal(
+            "The JOSE token contains a segment that is not valid base64url.",
+            exception.Message
+        );
+    }
+
+    [Theory]
+    [InlineData("!!!!.e30.AAAA")]
+    [InlineData("AAAAA.e30.AAAA")]
+    public void Parse_WhenTheHeaderIsNotBase64Url_ThrowsJoseException(string token)
+    {
+        var exception = Assert.Throws<JoseException>(() => JoseSerializer.Parse(token));
+
+        Assert.Equal(
+            "The JOSE token contains a segment that is not valid base64url.",
+            exception.Message
+        );
+    }
+
+    // The signature is computed over the token's own segments, so the token passes its signature check and only its
+    // payload is malformed.
+    [Fact]
+    public void Decode_WhenTheJwsPayloadIsNotBase64Url_ThrowsJoseException()
+    {
+        var (controlKey, secretKey) = CreateRandomSymmetricKey("key-1", 256);
+        var encodedHeader = Base64Url.Encode(
+            JsonSerializer.SerializeToUtf8Bytes(
+                new Dictionary<string, object> { ["alg"] = "HS256", ["kid"] = "key-1" }
+            )
+        );
+        var signingInput = $"{encodedHeader}.!!!!";
+        var signature = HMACSHA256.HashData(
+            (byte[])controlKey,
+            SecureEncoding.ASCII.GetBytes(signingInput)
+        );
+        var token = $"{signingInput}.{Base64Url.Encode(signature)}";
+
+        var exception = Assert.Throws<JoseException>(() =>
+            JoseSerializer.Decode(JoseSerializer.Parse(token), secretKey)
+        );
+
+        Assert.Equal(
+            "The JOSE token contains a segment that is not valid base64url.",
+            exception.Message
+        );
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void Decode_WhenAJweSegmentIsNotBase64Url_ThrowsJoseException(int segment)
+    {
+        var (controlKey, secretKey) = CreateRandomSymmetricKey("key-1", 128);
+        var token = JWT.Encode(
+            "payload",
+            controlKey,
+            JweAlgorithm.A128KW,
+            JweEncryption.A128GCM,
+            extraHeaders: new Dictionary<string, object> { ["kid"] = "key-1" }
+        );
+        var segments = token.Split('.');
+        segments[segment] = "!!!!" + segments[segment][4..];
+        var tampered = string.Join('.', segments);
+
+        var exception = Assert.Throws<JoseException>(() =>
+            JoseSerializer.Decode(JoseSerializer.Parse(tampered), secretKey)
+        );
+
+        Assert.Equal(
+            "The JOSE token contains a segment that is not valid base64url.",
             exception.Message
         );
     }

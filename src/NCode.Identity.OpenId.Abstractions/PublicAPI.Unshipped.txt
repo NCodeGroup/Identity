@@ -979,3 +979,11 @@ NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Select(System.Collections.Generic
 NCode.Identity.OpenId.Locales.IUiLocaleCatalog.TryGet(string! languageTag, out NCode.Identity.OpenId.Locales.IUiLocale! locale) -> bool
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DefaultUiLocale = "default_ui_locale" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DefaultUiLocale.get -> NCode.Identity.Settings.SettingKey<string!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuditUserInfoAccess = "audit_userinfo_access" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsAddressLimit = "client_authentication_failed_attempts_address_limit" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit = "client_authentication_failed_attempts_limit" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsWindow = "client_authentication_failed_attempts_window" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuditUserInfoAccess.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

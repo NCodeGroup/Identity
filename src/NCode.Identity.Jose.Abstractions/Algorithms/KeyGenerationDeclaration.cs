@@ -22,14 +22,14 @@ public readonly record struct KeyGenerationDeclaration
     /// <summary>
     /// Gets the size, in bits, of the key, or <c>null</c> to take the size of its curve: the named curve or, without
     /// one, the algorithm's first curve; for a key type without curves, <c>null</c> takes the smallest size the
-    /// algorithm accepts.
+    /// algorithm accepts. With a named curve, it must be the curve's size.
     /// </summary>
     public int? KeySizeBits { get; init; }
 
     /// <summary>
     /// Gets the <c>JWK</c> <c>crv</c> name of the key's curve (for example <c>P-256</c> or <c>X25519</c>), or
-    /// <c>null</c> to take the first curve the algorithm accepts that has the key's size. It must be <c>null</c> for a
-    /// key type the algorithm names no curve for.
+    /// <c>null</c> to take the one curve the algorithm accepts that has the key's size, which is refused when several
+    /// of its curves have that size. It must be <c>null</c> for a key type the algorithm names no curve for.
     /// </summary>
     public string? Curve { get; init; }
 

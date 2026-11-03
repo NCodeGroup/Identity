@@ -332,6 +332,17 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
         Assert.Equal(expectedY, Member(exported.Jwk, "y"));
     }
 
+    // See ADR-1398: a JSON Web Key names a curve by its OID alone, so a key on a curve the catalog does not hold is
+    // not published under the name of a curve of its size.
+    [Fact]
+    public void Ecc_ExportPublicKey_WhenTheCatalogDoesNotHoldTheCurve_ReturnsNull()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
+        var secretKey = _factory.CreateEcc(Metadata, ecdsa);
+
+        Assert.Null(Ecc().ExportPublicKey(secretKey));
+    }
+
     [Fact]
     public void Ecc_ImportJwk_WithWrongKeyType_IsRejected()
     {

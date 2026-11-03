@@ -8,6 +8,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -354,7 +355,7 @@ internal class DefaultDPoPProofService(
                 && signatureAlgorithm.Verify(secretKey, signingInput, signature);
         }
         catch (Exception exception)
-            when (exception is ArgumentException or FormatException or CryptographicException)
+            when (exception is ArgumentException or JoseException or CryptographicException)
         {
             verified = false;
         }
@@ -478,7 +479,7 @@ internal class DefaultDPoPProofService(
             element = JsonElement.Parse(utf8Json);
             return element.ValueKind == JsonValueKind.Object;
         }
-        catch (Exception exception) when (exception is FormatException or JsonException)
+        catch (Exception exception) when (exception is JoseException or JsonException)
         {
             element = default;
             return false;

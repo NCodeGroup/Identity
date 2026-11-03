@@ -137,6 +137,25 @@ message, a todo list, or by closing its issue — only when no work remains **an
 Before claiming done, re-read the item's issue and reconcile every tracker first; the pull request that completes an
 item closes its issue, so it is never both done and open.
 
+## Shared machine resources
+
+A development machine or runner has a few cores, which every agent and background job on it shares. A .NET build or
+test run is CPU-bound, so two at once slow each other down. Integration tests that run beside another build time out
+and fail with errors such as a client aborting its request after 10 s, which the code under test did not cause. So:
+
+- **Run one build-heavy process at a time.** A build, a test run, `./build/dod.ps1` or a frontend gate waits for the
+  one before it. A coordinator that delegates to several subagents lets only one of them build or test at a time.
+  Reviewers that only read code run beside it, so instruct them to run no build, test or package-manager command.
+- **Keep each build narrow.** Build with `-m:2`, run only the affected test projects (filtered where it helps), and
+  leave the full Definition of Done to the push protocol's gate.
+- **Leave no idle build servers.** Set `MSBUILDDISABLENODEREUSE=1` for agent builds, and run
+  `dotnet build-server shutdown` when the work is done.
+- **Re-run a test that fails under contention alone before you treat its failure as real.** A timeout in an
+  integration test while another build ran is evidence of contention, not of a defect.
+- **Never kill or find a process by a pattern that appears in your own command line.** `pkill -f '<pattern>'` or
+  `pgrep -f '<pattern>'` inside a shell command matches that shell too. Bracket one character, as in
+  `pkill -f '[M]SBuild.dll'`, or use the process ID.
+
 ## Commit attribution
 
 **Never add agent attribution to a commit message** — a `Co-authored-by:` trailer naming an agent account (`Copilot`,

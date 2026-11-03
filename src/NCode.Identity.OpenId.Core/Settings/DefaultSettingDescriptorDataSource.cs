@@ -1623,6 +1623,22 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // audit_userinfo_access: audit each answer of the UserInfo endpoint to a request whose access token
+            // authenticated, naming the subject, the client and the claims disclosed (default false: the subject is
+            // already audited when the token is issued, and the endpoint is a hot read path). Floor (Or): once a server,
+            // tenant or client turns it on, a narrower scope cannot turn it off, so a client cannot opt out of its
+            // tenant's audit trail. Scopes: the endpoint reads the effective settings of the token's client, and the
+            // tenant's when the token names no client the tenant serves. (ADR-1401)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.AuditUserInfoAccess,
+                AppliesTo = TenantsAndClients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // send_system_metadata_in_access_token: project the account's server-controlled system metadata bag into
             // the access token as a single JSON object claim (default false). This is the authorization-appropriate
             // destination for system metadata. Override (Replace): a child fully replaces the parent value.

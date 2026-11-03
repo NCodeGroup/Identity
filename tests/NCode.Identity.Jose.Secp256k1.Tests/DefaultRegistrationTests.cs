@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Secp256k1.KeyTypes;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Registration;
 using Xunit;
@@ -84,14 +85,31 @@ public class DefaultRegistrationTests
         Assert.True(catalog.TryGetByName("secp256k1", out _));
     }
 
+    // See ADR-1398: P-256 and secp256k1 are both 256 bits, so the size selects neither.
     [Secp256k1Fact]
-    public async Task AddSecp256k1_WhenRegistered_KeepsP256TheCurveSelectedBySize()
+    public async Task AddSecp256k1_WhenRegistered_ListsSecp256k1AfterP256AtItsSize()
     {
         await using var serviceProvider = BuildServiceProvider(jose => jose.AddSecp256k1());
 
         var catalog = serviceProvider.GetRequiredService<IEccCurveCatalog>();
-        Assert.True(catalog.TryGetByCurveSizeBits(256, out var bySize));
-        Assert.Equal("P-256", bySize.CurveName);
+        Assert.Equal(
+            ["P-256", "secp256k1"],
+            catalog.GetByCurveSizeBits(256).Select(curve => curve.CurveName)
+        );
+    }
+
+    [Secp256k1Fact]
+    public async Task AddSecp256k1_WhenRegistered_RefusesA256BitEccKeyWithoutACurve()
+    {
+        await using var serviceProvider = BuildServiceProvider(jose => jose.AddSecp256k1());
+
+        var keyTypes = serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>();
+        Assert.True(keyTypes.TryGet(SecretKeyTypes.Ecc, out var descriptor));
+        Assert.Equal(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'secp256k1' have that size, so name the "
+                + "curve.",
+            descriptor.ValidateGeneration(new SecretKeyGenerationParameters { KeySizeBits = 256 })
+        );
     }
 
     #endregion

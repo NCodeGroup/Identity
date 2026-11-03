@@ -647,4 +647,27 @@ internal static partial class Log
         Message = "The audit records past their retention could not be removed; the removal is retried at the next prune."
     )]
     internal static partial void AuditRecordPruneFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationAttemptLimitReached,
+        Level = LogLevel.Information,
+        Message = "A client authentication to tenant '{TenantId}' was refused: its '{Partition}' partition reached its limit of {Limit} failed attempts per {Window}."
+    )]
+    internal static partial void ClientAuthenticationAttemptLimitReached(
+        this ILogger logger,
+        string tenantId,
+        string partition,
+        int limit,
+        TimeSpan window
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress,
+        Level = LogLevel.Warning,
+        Message = "A client authentication to tenant '{TenantId}' has no remote address, so the limit of failed client authentications does not apply to it; a host behind a reverse proxy forwards the client's address through its 'ReverseProxy' section. This is logged once per process."
+    )]
+    internal static partial void ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress(
+        this ILogger logger,
+        string tenantId
+    );
 }

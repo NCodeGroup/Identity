@@ -6,6 +6,7 @@ const NCode.Identity.Events.Audit.AuditActorTypes.EndUser = "end_user" -> string
 const NCode.Identity.Events.Audit.AuditActorTypes.System = "system" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Authentication = "authentication" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Authorization = "authorization" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.DataAccess = "data_access" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Management = "management" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Protocol = "protocol" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Session = "session" -> string!

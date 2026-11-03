@@ -47,7 +47,10 @@ back to the client. The grant type is tagged when the token endpoint selects a g
 authentication and request validation, so a request refused before then carries no grant type.
 
 A rate-limited request is therefore `http.response.status_code=429` with
-`ncode.identity.openid.error=temporarily_unavailable`.
+`ncode.identity.openid.error=temporarily_unavailable`, and so is a client authentication refused at the limit of failed
+client authentications, which `ncode.identity.rate_limiting.requests` does not count: its refusals are the
+`client.authentication` audit events with the error code `attempt_limit_reached`
+([ADR-1399](decisions/1399-failed-client-authentications-are-limited-per-remote-address-by-default.md)).
 
 ## Instruments
 
@@ -75,7 +78,7 @@ Counter, unit `{event}`, meter `NCode.Identity.Events`. Recorded once for each e
 | --------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ncode.identity.event.type`                   | Every event                                       | The event's CLR type name, such as `TokenIssuedAuditEvent`                                                                                                                                |
 | `ncode.identity.audit.event_name`             | Audit events                                      | The catalogued `event_name`, such as `token.issued`                                                                                                                                       |
-| `ncode.identity.audit.event_category`         | Audit events                                      | The audit event's category: `authentication`, `authorization`, `token`, `session`, `protocol` or `management`; see [audit records](audit-records.md)                                      |
+| `ncode.identity.audit.event_category`         | Audit events                                      | The audit event's category: `authentication`, `authorization`, `token`, `session`, `protocol`, `management` or `data_access`; see [audit records](audit-records.md)                      |
 | `ncode.identity.tenant.environment_type`      | Audit events that carry a tenant environment type | The tenant's registered environment type, such as `production` or `development` (a bounded value, never the tenant's free-form `environment_name`); see [audit records](audit-records.md) |
 | `ncode.identity.audit.outcome`                | Audit events                                      | `success`, `failure`, `denied`                                                                                                                                                            |
 | `ncode.identity.token.type`                   | `TokenIssuedAuditEvent`                           | The issued token's server-set type, such as `id_token` or `refresh_token`                                                                                                                 |

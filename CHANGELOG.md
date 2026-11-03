@@ -515,16 +515,29 @@ describes the family as it is rather than its changes
   `IAlgorithmCollection` returns a registered signature or key-management algorithm with the use it implies.
   `TryResolveKeyGeneration` resolves a `KeyGenerationDeclaration` (CLR type, optional size, optional curve, use and
   algorithm) into a `ResolvedKeyGeneration`: for a key type on curves the key is generated on the named curve, which the
-  algorithm must accept, or on the first curve it accepts that has the requested size, and its size is its curve's; a
-  curve named for a key type the algorithm binds to no curve is refused. Tenant key provisioning and management secret
-  creation share it, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for
-  `ECDH-ES`, are generated on the right curve. `ValidateKeyAlgorithm` checks a declared key itself: a
-  `KeyAlgorithmDeclaration` carries the key, whose type, size and curve the algorithm checks with `IsKeyCompatible`.
-  `ValidateKeySize` checks a held key of a type without curves, such as a stored symmetric key, by a
-  `KeySizeDeclaration` of its type and size, and refuses an algorithm that binds the type to curves
-  ([#327](https://github.com/NCodeGroup/Identity/issues/327), [#337](https://github.com/NCodeGroup/Identity/issues/337),
+  algorithm must accept, or on the one curve it accepts that has the requested size (`AlgorithmKeyType.GetCurves`), or
+  on its first curve when neither is given; a size that two of the algorithm's curves have, such as P-256 and a
+  contributed Brainpool curve for `ECDH-ES`, is refused with the curves that have it, and a curve named for a key type
+  the algorithm binds to no curve is refused. Tenant key provisioning and management secret creation share it, so
+  `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`, are generated on
+  the right curve. `ValidateKeyAlgorithm` checks a declared key itself: a `KeyAlgorithmDeclaration` carries the key,
+  whose type, size and curve the algorithm checks with `IsKeyCompatible`. `ValidateKeySize` checks a held symmetric
+  key, whose material is not at hand, by a `KeySizeDeclaration` of its type and size, and refuses an asymmetric key
+  type, which is checked by its stored public half ([#327](https://github.com/NCodeGroup/Identity/issues/327),
+  [#337](https://github.com/NCodeGroup/Identity/issues/337), [#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+
+- **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
+  and `AKP` secret key types refuse generation parameters that name a curve, or an ML-DSA parameter set, whose keys
+  are not the requested `SecretKeyGenerationParameters.KeySizeBits`, such as P-256 at 384 bits or Ed25519 at 456 bits.
+  An `ecc` key requested without a curve is generated on the one curve of the elliptic-curve catalog whose keys are
+  that size (`IEccCurveCatalog.GetByCurveSizeBits`) and refused, with the curves named, when several catalog curves
+  share it, as P-256 and secp256k1 do with `AddSecp256k1()`; an `okp` key is generated only on a named curve.
+  Management secret creation, tenant key provisioning and every other caller of the key types meet the same checks
+  ([#534](https://github.com/NCodeGroup/Identity/issues/534),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar
   and group arithmetic and the Ed25519 and Ed448 signing and verification of `NCode.Identity.Jose.EdDsa` with
@@ -728,18 +741,22 @@ describes the family as it is rather than its changes
   optional `KeySizeBits`, an optional `SecretType` that selects which of the algorithm's key types the key is generated
   as, and an optional `Curve` that selects which of the algorithm's curves it is generated on, such as a contributed
   curve that shares P-256's size for `ECDH-ES`. Unset, the type is the algorithm's first key type that has a registered
-  secret key type and can be provisioned, and the curve is the first the algorithm accepts that has the configured
-  size, or the algorithm's first curve; a secret type or curve the algorithm does not accept is reported with the ones
-  it does. Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies
-  a configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored
-  key whose public half is missing or unreadable does not suppress generation.
+  asymmetric secret key type and accepts the configured curve and size, and that key type reports a configuration it
+  refuses; the curve is the one the algorithm accepts that has the configured size, or the algorithm's first curve. A
+  size that two of the algorithm's curves have is reported until `Curve` names one, a curve configured with another
+  size is reported, a secret type the algorithm does not accept is reported with the ones it does, and a curve or size
+  none of the algorithm's key types accepts is reported with the curves and sizes each of them accepts.
+  Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies a
+  configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored key
+  whose public half is missing or unreadable does not suppress generation.
   `OpenId:Tenant:KeyProvisioning:Enabled=false` turns provisioning off for a deployment that brings its own keys. A key
   the tenant already holds — imported or generated — suppresses generation and is never overwritten, rotated, or
   removed, and a key the tenant cannot unprotect fails the tenant with a message naming the tenant and the master key or
   root key to restore, rather than being regenerated
   ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [#327](https://github.com/NCodeGroup/Identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [#327](https://github.com/NCodeGroup/Identity/issues/327), [#534](https://github.com/NCodeGroup/Identity/issues/534),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto the server's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -2594,6 +2611,17 @@ describes the family as it is rather than its changes
   ([ADR-1283](docs/decisions/1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md), [audit
   records](docs/audit-records.md)).
 
+- **UserInfo access is audited on opt-in, as a trail of the personal data each client reads.** With
+  `audit_userinfo_access` on (off by default; it applies to tenants and clients, merges with `Or` so a client cannot
+  turn off its tenant's choice, and is not discoverable), each UserInfo response is audited as a `userinfo.accessed`
+  event (`UserInfoAccessedAuditEvent`, category `data_access`) once the response is built: `success`, with the subject,
+  the client as the actor and the names of the claims disclosed in `details.claim_names`, never a claim value or the
+  access token. An access token that authenticates but names no client the tenant serves is audited, when the tenant
+  turns the setting on, as `denied` with the error code `invalid_token` and no claims.
+  `IAuditEventRecorder.RecordUserInfoAccessedAsync` and `RecordUserInfoAccessDeniedAsync` publish the two outcomes
+  ([ADR-1401](docs/decisions/1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md),
+  [#21](https://github.com/NCodeGroup/Identity/issues/21), [audit records](docs/audit-records.md)).
+
 - **Several replicas share DPoP nonces and single-use records through Valkey.**
   `NCode.Identity.SharedState.Abstractions` defines `IExpiringKeySet`, an atomic add-if-absent set of expiring keys;
   `NCode.Identity.SharedState` provides the in-process adapter `AddIdentityServer()` registers by default (correct for
@@ -3555,11 +3583,14 @@ describes the family as it is rather than its changes
   X25519 key for `EdDSA`, a P-256 key for `ES256K` or a secp256k1 key for `ES256`, the signing and agreement confusion
   RFC 8037 §3.1 and §3.2 forbid. A curve's kind keeps the `OKP` curves apart: an X25519 or X448 key is never accepted
   for `EdDSA`, `Ed25519` or `Ed448`, and an Ed25519 or Ed448 key never for `ECDH-ES`. A key to generate is resolved onto
-  one of its algorithm's curves, so no path checks a curve-bound algorithm by type and size alone. A JWE decryption key
+  one of its algorithm's curves, so no path checks a curve-bound algorithm by type and size alone, and a held
+  asymmetric key is checked by its stored public half, never by its type and size. A JWE decryption key
   on a curve the algorithm refuses is reported as the caller's configuration error rather than as a failed
   authentication tag ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [#336](https://github.com/NCodeGroup/Identity/issues/336), [#337](https://github.com/NCodeGroup/Identity/issues/337),
+  [#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
   [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 
 - **ECDH-ES publishes only the public half of its ephemeral key and refuses a degenerate agreement.** The `ECDH-ES`
@@ -3576,6 +3607,14 @@ describes the family as it is rather than its changes
   `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
   ([ADR-1296](docs/decisions/1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
   [#380](https://github.com/NCodeGroup/Identity/issues/380)).
+
+- **A JOSE token's encoded members are decoded whole or refused.** Every base64url segment of a JWS or JWE, the
+  `PBES2` salt input (`p2s`), the AES-GCM key wrap's `iv` and `tag`, and the `x5t` and `x5t#S256` certificate
+  thumbprints a JWT names are read only when they decode whole to the size they must have. A value that is not
+  base64url or has another size fails with `JoseException`, or `JwtValidationException` for a thumbprint, before any
+  key is derived from it or compared with it, and `PBES2` refuses an iteration count (`p2c`) outside its bounds and an
+  encrypted key that is not a whole AES key wrap before it derives a key encryption key
+  ([#541](https://github.com/NCodeGroup/Identity/issues/541)).
 
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed
   before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release
@@ -3648,9 +3687,33 @@ describes the family as it is rather than its changes
   (`client_secret_jwt`) keeps it reversible. `Pbkdf2SecretVerifierOptions.Iterations` sets the PBKDF2 work factor
   (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
   process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
-  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound. Limits on
-  failed client authentications are tracked in [#533](https://github.com/NCodeGroup/Identity/issues/533)
+  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound
   ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+
+- **Failed client authentications are limited per remote address by default, without a per-client lockout.** Every
+  handler of a client-authentication method that verifies a credential asks `IClientAuthenticationAttemptLimiter`
+  before it verifies one, at every endpoint that authenticates a client, and counts each credential it refuses, the
+  identifier of a client it cannot find included, before it audits the failure and with no cancellation token, so a
+  caller that disconnects after a guess is counted. A public client's `none` authentication verifies no credential, so
+  it is neither refused at the limit nor counted, and an address at its limit cannot deny the public clients behind it;
+  a Basic header that carries no credential is answered without a count. The mutual-TLS handlers ask once the resolved
+  client's registration says the request is theirs, so a refusal is audited with the method the client is registered
+  for. The default limiter counts failures in the shared `IExpiringCounterSet`, so the limits hold across replicas, in fixed
+  windows of `client_authentication_failed_attempts_window` (15 minutes by default, one minute to one day) and in two
+  partitions: one remote address with one `client_id`, limited by `client_authentication_failed_attempts_limit` (10 by
+  default, at most 100), and one remote address across every `client_id`, limited by
+  `client_authentication_failed_attempts_address_limit` (100 by default, at most 10,000). An IPv6 address is counted by
+  its `/64` and an IPv4-mapped address as the IPv4 address it maps. The failures are never counted per `client_id`
+  alone, so a caller that knows a public `client_id` cannot lock its client out from another address. The settings
+  apply to tenants and a narrower scope may only lower a limit or lengthen the window. A request refused at a limit
+  verifies nothing and is answered as a rate limit answers: `429 Too Many Requests` with `temporarily_unavailable`, a
+  `Retry-After` until the window ends and `Cache-Control: no-store`; it is audited as a `client.authentication` failure
+  with the error code `attempt_limit_reached`, logged as event 2072 without the address or the `client_id`, and not
+  recorded as usage. A request without a remote address is not limited, and the first one logs event 2073 at
+  `Warning`, so a host whose proxy does not forward the client's address learns that the limit is off. A shared state
+  that cannot be reached fails client authentication rather than admitting unlimited
+  guesses ([ADR-1399](docs/decisions/1399-failed-client-authentications-are-limited-per-remote-address-by-default.md),
+  [#533](https://github.com/NCodeGroup/Identity/issues/533)).
 
 - **The Data Protection key ring is encrypted under the server master key, and a key it cannot decrypt stops the host.**
   The host configures the key ring through the `SecretProtection` section, and the Helm chart through its
@@ -4006,8 +4069,16 @@ describes the family as it is rather than its changes
   (`ClientCertificateRevocationStatus`); `Unknown` is the zero value, so a checker that cannot tell fails closed. The
   chain validator asks it about every element of a chain except the trust anchor, and under `online` the chain passes
   only when every answer is `Good`. The default is registered with `TryAddSingleton`, so a host registers its own in its
-  place, and asks each registered `IClientCertificateRevocationSource` (named by
-  `ClientCertificateRevocationSourceNames`) in registration order until one answers `Good` or `Revoked`. The `ocsp`
+  place, and asks the `IClientCertificateRevocationSource`s that `OpenId:ClientCertificateRevocation:Sources` selects,
+  in the configured order, until one answers `Good` or `Revoked`. Each source is described by a registered
+  `ClientCertificateRevocationSourceDescriptor` of the same name (`ClientCertificateRevocationSourceNames` names the
+  built-in `ocsp` and `crl`), collected by `IClientCertificateRevocationSourceCatalog`, so a package adds a source with
+  its descriptor and the configured names are validated when the host starts without constructing a source: a name no
+  descriptor registers, or a name listed twice, stops the host, and so does a registered source that no descriptor
+  names or a descriptor without a source, which the host finds as it resolves the checker at start. With no sources
+  configured, every registered source is
+  asked in its descriptor's default order, `ocsp` then `crl`, and a deployment that cannot reach its PKI's OCSP
+  responders configures `crl` alone so it never waits for a responder's timeout. The `ocsp`
   source queries the responders that the certificate's authority information access names (RFC 6960 with the RFC 5019
   profile: a SHA-1 `CertID`, no nonce, GET up to 255 characters and POST beyond), accepts a response signed by the
   issuer or by a responder it issued with `id-kp-OCSPSigning`, checks a responder without `id-pkix-ocsp-nocheck` through
@@ -4020,8 +4091,10 @@ describes the family as it is rather than its changes
   revocation source and record the `Location`
   ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md),
   [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), issues
-  [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255)).
+  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
+  [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),
+  issues [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255),
+  [#38](https://github.com/NCodeGroup/Identity/issues/38)).
 
 - **Revocation data is fetched only by the server, through the outbound-request guard, and its retrieval is shared and
   bounded.** The platform chain engine retrieves nothing: certificate downloads are disabled and its own revocation

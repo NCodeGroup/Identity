@@ -31,7 +31,9 @@ public sealed class ResolvedKeyGeneration
     public required AlgorithmKeyType AlgorithmKeyType { get; init; }
 
     /// <summary>
-    /// Gets the size, in bits, of the key.
+    /// Gets the size, in bits, of the key: the declared size, or, when none is declared, the size of the curve or, for a
+    /// key type without curves, the smallest size the algorithm accepts. The key type's descriptor checks it against the
+    /// curve when it validates the generation parameters.
     /// </summary>
     public required int KeySizeBits { get; init; }
 

@@ -45,4 +45,10 @@ public static class AuditEventCategories
     /// The event category code for changes made through the management plane.
     /// </summary>
     public const string Management = "management";
+
+    /// <summary>
+    /// The event category code for the disclosure of an end user's personal data to a caller, such as the claims the
+    /// UserInfo endpoint returns.
+    /// </summary>
+    public const string DataAccess = "data_access";
 }

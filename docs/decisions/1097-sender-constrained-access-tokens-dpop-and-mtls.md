@@ -7,7 +7,10 @@
   [ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md): forwarded formats are registered
   decoders that read the whole presented chain, and behind a proxy the header is the only certificate source;
   certificate binding split in place: advertised support and a client's requirement are separate settings; DPoP binding
-  requirement named `require_dpop_bound_access_tokens` and registered as the RFC 9449 §5.2 client metadata)
+  requirement named `require_dpop_bound_access_tokens` and registered as the RFC 9449 §5.2 client metadata; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 

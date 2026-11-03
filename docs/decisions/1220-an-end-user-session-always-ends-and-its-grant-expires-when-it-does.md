@@ -3,7 +3,10 @@
 - **Status:** Accepted (amended by
   [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): a touch is applied to the session as stored;
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session that ends unused is
-  terminated in the background, once, and the prune keeps it until it is terminated)
+  terminated in the background, once, and the prune keeps it until it is terminated; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

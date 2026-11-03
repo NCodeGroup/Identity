@@ -283,7 +283,9 @@ describes the family as it is rather than its changes
   persists data across restarts, and `build/dev-db-reset.ps1` (detecting Docker or Podman) purges it on demand. The
   `NCode.Identity.OpenId.Host.MigrationService` worker applies the EF Core migrations and exits, and the OP instances
   wait for its completion, so a migration failure shows as a failed dashboard resource that blocks them. The migrations
-  and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share.
+  and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share,
+  where each of its two contexts has one `InitialCreate` migration that creates its whole model
+  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
   The host persists its Data Protection key ring in the same database (`PersistKeysToDbContext`), so one purge resets
   the OpenID data, the tenants' master keys and signing keys, and the ring together, with nothing on the filesystem; the
   per-machine development root key lives outside the database, so a purged database gets fresh master keys under it.

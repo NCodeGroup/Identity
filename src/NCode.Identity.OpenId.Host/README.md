@@ -158,20 +158,28 @@ registered with a `RetiredReason`, the migration copies the value and leaves the
 removes both
 ([ADR-1251](../../docs/decisions/1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)).
 
-Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
-`--project` and `--startup-project`):
+Until the first stable release ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each context has one
+migration, `InitialCreate`, which creates its whole model and changes no data
+([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+After changing the EF model, delete the context's migration, designer file and model snapshot, and scaffold
+`InitialCreate` again (the `Database` project carries the design-time factories, so it is both `--project` and
+`--startup-project`):
 
 ```pwsh
 dotnet tool restore   # first time only (provides dotnet-ef)
-dotnet ef migrations add <Name> `
+dotnet ef migrations add InitialCreate `
   --project src/NCode.Identity.OpenId.Host.Database `
   --startup-project src/NCode.Identity.OpenId.Host.Database `
   --context OpenIdDbContext `
   --output-dir Migrations/OpenId
 ```
 
+Strip the UTF-8 BOM the scaffolder writes from each generated file. Renaming, retiring or narrowing a setting edits its
+descriptor and needs no migration: a stored settings document that names an unregistered setting fails closed. A local
+database that an earlier `InitialCreate` built is reset with `build/dev-db-reset.ps1` (below).
+
 The Definition of Done fails if the model has changes no migration captures (`dotnet ef migrations
-has-pending-model-changes`, run for both contexts), so author the migration before pushing.
+has-pending-model-changes`, run for both contexts), so scaffold the migration before pushing.
 
 ## Purging / resetting the local database
 

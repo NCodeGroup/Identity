@@ -5,7 +5,10 @@
   Aspire migration worker; the policy that the host owns schema, applied deliberately outside Development, stands;
   amended by [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md): the host's
   chart applies the migrations deliberately, in a Job before each rollout, and every migration keeps the previous
-  release working)
+  release working; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)

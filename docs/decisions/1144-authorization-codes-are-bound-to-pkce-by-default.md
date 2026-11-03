@@ -4,7 +4,10 @@
   [ADR-1083](1083-secure-by-default-discovery-metadata.md), and
   [ADR-1140](1140-setting-values-are-validated-against-their-domain.md); amended by
   [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): a client authenticates only with its
-  registered method, so the type it authenticates as at the token endpoint is the type it is registered as)
+  registered method, so the type it authenticates as at the token endpoint is the type it is registered as; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

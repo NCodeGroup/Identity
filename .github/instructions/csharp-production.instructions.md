@@ -376,26 +376,14 @@ than inlining the rationale.
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
-  → `400`), and stored documents on read (fail closed) — so retiring, renaming, narrowing the scopes of a setting, or
-  narrowing its domain ships with a data migration
-  of the stored documents. That migration is an EF migration in `NCode.Identity.OpenId.Host.Database`
-  (`dotnet ef migrations add`, then hand-written SQL in `Up`) that rewrites **every** settings table (`Servers`,
-  `Tenants`, `Clients`, `ResourceServers`); it **translates** the setting's meaning into the current vocabulary rather
-  than dropping it (dropping a restriction silently loosens the document), leaves a document whose value was already
-  invalid untouched (it keeps failing closed), and gives each rewritten row a new `SettingsConcurrencyToken`. A value
-  stripped from a list because the domain narrowed never leaves the list unset: an emptied list stays `[]`, which
-  permits nothing, while an unset one is unrestricted (ADR-1010). The model
-  drift gate cannot see a data migration, so verify it by applying it to a throwaway Postgres over seeded documents
-  ([ADR-1142](../../docs/decisions/1142-listed-response-types-are-the-only-front-channel-token-control.md) and the
-  `RetireUnsafeJoseSettingValues` migration of
-  [ADR-1155](../../docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) are worked
-  examples): run the Postgres image the AppHost uses (the `Aspire.Hosting.PostgreSQL` default tag) in a container on
-  an unused port, `dotnet ef database update <previous migration> --connection "<that container>"` (the design-time
-  factory's own connection string is a placeholder), seed rows with `psql`, update to the new migration and inspect
-  them — a rewritten document and its new token, an untouched control row — then revert with
-  `database update <previous migration>` to exercise `Down`, and remove the container. A value that is metadata
-  rather than a runtime control (RFC 7591 `client_name`, `contacts`)
-  is still a registered setting. Retiring a setting, or giving its value a home outside the settings documents, keeps
+  → `400`), and stored documents on read (fail closed). Until the first stable release
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), retiring, renaming, narrowing the scopes of a setting, or
+  narrowing its domain edits its descriptor and writes no data migration: each host database context has one
+  re-scaffolded `InitialCreate` that holds no data, and a stored document that names an unregistered setting or holds a
+  value outside its domain fails closed
+  ([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`) is still a registered
+  setting. Retiring a setting, or giving its value a home outside the settings documents, keeps
   the previous release working: keep the descriptor registered with a `RetiredReason` (a stored document that carries
   it loads, an update through `ISettingSerializer.ValidateSettingsUpdate` may keep or remove it, any other write refuses
   it), copy the value in an `[ExpandMigration]` that leaves the key, and remove the key and the descriptor in a later
@@ -795,16 +783,20 @@ than inlining the rationale.
 - ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
   errors in CI** — template [Build](csharp.instructions.md#build) and
   [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
-- ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
-  model contributor that changes a host context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
-  MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
-  `NCode.Identity.OpenId.Host.Database` project). The Definition of Done runs
-  `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
-  caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so migrations
-  are authoritative — the gate is the reminder. `dotnet ef migrations add` writes its files with a UTF-8 BOM and
-  re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
-  (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
-  See [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md).
+- ✅ **An EF Core model change re-scaffolds its context's `InitialCreate`.** Until the first stable release
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each host context (`OpenIdDbContext` and
+  `DeveloperDataProtectionDbContext`) has one migration, `InitialCreate`, which creates its whole model and changes no
+  data. Any edit to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model
+  deletes that context's migration, designer file and model snapshot under
+  `NCode.Identity.OpenId.Host.Database/Migrations/<context>/` and scaffolds them again with
+  `dotnet ef migrations add InitialCreate --context <context> --output-dir Migrations/<context>`; no migration carries
+  raw SQL or seed-data changes. The Definition of Done runs `dotnet ef migrations has-pending-model-changes` for both
+  contexts and fails on un-migrated model drift, so it is caught pre-push and in CI, not at runtime. The dev database is
+  Postgres applied by the migration worker, so migrations are authoritative, and `build/dev-db-reset.ps1` resets a local
+  database that an earlier `InitialCreate` built. `dotnet ef migrations add` writes its files with a UTF-8 BOM; the
+  repository's files are BOM-less (`charset = utf-8`), so strip the BOM from every generated file. See
+  [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md) and
+  [ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md).
 - ✅ **A migration keeps the previous release working** — template
   [Entity Framework Core](csharp.instructions.md#entity-framework-core). A foreign key that restricts deleting rows of
   an existing table tightens it too. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous

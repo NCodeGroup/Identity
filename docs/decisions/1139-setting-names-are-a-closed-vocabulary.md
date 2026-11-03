@@ -8,7 +8,10 @@
   registered until a later release removes it; and by
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md):
   `DeveloperKeys` has no mode and no ephemeral fallback, only the `PruneUnreadableKeys` opt-in, and
-  `AddProductionSafety` refuses a `DeveloperKeys` or `Cors` section in Production)
+  `AddProductionSafety` refuses a `DeveloperKeys` or `Cors` section in Production; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

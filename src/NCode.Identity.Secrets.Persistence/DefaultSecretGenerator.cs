@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -69,11 +68,7 @@ internal class DefaultSecretGenerator(
         }
 
         var material = descriptor.GenerateKeyMaterial(
-            new SecretKeyGenerationParameters
-            {
-                KeySizeBits = request.KeySizeBits,
-                Curve = request.Curve,
-            },
+            request.GenerationParameters,
             bytes =>
                 protector.ProtectToString(
                     bytes,

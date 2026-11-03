@@ -74,7 +74,10 @@ const rsaSecret: SecretResource = {
 };
 
 const capabilities = {
-  secretTypes: [{ secretType: 'rsa', isAsymmetric: true, supportsPublicKeyExport: true }],
+  secretTypes: [
+    { secretType: 'symmetric', isAsymmetric: false, supportsPublicKeyExport: false },
+    { secretType: 'rsa', isAsymmetric: true, supportsPublicKeyExport: true },
+  ],
 };
 
 describe('ServerDetailPage', () => {

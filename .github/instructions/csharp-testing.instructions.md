@@ -50,9 +50,18 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Test a curve binding with a key whose size the algorithm accepts.** An algorithm checks a key's size before its
   curve, so a key on a curve of another size is refused by the size check, and the test passes with the curve rule
   removed. Use a same-size named curve where one exists (`brainpoolP256r1` for `ES256`, `brainpoolP384r1` for
-  `ES384`); otherwise use a stub key that declares the algorithm's size on another curve, because no other named
+  `ES384`, P-256 for `ES256K` and secp256k1 for `ES256`); otherwise use a stub key that declares the algorithm's size on another curve, because no other named
   curve has 521 bits and Ed25519 and Ed448 differ in size (`StubEccSecretKey` in `EccSignatureAlgorithmTests`,
-  `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`).
+  `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`). An `OKP` key's use is tested the same way: an X25519 key
+  has an Ed25519 key's size, so it proves that the curve's use, not the size check, refuses it for `EdDSA` and an
+  Ed25519 key for `ECDH-ES`
+  ([ADR-1390](../../docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+- 👁 **A test of a curve the platform may lack skips through a fact attribute, and Linux proves the gate.** .NET serves
+  secp256k1 only where the platform's cryptography does (not on macOS), so a test that needs the curve is a
+  `[Secp256k1Fact]`, which sets `Skip` from the package's own probe, rather than one that returns early and reports a
+  pass. One unconditional test asserts that the probe answers `true` on Linux, where CI runs, so a gate that wrongly
+  answers `false` cannot skip every test silently (`Secp256k1CurveTests`)
+  ([ADR-1392](../../docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - 👁 **Test a contributed key type's private members with a member no standard key type uses.** A JWK counts a
   member as private when it is a standard private name (`d`, `k`, `priv` and the RSA factors) or one of its key
   type's `JsonWebKeyTypeDescriptor.PrivateMembers`, so a contributed type that keeps its private half in `d` is

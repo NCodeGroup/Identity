@@ -1,6 +1,9 @@
 # 1117. EdDSA (Ed25519 / Ed448) is a clean-room implementation in an opt-in package
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1390](1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md):
+  `AddEdDsa()` also registers `ECDH-ES` over X25519 and X448, each internal curve records its use, and `AddEdDsa()`
+  extends `IServiceBuilder<JoseLibrary>` (`AddJoseLibrary().AddEdDsa()`))
 - **Date:** 2026-10-16
 - **Deciders:** NCode.Identity maintainers
 
@@ -54,7 +57,7 @@ The two hashes EdDSA needs — **SHA-512** (Ed25519) and **SHAKE256** (Ed448) �
    PKCS#8/SPKI — the single `ISecretKeyTypeDescriptor` seam ([ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md)).
 
 5. **The EdDSA curve set is closed, not an extensibility seam.** RFC 8032 defines exactly two curves (Ed25519, Ed448),
-   and a third is a different algorithm, so the curve catalog (`OkpCurveInfo` / `OkpCurves`) is `internal` — deliberately
+   and a third is a different algorithm, so the curve catalog (`OkpCurve` / `OkpCurves`) is `internal` — deliberately
    unlike the ECC curve catalog (`EccCurveSpecification` / `IEccCurveCatalog`), which is public because ECC's named-curve
    set is genuinely open and consumer-extensible ([ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md)). A
    consumer selects the curve by passing the raw JWK `crv` string (`Ed25519` / `Ed448`), matching how ECC consumers pass

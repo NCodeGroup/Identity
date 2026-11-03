@@ -1,145 +1,82 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
-using NCode.Identity.Jose.Algorithms;
-using Ed25519Math = NCode.Identity.Jose.EdDsa.Math.Ed25519;
-using Ed448Math = NCode.Identity.Jose.EdDsa.Math.Ed448;
 
 namespace NCode.Identity.Jose.EdDsa.KeyTypes;
 
 /// <summary>
-/// Catalog of the supported OKP signing curves (Ed25519, Ed448) and the dispatch to their clean-room
-/// implementations. Identified by the JWK <c>crv</c> name (RFC 8037) or the X.509 algorithm OID (RFC 8410).
+/// The table of the supported OKP curves — the signing curves Ed25519 and Ed448 and the key-agreement curves X25519 and
+/// X448 — indexed by the JWK <c>crv</c> name (RFC 8037) and the X.509 algorithm OID (RFC 8410). Each curve carries its
+/// own operations, so a curve is added by adding one <see cref="OkpCurve"/> to the table.
 /// </summary>
+// See ADR-1390.
 internal static class OkpCurves
 {
     public const string Ed25519Name = "Ed25519";
     public const string Ed448Name = "Ed448";
+    public const string X25519Name = "X25519";
+    public const string X448Name = "X448";
 
-    private static readonly OkpCurveInfo Ed25519Info = new(Ed25519Name, "1.3.101.112", 32, 32, 64);
-    private static readonly OkpCurveInfo Ed448Info = new(Ed448Name, "1.3.101.113", 57, 57, 114);
+    public static EdwardsOkpCurve Ed25519 { get; } = new Ed25519Curve();
+    public static EdwardsOkpCurve Ed448 { get; } = new Ed448Curve();
+    public static MontgomeryOkpCurve X25519 { get; } = new X25519Curve();
+    public static MontgomeryOkpCurve X448 { get; } = new X448Curve();
 
-    // The Ed448 ID-token hash is SHAKE256 with a 114-octet output (OIDF Connect issue #1125).
-    private const int Ed448TokenHashSizeBytes = 114;
+    private static OkpCurve[] All { get; } = [Ed25519, Ed448, X25519, X448];
 
-    public static OkpCurveInfo Ed25519 => Ed25519Info;
-    public static OkpCurveInfo Ed448 => Ed448Info;
+    private static FrozenDictionary<string, OkpCurve> ByName { get; } =
+        All.ToFrozenDictionary(curve => curve.Name, StringComparer.Ordinal);
 
-    public static int Ed25519KeySizeBits => Ed25519Info.KeySizeBits;
-    public static int Ed448KeySizeBits => Ed448Info.KeySizeBits;
+    private static FrozenDictionary<string, OkpCurve> ByOid { get; } =
+        All.ToFrozenDictionary(curve => curve.Oid, StringComparer.Ordinal);
 
-    public static int MaxPublicKeySize => Ed448Info.PublicKeySize;
-    public static int MaxSeedSize => Ed448Info.SeedSize;
-    public static int MaxSignatureSize => Ed448Info.SignatureSize;
+    /// <summary>
+    /// Gets the names of every supported curve, for messages that list them.
+    /// </summary>
+    public static string SupportedNames { get; } =
+        string.Join(", ", All.Select(curve => $"'{curve.Name}'"));
 
-    public static bool TryGetByName(string? curve, [NotNullWhen(true)] out OkpCurveInfo? info)
+    /// <summary>
+    /// Resolves a curve by its JWK <c>crv</c> name.
+    /// </summary>
+    public static bool TryGetByName(string? name, [NotNullWhen(true)] out OkpCurve? curve)
     {
-        info = curve switch
-        {
-            Ed25519Name => Ed25519Info,
-            Ed448Name => Ed448Info,
-            _ => null,
-        };
-        return info is not null;
+        curve = null;
+        return name is not null && ByName.TryGetValue(name, out curve);
     }
 
-    public static bool TryGetByKeySizeBits(
+    /// <summary>
+    /// Resolves a curve of the specified kind by its JWK <c>crv</c> name, so a key of the other use is never resolved.
+    /// </summary>
+    public static bool TryGetByName<TCurve>(string? name, [NotNullWhen(true)] out TCurve? curve)
+        where TCurve : OkpCurve
+    {
+        curve = TryGetByName(name, out var resolved) ? resolved as TCurve : null;
+        return curve is not null;
+    }
+
+    /// <summary>
+    /// Resolves a curve by its X.509 algorithm OID (RFC 8410 §3).
+    /// </summary>
+    public static bool TryGetByOid(string? oid, [NotNullWhen(true)] out OkpCurve? curve)
+    {
+        curve = null;
+        return oid is not null && ByOid.TryGetValue(oid, out curve);
+    }
+
+    /// <summary>
+    /// Resolves a signing curve by its key size; the size alone cannot tell Ed25519 from X25519, so only signing
+    /// curves are considered.
+    /// </summary>
+    public static bool TryGetSigningCurveByKeySizeBits(
         int keySizeBits,
-        [NotNullWhen(true)] out OkpCurveInfo? info
+        [NotNullWhen(true)] out EdwardsOkpCurve? curve
     )
     {
-        info =
-            keySizeBits == Ed25519Info.KeySizeBits ? Ed25519Info
-            : keySizeBits == Ed448Info.KeySizeBits ? Ed448Info
-            : null;
-        return info is not null;
-    }
-
-    public static bool TryGetByOid(string? oid, [NotNullWhen(true)] out OkpCurveInfo? info)
-    {
-        info = oid switch
-        {
-            "1.3.101.112" => Ed25519Info,
-            "1.3.101.113" => Ed448Info,
-            _ => null,
-        };
-        return info is not null;
-    }
-
-    public static void GeneratePublicKey(
-        string curve,
-        ReadOnlySpan<byte> seed,
-        Span<byte> publicKey
-    )
-    {
-        if (curve == Ed25519Name)
-        {
-            Ed25519Math.GeneratePublicKey(seed, publicKey);
-        }
-        else
-        {
-            Ed448Math.GeneratePublicKey(seed, publicKey);
-        }
-    }
-
-    public static void Sign(
-        string curve,
-        ReadOnlySpan<byte> seed,
-        ReadOnlySpan<byte> message,
-        Span<byte> signature
-    )
-    {
-        if (curve == Ed25519Name)
-        {
-            Ed25519Math.Sign(seed, message, signature);
-        }
-        else
-        {
-            Ed448Math.Sign(seed, message, signature);
-        }
-    }
-
-    public static bool Verify(
-        string curve,
-        ReadOnlySpan<byte> publicKey,
-        ReadOnlySpan<byte> message,
-        ReadOnlySpan<byte> signature
-    ) =>
-        curve == Ed25519Name
-            ? Ed25519Math.Verify(publicKey, message, signature)
-            : Ed448Math.Verify(publicKey, message, signature);
-
-    public static HashFunctionDelegate GetTokenHashFunction(
-        OkpCurveInfo curve,
-        out int hashSizeBytes
-    )
-    {
-        if (curve.Name == Ed25519Name)
-        {
-            hashSizeBytes = 64;
-            return SHA512.TryHashData;
-        }
-
-        hashSizeBytes = Ed448TokenHashSizeBytes;
-        return TryShake256TokenHash;
-    }
-
-    private static bool TryShake256TokenHash(
-        ReadOnlySpan<byte> source,
-        Span<byte> destination,
-        out int bytesWritten
-    )
-    {
-        if (destination.Length < Ed448TokenHashSizeBytes)
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        Shake256.HashData(source, destination[..Ed448TokenHashSizeBytes]);
-        bytesWritten = Ed448TokenHashSizeBytes;
-        return true;
+        curve = All.OfType<EdwardsOkpCurve>()
+            .FirstOrDefault(candidate => candidate.KeySizeBits == keySizeBits);
+        return curve is not null;
     }
 }

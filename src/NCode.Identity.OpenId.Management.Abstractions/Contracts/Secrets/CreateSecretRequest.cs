@@ -15,7 +15,8 @@ namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 public sealed class CreateSecretRequest
 {
     /// <summary>
-    /// Gets the type of secret to generate. Supported values are <c>symmetric</c>, <c>rsa</c>, and <c>ecc</c>.
+    /// Gets the type of secret to generate: one of the secret types the server registers and its capabilities list,
+    /// such as <c>symmetric</c>, <c>rsa</c>, <c>ecc</c> or <c>okp</c>.
     /// </summary>
     public required string SecretType { get; init; }
 
@@ -25,8 +26,9 @@ public sealed class CreateSecretRequest
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the requested elliptic-curve identifier (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c>), or
-    /// <c>null</c> to select a curve by <see cref="KeySizeBits"/>. Only applies to <c>ecc</c> secrets.
+    /// Gets the curve to generate the key on (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c> or
+    /// <c>Ed25519</c>) for a secret type with curves, or <c>null</c> to leave it to the type: <c>ecc</c> then selects a
+    /// curve by <see cref="KeySizeBits"/>, while <c>okp</c> requires one. A secret type without curves rejects a curve.
     /// </summary>
     public string? Curve { get; init; }
 

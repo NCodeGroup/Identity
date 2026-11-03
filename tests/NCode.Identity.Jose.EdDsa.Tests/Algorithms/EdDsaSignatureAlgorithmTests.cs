@@ -16,7 +16,7 @@ public class EdDsaSignatureAlgorithmTests
 
     private static EdDsaSignatureAlgorithm CreateFixedAlgorithm(string code, string curveName)
     {
-        Assert.True(OkpCurves.TryGetByName(curveName, out var curve));
+        Assert.True(OkpCurves.TryGetByName(curveName, out EdwardsOkpCurve? curve));
         return new(code, curve);
     }
 
@@ -33,6 +33,36 @@ public class EdDsaSignatureAlgorithmTests
 
         public override void ExportPrivateKey<TWriter>(ref TWriter destination) =>
             throw new NotSupportedException();
+    }
+
+    #endregion
+
+    #region KeyTypes Property Tests
+
+    [Theory]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519Name)]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed448, OkpCurves.Ed448Name)]
+    public void KeyTypes_WhenFullySpecified_NamesTheCurve(string code, string curveName)
+    {
+        var algorithm = CreateFixedAlgorithm(code, curveName);
+
+        Assert.Equal(curveName, Assert.Single(Assert.Single(algorithm.KeyTypes).Curves).Name);
+    }
+
+    [Fact]
+    public void KeyTypes_WhenPolymorphic_NamesBothSigningCurves()
+    {
+        var algorithm = new EdDsaSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.EdDsa,
+            curve: null
+        );
+
+        Assert.Equal(
+            [(OkpCurves.Ed25519Name, 256), (OkpCurves.Ed448Name, 456)],
+            Assert
+                .Single(algorithm.KeyTypes)
+                .Curves.Select(curve => (curve.Name, curve.KeySizeBits))
+        );
     }
 
     #endregion
@@ -80,9 +110,62 @@ public class EdDsaSignatureAlgorithmTests
         Assert.False(algorithm.IsKeyCompatible(secretKey));
     }
 
+    // A key-agreement curve never signs. X25519 shares Ed25519's size; the X448 stub declares Ed448's size, so only the
+    // curve's use refuses it.
+    [Theory]
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, null, OkpCurves.X25519Name, 256)]
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, null, OkpCurves.X448Name, 456)]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed25519,
+        OkpCurves.Ed25519Name,
+        OkpCurves.X25519Name,
+        256
+    )]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed448,
+        OkpCurves.Ed448Name,
+        OkpCurves.X448Name,
+        456
+    )]
+    public void IsKeyCompatible_WhenKeyAgreementCurve_ReturnsFalse(
+        string code,
+        string? algorithmCurveName,
+        string keyCurveName,
+        int keySizeBits
+    )
+    {
+        var algorithm = algorithmCurveName is null
+            ? new EdDsaSignatureAlgorithm(code, curve: null)
+            : CreateFixedAlgorithm(code, algorithmCurveName);
+        var secretKey = new StubOkpSecretKey(keyCurveName, keySizeBits);
+
+        Assert.True(algorithm.TryGetKeyType(secretKey.GetType(), out var keyType));
+        Assert.True(keyType.IsLegalSize(keySizeBits));
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
     #endregion
 
     #region TrySign Tests
+
+    [Fact]
+    public void TrySign_WhenKeyAgreementCurve_Throws()
+    {
+        var algorithm = new EdDsaSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.EdDsa,
+            curve: null
+        );
+        var secretKey = new StubOkpSecretKey(OkpCurves.X25519Name, 256);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            algorithm.TrySign(secretKey, "x"u8, new byte[64], out _)
+        );
+
+        Assert.Equal(
+            "The OKP curve 'X25519' is not supported by the 'EdDSA' algorithm.",
+            exception.Message
+        );
+    }
 
     [Theory]
     [InlineData(
@@ -152,6 +235,30 @@ public class EdDsaSignatureAlgorithmTests
 
         Assert.Equal(
             $"The OKP curve '{keyCurveName}' is not supported by the '{code}' algorithm.",
+            exception.Message
+        );
+    }
+
+    #endregion
+
+    #region GetTokenHashFunction Tests
+
+    // X25519 has Ed25519's size, so only the curve's use refuses it.
+    [Fact]
+    public void GetTokenHashFunction_WhenKeyIsOnAKeyAgreementCurve_Throws()
+    {
+        var algorithm = CreateFixedAlgorithm(
+            AlgorithmCodes.DigitalSignature.Ed25519,
+            OkpCurves.Ed25519Name
+        );
+        var secretKey = new StubOkpSecretKey(OkpCurves.X25519Name, 256);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            algorithm.GetTokenHashFunction(secretKey, out _)
+        );
+
+        Assert.Equal(
+            "The OKP curve 'X25519' is not supported by the 'Ed25519' algorithm.",
             exception.Message
         );
     }

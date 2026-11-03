@@ -5,7 +5,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose;
@@ -22,7 +21,7 @@ partial class JoseSerializer
     /// Unwraps the content encryption key (CEK), or substitutes random bytes for it when the encrypted key cannot be
     /// unwrapped to a key of the required length, so the decryption fails at the authentication tag like any tampered
     /// JWE and a recipient never reveals a format, padding or length error of the encrypted key (RFC 7516 §11.5). A key
-    /// of the wrong type or size for the algorithm is the caller's configuration error and is still reported.
+    /// of the wrong type, size or curve for the algorithm is the caller's configuration error and is still reported.
     /// </summary>
     private static void UnwrapContentKeyOrSubstitute(
         KeyManagementAlgorithm keyManagementAlgorithm,
@@ -64,18 +63,34 @@ partial class JoseSerializer
         SecretKey secretKey
     )
     {
-        if (!keyManagementAlgorithm.KeyType.IsInstanceOfType(secretKey))
+        // See ADR-1389: an algorithm may accept several key types, each with its own sizes.
+        if (!keyManagementAlgorithm.TryGetKeyType(secretKey.GetType(), out var algorithmKeyType))
         {
+            var expected = string.Join(
+                "', '",
+                keyManagementAlgorithm.KeyTypes.Select(keyType => keyType.KeyClrType.FullName)
+            );
             throw new ArgumentException(
-                $"The secret key was expected to be a type of '{keyManagementAlgorithm.KeyType.FullName}', but '{secretKey.GetType().FullName}' was given instead.",
+                $"The secret key was expected to be a type of '{expected}', but '{secretKey.GetType().FullName}' was given instead.",
                 nameof(secretKey)
             );
         }
 
-        if (!KeySizesUtility.IsLegalSize(keyManagementAlgorithm.KeyBitSizes, secretKey.KeySizeBits))
+        if (!algorithmKeyType.IsLegalSize(secretKey.KeySizeBits))
         {
             throw new ArgumentException(
                 "The secret key does not have a valid size for this cryptographic algorithm.",
+                nameof(secretKey)
+            );
+        }
+
+        // Two curves can share a type and a size, such as Ed25519 and X25519, so the algorithm also judges the key. The
+        // check reads only the configured key, never the token, so it reveals nothing about a ciphertext
+        // (RFC 7516 §11.5).
+        if (!keyManagementAlgorithm.IsKeyCompatible(secretKey))
+        {
+            throw new ArgumentException(
+                "The secret key's curve or parameters are not valid for this cryptographic algorithm.",
                 nameof(secretKey)
             );
         }

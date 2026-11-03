@@ -8,14 +8,15 @@ namespace NCode.Identity.Jose.EdDsa.KeyTypes;
 
 /// <summary>
 /// Encodes and decodes OKP keys in the standard <c>SubjectPublicKeyInfo</c> (SPKI) and <c>PKCS#8</c> /
-/// <c>OneAsymmetricKey</c> DER structures defined by RFC 8410 (Ed25519 OID <c>1.3.101.112</c>, Ed448
-/// <c>1.3.101.113</c>). The PKCS#8 private key wraps the raw seed in a nested <c>OCTET STRING</c>.
+/// <c>OneAsymmetricKey</c> DER structures defined by RFC 8410 (X25519 OID <c>1.3.101.110</c>, X448
+/// <c>1.3.101.111</c>, Ed25519 <c>1.3.101.112</c>, Ed448 <c>1.3.101.113</c>). The PKCS#8 private key wraps the raw
+/// private key (the seed of an Edwards curve, the scalar of a Montgomery curve) in a nested <c>OCTET STRING</c>.
 /// </summary>
 internal static class OkpKeyEncoder
 {
     /// <summary>Writes the SPKI (<c>SubjectPublicKeyInfo</c>) DER for the raw public key to the buffer writer.</summary>
     public static void WriteSubjectPublicKeyInfo<TWriter>(
-        OkpCurveInfo curve,
+        OkpCurve curve,
         ReadOnlySpan<byte> publicKey,
         ref TWriter destination
     )
@@ -39,7 +40,7 @@ internal static class OkpKeyEncoder
     }
 
     /// <summary>Builds the PKCS#8 (<c>OneAsymmetricKey</c>) DER for the raw private seed.</summary>
-    public static byte[] BuildPkcs8(OkpCurveInfo curve, ReadOnlySpan<byte> seed)
+    public static byte[] BuildPkcs8(OkpCurve curve, ReadOnlySpan<byte> seed)
     {
         // The privateKey OCTET STRING contains an inner CurvePrivateKey ::= OCTET STRING of the seed (RFC 8410 §7).
         var inner = new AsnWriter(AsnEncodingRules.DER);
@@ -71,7 +72,7 @@ internal static class OkpKeyEncoder
     /// supported OKP key or is malformed.</summary>
     public static bool TryParseSubjectPublicKeyInfo(
         ReadOnlySpan<byte> spki,
-        out OkpCurveInfo? curve,
+        out OkpCurve? curve,
         out byte[]? publicKey
     )
     {
@@ -109,7 +110,7 @@ internal static class OkpKeyEncoder
     /// unsupported.</summary>
     public static bool TryParsePkcs8(
         ReadOnlySpan<byte> pkcs8,
-        out OkpCurveInfo? curve,
+        out OkpCurve? curve,
         out byte[]? seed
     )
     {
@@ -131,7 +132,7 @@ internal static class OkpKeyEncoder
             var inner = new AsnReader(privateKeyOctets, AsnEncodingRules.DER);
             var rawSeed = inner.ReadOctetString();
             inner.ThrowIfNotEmpty();
-            if (rawSeed.Length != info.SeedSize)
+            if (rawSeed.Length != info.PrivateKeySize)
             {
                 return false;
             }

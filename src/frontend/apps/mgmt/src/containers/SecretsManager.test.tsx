@@ -60,6 +60,7 @@ const exportRsaOnly: ManagementCapabilitiesResource = {
   secretTypes: [
     { secretType: 'symmetric', isAsymmetric: false, supportsPublicKeyExport: false },
     { secretType: 'rsa', isAsymmetric: true, supportsPublicKeyExport: true },
+    { secretType: 'ecc', isAsymmetric: true, supportsPublicKeyExport: false },
   ],
 };
 
@@ -207,8 +208,13 @@ describe('SecretsManager', () => {
             {
               code: 'ES384',
               use: 'sig',
-              secretTypes: ['ecc'],
-              keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }],
+              keyTypes: [
+                {
+                  secretType: 'ecc',
+                  keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }],
+                  curves: [{ curveName: 'P-384', curveSizeBits: 384 }],
+                },
+              ],
             },
           ],
         },
@@ -244,6 +250,47 @@ describe('SecretsManager', () => {
       await screen.findByTestId('reveal-secret-material');
       expect(onCreate).toHaveBeenCalledWith(
         expect.objectContaining({ secretType: 'ecc', curve: null, use: 'sig', algorithm: 'ES256' }),
+      );
+    });
+
+    // An OKP key has a curve but no `ecc` type, so the curve is forwarded for every secret type with curves.
+    it('sends the curve of a discovered OKP secret', async () => {
+      const { onCreate } = await renderManager(
+        {},
+        {
+          secretTypes: [
+            ...exportRsaOnly.secretTypes,
+            { secretType: 'okp', isAsymmetric: true, supportsPublicKeyExport: true },
+          ],
+          algorithms: [
+            {
+              code: 'EdDSA',
+              use: 'sig',
+              keyTypes: [
+                {
+                  secretType: 'okp',
+                  keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+                  curves: [{ curveName: 'Ed25519', curveSizeBits: 256 }],
+                },
+              ],
+            },
+          ],
+        },
+      );
+
+      fireEvent.click(screen.getByTestId('create-secret'));
+      fireEvent.change(screen.getByTestId('secret-type'), { target: { value: 'okp' } });
+      fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+      await screen.findByTestId('reveal-secret-material');
+      expect(onCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          secretType: 'okp',
+          keySizeBits: 256,
+          curve: 'Ed25519',
+          use: null,
+          algorithm: null,
+        }),
       );
     });
 

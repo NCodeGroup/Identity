@@ -25,13 +25,13 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void KeyType_ReturnsSymmetricSecretKey()
     {
-        Assert.Equal(typeof(SymmetricSecretKey), Algorithm.KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(Algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]
     public void KeyBitSizes_ReturnsExpected()
     {
-        var result = Assert.Single(Algorithm.KeyBitSizes);
+        var result = Assert.Single(Assert.Single(Algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(8, result.MinSize);
         Assert.Equal(int.MaxValue, result.MaxSize);
         Assert.Equal(8, result.SkipSize);

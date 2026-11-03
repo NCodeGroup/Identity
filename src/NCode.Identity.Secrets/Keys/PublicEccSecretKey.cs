@@ -13,10 +13,11 @@ namespace NCode.Identity.Secrets.Keys;
 /// </summary>
 internal sealed class PublicEccSecretKey(
     KeyMetadata metadata,
+    string? curveName,
     int curveSizeBits,
     ReadOnlyMemory<byte> subjectPublicKeyInfo,
     ReadOnlyMemory<byte>? certificateRawData
-) : EccSecretKey(metadata, curveSizeBits, certificateRawData)
+) : EccSecretKey(metadata, curveName, curveSizeBits, certificateRawData)
 {
     private ReadOnlyMemory<byte> SubjectPublicKeyInfo { get; } = subjectPublicKeyInfo;
 

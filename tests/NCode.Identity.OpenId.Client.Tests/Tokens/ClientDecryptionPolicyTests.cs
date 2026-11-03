@@ -137,10 +137,16 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
     public void GetPermittedKeyManagementAlgorithms_WhenRsa15IsRegistered_ExcludesIt()
     {
         var mockRsa15 = CreateStrictMock<KeyManagementAlgorithm>();
-        mockRsa15.Setup(x => x.KeyType).Returns(typeof(RsaSecretKey)).Verifiable();
+        mockRsa15
+            .Setup(x => x.KeyTypes)
+            .Returns([new AlgorithmKeyType(typeof(RsaSecretKey), [])])
+            .Verifiable();
 
         var mockRsaOaep256 = CreateStrictMock<KeyManagementAlgorithm>();
-        mockRsaOaep256.Setup(x => x.KeyType).Returns(typeof(RsaSecretKey)).Verifiable();
+        mockRsaOaep256
+            .Setup(x => x.KeyTypes)
+            .Returns([new AlgorithmKeyType(typeof(RsaSecretKey), [])])
+            .Verifiable();
 
         var rsa15 = mockRsa15.Object;
         var rsaOaep256 = mockRsaOaep256.Object;

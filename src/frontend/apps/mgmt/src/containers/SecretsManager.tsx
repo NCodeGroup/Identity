@@ -118,6 +118,8 @@ export function SecretsManager({
   const exportableSecretTypes = (capabilities?.secretTypes ?? [])
     .filter((capability) => capability.supportsPublicKeyExport)
     .map((capability) => capability.secretType);
+  // The secret types, curves and algorithms the create form offers are discovered from the server too.
+  const secretTypes = (capabilities?.secretTypes ?? []).map((capability) => capability.secretType);
   const eccCurves = capabilities?.eccCurves ?? [];
   const algorithms = capabilities?.algorithms ?? [];
   // A shared secret is rotated; a key is replaced by importing a new one (ADR-1320).
@@ -164,7 +166,8 @@ export function SecretsManager({
       const created = await onCreate({
         secretType: values.secretType,
         keySizeBits: values.keySizeBits,
-        curve: values.secretType === 'ecc' && values.curve.length > 0 ? values.curve : null,
+        // The form names a curve for every secret type with curves (`ecc`, `okp`, …) and none for one without.
+        curve: values.curve.length > 0 ? values.curve : null,
         use: values.use.length > 0 ? values.use : null,
         algorithm: values.algorithm.length > 0 ? values.algorithm : null,
         expiresWhen: new Date(values.expiresWhen).toISOString(),
@@ -244,6 +247,7 @@ export function SecretsManager({
         initialValues={defaultSecretFormValues()}
         isSubmitting={isCreating}
         error={formError}
+        secretTypes={secretTypes}
         eccCurves={eccCurves}
         algorithms={algorithms}
         onSubmit={handleCreate}

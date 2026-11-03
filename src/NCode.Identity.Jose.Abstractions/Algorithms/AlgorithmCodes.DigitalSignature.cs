@@ -64,6 +64,12 @@ public partial class AlgorithmCodes
         public const string EcdsaSha512 = "ES512";
 
         /// <summary>
+        /// ECDSA using secp256k1 and SHA-256 (RFC 8812). Registered by an opt-in package where the platform supports
+        /// the secp256k1 curve.
+        /// </summary>
+        public const string EcdsaSecp256k1Sha256 = "ES256K";
+
+        /// <summary>
         /// RSASSA-PSS using SHA-256 and MGF1 with SHA-256
         /// </summary>
         public const string RsaSsaPssSha256 = "PS256";

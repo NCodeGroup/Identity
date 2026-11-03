@@ -34,7 +34,7 @@ internal static class ProviderSignaturePolicy
         {
             if (
                 algorithm is not SignatureAlgorithm signatureAlgorithm
-                || !typeof(AsymmetricSecretKey).IsAssignableFrom(signatureAlgorithm.KeyType)
+                || !signatureAlgorithm.AcceptsOnly<AsymmetricSecretKey>()
                 || string.Equals(
                     signatureAlgorithm.Code,
                     AlgorithmCodes.DigitalSignature.None,

@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -116,11 +117,22 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
     // Only a request that adds a secret validates its creation.
-    private void SetupSecretCreateValidation() =>
+    private void SetupSecretCreateValidation()
+    {
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
+    }
 
     // Only a request that changes a secret records it.
     private void SetupServerSecretChangedAudit() =>
@@ -1477,11 +1489,13 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Detail = "incoherent",
-                }
+                SecretCreateValidation.Invalid(
+                    new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Detail = "incoherent",
+                    }
+                )
             )
             .Verifiable();
 

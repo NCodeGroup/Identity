@@ -15,42 +15,49 @@ namespace NCode.Identity.Jose.EdDsa.Algorithms;
 /// <summary>
 /// The <c>EdDSA</c> (RFC 8037) <see cref="SignatureAlgorithm"/>, registered under three <c>JOSE</c> algorithm codes:
 /// the polymorphic <c>EdDSA</c>, which selects the concrete curve (Ed25519 or Ed448) from the key's
-/// <see cref="OkpSecretKey.Curve"/> at signing and verification time, and the fully-specified <c>Ed25519</c> and
-/// <c>Ed448</c>, each of which accepts only keys on its own curve.
+/// <see cref="OkpSecretKey.CurveName"/> at signing and verification time, and the fully-specified <c>Ed25519</c> and
+/// <c>Ed448</c>, each of which accepts only keys on its own curve. An <c>OKP</c> key on a key-agreement curve
+/// (X25519, X448) is never accepted, even though its key size matches an Ed25519 key's.
 /// </summary>
 /// <param name="code">The <c>JOSE</c> algorithm code.</param>
 /// <param name="curve">The curve the algorithm is fixed to, or <see langword="null"/> to accept either curve.</param>
-internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) : SignatureAlgorithm
+internal sealed class EdDsaSignatureAlgorithm(string code, EdwardsOkpCurve? curve)
+    : SignatureAlgorithm
 {
-    private OkpCurveInfo? Curve { get; } = curve;
+    private EdwardsOkpCurve? Curve { get; } = curve;
 
     /// <inheritdoc />
     public override string Code { get; } = code;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(OkpSecretKey);
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+    [
+        AlgorithmKeyType.OnCurves(
+            typeof(OkpSecretKey),
+            (
+                curve is not null
+                    ? [curve]
+                    : (EdwardsOkpCurve[])[OkpCurves.Ed25519, OkpCurves.Ed448]
+            ).Select(signingCurve => new AlgorithmCurve(
+                signingCurve.Name,
+                signingCurve.KeySizeBits
+            ))
+        ),
+    ];
 
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes { get; } =
-        curve is not null
-            ? [new KeySizes(minSize: curve.KeySizeBits, maxSize: curve.KeySizeBits, skipSize: 0)]
-            :
-            [
-                new KeySizes(
-                    minSize: OkpCurves.Ed25519KeySizeBits,
-                    maxSize: OkpCurves.Ed25519KeySizeBits,
-                    skipSize: 0
-                ),
-                new KeySizes(
-                    minSize: OkpCurves.Ed448KeySizeBits,
-                    maxSize: OkpCurves.Ed448KeySizeBits,
-                    skipSize: 0
-                ),
-            ];
+    private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 
-    private bool TryResolveCurve(OkpSecretKey key, [NotNullWhen(true)] out OkpCurveInfo? resolved)
+    // See ADR-1390: only a signing curve resolves, so an X25519 or X448 key never signs, even when it reaches the
+    // algorithm without its curve having been checked.
+    private bool TryResolveCurve(
+        OkpSecretKey key,
+        [NotNullWhen(true)] out EdwardsOkpCurve? resolved
+    )
     {
-        if (OkpCurves.TryGetByName(key.Curve, out resolved) && (Curve is null || resolved == Curve))
+        if (
+            OkpCurves.TryGetByName(key.CurveName, out resolved)
+            && (Curve is null || ReferenceEquals(resolved, Curve))
+        )
         {
             return true;
         }
@@ -58,10 +65,6 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
         resolved = null;
         return false;
     }
-
-    /// <inheritdoc />
-    public override bool IsKeyCompatible(SecretKey secretKey) =>
-        base.IsKeyCompatible(secretKey) && TryResolveCurve((OkpSecretKey)secretKey, out _);
 
     /// <inheritdoc />
     public override HashFunctionDelegate GetTokenHashFunction(
@@ -74,11 +77,11 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
         if (!TryResolveCurve(okpSecretKey, out var resolved))
         {
             throw new InvalidOperationException(
-                $"The OKP curve '{okpSecretKey.Curve}' is not supported by the '{Code}' algorithm."
+                $"The OKP curve '{okpSecretKey.CurveName}' is not supported by the '{Code}' algorithm."
             );
         }
 
-        return OkpCurves.GetTokenHashFunction(resolved, out hashSizeBytes);
+        return resolved.GetTokenHashFunction(out hashSizeBytes);
     }
 
     /// <summary>
@@ -89,7 +92,7 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) =>
-        OkpCurves.TryGetByKeySizeBits(keySizeBits, out var curve)
+        OkpCurves.TryGetSigningCurveByKeySizeBits(keySizeBits, out var curve)
             ? curve.SignatureSize
             : throw new ArgumentOutOfRangeException(
                 nameof(keySizeBits),
@@ -110,7 +113,7 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
         if (!TryResolveCurve(okpSecretKey, out var curve))
         {
             throw new InvalidOperationException(
-                $"The OKP curve '{okpSecretKey.Curve}' is not supported by the '{Code}' algorithm."
+                $"The OKP curve '{okpSecretKey.CurveName}' is not supported by the '{Code}' algorithm."
             );
         }
 
@@ -127,12 +130,12 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
             return false;
         }
 
-        Span<byte> seed = stackalloc byte[curve.SeedSize];
+        Span<byte> seed = stackalloc byte[curve.PrivateKeySize];
         try
         {
             var writer = new FixedSpanBufferWriter<byte>(seed);
             okpSecretKey.ExportPrivateKey(ref writer);
-            OkpCurves.Sign(curve.Name, seed, inputData, signature[..curve.SignatureSize]);
+            curve.Sign(seed, inputData, signature[..curve.SignatureSize]);
         }
         finally
         {
@@ -155,7 +158,7 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
         if (!TryResolveCurve(okpSecretKey, out var curve))
         {
             throw new InvalidOperationException(
-                $"The OKP curve '{okpSecretKey.Curve}' is not supported by the '{Code}' algorithm."
+                $"The OKP curve '{okpSecretKey.CurveName}' is not supported by the '{Code}' algorithm."
             );
         }
 
@@ -168,6 +171,6 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
         var writer = new FixedSpanBufferWriter<byte>(publicKey);
         okpSecretKey.ExportPublicKey(ref writer);
 
-        return OkpCurves.Verify(curve.Name, publicKey, inputData, signature);
+        return curve.Verify(publicKey, inputData, signature);
     }
 }

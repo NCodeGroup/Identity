@@ -71,7 +71,9 @@ internal sealed class ClientSecretKeyCoherenceRule(
         {
             if (
                 collection.TryGetSignatureAlgorithm(algorithm, out var signatureAlgorithm)
-                && typeof(SymmetricSecretKey).IsAssignableFrom(signatureAlgorithm.KeyType)
+                && signatureAlgorithm.KeyTypes.Any(keyType =>
+                    typeof(SymmetricSecretKey).IsAssignableFrom(keyType.KeyClrType)
+                )
             )
             {
                 violations.Add(

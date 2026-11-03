@@ -44,7 +44,7 @@ NCode.Identity.Secrets.Keys.AsymmetricSecretKey.IssuerCertificatesRawData.get ->
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.KeySizeBits.get -> int
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.EccSecretKey
-NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
+NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string? curveName, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
 override NCode.Identity.Secrets.Keys.EccSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.KeyMetadata.Algorithm.get -> string?
@@ -205,6 +205,11 @@ const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Ephemeral = "ephemeral"
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.GoogleCloudKms = "google-cloud-kms" -> string!
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Local = "local" -> string!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2Collection! certificates) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!
+static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P256.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P384.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P521.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+override NCode.Identity.Secrets.Keys.EccSecretKey.CurveName.get -> string?
+virtual NCode.Identity.Secrets.Keys.AsymmetricSecretKey.CurveName.get -> string?
 abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
 abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Scheme.get -> string!
 abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.HasWorkFactor.get -> bool

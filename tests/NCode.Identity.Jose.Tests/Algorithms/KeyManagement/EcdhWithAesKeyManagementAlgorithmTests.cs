@@ -5,9 +5,12 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Jose;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 using Base64Url = NCode.Encoders.Base64Url;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
@@ -16,15 +19,37 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
 {
     private Mock<IAesKeyWrap> MockAesKeyWrap { get; }
 
+    private ServiceProvider ServiceProvider { get; }
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; }
+
     public EcdhWithAesKeyManagementAlgorithmTests()
     {
         MockAesKeyWrap = CreateStrictMock<IAesKeyWrap>();
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+        SecretKeyTypeCatalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();
+    }
+
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        await ServiceProvider.DisposeAsync();
+        await base.DisposeAsyncCore();
     }
 
     private EcdhWithAesKeyManagementAlgorithm CreateAlgorithm(
         int? kekSizeBits = null,
         IAesKeyWrap? aesKeyWrap = null
-    ) => new(aesKeyWrap ?? MockAesKeyWrap.Object, "code", kekSizeBits ?? Random.Shared.Next());
+    ) =>
+        new(
+            SecretKeyTypeCatalog,
+            [new EccEcdhKeyAgreement()],
+            aesKeyWrap ?? MockAesKeyWrap.Object,
+            "code",
+            kekSizeBits ?? Random.Shared.Next()
+        );
 
     [Fact]
     public void GetEncryptedContentKeySizeBytes_ReturnsExpected()
@@ -42,6 +67,17 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         var result = algorithm.GetEncryptedContentKeySizeBytes(kekSizeBits, cekSizeBytes);
         Assert.Equal(encryptedCekSizeBytes, result);
     }
+
+    #region SupportsKeyWrapping Property Tests
+
+    // RFC 7518 §4.6: in key agreement with key wrapping mode the agreed key wraps the content encryption key.
+    [Fact]
+    public void SupportsKeyWrapping_WhenKeyAgreementWithKeyWrapping_ReturnsTrue()
+    {
+        Assert.True(CreateAlgorithm().SupportsKeyWrapping);
+    }
+
+    #endregion
 
     public static IEnumerable<object[]> RoundTripTestData
     {
@@ -121,6 +157,73 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Assert.True(unwrapResult);
         Assert.Equal(cekSizeBytes, unwrapBytesWritten);
         Assert.Equal(controlResult, decryptedCek.ToArray());
+    }
+
+    [Fact]
+    public void WrapNewKey_WrapsARandomContentKeyThatTheRecipientUnwraps()
+    {
+        const int kekSizeBits = 128;
+        const int cekSizeBytes = 32;
+
+        using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var secretKey = SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "recipient" }, key);
+        var algorithm = CreateAlgorithm(kekSizeBits, DefaultAesKeyWrap.Singleton);
+
+        var header = new Dictionary<string, object> { ["alg"] = "ECDH-ES+A128KW" };
+        var cek = new byte[cekSizeBytes];
+        var encryptedCekWriter = new ArrayBufferWriter<byte>();
+        algorithm.WrapNewKey(secretKey, header, cek, encryptedCekWriter);
+
+        Assert.Contains(cek, value => value != 0);
+        var controlResult = CreateControlAlgorithm(kekSizeBits)
+            .Unwrap(encryptedCekWriter.WrittenSpan.ToArray(), key, cekSizeBytes << 3, header);
+        Assert.Equal(cek, controlResult);
+
+        var decryptedCek = new byte[cekSizeBytes];
+        var result = algorithm.TryUnwrapKey(
+            secretKey,
+            JsonSerializer.SerializeToElement(header),
+            encryptedCekWriter.WrittenSpan,
+            decryptedCek,
+            out var bytesWritten
+        );
+        Assert.True(result);
+        Assert.Equal(cekSizeBytes, bytesWritten);
+        Assert.Equal(cek, decryptedCek);
+    }
+
+    [Theory]
+    [InlineData(128, 32)]
+    [InlineData(192, 48)]
+    [InlineData(256, 64)]
+    public void TryUnwrapKey_WhenAnIndependentSenderWrapsAKey_UnwrapsIt(
+        int kekSizeBits,
+        int cekSizeBytes
+    )
+    {
+        // The recipient never derives the content key in key agreement with key wrapping mode; it unwraps whatever key
+        // the sender chose under the key agreed with the header's epk (RFC 7518 §4.6). A token is therefore decrypted
+        // the same way whether its sender generated the content key at random or derived it otherwise.
+        using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+        var secretKey = SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "recipient" }, key);
+        var algorithm = CreateAlgorithm(kekSizeBits, DefaultAesKeyWrap.Singleton);
+
+        var header = new Dictionary<string, object> { ["alg"] = $"ECDH-ES+A{kekSizeBits}KW" };
+        var wrapped = CreateControlAlgorithm(kekSizeBits)
+            .WrapNewKey(cekSizeBytes << 3, key, header);
+
+        var contentKey = new byte[cekSizeBytes];
+        var result = algorithm.TryUnwrapKey(
+            secretKey,
+            JsonSerializer.SerializeToElement(header),
+            wrapped[1],
+            contentKey,
+            out var bytesWritten
+        );
+
+        Assert.True(result);
+        Assert.Equal(cekSizeBytes, bytesWritten);
+        Assert.Equal(wrapped[0], contentKey);
     }
 
     // The BCL-backed (ECDiffieHellman) control implementation; despite the name it is the cross-platform one jose-jwt

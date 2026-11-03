@@ -31,6 +31,7 @@ internal class DefaultClientKeyImporter(
     ICryptoService cryptoService,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretImporter secretImporter,
+    ISecretSerializer secretSerializer,
     IAlgorithmCollectionProvider algorithmCollectionProvider
 ) : IClientKeyImporter
 {
@@ -55,6 +56,7 @@ internal class DefaultClientKeyImporter(
     private ICryptoService CryptoService { get; } = cryptoService;
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private ISecretImporter SecretImporter { get; } = secretImporter;
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
 
@@ -514,11 +516,25 @@ internal class DefaultClientKeyImporter(
 
         if (request.Algorithm is { } algorithm)
         {
+            // See ADR-1389: the imported key itself is checked, because its type and size alone do not show its curve,
+            // and a key on a curve the algorithm does not accept, such as an Ed25519 key declared for ECDH-ES or a
+            // P-256 key declared for ES256K, must not be registered.
+            if (
+                !SecretSerializer.TryDeserializePublicSecret(
+                    imported,
+                    out var publicKey,
+                    out var readError
+                )
+            )
+            {
+                error = $"The key is invalid: {readError}";
+                return false;
+            }
+
             error = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
                 new KeyAlgorithmDeclaration
                 {
-                    KeyType = descriptor.KeyClrType,
-                    KeySizeBits = imported.KeySizeBits,
+                    Key = publicKey,
                     Use = use ?? operationsUse,
                     Algorithm = algorithm,
                 }

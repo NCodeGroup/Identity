@@ -72,7 +72,6 @@ export {
   emptySecretFormValues,
   type SecretFormDialogProps,
   type SecretFormValues,
-  type SecretType,
 } from './components/SecretFormDialog.js';
 export {
   RevealSecretDialog,

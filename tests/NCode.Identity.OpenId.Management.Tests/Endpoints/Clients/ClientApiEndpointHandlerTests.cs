@@ -1,7 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Text;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +29,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -72,7 +75,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // The real key-type catalog and algorithms are the sources of truth the key rules read.
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddPersistenceLibrary();
+        secrets.AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         MockRepository = new MockRepository(MockBehavior.Strict);
@@ -129,7 +134,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Update metadata is checked by the real validator against the real key-type catalog and algorithms.
         var secretValidator = new DefaultSecretValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<ISecretSerializer>()
         );
         MockSecretValidator
             .Setup(x =>
@@ -143,11 +149,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     // Only a request that adds a secret validates its creation.
-    private void SetupSecretCreateValidation() =>
+    private void SetupSecretCreateValidation()
+    {
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
+    }
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>
@@ -385,6 +402,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             new JsonObject { [OpenIdSettingNames.JwksUri] = "https://client.example/jwks" }
         );
 
+    // A real public key, because an update reads the stored key to check its algorithm against it.
+    private static string RsaSubjectPublicKeyInfo { get; } = CreateRsaSubjectPublicKeyInfo();
+
+    private static string CreateRsaSubjectPublicKeyInfo()
+    {
+        using var rsa = RSA.Create(2048);
+        return Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo());
+    }
+
     private static PersistedSecret CreatePublicKeySecret(string secretId, string? keyId) =>
         new()
         {
@@ -399,7 +425,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
-            EncodedValue = "encoded",
+            EncodedValue = RsaSubjectPublicKeyInfo,
         };
 
     private static PersistedSecret CreatePersistedSecret(
@@ -2040,6 +2066,71 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Null(created.Value?.SecretMaterial);
     }
 
+    // The key is generated with the parameters the validator resolves, such as the curve of an algorithm bound to one,
+    // not with the request's own.
+    [Fact]
+    public async Task CreateSecretAsync_WhenValidationResolvesTheCurve_GeneratesTheKeyOnIt()
+    {
+        SetupClientSecretChangedAudit();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns(
+                SecretCreateValidation.Valid(
+                    new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "secp256k1" }
+                )
+            )
+            .Verifiable();
+
+        var protector = SetupGenerateSecretProtector();
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateSecret(
+                    protector,
+                    It.Is<GenerateSecretRequest>(generate =>
+                        generate.GenerationParameters.KeySizeBits == 256
+                        && generate.GenerationParameters.Curve == "secp256k1"
+                    )
+                )
+            )
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            new CreateSecretRequest
+            {
+                SecretType = SecretTypes.Ecc,
+                KeySizeBits = 256,
+                Use = "sig",
+                Algorithm = "ES256K",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<CreatedSecretResource>>(result);
+    }
+
     [Fact]
     public async Task CreateSecretAsync_WhenClientNotFound_ReturnsNotFound()
     {
@@ -2075,11 +2166,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Detail = "incoherent",
-                }
+                SecretCreateValidation.Invalid(
+                    new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Detail = "incoherent",
+                    }
+                )
             )
             .Verifiable();
 
@@ -2109,7 +2202,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);

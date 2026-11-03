@@ -14,6 +14,7 @@ public class PublicEccSecretKeyTests
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
         var key = new PublicEccSecretKey(
             new KeyMetadata { KeyId = "kid" },
+            curveName: null,
             256,
             ecdsa.ExportSubjectPublicKeyInfo(),
             certificateRawData: null
@@ -42,7 +43,12 @@ public class PublicEccSecretKeyTests
     }
 
     private sealed class CountingEccSecretKey(ECDsa ecdsa)
-        : EccSecretKey(new KeyMetadata { KeyId = "kid" }, 256, certificateRawData: null)
+        : EccSecretKey(
+            new KeyMetadata { KeyId = "kid" },
+            EccCurveSpecification.P256.CurveName,
+            256,
+            certificateRawData: null
+        )
     {
         public int ExportCount { get; private set; }
 

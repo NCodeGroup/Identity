@@ -33,7 +33,8 @@ public class DefaultSecretGeneratorTests
         var factoryProtector = provider.CreateProtector("factory");
 
         var secretKeyFactory = new DefaultSecretKeyFactory(
-            new TestDataProtectorFactory<SecretKey>(factoryProtector)
+            new TestDataProtectorFactory<SecretKey>(factoryProtector),
+            new DefaultEccCurveCatalog([])
         );
 
         var catalog = new DefaultSecretKeyTypeCatalog([
@@ -71,7 +72,7 @@ public class DefaultSecretGeneratorTests
         {
             SecretId = "gen-1",
             SecretType = secretType,
-            KeySizeBits = keySizeBits,
+            GenerationParameters = new SecretKeyGenerationParameters { KeySizeBits = keySizeBits },
             Use = "sig",
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -492,8 +493,11 @@ public class DefaultSecretGeneratorTests
         {
             SecretId = "gen-ecc",
             SecretType = SecretTypes.Ecc,
-            KeySizeBits = 0,
-            Curve = "P-384",
+            GenerationParameters = new SecretKeyGenerationParameters
+            {
+                KeySizeBits = 0,
+                Curve = "P-384",
+            },
             Use = "sig",
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,

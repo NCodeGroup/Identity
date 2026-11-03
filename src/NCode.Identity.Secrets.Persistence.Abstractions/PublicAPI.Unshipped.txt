@@ -50,13 +50,11 @@ NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.get -> string
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.CreatedWhen.init -> void
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Curve.get -> string?
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Curve.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerateSecretRequest() -> void
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.KeySizeBits.get -> int
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.KeySizeBits.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerationParameters.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters!
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerationParameters.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretId.get -> string!
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretId.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretType.get -> string!
@@ -205,6 +203,9 @@ static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForServer(strin
 static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForTenant(string! tenantId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForGrantPayload(string! hashedKey) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
 static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForPersistedSecret(string! secretId) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
+NCode.Identity.Secrets.Persistence.SecretSerializerExtensions
+NCode.Identity.Secrets.Persistence.SecretSerializerExtensions.extension(NCode.Identity.Secrets.Persistence.ISecretSerializer!)
+NCode.Identity.Secrets.Persistence.SecretSerializerExtensions.extension(NCode.Identity.Secrets.Persistence.ISecretSerializer!).TryDeserializePublicSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, out NCode.Identity.Secrets.Keys.SecretKey? publicKey, out string? error) -> bool
 NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeVerifiers(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Verifiers.SecretVerifier!>!
 NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSharedSecretVerifier(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, NCode.Identity.Secrets.Persistence.SharedSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
 NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateReversibleSharedSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, NCode.Identity.Secrets.Persistence.SharedSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!

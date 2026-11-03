@@ -11,6 +11,7 @@ using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.EdDsa;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.Secrets;
@@ -24,6 +25,11 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
 {
+    // RFC 8037 Appendix A.2's Ed25519 public key and Appendix A.6's X25519 public key: both are 256-bit OKP keys, so
+    // only the curve tells them apart.
+    private const string Ed25519PublicKey = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
+    private const string X25519PublicKey = "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08";
+
     private readonly ServiceProvider _serviceProvider;
     private readonly RSA _rsa = RSA.Create(2048);
     private readonly ECDsa _ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -32,7 +38,6 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         // The real key-type catalog, secret importer, and algorithms are the policy's sources of truth.
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddIdentityLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
@@ -44,6 +49,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
             _serviceProvider.GetRequiredService<ICryptoService>(),
             _serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             _serviceProvider.GetRequiredService<ISecretImporter>(),
+            _serviceProvider.GetRequiredService<ISecretSerializer>(),
             _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
         );
     }
@@ -378,6 +384,58 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         Assert.Contains("The key is invalid", error, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Ed25519", Ed25519PublicKey, "EdDSA", true)]
+    [InlineData("X25519", X25519PublicKey, "ECDH-ES", true)]
+    [InlineData("Ed25519", Ed25519PublicKey, "ECDH-ES", false)]
+    [InlineData("X25519", X25519PublicKey, "EdDSA", false)]
+    [InlineData("X25519", X25519PublicKey, "Ed25519", false)]
+    public async Task TryImportRegisteredKeySet_WhenOkpKeyDeclaresAnAlgorithm_AcceptsOnlyAnAlgorithmOfItsCurve(
+        string curve,
+        string x,
+        string algorithm,
+        bool expected
+    )
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddIdentityLibrary();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddPersistenceLibrary();
+        secrets.AddJoseLibrary().AddEdDsa();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+        var importer = new DefaultClientKeyImporter(
+            serviceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),
+            serviceProvider.GetRequiredService<ICryptoService>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            serviceProvider.GetRequiredService<ISecretImporter>(),
+            serviceProvider.GetRequiredService<ISecretSerializer>(),
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
+        );
+        var keySet = KeySet(
+            new JsonObject
+            {
+                ["kty"] = "OKP",
+                ["kid"] = "okp-1",
+                ["crv"] = curve,
+                ["x"] = x,
+                ["alg"] = algorithm,
+            }
+        );
+
+        var imported = importer.TryImportRegisteredKeySet(
+            keySet,
+            DateTimeOffset.UnixEpoch,
+            out _,
+            out var error
+        );
+
+        Assert.Equal(expected, imported);
+        if (!expected)
+        {
+            Assert.Contains($"The curve '{curve}'", error, StringComparison.Ordinal);
+        }
+    }
+
     #endregion
 
     #region TryImportPublishedKeySet Tests
@@ -428,6 +486,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
             _serviceProvider.GetRequiredService<ICryptoService>(),
             catalog.Object,
             _serviceProvider.GetRequiredService<ISecretImporter>(),
+            _serviceProvider.GetRequiredService<ISecretSerializer>(),
             _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
         );
         var keySet = KeySet(

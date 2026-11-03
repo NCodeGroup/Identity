@@ -9,13 +9,10 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Provides methods for all cryptographic authenticated encryption (AEAD) algorithms.
 /// </summary>
 [PublicAPI]
-public abstract class AuthenticatedEncryptionAlgorithm : KeyedAlgorithm
+public abstract class AuthenticatedEncryptionAlgorithm : Algorithm
 {
     /// <inheritdoc />
     public override AlgorithmType Type => AlgorithmType.AuthenticatedEncryption;
-
-    /// <inheritdoc />
-    public override Type KeyType => typeof(ReadOnlySpan<byte>);
 
     /// <summary>
     /// Gets the size, in bytes, of the content encryption key (CEK) that is supported by this authenticated encryption (AEAD) algorithm.

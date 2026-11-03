@@ -82,7 +82,10 @@ public class ClientSecretKeyCoherenceRuleTests : BaseTests
     private void SetupAlgorithm(string code, Type keyType)
     {
         var mockAlgorithm = CreateStrictMock<SignatureAlgorithm>();
-        mockAlgorithm.SetupGet(x => x.KeyType).Returns(keyType).Verifiable();
+        mockAlgorithm
+            .SetupGet(x => x.KeyTypes)
+            .Returns([new AlgorithmKeyType(keyType, [])])
+            .Verifiable();
         var algorithm = mockAlgorithm.Object;
         MockAlgorithms
             .Setup(x => x.TryGetSignatureAlgorithm(code, out algorithm))

@@ -75,6 +75,13 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+/** The shared-secret type the server advertises, so the create form offers it. */
+const symmetricType = {
+  secretType: 'symmetric',
+  isAsymmetric: false,
+  supportsPublicKeyExport: false,
+};
+
 // A client registered for a method that compares its secret, such as client_secret_basic, holds a one-way verifier
 // (ADR-1391).
 const createdSecret: CreatedSecretResource = {
@@ -226,7 +233,7 @@ describe('ClientDetailPage', () => {
   it('creates a secret and reveals its one-time material', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/capabilities')) {
-        return jsonResponse({ secretTypes: [] });
+        return jsonResponse({ secretTypes: [symmetricType] });
       }
       if (url.endsWith('/clients/web/secrets') && method === 'POST') {
         return jsonResponse(createdSecret, 201);
@@ -239,6 +246,8 @@ describe('ClientDetailPage', () => {
 
     renderPage();
     fireEvent.click(await screen.findByTestId('create-secret'));
+    // The form offers the secret types once the capabilities are discovered.
+    await waitFor(() => expect(screen.getByTestId('secret-type')).toHaveValue('symmetric'));
     fireEvent.click(screen.getByTestId('secret-form-submit'));
 
     expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(

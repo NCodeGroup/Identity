@@ -57,14 +57,14 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = Create();
-        Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]
     public void KekBitSizes_ReturnsExpected()
     {
         var algorithm = Create();
-        var kekBitSizes = Assert.Single(algorithm.KeyBitSizes);
+        var kekBitSizes = Assert.Single(Assert.Single(algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(8, kekBitSizes.MinSize);
         Assert.Equal(int.MaxValue, kekBitSizes.MaxSize);
         Assert.Equal(8, kekBitSizes.SkipSize);

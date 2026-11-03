@@ -6,8 +6,9 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId;
 
 /// <summary>
-/// Contains the options for one key every tenant is provisioned with. The key's type and intended use follow from its
-/// algorithm: a signature algorithm yields a signing key, a key-management algorithm an encryption key.
+/// Contains the options for one key every tenant is provisioned with. The key's intended use follows from its
+/// algorithm: a signature algorithm yields a signing key, a key-management algorithm an encryption key. Its type is the
+/// algorithm's first key type unless <see cref="SecretType"/> selects another the algorithm accepts.
 /// </summary>
 [PublicAPI]
 public sealed class OpenIdTenantKeyOptions
@@ -19,8 +20,32 @@ public sealed class OpenIdTenantKeyOptions
     public string Algorithm { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the size, in bits, of the key to generate, or <c>null</c> to generate the smallest size the
-    /// algorithm accepts. The size must be one the algorithm accepts.
+    /// Gets or sets the size, in bits, of the key to generate, or <c>null</c> to take the size of the key's curve,
+    /// <see cref="Curve"/> or, without one, the algorithm's first curve, or, for a key type without curves, the
+    /// smallest size the algorithm accepts. The size must be one the algorithm accepts. For a key type with curves and
+    /// no <see cref="Curve"/>, the key is generated on the first curve the algorithm accepts that has this size, such
+    /// as X448 for a 448-bit <c>OKP</c> key for <c>ECDH-ES</c>.
     /// </summary>
     public int? KeySizeBits { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>JWK</c> <c>crv</c> name of the curve to generate the key on (for example <c>P-384</c> or
+    /// <c>X25519</c>), or <c>null</c> to generate it on the first curve the algorithm accepts that has
+    /// <see cref="KeySizeBits"/>, or on the algorithm's first curve when no size is set either. The curve must be one
+    /// the algorithm accepts for the key type, and <see cref="KeySizeBits"/>, when set, must be its size. It selects
+    /// among curves that share a size, such as a contributed curve beside <c>P-256</c> for <c>ECDH-ES</c>. A stored key
+    /// satisfies this key only when it is on the curve this key is generated on.
+    /// </summary>
+    // See ADR-1389.
+    public string? Curve { get; set; }
+
+    /// <summary>
+    /// Gets or sets the secret key type to generate the key as (for example <c>ecc</c>), or <c>null</c> to generate
+    /// the first key type the algorithm accepts that has a registered secret key type and that a key can be generated
+    /// as. It selects among the key types of an algorithm that accepts several, such as <c>ECDH-ES</c>, which accepts
+    /// <c>EC</c> keys and, with a package that contributes them, <c>OKP</c> keys (RFC 8037 §3.2). The type must be one
+    /// the algorithm accepts.
+    /// </summary>
+    // See ADR-1389.
+    public string? SecretType { get; set; }
 }

@@ -1150,10 +1150,10 @@ internal class ResourceServerApiEndpointHandler(
             return SystemResourceServerHoldsNoKeys();
         }
 
-        var validationError = SecretValidator.ValidateCreate(request);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateCreate(request);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
 
         var secretId = CryptoService.GenerateResourceId();
@@ -1173,8 +1173,7 @@ internal class ResourceServerApiEndpointHandler(
                 {
                     SecretId = secretId,
                     SecretType = request.SecretType,
-                    KeySizeBits = request.KeySizeBits,
-                    Curve = request.Curve,
+                    GenerationParameters = validation.GenerationParameters,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

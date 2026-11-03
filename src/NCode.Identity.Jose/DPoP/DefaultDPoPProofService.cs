@@ -172,7 +172,7 @@ internal class DefaultDPoPProofService(
                 alg,
                 out var signatureAlgorithm
             )
-            || !typeof(AsymmetricSecretKey).IsAssignableFrom(signatureAlgorithm.KeyType)
+            || !signatureAlgorithm.AcceptsOnly<AsymmetricSecretKey>()
         )
         {
             error = $"The DPoP proof 'alg' header '{alg}' is not supported.";
@@ -182,7 +182,7 @@ internal class DefaultDPoPProofService(
         if (!TryImportPublicKey(header, out var jwk, out var secretKey, out error))
             return false;
 
-        if (!signatureAlgorithm.KeyType.IsInstanceOfType(secretKey))
+        if (!signatureAlgorithm.TryGetKeyType(secretKey.GetType(), out _))
         {
             error = $"The DPoP proof 'alg' header '{alg}' does not match the 'jwk' key type.";
             return false;

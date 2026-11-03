@@ -27,14 +27,14 @@ internal class RsaSignatureAlgorithm(
     private static IEnumerable<KeySizes> StaticKeyBitSizes { get; } =
     [new(minSize: 2048, maxSize: 16384, skipSize: 64)];
 
+    private static IReadOnlyList<AlgorithmKeyType> StaticKeyTypes { get; } =
+    [new(typeof(RsaSecretKey), StaticKeyBitSizes)];
+
     /// <inheritdoc />
     public override string Code { get; } = code;
 
     /// <inheritdoc />
-    public override Type KeyType => typeof(RsaSecretKey);
-
-    /// <inheritdoc />
-    public override IEnumerable<KeySizes> KeyBitSizes => StaticKeyBitSizes;
+    public override IReadOnlyList<AlgorithmKeyType> KeyTypes => StaticKeyTypes;
 
     /// <inheritdoc />
     public override HashAlgorithmName HashAlgorithmName { get; } = hashAlgorithmName;
@@ -52,7 +52,7 @@ internal class RsaSignatureAlgorithm(
         out int bytesWritten
     )
     {
-        var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
+        var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(StaticKeyBitSizes);
 
         using var key = validatedSecurityKey.ExportRSA();
 
@@ -66,7 +66,7 @@ internal class RsaSignatureAlgorithm(
         ReadOnlySpan<byte> signature
     )
     {
-        var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(KeyBitSizes);
+        var validatedSecurityKey = secretKey.Validate<RsaSecretKey>(StaticKeyBitSizes);
 
         using var key = validatedSecurityKey.ExportRSA();
 

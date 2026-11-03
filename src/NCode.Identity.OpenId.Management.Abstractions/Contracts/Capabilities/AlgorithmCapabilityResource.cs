@@ -28,13 +28,10 @@ public sealed class AlgorithmCapabilityResource
     public required string Use { get; init; }
 
     /// <summary>
-    /// Gets the secret-type discriminators (for example <c>rsa</c> or <c>ecc</c>) whose key material is compatible
-    /// with this algorithm, so clients can pair the algorithm picker with the secret-type picker.
+    /// Gets the secret types whose key material is compatible with this algorithm, each with the key sizes the
+    /// algorithm accepts keys of that type in, in the algorithm's order of preference, so clients can pair the
+    /// algorithm picker with the secret-type picker and bound the key size by the chosen type.
     /// </summary>
-    public required IReadOnlyList<string> SecretTypes { get; init; }
-
-    /// <summary>
-    /// Gets the legal key sizes, in bits, for this algorithm as one or more inclusive ranges.
-    /// </summary>
-    public required IReadOnlyList<KeyBitSizesResource> KeyBitSizes { get; init; }
+    // See ADR-1389.
+    public required IReadOnlyList<AlgorithmKeyTypeCapabilityResource> KeyTypes { get; init; }
 }

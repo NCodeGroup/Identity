@@ -17,11 +17,12 @@ namespace NCode.Identity.Secrets.Keys;
 internal class DefaultEccSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
+    string? curveName,
     int curveSizeBits,
     ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
     ReadOnlyMemory<byte>? certificateRawData,
     IReadOnlyList<ReadOnlyMemory<byte>>? issuerCertificatesRawData = null
-) : EccSecretKey(metadata, curveSizeBits, certificateRawData, issuerCertificatesRawData)
+) : EccSecretKey(metadata, curveName, curveSizeBits, certificateRawData, issuerCertificatesRawData)
 {
     private IDataProtector DataProtector { get; } = dataProtector;
     private ReadOnlyMemory<byte> ProtectedPkcs8PrivateKey { get; } = protectedPkcs8PrivateKey;

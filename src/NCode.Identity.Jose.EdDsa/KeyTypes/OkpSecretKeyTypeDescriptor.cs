@@ -21,12 +21,13 @@ using NCode.Json;
 namespace NCode.Identity.Jose.EdDsa.KeyTypes;
 
 /// <summary>
-/// The <see cref="ISecretKeyTypeDescriptor"/> for <c>OKP</c> (Octet Key Pair) Edwards-curve keys (Ed25519 / Ed448).
-/// Generates seeds, imports public <c>JWK</c>/<c>PEM</c> material, and deserializes stored <c>PKCS#8</c>/<c>SPKI</c>
-/// DER into <see cref="OkpSecretKey"/> instances, data-protecting the private seed in memory.
+/// The <see cref="ISecretKeyTypeDescriptor"/> for <c>OKP</c> (Octet Key Pair) keys (RFC 8037): the <c>EdDSA</c> signing
+/// curves Ed25519 and Ed448 and the <c>ECDH-ES</c> key-agreement curves X25519 and X448. Generates private keys, imports
+/// public <c>JWK</c>/<c>PEM</c> material, and deserializes stored <c>PKCS#8</c>/<c>SPKI</c> DER into
+/// <see cref="OkpSecretKey"/> instances, data-protecting the private key in memory.
 /// </summary>
 /// <param name="dataProtectorFactory">
-/// The <see cref="IDataProtectorFactory{T}"/> used to protect and unprotect private seeds at rest in memory.
+/// The <see cref="IDataProtectorFactory{T}"/> used to protect and unprotect private keys at rest in memory.
 /// </param>
 [PublicAPI]
 public sealed class OkpSecretKeyTypeDescriptor(
@@ -58,7 +59,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
     public string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
         OkpCurves.TryGetByName(parameters.Curve, out _)
             ? null
-            : $"The OKP curve '{parameters.Curve}' is not supported; expected '{OkpCurves.Ed25519Name}' or '{OkpCurves.Ed448Name}'.";
+            : $"The OKP curve '{parameters.Curve}' is not supported; expected {OkpCurves.SupportedNames}.";
 
     /// <inheritdoc />
     public GeneratedSecretKeyMaterial GenerateKeyMaterial(
@@ -74,13 +75,13 @@ public sealed class OkpSecretKeyTypeDescriptor(
             );
         }
 
-        Span<byte> seed = stackalloc byte[curve.SeedSize];
+        Span<byte> seed = stackalloc byte[curve.PrivateKeySize];
         RandomNumberGenerator.Fill(seed);
         var pkcs8 = OkpKeyEncoder.BuildPkcs8(curve, seed);
         try
         {
             Span<byte> publicKey = stackalloc byte[curve.PublicKeySize];
-            OkpCurves.GeneratePublicKey(curve.Name, seed, publicKey);
+            curve.GeneratePublicKey(seed, publicKey);
 
             using var subjectPublicKeyInfoBuffer = BufferFactory.CreatePooledBufferWriter(
                 isSensitive: false
@@ -162,7 +163,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
                 try
                 {
                     var publicKey = new byte[curve.PublicKeySize];
-                    OkpCurves.GeneratePublicKey(curve.Name, seed, publicKey);
+                    curve.GeneratePublicKey(seed, publicKey);
                     return new DefaultOkpSecretKey(
                         DataProtector,
                         metadata,
@@ -207,7 +208,10 @@ public sealed class OkpSecretKeyTypeDescriptor(
     /// <inheritdoc />
     public ExportedPublicKey? ExportPublicKey(SecretKey secretKey)
     {
-        if (secretKey is not OkpSecretKey okp || !OkpCurves.TryGetByName(okp.Curve, out var curve))
+        if (
+            secretKey is not OkpSecretKey okp
+            || !OkpCurves.TryGetByName(okp.CurveName, out var curve)
+        )
         {
             return null;
         }
@@ -219,7 +223,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         var jwk = new JsonObject
         {
             [JsonWebKeyParameterNames.KeyType] = JsonWebKeyTypeDescriptors.Okp.Name,
-            [JsonWebKeyParameterNames.Curve] = okp.Curve,
+            [JsonWebKeyParameterNames.Curve] = okp.CurveName,
             [JsonWebKeyParameterNames.X] = Base64Url.EncodeToString(publicKey),
         };
         AddIfPresent(jwk, JsonWebKeyParameterNames.KeyId, okp.Metadata.KeyId);
@@ -240,7 +244,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         return buffer.WrittenMemory;
     }
 
-    private static (OkpCurveInfo Curve, byte[] PublicKey) ParseJwkPublicKey(string keyMaterial)
+    private static (OkpCurve Curve, byte[] PublicKey) ParseJwkPublicKey(string keyMaterial)
     {
         JsonElement root;
         try
@@ -311,7 +315,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         return (curve, publicKey);
     }
 
-    private static (OkpCurveInfo Curve, byte[] PublicKey) ParsePemPublicKey(string keyMaterial)
+    private static (OkpCurve Curve, byte[] PublicKey) ParsePemPublicKey(string keyMaterial)
     {
         if (!PemEncoding.TryFind(keyMaterial, out var fields))
         {

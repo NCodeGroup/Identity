@@ -8,16 +8,34 @@ using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Secrets.KeyMaterial;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="ISecretKeyFactory"/> abstraction. An elliptic-curve key is named
+/// by the <see cref="IEccCurveCatalog"/>, so its <see cref="AsymmetricSecretKey.CurveName"/> is the <c>crv</c> the
+/// catalog registers for its curve.
 /// </summary>
-internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProtectorFactory)
-    : ISecretKeyFactory
+/// <param name="dataProtectorFactory">Creates the data protector that protects the private key material.</param>
+/// <param name="eccCurveCatalog">The registered elliptic curves, which name each elliptic-curve key's curve.</param>
+internal class DefaultSecretKeyFactory(
+    IDataProtectorFactory<SecretKey> dataProtectorFactory,
+    IEccCurveCatalog eccCurveCatalog
+) : ISecretKeyFactory
 {
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
+
+    private IEccCurveCatalog EccCurveCatalog { get; } = eccCurveCatalog;
+
+    // The curve is matched by its OID, so two curves of the same size are named apart.
+    private string? GetCurveName(ECAlgorithm key) =>
+        EccCurveCatalog.TryGetByCurve(
+            key.ExportParameters(includePrivateParameters: false).Curve,
+            out var specification
+        )
+            ? specification.CurveName
+            : null;
 
     /// <inheritdoc />
     public SecretKey Empty => EmptySecretKey.Singleton;
@@ -185,6 +203,7 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         var certificateRawData = certificate?.Export(X509ContentType.Cert);
         return new PublicEccSecretKey(
             metadata,
+            GetCurveName(publicKey),
             publicKey.KeySize,
             subjectPublicKeyInfo,
             certificateRawData is null ? null : (ReadOnlyMemory<byte>?)certificateRawData
@@ -327,6 +346,7 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
 
     private DefaultEccSecretKey CreateEcc(
         KeyMetadata metadata,
+        string? curveName,
         int curveSizeBits,
         ReadOnlyMemory<byte> protectedPkcs8PrivateKey,
         ReadOnlyMemory<byte>? certificateRawData,
@@ -335,6 +355,7 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
         new(
             DataProtector,
             metadata,
+            curveName,
             curveSizeBits,
             protectedPkcs8PrivateKey,
             certificateRawData,
@@ -360,6 +381,7 @@ internal class DefaultSecretKeyFactory(IDataProtectorFactory<SecretKey> dataProt
             (keyBytes, certificateBytes) =>
                 CreateEcc(
                     metadata,
+                    GetCurveName(key),
                     key.KeySize,
                     keyBytes,
                     certificateBytes,

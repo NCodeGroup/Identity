@@ -49,5 +49,5 @@ internal sealed class ClientSecretJwtClientAuthenticationHandler(
 
     /// <inheritdoc />
     protected override bool OwnsAlgorithm(SignatureAlgorithm algorithm) =>
-        algorithm.KeyType == typeof(SymmetricSecretKey);
+        algorithm.AcceptsOnly<SymmetricSecretKey>();
 }

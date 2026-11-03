@@ -37,7 +37,7 @@ public class OkpIntegrationTests
 
     private static EdDsaSignatureAlgorithm CreateFixedAlgorithm(string code, string curveName)
     {
-        Assert.True(OkpCurves.TryGetByName(curveName, out var curve));
+        Assert.True(OkpCurves.TryGetByName(curveName, out EdwardsOkpCurve? curve));
         return new(code, curve);
     }
 
@@ -309,6 +309,8 @@ public class OkpIntegrationTests
     [Theory]
     [InlineData(OkpCurves.Ed25519Name, 256)]
     [InlineData(OkpCurves.Ed448Name, 456)]
+    [InlineData(OkpCurves.X25519Name, 256)]
+    [InlineData(OkpCurves.X448Name, 448)]
     public void GenerateKeyMaterial_StoresThePrivateKeysSubjectPublicKeyInfo(
         string curve,
         int keySizeBits

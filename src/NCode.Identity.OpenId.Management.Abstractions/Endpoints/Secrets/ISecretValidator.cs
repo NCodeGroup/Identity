@@ -21,11 +21,16 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 public interface ISecretValidator
 {
     /// <summary>
-    /// Validates that the specified <see cref="CreateSecretRequest"/> describes a coherent secret.
+    /// Validates that the specified <see cref="CreateSecretRequest"/> describes a coherent secret, and resolves the
+    /// parameters the key is generated with. A request that names an algorithm bound to curves, such as <c>ES256K</c>,
+    /// and no curve resolves to the first curve the algorithm accepts that has the requested size, so the key is never
+    /// generated on the curve the key type picks for the size; the caller generates the key with
+    /// <see cref="SecretCreateValidation.GenerationParameters"/>.
     /// </summary>
     /// <param name="request">The <see cref="CreateSecretRequest"/> to validate.</param>
-    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
-    ManagementError? ValidateCreate(CreateSecretRequest request);
+    /// <returns>The <see cref="SecretCreateValidation"/>: the generation parameters, or the first failed
+    /// check.</returns>
+    SecretCreateValidation ValidateCreate(CreateSecretRequest request);
 
     /// <summary>
     /// Validates that the specified <see cref="ImportSecretRequest"/> describes a coherent public-key import. The
@@ -38,7 +43,9 @@ public interface ISecretValidator
 
     /// <summary>
     /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is
-    /// supported, and the <c>algorithm</c>, when set, agrees with the <c>use</c> and accepts the key's type and size.
+    /// supported, and the <c>algorithm</c>, when set, agrees with the <c>use</c> and accepts the key. An asymmetric key
+    /// is checked by its stored public half, which shows its type, size and curve, and fails the check when that half
+    /// cannot be read; a symmetric key is checked by its type and size.
     /// </summary>
     /// <param name="secret">The <see cref="PersistedSecret"/> the update applies to.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> to validate.</param>

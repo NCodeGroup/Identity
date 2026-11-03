@@ -1266,10 +1266,10 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validationError = SecretValidator.ValidateCreate(request);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateCreate(request);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
 
         if (
@@ -1327,7 +1327,7 @@ internal class ClientApiEndpointHandler(
                         Algorithm = request.Algorithm,
                         CreatedWhen = createdWhen,
                         ExpiresWhen = request.ExpiresWhen,
-                        EntropyBits = request.KeySizeBits,
+                        EntropyBits = validation.GenerationParameters.KeySizeBits,
                     }
                 )
                 : SecretGenerator.GenerateSecret(
@@ -1336,8 +1336,7 @@ internal class ClientApiEndpointHandler(
                     {
                         SecretId = secretId,
                         SecretType = request.SecretType,
-                        KeySizeBits = request.KeySizeBits,
-                        Curve = request.Curve,
+                        GenerationParameters = validation.GenerationParameters,
                         Use = request.Use,
                         Algorithm = request.Algorithm,
                         CreatedWhen = createdWhen,
@@ -1813,10 +1812,10 @@ internal class ClientApiEndpointHandler(
             Algorithm = secret.Algorithm,
             ExpiresWhen = request.ExpiresWhen,
         };
-        var validationError = SecretValidator.ValidateCreate(createRequest);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateCreate(createRequest);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
 
         // The replacement's form follows the method the client is registered for, whatever the rotated secret's form.
@@ -1851,7 +1850,7 @@ internal class ClientApiEndpointHandler(
                     Algorithm = createRequest.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),
                     ExpiresWhen = createRequest.ExpiresWhen,
-                    EntropyBits = createRequest.KeySizeBits,
+                    EntropyBits = validation.GenerationParameters.KeySizeBits,
                 }
             );
         }

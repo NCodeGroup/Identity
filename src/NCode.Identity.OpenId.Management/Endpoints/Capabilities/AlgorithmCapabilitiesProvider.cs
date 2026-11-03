@@ -12,8 +12,9 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 /// <summary>
 /// Contributes the <c>algorithms</c> section to the management capabilities document, projecting each supported
 /// signature and key-management <see cref="KeyedAlgorithm"/> (from the live <see cref="IAlgorithmCollectionProvider"/>)
-/// with its implied use, compatible secret types, and legal key sizes, so the console create-secret form can drive
-/// its algorithm, use, and key-size inputs from discovery instead of hard-coded defaults.
+/// with its implied use and each compatible secret type with the key sizes and curves legal for it, so the console
+/// create-secret form can drive its algorithm, use, key-size and curve inputs from discovery instead of hard-coded
+/// defaults.
 /// </summary>
 // See ADR-1067.
 internal sealed class AlgorithmCapabilitiesProvider(
@@ -51,18 +52,7 @@ internal sealed class AlgorithmCapabilitiesProvider(
                     algorithm.Type == AlgorithmType.DigitalSignature
                         ? SecretKeyUses.Signature
                         : SecretKeyUses.Encryption,
-                SecretTypes = descriptors
-                    .Where(descriptor => algorithm.KeyType.IsAssignableFrom(descriptor.KeyClrType))
-                    .Select(descriptor => descriptor.KeyType)
-                    .ToList(),
-                KeyBitSizes = algorithm
-                    .KeyBitSizes.Select(keySizes => new KeyBitSizesResource
-                    {
-                        MinBits = keySizes.MinSize,
-                        MaxBits = keySizes.MaxSize,
-                        SkipBits = keySizes.SkipSize,
-                    })
-                    .ToList(),
+                KeyTypes = GetKeyTypes(algorithm, descriptors),
             })
             .ToList();
 
@@ -71,4 +61,43 @@ internal sealed class AlgorithmCapabilitiesProvider(
 
         return ValueTask.CompletedTask;
     }
+
+    // See ADR-1389: an algorithm may accept several key types, each with its own sizes, so each compatible secret type
+    // is listed once, with the sizes and curves of the algorithm's first key type it is of, in the order the algorithm
+    // prefers them.
+    private static List<AlgorithmKeyTypeCapabilityResource> GetKeyTypes(
+        KeyedAlgorithm algorithm,
+        List<ISecretKeyTypeDescriptor> descriptors
+    ) =>
+        [
+            .. algorithm.KeyTypes.SelectMany(algorithmKeyType =>
+                descriptors
+                    .Where(descriptor =>
+                        algorithm.TryGetKeyType(descriptor.KeyClrType, out var first)
+                        && ReferenceEquals(first, algorithmKeyType)
+                    )
+                    .Select(descriptor => new AlgorithmKeyTypeCapabilityResource
+                    {
+                        SecretType = descriptor.KeyType,
+                        KeyBitSizes = algorithmKeyType
+                            .KeyBitSizes.Select(keySizes => new KeyBitSizesResource
+                            {
+                                MinBits = keySizes.MinSize,
+                                MaxBits = keySizes.MaxSize,
+                                SkipBits = keySizes.SkipSize,
+                            })
+                            .ToList(),
+                        Curves =
+                        [
+                            .. algorithmKeyType.Curves.Select(
+                                curve => new AlgorithmCurveCapabilityResource
+                                {
+                                    CurveName = curve.Name,
+                                    CurveSizeBits = curve.KeySizeBits,
+                                }
+                            ),
+                        ],
+                    })
+            ),
+        ];
 }

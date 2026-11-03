@@ -1,12 +1,15 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts.Capabilities;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
@@ -16,6 +19,9 @@ public sealed class CapabilitiesProvidersTests : IDisposable
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
     public void Dispose() => MockRepository.Verify();
+
+    // The providers read only the capabilities document, so a strict context with no setups proves they never touch it.
+    private OpenIdContext CreateOpenIdContext() => MockRepository.Create<OpenIdContext>().Object;
 
     [Fact]
     public async Task SecretTypeCapabilitiesProvider_AddsSecretTypesSection()
@@ -33,7 +39,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 
@@ -67,7 +73,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 
@@ -96,7 +102,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 
@@ -120,14 +126,106 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             algorithm => algorithm.Code == AlgorithmCodes.DigitalSignature.RsaSha256
         );
         Assert.Equal(SecretKeyUses.Signature, rs256.Use);
-        Assert.Contains(SecretKeyTypes.Rsa, rs256.SecretTypes);
-        Assert.NotEmpty(rs256.KeyBitSizes);
+        var rs256KeyType = Assert.Single(rs256.KeyTypes);
+        Assert.Equal(SecretKeyTypes.Rsa, rs256KeyType.SecretType);
+        Assert.NotEmpty(rs256KeyType.KeyBitSizes);
+        Assert.Empty(rs256KeyType.Curves);
+
+        // ES256 is bound to P-256, so the console can offer that curve alone.
+        var es256 = Assert.Single(
+            section,
+            algorithm => algorithm.Code == AlgorithmCodes.DigitalSignature.EcdsaSha256
+        );
+        Assert.Equal(
+            [("P-256", 256)],
+            Assert
+                .Single(es256.KeyTypes)
+                .Curves.Select(curve => (curve.CurveName, curve.CurveSizeBits))
+        );
 
         var rsaOaep = Assert.Single(
             section,
             algorithm => algorithm.Code == AlgorithmCodes.KeyManagement.RsaOaep
         );
         Assert.Equal(SecretKeyUses.Encryption, rsaOaep.Use);
-        Assert.Contains(SecretKeyTypes.Rsa, rsaOaep.SecretTypes);
+        Assert.Equal(SecretKeyTypes.Rsa, Assert.Single(rsaOaep.KeyTypes).SecretType);
+    }
+
+    [Fact]
+    public async Task AlgorithmCapabilitiesProvider_WhenAnAlgorithmAcceptsSeveralKeyTypes_ListsEachWithItsSizes()
+    {
+        // ECDH-ES serves every key type that has a registered agreement (ADR-1389); a second agreement adds a second key
+        // type with sizes of its own, which the section lists after the first, in the algorithm's order of preference.
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        serviceCollection.AddSingleton<IEcdhKeyAgreement, RsaKeyTypeAgreementStub>();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var provider = new AlgorithmCapabilitiesProvider(
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+        );
+        var capabilities = new Dictionary<string, object>();
+
+        await provider.HandleAsync(
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
+            CancellationToken.None
+        );
+
+        var section = Assert.IsType<List<AlgorithmCapabilityResource>>(
+            capabilities[AlgorithmCapabilitiesProvider.SectionName]
+        );
+        var ecdhEs = Assert.Single(
+            section,
+            algorithm => algorithm.Code == AlgorithmCodes.KeyManagement.EcdhEs
+        );
+        Assert.Collection(
+            ecdhEs.KeyTypes,
+            ecc =>
+            {
+                Assert.Equal(SecretKeyTypes.Ecc, ecc.SecretType);
+                Assert.Collection(
+                    ecc.KeyBitSizes,
+                    size =>
+                        Assert.Equal((256, 256, 0), (size.MinBits, size.MaxBits, size.SkipBits)),
+                    size =>
+                        Assert.Equal((384, 384, 0), (size.MinBits, size.MaxBits, size.SkipBits)),
+                    size => Assert.Equal((521, 521, 0), (size.MinBits, size.MaxBits, size.SkipBits))
+                );
+                Assert.Equal(
+                    [("P-256", 256), ("P-384", 384), ("P-521", 521)],
+                    ecc.Curves.Select(curve => (curve.CurveName, curve.CurveSizeBits))
+                );
+            },
+            rsa =>
+            {
+                Assert.Equal(SecretKeyTypes.Rsa, rsa.SecretType);
+                var size = Assert.Single(rsa.KeyBitSizes);
+                Assert.Equal((2048, 4096, 1024), (size.MinBits, size.MaxBits, size.SkipBits));
+                Assert.Empty(rsa.Curves);
+            }
+        );
+    }
+
+    // Declares a second key type for the ECDH-ES algorithms; the capabilities listing never performs an agreement.
+    private sealed class RsaKeyTypeAgreementStub : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            new(typeof(RsaSecretKey), [new KeySizes(minSize: 2048, maxSize: 4096, skipSize: 1024)]);
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
     }
 }

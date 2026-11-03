@@ -31,7 +31,8 @@ public class DefaultSecretSerializerTests
         var factoryProtector = provider.CreateProtector("factory");
 
         var secretKeyFactory = new DefaultSecretKeyFactory(
-            new TestDataProtectorFactory<SecretKey>(factoryProtector)
+            new TestDataProtectorFactory<SecretKey>(factoryProtector),
+            new DefaultEccCurveCatalog([])
         );
 
         var catalog = new DefaultSecretKeyTypeCatalog([

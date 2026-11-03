@@ -31,5 +31,6 @@
         <ProjectReference Include="..\..\src\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Management\NCode.Identity.OpenId.Management.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Secrets.Persistence\NCode.Identity.Secrets.Persistence.csproj" />
     </ItemGroup>
 </Project>

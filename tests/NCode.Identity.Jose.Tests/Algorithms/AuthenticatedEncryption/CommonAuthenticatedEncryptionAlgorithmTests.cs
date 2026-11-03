@@ -25,21 +25,14 @@ public class CommonAuthenticatedEncryptionAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_ReturnsAuthenticatedEncryption()
-    {
-        var actual = Algorithm.KeyType;
-        Assert.Equal(typeof(ReadOnlySpan<byte>), actual);
-    }
-
-    [Fact]
-    public void KeyBitSizes_ReturnsExpected()
+    public void ContentKeyBitSizes_ReturnsExpected()
     {
         const int contentKeySizeBytes = 7;
         const int contentKeySizeBits = contentKeySizeBytes << 3;
 
         MockAlgorithm.Setup(x => x.ContentKeySizeBytes).Returns(contentKeySizeBytes).Verifiable();
 
-        var results = Algorithm.KeyBitSizes;
+        var results = Algorithm.ContentKeyBitSizes;
         var result = Assert.Single(results);
         Assert.Equal(contentKeySizeBits, result.MinSize);
         Assert.Equal(contentKeySizeBits, result.MaxSize);

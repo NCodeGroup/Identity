@@ -38,12 +38,18 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResou
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.AlgorithmCapabilityResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Code.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Code.init -> void
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource!>!
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyBitSizes.init -> void
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.SecretTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
-NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.SecretTypes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyTypes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.KeyTypes.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.AlgorithmKeyTypeCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.Curves.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.Curves.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.KeyBitSizes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.EccCurveCapabilityResource.CurveName.init -> void
@@ -591,7 +597,7 @@ NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValida
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator
-NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ImportSecretRequest() -> void
@@ -748,3 +754,15 @@ NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceRefer
 NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Id.init -> void
 NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Type.get -> string!
 NCode.Identity.OpenId.Management.Contracts.AuditRecords.AuditRecordResourceReference.Type.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource.AlgorithmCurveCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource.CurveName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource.CurveName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource.CurveSizeBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCurveCapabilityResource.CurveSizeBits.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation
+NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Error.get -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.GenerationParameters.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.IsValid.get -> bool
+static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Invalid(NCode.Identity.OpenId.Management.ManagementError! error) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
+static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Valid(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! generationParameters) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!

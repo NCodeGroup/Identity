@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.Tests;
 
@@ -13,7 +14,8 @@ public class BaseTests : IAsyncDisposable
 
     protected static ISecretKeyFactory SecretKeyFactory { get; } =
         new DefaultSecretKeyFactory(
-            new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance)
+            new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance),
+            new DefaultEccCurveCatalog([])
         );
 
     public async ValueTask DisposeAsync()

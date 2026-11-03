@@ -12,22 +12,39 @@ const initial: SecretFormValues = { ...emptySecretFormValues, expiresWhen: '2027
 const rs256: AlgorithmOption = {
   code: 'RS256',
   use: 'sig',
-  secretTypes: ['rsa'],
-  keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+  keyTypes: [
+    {
+      secretType: 'rsa',
+      keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+      curves: [],
+    },
+  ],
 };
 const rsaOaep: AlgorithmOption = {
   code: 'RSA-OAEP',
   use: 'enc',
-  secretTypes: ['rsa'],
-  keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+  keyTypes: [
+    {
+      secretType: 'rsa',
+      keyBitSizes: [{ minBits: 2048, maxBits: 16384, skipBits: 8 }],
+      curves: [],
+    },
+  ],
 };
 const es256: AlgorithmOption = {
   code: 'ES256',
   use: 'sig',
-  secretTypes: ['ecc'],
-  keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+  keyTypes: [
+    {
+      secretType: 'ecc',
+      keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+      curves: [{ curveName: 'P-256', curveSizeBits: 256 }],
+    },
+  ],
 };
 const algorithms = [rs256, rsaOaep, es256];
+
+const secretTypes = ['symmetric', 'rsa', 'ecc'];
 
 const eccCurves = [
   { curveName: 'P-256', curveSizeBits: 256 },
@@ -46,7 +63,13 @@ describe('SecretFormDialog', () => {
   it('submits the seeded values, trimming optional fields', () => {
     const onSubmit = vi.fn();
     render(
-      <SecretFormDialog open initialValues={initial} onSubmit={onSubmit} onCancel={vi.fn()} />,
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
     );
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith({
@@ -62,7 +85,13 @@ describe('SecretFormDialog', () => {
   it('submits hand-entered values when no algorithms are discovered', () => {
     const onSubmit = vi.fn();
     render(
-      <SecretFormDialog open initialValues={initial} onSubmit={onSubmit} onCancel={vi.fn()} />,
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
     );
 
     // Without discovery the use is free text and the key size is unconstrained beyond being positive.
@@ -93,7 +122,15 @@ describe('SecretFormDialog', () => {
   });
 
   it('blocks submit when the key size is not positive', () => {
-    render(<SecretFormDialog open initialValues={initial} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
     expect(screen.getByTestId('secret-form-submit')).toBeEnabled();
     fireEvent.change(screen.getByTestId('secret-key-size'), { target: { value: '0' } });
     expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
@@ -104,6 +141,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256 }}
         eccCurves={eccCurves}
         onSubmit={onSubmit}
@@ -118,22 +156,47 @@ describe('SecretFormDialog', () => {
     );
   });
 
-  it('keeps the key size when the curve is chosen by key size', () => {
+  // Two curves can share a key size, so a secret type with curves takes a curve and the size never selects one.
+  it('requires a curve for a secret type with curves', () => {
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256, curve: '' }}
+        eccCurves={eccCurves}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-curve')).toHaveValue('');
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Curve/ }));
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Choose a curve', 'P-256', 'P-384']);
+  });
+
+  it('selects the first curve of a secret type with curves when the type is chosen', () => {
     const onSubmit = vi.fn();
     render(
       <SecretFormDialog
         open
-        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 521, curve: 'P-256' }}
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 2048 }}
         eccCurves={eccCurves}
         onSubmit={onSubmit}
         onCancel={vi.fn()}
       />,
     );
 
-    fireEvent.change(screen.getByTestId('secret-curve'), { target: { value: '' } });
+    fireEvent.change(screen.getByTestId('secret-type'), { target: { value: 'ecc' } });
+    expect(screen.getByTestId('secret-curve')).toHaveValue('P-256');
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ secretType: 'ecc', curve: '', keySizeBits: 521 }),
+      expect.objectContaining({ secretType: 'ecc', curve: 'P-256', keySizeBits: 256 }),
     );
   });
 
@@ -144,6 +207,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc' }}
         {...(curves ? { eccCurves: curves } : {})}
         onSubmit={vi.fn()}
@@ -158,6 +222,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{
           ...initial,
           secretType: 'ecc',
@@ -190,6 +255,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa' }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -219,6 +285,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 4096 }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -245,6 +312,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 384 }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -267,11 +335,228 @@ describe('SecretFormDialog', () => {
     );
   });
 
+  // One algorithm name may serve several secret types, each with its own sizes (ADR-1389), such as ECDH-ES over EC
+  // and OKP keys; the key size is bounded by the chosen type's entry.
+  it.each([
+    {
+      secretType: 'ecc' as const,
+      expected: 'Allowed: 256–384 bits for ECDH-ES.',
+      min: '256',
+      max: '384',
+    },
+    {
+      secretType: 'rsa' as const,
+      expected: 'Allowed: 2048–4096 bits for ECDH-ES.',
+      min: '2048',
+      max: '4096',
+    },
+  ])('bounds the key size by the $secretType entry of a multi-type algorithm', (row) => {
+    const multiType: AlgorithmOption = {
+      code: 'ECDH-ES',
+      use: 'enc',
+      keyTypes: [
+        {
+          secretType: 'ecc',
+          keyBitSizes: [{ minBits: 256, maxBits: 384, skipBits: 128 }],
+          curves: [],
+        },
+        {
+          secretType: 'rsa',
+          keyBitSizes: [{ minBits: 2048, maxBits: 4096, skipBits: 1024 }],
+          curves: [],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: row.secretType, keySizeBits: 1 }}
+        algorithms={[multiType]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'ECDH-ES' } });
+
+    expect(screen.getByText(row.expected)).toBeInTheDocument();
+    const keySize = screen.getByTestId('secret-key-size');
+    expect(keySize).toHaveValue(Number(row.min));
+    expect(keySize).toHaveAttribute('min', row.min);
+    expect(keySize).toHaveAttribute('max', row.max);
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ algorithm: 'ECDH-ES', use: 'enc', keySizeBits: Number(row.min) }),
+    );
+  });
+
+  it('offers only the curves an algorithm bound to a curve accepts and selects the first of them', () => {
+    // secp256k1 has the size of P-256, so the key size alone cannot select it.
+    const es256k: AlgorithmOption = {
+      code: 'ES256K',
+      use: 'sig',
+      keyTypes: [
+        {
+          secretType: 'ecc',
+          keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+          curves: [{ curveName: 'secp256k1', curveSizeBits: 256 }],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256, curve: 'P-256' }}
+        eccCurves={eccCurves}
+        algorithms={[es256, es256k]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'ES256K' } });
+
+    expect(screen.getByTestId('secret-curve')).toHaveValue('secp256k1');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Curve/ }));
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['secp256k1']);
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ algorithm: 'ES256K', curve: 'secp256k1', keySizeBits: 256 }),
+    );
+  });
+
+  // ECDH-ES accepts EC keys on three curves of three sizes, so each size is legal only with its own curve.
+  it('creates a P-384 key for ECDH-ES from the curve the algorithm offers', () => {
+    const ecdhEs: AlgorithmOption = {
+      code: 'ECDH-ES',
+      use: 'enc',
+      keyTypes: [
+        {
+          secretType: 'ecc',
+          keyBitSizes: [
+            { minBits: 256, maxBits: 256, skipBits: 0 },
+            { minBits: 384, maxBits: 384, skipBits: 0 },
+            { minBits: 521, maxBits: 521, skipBits: 0 },
+          ],
+          curves: [
+            { curveName: 'P-256', curveSizeBits: 256 },
+            { curveName: 'P-384', curveSizeBits: 384 },
+            { curveName: 'P-521', curveSizeBits: 521 },
+          ],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256 }}
+        algorithms={[ecdhEs]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'ECDH-ES' } });
+    expect(screen.getByText('Allowed: 256, 384 or 521 bits for ECDH-ES.')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-key-size')).toHaveAttribute('max', '521');
+
+    fireEvent.change(screen.getByTestId('secret-curve'), { target: { value: 'P-384' } });
+    expect(screen.getByTestId('secret-key-size')).toHaveValue(384);
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      secretType: 'ecc',
+      keySizeBits: 384,
+      curve: 'P-384',
+      use: 'enc',
+      algorithm: 'ECDH-ES',
+      expiresWhen: '2027-01-01T00:00',
+    });
+  });
+
+  // The secret types and the curves come from discovery, so an OKP type a package contributes is offered with its own
+  // curves, and an Ed448 key takes Ed448's size.
+  it('creates an Ed448 key for EdDSA as a discovered secret type', () => {
+    const edDsa: AlgorithmOption = {
+      code: 'EdDSA',
+      use: 'sig',
+      keyTypes: [
+        {
+          secretType: 'okp',
+          keyBitSizes: [
+            { minBits: 256, maxBits: 256, skipBits: 0 },
+            { minBits: 456, maxBits: 456, skipBits: 0 },
+          ],
+          curves: [
+            { curveName: 'Ed25519', curveSizeBits: 256 },
+            { curveName: 'Ed448', curveSizeBits: 456 },
+          ],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        initialValues={initial}
+        secretTypes={['symmetric', 'rsa', 'ecc', 'okp']}
+        algorithms={[rs256, edDsa]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-type'), { target: { value: 'okp' } });
+    expect(offeredAlgorithms()).toEqual(['Any', 'EdDSA']);
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'EdDSA' } });
+    expect(screen.getByTestId('secret-curve')).toHaveValue('Ed25519');
+
+    fireEvent.change(screen.getByTestId('secret-curve'), { target: { value: 'Ed448' } });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      secretType: 'okp',
+      keySizeBits: 456,
+      curve: 'Ed448',
+      use: 'sig',
+      algorithm: 'EdDSA',
+      expiresWhen: '2027-01-01T00:00',
+    });
+  });
+
+  it('blocks submit when the key size is not one the algorithm accepts', () => {
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 2048 }}
+        algorithms={algorithms}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'RS256' } });
+    fireEvent.change(screen.getByTestId('secret-key-size'), { target: { value: '2049' } });
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+  });
+
   it('clears the derived use and keeps the key size when no specific algorithm is chosen', () => {
     const onSubmit = vi.fn();
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{
           ...initial,
           secretType: 'rsa',
@@ -299,6 +584,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 2048 }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -315,6 +601,51 @@ describe('SecretFormDialog', () => {
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       secretType: 'ecc',
+      keySizeBits: 256,
+      curve: 'P-256',
+      use: '',
+      algorithm: '',
+      expiresWhen: '2027-01-01T00:00',
+    });
+  });
+
+  // The secret types are discovered, so the dialog can open before they load; the type select never holds a value it
+  // has no option for, which MUI reports as an out-of-range value.
+  it('offers no type and blocks submit until the secret types are discovered', () => {
+    const onSubmit = vi.fn();
+    const props = { initialValues: initial, onSubmit, onCancel: vi.fn() };
+    const { rerender } = render(<SecretFormDialog {...props} open secretTypes={[]} />);
+
+    expect(screen.getByTestId('secret-type')).toHaveValue('');
+    expect(screen.getByText('No secret types are available.')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+
+    rerender(<SecretFormDialog {...props} open secretTypes={secretTypes} />);
+
+    expect(screen.getByTestId('secret-type')).toHaveValue('symmetric');
+    expect(screen.queryByText('No secret types are available.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ secretType: 'symmetric', keySizeBits: 256 }),
+    );
+  });
+
+  it('selects the first offered type when the seeded type is not offered', () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={['rsa', 'ecc']}
+        initialValues={{ ...initial, keySizeBits: 2048 }}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-type')).toHaveValue('rsa');
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      secretType: 'rsa',
       keySizeBits: 2048,
       curve: '',
       use: '',
@@ -323,11 +654,128 @@ describe('SecretFormDialog', () => {
     });
   });
 
+  it('requires a curve when the first offered type has curves', () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={['ecc']}
+        initialValues={initial}
+        eccCurves={eccCurves}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-type')).toHaveValue('ecc');
+    expect(screen.getByTestId('secret-curve')).toHaveValue('');
+    expect(screen.getByTestId('secret-key-size')).not.toHaveAttribute('readonly');
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('secret-curve'), { target: { value: 'P-384' } });
+
+    // The selected curve fixes the key size, which can no longer be hand-entered.
+    expect(screen.getByTestId('secret-key-size')).toHaveValue(384);
+    expect(screen.getByTestId('secret-key-size')).toHaveAttribute('readonly');
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ secretType: 'ecc', curve: 'P-384', keySizeBits: 384 }),
+    );
+  });
+
+  it('keeps a selected curve that the chosen algorithm accepts', () => {
+    const ecdhEs: AlgorithmOption = {
+      code: 'ECDH-ES',
+      use: 'enc',
+      keyTypes: [
+        {
+          secretType: 'ecc',
+          keyBitSizes: [
+            { minBits: 256, maxBits: 256, skipBits: 0 },
+            { minBits: 384, maxBits: 384, skipBits: 0 },
+          ],
+          curves: [
+            { curveName: 'P-256', curveSizeBits: 256 },
+            { curveName: 'P-384', curveSizeBits: 384 },
+          ],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'ecc', curve: 'P-384' }}
+        eccCurves={eccCurves}
+        algorithms={[ecdhEs]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'ECDH-ES' } });
+
+    expect(screen.getByTestId('secret-curve')).toHaveValue('P-384');
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ algorithm: 'ECDH-ES', curve: 'P-384', keySizeBits: 384 }),
+    );
+  });
+
+  // A secret type's entry may list both a stepped range and a fixed size; the description names each of them, and a
+  // size between them is not legal.
+  it('describes and enforces a size range and a fixed size of one secret type', () => {
+    const mixed: AlgorithmOption = {
+      code: 'PS256',
+      use: 'sig',
+      keyTypes: [
+        {
+          secretType: 'rsa',
+          keyBitSizes: [
+            { minBits: 2048, maxBits: 4096, skipBits: 1024 },
+            { minBits: 8192, maxBits: 8192, skipBits: 0 },
+          ],
+          curves: [],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 8192 }}
+        algorithms={[mixed]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'PS256' } });
+
+    expect(screen.getByText('Allowed: 2048–4096 or 8192 bits for PS256.')).toBeInTheDocument();
+    const keySize = screen.getByTestId('secret-key-size');
+    expect(keySize).toHaveValue(8192);
+    expect(keySize).toHaveAttribute('min', '2048');
+    expect(keySize).toHaveAttribute('max', '8192');
+    // Two ranges have no single step.
+    expect(keySize).not.toHaveAttribute('step');
+    fireEvent.change(keySize, { target: { value: '6144' } });
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+    fireEvent.change(keySize, { target: { value: '3072' } });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ algorithm: 'PS256', keySizeBits: 3072 }),
+    );
+  });
+
   it('blocks submit when the expiry is empty', () => {
     const onSubmit = vi.fn();
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={emptySecretFormValues}
         onSubmit={onSubmit}
         onCancel={vi.fn()}
@@ -340,6 +788,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={initial}
         isSubmitting
         error="Boom"
@@ -357,7 +806,13 @@ describe('SecretFormDialog', () => {
     const onCancel = vi.fn();
     const onSubmit = vi.fn();
     render(
-      <SecretFormDialog open initialValues={initial} onSubmit={onSubmit} onCancel={onCancel} />,
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+      />,
     );
     expect(screen.queryByTestId('secret-form-error')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('secret-form-cancel'));
@@ -366,7 +821,7 @@ describe('SecretFormDialog', () => {
   });
 
   it('keeps in-progress edits while open and reseeds from initialValues on reopen', () => {
-    const props = { onSubmit: vi.fn(), onCancel: vi.fn() };
+    const props = { secretTypes, onSubmit: vi.fn(), onCancel: vi.fn() };
     const { rerender } = render(<SecretFormDialog {...props} open initialValues={initial} />);
     fireEvent.change(screen.getByTestId('secret-expires'), {
       target: { value: '2028-01-01T00:00' },

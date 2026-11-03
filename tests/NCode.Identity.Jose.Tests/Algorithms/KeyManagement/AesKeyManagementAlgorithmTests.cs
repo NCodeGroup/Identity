@@ -36,7 +36,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = CreateAlgorithm();
-        Assert.Equal(typeof(SymmetricSecretKey), algorithm.KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     {
         var kekSizeBits = Random.Shared.Next();
         var algorithm = CreateAlgorithm(kekSizeBits);
-        var result = Assert.Single(algorithm.KeyBitSizes);
+        var result = Assert.Single(Assert.Single(algorithm.KeyTypes).KeyBitSizes);
         Assert.Equal(kekSizeBits, result.MinSize);
         Assert.Equal(kekSizeBits, result.MaxSize);
         Assert.Equal(0, result.SkipSize);

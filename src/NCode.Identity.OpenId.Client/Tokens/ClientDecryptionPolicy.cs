@@ -40,7 +40,7 @@ internal static class ClientDecryptionPolicy
         {
             if (
                 !algorithms.TryGetKeyManagementAlgorithm(code, out var algorithm)
-                || !typeof(AsymmetricSecretKey).IsAssignableFrom(algorithm.KeyType)
+                || !algorithm.AcceptsOnly<AsymmetricSecretKey>()
             )
                 continue;
 

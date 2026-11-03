@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
@@ -8,17 +9,92 @@ using NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
 using NCode.Identity.Jose.Algorithms.Compression;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Algorithms.Signature;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
-/// Provides the default implementation for a data source collection of <see cref="Algorithm"/> instances supported by this library.
+/// Provides the default implementation for a data source collection of <see cref="Algorithm"/> instances supported by
+/// this library.
 /// </summary>
 /// <param name="aesKeyWrap">Provides the common implementation for <c>AES Key Wrap</c> functionality.</param>
-internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
-    : ICollectionDataSource<Algorithm>
+/// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the ephemeral public
+/// key of the <c>ECDH-ES</c> algorithms.</param>
+/// <param name="ecdhKeyAgreements">The registered <c>ECDH-ES</c> key agreements, each over the curves of one key type
+/// the <c>ECDH-ES</c> algorithms accept.</param>
+/// <param name="eccSignatureAlgorithms">The registered <c>ECDSA</c> signature algorithms: <c>ES256</c>, <c>ES384</c>
+/// and <c>ES512</c>, which the library registers, and each one a package registers.</param>
+/// <param name="eccCurveCatalog">The registered elliptic curves, each <c>ECDSA</c> algorithm's curve among
+/// them.</param>
+internal sealed class DefaultAlgorithmDataSource(
+    IAesKeyWrap aesKeyWrap,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    IEnumerable<IEcdhKeyAgreement> ecdhKeyAgreements,
+    IEnumerable<EccSignatureAlgorithmSpecification> eccSignatureAlgorithms,
+    IEccCurveCatalog eccCurveCatalog
+) : ICollectionDataSource<Algorithm>
 {
+    private static ImmutableArray<EccSignatureAlgorithmSpecification> ComposeEccSignatureAlgorithms(
+        IEnumerable<EccSignatureAlgorithmSpecification> registered,
+        IEccCurveCatalog eccCurveCatalog
+    )
+    {
+        var composed = new List<EccSignatureAlgorithmSpecification>();
+        var codes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var specification in registered)
+        {
+            if (specification is null)
+            {
+                throw new InvalidOperationException(
+                    "A registered ECDSA signature algorithm specification is null."
+                );
+            }
+
+            if (string.IsNullOrWhiteSpace(specification.Code))
+            {
+                throw new InvalidOperationException(
+                    "A registered ECDSA signature algorithm has an empty or whitespace code."
+                );
+            }
+
+            if (!codes.Add(specification.Code))
+            {
+                throw new InvalidOperationException(
+                    $"The ECDSA signature algorithm '{specification.Code}' is registered more than once."
+                );
+            }
+
+            // A key on a curve the catalog does not hold cannot be generated, imported or named, so the algorithm's
+            // curve must be the catalog's curve of that name, matched by its OID too.
+            var curve = specification.Curve;
+            if (
+                curve is null
+                || !eccCurveCatalog.TryGetByName(curve.CurveName, out var registeredCurve)
+                || !EccCurveSpecification.IsSameNamedCurve(registeredCurve.Curve, curve.Curve)
+            )
+            {
+                throw new InvalidOperationException(
+                    $"The ECDSA signature algorithm '{specification.Code}' is on the curve "
+                        + $"'{curve?.CurveName}', which is not a registered elliptic curve; register its "
+                        + $"'{nameof(EccCurveSpecification)}' too."
+                );
+            }
+
+            composed.Add(specification);
+        }
+
+        return [.. composed];
+    }
+
+    // See ADR-1392: every registered ECDSA algorithm, validated as a whole.
+    private ImmutableArray<EccSignatureAlgorithmSpecification> EccSignatureAlgorithms { get; } =
+        ComposeEccSignatureAlgorithms(eccSignatureAlgorithms, eccCurveCatalog);
+
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private ImmutableArray<IEcdhKeyAgreement> EcdhKeyAgreements { get; } = [.. ecdhKeyAgreements];
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
@@ -106,27 +182,13 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
 
             // Digital Signature with ECDSA
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.4
+            // Each registered ECDSA algorithm: ES256, ES384 and ES512, and each one a package registers, such as ES256K
+            // (RFC 8812).
 
-            // ES256
-            yield return new EccSignatureAlgorithm(
-                AlgorithmCodes.DigitalSignature.EcdsaSha256,
-                ECCurve.NamedCurves.nistP256,
-                HashAlgorithmName.SHA256
-            );
-
-            // ES384
-            yield return new EccSignatureAlgorithm(
-                AlgorithmCodes.DigitalSignature.EcdsaSha384,
-                ECCurve.NamedCurves.nistP384,
-                HashAlgorithmName.SHA384
-            );
-
-            // ES512
-            yield return new EccSignatureAlgorithm(
-                AlgorithmCodes.DigitalSignature.EcdsaSha512,
-                ECCurve.NamedCurves.nistP521,
-                HashAlgorithmName.SHA512
-            );
+            foreach (var specification in EccSignatureAlgorithms)
+            {
+                yield return new EccSignatureAlgorithm(specification);
+            }
 
             // Module-Lattice-Based Digital Signature Algorithm (ML-DSA)
             // https://datatracker.ietf.org/doc/rfc9964/ (FIPS 204). Advertised only where the running OS provides
@@ -239,13 +301,17 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
             );
 
             // Key Agreement with Elliptic Curve Diffie-Hellman Ephemeral Static (ECDH-ES)
-            // https://datatracker.ietf.org/doc/html/rfc7518#section-4.6
+            // https://datatracker.ietf.org/doc/html/rfc7518#section-4.6 Each name serves every key type that has a
+            // registered IEcdhKeyAgreement: EC keys here, and the OKP keys of RFC 8037 §3.2 from the package that
+            // contributes them (ADR-1389).
 
             // ECDH-ES
-            yield return EcdhKeyManagementAlgorithm.Singleton;
+            yield return new EcdhKeyManagementAlgorithm(SecretKeyTypeCatalog, EcdhKeyAgreements);
 
             // ECDH-ES+A128KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                EcdhKeyAgreements,
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes128,
                 kekSizeBits: 128
@@ -253,6 +319,8 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
 
             // ECDH-ES+A192KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                EcdhKeyAgreements,
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes192,
                 kekSizeBits: 192
@@ -260,6 +328,8 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
 
             // ECDH-ES+A256KW
             yield return new EcdhWithAesKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                EcdhKeyAgreements,
                 AesKeyWrap,
                 AlgorithmCodes.KeyManagement.EcdhEsAes256,
                 kekSizeBits: 256

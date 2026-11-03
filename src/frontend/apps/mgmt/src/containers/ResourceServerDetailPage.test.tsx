@@ -73,6 +73,13 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+/** The shared-secret type the server advertises, so the create form offers it. */
+const symmetricType = {
+  secretType: 'symmetric',
+  isAsymmetric: false,
+  supportsPublicKeyExport: false,
+};
+
 const createdSecret: CreatedSecretResource = {
   secretId: 's-new',
   keyId: 's-new',
@@ -261,6 +268,9 @@ describe('ResourceServerDetailPage', () => {
 
   it('creates a resource-server secret under the nested path and reveals its material', async () => {
     installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [symmetricType] });
+      }
       if (url.endsWith('/resource-servers/rs-orders/secrets') && method === 'POST') {
         return jsonResponse(createdSecret, 201);
       }
@@ -273,6 +283,8 @@ describe('ResourceServerDetailPage', () => {
     renderPage();
     fireEvent.click(await screen.findByTestId('resource-server-tab-secrets'));
     fireEvent.click(await screen.findByTestId('create-secret'));
+    // The form offers the secret types once the capabilities are discovered.
+    await waitFor(() => expect(screen.getByTestId('secret-type')).toHaveValue('symmetric'));
     fireEvent.click(screen.getByTestId('secret-form-submit'));
 
     expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(

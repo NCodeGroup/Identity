@@ -14,31 +14,8 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// </summary>
 internal sealed class DefaultEccCurveCatalog : IEccCurveCatalog
 {
-    private static EccCurveSpecification P256 { get; } =
-        new()
-        {
-            CurveName = "P-256",
-            CurveSizeBits = 256,
-            Curve = ECCurve.NamedCurves.nistP256,
-        };
-
-    private static EccCurveSpecification P384 { get; } =
-        new()
-        {
-            CurveName = "P-384",
-            CurveSizeBits = 384,
-            Curve = ECCurve.NamedCurves.nistP384,
-        };
-
-    private static EccCurveSpecification P521 { get; } =
-        new()
-        {
-            CurveName = "P-521",
-            CurveSizeBits = 521,
-            Curve = ECCurve.NamedCurves.nistP521,
-        };
-
-    private static IEnumerable<EccCurveSpecification> BuiltInCurves => [P256, P384, P521];
+    private static IEnumerable<EccCurveSpecification> BuiltInCurves =>
+        [EccCurveSpecification.P256, EccCurveSpecification.P384, EccCurveSpecification.P521];
 
     private FrozenDictionary<string, EccCurveSpecification> CurvesByName { get; }
     private FrozenDictionary<int, EccCurveSpecification> CurvesByCurveSizeBits { get; }

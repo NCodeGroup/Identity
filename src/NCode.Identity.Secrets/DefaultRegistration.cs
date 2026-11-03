@@ -61,6 +61,10 @@ public static class DefaultRegistration
 
             serviceCollection.AddCollectionProviders();
 
+            // The key-type descriptors log through ILogger<T>, so the library registers logging itself and composes
+            // without the host having registered it first; AddLogging is idempotent.
+            serviceCollection.AddLogging();
+
             serviceCollection.AddDataProtection();
             serviceCollection.AddDataProtectorFactory();
             serviceCollection.AddDataProtectorFactory<

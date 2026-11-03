@@ -1,6 +1,8 @@
 # 1272. Signature algorithms are fully specified and bound to their curve
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md):
+  `EccSignatureAlgorithm` is built from an `EccSignatureAlgorithmSpecification`, and a package registers further `ES*`
+  algorithms, such as `ES256K`, as specifications)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 
@@ -25,7 +27,7 @@ algorithm.
 
 - `Ed25519` and `Ed448` are registered `alg` values (RFC 9864), added as `AlgorithmCodes.DigitalSignature.Ed25519` and
   `Ed448`. The opt-in EdDSA package registers them next to `EdDSA` through one
-  `EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve)`; a `null` curve is the polymorphic `EdDSA`.
+  `EdDsaSignatureAlgorithm(string code, EdwardsOkpCurve? curve)`; a `null` curve is the polymorphic `EdDSA`.
 - `EdDSA` stays registered, selectable and advertised, so that existing interop keeps working.
 - A key's fitness for an algorithm is one virtual check, `KeyedAlgorithm.IsKeyCompatible(SecretKey)`. The default is the
   key type and size rule; `EccSignatureAlgorithm` and `EdDsaSignatureAlgorithm` also bind the curve.

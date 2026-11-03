@@ -61,7 +61,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `[Secp256k1Fact]`, which sets `Skip` from the package's own probe, rather than one that returns early and reports a
   pass. One unconditional test asserts that the probe answers `true` on Linux, where CI runs, so a gate that wrongly
   answers `false` cannot skip every test silently (`Secp256k1CurveTests`)
-  ([ADR-1391](../../docs/decisions/1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  ([ADR-1392](../../docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - 👁 **Test a contributed key type's private members with a member no standard key type uses.** A JWK counts a
   member as private when it is a standard private name (`d`, `k`, `priv` and the RSA factors) or one of its key
   type's `JsonWebKeyTypeDescriptor.PrivateMembers`, so a contributed type that keeps its private half in `d` is

@@ -12,7 +12,7 @@ namespace NCode.Identity.Jose.Algorithms.Signature;
 /// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses an <c>Elliptic-Curve (ECC)</c> cryptographic
 /// algorithm for digital signatures, bound to the one curve its <see cref="EccSignatureAlgorithmSpecification"/> names.
 /// </summary>
-// See ADR-1272 and ADR-1391.
+// See ADR-1272 and ADR-1392.
 internal class EccSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />

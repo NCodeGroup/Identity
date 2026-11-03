@@ -155,7 +155,7 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        // See ADR-1391: two curves can share a key size, as P-256 and secp256k1 do, so the type and size alone do not
+        // See ADR-1392: two curves can share a key size, as P-256 and secp256k1 do, so the type and size alone do not
         // show that the algorithm accepts the key. The stored public half answers it; a key held without one is trusted
         // as above.
         if (secret.PublicKey is null)
@@ -334,7 +334,7 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        // See ADR-1389 and ADR-1391: two curves can share a key size, so the key is generated on the first curve the
+        // See ADR-1389 and ADR-1392: two curves can share a key size, so the key is generated on the first curve the
         // algorithm accepts that has that size, rather than on whichever curve the key type picks for the size.
         string? curve = null;
         if (algorithmKeyType.Curves.Count > 0)

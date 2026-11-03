@@ -68,7 +68,7 @@ internal sealed class DefaultAlgorithmDataSource(
             },
         ];
 
-    // See ADR-1391: the built-in ECDSA algorithms and every registered one, validated as a whole.
+    // See ADR-1392: the built-in ECDSA algorithms and every registered one, validated as a whole.
     private ImmutableArray<EccSignatureAlgorithmSpecification> EccSignatureAlgorithms { get; } =
         ComposeEccSignatureAlgorithms(eccSignatureAlgorithms);
 

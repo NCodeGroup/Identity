@@ -12,7 +12,7 @@
   `AddDeveloperKeyPruning`, registered by `DeveloperKeys:PruneUnreadableKeys`; by
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md): a key may name
   its `SecretType` among the key types its algorithm accepts, and is otherwise the first of them; by
-  [ADR-1391](1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md): a key is generated on the curve
+  [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md): a key is generated on the curve
   its algorithm is bound to, and a stored key satisfies the algorithm only when its stored public key fits it)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group

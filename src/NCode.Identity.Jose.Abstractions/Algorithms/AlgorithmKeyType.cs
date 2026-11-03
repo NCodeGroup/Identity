@@ -14,7 +14,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// that type in. An algorithm whose name serves several key types, such as <c>ECDH-ES</c> over <c>EC</c> and
 /// <c>OKP</c> keys (RFC 8037 §3.2), lists one <see cref="AlgorithmKeyType"/> per key type.
 /// </summary>
-// See ADR-1389 and ADR-1391.
+// See ADR-1389 and ADR-1392.
 [PublicAPI]
 public sealed class AlgorithmKeyType
 {

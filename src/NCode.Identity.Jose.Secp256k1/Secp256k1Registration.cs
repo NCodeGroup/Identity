@@ -10,7 +10,7 @@ namespace NCode.Identity.Jose.Secp256k1;
 /// <summary>
 /// Registers the secp256k1 curve and the <c>ES256K</c> algorithm when the platform supports the curve.
 /// </summary>
-// See ADR-1391.
+// See ADR-1392.
 internal static class Secp256k1Registration
 {
     /// <summary>

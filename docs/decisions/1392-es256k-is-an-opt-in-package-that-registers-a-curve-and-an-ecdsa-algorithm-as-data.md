@@ -1,4 +1,4 @@
-# 1391. ES256K is an opt-in package that registers a curve and an ECDSA algorithm as data
+# 1392. ES256K is an opt-in package that registers a curve and an ECDSA algorithm as data
 
 - **Status:** Accepted
 - **Date:** 2026-11-03

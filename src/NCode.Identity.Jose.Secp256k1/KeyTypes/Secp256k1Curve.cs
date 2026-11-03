@@ -10,7 +10,7 @@ namespace NCode.Identity.Jose.Secp256k1.KeyTypes;
 /// The secp256k1 elliptic curve (SEC 2 §2.4.1, OID <c>1.3.132.0.10</c>) that RFC 8812 registers as the <c>JWK</c>
 /// <c>crv</c> value <c>secp256k1</c>, and whether the platform's cryptography supports it.
 /// </summary>
-// See ADR-1391.
+// See ADR-1392.
 internal static class Secp256k1Curve
 {
     /// <summary>

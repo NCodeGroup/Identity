@@ -15,7 +15,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// Register the curve as an <see cref="EccCurveSpecification"/> too, so that keys on it can be generated, imported and
 /// published as <c>JWK</c>s.
 /// </summary>
-// See ADR-1391.
+// See ADR-1392.
 [PublicAPI]
 public sealed class EccSignatureAlgorithmSpecification
 {

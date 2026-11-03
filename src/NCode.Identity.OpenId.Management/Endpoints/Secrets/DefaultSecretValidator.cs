@@ -43,7 +43,7 @@ internal sealed class DefaultSecretValidator(
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
-    // See ADR-1389 and ADR-1391.
+    // See ADR-1389 and ADR-1392.
     public string? ResolveCurve(CreateSecretRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);

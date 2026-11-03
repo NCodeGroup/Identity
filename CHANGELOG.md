@@ -2593,6 +2593,17 @@ describes the family as it is rather than its changes
   ([ADR-1283](docs/decisions/1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md), [audit
   records](docs/audit-records.md)).
 
+- **UserInfo access is audited on opt-in, as a trail of the personal data each client reads.** With
+  `audit_userinfo_access` on (off by default; it applies to tenants and clients, merges with `Or` so a client cannot
+  turn off its tenant's choice, and is not discoverable), each UserInfo response is audited as a `userinfo.accessed`
+  event (`UserInfoAccessedAuditEvent`, category `data_access`) once the response is built: `success`, with the subject,
+  the client as the actor and the names of the claims disclosed in `details.claim_names`, never a claim value or the
+  access token. An access token that authenticates but names no client the tenant serves is audited, when the tenant
+  turns the setting on, as `denied` with the error code `invalid_token` and no claims.
+  `IAuditEventRecorder.RecordUserInfoAccessedAsync` and `RecordUserInfoAccessDeniedAsync` publish the two outcomes
+  ([ADR-1401](docs/decisions/1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md),
+  [#21](https://github.com/NCodeGroup/Identity/issues/21), [audit records](docs/audit-records.md)).
+
 - **Several replicas share DPoP nonces and single-use records through Valkey.**
   `NCode.Identity.SharedState.Abstractions` defines `IExpiringKeySet`, an atomic add-if-absent set of expiring keys;
   `NCode.Identity.SharedState` provides the in-process adapter `AddIdentityServer()` registers by default (correct for
@@ -3658,9 +3669,33 @@ describes the family as it is rather than its changes
   (`client_secret_jwt`) keeps it reversible. `Pbkdf2SecretVerifierOptions.Iterations` sets the PBKDF2 work factor
   (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
   process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
-  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound. Limits on
-  failed client authentications are tracked in [#533](https://github.com/NCodeGroup/Identity/issues/533)
+  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound
   ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+
+- **Failed client authentications are limited per remote address by default, without a per-client lockout.** Every
+  handler of a client-authentication method that verifies a credential asks `IClientAuthenticationAttemptLimiter`
+  before it verifies one, at every endpoint that authenticates a client, and counts each credential it refuses, the
+  identifier of a client it cannot find included, before it audits the failure and with no cancellation token, so a
+  caller that disconnects after a guess is counted. A public client's `none` authentication verifies no credential, so
+  it is neither refused at the limit nor counted, and an address at its limit cannot deny the public clients behind it;
+  a Basic header that carries no credential is answered without a count. The mutual-TLS handlers ask once the resolved
+  client's registration says the request is theirs, so a refusal is audited with the method the client is registered
+  for. The default limiter counts failures in the shared `IExpiringCounterSet`, so the limits hold across replicas, in fixed
+  windows of `client_authentication_failed_attempts_window` (15 minutes by default, one minute to one day) and in two
+  partitions: one remote address with one `client_id`, limited by `client_authentication_failed_attempts_limit` (10 by
+  default, at most 100), and one remote address across every `client_id`, limited by
+  `client_authentication_failed_attempts_address_limit` (100 by default, at most 10,000). An IPv6 address is counted by
+  its `/64` and an IPv4-mapped address as the IPv4 address it maps. The failures are never counted per `client_id`
+  alone, so a caller that knows a public `client_id` cannot lock its client out from another address. The settings
+  apply to tenants and a narrower scope may only lower a limit or lengthen the window. A request refused at a limit
+  verifies nothing and is answered as a rate limit answers: `429 Too Many Requests` with `temporarily_unavailable`, a
+  `Retry-After` until the window ends and `Cache-Control: no-store`; it is audited as a `client.authentication` failure
+  with the error code `attempt_limit_reached`, logged as event 2072 without the address or the `client_id`, and not
+  recorded as usage. A request without a remote address is not limited, and the first one logs event 2073 at
+  `Warning`, so a host whose proxy does not forward the client's address learns that the limit is off. A shared state
+  that cannot be reached fails client authentication rather than admitting unlimited
+  guesses ([ADR-1399](docs/decisions/1399-failed-client-authentications-are-limited-per-remote-address-by-default.md),
+  [#533](https://github.com/NCodeGroup/Identity/issues/533)).
 
 - **The Data Protection key ring is encrypted under the server master key, and a key it cannot decrypt stops the host.**
   The host configures the key ring through the `SecretProtection` section, and the Helm chart through its
@@ -4016,8 +4051,16 @@ describes the family as it is rather than its changes
   (`ClientCertificateRevocationStatus`); `Unknown` is the zero value, so a checker that cannot tell fails closed. The
   chain validator asks it about every element of a chain except the trust anchor, and under `online` the chain passes
   only when every answer is `Good`. The default is registered with `TryAddSingleton`, so a host registers its own in its
-  place, and asks each registered `IClientCertificateRevocationSource` (named by
-  `ClientCertificateRevocationSourceNames`) in registration order until one answers `Good` or `Revoked`. The `ocsp`
+  place, and asks the `IClientCertificateRevocationSource`s that `OpenId:ClientCertificateRevocation:Sources` selects,
+  in the configured order, until one answers `Good` or `Revoked`. Each source is described by a registered
+  `ClientCertificateRevocationSourceDescriptor` of the same name (`ClientCertificateRevocationSourceNames` names the
+  built-in `ocsp` and `crl`), collected by `IClientCertificateRevocationSourceCatalog`, so a package adds a source with
+  its descriptor and the configured names are validated when the host starts without constructing a source: a name no
+  descriptor registers, or a name listed twice, stops the host, and so does a registered source that no descriptor
+  names or a descriptor without a source, which the host finds as it resolves the checker at start. With no sources
+  configured, every registered source is
+  asked in its descriptor's default order, `ocsp` then `crl`, and a deployment that cannot reach its PKI's OCSP
+  responders configures `crl` alone so it never waits for a responder's timeout. The `ocsp`
   source queries the responders that the certificate's authority information access names (RFC 6960 with the RFC 5019
   profile: a SHA-1 `CertID`, no nonce, GET up to 255 characters and POST beyond), accepts a response signed by the
   issuer or by a responder it issued with `id-kp-OCSPSigning`, checks a responder without `id-pkix-ocsp-nocheck` through
@@ -4030,8 +4073,10 @@ describes the family as it is rather than its changes
   revocation source and record the `Location`
   ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md),
   [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), issues
-  [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255)).
+  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
+  [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),
+  issues [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255),
+  [#38](https://github.com/NCodeGroup/Identity/issues/38)).
 
 - **Revocation data is fetched only by the server, through the outbound-request guard, and its retrieval is shared and
   bounded.** The platform chain engine retrieves nothing: certificate downloads are disabled and its own revocation

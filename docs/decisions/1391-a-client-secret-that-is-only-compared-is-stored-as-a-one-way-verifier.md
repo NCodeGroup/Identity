@@ -1,6 +1,8 @@
 # 1391. A client secret that is only compared is stored as a one-way verifier
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1399](1399-failed-client-authentications-are-limited-per-remote-address-by-default.md): failed client
+  authentications are limited per remote address by default)
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

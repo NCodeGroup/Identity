@@ -1,8 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Net;
-using System.Net.Sockets;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Usage;
@@ -43,7 +41,7 @@ internal class DefaultRateLimitDescriptorDataSource(INullChangeToken nullChangeT
                 LimitKey = OpenIdSettingKeys.RateLimitAddressPerMinute,
                 PartitionValueSelector = static context =>
                     context.OpenIdContext.Http.Connection.RemoteIpAddress is { } address
-                        ? GetAddressPartitionValue(address)
+                        ? RemoteAddressPartition.GetValue(address)
                         : null,
             };
 
@@ -105,21 +103,5 @@ internal class DefaultRateLimitDescriptorDataSource(INullChangeToken nullChangeT
                 PartitionValueSelector = static _ => string.Empty,
             };
         }
-    }
-
-    // An IPv6 host is usually assigned at least a /64, so one caller could otherwise spread its requests across many
-    // addresses; an IPv4-mapped address is counted as the IPv4 address it maps.
-    internal static string GetAddressPartitionValue(IPAddress address)
-    {
-        if (address.IsIPv4MappedToIPv6)
-            address = address.MapToIPv4();
-
-        if (address.AddressFamily != AddressFamily.InterNetworkV6)
-            return address.ToString();
-
-        Span<byte> bytes = stackalloc byte[16];
-        address.TryWriteBytes(bytes, out _);
-        bytes[8..].Clear();
-        return new IPAddress(bytes).ToString() + "/64";
     }
 }

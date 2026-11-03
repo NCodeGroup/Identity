@@ -145,14 +145,15 @@ A severity the library does not define logs at Information.
 
 ### Event categories
 
-| `event_category` | Covers                                                    |
-| ---------------- | --------------------------------------------------------- |
-| `authentication` | The authentication of a client or a subject.              |
-| `authorization`  | The authorization of a request and the consent behind it. |
-| `token`          | The issuance, refresh and revocation of tokens.           |
-| `session`        | The lifecycle of a user session.                          |
-| `protocol`       | Protocol-level errors returned to a caller.               |
-| `management`     | Changes made through the management plane.                |
+| `event_category` | Covers                                                     |
+| ---------------- | ---------------------------------------------------------- |
+| `authentication` | The authentication of a client or a subject.               |
+| `authorization`  | The authorization of a request and the consent behind it.  |
+| `token`          | The issuance, refresh and revocation of tokens.            |
+| `session`        | The lifecycle of a user session.                           |
+| `protocol`       | Protocol-level errors returned to a caller.                |
+| `management`     | Changes made through the management plane.                 |
+| `data_access`    | The disclosure of an end user's personal data to a caller. |
 
 ### Event sources
 
@@ -166,13 +167,13 @@ A severity the library does not define logs at Information.
 
 The recorder states the actor explicitly for each event, so the actor does not depend on how a request authenticated.
 
-| `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                    |
-| --------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`. |
-| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry` and `client.authentication`.                                                |
-| `administrator` | The administrator's subject id, when known | Every management event. The subject id is read with the server-default claim types, not the request tenant's setting.                                      |
-| `system`        | None                                       | `session.terminated`; its `details.termination_reason` says why. No caller acted.                                                                          |
-| `anonymous`     | None                                       | `subject.authentication` on failure and `openid.error`: the caller is not identified.                                                                      |
+| `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                                               |
+| --------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                            |
+| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. |
+| `administrator` | The administrator's subject id, when known | Every management event. The subject id is read with the server-default claim types, not the request tenant's setting.                                                                 |
+| `system`        | None                                       | `session.terminated`; its `details.termination_reason` says why. No caller acted.                                                                                                     |
+| `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                 |
 
 ### Resource types
 
@@ -201,19 +202,20 @@ One row for each event the library publishes. In a cell, `none` means the member
 
 ### Protocol plane
 
-| `event_name`             | Category         | Source   | Outcomes             | Severity                                | Actor                                         | Resources             | `error.code`                                                                                                                                 | `details`               |
-| ------------------------ | ---------------- | -------- | -------------------- | --------------------------------------- | --------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `token.issued`           | `token`          | `openid` | `success`            | `info`                                  | `client`                                      | none                  | none                                                                                                                                         | `token_type`            |
-| `token.revoked`          | `token`          | `openid` | `success`            | `info`                                  | `client`                                      | none                  | none                                                                                                                                         | none                    |
-| `token.refresh.replay`   | `token`          | `openid` | `denied`             | `critical`                              | `client`                                      | none                  | none                                                                                                                                         | none                    |
-| `token.refresh.retry`    | `token`          | `openid` | `success`            | `info`                                  | `client`                                      | none                  | none                                                                                                                                         | none                    |
-| `authorization.granted`  | `authorization`  | `openid` | `success`            | `info`                                  | `end_user`, or `anonymous` with no subject    | none                  | none                                                                                                                                         | none                    |
-| `authorization.denied`   | `authorization`  | `openid` | `denied`             | `info`                                  | `end_user`, or `anonymous` with no subject    | none                  | The error code; `access_denied` by default                                                                                                   | none                    |
-| `client.authentication`  | `authentication` | `openid` | `failure`            | `warning`                               | `client`                                      | none                  | The error code; `invalid_client` by default                                                                                                  | `authentication_method` |
+| `event_name`             | Category         | Source   | Outcomes             | Severity                                | Actor                                         | Resources             | `error.code`                                                                                                                                 | `details`                                             |
+| ------------------------ | ---------------- | -------- | -------------------- | --------------------------------------- | --------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `token.issued`           | `token`          | `openid` | `success`            | `info`                                  | `client`                                      | none                  | none                                                                                                                                         | `token_type`                                          |
+| `token.revoked`          | `token`          | `openid` | `success`            | `info`                                  | `client`                                      | none                  | none                                                                                                                                         | none                                                  |
+| `token.refresh.replay`   | `token`          | `openid` | `denied`             | `critical`                              | `client`                                      | none                  | none                                                                                                                                         | none                                                  |
+| `token.refresh.retry`    | `token`          | `openid` | `success`            | `info`                                  | `client`                                      | none                  | none                                                                                                                                         | none                                                  |
+| `authorization.granted`  | `authorization`  | `openid` | `success`            | `info`                                  | `end_user`, or `anonymous` with no subject    | none                  | none                                                                                                                                         | none                                                  |
+| `authorization.denied`   | `authorization`  | `openid` | `denied`             | `info`                                  | `end_user`, or `anonymous` with no subject    | none                  | The error code; `access_denied` by default                                                                                                   | none                                                  |
+| `client.authentication`  | `authentication` | `openid` | `failure`            | `warning`                               | `client`                                      | none                  | The error code: `invalid_client` by default, `attempt_limit_reached` at the limit of failed client authentications                           | `authentication_method`                               |
 | `subject.authentication` | `authentication` | `openid` | `success`, `failure` | `info` on success, `warning` on failure | `end_user` on success, `anonymous` on failure | none                  | Failure only: `authentication_failed`, the bearer token error's code, `subject_id_missing`, `invalid_credentials` or `attempt_limit_reached` | `attempted_username`, on a failure that presented one |
-| `openid.error`           | `protocol`       | `openid` | `failure`, `denied`  | `warning` on failure, `info` on denied  | `anonymous`                                   | none                  | The OAuth error code; `message` is its description and `status_code` the HTTP status                                                         | none                    |
-| `session.created`        | `session`        | `openid` | `success`            | `info`                                  | `end_user`                                    | `session`             | none                                                                                                                                         | none                    |
-| `session.terminated`     | `session`        | `openid` | `success`            | `info`                                  | `system`                                      | `session`, when known | none                                                                                                                                         | `termination_reason`    |
+| `openid.error`           | `protocol`       | `openid` | `failure`, `denied`  | `warning` on failure, `info` on denied  | `anonymous`                                   | none                  | The OAuth error code; `message` is its description and `status_code` the HTTP status                                                         | none                                                  |
+| `session.created`        | `session`        | `openid` | `success`            | `info`                                  | `end_user`                                    | `session`             | none                                                                                                                                         | none                                                  |
+| `session.terminated`     | `session`        | `openid` | `success`            | `info`                                  | `system`                                      | `session`, when known | none                                                                                                                                         | `termination_reason`                                  |
+| `userinfo.accessed`      | `data_access`    | `openid` | `success`, `denied`  | `info`                                  | `client`, or `anonymous` with no client       | none                  | Denied only: `invalid_token`                                                                                                                 | `claim_names`, on success                             |
 
 Notes on the protocol events:
 
@@ -233,6 +235,16 @@ Notes on the protocol events:
   ever holds a verified subject id.
 - `session.terminated` has no `session` resource for a subject-wide termination. `details.termination_reason` is a
   session termination reason or an extension's own name.
+- `userinfo.accessed` is published only when the `audit_userinfo_access` setting is on, for the tenant or for the
+  client the access token was issued to; the setting merges with `Or`, so a client cannot turn off its tenant's
+  choice. On `success` its `subject_id` is the subject whose claims were disclosed, its `client_id` the client that read
+  them, and `details.claim_names` the names of the claims in the response in ordinal order; no claim value and no token
+  is written. It is `denied`, with no details, when the access token authenticated but names no client the tenant
+  serves, and then only the tenant's setting decides. A request whose token does not authenticate is audited as
+  `subject.authentication` instead.
+- `client.authentication` with `attempt_limit_reached` records a client authentication refused because its remote
+  address, or its remote address with the presented `client_id`, reached its limit of failed client authentications;
+  no credential was verified, and `client_id` is the unverified one the request presented, or `unknown`.
 - `token.issued`'s `details.token_type` is the issued token's type, such as `access_token` or `id_token`; the token value
   is never written.
 

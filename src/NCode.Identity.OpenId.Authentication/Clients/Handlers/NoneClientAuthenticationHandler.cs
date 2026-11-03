@@ -13,19 +13,32 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// §2.1) identifies itself with the <c>client_id</c> in the HTTP request body and presents no credential. The handler
 /// owns a request only when it carries no <c>client_secret</c> or <c>client_assertion</c> and the client is registered
 /// as public; the same request from a client registered for another method — a mutual-TLS client, or a confidential
-/// client that omitted its credentials — is left to the other handlers, so it never authenticates as public.
+/// client that omitted its credentials — is left to the other handlers, so it never authenticates as public. A public
+/// client's <c>client_id</c> is no secret (RFC 6749 §2.2), so the method verifies no credential: its requests are
+/// neither refused at the limit of failed client authentications nor counted against it.
 /// </summary>
+// See ADR-1399.
 internal class NoneClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
     IOpenIdClientFactory clientFactory,
     IAuditEventRecorder auditEventRecorder,
+    IClientAuthenticationAttemptLimiter attemptLimiter,
     ILogger<NoneClientAuthenticationHandler> logger
 )
-    : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger),
+    : CommonClientAuthenticationHandler(
+        clientResolver,
+        clientFactory,
+        auditEventRecorder,
+        attemptLimiter,
+        logger
+    ),
         IClientAuthenticationHandler
 {
     /// <inheritdoc />
     public override string AuthenticationMethod => OpenIdProtocol.ClientAuthenticationMethods.None;
+
+    /// <inheritdoc />
+    protected override bool VerifiesCredential => false;
 
     /// <inheritdoc />
     public override async ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(

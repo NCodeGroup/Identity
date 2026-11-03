@@ -82,4 +82,6 @@ internal static class EventIds
     public const int EndSessionContinuationSessionMismatch = Base + 69;
     public const int ClientAuthenticationSecretVerificationUnavailable = Base + 70;
     public const int EndedSessionTerminationFailedForSession = Base + 71;
+    public const int ClientAuthenticationAttemptLimitReached = Base + 72;
+    public const int ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress = Base + 73;
 }

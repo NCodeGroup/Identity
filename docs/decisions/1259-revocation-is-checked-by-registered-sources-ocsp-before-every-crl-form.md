@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): a request goes through the
-  one guarded client)
+  one guarded client; and by
+  [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md): configuration
+  selects and orders the sources, which registered descriptors name)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

@@ -10,9 +10,13 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
+using NCode.Identity.Events;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -216,6 +220,72 @@ public class UserInfoEndpointTests
         var claims = JsonElement.Parse(body);
         Assert.False(string.IsNullOrEmpty(claims.GetProperty("sub").GetString()));
         Assert.Equal(Email, claims.GetProperty("email").GetString());
+    }
+
+    [Fact]
+    public async Task GetUserInfo_WhenAccessAuditingIsOn_AuditsTheSubjectClientAndClaimNames()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var recorder = new RecordingAuditEventHandler();
+        using var auditedFactory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration(
+                (_, configuration) =>
+                    configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["OpenId:Server:Settings:audit_userinfo_access"] = "true",
+                        }
+                    )
+            );
+            builder.ConfigureServices(services =>
+                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
+            );
+        });
+        var client = CreateHttpClient(auditedFactory);
+        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        var (clientId, clientSecret) = await RegisterClientAsync(
+            client,
+            new Dictionary<string, object>()
+        );
+        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+
+        using var response = await GetUserInfoAsync(client, accessToken);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        var claims = JsonElement.Parse(body);
+        var audited = Assert.Single(recorder.Events.OfType<UserInfoAccessedAuditEvent>());
+        Assert.Equal(AuditOutcome.Success, audited.Outcome);
+        Assert.Equal(claims.GetProperty("sub").GetString(), audited.SubjectId);
+        Assert.Equal(clientId, audited.ClientId);
+        Assert.Contains("sub", audited.ClaimNames);
+        Assert.Contains("email", audited.ClaimNames);
+        Assert.DoesNotContain(Email, audited.ClaimNames);
+    }
+
+    [Fact]
+    public async Task GetUserInfo_WhenAccessAuditingIsOff_AuditsNoAccess()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var recorder = new RecordingAuditEventHandler();
+        using var recordedFactory = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services =>
+                services.AddSingleton<IEventHandler<IAuditEvent>>(recorder)
+            )
+        );
+        var client = CreateHttpClient(recordedFactory);
+        await factory.SeedLocalAccountAsync(UserName, Password, Email, emailVerified: true);
+        var (clientId, clientSecret) = await RegisterClientAsync(
+            client,
+            new Dictionary<string, object>()
+        );
+        var accessToken = await RequestAccessTokenAsync(client, clientId, clientSecret);
+
+        using var response = await GetUserInfoAsync(client, accessToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(recorder.Events.OfType<UserInfoAccessedAuditEvent>());
     }
 
     [Fact]

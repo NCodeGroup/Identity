@@ -5,6 +5,8 @@ NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocat
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.ClientCertificateRevocationOptions() -> void
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FailureCacheDuration.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FailureCacheDuration.set -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.Sources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.Sources.set -> void
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FetchTimeout.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FetchTimeout.set -> void
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.MaxCacheDuration.get -> System.TimeSpan

@@ -4,9 +4,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -33,6 +35,7 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
     protected Mock<IOpenIdClientResolver> MockClientResolver { get; }
     protected Mock<IOpenIdClientFactory> MockClientFactory { get; }
     protected Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
+    protected Mock<IClientAuthenticationAttemptLimiter> MockAttemptLimiter { get; }
     protected Mock<OpenIdContext> MockContext { get; }
     protected DefaultHttpContext HttpContext { get; } = new();
 
@@ -41,6 +44,10 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
         MockClientResolver = CreateStrictMock<IOpenIdClientResolver>();
         MockClientFactory = CreateStrictMock<IOpenIdClientFactory>();
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
+
+        // The strict limiter has no scaffold setup: a test on a path that asks the limiter or counts a failure sets up
+        // that call, so a handler that asks or counts where it must not, or fails to where it must, fails the test.
+        MockAttemptLimiter = CreateStrictMock<IClientAuthenticationAttemptLimiter>();
 
         MockContext = CreateStrictMock<OpenIdContext>();
         MockContext.SetupGet(x => x.Http).Returns(HttpContext).Verifiable();
@@ -93,12 +100,12 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
             .ReturnsAsync(client)
             .Verifiable();
 
-    protected void SetupAudit(string reason) =>
+    protected void SetupAudit(string reason, string clientId = ClientId) =>
         MockAuditEventRecorder
             .Setup(x =>
                 x.RecordClientAuthenticationFailedAsync(
                     MockContext.Object,
-                    ClientId,
+                    clientId,
                     AuthenticationMethod,
                     reason,
                     CancellationToken.None
@@ -108,13 +115,58 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
             .Verifiable();
 
     /// <summary>
+    /// Admits the request at the limit of failed client authentications, for a path that asks it.
+    /// </summary>
+    protected void SetupAttemptAdmitted(string? clientId = ClientId) =>
+        MockAttemptLimiter
+            .Setup(x => x.CheckAsync(MockContext.Object, clientId, CancellationToken.None))
+            .ReturnsAsync(RateLimitDecision.Admitted)
+            .Verifiable();
+
+    /// <summary>
+    /// Refuses the request at the limit of failed client authentications, 90.5 seconds before its window ends.
+    /// </summary>
+    protected void SetupAttemptRefused(string? clientId = ClientId) =>
+        MockAttemptLimiter
+            .Setup(x => x.CheckAsync(MockContext.Object, clientId, CancellationToken.None))
+            .ReturnsAsync(new RateLimitDecision(TimeSpan.FromSeconds(90.5)))
+            .Verifiable();
+
+    /// <summary>
+    /// Expects the failure to be counted, with no cancellation token, for a path that refuses a credential.
+    /// </summary>
+    protected void SetupFailureCounted(string? clientId = ClientId) =>
+        MockAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, clientId, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    /// <summary>
+    /// Asserts a refusal at the limit of failed client authentications: <c>429</c>, <c>temporarily_unavailable</c>, a
+    /// <c>Retry-After</c> rounded up to whole seconds and <c>Cache-Control: no-store</c>.
+    /// </summary>
+    protected static void AssertAttemptLimitRefusal(ClientAuthenticationResult result)
+    {
+        Assert.True(result.IsError);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, result.Error.Code);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, result.Error.StatusCode);
+        var headers = result.Error.ResponseHeaders;
+        Assert.NotNull(headers);
+        Assert.Equal("91", headers[HeaderNames.RetryAfter].ToString());
+        Assert.Equal("no-store", headers[HeaderNames.CacheControl].ToString());
+    }
+
+    /// <summary>
     /// Creates a client registered for <paramref name="registeredMethod"/>. A <paramref name="ceiling"/> is set up only
-    /// for a path that reads it, and the client identifier only for a path that reports a failure.
+    /// for a path that reads it, the client identifier only for a path that reports a failure, and whether the client
+    /// is confidential only for a path that wraps the resolved client in a result, which the mutual-TLS handlers do
+    /// only once the certificate matches.
     /// </summary>
     protected OpenIdClient CreateClient(
         string registeredMethod,
         IReadOnlyCollection<string>? ceiling,
-        bool readsClientId
+        bool readsClientId,
+        bool readsIsConfidential = true
     )
     {
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
@@ -138,7 +190,8 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
 
         var mockClient = CreateStrictMock<OpenIdClient>();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
-        mockClient.SetupGet(x => x.IsConfidential).Returns(false).Verifiable();
+        if (readsIsConfidential)
+            mockClient.SetupGet(x => x.IsConfidential).Returns(false).Verifiable();
         if (readsClientId)
             mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
         return mockClient.Object;

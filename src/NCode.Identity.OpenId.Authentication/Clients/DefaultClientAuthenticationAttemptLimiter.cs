@@ -21,7 +21,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <c>client_id</c>, limited by <c>client_authentication_failed_attempts_limit</c>. A partition at its limit refuses
 /// every client authentication it covers until its window ends. A request without a remote address is not limited,
 /// and the first such request logs a warning, so a host whose proxy does not forward the client's address learns that
-/// the limit is off. A counter store that throws propagates the exception, so the limit fails closed.
+/// the limit is off. A counter store that throws propagates the exception, so the limit fails closed: brute-force
+/// protection is a correctness guard, unlike the request rate limiter, a capacity guard, which fails open.
 /// </summary>
 /// <remarks>
 /// Every failure increments both counters of its window together, so the count of an address and a <c>client_id</c>
@@ -67,57 +68,42 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
         CancellationToken cancellationToken
     )
     {
-        var httpContext = openIdContext.Http;
-        if (httpContext.Connection.RemoteIpAddress is not { } address)
-        {
-            WarnWithoutRemoteAddress(openIdContext);
+        if (!TryGetScope(openIdContext, out var scope))
             return RateLimitDecision.Admitted;
-        }
 
-        var tenantId = openIdContext.Tenant.TenantId;
-        var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var addressLimit = settings.GetValue(
-            OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit
-        );
-        var clientLimit = settings.GetValue(
-            OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit
-        );
-        var window = settings.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow);
-
-        var now = TimeProvider.GetUtcNow();
-        var windowStart = GetWindowStart(now, window);
-        var addressValue = RemoteAddressPartition.GetValue(address);
-        var state = GetState(httpContext, windowStart);
+        var state = GetState(openIdContext.Http, scope.WindowStart);
 
         if (state.AddressCount is not { } addressCount)
         {
-            var addressKey = CreateAddressKey(tenantId, addressValue, windowStart);
+            var addressKey = CreateAddressKey(
+                scope.TenantId,
+                scope.AddressValue,
+                scope.WindowStart
+            );
             addressCount = await CounterSet.GetAsync(addressKey, cancellationToken);
             state.AddressCount = addressCount;
         }
 
-        if (addressCount >= addressLimit)
-            return Refuse(openIdContext, AddressPartition, addressLimit, window, windowStart, now);
+        if (addressCount >= scope.AddressLimit)
+            return Refuse(openIdContext, AddressPartition, scope.AddressLimit, scope);
 
-        if (clientId is null || addressCount < clientLimit)
+        if (clientId is null || addressCount < scope.ClientLimit)
             return RateLimitDecision.Admitted;
 
         if (!state.ClientCounts.TryGetValue(clientId, out var clientCount))
         {
-            var clientKey = CreateAddressClientKey(tenantId, addressValue, clientId, windowStart);
+            var clientKey = CreateAddressClientKey(
+                scope.TenantId,
+                scope.AddressValue,
+                clientId,
+                scope.WindowStart
+            );
             clientCount = await CounterSet.GetAsync(clientKey, cancellationToken);
             state.ClientCounts[clientId] = clientCount;
         }
 
-        if (clientCount >= clientLimit)
-            return Refuse(
-                openIdContext,
-                AddressClientPartition,
-                clientLimit,
-                window,
-                windowStart,
-                now
-            );
+        if (clientCount >= scope.ClientLimit)
+            return Refuse(openIdContext, AddressClientPartition, scope.ClientLimit, scope);
 
         return RateLimitDecision.Admitted;
     }
@@ -129,27 +115,10 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
         CancellationToken cancellationToken
     )
     {
-        var httpContext = openIdContext.Http;
-        if (httpContext.Connection.RemoteIpAddress is not { } address)
-        {
-            WarnWithoutRemoteAddress(openIdContext);
+        if (!TryGetScope(openIdContext, out var scope))
             return;
-        }
 
-        var tenantId = openIdContext.Tenant.TenantId;
-        var settings = openIdContext.Tenant.SettingsProvider.Collection;
-        var addressLimit = settings.GetValue(
-            OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit
-        );
-        var clientLimit = settings.GetValue(
-            OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit
-        );
-        var window = settings.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow);
-
-        var now = TimeProvider.GetUtcNow();
-        var windowStart = GetWindowStart(now, window);
-        var windowEnd = windowStart + window;
-        var addressValue = RemoteAddressPartition.GetValue(address);
+        var windowEnd = scope.WindowStart + scope.Window;
 
         // One batch, one round trip: the address's counter first, then the counter of the address and the client_id,
         // which the batch skips once the address is past its limit, so it never counts more than the address.
@@ -157,29 +126,62 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
         [
             new()
             {
-                Key = CreateAddressKey(tenantId, addressValue, windowStart),
+                Key = CreateAddressKey(scope.TenantId, scope.AddressValue, scope.WindowStart),
                 ExpiresWhen = windowEnd,
-                Limit = addressLimit,
+                Limit = scope.AddressLimit,
             },
         ];
         if (clientId is not null)
             increments.Add(
                 new ExpiringCounterIncrement
                 {
-                    Key = CreateAddressClientKey(tenantId, addressValue, clientId, windowStart),
+                    Key = CreateAddressClientKey(
+                        scope.TenantId,
+                        scope.AddressValue,
+                        clientId,
+                        scope.WindowStart
+                    ),
                     ExpiresWhen = windowEnd,
-                    Limit = clientLimit,
+                    Limit = scope.ClientLimit,
                 }
             );
 
         var counts = await CounterSet.IncrementUntilExceededAsync(increments, cancellationToken);
 
         // The request goes on with the counts it just made, should another handler ask again.
-        var state = GetState(httpContext, windowStart);
+        var state = GetState(openIdContext.Http, scope.WindowStart);
         if (counts.Count > 0)
             state.AddressCount = counts[0].Count;
         if (clientId is not null && counts.Count > 1)
             state.ClientCounts[clientId] = counts[1].Count;
+    }
+
+    // A check and a count read the request's address, its tenant's limits and the window the same way, so the keys a
+    // check reads are the keys a failure writes. A request without a remote address is not limited.
+    private bool TryGetScope(OpenIdContext openIdContext, out AttemptScope scope)
+    {
+        if (openIdContext.Http.Connection.RemoteIpAddress is not { } address)
+        {
+            WarnWithoutRemoteAddress(openIdContext);
+            scope = default;
+            return false;
+        }
+
+        var tenant = openIdContext.Tenant;
+        var settings = tenant.SettingsProvider.Collection;
+        var window = settings.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow);
+        var now = TimeProvider.GetUtcNow();
+
+        scope = new AttemptScope(
+            tenant.TenantId,
+            RemoteAddressPartition.GetValue(address),
+            settings.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit),
+            settings.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit),
+            window,
+            GetWindowStart(now, window),
+            now
+        );
+        return true;
     }
 
     // The limit is off for every request of a host that sees no remote address, so the operator is told once per
@@ -196,22 +198,20 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
         OpenIdContext openIdContext,
         string partition,
         int limit,
-        TimeSpan window,
-        DateTimeOffset windowStart,
-        DateTimeOffset now
+        in AttemptScope scope
     )
     {
         Logger.ClientAuthenticationAttemptLimitReached(
-            openIdContext.Tenant.TenantId,
+            scope.TenantId,
             partition,
             limit,
-            window
+            scope.Window
         );
 
         // A refused request is not billed as the tenant's usage, as a request a rate limit refuses is not.
         RateLimitRequestState.Get(openIdContext.Http).IsRefused = true;
 
-        return new RateLimitDecision(windowStart + window - now);
+        return new RateLimitDecision(scope.WindowStart + scope.Window - scope.Now);
     }
 
     // The reads of a request hold for the window they were made in; a request that spans a window's end reads again.
@@ -262,4 +262,18 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
             clientId,
             windowStart.UtcTicks.ToString(CultureInfo.InvariantCulture)
         );
+
+    /// <summary>
+    /// What a check and a count of one request share: the tenant, the partitioned remote address, the tenant's limits,
+    /// and the window the request falls in.
+    /// </summary>
+    private readonly record struct AttemptScope(
+        string TenantId,
+        string AddressValue,
+        int AddressLimit,
+        int ClientLimit,
+        TimeSpan Window,
+        DateTimeOffset WindowStart,
+        DateTimeOffset Now
+    );
 }

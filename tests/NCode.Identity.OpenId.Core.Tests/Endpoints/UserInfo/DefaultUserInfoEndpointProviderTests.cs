@@ -349,5 +349,30 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
     }
 
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheTenantAuditsAccessAndTheTokenNamesNoClient_AuditsTheRefusalWithoutAClient()
+    {
+        // The token authenticated but names no client, so the refusal is audited with no client id; the strict client
+        // resolver proves no client is looked up. See ADR-1401.
+        SetupAuthenticatedSubject(clientId: null);
+        SetupTenantAudit(auditsAccess: true);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordUserInfoAccessDeniedAsync(
+                    OpenIdContext,
+                    "principal-1",
+                    null,
+                    OpenIdProtocol.ErrorCodes.InvalidToken,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
+    }
+
     #endregion
 }

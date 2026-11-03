@@ -12,7 +12,9 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// <remarks>
 /// The registered sources are the <see cref="ClientCertificateRevocationSourceDescriptor"/> instances that packages
 /// contribute. The catalog is independent of the <see cref="IClientCertificateRevocationSource"/> implementations, so
-/// reading it constructs no source.
+/// reading it constructs no source. The validator of the revocation options reads it as the host starts, so an
+/// implementation depends on nothing that reads those options and resolves no source: one that did would build its
+/// graph inside options validation and deadlock the host's composition.
 /// </remarks>
 [PublicAPI]
 public interface IClientCertificateRevocationSourceCatalog

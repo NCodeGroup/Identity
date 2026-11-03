@@ -838,6 +838,59 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal(AuditOutcome.Denied, captured.Outcome);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, captured.Error?.Code);
+        Assert.Empty(captured.ClaimNames);
+        Assert.False(captured.HasAuditDetails);
+    }
+
+    [Fact]
+    public async Task RecordUserInfoAccessDeniedAsync_WithoutAClient_PublishesADeniedEventWithAnAnonymousActor()
+    {
+        // A token that names no client identifies no caller, so the denied event's actor is anonymous.
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        SetupTenantEnvironmentType(mockTenant, "production");
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("userinfo_endpoint")).Verifiable();
+
+        UserInfoAccessedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<UserInfoAccessedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (UserInfoAccessedAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordUserInfoAccessDeniedAsync(
+            mockContext.Object,
+            "subject-1",
+            clientId: null,
+            OpenIdProtocol.ErrorCodes.InvalidToken,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("userinfo.accessed", captured.EventName);
+        Assert.Equal(AuditEventCategories.DataAccess, captured.EventCategory);
+        Assert.Equal(AuditOutcome.Denied, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Null(captured.ClientId);
+        Assert.Equal(AuditActor.Anonymous, captured.Actor);
+        Assert.Equal("userinfo_endpoint", captured.Request?.Endpoint);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, captured.Error?.Code);
         Assert.Empty(captured.ClaimNames);
         Assert.False(captured.HasAuditDetails);

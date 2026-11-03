@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Primitives;
-using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.ClientCertificates;
 
-public sealed class DefaultClientCertificateRevocationSourceCatalogTests
+public sealed class DefaultClientCertificateRevocationSourceCatalogTests : BaseTests
 {
     private static DefaultClientCertificateRevocationSourceCatalog CreateCatalog(
         params ClientCertificateRevocationSourceDescriptor[] descriptors
@@ -20,8 +19,11 @@ public sealed class DefaultClientCertificateRevocationSourceCatalogTests
     [Fact]
     public void Constructor_WithTheDefaultDataSource_OrdersOcspBeforeCrl()
     {
+        // The descriptors are static, so the catalog never asks the data source for its change token.
         var catalog = new DefaultClientCertificateRevocationSourceCatalog([
-            new DefaultClientCertificateRevocationSourceDataSource(Mock.Of<INullChangeToken>()),
+            new DefaultClientCertificateRevocationSourceDataSource(
+                CreateStrictMock<INullChangeToken>().Object
+            ),
         ]);
 
         Assert.Equal(

@@ -81,15 +81,21 @@ limit until its window ends, the way a rate limit refuses.**
    so a refusal's `Retry-After` is exactly the time until the window ends. The three settings apply to tenants, are not
    discoverable, and have defaults:
 
-   | Setting                                              | Rule                 | Default    | Merge |
-   |------------------------------------------------------|----------------------|------------|-------|
-   | `client_authentication_failed_attempts_limit`         | 1 to 100             | 10         | `Min` |
-   | `client_authentication_failed_attempts_address_limit` | 1 to 10,000          | 100        | `Min` |
+   | Setting                                               | Rule                  | Default    | Merge |
+   | ----------------------------------------------------- | --------------------- | ---------- | ----- |
+   | `client_authentication_failed_attempts_limit`         | 1 to 100              | 10         | `Min` |
+   | `client_authentication_failed_attempts_address_limit` | 1 to 10,000           | 100        | `Min` |
    | `client_authentication_failed_attempts_window`        | one minute to one day | 15 minutes | `Max` |
 
    With the defaults, one address tries at most 960 credentials of one client a day and 9,600 across clients. A
-   narrower scope may only lower a limit or lengthen the window. A successful authentication clears nothing: clearing
-   would cost a write on every authentication, and a client that holds its credential does not fail.
+   narrower scope may only lower a limit or lengthen the window. The ceiling of 100 on
+   `client_authentication_failed_attempts_limit` is NIST SP 800-63B-4 §3.2.2's bound on the consecutive failures
+   against one account's secret, as it is on `password_failed_attempts_limit`
+   ([ADR-1237](1237-failed-password-attempts-are-limited-per-account.md)); the address limit bounds an aggregate
+   across clients, each of which the narrower limit already caps, so its ceiling of 10,000 admits the confidential
+   clients behind one large NAT gateway or proxy without raising the guesses one client's credential is exposed to. A
+   successful authentication clears nothing: clearing would cost a write on every authentication, and a client that
+   holds its credential does not fail.
 5. **One read for a clean address, one write per failure.** A failure increments both counters of its window in one
    `IncrementUntilExceededAsync` batch, address first, with each limit as the batch's limit, so the counter of an
    address and a `client_id` never exceeds the address's. A check therefore reads the address's counter and reads the

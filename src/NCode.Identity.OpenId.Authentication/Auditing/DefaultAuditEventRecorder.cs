@@ -376,13 +376,34 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Actor = AuditActor.Client(openIdClient.ClientId),
             Request = CreateRequest(openIdContext),
             Outcome = AuditOutcome.Success,
-            ClaimNames =
-            [
-                .. claimNames.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal),
-            ],
+            ClaimNames = SortDistinct(claimNames),
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    // The names of a response's claims in ordinal order, each once: one array, sorted in place and compacted, so an
+    // audited response allocates no enumerator or delegate beyond the record it publishes.
+    private static string[] SortDistinct(IEnumerable<string> claimNames)
+    {
+        var names = claimNames.ToArray();
+        if (names.Length < 2)
+            return names;
+
+        Array.Sort(names, StringComparer.Ordinal);
+
+        var count = 1;
+        for (var i = 1; i < names.Length; i++)
+        {
+            if (!string.Equals(names[i], names[count - 1], StringComparison.Ordinal))
+                names[count++] = names[i];
+        }
+
+        if (count == names.Length)
+            return names;
+
+        Array.Resize(ref names, count);
+        return names;
     }
 
     /// <inheritdoc />

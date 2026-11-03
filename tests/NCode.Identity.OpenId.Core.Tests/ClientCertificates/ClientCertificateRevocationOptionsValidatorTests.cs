@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Moq;
+using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using Xunit;
@@ -10,10 +10,14 @@ namespace NCode.Identity.OpenId.Core.Tests.ClientCertificates;
 
 public sealed class ClientCertificateRevocationOptionsValidatorTests
 {
+    // The validator is tested against descriptors of its own, so the shipped sources can change without touching it.
     private ClientCertificateRevocationOptionsValidator Validator { get; } =
         new(
             new DefaultClientCertificateRevocationSourceCatalog([
-                new DefaultClientCertificateRevocationSourceDataSource(Mock.Of<INullChangeToken>()),
+                new StaticDataSource([
+                    new ClientCertificateRevocationSourceDescriptor { Name = "first", Order = 1 },
+                    new ClientCertificateRevocationSourceDescriptor { Name = "second", Order = 2 },
+                ]),
             ])
         );
 
@@ -95,7 +99,7 @@ public sealed class ClientCertificateRevocationOptionsValidatorTests
     [Fact]
     public void Validate_WhenTheSourcesNameRegisteredSourcesInAnyOrder_Succeeds()
     {
-        var options = new ClientCertificateRevocationOptions { Sources = ["crl", "ocsp"] };
+        var options = new ClientCertificateRevocationOptions { Sources = ["second", "first"] };
 
         var result = Validator.Validate(null, options);
 
@@ -105,13 +109,13 @@ public sealed class ClientCertificateRevocationOptionsValidatorTests
     [Fact]
     public void Validate_WhenTheSourcesNameAnUnregisteredSource_FailsNamingItAndTheRegisteredSources()
     {
-        var options = new ClientCertificateRevocationOptions { Sources = ["crl", "ocps"] };
+        var options = new ClientCertificateRevocationOptions { Sources = ["first", "third"] };
 
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "('ClientCertificateRevocation:Sources') names 'ocps', which is not a registered revocation source; the registered sources are 'ocsp', 'crl'.",
+            "('ClientCertificateRevocation:Sources') names 'third', which is not a registered revocation source; the registered sources are 'first', 'second'.",
             result.FailureMessage,
             StringComparison.Ordinal
         );
@@ -120,17 +124,57 @@ public sealed class ClientCertificateRevocationOptionsValidatorTests
     [Fact]
     public void Validate_WhenTheSourcesNameASourceTwice_Fails()
     {
-        var options = new ClientCertificateRevocationOptions { Sources = ["crl", "crl"] };
+        var options = new ClientCertificateRevocationOptions { Sources = ["first", "first"] };
 
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "names 'crl' more than once",
+            "names 'first' more than once",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenTheSourcesAreNull_Fails()
+    {
+        var options = new ClientCertificateRevocationOptions { Sources = null! };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "('ClientCertificateRevocation:Sources') must not be null.",
+            result.FailureMessage,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenTheSourcesContainANullEntry_Fails()
+    {
+        var options = new ClientCertificateRevocationOptions { Sources = ["first", null!] };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "('ClientCertificateRevocation:Sources') must not contain a null entry.",
             result.FailureMessage,
             StringComparison.Ordinal
         );
     }
 
     #endregion
+
+    private sealed class StaticDataSource(
+        IEnumerable<ClientCertificateRevocationSourceDescriptor> items
+    ) : ICollectionDataSource<ClientCertificateRevocationSourceDescriptor>
+    {
+        public IEnumerable<ClientCertificateRevocationSourceDescriptor> Collection { get; } =
+        [.. items];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    }
 }

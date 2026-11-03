@@ -29,7 +29,7 @@ public class DefaultClientCertificateRevocationCheckerTests : BaseTests
     private Mock<IClientCertificateRevocationSource> CreateSource(string name)
     {
         var mockSource = CreateStrictMock<IClientCertificateRevocationSource>();
-        mockSource.SetupGet(x => x.Name).Returns(name);
+        mockSource.SetupGet(x => x.Name).Returns(name).Verifiable();
         return mockSource;
     }
 
@@ -126,6 +126,27 @@ public class DefaultClientCertificateRevocationCheckerTests : BaseTests
         );
 
         Assert.Contains("More than one", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Constructor_WhenAConfiguredSourceIsNotRegistered_Throws()
+    {
+        // The options validator checks the configured names against the catalog as the host starts, so only a catalog
+        // that a host replaced can describe a configured name without a registered source.
+        var crl = CreateSource("crl");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new DefaultClientCertificateRevocationChecker(
+                [crl.Object],
+                CreateCatalog(new ClientCertificateRevocationSourceDescriptor { Name = "crl" }),
+                Options.Create(new ClientCertificateRevocationOptions { Sources = ["deny-list"] })
+            )
+        );
+
+        Assert.Equal(
+            "The configured client-certificate revocation source 'deny-list' is not registered.",
+            exception.Message
+        );
     }
 
     #endregion

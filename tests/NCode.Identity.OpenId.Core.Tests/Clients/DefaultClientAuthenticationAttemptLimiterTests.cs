@@ -51,6 +51,8 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
 
     #region Scaffolding
 
+    // A request with a remote address reads its tenant's three settings; one without reads none, and reads the tenant
+    // id only for the one warning a limiter logs, so a test of that path gives the limiter one context.
     private OpenIdContext CreateContext(string? remoteAddress)
     {
         var httpContext = new DefaultHttpContext();
@@ -58,29 +60,35 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
             ? null
             : IPAddress.Parse(remoteAddress);
 
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit))
-            .Returns(ClientLimit);
-        mockSettings
-            .Setup(x =>
-                x.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit)
-            )
-            .Returns(AddressLimit);
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow))
-            .Returns(Window);
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
 
-        var mockProvider = CreateLooseMock<IReadOnlySettingCollectionProvider>();
-        mockProvider.Setup(x => x.Collection).Returns(mockSettings.Object);
+        if (remoteAddress is not null)
+        {
+            var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit))
+                .Returns(ClientLimit)
+                .Verifiable();
+            mockSettings
+                .Setup(x =>
+                    x.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit)
+                )
+                .Returns(AddressLimit)
+                .Verifiable();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow))
+                .Returns(Window)
+                .Verifiable();
 
-        var mockTenant = CreateLooseMock<OpenIdTenant>();
-        mockTenant.Setup(x => x.TenantId).Returns(TenantId);
-        mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+            var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+            mockProvider.SetupGet(x => x.Collection).Returns(mockSettings.Object).Verifiable();
+            mockTenant.SetupGet(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
+        }
 
-        var mockContext = CreateLooseMock<OpenIdContext>();
-        mockContext.Setup(x => x.Http).Returns(httpContext);
-        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object);
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         return mockContext.Object;
     }
 
@@ -140,10 +148,11 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
             TimeProvider,
             Logger
         );
+        var context = CreateContext(null);
 
-        await limiter.CheckAsync(CreateContext(null), ClientId, CancellationToken.None);
-        await limiter.RecordFailureAsync(CreateContext(null), ClientId, CancellationToken.None);
-        await limiter.CheckAsync(CreateContext(null), ClientId, CancellationToken.None);
+        await limiter.CheckAsync(context, ClientId, CancellationToken.None);
+        await limiter.RecordFailureAsync(context, ClientId, CancellationToken.None);
+        await limiter.CheckAsync(context, ClientId, CancellationToken.None);
 
         var record = Assert.Single(Logger.Collector.GetSnapshot());
         Assert.Equal(

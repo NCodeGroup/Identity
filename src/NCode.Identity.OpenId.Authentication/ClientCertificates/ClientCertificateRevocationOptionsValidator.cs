@@ -76,7 +76,11 @@ internal sealed class ClientCertificateRevocationOptionsValidator(
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var name in sources)
         {
-            if (name is null || !Catalog.TryGet(name, out _))
+            if (name is null)
+            {
+                failures.Add($"{property} must not contain a null entry.");
+            }
+            else if (!Catalog.TryGet(name, out _))
             {
                 var registered = string.Join(", ", Catalog.SourceNames.Select(n => $"'{n}'"));
                 failures.Add(

@@ -47,7 +47,9 @@ internal sealed class DefaultClientAuthenticationAttemptSettingDescriptorDataSou
 
             // client_authentication_failed_attempts_address_limit: the failed client authentications one remote address
             // may make for every client_id together within a window, which bounds an address that tries many
-            // client_ids. Between 1 and 10,000; default 100. Ceiling (Min): a narrower scope may only lower it.
+            // client_ids. Between 1 and 10,000; default 100: an aggregate across clients, each already capped by the
+            // narrower limit, so its ceiling admits the clients behind one large gateway. Ceiling (Min): a narrower
+            // scope may only lower it.
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.ClientAuthenticationFailedAttemptsAddressLimit,

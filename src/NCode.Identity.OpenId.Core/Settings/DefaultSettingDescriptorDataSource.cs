@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.Settings;
 using static NCode.Identity.Settings.SettingMerge;
 
@@ -36,7 +37,8 @@ internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IEnumerable<ISecurityProfile> securityProfiles,
-    IEnumerable<IRedirectUriKind> redirectUriKinds
+    IEnumerable<IRedirectUriKind> redirectUriKinds,
+    IUiLocaleCatalog uiLocaleCatalog
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
@@ -62,6 +64,8 @@ internal class DefaultSettingDescriptorDataSource(
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
+
+    private IUiLocaleCatalog UiLocaleCatalog { get; } = uiLocaleCatalog;
 
     private ImmutableArray<string> SecurityProfileNames { get; } =
     [.. securityProfiles.Select(profile => profile.ProfileName).Order(StringComparer.Ordinal)];
@@ -1962,16 +1966,31 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // ui_locales_supported: BCP47 locales the server's UI supports.
+            // ui_locales_supported: the registered UI locales a request's ui_locales may select, so discovery advertises
+            // only locales the end-user interface renders (ADR-1402).
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UiLocalesSupported,
                 AppliesTo = Tenants,
-                Rule = SettingRules.Each(OpenIdSettingRules.Token()),
+                Rule = SettingRules.Each(UiLocale()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
+            };
+
+            // default_ui_locale: the registered UI locale the end-user interface renders in when no preference selects
+            // another; empty renders in the first registered locale (ADR-1402). Not advertised.
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.DefaultUiLocale,
+                AppliesTo = Tenants,
+                Rule = SettingRules.EmptyOr(UiLocale()),
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
             };
 
             // userinfo_encrypted_response_alg: the key-management "alg" the client registers for encrypting its UserInfo
@@ -2262,6 +2281,15 @@ internal class DefaultSettingDescriptorDataSource(
                 value => value.Count == 0
             )
             : SettingRules.Each(SettingRules.OneOf(RedirectUriKindNames));
+
+    /// <summary>
+    /// Gets the rule for a locale the end-user interface renders: the value names a registered UI locale.
+    /// </summary>
+    private SettingRule<string> UiLocale() =>
+        SettingRules.Must<string>(
+            "a registered UI locale such as 'en'",
+            languageTag => UiLocaleCatalog.TryGet(languageTag, out _)
+        );
 
     /// <summary>
     /// Gets the rule for a list of signature algorithms a client or the server may choose from, symmetric ones

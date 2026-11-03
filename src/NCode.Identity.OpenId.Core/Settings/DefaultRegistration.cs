@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Registration;
@@ -96,6 +97,11 @@ internal static class DefaultRegistration
                     ProductionTenantEnvironmentType
                 >()
             );
+
+            // The UI locale catalog resolves the locales the end-user interface registers, which is the domain of the
+            // ui_locales_supported and default_ui_locale settings; it reads only data, so the descriptors consult it
+            // inside options validation (ADR-1402).
+            serviceCollection.TryAddSingleton<IUiLocaleCatalog, DefaultUiLocaleCatalog>();
 
             // The tenant environment catalog resolves the registered types by name, and the settings that govern them are
             // contributed beside it as descriptors.

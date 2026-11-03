@@ -1,9 +1,8 @@
 # Conformance automation harness
 
-Committed, runnable realization of issue [#129](https://github.com/NCodeGroup/Identity/issues/129) Phase 4 / [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D: it wires the external **OpenID
-Foundation Conformance Suite** (the certified oracle) behind the in-house probe-runner **pre-flight**, so one
-command drives both against the OpenID host. Design and the manual-triage plan live in
-[`docs/conformance-testing.md`](../../docs/conformance-testing.md) and
+The committed, runnable conformance harness: it wires the external **OpenID Foundation Conformance Suite** (the
+certified oracle) behind the in-house probe-runner **pre-flight**, so one command drives both against the OpenID host.
+The design and the suite results live in [`docs/conformance-testing.md`](../../docs/conformance-testing.md) and
 [`docs/conformance/external-suite.md`](../../docs/conformance/external-suite.md).
 
 This harness is **not** part of [`build/dod.ps1`](../dod.ps1): the external suite needs Docker + Python 3 and
@@ -116,7 +115,7 @@ shell-profile snippets in [`src/frontend/README.md`](../../src/frontend/README.m
 **Default profile scope.** The default run gates on the **Config OP** profile only. The browser-driven **Basic OP**
 profile is opt-in (`-IncludeBrowserPlans`) because it is slower: the suite's headless, no-JavaScript
 **HtmlUnitDriver** drives the OP's interactive login and consent through the server-rendered no-JS form, under Dynamic
-Client Registration. It runs green; status and triage history are in
+Client Registration. It runs green; its results are in
 [`docs/conformance/external-suite.md`](../../docs/conformance/external-suite.md).
 
 **FAPI 1.0 Advanced.** `-Fapi1Advanced` runs `fapi1-advanced-final-test-plan` four times, with `private_key_jwt` and

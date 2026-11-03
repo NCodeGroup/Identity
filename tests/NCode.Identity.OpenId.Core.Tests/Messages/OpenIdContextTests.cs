@@ -59,34 +59,4 @@ public sealed class OpenIdContextTests : IDisposable
         Assert.Same(MockHttpContext.Object, openIdContext.Http);
         Assert.Same(MockMediator.Object, openIdContext.Mediator);
     }
-
-    // TODO: move to OpenIdServerTests
-    // [Fact]
-    // public void JsonSerializerOptions_Valid()
-    // {
-    //     var context = new DefaultOpenIdContext(
-    //         MockHttpContext.Object,
-    //         MockMediator.Object,
-    //         MockOpenIdTenant.Object,
-    //         MockPropertyBag.Object
-    //     );
-    //
-    //     Assert.Same(context.JsonSerializerOptions, context.JsonSerializerOptions);
-    //
-    //     Assert.True(context.JsonSerializerOptions.PropertyNameCaseInsensitive);
-    //     Assert.Equal(JsonNamingPolicy.CamelCase, context.JsonSerializerOptions.PropertyNamingPolicy);
-    //     Assert.Equal(JsonNumberHandling.AllowReadingFromString, context.JsonSerializerOptions.NumberHandling);
-    //
-    //     Assert.Equal(JsonCommentHandling.Skip, context.JsonSerializerOptions.ReadCommentHandling);
-    //     Assert.True(context.JsonSerializerOptions.AllowTrailingCommas);
-    //
-    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is OpenIdMessageJsonConverterFactory);
-    //
-    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaim, RequestClaim>);
-    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IRequestClaims, RequestClaims>);
-    //
-    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is AuthorizationRequestJsonConverter);
-    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestMessage, AuthorizationRequestMessage>);
-    //     Assert.Contains(context.JsonSerializerOptions.Converters, converter => converter is DelegatingJsonConverter<IAuthorizationRequestObject, AuthorizationRequestObject>);
-    // }
 }

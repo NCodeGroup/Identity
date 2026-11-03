@@ -930,7 +930,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Seeds a resource server owning the given scopes and a client grant authorizing the client to all of them,
-    /// so the client may request those scopes (replaces the retired <c>scopes_supported</c> setting).
+    /// so the client may request those scopes.
     /// </summary>
     public Task SeedResourceServerWithClientGrantAsync(
         string clientId,

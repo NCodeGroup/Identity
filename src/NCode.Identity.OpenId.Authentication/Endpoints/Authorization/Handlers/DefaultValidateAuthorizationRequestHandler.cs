@@ -487,15 +487,10 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         // response_modes_supported is enforced when the delivery is derived (IAuthorizationResponseDeliveryResolver)
 
-        // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-1026)
+        // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-1026), and so are the RFC 8707
+        // resource indicators
 
-        // TODO: other checks...
-
-        // ui_locales_supported
-
-        // Resource Indicators
-        // https://datatracker.ietf.org/doc/html/rfc8707
-
-        // check session cookie
+        // ui_locales is a preference, so a locale outside ui_locales_supported never fails the request
+        // (OpenID Connect Core 1.0 §3.1.2.1)
     }
 }

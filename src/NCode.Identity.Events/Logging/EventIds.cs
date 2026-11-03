@@ -17,7 +17,7 @@ internal static class EventIds
     public const int EventHandlerFailed = Base + 1;
     public const int EventPublished = Base + 2;
 
-    // 14003 and 14004 are retired; never reuse them.
+    // 14003 and 14004 are reserved and never assigned, as ADR-1283 decides.
     public const int AuditRecorded = Base + 5;
     public const int BackgroundEventDropped = Base + 6;
 }

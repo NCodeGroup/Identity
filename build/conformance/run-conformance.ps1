@@ -3,11 +3,11 @@
 <#
 .SYNOPSIS
     Drives the external OpenID Foundation Conformance Suite against the NCode.Identity OpenID Provider,
-    with the in-house probe runner as a fast pre-flight (issue #129 Phase 4 / #124).
+    with the in-house probe runner as a fast pre-flight.
 
 .DESCRIPTION
-    This is the committed, runnable realization of the full-automation plan in
-    `docs/conformance-testing.md` (Phase D) and `docs/conformance/external-suite.md`. It:
+    This is the committed, runnable automation that `docs/conformance-testing.md` designs and
+    `docs/conformance/external-suite.md` describes. It:
 
       1. launches the OpenID host on the reachable HTTPS host the suite drives (`host.docker.internal:5001`,
          the `Conformance` launch profile — issue #126);

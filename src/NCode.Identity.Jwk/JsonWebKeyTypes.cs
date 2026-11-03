@@ -8,7 +8,7 @@ namespace NCode.Identity.Jwk;
 /// <summary>
 /// Defines the values of the <c>kty</c> member of a <c>JSON Web Key</c> from the IANA JSON Web Key Types registry.
 /// This is an extensible vocabulary of string constants, not a closed enumeration, so a contributed key type adds its
-/// own name without a breaking change. <see cref="JsonWebKeyTypeDescriptors"/> holds each type's rules.
+/// own name without editing this package. <see cref="JsonWebKeyTypeDescriptors"/> holds each type's rules.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7518#section-6.1">RFC 7518 - "kty" (Key Type) Parameter Values</seealso>
 [PublicAPI]

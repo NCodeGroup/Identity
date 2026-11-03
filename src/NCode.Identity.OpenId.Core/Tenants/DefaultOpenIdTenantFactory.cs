@@ -375,8 +375,8 @@ public class DefaultOpenIdTenantFactory(
             return tenantIssuer;
         }
 
-        // Every tenant a strategy serves is written with an issuer (ADR-1165), so this is a tenant stored before that
-        // rule or written around it. It fails closed: deriving an origin from the request would let a caller's Host
+        // Every write path gives a tenant a strategy serves an issuer (ADR-1165), so only a tenant written around those
+        // paths reaches this point. It fails closed: deriving an origin from the request would let a caller's Host
         // header choose where the server tells clients to send their credentials (ADR-1129).
         throw new InvalidOperationException(
             $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be served. Give it an issuer "

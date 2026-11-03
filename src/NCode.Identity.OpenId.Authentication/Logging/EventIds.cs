@@ -33,7 +33,7 @@ internal static class EventIds
     public const int UnexpectedOpenIdError = Base + 17;
     public const int OpenIdErrorException = Base + 18;
 
-    // Base + 19 is retired; an event ID is never reused.
+    // Base + 19 is reserved and never assigned, so every event ID keeps one meaning.
     public const int AccessTokenInvalid = Base + 20;
     public const int EndUserSessionAuthenticationFailed = Base + 21;
     public const int EndSessionIdTokenHintInvalid = Base + 22;
@@ -58,7 +58,7 @@ internal static class EventIds
     public const int RateLimitExceeded = Base + 42;
     public const int RateLimitStoreUnavailable = Base + 43;
 
-    // Base + 44 is retired and never reused.
+    // Base + 44 is reserved and never assigned, as ADR-1246 decides.
     public const int TenantUsageFlushFailed = Base + 45;
     public const int TenantUsagePruneFailed = Base + 46;
     public const int RateLimitStoreRecovered = Base + 47;

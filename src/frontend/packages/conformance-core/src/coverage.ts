@@ -6,10 +6,10 @@
  * Where the discovery security audit ([audit.ts](./audit.ts)) answers "is the advertised configuration secure?", this
  * module answers "of the entire published spec surface, what is implemented, missing, or non-conformant?".
  *
- * Phase 1 classification is **discovery-driven**: status derives entirely from the published
+ * Classification is **discovery-driven**: status derives entirely from the published
  * `/.well-known/openid-configuration`, so the matrix is read-only and needs no OAuth client. The column semantics are
- * therefore *advertised* — a secure-by-default provider (ADR-1083) may implement but not advertise a capability. Later
- * phases add active probes that refine *advertised* into *verified*. See
+ * therefore *advertised* — a secure-by-default provider (ADR-1083) may implement but not advertise a capability. The
+ * active probes ([probes.ts](./probes.ts) and the headless probe runner) refine *advertised* into *verified*. See
  * [ADR-1084](../../../../../docs/decisions/1084-spec-coverage-conformance-harness.md).
  */
 
@@ -546,7 +546,7 @@ const OIDC: Catalog = {
           : {
               status: 'missing',
               detail:
-                "'frontchannel_logout_supported' is not advertised (intentionally deferred — depends on third-party cookies).",
+                "'frontchannel_logout_supported' is not advertised (opt-in: it depends on third-party cookies).",
             },
     },
   ],
@@ -683,7 +683,7 @@ const EMPTY_TOTALS: Record<CoverageStatus, number> = {
 /**
  * Builds the full spec-coverage matrix for a provider from its published discovery metadata. Every catalog row is
  * classified `implemented` / `partial` / `missing` / `non-conformant`; the status reflects what the provider
- * *advertises* (Phase 1 semantics), not an active probe.
+ * *advertises*, not an active probe.
  */
 export function buildCoverageReport(raw: RawDiscovery): CoverageReport {
   const totals: Record<CoverageStatus, number> = { ...EMPTY_TOTALS };

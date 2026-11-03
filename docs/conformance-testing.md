@@ -1,11 +1,12 @@
-# OIDC / OAuth conformance testing — plan
+# OIDC / OAuth conformance testing
 
-Status: **harness committed; nightly CI pipeline deferred.** The committed, runnable automation lives in
-[`build/conformance/`](../build/conformance) (orchestration `run-conformance.ps1` + config templates +
-baselines), summarized in [`docs/conformance/external-suite.md`](conformance/external-suite.md); the
-appendices below are the reference material it was lifted from. This document remains the design and work plan
-for validating the NCode.Identity OpenID Provider (OP) against an **independent**, spec-author-maintained
-conformance harness, and for driving that harness **fully automated** in CI. It is linked from issue [#124](https://github.com/NCodeGroup/Identity/issues/124).
+The NCode.Identity OpenID Provider (OP) is validated against an **independent**, spec-author-maintained conformance
+harness, driven **fully automated** by the committed automation in [`build/conformance/`](../build/conformance)
+(orchestration `run-conformance.ps1` + config templates + baselines), which
+[`docs/conformance/external-suite.md`](conformance/external-suite.md) describes. This document is the design: why an
+external harness, how the suite works, what full automation requires of the repository and where each requirement
+lives, and the annotated reference templates behind the committed configs. Tracking issue:
+[#124](https://github.com/NCodeGroup/Identity/issues/124).
 
 ## Why an external harness (not just our own tests)
 
@@ -77,55 +78,63 @@ though the protocol is correct.
   the run, and stale baseline entries that no longer fire also fail it.
 - `--export-dir` saves per-plan result zips; `compare-results.py` diffs runs.
 
-## Target profiles (phased)
+## Target profiles
 
 Selected under "Test an OpenID Provider" in the suite:
 
-1. **Basic OP** (`oidcc-basic-certification-test-plan`) — authorization-code flow. **First target.**
+1. **Basic OP** (`oidcc-basic-certification-test-plan`) — authorization-code flow, run under Dynamic Client
+   Registration.
 2. **Config OP** (`oidcc-config-certification-test-plan`) — validates `/.well-known/openid-configuration`.
-3. **Form Post OP** — only if `response_mode=form_post` is supported; run per auth profile.
-4. **Implicit OP / Hybrid OP** — only after confirming `id_token` / `token` / `code id_token` response
-   types are fully implemented at the authorize endpoint (constants exist; flow support must be verified).
-5. **Dynamic OP** — requires Dynamic Client Registration (RFC 7591), **not yet implemented** (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)).
-6. **FAPI 1/2** — deferred; only if we target open-finance ecosystems.
+3. **Form Post OP** — `response_mode=form_post` is supported; run per auth profile.
+4. **Implicit OP / Hybrid OP** — the OP does not advertise implicit or hybrid response types by default
+   ([ADR-1083](decisions/1083-secure-by-default-discovery-metadata.md)), so these profiles apply only to a host that
+   enables them.
+5. **Dynamic OP** — Dynamic Client Registration (RFC 7591) is implemented
+   ([ADR-1063](decisions/1063-dynamic-client-registration.md)).
+6. **FAPI 1.0 Advanced** — wired as `run-conformance.ps1 -Fapi1Advanced`; its run and baseline are tracked in
+   [#124](https://github.com/NCodeGroup/Identity/issues/124). FAPI 2 is out of scope unless the family targets
+   open-finance ecosystems.
 
 ## What "full automation" requires in this repo
 
-Prerequisites, roughly in dependency order:
+Prerequisites, in dependency order, each with the document that describes how the repository meets it:
 
 1. **Reachable HTTPS host.** Run the host on a real Kestrel HTTPS endpoint the suite's Selenium/nginx
    can reach (not `TestServer`). The existing
    [`HostApplicationFactory`](../tests/NCode.Identity.OpenId.Integration.Tests/Infrastructure/HostApplicationFactory.cs)
    is in-process only; CI needs a launched process (Docker container or `dotnet run`) addressable from
-   the suite. On Windows/Docker, the suite reaches the host via `host.docker.internal`.
+   the suite. On Windows/Docker, the suite reaches the host via `host.docker.internal`. The `Conformance` launch
+   profile provides it ([`reachable-host.md`](conformance/reachable-host.md)).
 2. **Automatable login + consent UI** with stable selectors and a **seeded deterministic conformance
    user** (fixed username; password generated per machine and never committed —
-   [#514](https://github.com/NCodeGroup/Identity/issues/514)). Auto-consent (or a scripted consent task) for the test
-   client.
-3. **Deterministic conformance tenant + clients.** Either:
-    - seed the required clients (the manual path needs **three**: two `client_secret_basic`, one
-      `client_secret_post` — the second basic client exists so the suite can prove auth codes are bound to
-      the issuing client), **or**
-    - implement **Dynamic Client Registration** (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)), which removes manual seeding _and_ lets the
-      suite run plan modules in parallel (it serialises when an `alias`/static client is used).
+   [#514](https://github.com/NCodeGroup/Identity/issues/514)), with a scripted, optional consent task
+   ([`login-consent-ui.md`](conformance/login-consent-ui.md)).
+3. **Deterministic conformance tenant + clients.** The seeder provisions the conformance tenant, the test user and
+   the static clients (the static-client path needs **three**: two `client_secret_basic`, one `client_secret_post` —
+   the second basic client lets the suite prove auth codes are bound to the issuing client)
+   ([`conformance-seeding.md`](conformance/conformance-seeding.md)). Under **Dynamic Client Registration**, which the
+   Basic OP plan uses, the suite registers its own clients and runs plan modules in parallel (it serialises when an
+   `alias`/static client is used).
 4. **Discovery metadata alignment.** Ensure
    [`DefaultDiscoveryEndpointHandler`](../src/NCode.Identity.OpenId.Authentication/Endpoints/Discovery/DefaultDiscoveryEndpointHandler.cs)
    advertises exactly what is supported: `response_types_supported`, `grant_types_supported`,
    `code_challenge_methods_supported` (`S256`), `token_endpoint_auth_methods_supported`,
    `scopes_supported` (incl. `openid`, `profile`, `email`), `subject_types_supported`,
-   `id_token_signing_alg_values_supported` (`RS256`), and the jwks URI.
+   `id_token_signing_alg_values_supported` (asymmetric, matching the key at the jwks URI), and the jwks URI
+   ([`discovery-alignment.md`](conformance/discovery-alignment.md)).
 5. **TLS trust.** The suite calls our OP over TLS (dev cert) and uses a snake-oil cert itself;
    `--fintechlabs.devmode=true` / `DISABLE_SSL_VERIFY` relax verification for local runs.
-6. **Config templates** (one per profile) with the `browser` automation block and our alias.
-7. **Orchestration script** (PowerShell) that: launches the host on the reachable URL → `docker compose
+6. **Config templates** (one per profile) with the `browser` automation block.
+7. **Orchestration script** ([`run-conformance.ps1`](../build/conformance/run-conformance.ps1)) that: launches the host on the reachable URL → `docker compose
 -f docker-compose-prebuilt.yml up` → waits for readiness → runs `run-test-plan.py` with the config(s)
    and the expected-failures/-skips baseline → exports result zips → tears everything down → surfaces the
-   exit code.
+   exit code ([`external-suite.md`](conformance/external-suite.md)).
 8. **Baseline files** (`expected-failures.json`, `expected-skips.json`) encoding intentional non-support,
    kept in the repo next to the configs and reviewed on every change.
 9. **CI wiring:** a **separate, opt-in/nightly** pipeline — **not** [`build/dod.ps1`](../build/dod.ps1),
    whose inner loop must stay fast and hermetic. The job needs Docker + Python 3; no local Java (prebuilt
-   images). Gate it on the baseline so a regression turns the pipeline red.
+   images). Gate it on the baseline so a regression turns the pipeline red. This pipeline is pending work, tracked in
+   [#129](https://github.com/NCodeGroup/Identity/issues/129).
 
 ### Windows developer notes
 
@@ -140,45 +149,24 @@ Prerequisites, roughly in dependency order:
 - If a profile needs port 443, map it with `netsh interface portproxy add v4tov4 listenport=443
 connectaddress=localhost connectport=8443` (reset with `netsh interface portproxy reset`).
 
-## Known prerequisite gaps
+## Design choices
 
-- **[#44](https://github.com/NCodeGroup/Identity/issues/44) (new) — Dynamic Client Registration (RFC 7591).** No `registration_endpoint`. Not required for
-  Basic/Config (manual 3-client seeding works) but strongly desirable: it removes manual seeding and
-  unlocks parallel plan execution; it is also its own certification profile (Dynamic OP).
-- **Automatable login/consent + seeded conformance user.** The interactive UI must expose stable
-  selectors and a deterministic test identity for `BrowserControl`.
-- **Implicit/Hybrid response-type support** must be confirmed before those profiles are attempted.
-
-## Proposed work breakdown
-
-- **Phase A — Local harness:** stand up the suite via prebuilt Docker images; confirm it reaches the
-  host discovery + jwks endpoints.
-- **Phase B — Conformance-ready host:** reachable HTTPS host; seeded tenant/clients + test user;
-  automatable login/consent; discovery metadata aligned.
-- **Phase C — First plans (manual trigger):** run Basic OP + Config OP; triage every result into
-  _bug-to-fix_ vs _documented non-support_.
-- **Phase D — Full automation:** config templates with `browser` blocks + `run-test-plan.py` +
-  orchestration script + baseline files; green locally end to end.
-- **Phase E — CI:** nightly/opt-in pipeline gated on the baseline; result zips published as artifacts.
-- **Phase F — Record outcomes:** close real gaps in code; capture residual items as issues; if the tooling choice/baseline policy needs justification, add an
-  [ADR](decisions/).
-
-## Open decisions
-
-1. **DCR first, or manual 3-client seeding first?** DCR is more work up front but simplifies and
-   parallelises everything after; manual seeding gets Basic/Config green sooner.
-2. **Profile scope:** Basic + Config only initially (recommended), deferring Implicit/Hybrid/FAPI.
-3. **Consent automation:** auto-approve for the conformance client vs. a scripted consent `BrowserControl`
-   task.
+1. **Dynamic Client Registration drives the Basic OP plan.** It removes static client seeding from the plan and lets
+   the suite run modules in parallel; the static clients stay seeded for plans that use an `alias`.
+2. **Profile scope:** Basic + Config, with FAPI 1.0 Advanced wired; Implicit/Hybrid apply only to a host that enables
+   those flows.
+3. **Consent automation:** a scripted, `optional` consent `BrowserControl` task, so a flow that shows the consent page
+   completes and a flow that does not show it still passes.
+4. **Results feed the code and the issue tracker:** a module verdict is either a gap fixed in code or a documented,
+   intentional deviation in the baseline files that links an issue or ADR.
 
 ---
 
 # Appendices — copy-ready reference templates
 
-Everything below is the **reference material** these artifacts were lifted from. The templates have now been
-realized as committed, runnable infrastructure under [`build/conformance/`](../build/conformance) (resolved
-against the real `AddConformanceSeed` values); the appendices are retained as the annotated source-of-record
-for why each config value is shaped the way it is. Placeholders are written as `<LIKE_THIS>`.
+The appendices are the annotated reference for why each value in the committed infrastructure under
+[`build/conformance/`](../build/conformance) (resolved against the `AddConformanceSeed` values) is shaped the way it
+is. Placeholders are written as `<LIKE_THIS>`.
 
 ## Appendix A — Discovery metadata checklist
 
@@ -193,12 +181,12 @@ and the backing settings in
 | `issuer`                                | exact base URL the suite uses                  | **Must byte-match** the discovery host (see Appendix D)       |
 | `authorization_endpoint`                | `<issuer>/oauth2/authorize`                    | —                                                             |
 | `token_endpoint`                        | `<issuer>/oauth2/token`                        | —                                                             |
-| `jwks_uri`                              | `<issuer>/oauth2/jwks`                         | Must serve the active `RS256` signing key                     |
+| `jwks_uri`                              | `<issuer>/oauth2/jwks`                         | Must serve the active signing key                             |
 | `userinfo_endpoint`                     | `<issuer>/oauth2/userinfo`                     | Required by Basic OP                                          |
 | `response_types_supported`              | `["code"]`                                     | Add `id_token`/`code id_token` only when those flows verified |
 | `grant_types_supported`                 | `["authorization_code","refresh_token"]`       | Match the seeded client's allowed grants                      |
 | `subject_types_supported`               | `["public","pairwise"]`                        | Both implemented (ADR-1093)                                   |
-| `id_token_signing_alg_values_supported` | `["RS256"]`                                    | Must match the key the suite fetches from `jwks_uri`          |
+| `id_token_signing_alg_values_supported` | asymmetric algorithms only                     | Must match the key the suite fetches from `jwks_uri`          |
 | `scopes_supported`                      | incl. `openid`, `profile`, `email`             | Suite requests these in standard claims tests                 |
 | `claims_supported`                      | the claims actually returned                   | Over-advertising triggers warnings                            |
 | `token_endpoint_auth_methods_supported` | `["client_secret_basic","client_secret_post"]` | Must cover both to certify Basic OP                           |
@@ -245,8 +233,9 @@ must register the suite callback as a redirect URI.
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 
-> With DCR (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)) implemented, skip all of the above — remove `alias` from the config and the suite
-> registers clients itself and runs modules in parallel.
+> Under Dynamic Client Registration ([ADR-1063](decisions/1063-dynamic-client-registration.md)), which the committed
+> Basic OP plan uses, none of the above applies: the config carries no `alias`, and the suite registers clients itself
+> and runs modules in parallel.
 
 ## Appendix D — Config template: Basic OP (`oidcc-basic.template.json`)
 
@@ -254,8 +243,8 @@ The committed Basic OP configuration is
 [`build/conformance/oidcc-basic.template.json`](../build/conformance/oidcc-basic.template.json): it carries
 `{{test_user_name}}` and `{{test_user_password}}` tokens instead of the test user's credentials, and
 [`run-conformance.ps1`](../build/conformance/run-conformance.ps1) renders `oidcc-basic.json` from it at run time
-(gitignored, deleted when the run ends), filling in the per-machine credentials. The shape below is the reference it was
-lifted from.
+(gitignored, deleted when the run ends), filling in the per-machine credentials, and registers its clients through
+Dynamic Client Registration. The shape below is the static-client (`alias`) variant of the same configuration.
 
 Issuer must match the host the suite reaches. Running the suite in Docker, the OP is reached at
 `host.docker.internal`; the host must therefore **issue discovery with that same host** (configure
@@ -325,7 +314,7 @@ The Config OP plan only reads discovery metadata, so no `browser` block or clien
 
 ## Appendix F — Baseline files
 
-Start empty (`[]`) and add an entry only for a **documented, intentional** deviation. Each entry is
+An entry exists only for a **documented, intentional** deviation, and an empty baseline is `[]`. Each entry is
 matched by test name / variant / config / block / condition; unexpected new failures still fail the run,
 and a baseline entry that stops firing also fails the run (so the baseline cannot silently rot).
 
@@ -358,57 +347,20 @@ prints for any unexpected failure):
 []
 ```
 
-## Appendix G — Orchestration script skeleton (`run-conformance.ps1`)
+## Appendix G — Orchestration script (`run-conformance.ps1`)
 
-Reference skeleton for the execution phase. It assumes the conformance-suite repo is available for its
-`scripts/` (`run-test-plan.py` + `conformance.py` + `test_plan_parser.py`) and that Docker + Python 3 are
-installed. **Not** part of `dod.ps1`.
+[`run-conformance.ps1`](../build/conformance/run-conformance.ps1) clones the conformance-suite repository for its
+`scripts/` (`run-test-plan.py` + `conformance.py` + `test_plan_parser.py`) and `docker-compose-prebuilt.yml`, and needs
+Docker + Python 3. **Not** part of `dod.ps1`. Its stages:
 
-```powershell
-#requires -Version 7
-[CmdletBinding()]
-param(
-    [string] $Alias          = 'ncode',
-    [string] $SuiteBase      = 'https://localhost.emobix.co.uk:8443',
-    [string] $SuiteRepo      = "$PSScriptRoot/.conformance-suite",   # git clone target (gitignored)
-    [string] $ConfigDir      = $PSScriptRoot,
-    [string] $ExportDir      = "$PSScriptRoot/.results",
-    [string[]] $Plans        = @('oidcc-config-certification-test-plan', 'oidcc-basic-certification-test-plan'),
-    [string[]] $Configs      = @('oidcc-config.json',                  'oidcc-basic.json')
-)
-$ErrorActionPreference = 'Stop'
-
-# 1) Launch the OpenID host on a host-reachable HTTPS URL (host.docker.internal:5001).
-#    TODO: start via `dotnet run` or a container; capture the process/container id for teardown.
-
-# 2) Bring up the conformance suite (prebuilt images; no Java build).
-docker compose -f "$SuiteRepo/docker-compose-prebuilt.yml" up -d
-
-# 3) Wait for the suite to answer, then for the OP discovery document.
-#    TODO: poll "$SuiteBase/" and the OP's /.well-known/openid-configuration until ready.
-
-# 4) Drive the plans headlessly. DISABLE_SSL_VERIFY tolerates dev certs on both ends.
-$env:CONFORMANCE_SERVER = "$SuiteBase/"
-$env:DISABLE_SSL_VERIFY = '1'
-New-Item -ItemType Directory -Force -Path $ExportDir | Out-Null
-
-$failed = $false
-for ($i = 0; $i -lt $Plans.Count; $i++) {
-    python "$SuiteRepo/scripts/run-test-plan.py" `
-        $Plans[$i] (Join-Path $ConfigDir $Configs[$i]) `
-        --expected-failures-file (Join-Path $ConfigDir 'expected-failures.json') `
-        --expected-skips-file    (Join-Path $ConfigDir 'expected-skips.json') `
-        --export-dir $ExportDir --verbose
-    if ($LASTEXITCODE -ne 0) { $failed = $true }
-}
-
-# 5) Teardown.
-docker compose -f "$SuiteRepo/docker-compose-prebuilt.yml" down
-# TODO: stop the OpenID host started in step 1.
-
-if ($failed) { throw 'Conformance run failed — see exported results and log-detail links above.' }
-Write-Host 'Conformance run passed.'
-```
+1. Launch the OpenID host on the host-reachable HTTPS origin (`host.docker.internal:5001`) and wait until its discovery
+   `issuer` byte-matches that origin.
+2. Run the in-house probe-runner pre-flight.
+3. Bring up the conformance suite from prebuilt images (no Java build) and wait for it to answer.
+4. Drive each plan headlessly with `CONFORMANCE_SERVER` set to the suite base and `DISABLE_SSL_VERIFY` tolerating dev
+   certs on both ends, passing `--expected-failures-file`, `--expected-skips-file` and `--export-dir`, each plan under
+   a wall-clock deadline.
+5. Tear the suite and the host down, and exit non-zero on any unexpected failure.
 
 ## Appendix H — Windows Docker Compose notes
 
@@ -451,7 +403,8 @@ Also required on Windows:
 
 **Local suite, fully automated:**
 
-1. Clone the suite; run `docker compose -f docker-compose-prebuilt.yml up` (Appendix H on Windows).
-2. Start the host on `host.docker.internal:5001` with issuer set to match.
-3. Fill the Appendix D/E configs + baseline files; run `run-conformance.ps1` (Appendix G).
-4. Inspect exit code and the exported result zips / `log-detail` links.
+1. Add the hosts-file entries (Appendix H on Windows) and install Docker and a real Python 3
+   ([`build/conformance/README.md`](../build/conformance/README.md)).
+2. Run `run-conformance.ps1` (Appendix G): it clones and starts the suite, launches the host with its per-machine seed
+   credentials, renders the Appendix D/E configs and applies the baseline files.
+3. Inspect exit code and the exported result zips / `log-detail` links.

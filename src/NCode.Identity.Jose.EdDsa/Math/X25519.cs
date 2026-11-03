@@ -13,8 +13,19 @@ namespace NCode.Identity.Jose.EdDsa.Math;
 /// </summary>
 internal static class X25519
 {
+    /// <summary>
+    /// The size, in bytes, of an X25519 private key, the scalar before clamping (RFC 7748 §5).
+    /// </summary>
     public const int PrivateKeySize = 32;
+
+    /// <summary>
+    /// The size, in bytes, of an X25519 public key, the little-endian u-coordinate (RFC 7748 §5).
+    /// </summary>
     public const int PublicKeySize = 32;
+
+    /// <summary>
+    /// The size, in bytes, of the shared secret an X25519 agreement produces (RFC 7748 §6).
+    /// </summary>
     public const int SharedSecretSize = 32;
 
     private const int ScalarBits = 255;

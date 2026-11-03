@@ -19,8 +19,8 @@ namespace NCode.Identity.Jose.Algorithms;
 /// <param name="aesKeyWrap">Provides the common implementation for <c>AES Key Wrap</c> functionality.</param>
 /// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the ephemeral public key
 /// of the <c>ECDH-ES</c> algorithms.</param>
-/// <param name="ecdhKeyAgreements">The registered <c>ECDH-ES</c> key agreements, one per key type the <c>ECDH-ES</c>
-/// algorithms accept.</param>
+/// <param name="ecdhKeyAgreements">The registered <c>ECDH-ES</c> key agreements, each over the curves of one key type
+/// the <c>ECDH-ES</c> algorithms accept.</param>
 /// <param name="eccSignatureAlgorithms">The registered <c>ECDSA</c> signature algorithms, each served beside the built-in
 /// <c>ES256</c>, <c>ES384</c> and <c>ES512</c>.</param>
 internal sealed class DefaultAlgorithmDataSource(

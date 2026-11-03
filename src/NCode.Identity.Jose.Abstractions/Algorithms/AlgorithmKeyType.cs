@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -53,12 +54,22 @@ public sealed class AlgorithmKeyType
     public IReadOnlyList<KeySizes> KeyBitSizes { get; }
 
     /// <summary>
-    /// Gets the <c>JWK</c> <c>crv</c> name of the one curve that keys of this type must be on for the algorithm (for
-    /// example <c>P-256</c> for <c>ES256</c>, <c>secp256k1</c> for <c>ES256K</c> or <c>Ed25519</c> for
-    /// <c>Ed25519</c>), or <c>null</c> when the type has no curve or the algorithm accepts more than one. A key is
-    /// generated for the algorithm on this curve, because two curves can share a key size.
+    /// Gets the curves that keys of this type must be on for the algorithm, in the algorithm's order of preference (for
+    /// example <c>P-256</c> for <c>ES256</c>, <c>secp256k1</c> for <c>ES256K</c>, <c>Ed25519</c> and <c>Ed448</c> for
+    /// <c>EdDSA</c>, or <c>X25519</c> and <c>X448</c> for <c>ECDH-ES</c> over <c>OKP</c> keys), or an empty list when
+    /// the type has no curve. Two curves can share a key size, so a key is generated for the algorithm on the first of
+    /// these curves that has the key's size, and a key on any other curve is refused when it is declared for the
+    /// algorithm.
     /// </summary>
-    public string? Curve { get; init; }
+    public IReadOnlyList<AlgorithmCurve> Curves
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = [.. value];
+        }
+    } = [];
 
     /// <summary>
     /// Determines whether keys of the specified runtime type are of this key type.
@@ -75,4 +86,35 @@ public sealed class AlgorithmKeyType
     /// <returns><c>true</c> when the size is one of <see cref="KeyBitSizes"/>; otherwise, <c>false</c>.</returns>
     public bool IsLegalSize(int keySizeBits) =>
         KeySizesUtility.IsLegalSize(KeyBitSizes, keySizeBits);
+
+    /// <summary>
+    /// Determines whether a key of this type and of the specified size may be on the specified curve.
+    /// </summary>
+    /// <param name="curve">The <c>JWK</c> <c>crv</c> name of a key's curve.</param>
+    /// <param name="keySizeBits">The size, in bits, of the key.</param>
+    /// <returns><c>true</c> when <see cref="Curves"/> is empty, or names <paramref name="curve"/> with keys of
+    /// <paramref name="keySizeBits"/>; otherwise, <c>false</c>.</returns>
+    public bool IsLegalCurve(string curve, int keySizeBits)
+    {
+        ArgumentNullException.ThrowIfNull(curve);
+
+        return Curves.Count == 0
+            || Curves.Any(legal =>
+                string.Equals(legal.Name, curve, StringComparison.Ordinal)
+                && legal.KeySizeBits == keySizeBits
+            );
+    }
+
+    /// <summary>
+    /// Gets the first of <see cref="Curves"/> whose keys have the specified size, the curve a key of that size is
+    /// generated on for the algorithm.
+    /// </summary>
+    /// <param name="keySizeBits">The size, in bits, of the key.</param>
+    /// <param name="curve">When this method returns <c>true</c>, the curve.</param>
+    /// <returns><c>true</c> when one of <see cref="Curves"/> has keys of the size; otherwise, <c>false</c>.</returns>
+    public bool TryGetCurve(int keySizeBits, [NotNullWhen(true)] out AlgorithmCurve? curve)
+    {
+        curve = Curves.FirstOrDefault(candidate => candidate.KeySizeBits == keySizeBits);
+        return curve is not null;
+    }
 }

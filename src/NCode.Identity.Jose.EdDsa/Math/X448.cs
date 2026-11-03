@@ -13,8 +13,19 @@ namespace NCode.Identity.Jose.EdDsa.Math;
 /// </summary>
 internal static class X448
 {
+    /// <summary>
+    /// The size, in bytes, of an X448 private key, the scalar before clamping (RFC 7748 §5).
+    /// </summary>
     public const int PrivateKeySize = 56;
+
+    /// <summary>
+    /// The size, in bytes, of an X448 public key, the little-endian u-coordinate (RFC 7748 §5).
+    /// </summary>
     public const int PublicKeySize = 56;
+
+    /// <summary>
+    /// The size, in bytes, of the shared secret an X448 agreement produces (RFC 7748 §6).
+    /// </summary>
     public const int SharedSecretSize = 56;
 
     private const int ScalarBits = 448;

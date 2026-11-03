@@ -319,7 +319,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
                 AlgorithmCodes.KeyManagement.EcdhEs,
                 SecretKeyUses.Encryption,
                 SecretKeyTypes.Ecc,
-                256
+                256,
+                "P-256"
             ),
             Assert.Single(resolution.Specifications)
         );
@@ -401,18 +402,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         int keySizeBits
     )
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
-        var secrets = serviceCollection.AddSecretsLibrary();
-        secrets.AddJoseLibrary();
-        secrets.AddPersistenceLibrary();
-        serviceCollection.AddEdDsa();
-        await using var serviceProvider = serviceCollection.BuildServiceProvider();
-        var policy = new DefaultTenantKeyPolicy(
-            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            serviceProvider.GetRequiredService<ISecretSerializer>()
-        );
+        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst: false);
+        var policy = CreatePolicy(serviceProvider);
 
         var resolution = policy.ResolveSpecifications(
             CreateOptions(new OpenIdTenantKeyOptions { Algorithm = algorithm })
@@ -421,6 +412,90 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Empty(resolution.Errors);
         Assert.Equal(
             CreateSpecification(algorithm, SecretKeyUses.Signature, "okp", keySizeBits, algorithm),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    [Fact]
+    public async Task ResolveSpecifications_WhenPolymorphicEdDsa_GeneratesTheKeyOnItsFirstCurve()
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst: false);
+        var policy = CreatePolicy(serviceProvider);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "EdDSA" })
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification("EdDSA", SecretKeyUses.Signature, "okp", 256, "Ed25519"),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    // See ADR-1390: X25519 and X448 keys have distinct sizes, so the size selects the curve.
+    [Theory]
+    [InlineData(null, 256, "X25519")]
+    [InlineData(448, 448, "X448")]
+    public async Task ResolveSpecifications_WhenOkpSecretTypeIsSelectedForEcdhEs_GeneratesTheKeyOnTheCurveOfItsSize(
+        int? configuredKeySizeBits,
+        int keySizeBits,
+        string curve
+    )
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst: false);
+        var policy = CreatePolicy(serviceProvider);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                    SecretType = "okp",
+                    KeySizeBits = configuredKeySizeBits,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                AlgorithmCodes.KeyManagement.EcdhEs,
+                SecretKeyUses.Encryption,
+                "okp",
+                keySizeBits,
+                curve
+            ),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    // The ECDH-ES algorithms list their key types in the same order whichever package is registered first.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ResolveSpecifications_WhenEcdhEsNamesNoSecretType_GeneratesAnEcKeyWhateverTheRegistrationOrder(
+        bool addEdDsaFirst
+    )
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst);
+        var policy = CreatePolicy(serviceProvider);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions { Algorithm = AlgorithmCodes.KeyManagement.EcdhEs }
+            )
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                AlgorithmCodes.KeyManagement.EcdhEs,
+                SecretKeyUses.Encryption,
+                SecretKeyTypes.Ecc,
+                256,
+                "P-256"
+            ),
             Assert.Single(resolution.Specifications)
         );
     }
@@ -586,6 +661,33 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     #endregion
 
     #region Helpers
+
+    private static ServiceProvider BuildEdDsaServiceProvider(bool addEdDsaFirst)
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        if (addEdDsaFirst)
+        {
+            serviceCollection.AddEdDsa();
+        }
+
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddJoseLibrary();
+        secrets.AddPersistenceLibrary();
+        if (!addEdDsaFirst)
+        {
+            serviceCollection.AddEdDsa();
+        }
+
+        return serviceCollection.BuildServiceProvider();
+    }
+
+    private static DefaultTenantKeyPolicy CreatePolicy(IServiceProvider serviceProvider) =>
+        new(
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            serviceProvider.GetRequiredService<ISecretSerializer>()
+        );
 
     private static OpenIdTenantKeyProvisioningOptions CreateOptions(
         params OpenIdTenantKeyOptions[] keys

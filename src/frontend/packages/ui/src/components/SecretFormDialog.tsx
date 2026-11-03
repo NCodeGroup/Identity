@@ -31,6 +31,11 @@ export type AlgorithmKeyTypeOption = {
   /** The secret-type discriminator (e.g. `rsa`, `ecc`) whose key material is compatible with the algorithm. */
   readonly secretType: string;
   readonly keyBitSizes: readonly KeyBitSizesOption[];
+  /**
+   * The curves keys of the secret type must be on for the algorithm, in its order of preference; absent or empty when
+   * the algorithm does not restrict the curve. Two curves can share a key size, so the curve is not implied by it.
+   */
+  readonly curves?: readonly string[];
 };
 
 /** A signature or key-management algorithm offered for secrets, discovered from the server capabilities. */
@@ -51,6 +56,10 @@ const keySizeRangeFor = (
   secretType: string,
 ): KeyBitSizesOption | undefined =>
   algorithm?.keyTypes.find((keyType) => keyType.secretType === secretType)?.keyBitSizes[0];
+
+/** The curves the algorithm accepts keys of the secret type on; empty when it does not restrict the curve. */
+const curvesFor = (algorithm: AlgorithmOption | undefined, secretType: string): readonly string[] =>
+  algorithm?.keyTypes.find((keyType) => keyType.secretType === secretType)?.curves ?? [];
 
 /** The secret create form's own field shape. `expiresWhen` is a `datetime-local` string (local time). */
 export type SecretFormValues = {
@@ -129,6 +138,13 @@ export function SecretFormDialog({
     (algorithm) => algorithm.code === values.algorithm,
   );
   const keySizeRange = keySizeRangeFor(selectedAlgorithm, values.secretType);
+  // An algorithm bound to curves, such as ES256K, offers only those, since a curve of the same size is not one it
+  // accepts (ADR-1389).
+  const algorithmCurves = curvesFor(selectedAlgorithm, values.secretType);
+  const offeredCurves =
+    algorithmCurves.length > 0
+      ? (eccCurves ?? []).filter((curve) => algorithmCurves.includes(curve.curveName))
+      : eccCurves;
 
   const canSubmit = values.keySizeBits > 0 && values.expiresWhen.trim().length > 0 && !isSubmitting;
 
@@ -208,14 +224,14 @@ export function SecretFormDialog({
               },
             }}
           />
-          {values.secretType === 'ecc' && eccCurves && eccCurves.length > 0 && (
+          {values.secretType === 'ecc' && offeredCurves && offeredCurves.length > 0 && (
             <TextField
               select
               label="Curve"
               value={values.curve}
               onChange={(event) => {
                 const curve = event.target.value;
-                const match = eccCurves.find((c) => c.curveName === curve);
+                const match = offeredCurves.find((c) => c.curveName === curve);
                 setValues((v) => ({
                   ...v,
                   curve,
@@ -225,8 +241,8 @@ export function SecretFormDialog({
               fullWidth
               slotProps={{ htmlInput: { 'data-testid': 'secret-curve' } }}
             >
-              <MenuItem value="">By key size</MenuItem>
-              {eccCurves.map((curve) => (
+              {algorithmCurves.length === 0 && <MenuItem value="">By key size</MenuItem>}
+              {offeredCurves.map((curve) => (
                 <MenuItem key={curve.curveName} value={curve.curveName}>
                   {curve.curveName}
                 </MenuItem>
@@ -256,11 +272,24 @@ export function SecretFormDialog({
                     range !== undefined &&
                     v.keySizeBits >= range.minBits &&
                     v.keySizeBits <= range.maxBits;
+                  // A curve the algorithm does not accept gives way to the first one it does, with that curve's size.
+                  const curves = v.secretType === 'ecc' ? curvesFor(match, v.secretType) : [];
+                  const curveOption =
+                    curves.length > 0 && !curves.includes(v.curve)
+                      ? curves
+                          .map((name) => eccCurves?.find((c) => c.curveName === name))
+                          .find((c) => c !== undefined)
+                      : undefined;
                   return {
                     ...v,
                     algorithm: code,
                     use: match ? match.use : '',
-                    keySizeBits: range && !inRange ? range.minBits : v.keySizeBits,
+                    keySizeBits: curveOption
+                      ? curveOption.curveSizeBits
+                      : range && !inRange
+                        ? range.minBits
+                        : v.keySizeBits,
+                    ...(curveOption ? { curve: curveOption.curveName } : {}),
                   };
                 });
               }}

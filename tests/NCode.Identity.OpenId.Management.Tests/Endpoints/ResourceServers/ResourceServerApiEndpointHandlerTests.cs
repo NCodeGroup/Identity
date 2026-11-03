@@ -786,6 +786,9 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null)
             .Verifiable();
+        MockSecretValidator
+            .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
+            .Returns((CreateSecretRequest request) => request.Curve);
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns("secret-1")

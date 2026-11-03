@@ -232,18 +232,82 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        if (
-            !TryResolveKeyType(
-                algorithm,
-                key,
-                out var descriptor,
-                out var algorithmKeyType,
-                out error
-            )
-        )
+        if (key.SecretType is { } secretType)
         {
-            return false;
+            if (!SecretKeyTypeCatalog.TryGet(secretType, out var descriptor))
+            {
+                error = $"The secret type '{secretType}' is not a registered secret key type.";
+                return false;
+            }
+
+            if (!algorithm.TryGetKeyType(descriptor.KeyClrType, out var algorithmKeyType))
+            {
+                error = $"The algorithm '{algorithmCode}' does not accept '{secretType}' keys.";
+                return false;
+            }
+
+            return TryResolveSpecification(
+                collection,
+                key,
+                use,
+                descriptor,
+                algorithmKeyType,
+                out specification,
+                out error
+            );
         }
+
+        // See ADR-1389: an algorithm may accept several key types. Unless the configured secret type selects one, the
+        // key is generated as the first key type the algorithm lists that has a registered secret key type and that a
+        // key can be generated as, so a key type that cannot be provisioned yields to the next.
+        string? firstError = null;
+        foreach (var algorithmKeyType in algorithm.KeyTypes)
+        {
+            var descriptor = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
+                candidate.KeyClrType == algorithmKeyType.KeyType
+            );
+            if (descriptor is null)
+            {
+                continue;
+            }
+
+            if (
+                TryResolveSpecification(
+                    collection,
+                    key,
+                    use,
+                    descriptor,
+                    algorithmKeyType,
+                    out specification,
+                    out var candidateError
+                )
+            )
+            {
+                error = null;
+                return true;
+            }
+
+            firstError ??= candidateError;
+        }
+
+        error =
+            firstError
+            ?? $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
+        return false;
+    }
+
+    private static bool TryResolveSpecification(
+        IAlgorithmCollection collection,
+        OpenIdTenantKeyOptions key,
+        string use,
+        ISecretKeyTypeDescriptor descriptor,
+        AlgorithmKeyType algorithmKeyType,
+        out TenantKeySpecification specification,
+        [NotNullWhen(false)] out string? error
+    )
+    {
+        var algorithmCode = key.Algorithm;
+        specification = default;
 
         // A tenant key is published in the tenant's JSON Web Key Set and used across trust boundaries, which only an
         // asymmetric key can be.
@@ -270,6 +334,22 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
+        // See ADR-1389 and ADR-1391: two curves can share a key size, so the key is generated on the first curve the
+        // algorithm accepts that has that size, rather than on whichever curve the key type picks for the size.
+        string? curve = null;
+        if (algorithmKeyType.Curves.Count > 0)
+        {
+            if (!algorithmKeyType.TryGetCurve(keySizeBits, out var algorithmCurve))
+            {
+                error =
+                    $"A key for the algorithm '{algorithmCode}' cannot be generated: no curve it accepts for "
+                    + $"'{descriptor.KeyType}' keys has keys of {keySizeBits} bits.";
+                return false;
+            }
+
+            curve = algorithmCurve.Name;
+        }
+
         var declarationError = collection.ValidateKeyAlgorithm(
             new KeyAlgorithmDeclaration
             {
@@ -277,6 +357,7 @@ internal class DefaultTenantKeyPolicy(
                 KeySizeBits = keySizeBits,
                 Use = use,
                 Algorithm = algorithmCode,
+                Curve = curve,
             }
         );
         if (declarationError is not null)
@@ -285,14 +366,8 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        // See ADR-1391: an algorithm bound to one curve names it, so the key is generated on that curve rather than on
-        // whichever curve the key type picks for the size.
         var generationError = descriptor.ValidateGeneration(
-            new SecretKeyGenerationParameters
-            {
-                KeySizeBits = keySizeBits,
-                Curve = algorithmKeyType.Curve,
-            }
+            new SecretKeyGenerationParameters { KeySizeBits = keySizeBits, Curve = curve }
         );
         if (generationError is not null)
         {
@@ -307,59 +382,9 @@ internal class DefaultTenantKeyPolicy(
             Use = use,
             SecretType = descriptor.KeyType,
             KeySizeBits = keySizeBits,
-            Curve = algorithmKeyType.Curve,
+            Curve = curve,
         };
         error = null;
         return true;
-    }
-
-    // See ADR-1389: an algorithm may accept several key types. The configured secret type selects one; otherwise the key
-    // is generated as the first key type the algorithm lists that has a registered secret key type.
-    private bool TryResolveKeyType(
-        KeyedAlgorithm algorithm,
-        OpenIdTenantKeyOptions key,
-        [NotNullWhen(true)] out ISecretKeyTypeDescriptor? descriptor,
-        [NotNullWhen(true)] out AlgorithmKeyType? algorithmKeyType,
-        [NotNullWhen(false)] out string? error
-    )
-    {
-        if (key.SecretType is { } secretType)
-        {
-            if (!SecretKeyTypeCatalog.TryGet(secretType, out descriptor))
-            {
-                algorithmKeyType = null;
-                error = $"The secret type '{secretType}' is not a registered secret key type.";
-                return false;
-            }
-
-            if (!algorithm.TryGetKeyType(descriptor.KeyClrType, out algorithmKeyType))
-            {
-                error = $"The algorithm '{algorithm.Code}' does not accept '{secretType}' keys.";
-                return false;
-            }
-
-            error = null;
-            return true;
-        }
-
-        foreach (var candidateKeyType in algorithm.KeyTypes)
-        {
-            var candidate = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
-                candidate.KeyClrType == candidateKeyType.KeyType
-            );
-            if (candidate is not null)
-            {
-                descriptor = candidate;
-                algorithmKeyType = candidateKeyType;
-                error = null;
-                return true;
-            }
-        }
-
-        descriptor = null;
-        algorithmKeyType = null;
-        error =
-            $"The algorithm '{algorithm.Code}' uses a key type that has no registered secret key type.";
-        return false;
     }
 }

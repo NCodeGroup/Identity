@@ -37,13 +37,15 @@ Three facts shape how it is added:
    startup fails when a code is empty or registered twice, a built-in one included. The algorithm's key size and its
    signature size, twice the curve's size in whole bytes, come from the curve.
 
-2. **An algorithm's key type names the curve it is bound to.** `AlgorithmKeyType.Curve` is the `crv` of the one curve
-   the algorithm's keys must be on: `P-256`, `P-384`, `P-521` and `secp256k1` for the `ES*` algorithms, `Ed25519` and
-   `Ed448` for the fully-specified EdDSA algorithms, and `null` for an algorithm that accepts more than one curve, such as
-   the polymorphic `EdDSA` and `ECDH-ES`. The algorithm's own `IsKeyCompatible` stays the check of a key.
+2. **An algorithm's key type names the curves it is bound to.** `AlgorithmKeyType.Curves` lists the curves the
+   algorithm's keys must be on, each with its `crv` and its key size: the one curve of `P-256`, `P-384`, `P-521` or
+   `secp256k1` for each `ES*` algorithm, `Ed25519` or `Ed448` for the fully-specified EdDSA algorithms, both for the
+   polymorphic `EdDSA`, and the agreements' curves for `ECDH-ES` (ADR-1389). The algorithm's own `IsKeyCompatible`
+   stays the check of a key.
 
-3. **Tenant provisioning generates on that curve and checks the stored key.** A specification carries the key type's
-   curve into the generation request, so `ES256K` gets a secp256k1 key and `Ed25519` an Ed25519 key. A stored key with a
+3. **Tenant provisioning generates on that curve and checks the stored key.** A specification carries the first of the
+   key type's curves with the key's size into the generation request, so `ES256K` gets a secp256k1 key and `Ed25519`
+   an Ed25519 key; a key created through the management API without a curve is generated the same way. A stored key with a
    stored public half satisfies a specification only when the algorithm's `IsKeyCompatible` accepts that public key; a
    public half that cannot be read does not satisfy it, and a key held without one is trusted as before.
 
@@ -79,8 +81,10 @@ Three facts shape how it is added:
   other asymmetric signing algorithms, and `ecc` keys on secp256k1 are imported and exported as JWKs with
   `crv` `secp256k1`. A P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`.
 - On macOS the package registers nothing, and its platform-dependent tests are skipped.
-- A tenant can be provisioned with `ES256K`, `Ed25519` and `Ed448` keys. Provisioning an `OKP` key for the polymorphic
-  `EdDSA` or for `ECDH-ES` still needs a curve that the algorithm does not name, so it still fails.
+- A tenant can be provisioned with `ES256K`, `Ed25519` and `Ed448` keys, and, because the size selects among the
+  algorithm's curves, with `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`.
+- A P-256 key declared for `ES256K`, or a secp256k1 key declared for `ES256`, is refused when a client registers it or
+  the management API creates or updates it.
 - An application can contribute another ECDSA algorithm, such as one over a Brainpool curve, by registering its curve
   and its specification.
 - RFC 8812 publishes no test vectors, so the package's tests verify a JWS signed by an independent implementation.

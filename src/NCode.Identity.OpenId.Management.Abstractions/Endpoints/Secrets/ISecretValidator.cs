@@ -28,6 +28,17 @@ public interface ISecretValidator
     ManagementError? ValidateCreate(CreateSecretRequest request);
 
     /// <summary>
+    /// Gets the curve the key a <see cref="CreateSecretRequest"/> describes is generated on: the request's curve, or,
+    /// when it names none, the first curve its algorithm accepts for the secret type that has keys of the requested
+    /// size, so a key for an algorithm bound to a curve, such as <c>ES256K</c>, is generated on that curve rather than
+    /// on the one the key type picks for the size.
+    /// </summary>
+    /// <param name="request">The <see cref="CreateSecretRequest"/> that describes the key.</param>
+    /// <returns>The <c>JWK</c> <c>crv</c> name of the curve, or <c>null</c> when the request names none and the key
+    /// type selects one by size or has none.</returns>
+    string? ResolveCurve(CreateSecretRequest request);
+
+    /// <summary>
     /// Validates that the specified <see cref="ImportSecretRequest"/> describes a coherent public-key import. The
     /// supplied key material itself is parsed and validated by the importer; this check asserts only the
     /// parameter-level coherence (recognized <c>format</c>, non-empty material, and supported <c>use</c>).

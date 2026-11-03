@@ -130,7 +130,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
 
     #endregion
 
-    #region KeyTypes Tests
+    #region KeyTypes Property Tests
 
     [Theory]
     [InlineData("ECDH-ES")]
@@ -171,27 +171,12 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         Assert.False(algorithm.IsKeyCompatible(secretKey));
     }
 
-    [Fact]
-    public void NewKey_WhenSigningCurve_Throws()
-    {
-        var exception = Assert.Throws<ArgumentException>(() =>
-            GetAlgorithm("ECDH-ES")
-                .NewKey(
-                    GenerateKey(OkpCurves.Ed25519Name, 256),
-                    new Dictionary<string, object> { ["enc"] = Enc },
-                    new byte[16]
-                )
-        );
-
-        Assert.Equal("secretKey", exception.ParamName);
-    }
-
     [Theory]
     [InlineData("EdDSA", OkpCurves.X25519Name, 256)]
     [InlineData("Ed25519", OkpCurves.X25519Name, 256)]
     [InlineData("EdDSA", OkpCurves.X448Name, 448)]
     [InlineData("Ed448", OkpCurves.X448Name, 448)]
-    public void SignatureAlgorithm_WhenKeyAgreementKey_IsNotCompatible(
+    public void IsKeyCompatible_WhenSignatureAlgorithmIsGivenAKeyAgreementKey_ReturnsFalse(
         string code,
         string curve,
         int keySizeBits
@@ -204,7 +189,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
 
     #endregion
 
-    #region Rfc8037 Tests
+    #region Agree Tests
 
     [Fact]
     public void Agree_WhenRfc8037AppendixA6_ReturnsTheSharedSecret()
@@ -229,8 +214,12 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         );
     }
 
+    #endregion
+
+    #region ExportPublicKey Tests
+
     [Fact]
-    public void Rfc8037AppendixA6_RecipientPublicKey_IsBobsKey()
+    public void ExportPublicKey_WhenRfc8037AppendixA6RecipientKey_WritesBobsPublicKey()
     {
         var exported = Descriptor.ExportPublicKey(
             CreatePrivateKey(OkpCurves.X25519, BobPrivateKey)
@@ -239,6 +228,110 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         Assert.NotNull(exported);
         Assert.Equal(BobPublicKey, exported.Jwk.AsElement().GetProperty("x").GetString());
     }
+
+    #endregion
+
+    #region DeserializeKeyMaterial Tests
+
+    // RFC 8410 publishes no X25519 private key, so the input is the bytes of its §10.3 Ed25519 private key wrapped under
+    // the X25519 OID (1.3.101.110) instead of the Ed25519 one; the X25519 public key of those bytes was computed
+    // independently of this library. It is not a published conformance vector.
+    [Fact]
+    public void DeserializeKeyMaterial_WhenX25519Pkcs8_DerivesItsPublicKey()
+    {
+        var secretKey = Assert.IsType<OkpSecretKey>(
+            Descriptor.DeserializeKeyMaterial(
+                default,
+                SecretEncodings.Pkcs8,
+                Convert.FromBase64String(
+                    "MC4CAQAwBQYDK2VuBCIEINTuctv5E1hK1bbY8fdp+K06/nwoy/HU++CXqI9EdVhC"
+                )
+            ),
+            exactMatch: false
+        );
+        var publicKey = new ArrayBufferWriter<byte>();
+        secretKey.ExportPublicKey(ref publicKey);
+
+        Assert.Equal(OkpCurves.X25519Name, secretKey.Curve);
+        Assert.Equal(256, secretKey.KeySizeBits);
+        Assert.Equal(
+            Convert.FromHexString(
+                "226ad8f8f62b7b2637247e6b21ffb5723d6330c4d5dd5a8d11e7e7de65c1c501"
+            ),
+            publicKey.WrittenSpan.ToArray()
+        );
+    }
+
+    #endregion
+
+    #region NewKey Tests
+
+    [Fact]
+    public void NewKey_WhenSigningCurve_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            GetAlgorithm("ECDH-ES")
+                .NewKey(
+                    GenerateKey(OkpCurves.Ed25519Name, 256),
+                    new Dictionary<string, object> { ["enc"] = Enc },
+                    new byte[16]
+                )
+        );
+
+        Assert.Equal("secretKey", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(OkpCurves.X25519Name, 256, 32)]
+    [InlineData(OkpCurves.X448Name, 448, 56)]
+    public void NewKey_WhenKeyAgreementCurve_WritesOnlyThePublicMembersOfTheEpk(
+        string curve,
+        int keySizeBits,
+        int publicKeySize
+    )
+    {
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        GetAlgorithm("ECDH-ES").NewKey(GenerateKey(curve, keySizeBits), header, new byte[16]);
+
+        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
+        Assert.Equal(["crv", "kty", "x"], epk.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal("OKP", epk["kty"]);
+        Assert.Equal(curve, epk["crv"]);
+        Assert.Equal(
+            publicKeySize,
+            Base64Url.DecodeFromChars(Assert.IsType<string>(epk["x"])).Length
+        );
+    }
+
+    [Theory]
+    [InlineData(OkpCurves.X25519Name, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")]
+    [InlineData(
+        OkpCurves.X448Name,
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    )]
+    public void NewKey_WhenRecipientKeyHasSmallOrder_Throws(string curve, string x)
+    {
+        var recipientKey = ImportPublicKey(curve, x);
+
+        var exception = Assert.Throws<JoseException>(() =>
+            GetAlgorithm("ECDH-ES")
+                .NewKey(
+                    recipientKey,
+                    new Dictionary<string, object> { ["enc"] = Enc },
+                    new byte[16]
+                )
+        );
+
+        Assert.Equal(
+            "The recipient's public key is a point of small order, which yields an all-zero shared secret.",
+            exception.Message
+        );
+    }
+
+    #endregion
+
+    #region TryUnwrapKey Tests
 
     // The content encryption key is the Concat KDF of RFC 7518 §4.6.2 over the RFC 8037 Appendix A.6 shared secret,
     // computed independently of this library.
@@ -301,89 +394,6 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         Assert.Equal(16, bytesWritten);
         Assert.Equal(Enumerable.Range(0, 16).Select(value => (byte)value), contentKey);
     }
-
-    // RFC 8410 §10.3 X25519 private key, whose public key was computed independently of this library.
-    [Fact]
-    public void DeserializeKeyMaterial_WhenRfc8410X25519PrivateKey_DerivesItsPublicKey()
-    {
-        var secretKey = Assert.IsType<OkpSecretKey>(
-            Descriptor.DeserializeKeyMaterial(
-                default,
-                SecretEncodings.Pkcs8,
-                Convert.FromBase64String(
-                    "MC4CAQAwBQYDK2VuBCIEINTuctv5E1hK1bbY8fdp+K06/nwoy/HU++CXqI9EdVhC"
-                )
-            ),
-            exactMatch: false
-        );
-        var publicKey = new ArrayBufferWriter<byte>();
-        secretKey.ExportPublicKey(ref publicKey);
-
-        Assert.Equal(OkpCurves.X25519Name, secretKey.Curve);
-        Assert.Equal(256, secretKey.KeySizeBits);
-        Assert.Equal(
-            Convert.FromHexString(
-                "226ad8f8f62b7b2637247e6b21ffb5723d6330c4d5dd5a8d11e7e7de65c1c501"
-            ),
-            publicKey.WrittenSpan.ToArray()
-        );
-    }
-
-    #endregion
-
-    #region NewKey Tests
-
-    [Theory]
-    [InlineData(OkpCurves.X25519Name, 256, 32)]
-    [InlineData(OkpCurves.X448Name, 448, 56)]
-    public void NewKey_WhenKeyAgreementCurve_WritesOnlyThePublicMembersOfTheEpk(
-        string curve,
-        int keySizeBits,
-        int publicKeySize
-    )
-    {
-        var header = new Dictionary<string, object> { ["enc"] = Enc };
-
-        GetAlgorithm("ECDH-ES").NewKey(GenerateKey(curve, keySizeBits), header, new byte[16]);
-
-        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
-        Assert.Equal(["crv", "kty", "x"], epk.Keys.Order(StringComparer.Ordinal));
-        Assert.Equal("OKP", epk["kty"]);
-        Assert.Equal(curve, epk["crv"]);
-        Assert.Equal(
-            publicKeySize,
-            Base64Url.DecodeFromChars(Assert.IsType<string>(epk["x"])).Length
-        );
-    }
-
-    [Theory]
-    [InlineData(OkpCurves.X25519Name, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")]
-    [InlineData(
-        OkpCurves.X448Name,
-        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    )]
-    public void NewKey_WhenRecipientKeyHasSmallOrder_Throws(string curve, string x)
-    {
-        var recipientKey = ImportPublicKey(curve, x);
-
-        var exception = Assert.Throws<JoseException>(() =>
-            GetAlgorithm("ECDH-ES")
-                .NewKey(
-                    recipientKey,
-                    new Dictionary<string, object> { ["enc"] = Enc },
-                    new byte[16]
-                )
-        );
-
-        Assert.Equal(
-            "The recipient's public key is a point of small order, which yields an all-zero shared secret.",
-            exception.Message
-        );
-    }
-
-    #endregion
-
-    #region TryUnwrapKey Tests
 
     [Theory]
     [InlineData(OkpCurves.X25519Name, 256, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")]
@@ -520,7 +530,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
 
     #endregion
 
-    #region JoseSerializer Tests
+    #region Decode Tests
 
     [Theory]
     [InlineData("ECDH-ES", OkpCurves.X25519Name, 256)]
@@ -554,6 +564,29 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         var decoded = JoseSerializer.Decode(JoseSerializer.Parse(token), privateKey);
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);
+    }
+
+    // An Ed25519 key has the type and size of an X25519 key; configuring it to decrypt is the caller's error, reported as
+    // such rather than as a failed authentication tag.
+    [Fact]
+    public void Decode_WhenDecryptionKeyIsOnASigningCurve_ThrowsTheConfigurationError()
+    {
+        var privateKey = GenerateKey(OkpCurves.X25519Name, 256);
+        Assert.True(AlgorithmCollection.TryGetAuthenticatedEncryptionAlgorithm(Enc, out var enc));
+        var options = new JoseEncryptionOptions(
+            new JoseEncryptionCredentials(privateKey, GetAlgorithm("ECDH-ES"), enc)
+        );
+        var token = JoseSerializer
+            .CreateEncoder(options)
+            .Encode(new Dictionary<string, object> { ["sub"] = "alice" });
+        var signingKey = GenerateKey(OkpCurves.Ed25519Name, 256);
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            JoseSerializer.Decode(JoseSerializer.Parse(token), signingKey)
+        );
+
+        Assert.Equal("secretKey", exception.ParamName);
+        Assert.Contains("curve", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

@@ -312,6 +312,47 @@ describe('SecretFormDialog', () => {
     );
   });
 
+  it('offers only the curves an algorithm bound to a curve accepts and selects the first of them', () => {
+    // secp256k1 has the size of P-256, so the key size alone cannot select it.
+    const es256k: AlgorithmOption = {
+      code: 'ES256K',
+      use: 'sig',
+      keyTypes: [
+        {
+          secretType: 'ecc',
+          keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+          curves: ['secp256k1'],
+        },
+      ],
+    };
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256, curve: 'P-256' }}
+        eccCurves={[...eccCurves, { curveName: 'secp256k1', curveSizeBits: 256 }]}
+        algorithms={[es256, es256k]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-algorithm'), { target: { value: 'ES256K' } });
+
+    expect(screen.getByTestId('secret-curve')).toHaveValue('secp256k1');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Curve/ }));
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['secp256k1']);
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ algorithm: 'ES256K', curve: 'secp256k1', keySizeBits: 256 }),
+    );
+  });
+
   it('clears the derived use and keeps the key size when no specific algorithm is chosen', () => {
     const onSubmit = vi.fn();
     render(

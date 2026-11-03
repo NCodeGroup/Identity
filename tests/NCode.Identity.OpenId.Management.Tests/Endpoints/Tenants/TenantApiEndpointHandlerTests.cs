@@ -134,11 +134,17 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
     // Only a request that adds a secret validates its creation.
-    private void SetupSecretCreateValidation() =>
+    private void SetupSecretCreateValidation()
+    {
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null)
             .Verifiable();
+        // The curve a key is generated on is the request's own here; the validator's rule is tested on its own.
+        MockSecretValidator
+            .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
+            .Returns((CreateSecretRequest request) => request.Curve);
+    }
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>

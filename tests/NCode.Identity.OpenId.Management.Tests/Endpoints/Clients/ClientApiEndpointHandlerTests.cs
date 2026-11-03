@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
@@ -71,7 +72,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // The real key-type catalog and algorithms are the sources of truth the key rules read.
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddPersistenceLibrary();
+        secrets.AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         MockRepository = new MockRepository(MockBehavior.Strict);
@@ -126,7 +129,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Update metadata is checked by the real validator against the real key-type catalog and algorithms.
         var secretValidator = new DefaultSecretValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<ISecretSerializer>()
         );
         MockSecretValidator
             .Setup(x =>
@@ -140,11 +144,17 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     // Only a request that adds a secret validates its creation.
-    private void SetupSecretCreateValidation() =>
+    private void SetupSecretCreateValidation()
+    {
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null)
             .Verifiable();
+        // The curve a key is generated on is the request's own here; the validator's rule is tested on its own.
+        MockSecretValidator
+            .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
+            .Returns((CreateSecretRequest request) => request.Curve);
+    }
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>
@@ -407,6 +417,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             new JsonObject { [OpenIdSettingNames.JwksUri] = "https://client.example/jwks" }
         );
 
+    // A real public key, because an update reads the stored key to check its algorithm against it.
+    private static string RsaSubjectPublicKeyInfo { get; } = CreateRsaSubjectPublicKeyInfo();
+
+    private static string CreateRsaSubjectPublicKeyInfo()
+    {
+        using var rsa = RSA.Create(2048);
+        return System.Buffers.Text.Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo());
+    }
+
     private static PersistedSecret CreatePublicKeySecret(string secretId, string? keyId) =>
         new()
         {
@@ -420,7 +439,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
             KeySizeBits = 2048,
-            EncodedValue = "encoded",
+            EncodedValue = RsaSubjectPublicKeyInfo,
         };
 
     private static PersistedSecret CreatePersistedSecret(

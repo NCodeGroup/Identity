@@ -44,6 +44,8 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResou
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmCapabilityResource.Use.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.AlgorithmKeyTypeCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.Curves.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.Curves.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.KeyBitSizesResource!>!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.KeyBitSizes.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.AlgorithmKeyTypeCapabilityResource.SecretType.get -> string!
@@ -591,6 +593,7 @@ NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValida
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ResolveCurve(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> string?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest

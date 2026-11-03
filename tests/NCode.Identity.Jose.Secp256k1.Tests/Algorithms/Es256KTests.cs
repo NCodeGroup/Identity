@@ -65,10 +65,10 @@ public sealed class Es256KTests : IAsyncDisposable
 
     #endregion
 
-    #region Sign and verify
+    #region Encode Tests
 
     [Secp256k1Fact]
-    public void Encode_WithASecp256k1Key_IsVerifiedWithItsPublicJwk()
+    public void Encode_WhenSecp256k1Key_IsVerifiedWithItsPublicJwk()
     {
         var privateKey = Services.GenerateKey("secp256k1");
         var exported = Services.Descriptor.ExportPublicKey(privateKey);
@@ -90,8 +90,12 @@ public sealed class Es256KTests : IAsyncDisposable
         );
     }
 
+    #endregion
+
+    #region TrySign Tests
+
     [Secp256k1Fact]
-    public void TrySign_WritesTheFixedSizeSignatureOfRfc7518()
+    public void TrySign_WhenSecp256k1Key_WritesTheFixedSizeSignatureOfRfc7518()
     {
         var privateKey = Services.GenerateKey("secp256k1");
         var signature = new byte[Es256K.GetSignatureSizeBytes(privateKey.KeySizeBits)];
@@ -101,6 +105,30 @@ public sealed class Es256KTests : IAsyncDisposable
         Assert.Equal(64, bytesWritten);
         Assert.True(Es256K.Verify(privateKey, "data"u8, signature));
     }
+
+    [Secp256k1Fact]
+    public void TrySign_WhenEs256KIsGivenAP256Key_Throws()
+    {
+        var p256Key = Services.GenerateKey("P-256");
+        var signature = new byte[64];
+
+        Assert.Throws<ArgumentException>(() => Es256K.TrySign(p256Key, "data"u8, signature, out _));
+    }
+
+    [Secp256k1Fact]
+    public void TrySign_WhenEs256IsGivenASecp256k1Key_Throws()
+    {
+        var secp256k1Key = Services.GenerateKey("secp256k1");
+        var signature = new byte[64];
+
+        Assert.Throws<ArgumentException>(() =>
+            Es256.TrySign(secp256k1Key, "data"u8, signature, out _)
+        );
+    }
+
+    #endregion
+
+    #region Decode Tests
 
     [Secp256k1Fact]
     public void Decode_WhenJwsWasSignedByAnIndependentImplementation_ReturnsThePayload()
@@ -127,7 +155,7 @@ public sealed class Es256KTests : IAsyncDisposable
     }
 
     [Secp256k1Fact]
-    public void Decode_WithTheKnownPrivateKey_VerifiesItsOwnSignature()
+    public void Decode_WhenSignedWithTheKnownPrivateKey_VerifiesWithItsPublicKey()
     {
         var privateKey = Services.CreatePrivateKey(
             new ECParameters
@@ -152,52 +180,6 @@ public sealed class Es256KTests : IAsyncDisposable
         );
     }
 
-    #endregion
-
-    #region Curve binding
-
-    [Secp256k1Fact]
-    public void IsKeyCompatible_Es256KAcceptsOnlySecp256k1Keys()
-    {
-        // Both keys are 256 bits, the only size ES256K accepts, so only the curve tells them apart.
-        var secp256k1Key = Services.GenerateKey("secp256k1");
-        var p256Key = Services.GenerateKey("P-256");
-        Assert.Equal(p256Key.KeySizeBits, secp256k1Key.KeySizeBits);
-
-        Assert.True(Es256K.IsKeyCompatible(secp256k1Key));
-        Assert.False(Es256K.IsKeyCompatible(p256Key));
-    }
-
-    [Secp256k1Fact]
-    public void IsKeyCompatible_Es256RefusesASecp256k1Key()
-    {
-        var secp256k1Key = Services.GenerateKey("secp256k1");
-        var p256Key = Services.GenerateKey("P-256");
-
-        Assert.True(Es256.IsKeyCompatible(p256Key));
-        Assert.False(Es256.IsKeyCompatible(secp256k1Key));
-    }
-
-    [Secp256k1Fact]
-    public void TrySign_WhenEs256KIsGivenAP256Key_Throws()
-    {
-        var p256Key = Services.GenerateKey("P-256");
-        var signature = new byte[64];
-
-        Assert.Throws<ArgumentException>(() => Es256K.TrySign(p256Key, "data"u8, signature, out _));
-    }
-
-    [Secp256k1Fact]
-    public void TrySign_WhenEs256IsGivenASecp256k1Key_Throws()
-    {
-        var secp256k1Key = Services.GenerateKey("secp256k1");
-        var signature = new byte[64];
-
-        Assert.Throws<ArgumentException>(() =>
-            Es256.TrySign(secp256k1Key, "data"u8, signature, out _)
-        );
-    }
-
     [Secp256k1Fact]
     public void Decode_WhenEs256KJwsIsVerifiedWithAP256Key_Throws()
     {
@@ -206,18 +188,66 @@ public sealed class Es256KTests : IAsyncDisposable
         Assert.Throws<ArgumentException>(() => Services.JoseSerializer.Decode(KnownJws, p256Key));
     }
 
+    #endregion
+
+    #region IsKeyCompatible Tests
+
     [Secp256k1Fact]
-    public void KeyTypes_NamesTheSecp256k1Curve()
+    public void IsKeyCompatible_WhenEs256KAndSecp256k1Key_ReturnsTrue()
+    {
+        var secp256k1Key = Services.GenerateKey("secp256k1");
+
+        Assert.True(Es256K.IsKeyCompatible(secp256k1Key));
+    }
+
+    [Secp256k1Fact]
+    public void IsKeyCompatible_WhenEs256KAndP256KeyOfTheSameSize_ReturnsFalse()
+    {
+        // The key is 256 bits, the only size ES256K accepts, so only the curve tells it apart.
+        var p256Key = Services.GenerateKey("P-256");
+
+        Assert.Equal(256, p256Key.KeySizeBits);
+        Assert.False(Es256K.IsKeyCompatible(p256Key));
+    }
+
+    [Secp256k1Fact]
+    public void IsKeyCompatible_WhenEs256AndP256Key_ReturnsTrue()
+    {
+        var p256Key = Services.GenerateKey("P-256");
+
+        Assert.True(Es256.IsKeyCompatible(p256Key));
+    }
+
+    [Secp256k1Fact]
+    public void IsKeyCompatible_WhenEs256AndSecp256k1Key_ReturnsFalse()
+    {
+        var secp256k1Key = Services.GenerateKey("secp256k1");
+
+        Assert.False(Es256.IsKeyCompatible(secp256k1Key));
+    }
+
+    #endregion
+
+    #region KeyTypes Property Tests
+
+    [Secp256k1Fact]
+    public void KeyTypes_WhenEs256K_NamesTheSecp256k1Curve()
     {
         var keyType = Assert.Single(Es256K.KeyTypes);
 
         Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
-        Assert.Equal("secp256k1", keyType.Curve);
+        var curve = Assert.Single(keyType.Curves);
+        Assert.Equal("secp256k1", curve.Name);
+        Assert.Equal(256, curve.KeySizeBits);
         Assert.True(keyType.IsLegalSize(256));
     }
 
+    #endregion
+
+    #region GetTokenHashFunction Tests
+
     [Secp256k1Fact]
-    public void GetTokenHashFunction_HashesWithSha256()
+    public void GetTokenHashFunction_WhenSecp256k1Key_HashesWithSha256()
     {
         var secp256k1Key = Services.GenerateKey("secp256k1");
 
@@ -228,10 +258,10 @@ public sealed class Es256KTests : IAsyncDisposable
 
     #endregion
 
-    #region JWK
+    #region ExportPublicKey Tests
 
     [Secp256k1Fact]
-    public void ExportPublicKey_WritesCrvSecp256k1()
+    public void ExportPublicKey_WhenSecp256k1Key_WritesCrvSecp256k1()
     {
         var privateKey = Services.GenerateKey("secp256k1");
 
@@ -247,7 +277,7 @@ public sealed class Es256KTests : IAsyncDisposable
     }
 
     [Secp256k1Fact]
-    public void ImportPublicJwk_ThenExport_RoundTripsTheKnownKey()
+    public void ExportPublicKey_WhenKnownKeyWasImported_RoundTripsItsJwk()
     {
         var publicKey = Services.ImportPublicJwk(KnownPublicJwk());
 
@@ -261,8 +291,12 @@ public sealed class Es256KTests : IAsyncDisposable
         Assert.True(Es256K.IsKeyCompatible(publicKey));
     }
 
+    #endregion
+
+    #region ImportPublicKeyMaterial Tests
+
     [Secp256k1Fact]
-    public void ImportPublicJwk_WhenPointIsNotOnSecp256k1_Throws()
+    public void ImportPublicKeyMaterial_WhenPointIsNotOnSecp256k1_Throws()
     {
         // The known point is on secp256k1; with y changed it lies on no curve the JWK names.
         var jwk = KnownPublicJwk();
@@ -271,8 +305,12 @@ public sealed class Es256KTests : IAsyncDisposable
         Assert.Throws<ArgumentException>(() => Services.ImportPublicJwk(jwk));
     }
 
+    #endregion
+
+    #region GenerateKeyMaterial Tests
+
     [Secp256k1Fact]
-    public void GenerateKey_WithoutACurve_SelectsP256BySize()
+    public void GenerateKeyMaterial_WhenNoCurve_SelectsP256BySize()
     {
         var key = Services.GenerateKey(curve: null);
 

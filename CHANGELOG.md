@@ -15,7 +15,10 @@ change to the public API is a **major** version bump.
   `ECDH-ES+A256KW` serve every key type that has a registered `IEcdhKeyAgreement` (in
   `NCode.Identity.Jose.Abstractions`), so a package can contribute ECDH-ES over its key type, such as the `OKP` X25519
   and X448 keys of RFC 8037 §3.2, by registering an agreement beside its key type; the core registers the `EC`
-  agreement over P-256, P-384 and P-521. The `epk` header is written and read through the key type's
+  agreement over P-256, P-384 and P-521. Several agreements may serve one key type, each over its own curves, so a
+  package can also add ECDH-ES over another `EC` curve: a key is agreed by the one agreement that accepts it, a key two
+  agreements accept is refused, and the algorithms list the core's `EC` keys first whichever package is registered
+  first. The `epk` header is written and read through the key type's
   `ISecretKeyTypeDescriptor` and JSON Web Key rules: it carries only the type's required members, its `kty` must be the
   recipient key's, and a received `epk` that holds any private member is refused ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **ECDH-ES over X25519 and X448.** `AddEdDsa()` in `NCode.Identity.Jose.EdDsa` now also registers clean-room,
@@ -33,13 +36,16 @@ change to the public API is a **major** version bump.
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
   ECDSA algorithm for it beside `ES256`, `ES384` and `ES512`; startup fails on an empty or duplicate code ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1391](docs/decisions/1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
-- **Tenant keys are generated on their algorithm's curve.** `AlgorithmKeyType.Curve` names the one curve an algorithm
-  is bound to, and tenant key provisioning generates the key on it, so `ES256K`, `Ed25519` and `Ed448` keys can be
-  provisioned. A stored key with a public half satisfies an algorithm only when the algorithm accepts that key, so an
+- **Tenant keys are generated on their algorithm's curve.** `AlgorithmKeyType.Curves` lists the curves an algorithm
+  accepts keys on, each an `AlgorithmCurve` with its `crv` and key size, and tenant key provisioning generates the key on
+  the first of them with the key's size, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic
+  `EdDSA` and for `ECDH-ES`, can be provisioned. A management create request that names no curve is generated the same
+  way (`ISecretValidator.ResolveCurve`), and the `algorithms` capability lists each secret type's `curves`, of which the
+  console offers only those. A stored key with a public half satisfies an algorithm only when the algorithm accepts that key, so an
   unbound P-256 key no longer stands in for `ES256K` ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1391](docs/decisions/1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **A tenant key can name its secret type.** `OpenId:Tenant:KeyProvisioning:Keys` entries take an optional
   `SecretType` that selects which of the algorithm's key types the key is generated as; unset, it is the algorithm's
-  first key type that has a registered secret key type ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  first key type that has a registered secret key type and can be provisioned ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 
 - **The BFF serves more token requirements and forwards remote APIs.** Besides `user`, an endpoint or remote API can name
   `client` (the BFF's own `client_credentials` token, served only to a request with a session and cached in memory on
@@ -1416,7 +1422,9 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   algorithm's order of preference, with `TryGetKeyType` to match a key and `AcceptsOnly<TKey>()` to ask whether every
   key type is of a family. The JWE decryption key check, `ValidateKeyAlgorithm`, tenant key provisioning and the client
   authentication and decryption policies read it. `AuthenticatedEncryptionAlgorithm` no longer derives from
-  `KeyedAlgorithm`, because its key is a content encryption key, not a `SecretKey` ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  `KeyedAlgorithm`, because its key is a content encryption key, not a `SecretKey`. The JOSE algorithm collection now
+  resolves the secret key-type catalog, whose descriptors log, so a container that resolves it needs logging registered
+  (`AddLogging()`) ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **Breaking: the `algorithms` capability lists each secret type with its own key sizes.**
   `AlgorithmCapabilityResource.KeyTypes` (`{ secretType, keyBitSizes }` per compatible secret type) replaces
   `SecretTypes` and `KeyBitSizes`, and the console bounds a new secret's key size by the chosen type's entry ([#327](https://github.com/NCodeGroup/Identity/issues/327),
@@ -4344,6 +4352,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Security
 
+- **A key is refused when it is declared for an algorithm that rejects its curve.** `ValidateKeyAlgorithm` checks a
+  declared curve against the algorithm's curves and sizes and, through `KeyAlgorithmDeclaration.Key`, the key itself
+  with the algorithm's `IsKeyCompatible`, so a client JSON Web Key Set, a management import or a management update no
+  longer registers an Ed25519 key for `ECDH-ES`, an X25519 key for `EdDSA`, a P-256 key for `ES256K` or a secp256k1 key
+  for `ES256`, the signing and agreement confusion RFC 8037 §3.1 and §3.2 forbid. A JWE decryption key on a curve the
+  algorithm refuses is reported as the caller's configuration error rather than as a failed authentication tag
+  ([#327](https://github.com/NCodeGroup/Identity/issues/327), [#336](https://github.com/NCodeGroup/Identity/issues/336),
+  [#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **No conformance credential is committed.** The reference host's `appsettings.Conformance.json` no longer holds the `ConformanceSeed` clients' `ClientSecret` values or `TestUserPassword`, and the conformance runner's configurations no longer hold the test user's password or the pre-flight's client secret. The secrets of `client`, `client2` and `client-secret-post` and the test user's password are generated once per machine, beside the development root key in `LocalApplicationData/NCode.Identity/LocalDev`, by the LocalDev AppHost and by the new `build/conformance/Get-ConformanceSeedCredentials.ps1`, which read the same files; the AppHost and `run-conformance.ps1` hand them to the conformance OP as `ConformanceSeed__` environment variables, and the runner fills them into the pre-flight and into the suite configurations it renders from the committed `oidcc-basic.template.json` and `fapi1-advanced.template.json`. Without them the seed skips those clients and the test user; start the `Conformance` profile by hand after `Get-ConformanceSeedCredentials.ps1 -SetEnvironment`, and reset a persistent development database so its conformance tenant seeds the new credentials ([#514](https://github.com/NCodeGroup/Identity/issues/514), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 - **The client-assertion audience and the DPoP `htu` are compared with the tenant's published URLs.** A client assertion's `aud` may name the tenant's issuer or the receiving endpoint's URL under the tenant's issuer origin or its mutual-TLS alias authority, and a DPoP proof's `htu` is compared with the endpoint's URL under the origin the tenant publishes for it; neither is built from the request's `Host` any longer, so a forged `Host` no longer widens what the server accepts (**breaking** for a client that addressed the server under an unpublished host) ([#518](https://github.com/NCodeGroup/Identity/issues/518), [ADR-1387](docs/decisions/1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)).
 - **No development secret is committed.** The reference host's `launchSettings.json` no longer holds `BootstrapAdmin__ClientSecret` or `DeveloperInteractiveSeed__AdminPassword`. The LocalDev AppHost generates both once per machine, beside the development root key in `LocalApplicationData/NCode.Identity/LocalDev`, and hands them to the hosts it starts; a host run without it reads them from its user secrets and otherwise seeds neither administrator ([#496](https://github.com/NCodeGroup/Identity/issues/496), [ADR-1370](docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).

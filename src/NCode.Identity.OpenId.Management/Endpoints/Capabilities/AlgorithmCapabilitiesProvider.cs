@@ -85,6 +85,7 @@ internal sealed class AlgorithmCapabilitiesProvider(
                                 SkipBits = keySizes.SkipSize,
                             })
                             .ToList(),
+                        Curves = [.. algorithmKeyType.Curves.Select(curve => curve.Name)],
                     })
             ),
         ];

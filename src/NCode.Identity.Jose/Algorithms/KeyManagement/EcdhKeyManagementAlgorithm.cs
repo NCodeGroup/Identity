@@ -55,7 +55,8 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// </summary>
     /// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the
     /// <c>epk</c>.</param>
-    /// <param name="keyAgreements">The registered key agreements, one per key type.</param>
+    /// <param name="keyAgreements">The registered key agreements; a key is agreed by the one agreement that accepts
+    /// it.</param>
     public EcdhKeyManagementAlgorithm(
         ISecretKeyTypeCatalog secretKeyTypeCatalog,
         IEnumerable<IEcdhKeyAgreement> keyAgreements
@@ -75,11 +76,11 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// </summary>
     /// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the
     /// <c>epk</c>.</param>
-    /// <param name="keyAgreements">The registered key agreements, one per key type.</param>
+    /// <param name="keyAgreements">The registered key agreements; a key is agreed by the one agreement that accepts
+    /// it.</param>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
     /// <param name="isDirectAgreement"><c>true</c> if the algorithm is to use direct key agreement mode;
     /// otherwise, <c>false</c> if the algorithm is to use key agreement with key wrapping mode.</param>
-    /// <exception cref="InvalidOperationException">Two key agreements serve the same key type.</exception>
     protected EcdhKeyManagementAlgorithm(
         ISecretKeyTypeCatalog secretKeyTypeCatalog,
         IEnumerable<IEcdhKeyAgreement> keyAgreements,
@@ -88,34 +89,70 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     )
     {
         SecretKeyTypeCatalog = secretKeyTypeCatalog;
-        KeyAgreements = [.. keyAgreements];
+        KeyAgreements = OrderKeyAgreements(keyAgreements);
         Code = code;
         IsDirectAgreement = isDirectAgreement;
         AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
-
-        // A key must resolve to one agreement, so no two agreements may serve overlapping key types.
-        for (var i = 0; i < KeyAgreements.Count; ++i)
-        for (var j = i + 1; j < KeyAgreements.Count; ++j)
-        {
-            var left = KeyAgreements[i].KeyType.KeyType;
-            var right = KeyAgreements[j].KeyType.KeyType;
-            if (left.IsAssignableFrom(right) || right.IsAssignableFrom(left))
-            {
-                throw new InvalidOperationException(
-                    $"The ECDH-ES key agreements '{KeyAgreements[i].GetType().FullName}' and "
-                        + $"'{KeyAgreements[j].GetType().FullName}' both serve keys of type '{right.FullName}'."
-                );
-            }
-        }
-
-        KeyTypes = [.. KeyAgreements.Select(keyAgreement => keyAgreement.KeyType)];
+        KeyTypes = MergeKeyTypes(KeyAgreements);
     }
+
+    /// <summary>
+    /// Orders the agreements independently of the order they were registered in: the core's <c>EC</c> agreement of
+    /// RFC 7518 first, then the contributed ones by key type and agreement type name, so the key types and curves the
+    /// algorithm prefers, and the key a tenant is provisioned with, never depend on which package was added first.
+    /// </summary>
+    // See ADR-1389.
+    private static IEcdhKeyAgreement[] OrderKeyAgreements(
+        IEnumerable<IEcdhKeyAgreement> keyAgreements
+    ) =>
+        [
+            .. keyAgreements
+                .OrderBy(keyAgreement => keyAgreement is EccEcdhKeyAgreement ? 0 : 1)
+                .ThenBy(
+                    keyAgreement => keyAgreement.KeyType.KeyType.FullName,
+                    StringComparer.Ordinal
+                )
+                .ThenBy(keyAgreement => keyAgreement.GetType().FullName, StringComparer.Ordinal),
+        ];
+
+    /// <summary>
+    /// Merges the key types of agreements that serve the same runtime key type, such as two agreements over
+    /// different <c>EC</c> curves, into one <see cref="AlgorithmKeyType"/> with the sizes and curves of both, so a
+    /// package can add an agreement over another curve of a key type the core already serves.
+    /// </summary>
+    private static AlgorithmKeyType[] MergeKeyTypes(IEnumerable<IEcdhKeyAgreement> keyAgreements) =>
+        [
+            .. keyAgreements
+                .GroupBy(keyAgreement => keyAgreement.KeyType.KeyType)
+                .Select(group =>
+                {
+                    var keyTypes = group.Select(keyAgreement => keyAgreement.KeyType).ToList();
+                    if (keyTypes.Count == 1)
+                    {
+                        return keyTypes[0];
+                    }
+
+                    // A key type whose agreement does not restrict the curve accepts every curve.
+                    var curves = keyTypes.Any(keyType => keyType.Curves.Count == 0)
+                        ? []
+                        : keyTypes
+                            .SelectMany(keyType => keyType.Curves)
+                            .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
+                            .ToArray();
+
+                    return new AlgorithmKeyType(
+                        group.Key,
+                        keyTypes.SelectMany(keyType => keyType.KeyBitSizes)
+                    )
+                    {
+                        Curves = curves,
+                    };
+                }),
+        ];
 
     /// <inheritdoc />
     public override bool IsKeyCompatible(SecretKey secretKey) =>
-        base.IsKeyCompatible(secretKey)
-        && TryGetKeyAgreement(secretKey, out var keyAgreement)
-        && keyAgreement.IsKeyCompatible(secretKey);
+        base.IsKeyCompatible(secretKey) && TryGetKeyAgreement(secretKey, out _, out _);
 
     /// <inheritdoc />
     public override IEnumerable<KeySizes> GetLegalCekByteSizes(int kekSizeBits) =>
@@ -278,53 +315,70 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         return ephemeralPublicKey;
     }
 
+    /// <summary>
+    /// Finds the one agreement that accepts the key: several agreements may serve one key type, each over its own
+    /// curves, so the agreement is chosen by the key rather than by its type.
+    /// </summary>
+    // See ADR-1389.
     private bool TryGetKeyAgreement(
         SecretKey secretKey,
-        [NotNullWhen(true)] out IEcdhKeyAgreement? keyAgreement
+        [NotNullWhen(true)] out IEcdhKeyAgreement? keyAgreement,
+        [NotNullWhen(false)] out string? error
     )
     {
         var keyType = secretKey.GetType();
+        keyAgreement = null;
+        var servesKeyType = false;
         foreach (var candidate in KeyAgreements)
         {
-            if (candidate.KeyType.Accepts(keyType))
+            if (!candidate.KeyType.Accepts(keyType))
             {
-                keyAgreement = candidate;
-                return true;
+                continue;
             }
+
+            servesKeyType = true;
+            if (
+                !candidate.KeyType.IsLegalSize(secretKey.KeySizeBits)
+                || !candidate.IsKeyCompatible(secretKey)
+            )
+            {
+                continue;
+            }
+
+            if (keyAgreement is not null)
+            {
+                // Two agreements that both accept a key leave it ambiguous which one derives the content key.
+                error =
+                    $"The ECDH-ES key agreements '{keyAgreement.GetType().FullName}' and "
+                    + $"'{candidate.GetType().FullName}' both accept the secret key.";
+                keyAgreement = null;
+                return false;
+            }
+
+            keyAgreement = candidate;
         }
 
-        keyAgreement = null;
+        if (keyAgreement is not null)
+        {
+            error = null;
+            return true;
+        }
+
+        error = servesKeyType
+            ? "The secret key's size or curve is not valid for this cryptographic algorithm."
+            : $"The secret key of type '{keyType.FullName}' has no registered ECDH key agreement.";
         return false;
     }
 
     private IEcdhKeyAgreement ResolveKeyAgreement(SecretKey secretKey)
     {
-        // the argument that is invalid is the caller's secretKey, not this helper's parameter
+        if (!TryGetKeyAgreement(secretKey, out var keyAgreement, out var error))
+        {
+            // the argument that is invalid is the caller's secretKey, not this helper's parameter
 #pragma warning disable CA2208
-        if (!TryGetKeyAgreement(secretKey, out var keyAgreement))
-        {
-            throw new ArgumentException(
-                $"The secret key of type '{secretKey.GetType().FullName}' has no registered ECDH key agreement.",
-                nameof(secretKey)
-            );
-        }
-
-        if (!keyAgreement.KeyType.IsLegalSize(secretKey.KeySizeBits))
-        {
-            throw new ArgumentException(
-                "The secret key does not have a valid size for this cryptographic algorithm.",
-                nameof(secretKey)
-            );
-        }
-
-        if (!keyAgreement.IsKeyCompatible(secretKey))
-        {
-            throw new ArgumentException(
-                "The secret key's curve is not valid for this cryptographic algorithm.",
-                nameof(secretKey)
-            );
-        }
+            throw new ArgumentException(error, nameof(secretKey));
 #pragma warning restore CA2208
+        }
 
         return keyAgreement;
     }

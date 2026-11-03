@@ -39,7 +39,14 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
                     skipSize: 0
                 ),
             ]
-        );
+        )
+        {
+            Curves =
+            [
+                new(OkpCurves.X25519Name, OkpCurves.X25519KeySizeBits),
+                new(OkpCurves.X448Name, OkpCurves.X448KeySizeBits),
+            ],
+        };
 
     /// <inheritdoc />
     public bool IsKeyCompatible(SecretKey secretKey) =>

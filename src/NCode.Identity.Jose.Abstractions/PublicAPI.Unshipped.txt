@@ -1,6 +1,4 @@
 #nullable enable
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curve.get -> string?
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curve.init -> void
 NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification
 NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Code.get -> string!
 NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Code.init -> void
@@ -194,6 +192,18 @@ NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Ide
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).ValidateKeyAlgorithm(NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration declaration) -> string?
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Accepts(System.Type! keyType) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curves.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>!
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curves.init -> void
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalCurve(string! curve, int keySizeBits) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(int keySizeBits, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmCurve
+NCode.Identity.Jose.Algorithms.AlgorithmCurve.AlgorithmCurve(string! name, int keySizeBits) -> void
+NCode.Identity.Jose.Algorithms.AlgorithmCurve.KeySizeBits.get -> int
+NCode.Identity.Jose.Algorithms.AlgorithmCurve.Name.get -> string!
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Curve.get -> string?
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Curve.init -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Key.get -> NCode.Identity.Secrets.Keys.SecretKey?
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Key.init -> void
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.AlgorithmKeyType(System.Type! keyType, System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! keyBitSizes) -> void
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalSize(int keySizeBits) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<System.Security.Cryptography.KeySizes!>!

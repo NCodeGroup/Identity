@@ -29,7 +29,7 @@ public class DefaultRegistrationTests
 
     #endregion
 
-    #region AddSecp256k1
+    #region AddSecp256k1 Tests
 
     [Secp256k1Fact]
     public async Task AddSecp256k1_WhenPlatformSupportsTheCurve_RegistersTheCurveAndEs256K()
@@ -83,7 +83,7 @@ public class DefaultRegistrationTests
     }
 
     [Secp256k1Fact]
-    public async Task AddSecp256k1_KeepsP256TheCurveSelectedBySize()
+    public async Task AddSecp256k1_WhenRegistered_KeepsP256TheCurveSelectedBySize()
     {
         await using var serviceProvider = BuildServiceProvider(services => services.AddSecp256k1());
 
@@ -94,7 +94,7 @@ public class DefaultRegistrationTests
 
     #endregion
 
-    #region Register
+    #region Register Tests
 
     [Fact]
     public async Task Register_WhenPlatformDoesNotSupportTheCurve_RegistersNothing()

@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Jose;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -104,23 +105,111 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             size => Assert.Equal((256, 384, 128), (size.MinSize, size.MaxSize, size.SkipSize)),
             size => Assert.Equal((521, 521, 0), (size.MinSize, size.MaxSize, size.SkipSize))
         );
+        Assert.Equal(
+            [("P-256", 256), ("P-384", 384), ("P-521", 521)],
+            keyType.Curves.Select(curve => (curve.Name, curve.KeySizeBits))
+        );
+    }
+
+    // An agreement over another EC curve, as a package would contribute one; it only decides which keys it accepts.
+    private sealed class BrainpoolEcdhKeyAgreement : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType KeyType { get; } =
+            new(typeof(EccSecretKey), [new KeySizes(minSize: 256, maxSize: 256, skipSize: 0)])
+            {
+                Curves = [new("brainpoolP256r1", 256)],
+            };
+
+        public bool IsKeyCompatible(SecretKey secretKey) =>
+            secretKey is EccSecretKey eccSecretKey
+            && EccCurveSpecification.IsSameNamedCurve(
+                eccSecretKey.GetECCurve(),
+                ECCurve.NamedCurves.brainpoolP256r1
+            );
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) => 32;
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    private static EccSecretKey CreateBrainpoolKey()
+    {
+        using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.brainpoolP256r1);
+        return SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "brainpool" }, key);
     }
 
     [Fact]
-    public void Constructor_WhenTwoAgreementsServeTheSameKeyType_Throws()
+    public void KeyTypes_WhenTwoAgreementsServeTheSameKeyType_MergesTheirSizesAndCurves()
     {
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new EcdhKeyManagementAlgorithm(
-                SecretKeyTypeCatalog,
-                [new EccEcdhKeyAgreement(), new EccEcdhKeyAgreement()]
+        var algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new BrainpoolEcdhKeyAgreement(), new EccEcdhKeyAgreement()]
+        );
+
+        var keyType = Assert.Single(algorithm.KeyTypes);
+        Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
+        Assert.Equal(
+            ["P-256", "P-384", "P-521", "brainpoolP256r1"],
+            keyType.Curves.Select(curve => curve.Name)
+        );
+        Assert.True(keyType.IsLegalSize(521));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenAnotherAgreementServesTheKeysCurve_ReturnsTrue()
+    {
+        var algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new EccEcdhKeyAgreement(), new BrainpoolEcdhKeyAgreement()]
+        );
+
+        Assert.True(algorithm.IsKeyCompatible(CreateBrainpoolKey()));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenNoAgreementServesTheKeysCurve_ReturnsFalse()
+    {
+        Assert.False(Algorithm.IsKeyCompatible(CreateBrainpoolKey()));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenTwoAgreementsAcceptTheKey_ReturnsFalse()
+    {
+        var algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new EccEcdhKeyAgreement(), new EccEcdhKeyAgreement()]
+        );
+
+        Assert.False(algorithm.IsKeyCompatible(CreateRecipientKey(256)));
+    }
+
+    [Fact]
+    public void NewKey_WhenTwoAgreementsAcceptTheKey_Throws()
+    {
+        var algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new EccEcdhKeyAgreement(), new EccEcdhKeyAgreement()]
+        );
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            algorithm.NewKey(
+                CreateRecipientKey(256),
+                new Dictionary<string, object> { ["enc"] = Enc },
+                new byte[16]
             )
         );
 
-        Assert.Contains(
-            typeof(EccSecretKey).FullName!,
-            exception.Message,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("both accept", exception.Message, StringComparison.Ordinal);
     }
 
     [Theory]

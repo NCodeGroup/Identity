@@ -38,8 +38,8 @@ order makes the shared secret all zeros, which a party who chose that key knows 
    Ed25519 key never agrees, although their sizes match. A key's size is `8 ×` its public key's length, so an X448 key
    is 448 bits and an Ed448 key 456.
 3. **One agreement serves both curves.** `OkpEcdhKeyAgreement` is the `IEcdhKeyAgreement` for `OkpSecretKey`, because
-   ADR-1389 lets no two agreements serve the same key type; it accepts 256- and 448-bit keys and resolves the curve
-   from the key. The shared secret `Z` is the function's output, 32 or 56 bytes, and the Concat KDF stays the
+   the two curves share the agreement's code and differ only in the function it calls; it lists X25519 at 256 bits and
+   X448 at 448 bits, and resolves the curve from the key. The shared secret `Z` is the function's output, 32 or 56 bytes, and the Concat KDF stays the
    algorithm's.
 4. **An all-zero shared secret is refused on both sides.** The recipient refuses an `epk` of small order, and the
    sender refuses a recipient key of small order rather than encrypting under a key anyone can derive. The check reads
@@ -67,8 +67,11 @@ order makes the shared secret all zeros, which a party who chose that key knows 
 - With `AddEdDsa()`, `ECDH-ES`, `ECDH-ES+A128KW`, `ECDH-ES+A192KW` and `ECDH-ES+A256KW` accept `OKP` X25519 and X448
   keys after the `EC` keys, and the JWE decryption key check, the credential selector and the capabilities document
   serve them unchanged.
-- Tenant key provisioning generates a key from an algorithm and a size and cannot choose a curve, so it cannot
-  provision an `OKP` key of either use; the `OKP` descriptor refuses generation without a curve.
+- Tenant key provisioning chooses an `OKP` key's curve from the algorithm's curves and the key's size (ADR-1389
+  decision 5): `ECDH-ES` with `SecretType` `okp` gets an X25519 key at 256 bits and an X448 key at 448, and the
+  polymorphic `EdDSA` an Ed25519 key at 256 bits and an Ed448 key at 456.
+- A key on a curve of the other use is refused when it is declared for an algorithm, as an Ed25519 key for `ECDH-ES`
+  or an X25519 key for `EdDSA` is when a client registers it.
 - `XdhBenchmarks` measures the two functions, as [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)
   requires of the package's primitives.
 

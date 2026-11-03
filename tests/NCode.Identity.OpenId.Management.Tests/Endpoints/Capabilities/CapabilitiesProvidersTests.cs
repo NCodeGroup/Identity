@@ -125,6 +125,14 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var rs256KeyType = Assert.Single(rs256.KeyTypes);
         Assert.Equal(SecretKeyTypes.Rsa, rs256KeyType.SecretType);
         Assert.NotEmpty(rs256KeyType.KeyBitSizes);
+        Assert.Empty(rs256KeyType.Curves);
+
+        // ES256 is bound to P-256, so the console can offer that curve alone.
+        var es256 = Assert.Single(
+            section,
+            algorithm => algorithm.Code == AlgorithmCodes.DigitalSignature.EcdsaSha256
+        );
+        Assert.Equal(["P-256"], Assert.Single(es256.KeyTypes).Curves);
 
         var rsaOaep = Assert.Single(
             section,
@@ -174,6 +182,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
                         Assert.Equal((256, 384, 128), (size.MinBits, size.MaxBits, size.SkipBits)),
                     size => Assert.Equal((521, 521, 0), (size.MinBits, size.MaxBits, size.SkipBits))
                 );
+                Assert.Equal(["P-256", "P-384", "P-521"], ecc.Curves);
             },
             rsa =>
             {

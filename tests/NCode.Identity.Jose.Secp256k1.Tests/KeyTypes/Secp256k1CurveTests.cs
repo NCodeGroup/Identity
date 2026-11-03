@@ -10,10 +10,10 @@ namespace NCode.Identity.Jose.Secp256k1.Tests.KeyTypes;
 
 public class Secp256k1CurveTests
 {
-    #region Specification
+    #region Specification Property Tests
 
     [Fact]
-    public void Specification_NamesTheCurveAsRfc8812Registers()
+    public void Specification_WhenRead_NamesTheCurveAsRfc8812Registers()
     {
         var specification = Secp256k1Curve.Specification;
 
@@ -23,7 +23,7 @@ public class Secp256k1CurveTests
     }
 
     [Fact]
-    public void Specification_IsNotP256_ThoughItHasTheSameSize()
+    public void Specification_WhenComparedWithP256_IsNotTheSameCurve()
     {
         Assert.False(
             EccCurveSpecification.IsSameNamedCurve(
@@ -35,22 +35,17 @@ public class Secp256k1CurveTests
 
     #endregion
 
-    #region IsSupported
+    #region IsSupported Property Tests
 
-    [Fact]
-    public void IsSupported_OnLinux_IsTrue()
+    [LinuxFact]
+    public void IsSupported_WhenLinux_IsTrue()
     {
         // .NET uses OpenSSL on Linux, which supports secp256k1; the gate must not hide the algorithm there.
-        if (!OperatingSystem.IsLinux())
-        {
-            return;
-        }
-
         Assert.True(Secp256k1Curve.IsSupported);
     }
 
     [Fact]
-    public void IsSupported_AnswersAsThePlatformCreatesAKey()
+    public void IsSupported_WhenRead_AnswersAsThePlatformCreatesAKey()
     {
         bool created;
         try

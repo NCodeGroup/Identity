@@ -1,12 +1,16 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
@@ -27,13 +31,38 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 // See ADR-1067.
 internal sealed class DefaultSecretValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    ISecretSerializer secretSerializer
 ) : ISecretValidator
 {
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
 
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <inheritdoc />
+    // See ADR-1389 and ADR-1391.
+    public string? ResolveCurve(CreateSecretRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (
+            request.Curve is not null
+            || request.Algorithm is not { } algorithm
+            || !SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor)
+            || !TryGetKeyedAlgorithm(algorithm, out var keyedAlgorithm)
+            || !keyedAlgorithm.TryGetKeyType(descriptor.KeyClrType, out var algorithmKeyType)
+        )
+        {
+            return request.Curve;
+        }
+
+        // Two curves can share a key size, so the key is generated on the first curve the algorithm accepts that has
+        // the requested size, never on whichever curve the key type picks for the size.
+        return algorithmKeyType.TryGetCurve(request.KeySizeBits, out var curve) ? curve.Name : null;
+    }
 
     /// <inheritdoc />
     public ManagementError? ValidateCreate(CreateSecretRequest request)
@@ -57,12 +86,9 @@ internal sealed class DefaultSecretValidator(
         }
 
         // The descriptor validates the intrinsic generation parameters (key size and, for ECC, the curve).
+        var curve = ResolveCurve(request);
         var generationError = descriptor.ValidateGeneration(
-            new SecretKeyGenerationParameters
-            {
-                KeySizeBits = request.KeySizeBits,
-                Curve = request.Curve,
-            }
+            new SecretKeyGenerationParameters { KeySizeBits = request.KeySizeBits, Curve = curve }
         );
         if (generationError is not null)
         {
@@ -80,6 +106,7 @@ internal sealed class DefaultSecretValidator(
                     KeySizeBits = request.KeySizeBits,
                     Use = use,
                     Algorithm = algorithm,
+                    Curve = curve,
                 }
             );
             return algorithmError is null ? null : Error(algorithmError);
@@ -151,6 +178,30 @@ internal sealed class DefaultSecretValidator(
         if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
             return Error($"The secret type '{secret.SecretType}' is not supported.");
 
+        // The public key, stored as the key itself or beside its private half, shows the key's curve, which its type and
+        // size do not.
+        SecretKey? publicKey = null;
+        if (
+            descriptor.IsAsymmetric
+            && (SecretEncodings.IsPublic(secret.SecretEncoding) || secret.PublicKey is not null)
+        )
+        {
+            try
+            {
+                publicKey = SecretSerializer.DeserializePublicSecret(secret);
+            }
+            catch (Exception exception)
+                when (exception
+                        is CryptographicException
+                            or ArgumentException
+                            or InvalidOperationException
+                            or FormatException
+                )
+            {
+                return Error("The key's stored public key cannot be read.");
+            }
+        }
+
         var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
             new KeyAlgorithmDeclaration
             {
@@ -158,9 +209,32 @@ internal sealed class DefaultSecretValidator(
                 KeySizeBits = secret.KeySizeBits,
                 Use = use,
                 Algorithm = algorithm,
+                Key = publicKey,
             }
         );
         return algorithmError is null ? null : Error(algorithmError);
+    }
+
+    private bool TryGetKeyedAlgorithm(
+        string algorithm,
+        [NotNullWhen(true)] out KeyedAlgorithm? keyedAlgorithm
+    )
+    {
+        var collection = AlgorithmCollectionProvider.Collection;
+        if (collection.TryGetSignatureAlgorithm(algorithm, out var signatureAlgorithm))
+        {
+            keyedAlgorithm = signatureAlgorithm;
+            return true;
+        }
+
+        if (collection.TryGetKeyManagementAlgorithm(algorithm, out var keyManagementAlgorithm))
+        {
+            keyedAlgorithm = keyManagementAlgorithm;
+            return true;
+        }
+
+        keyedAlgorithm = null;
+        return false;
     }
 
     private static ManagementError Error(string detail) =>

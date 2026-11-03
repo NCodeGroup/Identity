@@ -18,10 +18,11 @@ public static class AlgorithmCollectionExtensions
         /// <summary>
         /// Checks that a key may be declared for an algorithm: the algorithm is a registered signature or
         /// key-management algorithm, the use it implies (<c>sig</c> for a signature algorithm, <c>enc</c> for a
-        /// key-management algorithm) agrees with the key's declared use, and the algorithm accepts the key's type and
-        /// size, checked against the first of its key types that the key's type is of. The registered algorithm metadata
-        /// is the same the cryptographic runtime validates a key against, so a key that passes can be used with the
-        /// algorithm it declares.
+        /// key-management algorithm) agrees with the key's declared use, and the algorithm accepts the key's type, size
+        /// and curve, checked against the first of its key types that the key's type is of. Two curves can share a key
+        /// size, as P-256 and secp256k1 or Ed25519 and X25519 do, so a declaration that names neither the key's curve
+        /// nor the key itself is checked only by type and size; one that holds the key is checked by the algorithm
+        /// itself, the same check the cryptographic runtime makes before it uses the key.
         /// </summary>
         /// <param name="declaration">The key and the use and algorithm declared for it.</param>
         /// <returns><c>null</c> when the declaration is coherent; otherwise a human-readable reason.</returns>
@@ -65,6 +66,30 @@ public static class AlgorithmCollectionExtensions
             if (!algorithmKeyType.IsLegalSize(declaration.KeySizeBits))
             {
                 return $"The key size '{declaration.KeySizeBits}' bits is not valid for algorithm '{algorithm}'.";
+            }
+
+            // See ADR-1389: the curve separates keys that share a type and a size, such as a signing and an agreement
+            // OKP key, which RFC 8037 §3.1 and §3.2 keep apart.
+            if (
+                declaration.Curve is { } curve
+                && !algorithmKeyType.IsLegalCurve(curve, declaration.KeySizeBits)
+            )
+            {
+                return $"The curve '{curve}' with a key size of '{declaration.KeySizeBits}' bits is not valid for "
+                    + $"algorithm '{algorithm}'; expected "
+                    + string.Join(
+                        ", ",
+                        algorithmKeyType.Curves.Select(legal =>
+                            $"'{legal.Name}' ({legal.KeySizeBits} bits)"
+                        )
+                    )
+                    + ".";
+            }
+
+            if (declaration.Key is { } key && !keyedAlgorithm.IsKeyCompatible(key))
+            {
+                return $"The algorithm '{algorithm}' is not compatible with the key, whose curve or parameters it does "
+                    + "not accept.";
             }
 
             return null;

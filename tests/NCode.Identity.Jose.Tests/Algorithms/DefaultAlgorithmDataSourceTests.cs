@@ -77,7 +77,9 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
             GetCollection(serviceProvider).TryGetSignatureAlgorithm(code, out var algorithm)
         );
         var keyType = Assert.Single(algorithm.KeyTypes);
-        Assert.Equal(curve, keyType.Curve);
+        var named = Assert.Single(keyType.Curves);
+        Assert.Equal(curve, named.Name);
+        Assert.Equal(keySizeBits, named.KeySizeBits);
         Assert.True(keyType.IsLegalSize(keySizeBits));
     }
 
@@ -90,7 +92,10 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
             GetCollection(serviceProvider)
                 .TryGetSignatureAlgorithm(BrainpoolCode, out var algorithm)
         );
-        Assert.Equal("brainpoolP256r1", Assert.Single(algorithm.KeyTypes).Curve);
+        Assert.Equal(
+            "brainpoolP256r1",
+            Assert.Single(Assert.Single(algorithm.KeyTypes).Curves).Name
+        );
         Assert.True(algorithm.IsKeyCompatible(CreateKey(ECCurve.NamedCurves.brainpoolP256r1)));
         Assert.False(algorithm.IsKeyCompatible(CreateKey(ECCurve.NamedCurves.nistP256)));
     }

@@ -56,7 +56,7 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
                 [new KeySizes(minSize: keySizeBits, maxSize: keySizeBits, skipSize: 0)]
             )
             {
-                Curve = specification.Curve.CurveName,
+                Curves = [new(specification.Curve.CurveName, keySizeBits)],
             },
         ];
     }

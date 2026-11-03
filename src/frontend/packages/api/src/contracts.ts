@@ -338,6 +338,11 @@ export type AlgorithmKeyTypeCapability = {
   /** The secret-type discriminator (e.g. `rsa`, `ecc`) whose key material is compatible with the algorithm. */
   readonly secretType: string;
   readonly keyBitSizes: readonly KeyBitSizes[];
+  /**
+   * The JWK `crv` names of the curves keys of the secret type must be on for the algorithm, in its order of
+   * preference (e.g. `secp256k1` for `ES256K`); empty when the type has no curve.
+   */
+  readonly curves: readonly string[];
 };
 
 /**

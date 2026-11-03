@@ -21,8 +21,9 @@ namespace NCode.Identity.Jose.Algorithms;
 public interface IEcdhKeyAgreement
 {
     /// <summary>
-    /// Gets the type of key this agreement serves and the sizes it accepts keys of that type in. No two registered
-    /// agreements serve the same key type.
+    /// Gets the type of key this agreement serves, with the sizes and the curves it accepts keys of that type in.
+    /// Several agreements may serve one key type, each over its own curves, as long as no key is accepted by two of
+    /// them: the algorithms agree a key with the one agreement whose <see cref="IsKeyCompatible"/> accepts it.
     /// </summary>
     AlgorithmKeyType KeyType { get; }
 

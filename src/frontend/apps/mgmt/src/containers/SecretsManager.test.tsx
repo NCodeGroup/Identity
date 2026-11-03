@@ -207,7 +207,11 @@ describe('SecretsManager', () => {
               code: 'ES384',
               use: 'sig',
               keyTypes: [
-                { secretType: 'ecc', keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }] },
+                {
+                  secretType: 'ecc',
+                  keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }],
+                  curves: ['P-384'],
+                },
               ],
             },
           ],

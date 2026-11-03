@@ -37,7 +37,7 @@ public class EdDsaSignatureAlgorithmTests
 
     #endregion
 
-    #region KeyTypes Tests
+    #region KeyTypes Property Tests
 
     [Theory]
     [InlineData(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519Name)]
@@ -46,18 +46,23 @@ public class EdDsaSignatureAlgorithmTests
     {
         var algorithm = CreateFixedAlgorithm(code, curveName);
 
-        Assert.Equal(curveName, Assert.Single(algorithm.KeyTypes).Curve);
+        Assert.Equal(curveName, Assert.Single(Assert.Single(algorithm.KeyTypes).Curves).Name);
     }
 
     [Fact]
-    public void KeyTypes_WhenPolymorphic_NamesNoCurve()
+    public void KeyTypes_WhenPolymorphic_NamesBothSigningCurves()
     {
         var algorithm = new EdDsaSignatureAlgorithm(
             AlgorithmCodes.DigitalSignature.EdDsa,
             curve: null
         );
 
-        Assert.Null(Assert.Single(algorithm.KeyTypes).Curve);
+        Assert.Equal(
+            [(OkpCurves.Ed25519Name, 256), (OkpCurves.Ed448Name, 456)],
+            Assert
+                .Single(algorithm.KeyTypes)
+                .Curves.Select(curve => (curve.Name, curve.KeySizeBits))
+        );
     }
 
     #endregion
@@ -139,6 +144,10 @@ public class EdDsaSignatureAlgorithmTests
         Assert.False(algorithm.IsKeyCompatible(secretKey));
     }
 
+    #endregion
+
+    #region TrySign Tests
+
     [Fact]
     public void TrySign_WhenKeyAgreementCurve_Throws()
     {
@@ -157,10 +166,6 @@ public class EdDsaSignatureAlgorithmTests
             exception.Message
         );
     }
-
-    #endregion
-
-    #region TrySign Tests
 
     [Theory]
     [InlineData(

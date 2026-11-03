@@ -27,4 +27,11 @@ public sealed class AlgorithmKeyTypeCapabilityResource
     /// inclusive ranges.
     /// </summary>
     public required IReadOnlyList<KeyBitSizesResource> KeyBitSizes { get; init; }
+
+    /// <summary>
+    /// Gets the <c>JWK</c> <c>crv</c> names of the curves that keys of <see cref="SecretType"/> must be on for the
+    /// algorithm, in its order of preference (for example <c>secp256k1</c> for <c>ES256K</c>), or an empty list when
+    /// the type has no curve. A key created without a curve is generated on the first of them that has its size.
+    /// </summary>
+    public IReadOnlyList<string> Curves { get; init; } = [];
 }

@@ -158,6 +158,30 @@ public class ContributedKeyTypeEcdhTests : BaseTests
         Assert.True(algorithm.IsKeyCompatible(CreateRecipientKey()));
     }
 
+    [Fact]
+    public async Task KeyTypes_WhenAgreementIsRegisteredBeforeTheCore_StillListsTheCoreOnesFirst()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEcdhKeyAgreement, XkpEcdhKeyAgreement>()
+        );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, XkpSecretKeyTypeDescriptor>()
+        );
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+        var collection = serviceProvider
+            .GetRequiredService<IAlgorithmCollectionProvider>()
+            .Collection;
+
+        Assert.True(collection.TryGetKeyManagementAlgorithm("ECDH-ES", out var algorithm));
+        Assert.Equal(
+            [typeof(EccSecretKey), typeof(XkpSecretKey)],
+            algorithm.KeyTypes.Select(keyType => keyType.KeyType)
+        );
+    }
+
     #endregion
 
     #region NewKey Tests

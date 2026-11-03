@@ -907,7 +907,7 @@ internal class ServerApiEndpointHandler(
                     SecretId = secretId,
                     SecretType = request.SecretType,
                     KeySizeBits = request.KeySizeBits,
-                    Curve = request.Curve,
+                    Curve = SecretValidator.ResolveCurve(request),
                     Use = request.Use,
                     Algorithm = request.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

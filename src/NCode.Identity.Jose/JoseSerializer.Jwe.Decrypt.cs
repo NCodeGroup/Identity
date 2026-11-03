@@ -21,7 +21,7 @@ partial class JoseSerializer
     /// Unwraps the content encryption key (CEK), or substitutes random bytes for it when the encrypted key cannot be
     /// unwrapped to a key of the required length, so the decryption fails at the authentication tag like any tampered
     /// JWE and a recipient never reveals a format, padding or length error of the encrypted key (RFC 7516 §11.5). A key
-    /// of the wrong type or size for the algorithm is the caller's configuration error and is still reported.
+    /// of the wrong type, size or curve for the algorithm is the caller's configuration error and is still reported.
     /// </summary>
     private static void UnwrapContentKeyOrSubstitute(
         KeyManagementAlgorithm keyManagementAlgorithm,
@@ -80,6 +80,17 @@ partial class JoseSerializer
         {
             throw new ArgumentException(
                 "The secret key does not have a valid size for this cryptographic algorithm.",
+                nameof(secretKey)
+            );
+        }
+
+        // Two curves can share a type and a size, such as Ed25519 and X25519, so the algorithm also judges the key. The
+        // check reads only the configured key, never the token, so it reveals nothing about a ciphertext
+        // (RFC 7516 §11.5).
+        if (!keyManagementAlgorithm.IsKeyCompatible(secretKey))
+        {
+            throw new ArgumentException(
+                "The secret key's curve or parameters are not valid for this cryptographic algorithm.",
                 nameof(secretKey)
             );
         }

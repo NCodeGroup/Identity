@@ -27,7 +27,10 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
         new(
             typeof(EccSecretKey),
             [new KeySizes(minSize: 256, maxSize: 384, skipSize: 128), new KeySizes(521, 521, 0)]
-        );
+        )
+        {
+            Curves = [new("P-256", 256), new("P-384", 384), new("P-521", 521)],
+        };
 
     /// <inheritdoc />
     public bool IsKeyCompatible(SecretKey secretKey) =>

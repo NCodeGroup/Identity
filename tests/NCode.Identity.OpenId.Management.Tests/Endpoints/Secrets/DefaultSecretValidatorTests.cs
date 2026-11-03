@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Text;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
@@ -16,6 +18,16 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 {
+    private const string BrainpoolAlgorithm = "X-ES256-BP";
+
+    private static EccCurveSpecification Brainpool256 { get; } =
+        new()
+        {
+            CurveName = "brainpoolP256r1",
+            CurveSizeBits = 256,
+            Curve = ECCurve.NamedCurves.brainpoolP256r1,
+        };
+
     private ServiceProvider ServiceProvider { get; }
     private DefaultSecretValidator Validator { get; }
 
@@ -25,12 +37,25 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         // of algorithms and key types the server supports — the same source of truth the validator reads.
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddPersistenceLibrary();
+        secrets.AddJoseLibrary();
+        // A second 256-bit curve and an ECDSA algorithm bound to it, as the opt-in secp256k1 package contributes ES256K.
+        serviceCollection.AddSingleton(Brainpool256);
+        serviceCollection.AddSingleton(
+            new EccSignatureAlgorithmSpecification
+            {
+                Code = BrainpoolAlgorithm,
+                Curve = Brainpool256,
+                HashAlgorithmName = HashAlgorithmName.SHA256,
+            }
+        );
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         Validator = new DefaultSecretValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<ISecretSerializer>()
         );
     }
 
@@ -84,6 +109,78 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         );
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("ES256", "brainpoolP256r1")]
+    [InlineData(BrainpoolAlgorithm, "P-256")]
+    [InlineData("ECDH-ES", "brainpoolP256r1")]
+    public void ValidateCreate_WhenCurveIsNotOneTheAlgorithmAccepts_Returns400(
+        string algorithm,
+        string curve
+    )
+    {
+        var error = Validator.ValidateCreate(
+            CreateRequest("ecc", 256, algorithm: algorithm, curve: curve)
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains($"'{curve}'", error.Detail, StringComparison.Ordinal);
+    }
+
+    // The key type selects P-256 for a 256-bit key; the algorithm's own curve is generated instead.
+    [Fact]
+    public void ValidateCreate_WhenAlgorithmIsBoundToACurveAndNoneIsNamed_ReturnsNull()
+    {
+        Assert.Null(
+            Validator.ValidateCreate(CreateRequest("ecc", 256, algorithm: BrainpoolAlgorithm))
+        );
+    }
+
+    #endregion
+
+    #region ResolveCurve Tests
+
+    [Theory]
+    [InlineData("ES256", 256, "P-256")]
+    [InlineData(BrainpoolAlgorithm, 256, "brainpoolP256r1")]
+    [InlineData("ECDH-ES", 384, "P-384")]
+    [InlineData("ECDH-ES", 521, "P-521")]
+    public void ResolveCurve_WhenRequestNamesNoCurve_ReturnsTheAlgorithmsCurveOfTheSize(
+        string algorithm,
+        int keySizeBits,
+        string expected
+    )
+    {
+        Assert.Equal(
+            expected,
+            Validator.ResolveCurve(CreateRequest("ecc", keySizeBits, algorithm: algorithm))
+        );
+    }
+
+    [Fact]
+    public void ResolveCurve_WhenRequestNamesACurve_ReturnsIt()
+    {
+        Assert.Equal(
+            "P-384",
+            Validator.ResolveCurve(CreateRequest("ecc", 384, algorithm: "ES256", curve: "P-384"))
+        );
+    }
+
+    [Theory]
+    [InlineData("ecc", 256, null)]
+    [InlineData("rsa", 2048, "RS256")]
+    [InlineData("ecc", 256, "XX999")]
+    public void ResolveCurve_WhenNoAlgorithmCurveApplies_ReturnsNull(
+        string secretType,
+        int keySizeBits,
+        string? algorithm
+    )
+    {
+        Assert.Null(
+            Validator.ResolveCurve(CreateRequest(secretType, keySizeBits, algorithm: algorithm))
+        );
     }
 
     #endregion
@@ -296,20 +393,62 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     #region ValidateUpdate Tests
 
-    private static PersistedSecret CreateRsaKey() =>
+    private static PersistedSecret CreateRsaKey()
+    {
+        using var rsa = RSA.Create(2048);
+        return CreatePublicKey(SecretTypes.Rsa, 2048, rsa.ExportSubjectPublicKeyInfo(), "PS256");
+    }
+
+    private static PersistedSecret CreateEccKey(ECCurve curve)
+    {
+        using var ecdsa = ECDsa.Create(curve);
+        return CreatePublicKey(SecretTypes.Ecc, 256, ecdsa.ExportSubjectPublicKeyInfo(), null);
+    }
+
+    private static PersistedSecret CreatePublicKey(
+        string secretType,
+        int keySizeBits,
+        byte[] subjectPublicKeyInfo,
+        string? algorithm
+    ) =>
         new()
         {
             SecretId = "key-1",
             ConcurrencyToken = "secret-ct",
             Use = "sig",
-            Algorithm = "PS256",
+            Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Rsa,
+            SecretType = secretType,
             SecretEncoding = SecretEncodings.Spki,
-            KeySizeBits = 2048,
-            EncodedValue = "encoded",
+            KeySizeBits = keySizeBits,
+            EncodedValue = Base64Url.EncodeToString(subjectPublicKeyInfo),
         };
+
+    // A brainpoolP256r1 key has P-256's type and size, so only its curve shows that ES256 does not accept it.
+    [Fact]
+    public void ValidateUpdate_WhenAlgorithmRefusesTheKeysCurve_ReturnsBadRequest()
+    {
+        var error = Validator.ValidateUpdate(
+            CreateEccKey(ECCurve.NamedCurves.brainpoolP256r1),
+            CreateUpdateRequest("sig", "ES256")
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains("not compatible with the key", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenAlgorithmAcceptsTheKeysCurve_ReturnsNull()
+    {
+        var error = Validator.ValidateUpdate(
+            CreateEccKey(ECCurve.NamedCurves.nistP256),
+            CreateUpdateRequest("sig", "ES256")
+        );
+
+        Assert.Null(error);
+    }
 
     private static UpdateSecretRequest CreateUpdateRequest(string? use, string? algorithm) =>
         new()

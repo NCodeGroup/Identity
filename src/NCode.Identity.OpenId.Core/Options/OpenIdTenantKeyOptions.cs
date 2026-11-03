@@ -21,13 +21,16 @@ public sealed class OpenIdTenantKeyOptions
 
     /// <summary>
     /// Gets or sets the size, in bits, of the key to generate, or <c>null</c> to generate the smallest size the
-    /// algorithm accepts. The size must be one the algorithm accepts.
+    /// algorithm accepts. The size must be one the algorithm accepts. For a key type with curves, the key is generated
+    /// on the first curve the algorithm accepts that has this size, such as X448 for a 448-bit <c>OKP</c> key for
+    /// <c>ECDH-ES</c>.
     /// </summary>
     public int? KeySizeBits { get; set; }
 
     /// <summary>
     /// Gets or sets the secret key type to generate the key as (for example <c>ecc</c>), or <c>null</c> to generate
-    /// the first key type the algorithm accepts that has a registered secret key type. It selects among the key types
+    /// the first key type the algorithm accepts that has a registered secret key type and that a key can be generated
+    /// as. It selects among the key types
     /// of an algorithm that accepts several, such as <c>ECDH-ES</c>, which accepts <c>EC</c> keys and, with a package
     /// that contributes them, <c>OKP</c> keys (RFC 8037 §3.2). The type must be one the algorithm accepts.
     /// </summary>

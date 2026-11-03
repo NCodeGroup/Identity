@@ -102,7 +102,7 @@ public sealed class DefaultRegistrationTests
     }
 
     [Theory]
-    [InlineData("tenant_issuer", "https://op.example")]
+    [InlineData("unregistered_setting", "https://op.example")]
     [InlineData("session_management_supported", "yes")]
     [InlineData("grant_types_supported", "authorization_code")]
     [InlineData("session_idle_timeout", "00:00:00")]

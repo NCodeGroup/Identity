@@ -6,7 +6,10 @@
   terminated in the background, once, and the prune keeps it until it is terminated;
   [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md):
   `SessionGrant.IdleTimeout` and `SessionGrant.AbsoluteExpiresWhen` are required, and a session ends at its own
-  absolute end with no fallback to its grant's expiry)
+  absolute end with no fallback to its grant's expiry;
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

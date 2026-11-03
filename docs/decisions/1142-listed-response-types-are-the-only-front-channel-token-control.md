@@ -1,7 +1,10 @@
 # 1142. The listed response types are the only control over the tokens the authorization endpoint returns
 
 - **Status:** Accepted (extends [ADR-1141](1141-response-types-are-whole-values.md); retires a setting of
-  [ADR-1038](1038-setting-merge-lattice-duals.md))
+  [ADR-1038](1038-setting-merge-lattice-duals.md); amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

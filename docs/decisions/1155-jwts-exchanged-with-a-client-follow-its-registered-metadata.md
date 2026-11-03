@@ -5,7 +5,10 @@
   follows the client's registered introspection metadata; extended by [ADR-1181](1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md): the
   credential selector is a public seam every issuer of a client-addressed JWT resolves; extended by
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md): the checks of decision 2 are a
-  registered client coherence rule)
+  registered client coherence rule; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

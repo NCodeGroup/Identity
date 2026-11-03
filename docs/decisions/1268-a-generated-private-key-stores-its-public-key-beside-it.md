@@ -1,6 +1,9 @@
 # 1268. A generated private key stores its public key beside it
 
-- **Status:** Accepted (amends [ADR-1058](1058-asymmetric-public-key-material-read-path.md))
+- **Status:** Accepted (amends [ADR-1058](1058-asymmetric-public-key-material-read-path.md); amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, which
+  creates the schema this record names)
 - **Date:** 2026-10-26
 - **Deciders:** NCode Group
 

@@ -5,7 +5,10 @@
   request-derived fallback for a tenant without an issuer is removed by
   [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md): every served tenant has an
   issuer; [ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) adds the tenant's mTLS endpoint
-  alias as a derived, routed second host for the endpoints only, while the issuer stays the published origin)
+  alias as a derived, routed second host for the endpoints only, while the issuer stays the published origin; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md)

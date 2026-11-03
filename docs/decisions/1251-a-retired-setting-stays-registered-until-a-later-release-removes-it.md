@@ -1,6 +1,9 @@
 # 1251. A retired setting stays registered until a later release removes it
 
-- **Status:** Accepted
+- **Status:** Superseded by
+  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md): until the
+  first stable release a setting is renamed, removed or narrowed outright, and the first stable release designs how a
+  released setting retires
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 
@@ -83,6 +86,5 @@ it, and a later release removes it from the stored documents together with its d
   request answers 409 for a stored settings document it cannot honor.
 - [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md): a
   migration classifies its data change.
-- `src/NCode.Identity/Settings/DefaultSettingSerializer.cs`,
-  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`, and
-  `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/20261021021124_PromoteMtlsEndpointAliasAuthority.cs`.
+- `src/NCode.Identity/Settings/DefaultSettingSerializer.cs` and
+  `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.

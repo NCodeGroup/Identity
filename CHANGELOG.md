@@ -284,7 +284,11 @@ describes the family as it is rather than its changes
   persists data across restarts, and `build/dev-db-reset.ps1` (detecting Docker or Podman) purges it on demand. The
   `NCode.Identity.OpenId.Host.MigrationService` worker applies the EF Core migrations and exits, and the OP instances
   wait for its completion, so a migration failure shows as a failed dashboard resource that blocks them. The migrations
-  and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share.
+  and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share,
+  where each of its two contexts has one `InitialCreate` migration that creates its whole model
+  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  When a context's migrations history records a migration the project does not hold, the worker applies nothing and
+  fails with a message that names the context and says to reset the local database with `build/dev-db-reset.ps1`.
   The host persists its Data Protection key ring in the same database (`PersistKeysToDbContext`), so one purge resets
   the OpenID data, the tenants' master keys and signing keys, and the ring together, with nothing on the filesystem; the
   per-machine development root key lives outside the database, so a purged database gets fresh master keys under it.
@@ -345,9 +349,11 @@ describes the family as it is rather than its changes
   `extraVolumeMounts` reach both the host's pods and the Job, so a database connection that needs a CA bundle or SSL
   setting works at migration time, and both pod specs share their security contexts, image pull secrets and scheduling
   constraints through `_helpers.tpl`. With a long release name, the `-migrations`-suffixed Job name is shortened to fit
-  the 63-character label-value limit. Every migration keeps the previous release working: add first, drop in a later
+  the 63-character label-value limit. Every migration passes the expand-and-contract gate, so from the first stable
+  release, when each context's `InitialCreate` becomes the baseline, a model change adds first and drops in a later
   release (issue [#85](https://github.com/NCodeGroup/Identity/issues/85),
-  [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
+  [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
+  [ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
 
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
@@ -2403,13 +2409,16 @@ describes the family as it is rather than its changes
   that drops or renames a schema, table, column or sequence; adds a required column without a default; makes a column
   required, even with a default; removes a default; changes a column's type; shortens it or narrows its precision or
   scale; adds a unique index, unique constraint, primary key, check constraint or foreign key to an existing table; or
-  adds a foreign key that restricts deleting rows of an existing table. A migration that runs raw SQL or changes seed
-  data carries `[ExpandMigration("why")]` when the release still serving reads every row it writes, or
-  `[ContractMigration("why")]` when it does not; every migration is classified, a deliberate contract step carries
+  adds a foreign key that restricts deleting rows of an existing table. It fails a migration that runs raw SQL or
+  changes seed data unless the migration carries `[ExpandMigration("why")]`, when the release still serving reads every
+  row it writes, or `[ContractMigration("why")]`, when it does not; a deliberate contract step carries
   `[ContractMigration("why")]`, and the rule fails that marker on a migration that only expands
   ([ADR-1184](docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md),
   [ADR-1250](docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md),
-  issue [#205](https://github.com/NCodeGroup/Identity/issues/205)).
+  issue [#205](https://github.com/NCodeGroup/Identity/issues/205)). Until the first stable release,
+  `InitialCreateTests` fails a host context that holds any migration but its `InitialCreate`, and a migration that
+  changes data, so the `InitialCreate` migrations pass the rule unmarked
+  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
 
 - **`NCode.Identity.Dispatch(.Abstractions)` runs deferred, at-least-once background work behind a
   bring-your-own-orchestration port.** A job is a serializable `IDispatchJob`, handled by an `IDispatchJobHandler<TJob>`
@@ -2623,13 +2632,6 @@ describes the family as it is rather than its changes
   a package that stores settings for an entity of its own, such as an organization or a connection, registers that
   entity's scope beneath the one it inherits from and declares its own settings for it, with no change to the library
   ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
-
-- **A retired setting stays registered while it is retired.** `SettingDescriptor.RetiredReason` and `IsRetired` retire a
-  setting: reads ignore it, `ValidateSettings` and the configuration reader refuse it, and
-  `ISettingSerializer.ValidateSettingsUpdate`, a member every implementation implements, accepts it only with its stored
-  value or removed; the management API's settings updates validate through it
-  ([ADR-1251](docs/decisions/1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md),
-  [#206](https://github.com/NCodeGroup/Identity/issues/206)).
 
 - **A setting with no declared default is absent from the settings lattice, value types included, and
   `GetValueOrNull<TValue>()` reads such a setting as a `Nullable<TValue>`.** `SettingDescriptor<TValue>.HasDefault` is
@@ -4556,9 +4558,9 @@ describes the family as it is rather than its changes
   and code lifetimes, `clock_skew` and `subject_max_age` are ceilings a child may only shorten; `require_pkce`, the
   `*_encryption_required` flags, `claims_supported_is_strict`, `refresh_token_rotation_enabled` and the
   `federated_identity_*` requirement flags are floors; `allow_*` and `request(_uri)_parameter_supported` are ceilings;
-  `allowed_identity_providers` and `subject_types_supported` merge as intersect ceilings; and `tenant_issuer` is
-  parent-owned (`Keep`). `allowed_identity_providers` is fail-closed: unset means unrestricted, but an explicit or
-  narrowed-to-empty allowlist denies every IdP ([ADR-1038](docs/decisions/1038-setting-merge-lattice-duals.md)).
+  and `allowed_identity_providers` and `subject_types_supported` merge as intersect ceilings.
+  `allowed_identity_providers` is fail-closed: unset means unrestricted, but an explicit or narrowed-to-empty allowlist
+  denies every IdP ([ADR-1038](docs/decisions/1038-setting-merge-lattice-duals.md)).
 
 - **Setting values are validated against their domain, not only their type.** A value of the right type that the server
   would not honor is rejected wherever a setting enters: configuration stops the host (and a reload is rejected), a

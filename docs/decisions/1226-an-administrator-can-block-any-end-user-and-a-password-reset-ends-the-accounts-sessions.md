@@ -4,7 +4,10 @@
   [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): the interactive
   sign-in refuses a blocked principal, and the authorization request answers it with `access_denied`;
   [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): a self-service password
-  change keeps the current session)
+  change keeps the current session; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, which
+  creates the schema this record names)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

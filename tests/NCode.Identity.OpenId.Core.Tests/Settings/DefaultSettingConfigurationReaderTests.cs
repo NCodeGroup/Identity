@@ -43,13 +43,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
                 Rule = SettingRules.Each(SettingRules.OneOf("S256", "plain")),
             },
             new SettingDescriptor<bool> { Name = "tenant_only", AppliesTo = ["tenant"] },
-            new SettingDescriptor<bool> { Name = "nowhere", AppliesTo = [] },
-            new SettingDescriptor<string>
-            {
-                Name = "retired",
-                AppliesTo = ["client"],
-                RetiredReason = "Use 'text'.",
-            }
+            new SettingDescriptor<bool> { Name = "nowhere", AppliesTo = [] }
         );
 
         var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
@@ -125,7 +119,10 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     public void Read_WhenSettingsCannotBeHonored_ThrowsListingEveryOne()
     {
         var reader = CreateReader();
-        var section = CreateSection(("tenant_issuer", "https://op.example"), ("flag", "yes"));
+        var section = CreateSection(
+            ("unregistered_setting", "https://op.example"),
+            ("flag", "yes")
+        );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             reader.Read(section, OpenIdSettingScopes.Server)
@@ -133,7 +130,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
 
         Assert.Contains($"'{SectionPath}'", exception.Message, StringComparison.Ordinal);
         Assert.Contains(
-            $"{SectionPath}:tenant_issuer",
+            $"{SectionPath}:unregistered_setting",
             exception.Message,
             StringComparison.Ordinal
         );
@@ -151,19 +148,6 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         );
 
         Assert.Contains($"{SectionPath}:mode", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Read_WhenSettingIsRetired_Throws()
-    {
-        var reader = CreateReader();
-        var section = CreateSection(("retired", "x"));
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            reader.Read(section, OpenIdSettingScopes.Server)
-        );
-
-        Assert.Contains($"{SectionPath}:retired", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion
@@ -185,11 +169,11 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     public void Validate_WhenNameIsNotRegistered_ReportsItsPath()
     {
         var reader = CreateReader();
-        var section = CreateSection(("tenant_issuer", "https://op.example"));
+        var section = CreateSection(("unregistered_setting", "https://op.example"));
 
         var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
 
-        Assert.Equal($"'{SectionPath}:tenant_issuer' is not a registered setting.", error);
+        Assert.Equal($"'{SectionPath}:unregistered_setting' is not a registered setting.", error);
     }
 
     [Fact]
@@ -342,17 +326,6 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var errors = reader.Validate(section, OpenIdSettingScopes.Server);
 
         Assert.Empty(errors);
-    }
-
-    [Fact]
-    public void Validate_WhenSettingIsRetired_ReportsItWithItsReason()
-    {
-        var reader = CreateReader();
-        var section = CreateSection(("retired", "x"));
-
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
-
-        Assert.Equal($"'{SectionPath}:retired' is retired. Use 'text'.", error);
     }
 
     #endregion

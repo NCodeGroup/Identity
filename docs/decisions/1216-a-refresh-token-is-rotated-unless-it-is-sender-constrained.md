@@ -1,6 +1,9 @@
 # 1216. A refresh token is rotated unless it is sender-constrained
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

@@ -215,35 +215,10 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                 )
             )
             .Returns([
-                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
-            ])
-            .Verifiable();
-
-    private void SetupValidSettingsUpdate() =>
-        MockSettingSerializer
-            .Setup(x =>
-                x.ValidateSettingsUpdate(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.ResourceServer,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns([])
-            .Verifiable();
-
-    private void SetupInvalidSettingsUpdate() =>
-        MockSettingSerializer
-            .Setup(x =>
-                x.ValidateSettingsUpdate(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.ResourceServer,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns([
-                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+                new SettingError(
+                    "unregistered_setting",
+                    "'unregistered_setting' is not a registered setting."
+                ),
             ])
             .Verifiable();
 
@@ -251,9 +226,9 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     {
         var problem = Assert.IsType<ValidationProblem>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
-        Assert.Equal(["tenant_issuer"], problem.ProblemDetails.Errors.Keys);
+        Assert.Equal(["unregistered_setting"], problem.ProblemDetails.Errors.Keys);
         Assert.Contains(
-            "'tenant_issuer' is not a registered setting.",
+            "'unregistered_setting' is not a registered setting.",
             problem.ProblemDetails.Detail
         );
     }
@@ -689,7 +664,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
         SetupResourceServerChangedAudit();
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -724,7 +699,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupInvalidSettingsUpdate();
+        SetupInvalidSettings();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore

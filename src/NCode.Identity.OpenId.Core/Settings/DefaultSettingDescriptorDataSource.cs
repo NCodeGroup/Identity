@@ -58,8 +58,6 @@ internal class DefaultSettingDescriptorDataSource(
     private const int MinUserCodeLength = 8;
     private const int MaxUserCodeLength = 32;
 
-    private const string RetiredMtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
-
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
@@ -2237,17 +2235,6 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
-            };
-
-            // mtls_endpoint_alias_authority: a retired setting (ADR-1251). A tenant's mTLS endpoint alias is its
-            // MtlsEndpointAliasAuthority property (ADR-1195). issue #37 tracks removing this descriptor and the key
-            // from the stored settings documents.
-            yield return new SettingDescriptor<string>
-            {
-                Name = RetiredMtlsEndpointAliasAuthority,
-                AppliesTo = Tenants,
-                RetiredReason =
-                    "A tenant's mTLS endpoint alias is its mtlsEndpointAliasAuthority property, which the management API reads and writes.",
             };
         }
     }

@@ -12,6 +12,31 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "AuditRecords",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    EventId = table.Column<Guid>(type: "uuid", nullable: false),
+                    EventTime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    EventName = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    EventCategory = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    Outcome = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    Severity = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    SubjectId = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    ClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    ActorType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    ActorId = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    TraceId = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
+                    SourceIp = table.Column<string>(type: "character varying(64)", unicode: false, maxLength: 64, nullable: true),
+                    Record = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditRecords", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "LocalAccounts",
                 columns: table => new
                 {
@@ -36,20 +61,76 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
+                name: "MasterKeys",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    KeyId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OwnerType = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    OwnerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedOwnerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    RetiredWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    RootKeyProvider = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    RootKeyId = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: false),
+                    RootWrappedKey = table.Column<string>(type: "character varying(4096)", unicode: false, maxLength: 4096, nullable: false),
+                    RecoveryKeyId = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
+                    RecoveryWrappedKey = table.Column<string>(type: "character varying(4096)", unicode: false, maxLength: 4096, nullable: true),
+                    KeyCheck = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MasterKeys", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RetiredIssuers",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Issuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    NormalizedIssuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RetiredIssuers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RetiredTenants",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RetiredTenants", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Secrets",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     SecretId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     NormalizedSecretId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    KeyId = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     Use = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
                     Algorithm = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
                     CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     SecretType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    SecretEncoding = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    Origin = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     KeySizeBits = table.Column<int>(type: "integer", nullable: false),
-                    EncodedValue = table.Column<string>(type: "character varying(8000)", unicode: false, maxLength: 8000, nullable: false)
+                    EncodedValue = table.Column<string>(type: "character varying(8000)", unicode: false, maxLength: 8000, nullable: false),
+                    PublicKey = table.Column<string>(type: "character varying(4000)", unicode: false, maxLength: 4000, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -67,7 +148,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     DisplayName = table.Column<string>(type: "text", nullable: false),
-                    SettingsJson = table.Column<string>(type: "text", nullable: false)
+                    SettingsJson = table.Column<string>(type: "text", nullable: false),
+                    ReconciledSettingsFingerprint = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    ReconciledSettingsJson = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -81,8 +164,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    DomainName = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
-                    NormalizedDomainName = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    Issuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    NormalizedIssuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    NormalizedIssuerHost = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    MtlsEndpointAliasAuthority = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    NormalizedMtlsEndpointAliasHost = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
@@ -93,6 +179,58 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Tenants", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TenantUsage",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Day = table.Column<DateOnly>(type: "date", nullable: false),
+                    Meter = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    Count = table.Column<long>(type: "bigint", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TenantUsage", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TenantUsageCheckpoints",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    ReplicaId = table.Column<Guid>(type: "uuid", nullable: false),
+                    LastBatchNumber = table.Column<long>(type: "bigint", nullable: false),
+                    LastDay = table.Column<DateOnly>(type: "date", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TenantUsageCheckpoints", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AuditRecordResources",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    AuditRecordId = table.Column<long>(type: "bigint", nullable: false),
+                    Ordinal = table.Column<int>(type: "integer", nullable: false),
+                    Type = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    ResourceId = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditRecordResources", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AuditRecordResources_AuditRecords_AuditRecordId",
+                        column: x => x.AuditRecordId,
+                        principalTable: "AuditRecords",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -142,32 +280,6 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
-                name: "Clients",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    TenantId = table.Column<long>(type: "bigint", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
-                    SettingsJson = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Clients", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Clients_Tenants_TenantId",
-                        column: x => x.TenantId,
-                        principalTable: "Tenants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "FederatedPrincipals",
                 columns: table => new
                 {
@@ -178,6 +290,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     ProfileMetadataJson = table.Column<string>(type: "text", nullable: false),
                     SystemMetadataJson = table.Column<string>(type: "text", nullable: false),
+                    IsBlocked = table.Column<bool>(type: "boolean", nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
                 },
                 constraints: table =>
@@ -278,77 +391,6 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
-                name: "ClientSecrets",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    TenantId = table.Column<long>(type: "bigint", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<long>(type: "bigint", nullable: false),
-                    SecretId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ClientSecrets", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ClientSecrets_Clients_ClientId",
-                        column: x => x.ClientId,
-                        principalTable: "Clients",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ClientSecrets_Secrets_SecretId",
-                        column: x => x.SecretId,
-                        principalTable: "Secrets",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ClientSecrets_Tenants_TenantId",
-                        column: x => x.TenantId,
-                        principalTable: "Tenants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Grants",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    GrantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedGrantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    GrantType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
-                    HashedKey = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
-                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    TenantId = table.Column<long>(type: "bigint", nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<long>(type: "bigint", nullable: true),
-                    SubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
-                    NormalizedSubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
-                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    RevokedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    ConsumedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    PayloadJson = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Grants", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Grants_Clients_ClientId",
-                        column: x => x.ClientId,
-                        principalTable: "Clients",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Grants_Tenants_TenantId",
-                        column: x => x.TenantId,
-                        principalTable: "Tenants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "FederatedIdentities",
                 columns: table => new
                 {
@@ -384,34 +426,32 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
-                name: "ClientGrants",
+                name: "Clients",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     TenantId = table.Column<long>(type: "bigint", nullable: false),
                     NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    ClientId = table.Column<long>(type: "bigint", nullable: false),
-                    ResourceServerId = table.Column<long>(type: "bigint", nullable: false),
+                    ClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    ScopesJson = table.Column<string>(type: "text", nullable: false)
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false),
+                    ResourceServerId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClientGrants", x => x.Id);
+                    table.PrimaryKey("PK_Clients", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ClientGrants_Clients_ClientId",
-                        column: x => x.ClientId,
-                        principalTable: "Clients",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ClientGrants_ResourceServers_ResourceServerId",
+                        name: "FK_Clients_ResourceServers_ResourceServerId",
                         column: x => x.ResourceServerId,
                         principalTable: "ResourceServers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ClientGrants_Tenants_TenantId",
+                        name: "FK_Clients_Tenants_TenantId",
                         column: x => x.TenantId,
                         principalTable: "Tenants",
                         principalColumn: "Id",
@@ -482,6 +522,198 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ClientGrants",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: false),
+                    ResourceServerId = table.Column<long>(type: "bigint", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    ScopesJson = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClientGrants", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ClientGrants_Clients_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "Clients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClientGrants_ResourceServers_ResourceServerId",
+                        column: x => x.ResourceServerId,
+                        principalTable: "ResourceServers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClientGrants_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClientSecrets",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: false),
+                    SecretId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClientSecrets", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ClientSecrets_Clients_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "Clients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClientSecrets_Secrets_SecretId",
+                        column: x => x.SecretId,
+                        principalTable: "Secrets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClientSecrets_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Consents",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: false),
+                    SubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedSubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    RequestedScopesJson = table.Column<string>(type: "text", nullable: false),
+                    GrantedScopesJson = table.Column<string>(type: "text", nullable: false),
+                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Consents", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Consents_Clients_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "Clients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Consents_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Grants",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    GrantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedGrantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    GrantType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    HashedKey = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    TenantId = table.Column<long>(type: "bigint", nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ClientId = table.Column<long>(type: "bigint", nullable: true),
+                    SubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    NormalizedSubjectId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    SessionId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    RefreshTokenLineageId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    RevokedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    ConsumedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    ProtectedPayload = table.Column<string>(type: "text", unicode: false, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Grants", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Grants_Clients_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "Clients",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Grants_Tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "Tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecordResources_AuditRecordId",
+                table: "AuditRecordResources",
+                column: "AuditRecordId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecordResources_Type_ResourceId",
+                table: "AuditRecordResources",
+                columns: new[] { "Type", "ResourceId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_ActorId_EventTime",
+                table: "AuditRecords",
+                columns: new[] { "ActorId", "EventTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_ClientId_EventTime",
+                table: "AuditRecords",
+                columns: new[] { "ClientId", "EventTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_EventId",
+                table: "AuditRecords",
+                column: "EventId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_EventName_EventTime",
+                table: "AuditRecords",
+                columns: new[] { "EventName", "EventTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_EventTime",
+                table: "AuditRecords",
+                column: "EventTime");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_SubjectId_EventTime",
+                table: "AuditRecords",
+                columns: new[] { "SubjectId", "EventTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_TenantId_EventTime_Id",
+                table: "AuditRecords",
+                columns: new[] { "TenantId", "EventTime", "Id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditRecords_TraceId",
+                table: "AuditRecords",
+                column: "TraceId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_ClientGrants_ClientId",
                 table: "ClientGrants",
@@ -497,6 +729,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 table: "ClientGrants",
                 columns: new[] { "TenantId", "ClientId", "ResourceServerId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Clients_ResourceServerId",
+                table: "Clients",
+                column: "ResourceServerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Clients_TenantId_NormalizedClientId",
@@ -519,6 +756,22 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 table: "ClientSecrets",
                 columns: new[] { "TenantId", "ClientId", "SecretId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Consents_ClientId",
+                table: "Consents",
+                column: "ClientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Consents_TenantId_ClientId_NormalizedSubjectId",
+                table: "Consents",
+                columns: new[] { "TenantId", "ClientId", "NormalizedSubjectId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Consents_TenantId_NormalizedSubjectId",
+                table: "Consents",
+                columns: new[] { "TenantId", "NormalizedSubjectId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_FederatedIdentities_FederatedPrincipalId",
@@ -565,10 +818,20 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Grants_GrantType_RevokedWhen_ExpiresWhen",
+                table: "Grants",
+                columns: new[] { "GrantType", "RevokedWhen", "ExpiresWhen" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Grants_NormalizedGrantId",
                 table: "Grants",
                 column: "NormalizedGrantId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Grants_RevokedWhen",
+                table: "Grants",
+                column: "RevokedWhen");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Grants_TenantId_ClientId",
@@ -579,6 +842,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_Grants_TenantId_NormalizedSubjectId",
                 table: "Grants",
                 columns: new[] { "TenantId", "NormalizedSubjectId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Grants_TenantId_RefreshTokenLineageId",
+                table: "Grants",
+                columns: new[] { "TenantId", "RefreshTokenLineageId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Grants_TenantId_SessionId",
+                table: "Grants",
+                columns: new[] { "TenantId", "SessionId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalAccountClaims_LocalAccountEntityId",
@@ -600,6 +873,25 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_LocalAccounts_NormalizedTenantId_NormalizedUserName",
                 table: "LocalAccounts",
                 columns: new[] { "NormalizedTenantId", "NormalizedUserName" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MasterKeys_KeyId",
+                table: "MasterKeys",
+                column: "KeyId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MasterKeys_OwnerType_NormalizedOwnerId_Active",
+                table: "MasterKeys",
+                columns: new[] { "OwnerType", "NormalizedOwnerId" },
+                unique: true,
+                filter: "\"RetiredWhen\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MasterKeys_OwnerType_NormalizedOwnerId_Version",
+                table: "MasterKeys",
+                columns: new[] { "OwnerType", "NormalizedOwnerId", "Version" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -631,6 +923,18 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_RetiredIssuers_NormalizedIssuer",
+                table: "RetiredIssuers",
+                column: "NormalizedIssuer",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RetiredTenants_NormalizedTenantId",
+                table: "RetiredTenants",
+                column: "NormalizedTenantId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RoleAssignments_TenantId_NormalizedAssignmentId",
                 table: "RoleAssignments",
                 columns: new[] { "TenantId", "NormalizedAssignmentId" },
@@ -646,6 +950,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_RoleAssignments_TenantId_ResourceType_NormalizedResourceId",
                 table: "RoleAssignments",
                 columns: new[] { "TenantId", "ResourceType", "NormalizedResourceId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Scopes_NormalizedValue",
+                table: "Scopes",
+                column: "NormalizedValue");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Scopes_ResourceServerId_NormalizedValue",
@@ -682,11 +991,23 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Tenants_NormalizedDomainName",
+                name: "IX_Tenants_NormalizedIssuer",
                 table: "Tenants",
-                column: "NormalizedDomainName",
+                column: "NormalizedIssuer",
                 unique: true,
-                filter: "\"NormalizedDomainName\" IS NOT NULL");
+                filter: "\"NormalizedIssuer\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tenants_NormalizedIssuerHost",
+                table: "Tenants",
+                column: "NormalizedIssuerHost",
+                filter: "\"NormalizedIssuerHost\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tenants_NormalizedMtlsEndpointAliasHost",
+                table: "Tenants",
+                column: "NormalizedMtlsEndpointAliasHost",
+                filter: "\"NormalizedMtlsEndpointAliasHost\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tenants_NormalizedTenantId",
@@ -704,16 +1025,44 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 table: "TenantSecrets",
                 columns: new[] { "TenantId", "SecretId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TenantUsage_Day",
+                table: "TenantUsage",
+                column: "Day");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TenantUsage_TenantId_Day_Meter",
+                table: "TenantUsage",
+                columns: new[] { "TenantId", "Day", "Meter" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TenantUsageCheckpoints_LastDay",
+                table: "TenantUsageCheckpoints",
+                column: "LastDay");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TenantUsageCheckpoints_ReplicaId",
+                table: "TenantUsageCheckpoints",
+                column: "ReplicaId",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "AuditRecordResources");
+
+            migrationBuilder.DropTable(
                 name: "ClientGrants");
 
             migrationBuilder.DropTable(
                 name: "ClientSecrets");
+
+            migrationBuilder.DropTable(
+                name: "Consents");
 
             migrationBuilder.DropTable(
                 name: "FederatedIdentities");
@@ -725,7 +1074,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "LocalAccountClaims");
 
             migrationBuilder.DropTable(
+                name: "MasterKeys");
+
+            migrationBuilder.DropTable(
                 name: "ResourceServerSecrets");
+
+            migrationBuilder.DropTable(
+                name: "RetiredIssuers");
+
+            migrationBuilder.DropTable(
+                name: "RetiredTenants");
 
             migrationBuilder.DropTable(
                 name: "RoleAssignments");
@@ -740,6 +1098,15 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "TenantSecrets");
 
             migrationBuilder.DropTable(
+                name: "TenantUsage");
+
+            migrationBuilder.DropTable(
+                name: "TenantUsageCheckpoints");
+
+            migrationBuilder.DropTable(
+                name: "AuditRecords");
+
+            migrationBuilder.DropTable(
                 name: "FederatedPrincipals");
 
             migrationBuilder.DropTable(
@@ -749,13 +1116,13 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "LocalAccounts");
 
             migrationBuilder.DropTable(
-                name: "ResourceServers");
-
-            migrationBuilder.DropTable(
                 name: "Servers");
 
             migrationBuilder.DropTable(
                 name: "Secrets");
+
+            migrationBuilder.DropTable(
+                name: "ResourceServers");
 
             migrationBuilder.DropTable(
                 name: "Tenants");

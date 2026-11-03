@@ -384,32 +384,17 @@ than inlining the rationale.
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
-  → `400`), and stored documents on read (fail closed) — so retiring, renaming, narrowing the scopes of a setting, or
-  narrowing its domain ships with a data migration
-  of the stored documents. That migration is an EF migration in `NCode.Identity.OpenId.Host.Database`
-  (`dotnet ef migrations add`, then hand-written SQL in `Up`) that rewrites **every** settings table (`Servers`,
-  `Tenants`, `Clients`, `ResourceServers`); it **translates** the setting's meaning into the current vocabulary rather
-  than dropping it (dropping a restriction silently loosens the document), leaves a document whose value was already
-  invalid untouched (it keeps failing closed), and gives each rewritten row a new `SettingsConcurrencyToken`. A value
-  stripped from a list because the domain narrowed never leaves the list unset: an emptied list stays `[]`, which
-  permits nothing, while an unset one is unrestricted (ADR-1010). The model
-  drift gate cannot see a data migration, so verify it by applying it to a throwaway Postgres over seeded documents
-  ([ADR-1142](../../docs/decisions/1142-listed-response-types-are-the-only-front-channel-token-control.md) and the
-  `RetireUnsafeJoseSettingValues` migration of
-  [ADR-1155](../../docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) are worked
-  examples): run the Postgres image the AppHost uses (the `Aspire.Hosting.PostgreSQL` default tag) in a container on
-  an unused port, `dotnet ef database update <previous migration> --connection "<that container>"` (the design-time
-  factory's own connection string is a placeholder), seed rows with `psql`, update to the new migration and inspect
-  them — a rewritten document and its new token, an untouched control row — then revert with
-  `database update <previous migration>` to exercise `Down`, and remove the container. A value that is metadata
-  rather than a runtime control (RFC 7591 `client_name`, `contacts`)
-  is still a registered setting. Retiring a setting, or giving its value a home outside the settings documents, keeps
-  the previous release working: keep the descriptor registered with a `RetiredReason` (a stored document that carries
-  it loads, an update through `ISettingSerializer.ValidateSettingsUpdate` may keep or remove it, any other write refuses
-  it), copy the value in an `[ExpandMigration]` that leaves the key, and remove the key and the descriptor in a later
-  release's `[ContractMigration]`; a rename is a contract step, since the previous release fails closed on a name it
-  does not know. See [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md) and
-  [ADR-1251](../../docs/decisions/1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md).
+  → `400`), and stored documents on read (fail closed). Until the first stable release
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), retiring, renaming, narrowing the scopes of a setting, or
+  narrowing its domain edits its descriptor and writes no data migration: each host database context has one
+  re-scaffolded `InitialCreate` that holds no data, and a stored document that names an unregistered setting or holds a
+  value outside its domain fails closed
+  ([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`) is still a registered
+  setting. No descriptor stays registered for a name nothing reads, and a management request that loads a stored
+  document naming an unregistered setting answers `409`. See
+  [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md) and
+  [ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
   `OneOf`, a lifetime or interval is at least one second, a timeout is positive, a list applies `Each` to its values, and
@@ -803,23 +788,35 @@ than inlining the rationale.
 - ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
   errors in CI** — template [Build](csharp.instructions.md#build) and
   [ADR-1127](../../docs/decisions/1127-warnings-are-errors-in-every-project.md).
-- ✅ **EF Core model changes ship with their migration.** Any edit to an entity, an `IEntityTypeConfiguration`, or a
-  model contributor that changes a host context model (`OpenIdDbContext` or `DeveloperDataProtectionDbContext`)
-  MUST be accompanied by a new migration (`dotnet ef migrations add <Name>` into the
-  `NCode.Identity.OpenId.Host.Database` project). The Definition of Done runs
+- ✅ **An EF Core model change re-scaffolds its context's `InitialCreate`.** Until the first stable release
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each host context has one migration, `InitialCreate`,
+  which creates its whole model and changes no data: `OpenIdDbContext` in `Migrations/OpenId` and
+  `DeveloperDataProtectionDbContext` in `Migrations/DataProtection` of `NCode.Identity.OpenId.Host.Database`. Any edit
+  to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model deletes that
+  context's migration, designer file and model snapshot from its folder and scaffolds them again with
+  `dotnet ef migrations add InitialCreate --project src/NCode.Identity.OpenId.Host.Database --startup-project src/NCode.Identity.OpenId.Host.Database --context OpenIdDbContext --output-dir Migrations/OpenId`
+  (`--context DeveloperDataProtectionDbContext --output-dir Migrations/DataProtection` for the other context); the
+  database project carries the design-time factories, so it is both the project and the startup project. No migration
+  carries raw SQL or seed-data changes: `InitialCreateTests` fails a context that holds any migration but
+  `InitialCreate`, and a migration that changes data. The Definition of Done runs
   `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
-  caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so migrations
-  are authoritative — the gate is the reminder. `dotnet ef migrations add` writes its files with a UTF-8 BOM and
-  re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
-  (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
-  See [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md).
-- ✅ **A migration keeps the previous release working** — template
-  [Entity Framework Core](csharp.instructions.md#entity-framework-core). A foreign key that restricts deleting rows of
-  an existing table tightens it too. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous
-  release still reads every row they write, with the same meaning or a restriction this release applies too) or
-  `[ContractMigration("why")]` (it fails on, or loses, a value it reads). `ExpandOnlyRule.Check` judges every migration
-  in `ExpandOnlyRuleTests`, which fails any other migration in the Definition of Done. A deliberate contract step ships
-  a release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
+  caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so
+  migrations are authoritative. A re-scaffold gives `InitialCreate` a fresh identifier, which the migration worker
+  cannot apply over a schema another identifier created; `build/dev-db-reset.ps1` resets the local database.
+  `dotnet ef migrations add` writes its files with a UTF-8 BOM; the repository's files are BOM-less
+  (`charset = utf-8`), so strip the BOM from every generated file. See
+  [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md) and
+  [ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md).
+- ✅ **Every migration passes the expand-and-contract gate** — template
+  [Entity Framework Core](csharp.instructions.md#entity-framework-core). `ExpandOnlyRule.Check` judges every host
+  migration in `ExpandOnlyRuleTests`, which fails a contracting or unclassified migration in the Definition of Done.
+  Until the first stable release the gate judges the `InitialCreate` migrations, which pass it unmarked because every
+  constraint sits on a table they create. From the first stable release, when each context's `InitialCreate` becomes
+  the baseline, a model change adds a migration that keeps the previous release working: a foreign key that restricts
+  deleting rows of an existing table tightens it too; raw SQL and seed-data changes carry `[ExpandMigration("why")]`
+  (the previous release still reads every row they write, with the same meaning or a restriction this release applies
+  too) or `[ContractMigration("why")]` (it fails on, or loses, a value it reads); and a deliberate contract step ships a
+  release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
   `Migrations/`, which `.editorconfig` treats as generated code. See
   [ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
   [ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).

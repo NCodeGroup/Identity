@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): a resource server
   selects no security profile, and `security_profiles` is rejected on a resource-server document; a profile's default
-  applies only to a setting that applies within the expanding scope)
+  applies only to a setting that applies within the expanding scope; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

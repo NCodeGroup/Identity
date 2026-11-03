@@ -76,7 +76,7 @@ public class UnreadableSettingsDocumentTests
         var (statusCode, body) = await RemoveSettingAsync(
             administrator,
             $"{TenantApiPath}/settings",
-            "it_retired_setting"
+            "it_unregistered_setting"
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
@@ -171,7 +171,7 @@ public class UnreadableSettingsDocumentTests
         // cannot be read.
         await factory.SeedPublicClientWithSettingsAsync(
             UnreadableClientId,
-            new Dictionary<string, object> { ["it_retired_setting"] = true },
+            new Dictionary<string, object> { ["it_unregistered_setting"] = true },
             RedirectUri
         );
         var administrator = await factory.CreateManagementClientAsync(
@@ -198,7 +198,7 @@ public class UnreadableSettingsDocumentTests
         // A direct store write of a setting no descriptor registers, after the management client has authenticated, so
         // the tenant the host materialized stays cached and the management request reads the stored document.
         factory.ReplaceTenantSettingsAsync(
-            new Dictionary<string, object> { ["it_retired_setting"] = true }
+            new Dictionary<string, object> { ["it_unregistered_setting"] = true }
         );
 
     private static async Task AssertConflictNamingTheTenantAsync(HttpResponseMessage response)
@@ -210,7 +210,10 @@ public class UnreadableSettingsDocumentTests
         var problem = jsonElement;
         Assert.Equal(OpenIdSettingScopes.Tenant, problem.GetProperty("settingsScope").GetString());
         Assert.Equal(HostApplicationFactory.TenantId, problem.GetProperty("ownerId").GetString());
-        Assert.Contains("it_retired_setting", problem.GetProperty("documentError").GetString());
+        Assert.Contains(
+            "it_unregistered_setting",
+            problem.GetProperty("documentError").GetString()
+        );
     }
 
     private static async Task<(HttpStatusCode StatusCode, string Body)> PatchSettingAsync(

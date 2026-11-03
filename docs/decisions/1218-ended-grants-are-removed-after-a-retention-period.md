@@ -5,7 +5,10 @@
   [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): the options are
   configured and validated when the host starts;
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session ends when it is
-  terminated)
+  terminated; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, which
+  creates the schema this record names)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md)

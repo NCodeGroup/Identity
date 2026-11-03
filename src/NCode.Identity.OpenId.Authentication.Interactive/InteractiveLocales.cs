@@ -13,6 +13,12 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// with its own <see cref="InteractiveMessages"/> through <c>AddInteractiveLocale</c>, which takes the shipped
 /// locale's place.
 /// </summary>
+/// <remarks>
+/// The <c>apps/auth</c> bundle that mounts over these pages carries the same wording for each of these locales in
+/// its own catalogs, <c>src/frontend/apps/auth/src/i18n/{en,de,es,fr}.ts</c>, so the page the server renders and
+/// the page the bundle draws over it read the same. A change to a page's wording in one of these locales is made in
+/// both.
+/// </remarks>
 // See ADR-1402.
 [PublicAPI]
 public static class InteractiveLocales

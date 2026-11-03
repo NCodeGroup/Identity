@@ -67,7 +67,11 @@ forms carry on.**
    first, German, Spanish and French; a host adds a locale, or changes a page's wording with a locale built from a
    shipped one and its own messages, through `AddInteractiveLocale`, which registers the `InteractiveLocale` in place
    of any registered locale of its tag, keeping that locale's place in the registration order, before or after
-   `AddInteractiveAuthentication`, which never registers a shipped locale over a tag the host registered.
+   `AddInteractiveAuthentication`, which never registers a shipped locale over a tag the host registered. A UI
+   locale is registered data: both registrations register each locale as a singleton instance and find the
+   registered locale of a tag among the instances, which `TryAddEnumerable` cannot, since it dedupes by
+   implementation type and every shipped locale is the one record type. A locale a host registers through a type
+   or a factory is outside the replace-by-tag rule, and the catalog refuses its tag when it is registered twice.
 6. **The page states its locale, and the forms carry it.** The server writes the selected locale's tag into the
    `lang` attribute of the `html` element: as the attribute of its standalone document, and in place of the
    `__NCODE_LANG__` placeholder the bundle's `index.html` carries (`InteractiveBundleShell.LanguagePlaceholder`,

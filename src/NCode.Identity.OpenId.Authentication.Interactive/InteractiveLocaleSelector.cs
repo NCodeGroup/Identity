@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Locales;
 using NCode.Identity.Settings;
 
@@ -22,6 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 internal sealed class InteractiveLocaleSelector
 {
     private const char PreferenceSeparator = ' ';
+    private const string AnyLanguage = "*";
 
     private IUiLocaleCatalog UiLocaleCatalog { get; }
 
@@ -84,7 +86,9 @@ internal sealed class InteractiveLocaleSelector
             : null;
 
     // The ui_locales preferences come first, in their order; then the Accept-Language values by descending quality,
-    // without the wildcard and the values a quality of zero rules out.
+    // without the wildcard and the values a quality of zero rules out. The method runs on every page request, so it
+    // splits the query over spans and orders the header by insertion, which keeps the header's order among equal
+    // qualities, without LINQ.
     private static List<string> ReadPreferences(HttpRequest request)
     {
         List<string> preferences = [];
@@ -96,12 +100,15 @@ internal sealed class InteractiveLocaleSelector
                 continue;
             }
 
-            preferences.AddRange(
-                value.Split(
-                    PreferenceSeparator,
-                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-                )
-            );
+            var span = value.AsSpan();
+            foreach (var range in span.Split(PreferenceSeparator))
+            {
+                var languageTag = span[range].Trim();
+                if (!languageTag.IsEmpty)
+                {
+                    preferences.Add(languageTag.ToString());
+                }
+            }
         }
 
         var acceptLanguage = request.GetTypedHeaders().AcceptLanguage;
@@ -110,19 +117,37 @@ internal sealed class InteractiveLocaleSelector
             return preferences;
         }
 
-        foreach (
-            var header in acceptLanguage
-                .Where(header => header.Quality is not 0.0)
-                .OrderByDescending(header => header.Quality ?? 1.0)
-        )
+        List<StringWithQualityHeaderValue> ordered = new(acceptLanguage.Count);
+        foreach (var header in acceptLanguage)
         {
             var languageTag = header.Value;
-            if (languageTag.HasValue && !languageTag.Equals("*", StringComparison.Ordinal))
+            if (
+                header.Quality is 0.0
+                || !languageTag.HasValue
+                || languageTag.Equals(AnyLanguage, StringComparison.Ordinal)
+            )
             {
-                preferences.Add(languageTag.ToString());
+                continue;
             }
+
+            var quality = GetQuality(header);
+            var index = ordered.Count;
+            while (index > 0 && GetQuality(ordered[index - 1]) < quality)
+            {
+                index--;
+            }
+
+            ordered.Insert(index, header);
+        }
+
+        foreach (var header in ordered)
+        {
+            preferences.Add(header.Value.ToString());
         }
 
         return preferences;
     }
+
+    // RFC 9110 §12.4.2: a value without a quality weight has a weight of 1.
+    private static double GetQuality(StringWithQualityHeaderValue header) => header.Quality ?? 1.0;
 }

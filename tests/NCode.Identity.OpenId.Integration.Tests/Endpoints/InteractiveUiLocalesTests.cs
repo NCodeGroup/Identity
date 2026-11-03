@@ -254,6 +254,61 @@ public class InteractiveUiLocalesTests
         );
     }
 
+    [Theory]
+    [InlineData(
+        "invalid_credentials",
+        "Le nom d&#x2019;utilisateur ou le mot de passe est incorrect."
+    )]
+    [InlineData("invalid_request", "Saisissez un nom d&#x2019;utilisateur et un mot de passe.")]
+    [InlineData(
+        "access_denied",
+        "Ce compte ne peut pas se connecter. Contactez votre administrateur."
+    )]
+    [InlineData("server_error", "La connexion a &#xE9;chou&#xE9;. Veuillez r&#xE9;essayer.")]
+    public async Task GetLoginPage_WhenTheRequestCarriesAnErrorCode_ShowsTheLocalesMessageForIt(
+        string error,
+        string expectedMessage
+    )
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        using var client = CreateClient(factory);
+
+        var html = await GetPageAsync(
+            client,
+            $"{LoginPath}?ReturnUrl=%2F&error={error}&ui_locales=fr"
+        );
+
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.Contains(expectedMessage, html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WhenTheRequestIsRefusedAndPrefersASupportedLocale_TheErrorPageRendersInIt()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        using var client = CreateClient(factory);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/oauth2/authorize?client_id=unknown-client&ui_locales=fr"
+        );
+        request.Headers.Accept.ParseAdd("text/html");
+        using var response = await client.SendAsync(request);
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "<title>Erreur d&#x2019;autorisation</title>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("<h1>Erreur d&#x2019;autorisation</h1>", html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Authorize_WhenConsentIsRequiredAndTheRequestPrefersASupportedLocale_TheConsentPageRendersInIt()
     {

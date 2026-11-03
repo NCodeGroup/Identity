@@ -19,8 +19,6 @@ public sealed class InteractiveLocalesValidatorTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
-    private sealed record PlainLocale(string LanguageTag) : IUiLocale;
-
     private InteractiveLocalesValidator CreateValidator(params IUiLocale[] locales)
     {
         MockCatalog.SetupGet(x => x.Locales).Returns(locales).Verifiable();

@@ -23,8 +23,6 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
 
     #region Helpers
 
-    private sealed record PlainLocale(string LanguageTag) : IUiLocale;
-
     private InteractiveLocaleSelector CreateSelector(params IUiLocale[] locales)
     {
         MockCatalog.SetupGet(x => x.Locales).Returns(locales).Verifiable();

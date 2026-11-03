@@ -2,6 +2,10 @@
  * The text of every surface the bundle renders, in one locale. A catalog is a plain object typed by this shape, so a
  * locale that misses a message fails the type-check rather than rendering an empty string; a sentence that places a
  * value is a function, so each language orders its words itself (ADR-1402).
+ *
+ * The pages the host renders before the bundle mounts carry the same wording for each shipped locale in
+ * `InteractiveLocales` (`src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocales.cs`), so the first
+ * paint and the mounted page read the same. A change to a page's wording in a shipped locale is made in both.
  */
 export type Messages = {
   readonly login: {

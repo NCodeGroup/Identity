@@ -106,8 +106,11 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
 
             // The locales the surface ships are the UI locales the tenant settings and discovery name, English first.
-            // A tag the host registered through AddInteractiveLocale keeps the host's locale, whichever call came
-            // first, and a locale registered without the surface's messages stops the host (ADR-1402).
+            // A UI locale is registered data: each is registered as an instance, and the registration dedupes by tag,
+            // which TryAddEnumerable cannot, since it dedupes by implementation type and every shipped locale is the
+            // one record type. A tag the host registered through AddInteractiveLocale keeps the host's locale,
+            // whichever call came first, and a locale registered without the surface's messages stops the host
+            // (ADR-1402).
             foreach (var locale in InteractiveLocales.All)
             {
                 if (FindUiLocale(serviceCollection, locale.LanguageTag) < 0)
@@ -234,6 +237,13 @@ public static class DefaultRegistration
         /// <see cref="AddInteractiveAuthentication"/>. A replaced locale keeps its place in the registration order, so
         /// replacing the first registered locale keeps it the surface's default language.
         /// </summary>
+        /// <remarks>
+        /// A UI locale is registered data, so this method and <see cref="AddInteractiveAuthentication"/> register
+        /// each locale as an instance and find the registered locale of a tag among the instances. An
+        /// <see cref="IUiLocale"/> a host registers through a type or a factory is outside this rule: its tag is
+        /// registered twice when a locale of the same tag is registered this way, and the catalog refuses the
+        /// duplicate tag when the host starts.
+        /// </remarks>
         /// <param name="locale">The locale to register.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<OpenIdAuthenticationLibrary> AddInteractiveLocale(

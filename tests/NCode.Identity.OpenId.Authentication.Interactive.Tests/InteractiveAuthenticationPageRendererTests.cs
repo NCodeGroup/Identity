@@ -21,8 +21,39 @@ public class InteractiveAuthenticationPageRendererTests
         + "<script type=\"module\" src=\"./app.js\" nonce=\"__NCODE_CSP_NONCE__\"></script></head>"
         + "<body><div id=\"root\"></div></body></html>";
 
+    private const string LanguageBundleShell =
+        "<!doctype html><html lang=\"__NCODE_LANG__\"><head><meta property=\"csp-nonce\" nonce=\"__NCODE_CSP_NONCE__\"></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
     private static InteractiveBranding AcmeBranding { get; } =
         new("Acme", null, null, null, "dark", null);
+
+    // A locale of the test's own, so the locale tests prove how the renderer writes a locale rather than the shipped
+    // wording, which InteractiveLocalesTests covers; its accented text proves the renderer encodes a message.
+    private static InteractiveLocale XxLocale { get; } =
+        new(
+            "xx",
+            new InteractiveMessages
+            {
+                SignInTitle = "Xx sign-in title",
+                UsernameLabel = "Xx username",
+                PasswordLabel = "Xx password",
+                SignInButton = "Xx sign-in button",
+                AuthorizeAccessTitle = "Xx authorize title",
+                ConsentPromptFormat = "{0} xx consent prompt:",
+                DenyButton = "Xx deny",
+                AllowButton = "Xx allow",
+                SignOutTitle = "Xx sign-out titlé",
+                SignOutQuestion = "Xx sign-out question?",
+                StaySignedInButton = "Xx stay signéd in",
+                SignOutButton = "Xx sign-out button",
+                AuthorizationErrorTitle = "Xx error title",
+                InvalidCredentialsError = "Xx invalid credentials",
+                MissingCredentialsError = "Xx missing credentials",
+                AccessDeniedError = "Xx access denied",
+                SignInFailedError = "Xx sign-in failed",
+            }
+        );
 
     #region RenderLoginPage Tests
 
@@ -591,10 +622,6 @@ public class InteractiveAuthenticationPageRendererTests
 
     #region Locale Tests
 
-    private const string LanguageBundleShell =
-        "<!doctype html><html lang=\"__NCODE_LANG__\"><head><meta property=\"csp-nonce\" nonce=\"__NCODE_CSP_NONCE__\"></head>"
-        + "<body><div id=\"root\"></div></body></html>";
-
     [Fact]
     public void RenderLoginPage_WhenStandalone_WritesTheLocaleIntoTheDocumentAndTheForm()
     {
@@ -605,29 +632,34 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
-            locale: InteractiveLocales.French,
+            locale: XxLocale,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
-            errorMessage: InteractiveLocales.French.Messages.InvalidCredentialsError
+            errorMessage: XxLocale.Messages.InvalidCredentialsError
         );
         var html = writer.WrittenSpan.ToString();
 
         Assert.StartsWith(
-            "<!doctype html><html lang=\"fr\"><head>",
+            "<!doctype html><html lang=\"xx\"><head>",
             html,
             StringComparison.Ordinal
         );
-        Assert.Contains("<title>Se connecter</title>", html, StringComparison.Ordinal);
-        Assert.Contains("<h1>Se connecter</h1>", html, StringComparison.Ordinal);
-        Assert.Contains("<label for=\"username\">Nom d", html, StringComparison.Ordinal);
+        Assert.Contains("<title>Xx sign-in title</title>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Xx sign-in title</h1>", html, StringComparison.Ordinal);
         Assert.Contains(
-            "<label for=\"password\">Mot de passe</label>",
+            "<label for=\"username\">Xx username</label>",
             html,
             StringComparison.Ordinal
         );
-        Assert.Contains(">Se connecter</button>", html, StringComparison.Ordinal);
-        Assert.Contains("name=\"ui_locales\" value=\"fr\"", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "<label for=\"password\">Xx password</label>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(">Xx sign-in button</button>", html, StringComparison.Ordinal);
+        Assert.Contains("Xx invalid credentials", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"xx\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Sign in", html, StringComparison.Ordinal);
     }
 
@@ -643,7 +675,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
-            locale: InteractiveLocales.German,
+            locale: XxLocale,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -652,7 +684,7 @@ public class InteractiveAuthenticationPageRendererTests
         var html = writer.WrittenSpan.ToString();
 
         Assert.StartsWith(
-            "<!doctype html><html lang=\"de\"><head>",
+            "<!doctype html><html lang=\"xx\"><head>",
             html,
             StringComparison.Ordinal
         );
@@ -667,7 +699,7 @@ public class InteractiveAuthenticationPageRendererTests
             html,
             StringComparison.Ordinal
         );
-        Assert.Contains("<h1>Anmelden</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Xx sign-in title</h1>", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -680,7 +712,7 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
-            locale: InteractiveLocales.Spanish,
+            locale: XxLocale,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -689,26 +721,19 @@ public class InteractiveAuthenticationPageRendererTests
         );
         var html = writer.WrittenSpan.ToString();
 
-        Assert.Contains("<h1>Autorizar acceso</h1>", html, StringComparison.Ordinal);
-        Assert.Contains(
-            "<p>&lt;Acme&gt; solicita acceso a su cuenta. Elija qu",
-            html,
-            StringComparison.Ordinal
-        );
-        Assert.Contains(">Denegar</button>", html, StringComparison.Ordinal);
-        Assert.Contains(">Permitir</button>", html, StringComparison.Ordinal);
-        Assert.Contains("name=\"ui_locales\" value=\"es\"", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Xx authorize title</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>&lt;Acme&gt; xx consent prompt:</p>", html, StringComparison.Ordinal);
+        Assert.Contains(">Xx deny</button>", html, StringComparison.Ordinal);
+        Assert.Contains(">Xx allow</button>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"xx\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void RenderConsentPage_WhenTheFormatHasNoPlaceholder_WritesItAsItIs()
     {
-        var locale = InteractiveLocales.English with
+        var locale = XxLocale with
         {
-            Messages = InteractiveLocales.English.Messages with
-            {
-                ConsentPromptFormat = "Choose what to allow:",
-            },
+            Messages = XxLocale.Messages with { ConsentPromptFormat = "Choose what to allow:" },
         };
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
@@ -740,17 +765,19 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
-            locale: InteractiveLocales.French,
+            locale: XxLocale,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t"
         );
         var html = writer.WrittenSpan.ToString();
 
-        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
-        Assert.Contains("<h1>Se d&#xE9;connecter</h1>", html, StringComparison.Ordinal);
-        Assert.Contains(">Rester connect&#xE9;</button>", html, StringComparison.Ordinal);
-        Assert.Contains("name=\"ui_locales\" value=\"fr\"", html, StringComparison.Ordinal);
+        Assert.Contains("<html lang=\"xx\">", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Xx sign-out titl&#xE9;</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("Xx sign-out question?", html, StringComparison.Ordinal);
+        Assert.Contains(">Xx stay sign&#xE9;d in</button>", html, StringComparison.Ordinal);
+        Assert.Contains(">Xx sign-out button</button>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"xx\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -763,15 +790,15 @@ public class InteractiveAuthenticationPageRendererTests
             surfaceBase: SurfaceBase,
             branding: null,
             nonce: Nonce,
-            locale: InteractiveLocales.German,
+            locale: XxLocale,
             errorCode: "invalid_client",
             errorDescription: null
         );
         var html = writer.WrittenSpan.ToString();
 
-        Assert.Contains("<html lang=\"de\">", html, StringComparison.Ordinal);
-        Assert.Contains("<title>Autorisierungsfehler</title>", html, StringComparison.Ordinal);
-        Assert.Contains("<h1>Autorisierungsfehler</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<html lang=\"xx\">", html, StringComparison.Ordinal);
+        Assert.Contains("<title>Xx error title</title>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Xx error title</h1>", html, StringComparison.Ordinal);
     }
 
     #endregion

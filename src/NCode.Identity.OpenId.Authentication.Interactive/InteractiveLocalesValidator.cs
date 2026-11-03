@@ -33,7 +33,7 @@ internal sealed class InteractiveLocalesValidator(IUiLocaleCatalog uiLocaleCatal
     /// </summary>
     /// <param name="uiLocaleCatalog">The registered UI locales.</param>
     /// <returns>The failures, empty when every registered locale is an <see cref="InteractiveLocale"/>.</returns>
-    public static List<string> FindLocalesWithoutMessages(IUiLocaleCatalog uiLocaleCatalog)
+    public static IReadOnlyList<string> FindLocalesWithoutMessages(IUiLocaleCatalog uiLocaleCatalog)
     {
         List<string> failures = [];
         foreach (var locale in uiLocaleCatalog.Locales)

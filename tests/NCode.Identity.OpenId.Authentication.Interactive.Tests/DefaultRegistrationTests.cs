@@ -419,8 +419,6 @@ public sealed class DefaultRegistrationTests : IDisposable
         return serviceCollection.BuildServiceProvider();
     }
 
-    private sealed record PlainLocale(string LanguageTag) : IUiLocale;
-
     // The registered locales as the core catalog lists them; the registration under test resolves nothing else.
     private sealed class StubUiLocaleCatalog(IEnumerable<IUiLocale> locales) : IUiLocaleCatalog
     {

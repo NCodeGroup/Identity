@@ -3,6 +3,7 @@
 
 using System.Net;
 using NCode.Identity.OpenId.Client.Http;
+using NCode.Identity.OpenId.Client.Metrics;
 using NCode.Identity.OpenId.Client.Options;
 using Xunit;
 
@@ -10,14 +11,29 @@ namespace NCode.Identity.OpenId.Client.Tests.Http;
 
 public class ProviderResilienceHandlerTests : BaseTests
 {
-    private static ProviderResilienceHandler CreateHandler(
+    private TestMetrics Metrics { get; } = new();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            Metrics.Dispose();
+        base.Dispose(disposing);
+    }
+
+    private List<string?> Measured(string instrumentName, string attributeName) =>
+        Metrics.Measured(instrumentName, attributeName);
+
+    private ProviderResilienceHandler CreateHandler(
         HttpMessageHandler innerHandler,
         OpenIdClientOptions? options = null
     )
     {
         var clientOptions = options ?? new OpenIdClientOptions { RetryDelay = TimeSpan.Zero };
         var wrappedOptions = Microsoft.Extensions.Options.Options.Create(clientOptions);
-        var pipelines = new ProviderResiliencePipelines(wrappedOptions);
+        var pipelines = new ProviderResiliencePipelines(
+            wrappedOptions,
+            Metrics.CreateProviderMetrics()
+        );
         return new ProviderResilienceHandler(pipelines) { InnerHandler = innerHandler };
     }
 
@@ -25,6 +41,23 @@ public class ProviderResilienceHandlerTests : BaseTests
         StubHttpMessageHandler.CreateResponse(statusCode, "{}");
 
     #region SendAsync Tests
+
+    [Fact]
+    public void CreateHandler_Always_PublishesTheInstrumentsOnTheClientMeterWithTheirUnits()
+    {
+        var stub = StubHttpMessageHandler.Sequence(CreateResponse(HttpStatusCode.OK));
+
+        using var handler = CreateHandler(stub);
+
+        Assert.Equal(
+            (OpenIdClientMetrics.MeterName, "{retry}"),
+            Metrics.Describe(ProviderMetrics.RetriesName)
+        );
+        Assert.Equal(
+            (OpenIdClientMetrics.MeterName, "{timeout}"),
+            Metrics.Describe(ProviderMetrics.TimeoutsName)
+        );
+    }
 
     [Fact]
     public async Task SendAsync_WhenAGetFailsTransiently_RetriesIt()
@@ -40,6 +73,10 @@ public class ProviderResilienceHandlerTests : BaseTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.Requests.Count);
+        Assert.Equal<string?>(
+            ["503"],
+            Measured(ProviderMetrics.RetriesName, ProviderMetrics.ErrorTypeAttribute)
+        );
     }
 
     [Fact]
@@ -71,6 +108,7 @@ public class ProviderResilienceHandlerTests : BaseTests
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Single(stub.Requests);
+        Assert.Empty(Measured(ProviderMetrics.RetriesName, ProviderMetrics.ErrorTypeAttribute));
     }
 
     [Fact]
@@ -147,6 +185,14 @@ public class ProviderResilienceHandlerTests : BaseTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(2, stub.Requests.Count);
+        Assert.Equal<string?>(
+            ["timeout"],
+            Measured(ProviderMetrics.RetriesName, ProviderMetrics.ErrorTypeAttribute)
+        );
+        Assert.Equal<string?>(
+            ["attempt"],
+            Measured(ProviderMetrics.TimeoutsName, ProviderMetrics.TimeoutScopeAttribute)
+        );
     }
 
     [Fact]
@@ -173,6 +219,10 @@ public class ProviderResilienceHandlerTests : BaseTests
         );
 
         Assert.IsType<TimeoutException>(exception.InnerException);
+        Assert.Equal<string?>(
+            ["total"],
+            Measured(ProviderMetrics.TimeoutsName, ProviderMetrics.TimeoutScopeAttribute)
+        );
     }
 
     [Fact]
@@ -196,6 +246,7 @@ public class ProviderResilienceHandlerTests : BaseTests
         );
 
         Assert.IsNotType<TimeoutException>(exception.InnerException);
+        Assert.Empty(Measured(ProviderMetrics.TimeoutsName, ProviderMetrics.TimeoutScopeAttribute));
     }
 
     #endregion

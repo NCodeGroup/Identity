@@ -140,4 +140,56 @@ public sealed class GuardedResiliencePipelinesTests
     }
 
     #endregion
+
+    #region GetErrorType Tests
+
+    [Fact]
+    public void GetErrorType_WhenTheOutcomeIsAResponse_ReturnsItsStatusCode()
+    {
+        using var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+
+        var errorType = GuardedResiliencePipelines.GetErrorType(Outcome.FromResult(response));
+
+        Assert.Equal("429", errorType);
+    }
+
+    [Fact]
+    public void GetErrorType_WhenTheAttemptTimedOut_ReturnsTimeout()
+    {
+        var outcome = Outcome.FromException<HttpResponseMessage>(new TimeoutRejectedException());
+
+        var errorType = GuardedResiliencePipelines.GetErrorType(outcome);
+
+        Assert.Equal("timeout", errorType);
+    }
+
+    [Theory]
+    [InlineData(HttpRequestError.SecureConnectionError, "secure_connection_error")]
+    [InlineData(HttpRequestError.ResponseEnded, "response_ended")]
+    [InlineData(HttpRequestError.Unknown, "unknown")]
+    public void GetErrorType_WhenTheRequestFailed_ReturnsTheRequestErrorInSnakeCase(
+        HttpRequestError requestError,
+        string expected
+    )
+    {
+        var outcome = Outcome.FromException<HttpResponseMessage>(
+            new HttpRequestException(requestError)
+        );
+
+        var errorType = GuardedResiliencePipelines.GetErrorType(outcome);
+
+        Assert.Equal(expected, errorType);
+    }
+
+    [Fact]
+    public void GetErrorType_WhenTheExceptionIsUnexpected_ReturnsOther()
+    {
+        var outcome = Outcome.FromException<HttpResponseMessage>(new InvalidOperationException());
+
+        var errorType = GuardedResiliencePipelines.GetErrorType(outcome);
+
+        Assert.Equal("_OTHER", errorType);
+    }
+
+    #endregion
 }

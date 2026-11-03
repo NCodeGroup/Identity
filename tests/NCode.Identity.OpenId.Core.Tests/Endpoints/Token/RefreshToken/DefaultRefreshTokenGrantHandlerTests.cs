@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Globalization;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -37,7 +38,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
 
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ITokenService> MockTokenService { get; }
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
@@ -45,12 +46,11 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
 
     public DefaultRefreshTokenGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockTokenService = CreateStrictMock<ITokenService>();
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
         Handler = new DefaultRefreshTokenGrantHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockPersistedGrantService.Object,
             MockTokenService.Object,
             MockAuditEventRecorder.Object
@@ -165,8 +165,6 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
     )
     {
         mockTokenRequest.SetupGet(x => x.RefreshToken).Returns(RefreshTokenValue).Verifiable();
-
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
 
         MockPersistedGrantService
             .Setup(x => x.CreateGrantId(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))

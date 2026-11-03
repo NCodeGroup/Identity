@@ -41,26 +41,19 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         MockCredentialSelector = CreateStrictMock<IClientJwtCredentialSelector>();
         MockJwtEncoder = CreateStrictMock<IJwtEncoder>();
 
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        mockEnvironment
-            .SetupGet(x => x.JsonSerializerOptions)
-            .Returns(new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
             .Setup(x => x.Create(It.IsAny<string>()))
             .Callback<string>(code => CreatedErrorCode = code)
             .Returns(CreateLooseMock<IOpenIdError>().Object);
 
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockTenant.SetupGet(x => x.Issuer).Returns(Issuer);
+        MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
 
-        var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.SetupGet(x => x.Mediator).Returns(MockMediator.Object);
-        mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object);
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        OpenIdContext = mockContext.Object;
+        MockContext = CreateStrictMock<OpenIdContext>();
+        MockContext.SetupGet(x => x.Mediator).Returns(MockMediator.Object).Verifiable();
+        MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
+        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        OpenIdContext = MockContext.Object;
 
         HttpContext = new DefaultHttpContext();
         HttpContext.Features.Set<IOpenIdContextFeature>(
@@ -79,6 +72,8 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     private Mock<IOpenIdClientResolver> MockClientResolver { get; }
     private Mock<IClientJwtCredentialSelector> MockCredentialSelector { get; }
     private Mock<IJwtEncoder> MockJwtEncoder { get; }
+    private Mock<OpenIdEnvironment> MockEnvironment { get; }
+    private Mock<OpenIdContext> MockContext { get; }
     private OpenIdContext OpenIdContext { get; }
     private DefaultHttpContext HttpContext { get; }
     private DefaultUserInfoEndpointProvider Provider { get; }
@@ -115,16 +110,24 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
             .Verifiable();
     }
 
-    private OpenIdClient SetupClient()
+    // Only a signed response reads the client's id and token lifetime and the tenant's issuer.
+    private OpenIdClient SetupClient(bool signsResponse = false)
     {
-        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.IdTokenLifetime))
-            .Returns(TimeSpan.FromMinutes(5));
-
         var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.SetupGet(x => x.ClientId).Returns(ClientId);
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
+        if (signsResponse)
+        {
+            var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.IdTokenLifetime))
+                .Returns(TimeSpan.FromMinutes(5))
+                .Verifiable();
+            mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+            mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+
+            var mockTenant = CreateStrictMock<OpenIdTenant>();
+            mockTenant.SetupGet(x => x.Issuer).Returns(Issuer).Verifiable();
+            MockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        }
 
         MockClientResolver
             .Setup(x =>
@@ -139,6 +142,13 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
 
         return mockClient.Object;
     }
+
+    // Only a JSON response reads the environment's serializer options.
+    private void SetupJsonSerializerOptions() =>
+        MockEnvironment
+            .SetupGet(x => x.JsonSerializerOptions)
+            .Returns(new JsonSerializerOptions(JsonSerializerDefaults.Web))
+            .Verifiable();
 
     private void SetupClaims() =>
         MockMediator
@@ -205,6 +215,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         var openIdClient = SetupClient();
         SetupClaims();
         SetupCredentials(openIdClient, new ClientJwtCredentials(null, null));
+        SetupJsonSerializerOptions();
 
         var result = await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
 
@@ -216,7 +227,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     public async Task HandleRouteAsync_WhenClientRegistersSigning_ReturnsJwtAddressedToTheClient()
     {
         SetupAuthenticatedSubject(ClientId);
-        var openIdClient = SetupClient();
+        var openIdClient = SetupClient(signsResponse: true);
         SetupClaims();
         var signingCredentials = new JoseSigningCredentials(
             CreateLooseMock<SecretKey>().Object,

@@ -74,59 +74,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
-        MockResourceOwnershipService
-            .Setup(x =>
-                x.AssignCreatorAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordResourceServerChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordResourceServerScopeChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordResourceServerSecretChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         Handler = new ResourceServerApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -147,6 +96,73 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             NullLogger<ResourceServerApiEndpointHandler>.Instance
         );
     }
+
+    // Only a request that creates the resource assigns its creator as its owner.
+    private void SetupCreatorAssignment() =>
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes a secret records it.
+    private void SetupResourceServerSecretChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceServerSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes a scope records it.
+    private void SetupResourceServerScopeChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceServerScopeChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes the resource records it.
+    private void SetupResourceServerChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceServerChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     public void Dispose() => MockRepository.Verify();
 
@@ -325,6 +341,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenAuthorized_ReturnsCreated()
     {
+        SetupCreatorAssignment();
+        SetupResourceServerChangedAudit();
         SetupValidSettings();
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -451,6 +469,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateScopeAsync_WhenAuthorized_ReturnsCreated()
     {
+        SetupResourceServerScopeChangedAudit();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -668,6 +687,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupResourceServerChangedAudit();
         SetupValidSettingsUpdate();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
@@ -755,6 +775,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_ReturnsCreatedWithMaterial()
     {
+        SetupResourceServerSecretChangedAudit();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -879,6 +900,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupResourceServerSecretChangedAudit();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore

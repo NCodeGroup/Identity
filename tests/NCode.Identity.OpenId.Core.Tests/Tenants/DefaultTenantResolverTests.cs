@@ -73,7 +73,8 @@ public sealed class DefaultTenantResolverTests
         var strategy = mocks.Create<ITenantStrategy>();
         strategy
             .Setup(x => x.StrategyCode)
-            .Returns(OpenIdConstants.TenantStrategyCodes.DynamicByPath);
+            .Returns(OpenIdConstants.TenantStrategyCodes.DynamicByPath)
+            .Verifiable();
         return strategy;
     }
 

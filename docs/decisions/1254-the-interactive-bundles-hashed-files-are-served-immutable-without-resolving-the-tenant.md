@@ -1,6 +1,8 @@
 # 1254. The interactive bundle's hashed files are served immutable without resolving the tenant
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 1 amended by
+  [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md): the
+  route keeps the front-channel marker through `WithFrontChannel()`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

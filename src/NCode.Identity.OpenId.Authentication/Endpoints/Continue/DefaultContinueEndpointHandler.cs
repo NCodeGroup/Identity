@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -40,7 +41,7 @@ internal class DefaultContinueEndpointHandler(
             .WithName(OpenIdConstants.EndpointNames.Continue)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .WithOpenIdDiscoverable(false)
-            .WithOpenIdFrontChannel();
+            .WithFrontChannel();
 
     /// <summary>
     /// Continue a paused authorization flow.

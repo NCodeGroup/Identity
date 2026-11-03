@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.AspNetCore;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
@@ -110,7 +110,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var endpointMetadata = isFrontChannel
-            ? new EndpointMetadataCollection(new OpenIdEndpointFrontChannelMetadata())
+            ? new EndpointMetadataCollection(new FrontChannelEndpointMetadata())
             : EndpointMetadataCollection.Empty;
         var endpoint = new Endpoint(_ => Task.CompletedTask, endpointMetadata, "test");
 

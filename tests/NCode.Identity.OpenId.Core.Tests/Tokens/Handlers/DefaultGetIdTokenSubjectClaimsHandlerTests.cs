@@ -30,6 +30,16 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     {
         MockClaimsService = CreateStrictMock<IClaimsService>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
+        Handler = new DefaultGetIdTokenSubjectClaimsHandler(
+            MockClaimsService.Object,
+            MockSubjectIdentifierService.Object
+        );
+    }
+
+    #region Scaffolding
+
+    // A subject's principal id is projected unchanged unless a test projects it.
+    private void SetupSubjectProjection() =>
         MockSubjectIdentifierService
             .Setup(x =>
                 x.ProjectSubjectId(
@@ -38,14 +48,8 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
                     It.IsAny<string>()
                 )
             )
-            .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId);
-        Handler = new DefaultGetIdTokenSubjectClaimsHandler(
-            MockClaimsService.Object,
-            MockSubjectIdentifierService.Object
-        );
-    }
-
-    #region Scaffolding
+            .Returns((OpenIdContext _, OpenIdClient _, string principalId) => principalId)
+            .Verifiable();
 
     private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.Parse(
         "2025-01-01T00:00:00Z",
@@ -80,13 +84,17 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
             TokenType: OpenIdProtocol.TokenTypes.IdToken
         );
 
-        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.AlwaysIncludeAuthTime))
-            .Returns(alwaysIncludeAuthTime);
-
+        // Only a token for an authenticated subject reads the client's auth_time setting.
         var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.Setup(x => x.Settings).Returns(mockSettings.Object);
+        if (subjectAuthentication is not null)
+        {
+            var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.AlwaysIncludeAuthTime))
+                .Returns(alwaysIncludeAuthTime)
+                .Verifiable();
+            mockClient.Setup(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        }
 
         return new GetIdTokenSubjectClaimsCommand(
             CreateStrictMock<OpenIdContext>().Object,
@@ -150,6 +158,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenIdTokenClaimsRequested_AddsThemToCopiedClaimTypes()
     {
+        SetupSubjectProjection();
         var requestClaims = new RequestClaims
         {
             IdToken = new RequestClaimDictionary
@@ -194,6 +203,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectAuthentication_CopiesClaims()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(CreateSubjectAuthentication(), ["openid"]);
 
         MockClaimsService
@@ -213,6 +223,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenScopeClaimsRequested_CopiesClaims()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(
             CreateSubjectAuthentication(),
             [
@@ -240,6 +251,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_AlwaysCopiesAcrClaimType()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(CreateSubjectAuthentication(), ["openid"]);
 
         var claimTypes = await CaptureCopiedClaimTypesAsync(command);
@@ -250,6 +262,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenAlwaysIncludeAuthTime_CopiesAuthTimeClaimType()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(
             CreateSubjectAuthentication(),
             ["openid"],
@@ -264,6 +277,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenNotAlwaysIncludeAndNotRequired_OmitsAuthTimeClaimType()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(
             CreateSubjectAuthentication(),
             ["openid"],
@@ -278,6 +292,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenAuthTimeRequired_CopiesAuthTimeClaimType()
     {
+        SetupSubjectProjection();
         var command = CreateCommand(
             CreateSubjectAuthentication(),
             ["openid"],
@@ -293,6 +308,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenEssentialAuthTimeRequested_CopiesAuthTimeClaimType()
     {
+        SetupSubjectProjection();
         var requestClaims = new RequestClaims
         {
             IdToken = new RequestClaimDictionary
@@ -355,6 +371,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenNoAccessTokenIssued_IncludesScopeClaimTypes()
     {
+        SetupSubjectProjection();
         // OpenID Connect Core 1.0 §5.4: with no access token issued the scope-driven claims belong in the ID token.
         var command = CreateCommand(
             CreateSubjectAuthentication(),
@@ -371,6 +388,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenAccessTokenIssued_OmitsScopeClaimTypes()
     {
+        SetupSubjectProjection();
         // OpenID Connect Core 1.0 §5.4: when an access token is issued (the code flow) the scope-driven claims are
         // returned from the UserInfo endpoint, not the ID token; the account-sourced UserInfo enricher supplies them.
         var command = CreateCommand(
@@ -389,6 +407,7 @@ public class DefaultGetIdTokenSubjectClaimsHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenAccessTokenIssued_StillIncludesRequestedIdTokenClaims()
     {
+        SetupSubjectProjection();
         // Claims explicitly requested via the 'claims.id_token' parameter are additive to the scope gate and still
         // belong in the ID token even when an access token is issued.
         var requestClaims = new RequestClaims

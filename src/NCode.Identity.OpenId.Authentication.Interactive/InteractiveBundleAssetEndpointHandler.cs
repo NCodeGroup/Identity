@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Net.Http.Headers;
-using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.AspNetCore;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
@@ -35,7 +35,7 @@ internal sealed class InteractiveBundleAssetEndpointHandler(InteractiveBundleRea
     public void Map(IEndpointRouteBuilder endpoints)
     {
         // The user agent loads the files from the page, from the same origin; no CORS policy applies to them.
-        var surface = endpoints.MapGroup(string.Empty).WithOpenIdFrontChannel();
+        var surface = endpoints.MapGroup(string.Empty).WithFrontChannel();
 
         surface.MapMethods(
             $"{InteractiveAuthenticationDefaults.BasePath}/{InteractiveBundleReader.AssetsDirectory}/{{**{AssetRouteParameterName}}}",

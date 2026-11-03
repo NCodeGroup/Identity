@@ -1,38 +1,31 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Moq;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Persistence;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Usage;
 
-public sealed class DefaultTenantUsageRecorderTests : IDisposable
+public sealed class DefaultTenantUsageRecorderTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 21, 23, 59, 59, TimeSpan.Zero);
     private static readonly DateOnly Today = new(2026, 10, 21);
 
-    private MockRepository MockRepository { get; }
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
     private DefaultTenantUsageRecorder Recorder { get; }
 
     public DefaultTenantUsageRecorderTests()
     {
-        MockRepository = new MockRepository(MockBehavior.Strict);
-        MockTimeProvider = MockRepository.Create<TimeProvider>();
-        Recorder = new DefaultTenantUsageRecorder(MockTimeProvider.Object);
+        Recorder = new DefaultTenantUsageRecorder(TimeProvider);
     }
-
-    public void Dispose() => MockRepository.Verify();
 
     #region Record Tests
 
     [Fact]
     public void Record_CountsEachTenantDayAndMeter()
     {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         Recorder.Record("tenant-1", TenantUsageMeters.TokenRequests);
@@ -52,13 +45,8 @@ public sealed class DefaultTenantUsageRecorderTests : IDisposable
     [Fact]
     public void Record_WhenTheUtcDayChanges_CountsTheNewDaySeparately()
     {
-        var reads = 0;
-        MockTimeProvider
-            .Setup(x => x.GetUtcNow())
-            .Returns(() => ++reads == 1 ? Now : Now.AddSeconds(1))
-            .Verifiable(Times.Exactly(2));
-
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        TimeProvider.Advance(TimeSpan.FromSeconds(1));
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
 
         var usage = Recorder.Drain();
@@ -94,7 +82,6 @@ public sealed class DefaultTenantUsageRecorderTests : IDisposable
     [Fact]
     public void Drain_TakesTheUsageOnce()
     {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
 
         Assert.Single(Recorder.Drain());

@@ -9,10 +9,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using NCode.AspNetCore;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Consent;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
@@ -81,7 +81,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     {
         // The user agent navigates to the surface, and its own pages call it from the same origin; no CORS policy
         // applies to it (FAPI 2.0 Security Profile §5.3.2.1).
-        var surface = endpoints.MapGroup(string.Empty).WithOpenIdFrontChannel();
+        var surface = endpoints.MapGroup(string.Empty).WithFrontChannel();
 
         surface.MapGet(InteractiveAuthenticationDefaults.AccountPath, GetAccountPageAsync);
         surface.MapGet(InteractiveAuthenticationDefaults.MePath, GetMeAsync);

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.AspNetCore;
 
 namespace NCode.Identity.Server;
 
@@ -25,7 +25,7 @@ public static class DeveloperCorsApplicationBuilderExtensions
         /// Call after <c>UseRouting</c> and before the authentication/authorization and endpoint middleware. It is a
         /// <b>no-op</b> when <c>AddDeveloperCors</c> has not registered the policy, as when no <c>Cors</c> section is
         /// configured, so it is safe to leave wired. The policy never applies
-        /// to a front-channel endpoint (<see cref="IOpenIdEndpointFrontChannelMetadata"/>): the authorization,
+        /// to a front-channel endpoint (<see cref="IFrontChannelEndpointMetadata"/>): the authorization,
         /// continue, and end-session endpoints and the interactive surface answer no cross-origin request or CORS
         /// preflight with CORS headers (FAPI 2.0 Security Profile §5.3.2.1).
         /// </summary>
@@ -63,6 +63,6 @@ public static class DeveloperCorsApplicationBuilderExtensions
                 || !request.Headers.ContainsKey(CorsConstants.AccessControlRequestMethod);
         }
 
-        return !endpoint.IsOpenIdFrontChannel;
+        return !endpoint.IsFrontChannel;
     }
 }

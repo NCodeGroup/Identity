@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using Moq;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
@@ -21,12 +19,7 @@ public class DurationSecondsParserTests : BaseTests
 
     public DurationSecondsParserTests()
     {
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-        mockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        _environment = mockEnvironment.Object;
+        _environment = CreateStrictMock<OpenIdEnvironment>().Object;
         _descriptor = new ParameterDescriptor(
             new KnownParameter<TimeSpan?>("expires_in", _parser) { AllowMissingStringValues = true }
         );

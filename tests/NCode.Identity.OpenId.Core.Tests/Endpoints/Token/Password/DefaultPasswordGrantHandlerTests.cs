@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -30,15 +31,14 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(CreatedWhen);
     private Mock<ITokenService> MockTokenService { get; }
     private DefaultPasswordGrantHandler Handler { get; }
 
     public DefaultPasswordGrantHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockTokenService = CreateStrictMock<ITokenService>();
-        Handler = new DefaultPasswordGrantHandler(MockTimeProvider.Object, MockTokenService.Object);
+        Handler = new DefaultPasswordGrantHandler(TimeProvider, MockTokenService.Object);
     }
 
     #region Scaffolding
@@ -125,8 +125,6 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
             .Returns(OpenIdProtocol.GrantTypes.Password)
             .Verifiable();
 
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
-
         MockTokenService
             .Setup(x =>
                 x.CreateAccessTokenAsync(
@@ -180,7 +178,6 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         var mockDispositionError = CreateLooseMock<IOpenIdError>();
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
         SetupAuthenticate(
             mockMediator,
             new AuthenticateSubjectDisposition(mockDispositionError.Object)
@@ -203,7 +200,6 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         var (mockContext, mockClient, mockMediator, mockTokenRequest, mockError) = CreateScaffold();
 
         mockTokenRequest.SetupGet(x => x.Username).Returns("username").Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
         SetupAuthenticate(
             mockMediator,
             new AuthenticateSubjectDisposition(Error: null, Ticket: null)

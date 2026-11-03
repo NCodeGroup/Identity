@@ -97,7 +97,10 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
         var mockErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
 
-        Mock.Get(context).SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        Mock.Get(context)
+            .SetupGet(x => x.ErrorFactory)
+            .Returns(mockErrorFactory.Object)
+            .Verifiable();
         mockErrorFactory
             .Setup(x => x.Create(It.IsAny<string>()))
             .Returns(mockError.Object)

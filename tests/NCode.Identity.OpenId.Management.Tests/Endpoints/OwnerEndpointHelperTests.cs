@@ -13,8 +13,12 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
-public class OwnerEndpointHelperTests
+public class OwnerEndpointHelperTests : IDisposable
 {
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
+    public void Dispose() => MockRepository.Verify();
+
     private const string TenantId = "tenant-1";
     private const string ResourceId = "client-1";
 
@@ -35,9 +39,9 @@ public class OwnerEndpointHelperTests
     private static HttpContext CreateHttpContext() =>
         new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity("test")) };
 
-    private static Mock<IAuthorizationService> Authz(AuthorizationResult result)
+    private Mock<IAuthorizationService> Authz(AuthorizationResult result)
     {
-        var mock = new Mock<IAuthorizationService>(MockBehavior.Strict);
+        var mock = MockRepository.Create<IAuthorizationService>();
         mock.Setup(x =>
                 x.AuthorizeAsync(
                     It.IsAny<ClaimsPrincipal>(),
@@ -45,18 +49,20 @@ public class OwnerEndpointHelperTests
                     It.IsAny<IEnumerable<IAuthorizationRequirement>>()
                 )
             )
-            .ReturnsAsync(result);
+            .ReturnsAsync(result)
+            .Verifiable();
         return mock;
     }
 
-    private static (Mock<IStoreManagerFactory>, Mock<IStoreManager>) StoreManager()
+    private (Mock<IStoreManagerFactory>, Mock<IStoreManager>) StoreManager()
     {
-        var factory = new Mock<IStoreManagerFactory>(MockBehavior.Strict);
-        var manager = new Mock<IStoreManager>(MockBehavior.Strict);
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var manager = MockRepository.Create<IStoreManager>();
         factory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(manager.Object);
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+            .ReturnsAsync(manager.Object)
+            .Verifiable();
+        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         return (factory, manager);
     }
 
@@ -83,7 +89,7 @@ public class OwnerEndpointHelperTests
     {
         var authz = Authz(AuthorizationResult.Success());
         var (factory, manager) = StoreManager();
-        var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
         ownership
             .Setup(x =>
                 x.GetOwnersAsync(
@@ -93,7 +99,8 @@ public class OwnerEndpointHelperTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([Owner("p1")]);
+            .ReturnsAsync([Owner("p1")])
+            .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessListOwnersAsync(
@@ -113,8 +120,9 @@ public class OwnerEndpointHelperTests
     public async Task ProcessListOwnersAsync_WhenUnauthorized_Forbids()
     {
         var authz = Authz(AuthorizationResult.Failed());
-        var (factory, _) = StoreManager();
-        var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
+        // A forbidden request never opens the store.
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessListOwnersAsync(
@@ -136,8 +144,9 @@ public class OwnerEndpointHelperTests
         var (factory, manager) = StoreManager();
         manager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
         ownership
             .Setup(x =>
                 x.AddOwnerAsync(
@@ -149,7 +158,8 @@ public class OwnerEndpointHelperTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(Owner("p2", "a2"));
+            .ReturnsAsync(Owner("p2", "a2"))
+            .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessAddOwnerAsync(
@@ -171,7 +181,7 @@ public class OwnerEndpointHelperTests
     {
         var authz = Authz(AuthorizationResult.Success());
         var (factory, _) = StoreManager();
-        var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessAddOwnerAsync(
@@ -193,7 +203,7 @@ public class OwnerEndpointHelperTests
     {
         var authz = Authz(AuthorizationResult.Success());
         var (factory, manager) = StoreManager();
-        var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
         ownership
             .Setup(x =>
                 x.RemoveOwnerAsync(
@@ -204,7 +214,8 @@ public class OwnerEndpointHelperTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.LastOwnerForbidden);
+            .ReturnsAsync(OwnerRemovalResult.LastOwnerForbidden)
+            .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessRemoveOwnerAsync(
@@ -227,8 +238,9 @@ public class OwnerEndpointHelperTests
         var (factory, manager) = StoreManager();
         manager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        var ownership = new Mock<IResourceOwnershipService>(MockBehavior.Strict);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
         ownership
             .Setup(x =>
                 x.RemoveOwnerAsync(
@@ -239,7 +251,8 @@ public class OwnerEndpointHelperTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.Removed);
+            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
         var result = await handler.ProcessRemoveOwnerAsync(

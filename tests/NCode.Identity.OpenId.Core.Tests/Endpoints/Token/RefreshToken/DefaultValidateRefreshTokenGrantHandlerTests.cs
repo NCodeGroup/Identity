@@ -41,7 +41,8 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     ) CreateScaffold(
         string grantClientId,
         IReadOnlyList<string> originalScopes,
-        IReadOnlyCollection<string> allowedScopes
+        IReadOnlyCollection<string> allowedScopes,
+        bool readsAllowedScopes = true
     )
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -54,13 +55,20 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
 
-        MockClientScopeService
-            .Setup(x => x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(allowedScopes);
+        // A grant refused for its client or its scopes is refused before the client's allowed scopes are looked up.
+        if (readsAllowedScopes)
+        {
+            mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+            mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+            MockClientScopeService
+                .Setup(x =>
+                    x.GetAllowedScopesAsync(TenantId, ClientId, It.IsAny<CancellationToken>())
+                )
+                .ReturnsAsync(allowedScopes)
+                .Verifiable();
+        }
 
         var command = new ValidateTokenGrantCommand<RefreshTokenGrant>(
             mockContext.Object,
@@ -95,7 +103,12 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenClientIdMismatch_ThrowsOpenIdException()
     {
-        var (command, _) = CreateScaffold("different-client", ["api"], []);
+        var (command, _) = CreateScaffold(
+            "different-client",
+            ["api"],
+            [],
+            readsAllowedScopes: false
+        );
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(command, CancellationToken.None)
@@ -105,7 +118,12 @@ public class DefaultValidateRefreshTokenGrantHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenRequestedScopesExceedGranted_ThrowsOpenIdException()
     {
-        var (command, mockTokenRequest) = CreateScaffold(ClientId, ["api"], []);
+        var (command, mockTokenRequest) = CreateScaffold(
+            ClientId,
+            ["api"],
+            [],
+            readsAllowedScopes: false
+        );
         mockTokenRequest.SetupGet(x => x.Scopes).Returns(["api", "extra"]).Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>

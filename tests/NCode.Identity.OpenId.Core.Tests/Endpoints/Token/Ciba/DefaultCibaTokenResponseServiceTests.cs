@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Models;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -25,18 +26,14 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ITokenService> MockTokenService { get; }
     private DefaultCibaTokenResponseService Service { get; }
 
     public DefaultCibaTokenResponseServiceTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockTokenService = CreateStrictMock<ITokenService>();
-        Service = new DefaultCibaTokenResponseService(
-            MockTimeProvider.Object,
-            MockTokenService.Object
-        );
+        Service = new DefaultCibaTokenResponseService(TimeProvider, MockTokenService.Object);
     }
 
     private static SubjectAuthentication CreateSubjectAuthentication() =>
@@ -69,7 +66,6 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
             .SetupGet(x => x.Environment)
             .Returns(CreateStrictMock<OpenIdEnvironment>().Object)
             .Verifiable();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         return (mockContext, mockClient);
     }
@@ -158,6 +154,5 @@ public class DefaultCibaTokenResponseServiceTests : BaseTests
         Assert.Equal("id-token-value", result.IdToken);
         Assert.Equal("refresh-token-value", result.RefreshToken);
         Assert.Equal(TimeSpan.FromDays(30), result.RefreshTokenExpiresIn);
-        MockTokenService.Verify();
     }
 }

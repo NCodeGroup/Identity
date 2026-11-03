@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -20,7 +21,7 @@ public class MasterKeyFactoryTests : IDisposable
 
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IKeyWrapperCatalog> _catalog;
-    private readonly Mock<TimeProvider> _timeProvider;
+    private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly EphemeralKeyWrapper _provider = new();
     private readonly RecoveryKeyWrapper _disabledRecovery = new(
         Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
@@ -29,7 +30,6 @@ public class MasterKeyFactoryTests : IDisposable
     public MasterKeyFactoryTests()
     {
         _catalog = _mocks.Create<IKeyWrapperCatalog>();
-        _timeProvider = _mocks.Create<TimeProvider>();
     }
 
     public void Dispose()
@@ -40,14 +40,11 @@ public class MasterKeyFactoryTests : IDisposable
     }
 
     private MasterKeyFactory CreateFactory(IRecoveryKeyWrapper recovery) =>
-        new(_catalog.Object, recovery, _timeProvider.Object);
+        new(_catalog.Object, recovery, _timeProvider);
 
-    // CreateAsync selects the configured provider and reads the clock.
-    private void ExpectCreate()
-    {
+    // CreateAsync selects the configured provider.
+    private void ExpectCreate() =>
         _catalog.Setup(x => x.GetConfigured()).Returns(_provider).Verifiable();
-        _timeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-    }
 
     // UnwrapAsync looks the provider up by the name that the row records.
     private void ExpectGet(IKeyWrapper provider) =>

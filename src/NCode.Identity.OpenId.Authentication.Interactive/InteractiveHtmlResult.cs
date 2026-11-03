@@ -4,8 +4,8 @@
 using System.Buffers;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using NCode.AspNetCore;
 using NCode.Buffers;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;

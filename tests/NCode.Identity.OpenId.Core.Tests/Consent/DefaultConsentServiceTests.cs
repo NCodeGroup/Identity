@@ -43,10 +43,6 @@ public sealed class DefaultConsentServiceTests : IDisposable
         MockClientResolver = MockRepository.Create<IOpenIdClientResolver>();
         MockScopeDescriptionService = MockRepository.Create<IScopeDescriptionService>();
 
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(TenantId))
-            .Returns(Mock.Of<IDisposable>());
-
         Service = new DefaultConsentService(
             TimeProvider.System,
             MockStoreManagerFactory.Object,
@@ -88,12 +84,17 @@ public sealed class DefaultConsentServiceTests : IDisposable
             ConcurrencyToken = "ct",
         };
 
+    // A context whose tenant the service reads and scopes its store work to.
     private Mock<OpenIdContext> CreateContext()
     {
         var mockContext = MockRepository.Create<OpenIdContext>();
         var mockTenant = MockRepository.Create<OpenIdTenant>();
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(TenantId))
+            .Returns(Mock.Of<IDisposable>())
+            .Verifiable();
         return mockContext;
     }
 
@@ -102,7 +103,8 @@ public sealed class DefaultConsentServiceTests : IDisposable
     [Fact]
     public async Task ResolveConsentAsync_WhenNoRequestedScopes_ReturnsDecidedWithoutStore()
     {
-        var context = CreateContext();
+        // The service answers before it reads the tenant.
+        var context = MockRepository.Create<OpenIdContext>();
 
         var result = await Service.ResolveConsentAsync(
             context.Object,

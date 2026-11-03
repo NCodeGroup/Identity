@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -31,7 +32,7 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ICibaNotificationService> MockNotificationService { get; }
@@ -39,12 +40,11 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
 
     public DefaultCreateBackchannelAuthenticationRequestHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockNotificationService = CreateStrictMock<ICibaNotificationService>();
         Handler = new DefaultCreateBackchannelAuthenticationRequestHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
             MockNotificationService.Object
@@ -70,24 +70,27 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
 
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.BackchannelTokenDeliveryMode))
-            .Returns(OpenIdProtocol.BackchannelTokenDeliveryModes.Poll);
+            .Returns(OpenIdProtocol.BackchannelTokenDeliveryModes.Poll)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaRequestLifetime))
-            .Returns(TimeSpan.FromMinutes(10));
+            .Returns(TimeSpan.FromMinutes(10))
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
-            .Returns(TimeSpan.FromSeconds(5));
+            .Returns(TimeSpan.FromSeconds(5))
+            .Verifiable();
 
-        mockRequest.SetupGet(x => x.RequestedExpiry).Returns((string?)null);
-        mockRequest.SetupGet(x => x.Scopes).Returns(["api"]);
-        mockRequest.SetupGet(x => x.Resources).Returns((List<string>?)null);
-        mockRequest.SetupGet(x => x.ClientNotificationToken).Returns((string?)null);
-        mockRequest.SetupGet(x => x.BindingMessage).Returns((string?)null);
+        mockRequest.SetupGet(x => x.RequestedExpiry).Returns((string?)null).Verifiable();
+        mockRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
+        mockRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockRequest.SetupGet(x => x.ClientNotificationToken).Returns((string?)null).Verifiable();
+        mockRequest.SetupGet(x => x.BindingMessage).Returns((string?)null).Verifiable();
 
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
-            .Returns("auth-req-id-value");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+            .Returns("auth-req-id-value")
+            .Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -160,6 +163,5 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
         Assert.Equal(5, result.Interval);
         Assert.Equal(DeviceAuthorizationStatus.Pending, captured?.Status);
         Assert.Equal("subject-id", captured?.SubjectAuthentication?.PrincipalId);
-        MockNotificationService.Verify();
     }
 }

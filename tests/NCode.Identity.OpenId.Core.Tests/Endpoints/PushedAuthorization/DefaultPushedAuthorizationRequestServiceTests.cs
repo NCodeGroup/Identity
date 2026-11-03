@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -34,18 +35,17 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private DefaultPushedAuthorizationRequestService Service { get; }
 
     public DefaultPushedAuthorizationRequestServiceTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         Service = new DefaultPushedAuthorizationRequestService(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockCryptoService.Object,
             MockPersistedGrantService.Object
         );
@@ -74,7 +74,6 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
             .Returns(TimeSpan.FromSeconds(90))
             .Verifiable();
 
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(Reference)
@@ -259,8 +258,8 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -277,7 +276,8 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                     GrantType = OpenIdConstants.PersistedGrantTypes.PushedAuthorizationRequest,
                     GrantKey = Reference,
                 }
-            );
+            )
+            .Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -287,7 +287,8 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync((PersistedGrant<PushedAuthorizationGrant>?)null);
+            .ReturnsAsync((PersistedGrant<PushedAuthorizationGrant>?)null)
+            .Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             Service
@@ -310,9 +311,9 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockTenant = CreateStrictMock<OpenIdTenant>();
 
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
-        mockClient.SetupGet(x => x.ClientId).Returns("other-client");
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        mockClient.SetupGet(x => x.ClientId).Returns("other-client").Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -329,7 +330,8 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                     GrantType = OpenIdConstants.PersistedGrantTypes.PushedAuthorizationRequest,
                     GrantKey = Reference,
                 }
-            );
+            )
+            .Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -356,7 +358,8 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                         },
                     },
                 }
-            );
+            )
+            .Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
             Service
@@ -379,7 +382,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
         var mockError = CreateLooseMock<IOpenIdError>();
         var capturedCode = new StrongBox<string?>(null);
 
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
         mockErrorFactory
             .Setup(x => x.Create(It.IsAny<string>()))
             .Callback<string>(code => capturedCode.Value = code)

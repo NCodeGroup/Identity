@@ -86,22 +86,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
-        MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null);
-        // Update metadata is checked by the real validator against the real key-type catalog and algorithms.
-        var secretValidator = new DefaultSecretValidator(
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
-        );
-        MockSecretValidator
-            .Setup(x =>
-                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
-            )
-            .Returns(
-                (PersistedSecret secret, UpdateSecretRequest request) =>
-                    secretValidator.ValidateUpdate(secret, request)
-            );
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
@@ -113,46 +97,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockRepository.Create<IClientAuthenticationMethodCatalog>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
-        MockResourceOwnershipService
-            .Setup(x =>
-                x.AssignCreatorAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordClientChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordClientSecretChangedAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
 
         Handler = new ClientApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -177,6 +123,82 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             NullLogger<ClientApiEndpointHandler>.Instance
         );
     }
+
+    // Only a request that updates a secret validates the update.
+    private void SetupSecretUpdateValidation()
+    {
+        // Update metadata is checked by the real validator against the real key-type catalog and algorithms.
+        var secretValidator = new DefaultSecretValidator(
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+        );
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns(
+                (PersistedSecret secret, UpdateSecretRequest request) =>
+                    secretValidator.ValidateUpdate(secret, request)
+            )
+            .Verifiable();
+    }
+
+    // Only a request that adds a secret validates its creation.
+    private void SetupSecretCreateValidation() =>
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+    // Only a request that creates the resource assigns its creator as its owner.
+    private void SetupCreatorAssignment() =>
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes a secret records it.
+    private void SetupClientSecretChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordClientSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // Only a request that changes the resource records it.
+    private void SetupClientChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordClientChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     public Task InitializeAsync() => Task.CompletedTask;
 
@@ -467,6 +489,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateClientAsync_UsesAmbientTenant()
     {
+        SetupCreatorAssignment();
+        SetupClientChangedAudit();
         SetupValidSettings();
         SetupStore();
         SetupResourceId("generated-id");
@@ -519,6 +543,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateClientAsync_WhenBoundToAResourceServer_PersistsAndReturnsTheBinding()
     {
+        SetupCreatorAssignment();
+        SetupClientChangedAudit();
         SetupValidSettings();
         SetupStore();
         SetupResourceId("generated-id");
@@ -1245,6 +1271,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupClientChangedAudit();
         SetupValidSettingsUpdate();
         SetupStore();
         MockClientStore
@@ -1391,6 +1418,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithOnlySharedSecrets_ReturnsNoContent()
     {
+        SetupClientChangedAudit();
         SetupValidSettingsUpdate();
         SetupStore();
         MockClientStore
@@ -1556,6 +1584,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1652,6 +1682,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenAsymmetric_DoesNotRevealMaterial()
     {
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1714,6 +1746,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenValidationFails_ReturnsBadRequest()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1748,6 +1781,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenSharedSecretIsBelowTheMinimumEntropy_ReturnsBadRequest()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1783,6 +1817,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndKeyIsAsymmetric_ReturnsConflict()
     {
+        SetupSecretCreateValidation();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1807,6 +1842,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndSecretIsShared_ReturnsCreated()
     {
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1895,6 +1932,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task ImportSecretAsync_WhenKeyIsImported_ReturnsCreated()
     {
+        SetupClientSecretChangedAudit();
         SetupImportClient(CreateClient("client-ct"));
         var imported = CreatePublicKeySecret("secret-2", "client-kid");
         SetupImportedKey(imported);
@@ -2250,6 +2288,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupSecretUpdateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x =>
@@ -2296,6 +2336,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         string? algorithm
     )
     {
+        SetupSecretUpdateValidation();
         SetupStore();
         MockClientStore
             .Setup(x =>
@@ -2330,6 +2371,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSecretAsync_WhenKeyHasAKid_KeepsIt()
     {
+        SetupSecretUpdateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetSecretOrDefaultAsync(ClientId, "key-1", It.IsAny<CancellationToken>()))
@@ -2386,6 +2429,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x =>
@@ -2441,6 +2485,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task DeleteSecretAsync_AuthorizesAgainstTenantScopedResource()
     {
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x =>
@@ -2481,6 +2526,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenAuthorized_AddsTheReplacementAndKeepsTheRotatedSecret()
     {
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         var rotated = CreatePersistedSecret("secret-1", "rotated-ct");
         MockClientStore
@@ -2656,6 +2703,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenRotatedExpiresWhenIsEarlier_ShortensTheRotatedSecretsExpiry()
     {
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         var grace = DateTimeOffset.UnixEpoch.AddMonths(1);
         var httpContext = await RotateWithGraceAsync(grace);
 
@@ -2690,6 +2739,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenRotatedExpiresWhenIsLater_KeepsTheRotatedSecretsExpiry()
     {
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         var httpContext = await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddYears(5));
 
         MockClientStore.Verify(
@@ -2979,6 +3030,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task DeleteClientAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupClientChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))

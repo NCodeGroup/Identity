@@ -14,6 +14,14 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
 {
     private Mock<ClientCertificateProvider> MockProvider { get; }
     private MutualTlsHttpClientOptionsSetup Setup { get; }
+    private TestMetrics Metrics { get; } = new();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            Metrics.Dispose();
+        base.Dispose(disposing);
+    }
 
     public MutualTlsHttpClientOptionsSetupTests()
     {
@@ -23,7 +31,10 @@ public class MutualTlsHttpClientOptionsSetupTests : BaseTests
             TimeProvider.System
         );
         var clientOptions = Microsoft.Extensions.Options.Options.Create(new OpenIdClientOptions());
-        var resiliencePipelines = new ProviderResiliencePipelines(clientOptions);
+        var resiliencePipelines = new ProviderResiliencePipelines(
+            clientOptions,
+            Metrics.CreateProviderMetrics()
+        );
         Setup = new MutualTlsHttpClientOptionsSetup(MockProvider.Object, resiliencePipelines);
     }
 

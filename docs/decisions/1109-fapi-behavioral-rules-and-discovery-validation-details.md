@@ -7,7 +7,10 @@
   every profile a scope's effective `security_profiles` selects, runs all of their requirements, and a profile
   contributes its ceiling through `ISecurityProfileCeilingBuilder`; the sender-constrained-token rule amended by
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md): it is the ceiling
-  `access_token_sender_constraint_required = true`, and `SenderConstrainedAccessTokenRequirement` is removed)
+  `access_token_sender_constraint_required = true`, and `SenderConstrainedAccessTokenRequirement` is removed; the
+  front-channel marker amended by
+  [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md): it is
+  `NCode.AspNetCore`'s `IFrontChannelEndpointMetadata`, set by `WithFrontChannel()`)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

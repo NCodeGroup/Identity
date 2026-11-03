@@ -32,12 +32,15 @@ public class DefaultSessionStateServiceTests : BaseTests
     private Mock<OpenIdContext> CreateContext(DefaultHttpContext httpContext)
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.SetupGet(x => x.Http).Returns(httpContext);
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
         return mockContext;
     }
 
     private void SetupSalt() =>
-        MockCryptoService.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns(Salt);
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns(Salt)
+            .Verifiable();
 
     private void SetupDigest(string expectedInput) =>
         MockCryptoService
@@ -63,7 +66,8 @@ public class DefaultSessionStateServiceTests : BaseTests
         const string browserState = "browser-state";
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
-            .Returns(browserState);
+            .Returns(browserState)
+            .Verifiable();
         SetupSalt();
         SetupDigest($"{ClientId} https://rp.example {browserState} {Salt}");
 
@@ -93,7 +97,8 @@ public class DefaultSessionStateServiceTests : BaseTests
         const string browserState = "browser-state";
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
-            .Returns(browserState);
+            .Returns(browserState)
+            .Verifiable();
         SetupSalt();
         SetupDigest($"{ClientId} https://rp.example {browserState} {Salt}");
 

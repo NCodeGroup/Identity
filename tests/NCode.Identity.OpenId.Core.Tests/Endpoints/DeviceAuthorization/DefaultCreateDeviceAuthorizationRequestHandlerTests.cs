@@ -4,6 +4,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Models;
@@ -39,7 +40,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         CultureInfo.InvariantCulture
     );
 
-    private Mock<TimeProvider> MockTimeProvider { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(UtcNow);
     private Mock<LinkGenerator> MockLinkGenerator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
@@ -48,13 +49,12 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
 
     public DefaultCreateDeviceAuthorizationRequestHandlerTests()
     {
-        MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockLinkGenerator = CreateStrictMock<LinkGenerator>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockUserCodeGenerator = CreateStrictMock<IUserCodeGenerator>();
         Handler = new DefaultCreateDeviceAuthorizationRequestHandler(
-            MockTimeProvider.Object,
+            TimeProvider,
             MockLinkGenerator.Object,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
@@ -79,22 +79,27 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
 
-        mockRequest.SetupGet(x => x.Scopes).Returns(["api", "openid"]);
+        mockRequest.SetupGet(x => x.Scopes).Returns(["api", "openid"]).Verifiable();
 
-        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.UserCodeLength)).Returns(8);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.UserCodeLength))
+            .Returns(8)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodeLifetime))
-            .Returns(TimeSpan.FromMinutes(5));
+            .Returns(TimeSpan.FromMinutes(5))
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
-            .Returns(TimeSpan.FromSeconds(5));
+            .Returns(TimeSpan.FromSeconds(5))
+            .Verifiable();
 
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
-            .Returns("device-code-value");
-        MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
-        MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+            .Returns("device-code-value")
+            .Verifiable();
+        MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234").Verifiable();
+        MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234").Verifiable();
 
         MockPersistedGrantService
             .Setup(x =>
@@ -195,7 +200,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     It.IsAny<LinkOptions?>()
                 )
             )
-            .Returns("https://server/device/verify");
+            .Returns("https://server/device/verify")
+            .Verifiable();
 
         var result = await Handler.HandleAsync(
             new CreateDeviceAuthorizationRequestCommand(
@@ -219,8 +225,6 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         Assert.Equal(new[] { "api", "openid" }, deviceCodePayload.Scopes);
         Assert.Null(deviceCodePayload.SubjectAuthentication);
         Assert.Equal("device-code-value", capturedUserCode?.DeviceCode);
-
-        MockPersistedGrantService.Verify();
     }
 
     [Fact]
@@ -233,29 +237,34 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         var mockRequest = CreateStrictMock<IDeviceAuthorizationRequest>();
 
-        mockContext.SetupGet(x => x.Http).Returns(httpContext);
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
-        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress);
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
-        mockClient.SetupGet(x => x.ClientId).Returns("client-1");
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress).Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
 
-        mockRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null);
+        mockRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
 
-        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.UserCodeLength)).Returns(8);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.UserCodeLength))
+            .Returns(8)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodeLifetime))
-            .Returns(TimeSpan.FromMinutes(5));
+            .Returns(TimeSpan.FromMinutes(5))
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
-            .Returns(TimeSpan.FromSeconds(5));
+            .Returns(TimeSpan.FromSeconds(5))
+            .Verifiable();
 
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
-            .Returns("device-code-value");
-        MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
-        MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow);
+            .Returns("device-code-value")
+            .Verifiable();
+        MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234").Verifiable();
+        MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234").Verifiable();
 
         MockPersistedGrantService
             .Setup(x => x.CreateGrantId(TenantId, It.IsAny<string>(), It.IsAny<string>()))
@@ -266,7 +275,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     GrantType = OpenIdConstants.PersistedGrantTypes.DeviceCode,
                     GrantKey = "key",
                 }
-            );
+            )
+            .Verifiable();
 
         DeviceCodeGrant? capturedDeviceCode = null;
         MockPersistedGrantService
@@ -290,7 +300,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     CancellationToken _
                 ) => capturedDeviceCode = grant.Payload
             )
-            .Returns(new ValueTask<string>("id"));
+            .Returns(new ValueTask<string>("id"))
+            .Verifiable();
         MockPersistedGrantService
             .Setup(x =>
                 x.AddAsync(
@@ -302,7 +313,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<string>("id"));
+            .Returns(new ValueTask<string>("id"))
+            .Verifiable();
 
         MockLinkGenerator
             .Setup(x =>
@@ -318,7 +330,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     It.IsAny<LinkOptions?>()
                 )
             )
-            .Returns("https://server/device/verify");
+            .Returns("https://server/device/verify")
+            .Verifiable();
 
         await Handler.HandleAsync(
             new CreateDeviceAuthorizationRequestCommand(
@@ -343,29 +356,34 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         var mockRequest = CreateStrictMock<IDeviceAuthorizationRequest>();
 
-        mockContext.SetupGet(x => x.Http).Returns(httpContext);
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
-        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress);
-        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
-        mockClient.SetupGet(x => x.ClientId).Returns("client-1");
+        mockContext.SetupGet(x => x.Http).Returns(httpContext).Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        mockTenant.SetupGet(x => x.BaseAddress).Returns(BaseAddress).Verifiable();
+        mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
+        mockClient.SetupGet(x => x.ClientId).Returns("client-1").Verifiable();
 
-        mockRequest.SetupGet(x => x.Scopes).Returns(["api"]);
+        mockRequest.SetupGet(x => x.Scopes).Returns(["api"]).Verifiable();
 
-        mockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.UserCodeLength)).Returns(8);
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.UserCodeLength))
+            .Returns(8)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodeLifetime))
-            .Returns(TimeSpan.FromMinutes(5));
+            .Returns(TimeSpan.FromMinutes(5))
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
-            .Returns(TimeSpan.FromSeconds(5));
+            .Returns(TimeSpan.FromSeconds(5))
+            .Verifiable();
 
         MockCryptoService
             .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
-            .Returns("device-code-value");
-        MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
-        MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow);
+            .Returns("device-code-value")
+            .Verifiable();
+        MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234").Verifiable();
+        MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234").Verifiable();
 
         MockPersistedGrantService
             .Setup(x => x.CreateGrantId(TenantId, It.IsAny<string>(), It.IsAny<string>()))
@@ -376,7 +394,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     GrantType = OpenIdConstants.PersistedGrantTypes.DeviceCode,
                     GrantKey = "key",
                 }
-            );
+            )
+            .Verifiable();
         MockPersistedGrantService
             .Setup(x =>
                 x.AddAsync(
@@ -388,7 +407,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<string>("id"));
+            .Returns(new ValueTask<string>("id"))
+            .Verifiable();
         MockPersistedGrantService
             .Setup(x =>
                 x.AddAsync(
@@ -400,7 +420,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<string>("id"));
+            .Returns(new ValueTask<string>("id"))
+            .Verifiable();
 
         MockLinkGenerator
             .Setup(x =>
@@ -416,7 +437,8 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
                     It.IsAny<LinkOptions?>()
                 )
             )
-            .Returns((string?)null);
+            .Returns((string?)null)
+            .Verifiable();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Handler

@@ -17,6 +17,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Messages.Parsers;
 
 public class AdditionalParameterParserTests : BaseTests
 {
+    private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private readonly OpenIdEnvironment _environment;
     private readonly ParameterDescriptor _allowMissingDescriptor = new(
         "test",
@@ -25,12 +26,17 @@ public class AdditionalParameterParserTests : BaseTests
 
     public AdditionalParameterParserTests()
     {
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        _environment = MockEnvironment.Object;
+    }
+
+    // Only a parser that refuses its input reads the environment's error factory.
+    private void SetupErrorFactory()
+    {
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-        mockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        _environment = mockEnvironment.Object;
+        MockEnvironment.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 
     private static ParameterDescriptor RequiredDescriptor<T>(IParameterParser<T> parser) =>
@@ -68,6 +74,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void StringParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new StringParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -78,6 +85,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void StringParser_Parse_WhenTooManyValues_Throws()
     {
+        SetupErrorFactory();
         var parser = new StringParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -141,6 +149,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void StringListParser_Parse_WhenMissingAndRequired_Throws()
     {
+        SetupErrorFactory();
         var parser = new StringListParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -200,6 +209,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void UriParser_Parse_WhenInvalid_Throws()
     {
+        SetupErrorFactory();
         var parser = new OpenIdUriParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -210,6 +220,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void UriParser_Parse_WhenTooManyValues_Throws()
     {
+        SetupErrorFactory();
         var parser = new OpenIdUriParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -260,6 +271,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void TimeSpanParser_Parse_WhenInvalid_Throws()
     {
+        SetupErrorFactory();
         var parser = new TimeSpanParser();
 
         Assert.Throws<OpenIdException>(() =>
@@ -270,6 +282,7 @@ public class AdditionalParameterParserTests : BaseTests
     [Fact]
     public void TimeSpanParser_Parse_WhenTooManyValues_Throws()
     {
+        SetupErrorFactory();
         var parser = new TimeSpanParser();
 
         Assert.Throws<OpenIdException>(() =>

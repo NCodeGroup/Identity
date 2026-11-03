@@ -9,8 +9,12 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.ResourceServers;
 
-public sealed class ManagementResourceServerSeedHandlerTests
+public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
 {
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+
+    public void Dispose() => MockRepository.Verify();
+
     private const string TenantId = "tenant-1";
     private const string ManagementIdentifier = "urn:ncode:management";
 
@@ -33,12 +37,11 @@ public sealed class ManagementResourceServerSeedHandlerTests
             }
         );
 
-    private static async Task<PersistedResourceServer?> SeedAsync(TenantPlane plane)
+    private async Task<PersistedResourceServer?> SeedAsync(TenantPlane plane)
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IResourceServerStore>();
-        var crypto = mocks.Create<ICryptoService>();
+        var manager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IResourceServerStore>();
+        var crypto = MockRepository.Create<ICryptoService>();
 
         manager.Setup(x => x.GetStore<IResourceServerStore>()).Returns(store.Object).Verifiable();
         store
@@ -64,7 +67,6 @@ public sealed class ManagementResourceServerSeedHandlerTests
         var handler = new ManagementResourceServerSeedHandler(crypto.Object);
         await handler.HandleAsync(CreateCommand(manager.Object, plane), CancellationToken.None);
 
-        mocks.Verify();
         return captured;
     }
 
@@ -95,10 +97,9 @@ public sealed class ManagementResourceServerSeedHandlerTests
     [Fact]
     public async Task HandleAsync_WhenPresent_DoesNothing()
     {
-        var mocks = new MockRepository(MockBehavior.Strict);
-        var manager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<IResourceServerStore>();
-        var crypto = mocks.Create<ICryptoService>();
+        var manager = MockRepository.Create<IStoreManager>();
+        var store = MockRepository.Create<IResourceServerStore>();
+        var crypto = MockRepository.Create<ICryptoService>();
 
         manager.Setup(x => x.GetStore<IResourceServerStore>()).Returns(store.Object).Verifiable();
         store
@@ -138,7 +139,5 @@ public sealed class ManagementResourceServerSeedHandlerTests
             CreateCommand(manager.Object, TenantPlane.Workload),
             CancellationToken.None
         );
-
-        mocks.Verify();
     }
 }

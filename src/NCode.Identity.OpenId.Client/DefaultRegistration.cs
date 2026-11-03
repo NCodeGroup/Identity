@@ -12,6 +12,7 @@ using NCode.Identity.OpenId.Client.Authorization;
 using NCode.Identity.OpenId.Client.Discovery;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Keys;
+using NCode.Identity.OpenId.Client.Metrics;
 using NCode.Identity.OpenId.Client.MutualTls;
 using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.ProofOfPossession;
@@ -55,6 +56,10 @@ public static class DefaultRegistration
                     OpenIdClientOptionsValidator
                 >()
             );
+
+            // The pipelines count their retries and timeouts on the package's meter (ADR-1197).
+            serviceCollection.AddMetrics();
+            serviceCollection.TryAddSingleton<ProviderMetrics>();
 
             // Every HTTP call is bounded by the resilience pipeline, so the client's own timeout is switched off; the
             // default of 100 seconds would silently cut a longer TotalTimeout. See ADR-1336.

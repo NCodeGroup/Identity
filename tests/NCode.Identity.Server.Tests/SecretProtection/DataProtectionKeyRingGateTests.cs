@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
@@ -55,12 +56,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         return mockEnvironment.Object;
     }
 
-    private TimeProvider CreateTimeProvider()
-    {
-        var mockTimeProvider = CreateStrictMock<TimeProvider>();
-        mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        return mockTimeProvider.Object;
-    }
+    private static FakeTimeProvider CreateTimeProvider() => new(Now);
 
     private DataProtectionKeyRingGate CreateGate(
         IKeyManager keyManager,

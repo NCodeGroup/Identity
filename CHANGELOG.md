@@ -1447,9 +1447,8 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   the builder `AddJoseLibrary()` returns ([#336](https://github.com/NCodeGroup/Identity/issues/336), [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 - **`ECDH-ES+A*KW` wraps a random content encryption key.** The key-wrapping ECDH-ES algorithms generate the content
   encryption key at random and wrap it with the agreed key, as RFC 7518 §4.6 describes, instead of deriving it from a
-  second agreement whose ephemeral key was discarded. The JWE does not change form: the content key was always wrapped
-  under the key agreed with the `epk` the header carries, and a recipient unwraps it without deriving it, so tokens
-  written before still decrypt, and conforming implementations decrypted them then as now ([#327](https://github.com/NCodeGroup/Identity/issues/327)).
+  second agreement whose ephemeral key was discarded. The JWE keeps its form: the content key is wrapped under the key agreed
+  with the `epk` the header carries ([#327](https://github.com/NCodeGroup/Identity/issues/327)).
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`, instead of
   `no-store` alone ([#512](https://github.com/NCodeGroup/Identity/issues/512),

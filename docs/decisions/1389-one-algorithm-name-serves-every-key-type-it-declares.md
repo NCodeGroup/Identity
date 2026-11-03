@@ -111,9 +111,7 @@ package could contribute another key type to it although `NCode.Identity.Jose.Ed
   single key type use `TryGetKeyType` or `AcceptsOnly<TKey>()`.
 - `ECDH-ES+A*KW` generates its content encryption key at random and wraps it with the agreed key encryption key, as
   RFC 7518 §4.6 describes, instead of deriving it from a second agreement whose ephemeral key was discarded. The JWE
-  does not change form: the content key was always wrapped under the key agreed with the `epk` the header carries, and
-  a recipient unwraps it without deriving it, so a token written before the change still decrypts, and a conforming
-  implementation decrypted it then as now.
+  keeps its form: the content key is wrapped under the key agreed with the `epk` the header carries.
 - The capabilities contract changes shape; the console reads `keyTypes`.
 - `ECDH-ES` refuses an `EC` key on a curve no registered agreement serves; the core serves P-256, P-384 and P-521.
   Before, the algorithm accepted any `EC` key of 256, 384 or 521 bits and labeled its `epk` with the P-curve of that

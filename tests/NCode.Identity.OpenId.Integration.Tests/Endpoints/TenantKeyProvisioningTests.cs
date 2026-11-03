@@ -343,7 +343,7 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(3, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // The tenant's keys are part of it, so they no longer block its deletion (ADR-1169).
+        // The tenant's keys are part of it, so they do not block its deletion (ADR-1169).
         using var deleteResponse = await client.DeleteAsync("/api/tenants/acme");
         var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
         Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);

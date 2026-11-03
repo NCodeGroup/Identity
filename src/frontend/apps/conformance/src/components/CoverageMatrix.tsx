@@ -48,7 +48,7 @@ function countByStatus(entries: CoverageCategory['entries']): Record<CoverageSta
  * counts; a category carrying a gap (missing or non-conformant) starts expanded so attention lands on it first. Within
  * a category, entries are ordered worst-status-first, showing the coverage status, the feature, its authoritative
  * reference, the channel that would exercise it, and the GitHub issue that tracks a gap. Classification reflects what
- * the provider *advertises* (Phase 1 semantics).
+ * the provider *advertises*.
  */
 export function CoverageMatrix({ report }: CoverageMatrixProps) {
   return (

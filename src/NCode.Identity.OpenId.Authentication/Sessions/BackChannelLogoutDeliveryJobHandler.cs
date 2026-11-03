@@ -10,8 +10,8 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// Executes a <see cref="BackChannelLogoutDeliveryJob"/> by <c>POST</c>ing the signed <c>logout_token</c> as
 /// <c>application/x-www-form-urlencoded</c> to the relying party's <c>backchannel_logout_uri</c>. A delivery failure
 /// throws so the <see cref="IJobDispatcher"/> retries the job (up to its attempt limit), giving back-channel logout
-/// at-least-once delivery rather than the former best-effort single attempt. The response body is never read: the
-/// delivery waits for the status line and headers only, so a hostile endpoint cannot make the server buffer a body.
+/// at-least-once delivery. The response body is never read: the delivery waits for the status line and headers only, so
+/// a hostile endpoint cannot make the server buffer a body.
 /// </summary>
 internal sealed class BackChannelLogoutDeliveryJobHandler(IHttpClientFactory httpClientFactory)
     : IDispatchJobHandler<BackChannelLogoutDeliveryJob>

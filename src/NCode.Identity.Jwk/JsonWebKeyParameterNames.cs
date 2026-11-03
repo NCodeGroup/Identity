@@ -8,7 +8,7 @@ namespace NCode.Identity.Jwk;
 /// <summary>
 /// Defines the member names of a <c>JSON Web Key</c> (RFC 7517) and its key-type-specific parameters. This is an
 /// extensible vocabulary of string constants, not a closed enumeration, so a custom key type can contribute members
-/// without a breaking change.
+/// without editing this package.
 /// </summary>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517">RFC 7517 - JSON Web Key (JWK)</seealso>
 [PublicAPI]

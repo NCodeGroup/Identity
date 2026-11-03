@@ -10,7 +10,7 @@ namespace NCode.Identity.Events.Audit;
 /// </summary>
 /// <remarks>
 /// Severity is an extensible string vocabulary, not a closed enumeration, so a consumer or sibling
-/// package can introduce additional severities without a breaking change. Values are lower-case and
+/// package can introduce additional severities without editing this package. Values are lower-case and
 /// stable, suitable for use as a log or index dimension.
 /// </remarks>
 [PublicAPI]

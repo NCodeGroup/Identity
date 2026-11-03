@@ -1,6 +1,6 @@
 # Contributing to NCode.Identity
 
-Thanks for helping improve NCode.Identity. These are shipped, security-relevant libraries, so they hold to an explicit,
+Thanks for helping improve NCode.Identity. These are security-relevant libraries built for publication, so they hold to an explicit,
 enforced quality bar.
 
 ## Prerequisites
@@ -161,11 +161,22 @@ Three layers keep the record clean:
   commit on `main`, and runs again when they are edited: when it finds such a line there, edit the pull request
   instead of rebasing.
 
+The `Commit attribution` check prints the command that fixes the commits it fails; run it, then force-push the branch.
 The Copilot cloud agent authors its commits as `copilot-swe-agent[bot]`, so its pull request fails the check until a
-person re-authors the commits and force-pushes the branch:
+person re-authors the commits:
 
 ```shell
 git rebase origin/main --exec "git commit --amend --no-edit --reset-author"
+git push --force-with-lease
+```
+
+A commit message that carries agent attribution keeps it through `--amend --no-edit`, so for such a commit the
+check's command runs the `commit-msg` hook on each message, which strips those lines, and keeps the commit's author. A
+commit that also has an agent account as its author or committer needs `--reset-author` in the same command, as the
+check prints it:
+
+```shell
+git rebase origin/main --exec "git -c core.hooksPath=.githooks commit --amend --no-edit"
 git push --force-with-lease
 ```
 
@@ -237,7 +248,8 @@ review; a commit cannot. Dependabot's GitHub Actions group updates the SHA and t
 
 ## Public API surface guard (`PublicAPI.*.txt`)
 
-Because these are shipped libraries, an accidental change to the public API surface is a break for every consumer. The
+Because these libraries are built for publication, an accidental change to the public API surface would break every
+consumer. The
 [`Microsoft.CodeAnalysis.PublicApiAnalyzers`](https://github.com/dotnet/roslyn-analyzers/blob/main/src/PublicApiAnalyzers/PublicApiAnalyzers.Help.md)
 Roslyn analyzer makes the surface explicit and reviewable via a `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
 pair per packable project ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)):

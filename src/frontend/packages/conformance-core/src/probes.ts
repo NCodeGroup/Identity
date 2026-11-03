@@ -3,9 +3,9 @@
  *
  * Where the spec-coverage matrix ([coverage.ts](./coverage.ts)) reports what a provider *advertises*, these probes
  * actively exercise the browser-drivable, CORS-reachable endpoints to turn *advertised* into *verified* — or flag a
- * row as *advertised but broken*. They are the first slice of the Phase 2 active-probe track (ADR-1084); the legs that
- * require a confidential client, a client certificate, or an interactive login session are left to the headless probe
- * runner (Phase 3). Every probe is a plain async function over an injected fetch so the harness stays deterministic
+ * row as *advertised but broken*. They are the browser half of the active-probe track (ADR-1084); the legs that
+ * require a confidential client, a client certificate, or an interactive login session belong to the headless probe
+ * runner. Every probe is a plain async function over an injected fetch so the harness stays deterministic
  * and testable without a network.
  */
 
@@ -215,7 +215,7 @@ export async function probeUserInfoUnauthorized(
 
 /**
  * Verifies the Pushed Authorization Request endpoint (when advertised) accepts a PKCE request and returns a
- * `request_uri`. Skipped when the provider advertises no PAR endpoint (the common case until issue #46 lands).
+ * `request_uri`. Skipped when the provider advertises no PAR endpoint.
  */
 export async function probePar(
   raw: RawDiscovery,
@@ -232,7 +232,7 @@ export async function probePar(
       id,
       feature,
       reference,
-      "'pushed_authorization_request_endpoint' is not advertised (gap: #46).",
+      "'pushed_authorization_request_endpoint' is not advertised.",
     );
   }
   if (!clientId) {

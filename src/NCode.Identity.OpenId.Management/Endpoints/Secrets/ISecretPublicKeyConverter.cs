@@ -15,7 +15,8 @@ internal interface ISecretPublicKeyConverter
     /// <summary>
     /// Converts the specified persisted secret into its <see cref="PublicKeyResource"/> from its public key material
     /// alone, without unprotecting any private material, or returns <c>null</c> when the secret has no public key
-    /// material: a symmetric secret, or a private key generated before its public key was stored.
+    /// material: a symmetric secret, a secret whose key type exports no public key, or a private key stored without
+    /// its public key.
     /// </summary>
     /// <param name="secret">The persisted secret to convert.</param>
     /// <returns>The <see cref="PublicKeyResource"/>, or <c>null</c> when the secret has no public key material.</returns>

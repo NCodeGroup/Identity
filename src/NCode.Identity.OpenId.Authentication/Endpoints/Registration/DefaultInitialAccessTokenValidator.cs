@@ -40,8 +40,8 @@ internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persist
             cancellationToken
         );
 
-        // Every minted token expires, so a grant without an expiry was minted by an earlier release without a
-        // lifetime, and it authorizes nothing. See ADR-1192.
+        // Every minted token expires, so a grant without an expiry is not a token this server minted, and it
+        // authorizes nothing. See ADR-1192.
         return
             grant
                 is {

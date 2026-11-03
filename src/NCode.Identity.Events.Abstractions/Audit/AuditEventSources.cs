@@ -10,8 +10,8 @@ namespace NCode.Identity.Events.Audit;
 /// </summary>
 /// <remarks>
 /// Event source is an extensible string vocabulary, not a closed enumeration, so a consumer or sibling
-/// package can introduce additional sources (for example another plane or service) without a
-/// breaking change. Values are lower-case and stable, suitable for use as a log or index dimension.
+/// package can introduce additional sources (for example another plane or service) without editing this
+/// package. Values are lower-case and stable, suitable for use as a log or index dimension.
 /// </remarks>
 [PublicAPI]
 public static class AuditEventSources

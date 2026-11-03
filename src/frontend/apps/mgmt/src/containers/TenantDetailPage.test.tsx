@@ -57,6 +57,13 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+/** The shared-secret type the server advertises, so the create form offers it. */
+const symmetricType = {
+  secretType: 'symmetric',
+  isAsymmetric: false,
+  supportsPublicKeyExport: false,
+};
+
 const createdSecret = {
   secretId: 's-new',
   concurrencyToken: 'sc1',
@@ -158,6 +165,9 @@ describe('TenantDetailPage', () => {
 
   it('creates a tenant secret under the tenant path and reveals its material', async () => {
     installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [symmetricType] });
+      }
       if (url.endsWith('/api/tenants/acme/secrets') && method === 'POST') {
         return jsonResponse(createdSecret, 201);
       }
@@ -169,6 +179,8 @@ describe('TenantDetailPage', () => {
 
     renderPage();
     fireEvent.click(await screen.findByTestId('create-secret'));
+    // The form offers the secret types once the capabilities are discovered.
+    await waitFor(() => expect(screen.getByTestId('secret-type')).toHaveValue('symmetric'));
     fireEvent.click(screen.getByTestId('secret-form-submit'));
 
     expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(

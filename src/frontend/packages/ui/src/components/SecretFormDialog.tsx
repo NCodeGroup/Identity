@@ -78,18 +78,15 @@ const isLegalSize = (ranges: readonly KeyBitSizesOption[], keySizeBits: number):
 const joinOr = (values: readonly string[]): string =>
   values.length <= 1 ? values.join('') : `${values.slice(0, -1).join(', ')} or ${values.at(-1)}`;
 
-/** Describes the legal key sizes of the algorithm, listing every range it accepts. */
+/** Describes the legal key sizes of the algorithm, listing every size or range it accepts. */
 const describeKeySizes = (ranges: readonly KeyBitSizesOption[], code: string): string => {
-  const [only] = ranges;
-  if (ranges.length === 1 && only) {
-    return only.minBits === only.maxBits
-      ? `Fixed at ${only.minBits} bits for ${code}.`
-      : `Allowed: ${only.minBits}–${only.maxBits} bits for ${code}.`;
-  }
   const sizes = ranges.map((range) =>
     range.minBits === range.maxBits ? `${range.minBits}` : `${range.minBits}–${range.maxBits}`,
   );
-  return `Allowed: ${joinOr(sizes)} bits for ${code}.`;
+  const fixed = ranges.length === 1 && ranges.every((range) => range.minBits === range.maxBits);
+  return fixed
+    ? `Fixed at ${joinOr(sizes)} bits for ${code}.`
+    : `Allowed: ${joinOr(sizes)} bits for ${code}.`;
 };
 
 /**
@@ -117,8 +114,12 @@ const curvesFor = (
 
 /** The secret create form's own field shape. `expiresWhen` is a `datetime-local` string (local time). */
 export type SecretFormValues = {
-  /** The secret-type discriminator, one of those the server advertises (e.g. `symmetric`, `rsa`, `ecc`, `okp`). */
+  /**
+   * The preferred secret-type discriminator (e.g. `symmetric`, `rsa`, `ecc`, `okp`). The form offers only the types
+   * the server advertises, so a type it does not offer gives way to the first one it does.
+   */
   readonly secretType: string;
+  /** The key size, used when no curve is selected; a selected curve fixes the key size instead. */
   readonly keySizeBits: number;
   /** The curve name, required for a secret type with curves and empty for one without. */
   readonly curve: string;
@@ -132,7 +133,10 @@ export type SecretFormDialogProps = {
   readonly initialValues: SecretFormValues;
   readonly isSubmitting?: boolean;
   readonly error?: string | undefined;
-  /** The secret types to offer, discovered from server capabilities. */
+  /**
+   * The secret types to offer, discovered from server capabilities. None are offered while they load, and the form
+   * cannot be submitted until one is.
+   */
   readonly secretTypes: readonly string[];
   /** The server's elliptic-curve catalog, offered for the `ecc` type, discovered from server capabilities. */
   readonly eccCurves?: readonly CurveOption[];
@@ -181,36 +185,38 @@ export function SecretFormDialog({
   }, [open, initialValues]);
 
   // The secret types are discovered from the server (ADR-1150), so a type a package contributes, such as `okp`, is
-  // offered without the form knowing it.
+  // offered without the form knowing it. The selected type is always one the form offers: the seeded type when it is
+  // offered, otherwise the first offered type, and none while the types load, so the select never holds a value it
+  // has no option for.
+  const secretType = secretTypes.includes(values.secretType)
+    ? values.secretType
+    : (secretTypes[0] ?? '');
 
   // When the server advertises algorithms, the algorithm, use, key-size and curve inputs are driven by discovery
   // (ADR-1067) instead of free-text defaults; only algorithms compatible with the chosen type are offered.
   const discovered = algorithms ?? [];
   const algorithmsProvided = discovered.length > 0;
   const applicableAlgorithms = discovered.filter((algorithm) =>
-    algorithm.keyTypes.some((keyType) => keyType.secretType === values.secretType),
+    algorithm.keyTypes.some((keyType) => keyType.secretType === secretType),
   );
   const selectedAlgorithm = applicableAlgorithms.find(
     (algorithm) => algorithm.code === values.algorithm,
   );
-  const keySizeRanges = keyTypeFor(selectedAlgorithm, values.secretType)?.keyBitSizes ?? [];
+  const keySizeRanges = keyTypeFor(selectedAlgorithm, secretType)?.keyBitSizes ?? [];
   const [singleRange] = keySizeRanges;
   // An algorithm bound to curves, such as ES256K or EdDSA, offers only those, since a curve of the same size is not
   // one it accepts (ADR-1389); a curve fixes the key size. Two curves can share a size, so a secret type with curves
   // takes a curve and never leaves it to the size.
-  const offeredCurves = curvesFor(
-    values.secretType,
-    selectedAlgorithm,
-    discovered,
-    eccCurves ?? [],
-  );
+  const offeredCurves = curvesFor(secretType, selectedAlgorithm, discovered, eccCurves ?? []);
   const selectedCurve = offeredCurves.find((curve) => curve.curveName === values.curve);
   const curveRequired = offeredCurves.length > 0;
+  const keySizeBits = selectedCurve?.curveSizeBits ?? values.keySizeBits;
 
   const canSubmit =
-    values.keySizeBits > 0 &&
+    secretType.length > 0 &&
+    keySizeBits > 0 &&
     (!curveRequired || selectedCurve !== undefined) &&
-    isLegalSize(keySizeRanges, values.keySizeBits) &&
+    isLegalSize(keySizeRanges, keySizeBits) &&
     values.expiresWhen.trim().length > 0 &&
     !isSubmitting;
 
@@ -219,8 +225,8 @@ export function SecretFormDialog({
       return;
     }
     onSubmit({
-      secretType: values.secretType,
-      keySizeBits: values.keySizeBits,
+      secretType,
+      keySizeBits,
       curve: selectedCurve ? selectedCurve.curveName : '',
       use: values.use.trim(),
       algorithm: values.algorithm.trim(),
@@ -245,21 +251,24 @@ export function SecretFormDialog({
           <TextField
             select
             label="Type"
-            value={values.secretType}
+            value={secretType}
             onChange={(event) => {
-              const secretType = event.target.value;
-              // A curve belongs to its type, so the type's first curve is selected with its size; the discovered
-              // algorithm and use are re-derived on selection, so no algorithm narrows the curves yet.
-              const [firstCurve] = curvesFor(secretType, undefined, discovered, eccCurves ?? []);
+              const chosenType = event.target.value;
+              // A curve belongs to its type, so the type's first curve is selected; the discovered algorithm and use
+              // are re-derived on selection, so no algorithm narrows the curves yet. The shown key size carries over
+              // to a type without curves.
+              const [firstCurve] = curvesFor(chosenType, undefined, discovered, eccCurves ?? []);
               setValues((v) => ({
                 ...v,
-                secretType,
+                secretType: chosenType,
                 curve: firstCurve ? firstCurve.curveName : '',
-                keySizeBits: firstCurve ? firstCurve.curveSizeBits : v.keySizeBits,
+                keySizeBits,
                 ...(algorithmsProvided ? { algorithm: '', use: '' } : {}),
               }));
             }}
             fullWidth
+            error={secretTypes.length === 0}
+            helperText={secretTypes.length === 0 ? 'No secret types are available.' : undefined}
             slotProps={{ htmlInput: { 'data-testid': 'secret-type' } }}
           >
             {secretTypes.map((secretType) => (
@@ -271,13 +280,13 @@ export function SecretFormDialog({
           <TextField
             label="Key size (bits)"
             type="number"
-            value={values.keySizeBits}
+            value={keySizeBits}
             onChange={(event) =>
               setValues((v) => ({ ...v, keySizeBits: Number(event.target.value) }))
             }
             required
             fullWidth
-            error={!isLegalSize(keySizeRanges, values.keySizeBits)}
+            error={!isLegalSize(keySizeRanges, keySizeBits)}
             helperText={
               keySizeRanges.length > 0
                 ? describeKeySizes(keySizeRanges, values.algorithm)
@@ -306,15 +315,8 @@ export function SecretFormDialog({
               select
               label="Curve"
               value={selectedCurve ? selectedCurve.curveName : ''}
-              onChange={(event) => {
-                const curve = event.target.value;
-                const match = offeredCurves.find((c) => c.curveName === curve);
-                setValues((v) => ({
-                  ...v,
-                  curve,
-                  keySizeBits: match ? match.curveSizeBits : v.keySizeBits,
-                }));
-              }}
+              // The selected curve fixes the key size, which is derived from it.
+              onChange={(event) => setValues((v) => ({ ...v, curve: event.target.value }))}
               required
               fullWidth
               error={!selectedCurve}
@@ -350,22 +352,23 @@ export function SecretFormDialog({
                 const code = event.target.value;
                 const match = applicableAlgorithms.find((algorithm) => algorithm.code === code);
                 setValues((v) => {
-                  const keyType = keyTypeFor(match, v.secretType);
+                  const keyType = keyTypeFor(match, secretType);
                   const curves = keyType?.curves ?? [];
-                  // A curve the algorithm does not accept gives way to the first one it does, with that curve's size.
+                  // A curve the algorithm does not accept gives way to the first one it does, which fixes the size.
                   const curveOption =
                     curves.find((curve) => curve.curveName === v.curve) ?? curves[0];
                   const ranges = keyType?.keyBitSizes ?? [];
                   const [firstRange] = ranges;
                   return {
                     ...v,
+                    secretType,
                     algorithm: code,
                     use: match ? match.use : '',
-                    keySizeBits: curveOption
-                      ? curveOption.curveSizeBits
-                      : firstRange && !isLegalSize(ranges, v.keySizeBits)
+                    // A size the algorithm does not accept gives way to its smallest legal one.
+                    keySizeBits:
+                      !curveOption && firstRange && !isLegalSize(ranges, keySizeBits)
                         ? firstRange.minBits
-                        : v.keySizeBits,
+                        : keySizeBits,
                     ...(curveOption ? { curve: curveOption.curveName } : {}),
                   };
                 });

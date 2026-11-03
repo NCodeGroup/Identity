@@ -79,7 +79,9 @@ change to the public API is a **major** version bump.
   secret type with its key sizes and curves (`keyTypes: [{ secretType, keyBitSizes, curves: [{ curveName,
   curveSizeBits }] }]`). The console offers the secret types the server advertises, such as `okp`, bounds a new
   secret's size by every size the chosen type's entry allows, and offers the chosen type's curves, such as `P-384` for
-  `ECDH-ES` or `Ed448` for `EdDSA`, sizing the key from the chosen curve; a secret type with curves takes a curve ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  `ECDH-ES` or `Ed448` for `EdDSA`, sizing the key from the chosen curve; a secret type with curves takes a curve,
+  which the create request carries for every such type, `okp` included. The form offers no secret type until the
+  capabilities are discovered, and then the symmetric type when the server offers it or else the first one it does ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **One lookup of a declared key's algorithm and stored public key.** `TryGetKeyedAlgorithm` on `IAlgorithmCollection`
   returns a registered signature or key-management algorithm with the use it implies, and `TryDeserializePublicSecret`
   on `ISecretSerializer` reads a stored secret's public half and returns `false` with the reason for one it cannot read;

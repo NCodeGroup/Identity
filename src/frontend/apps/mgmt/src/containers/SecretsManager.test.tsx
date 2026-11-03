@@ -252,6 +252,47 @@ describe('SecretsManager', () => {
       );
     });
 
+    // An OKP key has a curve but no `ecc` type, so the curve is forwarded for every secret type with curves.
+    it('sends the curve of a discovered OKP secret', async () => {
+      const { onCreate } = await renderManager(
+        {},
+        {
+          secretTypes: [
+            ...exportRsaOnly.secretTypes,
+            { secretType: 'okp', isAsymmetric: true, supportsPublicKeyExport: true },
+          ],
+          algorithms: [
+            {
+              code: 'EdDSA',
+              use: 'sig',
+              keyTypes: [
+                {
+                  secretType: 'okp',
+                  keyBitSizes: [{ minBits: 256, maxBits: 256, skipBits: 0 }],
+                  curves: [{ curveName: 'Ed25519', curveSizeBits: 256 }],
+                },
+              ],
+            },
+          ],
+        },
+      );
+
+      fireEvent.click(screen.getByTestId('create-secret'));
+      fireEvent.change(screen.getByTestId('secret-type'), { target: { value: 'okp' } });
+      fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+      await screen.findByTestId('reveal-secret-material');
+      expect(onCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          secretType: 'okp',
+          keySizeBits: 256,
+          curve: 'Ed25519',
+          use: null,
+          algorithm: null,
+        }),
+      );
+    });
+
     it('surfaces a rejected create with the server problem detail and keeps the form open', async () => {
       const { onCreate } = await renderManager();
       onCreate.mockRejectedValue({ status: 400, data: { detail: 'Key size is not supported.' } });

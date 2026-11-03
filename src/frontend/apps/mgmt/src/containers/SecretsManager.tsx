@@ -166,7 +166,8 @@ export function SecretsManager({
       const created = await onCreate({
         secretType: values.secretType,
         keySizeBits: values.keySizeBits,
-        curve: values.secretType === 'ecc' && values.curve.length > 0 ? values.curve : null,
+        // The form names a curve for every secret type with curves (`ecc`, `okp`, …) and none for one without.
+        curve: values.curve.length > 0 ? values.curve : null,
         use: values.use.length > 0 ? values.use : null,
         algorithm: values.algorithm.length > 0 ? values.algorithm : null,
         expiresWhen: new Date(values.expiresWhen).toISOString(),

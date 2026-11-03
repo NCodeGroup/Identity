@@ -262,7 +262,8 @@ export type SecretsResource = {
 
 /**
  * Mirror of `CreateSecretRequest`. The key material is generated server-side; the caller never supplies it.
- * `secretType` is one of `symmetric`, `rsa`, or `ecc`; `expiresWhen` is an ISO-8601 string.
+ * `secretType` is one of the secret types the capabilities list (e.g. `symmetric`, `rsa`, `ecc`, `okp`); `curve` is the
+ * JWK `crv` name for a secret type with curves and `null` for one without; `expiresWhen` is an ISO-8601 string.
  */
 export type CreateSecretRequest = {
   readonly secretType: string;

@@ -174,6 +174,9 @@ public static class AlgorithmCollectionExtensions
                     + "type and size do not show.";
             }
 
+            // A key type states that its keys are asymmetric by deriving from AsymmetricSecretKey, the base that holds
+            // a key's curve name and public half and the fact ISecretKeyTypeDescriptor.IsAsymmetric reports, so the
+            // key's runtime type is asked, as ValidateKeyAlgorithm asks it for the key's curve.
             if (typeof(AsymmetricSecretKey).IsAssignableFrom(declaration.KeyClrType))
             {
                 return $"The algorithm '{algorithm}' is checked against an asymmetric key by the key itself, whose "

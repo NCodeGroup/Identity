@@ -70,7 +70,11 @@ public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-besid
    refuses a key type the algorithm binds to curves, so an asymmetric key is always checked by the key itself, or its
    stored public half, with `ValidateKeyAlgorithm` and the algorithm's `IsKeyCompatible`. A `KeySizeDeclaration`
    describes a held symmetric key, whose type and size are the whole of what an algorithm can accept it on, and whose
-   material a metadata check never unprotects.
+   material a metadata check never unprotects. A key type states that its keys are asymmetric by deriving from
+   `AsymmetricSecretKey`, the base that holds a key's curve name and public half and the fact
+   `ISecretKeyTypeDescriptor.IsAsymmetric` reports, so `ValidateKeySize` asks the declared runtime type, as
+   `ValidateKeyAlgorithm` asks a key for its curve; a contributed key type whose keys have parameters beyond their
+   type and size derives from it, and one whose keys do not is a byte string that its type and size describe.
 
 ## Options considered
 
@@ -99,6 +103,11 @@ public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-besid
   when it is first used, and the stored public half that shows them is always at hand.
 - **Unprotect a symmetric key to check it by the key itself.** Rejected: its type and size already describe it whole,
   and a metadata update has no reason to unprotect secret material.
+- **State on the `AlgorithmKeyType` or the key type's descriptor, as a separate fact, whether type and size describe
+  a key whole.** Rejected: the key's runtime type already states it by deriving from `AsymmetricSecretKey`, which is
+  what `ISecretKeyTypeDescriptor.IsAsymmetric` reports and what a key's curve name and public half hang on, and a
+  second fact could contradict the first; an algorithm's key type names the runtime type it accepts, so `ValidateKeySize`
+  reads the fact there.
 
 ## Consequences
 

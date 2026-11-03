@@ -150,38 +150,47 @@ internal class DefaultTenantKeyPolicy(
             AlgorithmKeyType AlgorithmKeyType,
             ISecretKeyTypeDescriptor Descriptor
         )> keyTypes
-    )
-    {
-        var byCurve = key.Curve is not null;
-        var subject = byCurve
-            ? $"The curve '{key.Curve}'"
-            : $"The key size '{key.KeySizeBits}' bits";
-        var expected = string.Join(
+    ) =>
+        key.Curve is { } curve
+            ? $"The curve '{curve}' is not valid for algorithm '{algorithmCode}'; expected "
+                + FormatAcceptedKeys(keyTypes, FormatAcceptedCurves)
+                + "."
+            : $"The key size '{key.KeySizeBits}' bits is not valid for algorithm '{algorithmCode}'; expected "
+                + FormatAcceptedKeys(keyTypes, FormatAcceptedSizes)
+                + ".";
+
+    private static string FormatAcceptedKeys(
+        IEnumerable<(
+            AlgorithmKeyType AlgorithmKeyType,
+            ISecretKeyTypeDescriptor Descriptor
+        )> keyTypes,
+        Func<AlgorithmKeyType, string> formatAccepted
+    ) =>
+        string.Join(
             "; ",
             keyTypes.Select(keyType =>
-                FormatAcceptedKeys(keyType.AlgorithmKeyType, byCurve)
+                formatAccepted(keyType.AlgorithmKeyType)
                 + $" for '{keyType.Descriptor.KeyType}' keys"
             )
         );
-        return $"{subject} is not valid for algorithm '{algorithmCode}'; expected {expected}.";
-    }
 
-    private static string FormatAcceptedKeys(AlgorithmKeyType algorithmKeyType, bool byCurve)
-    {
-        if (algorithmKeyType.Curves.Count > 0)
-        {
-            return string.Join(
-                ", ",
-                algorithmKeyType.Curves.Select(curve =>
-                    $"'{curve.Name}' ({curve.KeySizeBits} bits)"
-                )
-            );
-        }
+    // The curves a key type accepts, each with its size, or no curve for a key type without curves, which a
+    // configured curve never fits.
+    private static string FormatAcceptedCurves(AlgorithmKeyType algorithmKeyType) =>
+        algorithmKeyType.Curves.Count > 0 ? FormatCurves(algorithmKeyType) : "no curve";
 
-        return byCurve
-            ? "no curve"
+    // The curves a key type accepts, each with its size, which a configured size selects among, or the sizes of a key
+    // type without curves.
+    private static string FormatAcceptedSizes(AlgorithmKeyType algorithmKeyType) =>
+        algorithmKeyType.Curves.Count > 0
+            ? FormatCurves(algorithmKeyType)
             : string.Join(", ", algorithmKeyType.KeyBitSizes.Select(FormatKeySizes));
-    }
+
+    private static string FormatCurves(AlgorithmKeyType algorithmKeyType) =>
+        string.Join(
+            ", ",
+            algorithmKeyType.Curves.Select(curve => $"'{curve.Name}' ({curve.KeySizeBits} bits)")
+        );
 
     private static string FormatKeySizes(KeySizes keySizes) =>
         keySizes.MinSize == keySizes.MaxSize ? $"{keySizes.MinSize} bits"

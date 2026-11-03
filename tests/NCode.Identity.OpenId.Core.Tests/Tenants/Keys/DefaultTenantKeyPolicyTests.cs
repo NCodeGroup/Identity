@@ -122,13 +122,21 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     // composition does not, so no registered secret key type is one it accepts.
     private const string OkpKeyAlgorithm = "X-OKP";
 
-    // A signature algorithm that accepts keys of one runtime type, of no particular size.
-    private sealed class StubKeySignatureAlgorithm(string code, Type keyClrType)
-        : SignatureAlgorithm
+    // A registered signature algorithm keyed by RSA keys of one size, and one keyed by RSA keys of a size or more.
+    private const string ExactSizeKeyAlgorithm = "X-RSA-3072";
+    private const string OpenEndedSizeKeyAlgorithm = "X-RSA-2048-UP";
+
+    // A signature algorithm that accepts keys of one runtime type, of the given sizes or of no particular size.
+    private sealed class StubKeySignatureAlgorithm(
+        string code,
+        Type keyClrType,
+        params KeySizes[] keyBitSizes
+    ) : SignatureAlgorithm
     {
         public override string Code => code;
 
-        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } = [new(keyClrType, [])];
+        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+        [new(keyClrType, keyBitSizes)];
 
         public override HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
 
@@ -179,6 +187,16 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         [
             new StubKeySignatureAlgorithm(UntypedKeyAlgorithm, typeof(SecretKey)),
             new StubKeySignatureAlgorithm(OkpKeyAlgorithm, typeof(OkpSecretKey)),
+            new StubKeySignatureAlgorithm(
+                ExactSizeKeyAlgorithm,
+                typeof(RsaSecretKey),
+                new KeySizes(minSize: 3072, maxSize: 3072, skipSize: 0)
+            ),
+            new StubKeySignatureAlgorithm(
+                OpenEndedSizeKeyAlgorithm,
+                typeof(RsaSecretKey),
+                new KeySizes(minSize: 2048, maxSize: int.MaxValue, skipSize: 8)
+            ),
         ];
 
         public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
@@ -929,6 +947,30 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
                 + "for 'rsa' keys.",
             Assert.Single(resolution.Errors)
         );
+    }
+
+    // A key type of one size is listed with that size, and one of a size or more with its smallest.
+    [Theory]
+    [InlineData(
+        ExactSizeKeyAlgorithm,
+        "The key size '1024' bits is not valid for algorithm 'X-RSA-3072'; expected 3072 bits for 'rsa' keys."
+    )]
+    [InlineData(
+        OpenEndedSizeKeyAlgorithm,
+        "The key size '1024' bits is not valid for algorithm 'X-RSA-2048-UP'; expected 2048 bits or more for 'rsa' "
+            + "keys."
+    )]
+    public void ResolveSpecifications_WhenTheOnlyKeyTypeRefusesTheSize_ListsItsExactOrOpenEndedSize(
+        string algorithm,
+        string expected
+    )
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = algorithm, KeySizeBits = 1024 })
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(expected, Assert.Single(resolution.Errors));
     }
 
     // The EC key type has no 448-bit curve, so it yields to the OKP key type, which has.

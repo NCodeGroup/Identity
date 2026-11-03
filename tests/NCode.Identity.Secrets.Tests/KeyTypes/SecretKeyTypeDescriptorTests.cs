@@ -3,6 +3,7 @@
 
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -10,15 +11,9 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
-public class SecretKeyTypeDescriptorTests
+public class SecretKeyTypeDescriptorTests : BaseTests
 {
     private static readonly SecretKeyMaterialProtector Protect = _ => "protected";
-
-    private static readonly ISecretKeyFactory Factory = Mock.Of<ISecretKeyFactory>();
-
-    private static SymmetricSecretKeyTypeDescriptor Symmetric() => new(Factory);
-
-    private static RsaSecretKeyTypeDescriptor Rsa() => new(Factory);
 
     private static EccCurveSpecification Brainpool256 { get; } =
         new()
@@ -28,12 +23,29 @@ public class SecretKeyTypeDescriptorTests
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
         };
 
-    private static EccSecretKeyTypeDescriptor Ecc(
+    // The descriptors under test generate and validate keys without their factories, which a strict mock proves.
+    private ISecretKeyFactory Factory { get; }
+
+    public SecretKeyTypeDescriptorTests()
+    {
+        Factory = CreateStrictMock<ISecretKeyFactory>().Object;
+    }
+
+    private SymmetricSecretKeyTypeDescriptor Symmetric() => new(Factory);
+
+    private RsaSecretKeyTypeDescriptor Rsa() => new(Factory);
+
+    private EccSecretKeyTypeDescriptor Ecc(
         params IEnumerable<EccCurveSpecification> additionalCurves
     ) => new(Factory, new DefaultEccCurveCatalog(additionalCurves));
 
-    private static AkpSecretKeyTypeDescriptor Akp() =>
-        new(Mock.Of<IDataProtectorFactory<SecretKey>>());
+    private AkpSecretKeyTypeDescriptor Akp()
+    {
+        var protector = CreateStrictMock<IDataProtector>().Object;
+        var factory = CreateStrictMock<IDataProtectorFactory<SecretKey>>();
+        factory.Setup(x => x.CreateDataProtector()).Returns(protector).Verifiable();
+        return new AkpSecretKeyTypeDescriptor(factory.Object);
+    }
 
     private static SecretKeyGenerationParameters Params(int keySizeBits, string? curve = null) =>
         new() { KeySizeBits = keySizeBits, Curve = curve };

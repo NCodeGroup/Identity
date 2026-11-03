@@ -2146,6 +2146,52 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var json = Assert.IsType<JsonHttpResult<SecretResource>>(result);
         Assert.Equal("secret-1", json.Value?.SecretId);
+        Assert.False(json.Value?.IsVerifier);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_WhenTheSecretIsAVerifier_SaysSo()
+    {
+        // The operator can tell a secret that client_secret_jwt cannot use from one it can. See ADR-1391.
+        SetupStore();
+        var stored = CreatePersistedSecret();
+        MockClientStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new PersistedClientSecret
+                {
+                    TenantId = TenantId,
+                    ClientId = ClientId,
+                    Value = new PersistedSecret
+                    {
+                        SecretId = stored.SecretId,
+                        ConcurrencyToken = stored.ConcurrencyToken,
+                        Use = stored.Use,
+                        Algorithm = stored.Algorithm,
+                        CreatedWhen = stored.CreatedWhen,
+                        ExpiresWhen = stored.ExpiresWhen,
+                        SecretType = stored.SecretType,
+                        SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Verifier,
+                        KeySizeBits = stored.KeySizeBits,
+                        EncodedValue = stored.EncodedValue,
+                    },
+                }
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.GetSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SecretResource>>(result);
+        Assert.True(json.Value?.IsVerifier);
     }
 
     [Fact]

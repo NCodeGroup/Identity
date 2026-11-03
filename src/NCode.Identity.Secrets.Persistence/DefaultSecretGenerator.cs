@@ -11,6 +11,7 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -18,24 +19,43 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides a default implementation of the <see cref="ISecretGenerator"/> abstraction that generates key
 /// material server-side and protects it under the owner's master key through an <see cref="ISecretProtector"/>. The
 /// per-type generation logic is delegated to the registered <see cref="ISecretKeyTypeDescriptor"/> for the requested
-/// key type. A shared secret that is only ever compared is stored as its one-way verifier: a SHA-256 digest for a
-/// generated secret, and a PBKDF2-HMAC-SHA256 derivation for a supplied one.
+/// key type. A shared secret that is only ever compared is stored as its one-way verifier, made by the registered
+/// <see cref="ISecretVerifierScheme"/> that <see cref="SharedSecretVerifierOptions"/> names for a generated secret or
+/// for a supplied one.
 /// </summary>
 // See ADR-1067, ADR-1110 and ADR-1391.
 internal class DefaultSecretGenerator(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
     IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor
 ) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
-    private int Pbkdf2Iterations { get; } = ValidateIterations(verifierOptionsAccessor.Value);
+    private ISecretVerifierScheme GeneratedSecretScheme { get; } =
+        GetScheme(
+            secretVerifierSchemeCatalog,
+            nameof(SharedSecretVerifierOptions.GeneratedSecretScheme),
+            verifierOptionsAccessor.Value.GeneratedSecretScheme
+        );
 
-    private static int ValidateIterations(SharedSecretVerifierOptions options)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.Pbkdf2Iterations, 1);
-        return options.Pbkdf2Iterations;
-    }
+    private ISecretVerifierScheme SuppliedSecretScheme { get; } =
+        GetScheme(
+            secretVerifierSchemeCatalog,
+            nameof(SharedSecretVerifierOptions.SuppliedSecretScheme),
+            verifierOptionsAccessor.Value.SuppliedSecretScheme
+        );
+
+    private static ISecretVerifierScheme GetScheme(
+        ISecretVerifierSchemeCatalog catalog,
+        string optionName,
+        string schemeName
+    ) =>
+        catalog.TryGet(schemeName, out var scheme)
+            ? scheme
+            : throw new InvalidOperationException(
+                $"'{nameof(SharedSecretVerifierOptions)}.{optionName}' is '{schemeName}', which names no registered secret verifier scheme."
+            );
 
     /// <inheritdoc />
     public GeneratedSecret GenerateSecret(ISecretProtector protector, GenerateSecretRequest request)
@@ -81,18 +101,17 @@ internal class DefaultSecretGenerator(
     public GeneratedSecret GenerateSharedSecret(
         ISecretProtector protector,
         GenerateSecretRequest request
-    ) =>
-        GenerateSharedSecretCore(
+    )
+    {
+        // A generated secret has at least 256 bits of entropy, which no search can guess, so its scheme needs no work
+        // factor.
+        var scheme = GeneratedSecretScheme;
+        return GenerateSharedSecretCore(
             protector,
             request,
-            static (utf8, protect) =>
-            {
-                // A generated secret has at least 256 bits of entropy, which no search can guess, so a SHA-256 digest
-                // verifies it without a work factor.
-                using var lease = SecretVerifierFormat.CreateSha256(utf8, out var verifier);
-                return (SecretEncodings.Verifier, protect(verifier.Span));
-            }
+            (utf8, protect) => (SecretEncodings.Verifier, ProtectVerifier(scheme, utf8, protect))
         );
+    }
 
     /// <inheritdoc />
     public GeneratedSecret GenerateReversibleSharedSecret(
@@ -114,24 +133,39 @@ internal class DefaultSecretGenerator(
     {
         EnsureNotEmpty(secretValue);
 
-        // A supplied secret was chosen by someone and its entropy is unknown, so its verifier carries the work factor
-        // of a password hash.
-        using var lease = SecretVerifierFormat.CreatePbkdf2(
+        // A supplied secret was chosen by someone and its entropy is unknown, so its scheme carries the work factor of a
+        // password hash.
+        var secretId = request.SecretId;
+        var encodedValue = ProtectVerifier(
+            SuppliedSecretScheme,
             secretValue,
-            Pbkdf2Iterations,
-            out var verifier
+            bytes => Protect(protector, secretId, bytes)
         );
 
         return CreateSharedSecret(
-            request.SecretId,
+            secretId,
             request.Use,
             request.Algorithm,
             request.CreatedWhen,
             request.ExpiresWhen,
             SecretEncodings.Verifier,
             secretValue.Length,
-            Protect(protector, request.SecretId, verifier.Span)
+            encodedValue
         );
+    }
+
+    // Writes the scheme's verifier text of the secret into a sensitive buffer and protects it.
+    private static string ProtectVerifier(
+        ISecretVerifierScheme scheme,
+        ReadOnlySpan<byte> secret,
+        SecretKeyMaterialProtector protect
+    )
+    {
+        using var verifierBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, 128);
+        SecretVerifierFormat.Write(scheme, secret, verifierBuffer);
+
+        using var verifierSpanLease = verifierBuffer.GetSpanLease(isSensitive: true);
+        return protect(verifierSpanLease.Span);
     }
 
     /// <inheritdoc />

@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Verifiers;
@@ -13,142 +12,69 @@ namespace NCode.Identity.Secrets.Persistence.Verifiers;
 
 /// <summary>
 /// Makes and reads the self-describing text of a stored <see cref="SecretVerifier"/>, <c>$&lt;scheme&gt;$…</c>, as
-/// ASCII octets that are protected and stored like key material. The text names its scheme and the scheme's
-/// parameters, so a verifier keeps verifying when the scheme or the parameters chosen for new secrets change.
+/// ASCII octets that are protected and stored like key material. The text names its scheme, and the registered
+/// <see cref="ISecretVerifierScheme"/> of that name writes and reads the parameters that follow, so a verifier keeps
+/// verifying when the scheme or the parameters chosen for new secrets change.
 /// </summary>
 // See ADR-1391.
 internal static class SecretVerifierFormat
 {
     /// <summary>
-    /// Gets the length, in bytes, of the random salt of a PBKDF2 verifier, as the family's password hashes use.
+    /// Gets the octet that starts the text and ends the scheme's name.
     /// </summary>
-    public const int Pbkdf2SaltByteCount = 16;
+    public const byte Separator = (byte)'$';
 
     /// <summary>
-    /// Gets the length, in bytes, of the derived key of a PBKDF2 verifier, as the family's password hashes use.
+    /// Determines whether the specified name can name a scheme: a non-empty run of printable ASCII characters other
+    /// than <c>$</c>.
     /// </summary>
-    public const int Pbkdf2DerivedKeyByteCount = 32;
-
-    private const int MinPbkdf2SaltByteCount = 8;
-    private const int MinPbkdf2DerivedKeyByteCount = 16;
-    private const int MaxPbkdf2ByteCount = 256;
-    private const byte Separator = (byte)'$';
-
-    private static ReadOnlySpan<byte> Sha256Scheme => "ncode-sha256"u8;
-    private static ReadOnlySpan<byte> Pbkdf2Scheme => "ncode-pbkdf2-sha256"u8;
+    /// <param name="name">The name of the scheme.</param>
+    /// <returns><see langword="true"/> when <paramref name="name"/> can name a scheme.</returns>
+    public static bool IsValidSchemeName(string name) =>
+        !string.IsNullOrEmpty(name) && name.All(value => value is > ' ' and < '\x7f' and not '$');
 
     /// <summary>
-    /// Makes the SHA-256 verifier of a secret, <c>$ncode-sha256$&lt;digest&gt;</c>.
+    /// Writes the verifier text of a secret, <c>$&lt;scheme&gt;$&lt;parameters&gt;</c>, made with the specified scheme.
     /// </summary>
+    /// <param name="scheme">The scheme that makes the verifier.</param>
     /// <param name="secret">The octets of the secret.</param>
-    /// <param name="verifier">The verifier text, in the returned sensitive buffer.</param>
-    /// <returns>The lease of the sensitive buffer that holds <paramref name="verifier"/>.</returns>
-    public static IMemoryOwner<byte> CreateSha256(
+    /// <param name="destination">The sensitive <see cref="IBufferWriter{T}"/> that receives the text.</param>
+    public static void Write(
+        ISecretVerifierScheme scheme,
         ReadOnlySpan<byte> secret,
-        out ReadOnlyMemory<byte> verifier
+        IBufferWriter<byte> destination
     )
     {
-        Span<byte> digest = stackalloc byte[SHA256.HashSizeInBytes];
-        try
+        var name = scheme.Name;
+        if (!IsValidSchemeName(name))
         {
-            SHA256.HashData(secret, digest);
-
-            var length =
-                1 + Sha256Scheme.Length + 1 + Base64Url.GetEncodedLength(SHA256.HashSizeInBytes);
-            var lease = BufferFactory.Rent(length, isSensitive: true, out Memory<byte> buffer);
-
-            var destination = buffer.Span;
-            var position = WriteScheme(destination, Sha256Scheme);
-            position += Base64Url.EncodeToUtf8(digest, destination[position..]);
-
-            verifier = buffer[..position];
-            return lease;
+            throw new InvalidOperationException(
+                $"The secret verifier scheme name '{name}' is not a run of printable ASCII characters other than '$'."
+            );
         }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(digest);
-        }
+
+        var prefixLength = name.Length + 2;
+        var prefix = destination.GetSpan(prefixLength);
+        prefix[0] = Separator;
+        SecureEncoding.ASCII.GetBytes(name, prefix.Slice(1, name.Length));
+        prefix[name.Length + 1] = Separator;
+        destination.Advance(prefixLength);
+
+        scheme.WriteParameters(secret, destination);
     }
 
     /// <summary>
-    /// Makes the PBKDF2-HMAC-SHA256 verifier of a secret with a fresh random salt,
-    /// <c>$ncode-pbkdf2-sha256$&lt;iterations&gt;$&lt;salt&gt;$&lt;derived key&gt;</c>.
+    /// Reads the text of a stored verifier with the registered scheme it names.
     /// </summary>
-    /// <param name="secret">The octets of the secret.</param>
-    /// <param name="iterations">The number of PBKDF2 iterations.</param>
-    /// <param name="verifier">The verifier text, in the returned sensitive buffer.</param>
-    /// <returns>The lease of the sensitive buffer that holds <paramref name="verifier"/>.</returns>
-    public static IMemoryOwner<byte> CreatePbkdf2(
-        ReadOnlySpan<byte> secret,
-        int iterations,
-        out ReadOnlyMemory<byte> verifier
-    )
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(iterations, 1);
-
-        Span<byte> salt = stackalloc byte[Pbkdf2SaltByteCount];
-        Span<byte> derivedKey = stackalloc byte[Pbkdf2DerivedKeyByteCount];
-        Span<byte> iterationsText = stackalloc byte[11];
-        try
-        {
-            RandomNumberGenerator.Fill(salt);
-            Rfc2898DeriveBytes.Pbkdf2(
-                secret,
-                salt,
-                derivedKey,
-                iterations,
-                HashAlgorithmName.SHA256
-            );
-
-            var formatted = Utf8Formatter.TryFormat(
-                iterations,
-                iterationsText,
-                out var iterationsLength
-            );
-            if (!formatted)
-            {
-                throw new InvalidOperationException("The iteration count could not be formatted.");
-            }
-
-            var length =
-                1
-                + Pbkdf2Scheme.Length
-                + 1
-                + iterationsLength
-                + 1
-                + Base64Url.GetEncodedLength(Pbkdf2SaltByteCount)
-                + 1
-                + Base64Url.GetEncodedLength(Pbkdf2DerivedKeyByteCount);
-            var lease = BufferFactory.Rent(length, isSensitive: true, out Memory<byte> buffer);
-
-            var destination = buffer.Span;
-            var position = WriteScheme(destination, Pbkdf2Scheme);
-            iterationsText[..iterationsLength].CopyTo(destination[position..]);
-            position += iterationsLength;
-            destination[position++] = Separator;
-            position += Base64Url.EncodeToUtf8(salt, destination[position..]);
-            destination[position++] = Separator;
-            position += Base64Url.EncodeToUtf8(derivedKey, destination[position..]);
-
-            verifier = buffer[..position];
-            return lease;
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(derivedKey);
-        }
-    }
-
-    /// <summary>
-    /// Reads the text of a stored verifier.
-    /// </summary>
+    /// <param name="catalog">The catalog of the registered schemes.</param>
     /// <param name="metadata">The metadata of the secret the verifier confirms.</param>
     /// <param name="text">The verifier text.</param>
     /// <param name="verifier">When this method returns <see langword="true"/>, the verifier; otherwise,
     /// <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> when <paramref name="text"/> is a verifier of a known scheme with valid
+    /// <returns><see langword="true"/> when <paramref name="text"/> is a verifier of a registered scheme with valid
     /// parameters; otherwise, <see langword="false"/>.</returns>
     public static bool TryParse(
+        ISecretVerifierSchemeCatalog catalog,
         KeyMetadata metadata,
         ReadOnlySpan<byte> text,
         [NotNullWhen(true)] out SecretVerifier? verifier
@@ -163,104 +89,36 @@ internal static class SecretVerifierFormat
 
         var rest = text[1..];
         var schemeEnd = rest.IndexOf(Separator);
-        if (schemeEnd < 0)
+        if (schemeEnd <= 0)
         {
             return false;
         }
 
-        var scheme = rest[..schemeEnd];
-        var parameters = rest[(schemeEnd + 1)..];
-
-        if (scheme.SequenceEqual(Sha256Scheme))
+        var schemeName = rest[..schemeEnd];
+        if (schemeName.ContainsAnyExceptInRange((byte)'!', (byte)'~'))
         {
-            return TryParseSha256(metadata, parameters, out verifier);
+            return false;
         }
 
-        if (scheme.SequenceEqual(Pbkdf2Scheme))
-        {
-            return TryParsePbkdf2(metadata, parameters, out verifier);
-        }
-
-        return false;
+        return catalog.TryGet(SecureEncoding.ASCII.GetString(schemeName), out var scheme)
+            && scheme.TryReadParameters(metadata, rest[(schemeEnd + 1)..], out verifier);
     }
 
-    private static bool TryParseSha256(
-        KeyMetadata metadata,
-        ReadOnlySpan<byte> parameters,
-        [NotNullWhen(true)] out SecretVerifier? verifier
-    )
-    {
-        verifier = null;
+    /// <summary>
+    /// Determines whether the specified text is a non-empty run of the ASCII digits <c>0</c> to <c>9</c>.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns><see langword="true"/> when <paramref name="text"/> holds only digits.</returns>
+    public static bool IsDigits(ReadOnlySpan<byte> text) =>
+        !text.IsEmpty && !text.ContainsAnyExceptInRange((byte)'0', (byte)'9');
 
-        if (!TryDecode(parameters, out var digest) || digest.Length != SHA256.HashSizeInBytes)
-        {
-            return false;
-        }
-
-        verifier = new Sha256SecretVerifier(metadata, digest);
-        return true;
-    }
-
-    private static bool TryParsePbkdf2(
-        KeyMetadata metadata,
-        ReadOnlySpan<byte> parameters,
-        [NotNullWhen(true)] out SecretVerifier? verifier
-    )
-    {
-        verifier = null;
-
-        var iterationsEnd = parameters.IndexOf(Separator);
-        if (iterationsEnd <= 0)
-        {
-            return false;
-        }
-
-        var iterationsText = parameters[..iterationsEnd];
-        if (
-            !IsDigits(iterationsText)
-            || !Utf8Parser.TryParse(iterationsText, out int iterations, out var consumed)
-            || consumed != iterationsText.Length
-            || iterations < 1
-        )
-        {
-            return false;
-        }
-
-        var rest = parameters[(iterationsEnd + 1)..];
-        var saltEnd = rest.IndexOf(Separator);
-        if (saltEnd < 0)
-        {
-            return false;
-        }
-
-        if (
-            !TryDecode(rest[..saltEnd], out var salt)
-            || salt.Length is < MinPbkdf2SaltByteCount or > MaxPbkdf2ByteCount
-            || !TryDecode(rest[(saltEnd + 1)..], out var derivedKey)
-            || derivedKey.Length is < MinPbkdf2DerivedKeyByteCount or > MaxPbkdf2ByteCount
-        )
-        {
-            return false;
-        }
-
-        verifier = new Pbkdf2SecretVerifier(metadata, iterations, salt, derivedKey);
-        return true;
-    }
-
-    private static bool IsDigits(ReadOnlySpan<byte> text)
-    {
-        foreach (var value in text)
-        {
-            if (value is < (byte)'0' or > (byte)'9')
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool TryDecode(ReadOnlySpan<byte> text, [NotNullWhen(true)] out byte[]? bytes)
+    /// <summary>
+    /// Decodes a non-empty base64url parameter that holds no <c>$</c>.
+    /// </summary>
+    /// <param name="text">The parameter.</param>
+    /// <param name="bytes">When this method returns <see langword="true"/>, the decoded octets.</param>
+    /// <returns><see langword="true"/> when <paramref name="text"/> is valid base64url.</returns>
+    public static bool TryDecode(ReadOnlySpan<byte> text, [NotNullWhen(true)] out byte[]? bytes)
     {
         bytes = null;
 
@@ -279,12 +137,25 @@ internal static class SecretVerifierFormat
         return true;
     }
 
-    // Writes '$<scheme>$' and returns the number of bytes written.
-    private static int WriteScheme(Span<byte> destination, ReadOnlySpan<byte> scheme)
+    /// <summary>
+    /// Writes the base64url encoding of the specified octets.
+    /// </summary>
+    /// <param name="value">The octets.</param>
+    /// <param name="destination">The <see cref="IBufferWriter{T}"/> that receives the encoding.</param>
+    public static void WriteBase64Url(ReadOnlySpan<byte> value, IBufferWriter<byte> destination)
     {
-        destination[0] = Separator;
-        scheme.CopyTo(destination[1..]);
-        destination[1 + scheme.Length] = Separator;
-        return scheme.Length + 2;
+        var length = Base64Url.GetEncodedLength(value.Length);
+        var written = Base64Url.EncodeToUtf8(value, destination.GetSpan(length));
+        destination.Advance(written);
+    }
+
+    /// <summary>
+    /// Writes the separator <c>$</c>.
+    /// </summary>
+    /// <param name="destination">The <see cref="IBufferWriter{T}"/> that receives the separator.</param>
+    public static void WriteSeparator(IBufferWriter<byte> destination)
+    {
+        destination.GetSpan(1)[0] = Separator;
+        destination.Advance(1);
     }
 }

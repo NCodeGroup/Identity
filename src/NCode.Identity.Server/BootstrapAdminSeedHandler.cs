@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -40,6 +41,8 @@ internal sealed class BootstrapAdminSeedHandler(
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -49,6 +52,10 @@ internal sealed class BootstrapAdminSeedHandler(
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
+    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
+        clientAuthenticationMethodCatalog;
     private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -86,15 +93,22 @@ internal sealed class BootstrapAdminSeedHandler(
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
         {
-            // The configured secret is authoritative. Its verifier is made again and protected under the tenant's
-            // current master key, so a stale or undecryptable stored secret is healed instead of leaving the bootstrap
-            // client permanently unable to authenticate.
+            // The configured secret is authoritative. It is stored again under the tenant's current master key, so a
+            // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently unable
+            // to authenticate. Its form follows the method the client is registered for now, which an operator may have
+            // changed since it was seeded (ADR-1391).
+            var usesClientSecretAsKey = await UsesClientSecretAsKeyAsync(
+                context.Tenant,
+                existing,
+                cancellationToken
+            );
             var refreshProtector = await GetProtectorAsync(tenantId, cancellationToken);
             await RefreshClientSecretAsync(
                 store,
                 refreshProtector,
                 clientId,
                 clientSecretBytes,
+                usesClientSecretAsKey,
                 cancellationToken
             );
             Logger.BootstrapAdminClientSecretRefreshed(clientId, tenantId);
@@ -137,11 +151,50 @@ internal sealed class BootstrapAdminSeedHandler(
             cancellationToken
         );
 
+    // An existing client keeps a secret the server can read back when its effective method uses the secret as a key,
+    // as client_secret_jwt does; any other client's secret is stored as a verifier. A client whose settings cannot be
+    // read authenticates with no method, so its secret is stored as the verifier its seeded method needs. See ADR-1391.
+    private async ValueTask<bool> UsesClientSecretAsKeyAsync(
+        PersistedTenant tenant,
+        PersistedClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(
+                cancellationToken
+            );
+            var tenantSettings = EffectiveSettingsResolver.ResolveStored(
+                serverSettings,
+                OpenIdSettingScopes.Tenant,
+                tenant.TenantId,
+                tenant.Settings.Value
+            );
+            var clientSettings = EffectiveSettingsResolver.ResolveStored(
+                tenantSettings,
+                OpenIdSettingScopes.Client,
+                client.ClientId,
+                client.Settings.Value
+            );
+
+            return ClientAuthenticationMethodCatalog.TryGet(
+                    clientSettings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod),
+                    out var descriptor
+                ) && descriptor.UsesClientSecretAsKey;
+        }
+        catch (UnreadableSettingsException)
+        {
+            return false;
+        }
+    }
+
     private async ValueTask RefreshClientSecretAsync(
         IClientStore store,
         ISecretProtector protector,
         string clientId,
         ReadOnlyMemory<byte> clientSecret,
+        bool usesClientSecretAsKey,
         CancellationToken cancellationToken
     )
     {
@@ -156,7 +209,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
         await store.AddSecretAsync(
             clientId,
-            CreatePersistedSecret(protector, clientSecret),
+            CreatePersistedSecret(protector, clientSecret, usesClientSecretAsKey),
             cancellationToken
         );
     }
@@ -185,7 +238,12 @@ internal sealed class BootstrapAdminSeedHandler(
         ISecretProtector protector
     )
     {
-        var persistedSecret = CreatePersistedSecret(protector, clientSecret);
+        // The client registers client_secret_basic, which only compares the secret.
+        var persistedSecret = CreatePersistedSecret(
+            protector,
+            clientSecret,
+            usesClientSecretAsKey: false
+        );
 
         return new PersistedClient
         {
@@ -209,26 +267,27 @@ internal sealed class BootstrapAdminSeedHandler(
 
     private PersistedSecret CreatePersistedSecret(
         ISecretProtector protector,
-        ReadOnlyMemory<byte> clientSecret
+        ReadOnlyMemory<byte> clientSecret,
+        bool usesClientSecretAsKey
     )
     {
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the configured client_secret through the shared-secret primitive (ADR-1110). The client registers
-        // client_secret_basic, which only compares the secret, so it is stored as its PBKDF2 verifier (ADR-1391).
-        return SecretGenerator.ImportSharedSecret(
-            protector,
-            new ImportSharedSecretRequest
-            {
-                // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
-                // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
-                SecretId = CryptoService.GenerateResourceId(),
-                Use = null,
-                Algorithm = null,
-                CreatedWhen = now,
-                ExpiresWhen = now.AddYears(100),
-            },
-            clientSecret.Span
-        );
+        // Persist the configured client_secret through the shared-secret primitives (ADR-1110): as its PBKDF2 verifier
+        // when the client only compares it, and reversible when its method uses it as a key (ADR-1391).
+        var request = new ImportSharedSecretRequest
+        {
+            // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
+            // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
+            SecretId = CryptoService.GenerateResourceId(),
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = now,
+            ExpiresWhen = now.AddYears(100),
+        };
+
+        return usesClientSecretAsKey
+            ? SecretGenerator.ImportReversibleSharedSecret(protector, request, clientSecret.Span)
+            : SecretGenerator.ImportSharedSecret(protector, request, clientSecret.Span);
     }
 }

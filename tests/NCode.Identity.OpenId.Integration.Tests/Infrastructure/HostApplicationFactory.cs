@@ -376,6 +376,66 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
+    /// Moves the expiry of every secret a client holds into the past, keeping each secret's identifier and stored value,
+    /// so a test can tell an expired secret from an unexpired one.
+    /// </summary>
+    /// <param name="clientId">The identifier of the client whose secrets expire.</param>
+    /// <returns>A <see cref="Task"/> that completes when the secrets are stored again.</returns>
+    public async Task ExpireClientSecretsAsync(string clientId)
+    {
+        var expired = new List<PersistedSecret>();
+        using (var scope = Services.CreateScope())
+        {
+            var storeManagerFactory =
+                scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+            await using var storeManager = await storeManagerFactory.CreateAsync(
+                CancellationToken.None
+            );
+            var store = storeManager.GetStore<IClientStore>();
+            var secrets = await store.GetSecretsOrDefaultAsync(clientId, CancellationToken.None);
+            foreach (var secret in secrets?.Value ?? [])
+            {
+                await store.RemoveSecretAsync(clientId, secret.SecretId, CancellationToken.None);
+                expired.Add(
+                    new PersistedSecret
+                    {
+                        SecretId = secret.SecretId,
+                        KeyId = secret.KeyId,
+                        Use = secret.Use,
+                        Algorithm = secret.Algorithm,
+                        CreatedWhen = secret.CreatedWhen,
+                        ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
+                        SecretType = secret.SecretType,
+                        SecretEncoding = secret.SecretEncoding,
+                        KeySizeBits = secret.KeySizeBits,
+                        EncodedValue = secret.EncodedValue,
+                        PublicKey = secret.PublicKey,
+                    }
+                );
+            }
+
+            await storeManager.SaveChangesAsync(CancellationToken.None);
+        }
+
+        // The removal is saved first, so the secrets are added again under the identifiers their envelopes are bound to.
+        using (var scope = Services.CreateScope())
+        {
+            var storeManagerFactory =
+                scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+            await using var storeManager = await storeManagerFactory.CreateAsync(
+                CancellationToken.None
+            );
+            var store = storeManager.GetStore<IClientStore>();
+            foreach (var secret in expired)
+            {
+                await store.AddSecretAsync(clientId, secret, CancellationToken.None);
+            }
+
+            await storeManager.SaveChangesAsync(CancellationToken.None);
+        }
+    }
+
+    /// <summary>
     /// Stores a known <c>client_secret</c> as production stores a supplied one: as its one-way verifier, unless the
     /// client is registered for a method that uses the secret as a key, such as <c>client_secret_jwt</c>, which keeps it
     /// as the UTF-8 bytes the method keys from.
@@ -1244,8 +1304,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             // A supplied client_secret is stored as a PBKDF2 verifier whose work factor would make every seeded
             // client's token request cost what a password check costs; a verifier records its own count, so a low one
             // exercises the same path faster. See ADR-1391.
-            serviceCollection.Configure<SharedSecretVerifierOptions>(options =>
-                options.Pbkdf2Iterations = 1_000
+            serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options =>
+                options.Iterations = 1_000
             );
 
             // Seed no developer clients unless a derived factory opts in (the last registration wins, so the

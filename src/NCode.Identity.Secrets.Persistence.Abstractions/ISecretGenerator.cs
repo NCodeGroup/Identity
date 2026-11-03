@@ -37,8 +37,9 @@ public interface ISecretGenerator
     /// Generates an opaque, URL-safe shared-secret string that is only ever compared (for example the
     /// <c>client_secret</c> of a <c>client_secret_basic</c> or <c>client_secret_post</c> client) and returns it as the
     /// one-time <see cref="GeneratedSecret.SecretMaterial"/>, alongside a <see cref="PersistedSecret"/> that stores
-    /// only its SHA-256 verifier (<see cref="SecretVerifierSchemes.Sha256"/>), protected under the owner's master key
-    /// with the specified <paramref name="protector"/>. The secret cannot be read back from what is stored. The
+    /// only its one-way verifier, made by the scheme configured for generated secrets (by default
+    /// <see cref="SecretVerifierSchemes.Sha256"/>), protected under the owner's master key with the specified
+    /// <paramref name="protector"/>. The secret cannot be read back from what is stored. The
     /// request's <see cref="GenerateSecretRequest.KeySizeBits"/> sets the random entropy; it must be a multiple of 8
     /// and at least <see cref="SharedSecretPolicy.MinimumEntropyBits"/>; its
     /// <see cref="GenerateSecretRequest.SecretType"/> must be <c>Symmetric</c>.
@@ -69,8 +70,9 @@ public interface ISecretGenerator
     /// <summary>
     /// Persists a <strong>caller-supplied</strong> shared-secret value that is only ever compared (for example the
     /// <c>client_secret</c> an operator chose for a <c>client_secret_basic</c> client) as a <see cref="PersistedSecret"/>
-    /// that stores only its PBKDF2-HMAC-SHA256 verifier (<see cref="SecretVerifierSchemes.Pbkdf2Sha256"/>), protected
-    /// under the owner's master key with the specified <paramref name="protector"/>. Nothing is revealed, because the
+    /// that stores only its one-way verifier, made by the scheme configured for supplied secrets (by default the
+    /// PBKDF2-HMAC-SHA256 <see cref="SecretVerifierSchemes.Pbkdf2Sha256"/>), protected under the owner's master key
+    /// with the specified <paramref name="protector"/>. Nothing is revealed, because the
     /// caller already holds the value. The secret's bit length is derived from <paramref name="secretValue"/>.
     /// </summary>
     /// <param name="protector">The <see cref="ISecretProtector"/> for the owner of the secret.</param>

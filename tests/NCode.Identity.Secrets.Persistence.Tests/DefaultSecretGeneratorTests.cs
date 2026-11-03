@@ -12,6 +12,7 @@ using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Persistence.Verifiers;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -20,10 +21,8 @@ public class DefaultSecretGeneratorTests
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
-    // A low work factor keeps the tests fast; a verifier records its own iteration count.
-    private const int TestIterations = 1_000;
-
     private readonly DefaultSecretKeyTypeCatalog _catalog;
+    private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
 
     private readonly DefaultSecretGenerator _generator;
     private readonly DefaultSecretSerializer _serializer;
@@ -44,17 +43,13 @@ public class DefaultSecretGeneratorTests
         ]);
 
         _catalog = catalog;
-        _generator = CreateGenerator(TestIterations);
-        _serializer = new DefaultSecretSerializer(catalog);
+        _verifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
+        _generator = CreateGenerator(new SharedSecretVerifierOptions());
+        _serializer = new DefaultSecretSerializer(catalog, _verifierCatalog);
     }
 
-    private DefaultSecretGenerator CreateGenerator(int iterations) =>
-        new(
-            _catalog,
-            Microsoft.Extensions.Options.Options.Create(
-                new SharedSecretVerifierOptions { Pbkdf2Iterations = iterations }
-            )
-        );
+    private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>
+        new(_catalog, _verifierCatalog, Microsoft.Extensions.Options.Options.Create(options));
 
     // Opens the envelope of a stored verifier to its text.
     private static string ReadVerifierText(DefaultSecretProtector protector, PersistedSecret secret)
@@ -105,6 +100,81 @@ public class DefaultSecretGeneratorTests
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
+
+    #region Constructor Tests
+
+    [Fact]
+    public void SharedSecretVerifierOptions_DefaultsToTheSchemesAndTheIterationsOfThePasswordHashes()
+    {
+        var options = new SharedSecretVerifierOptions();
+        var pbkdf2Options = new Pbkdf2SecretVerifierOptions();
+
+        Assert.Equal(SecretVerifierSchemes.Sha256, options.GeneratedSecretScheme);
+        Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, options.SuppliedSecretScheme);
+
+        // OWASP's recommendation for PBKDF2-HMAC-SHA256, as the family's password hashes use.
+        Assert.Equal(600_000, pbkdf2Options.Iterations);
+        Assert.Equal(
+            Pbkdf2SecretVerifierOptions.MinimumProductionIterations,
+            pbkdf2Options.Iterations
+        );
+        Assert.Equal(Math.Max(1, Environment.ProcessorCount / 2), pbkdf2Options.MaxConcurrency);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Constructor_WhenASchemeIsNotRegistered_Throws(bool generated)
+    {
+        var options = new SharedSecretVerifierOptions();
+        if (generated)
+        {
+            options.GeneratedSecretScheme = "unregistered";
+        }
+        else
+        {
+            options.SuppliedSecretScheme = "unregistered";
+        }
+
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateGenerator(options));
+
+        Assert.Contains("'unregistered'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Constructor_UsesTheSchemesTheOptionsName()
+    {
+        // Either scheme may make either kind of verifier; the options decide which.
+        var generator = CreateGenerator(
+            new SharedSecretVerifierOptions
+            {
+                GeneratedSecretScheme = SecretVerifierSchemes.Pbkdf2Sha256,
+                SuppliedSecretScheme = SecretVerifierSchemes.Sha256,
+            }
+        );
+        var protector = CreateProtector();
+        var secretValue = SecureEncoding.UTF8.GetBytes("my-chosen-client-secret");
+
+        var generated = generator.GenerateSharedSecret(
+            protector,
+            CreateRequest(SecretTypes.Symmetric, 256)
+        );
+        var imported = generator.ImportSharedSecret(
+            protector,
+            CreateImportRequest("import-5"),
+            secretValue
+        );
+
+        Assert.Equal(
+            SecretVerifierSchemes.Pbkdf2Sha256,
+            ReadVerifier(protector, generated.Secret).Scheme
+        );
+        var importedVerifier = ReadVerifier(protector, imported);
+        Assert.Equal(SecretVerifierSchemes.Sha256, importedVerifier.Scheme);
+        Assert.True(await importedVerifier.VerifyAsync(secretValue, CancellationToken.None));
+    }
+
+    #endregion
 
     #region GenerateSecret Symmetric Tests
 
@@ -193,27 +263,12 @@ public class DefaultSecretGeneratorTests
         );
     }
 
-    [Fact]
-    public void SharedSecretVerifierOptions_DefaultsToTheIterationsOfThePasswordHashes()
-    {
-        // OWASP's recommendation for PBKDF2-HMAC-SHA256, as the family's password hashes use.
-        Assert.Equal(600_000, new SharedSecretVerifierOptions().Pbkdf2Iterations);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void Constructor_WhenIterationsAreBelowOne_Throws(int iterations)
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => CreateGenerator(iterations));
-    }
-
     #endregion
 
     #region ImportSharedSecret Tests
 
     [Fact]
-    public void ImportSharedSecret_StoresAVerifierOfTheSameShapeAsGenerateSharedSecret()
+    public async Task ImportSharedSecret_StoresAVerifierOfTheSameShapeAsGenerateSharedSecret()
     {
         var protector = CreateProtector();
         var generated = _generator.GenerateSharedSecret(
@@ -238,8 +293,8 @@ public class DefaultSecretGeneratorTests
         var importedVerifier = ReadVerifier(protector, imported);
         Assert.Equal(SecretVerifierSchemes.Sha256, generatedVerifier.Scheme);
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, importedVerifier.Scheme);
-        Assert.True(generatedVerifier.Verify(secretValue));
-        Assert.True(importedVerifier.Verify(secretValue));
+        Assert.True(await generatedVerifier.VerifyAsync(secretValue, CancellationToken.None));
+        Assert.True(await importedVerifier.VerifyAsync(secretValue, CancellationToken.None));
     }
 
     [Fact]
@@ -476,7 +531,7 @@ public class DefaultSecretGeneratorTests
     }
 
     [Fact]
-    public void GenerateSharedSecret_StoresOnlyTheSha256VerifierOfTheRevealedSecret()
+    public async Task GenerateSharedSecret_StoresOnlyTheSha256VerifierOfTheRevealedSecret()
     {
         var protector = CreateProtector();
 
@@ -510,8 +565,13 @@ public class DefaultSecretGeneratorTests
 
         var verifier = ReadVerifier(protector, persisted);
         Assert.Equal("gen-1", verifier.KeyId);
-        Assert.True(verifier.Verify(expected));
-        Assert.False(verifier.Verify(SecureEncoding.UTF8.GetBytes(generated.SecretMaterial + "x")));
+        Assert.True(await verifier.VerifyAsync(expected, CancellationToken.None));
+        Assert.False(
+            await verifier.VerifyAsync(
+                SecureEncoding.UTF8.GetBytes(generated.SecretMaterial + "x"),
+                CancellationToken.None
+            )
+        );
 
         // A verifier is not key material.
         Assert.Throws<InvalidOperationException>(() =>
@@ -555,7 +615,7 @@ public class DefaultSecretGeneratorTests
     }
 
     [Fact]
-    public void ImportSharedSecret_StoresOnlyThePbkdf2VerifierOfTheGivenSecret()
+    public async Task ImportSharedSecret_StoresOnlyThePbkdf2VerifierOfTheGivenSecret()
     {
         var protector = CreateProtector();
         var secretValue = SecureEncoding.UTF8.GetBytes("my-chosen-client-secret");
@@ -579,7 +639,7 @@ public class DefaultSecretGeneratorTests
         // The text records the scheme and the configured work factor, and a fresh salt.
         var text = ReadVerifierText(protector, persisted);
         Assert.StartsWith(
-            $"$ncode-pbkdf2-sha256${TestIterations}$",
+            $"$ncode-pbkdf2-sha256${TestSecretVerifierSchemes.Iterations}$",
             text,
             StringComparison.Ordinal
         );
@@ -593,9 +653,16 @@ public class DefaultSecretGeneratorTests
 
         var verifier = ReadVerifier(protector, persisted);
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
-        Assert.True(verifier.Verify(secretValue));
-        Assert.False(verifier.Verify(SecureEncoding.UTF8.GetBytes("my-chosen-client-secreT")));
-        Assert.False(verifier.Verify([]));
+        Assert.True(await verifier.VerifyAsync(secretValue, CancellationToken.None));
+        Assert.False(
+            await verifier.VerifyAsync(
+                SecureEncoding.UTF8.GetBytes("my-chosen-client-secreT"),
+                CancellationToken.None
+            )
+        );
+        Assert.False(
+            await verifier.VerifyAsync(ReadOnlyMemory<byte>.Empty, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -645,6 +712,30 @@ public class DefaultSecretGeneratorTests
                     ReadOnlySpan<byte>.Empty
                 )
                 : _generator.ImportSharedSecret(protector, request, ReadOnlySpan<byte>.Empty)
+        );
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ImportSharedSecret_WhenIterationsAreBelowOne_Throws(int iterations)
+    {
+        // The options validator refuses such a count as the host starts; the scheme refuses it again.
+        var generator = new DefaultSecretGenerator(
+            _catalog,
+            TestSecretVerifierSchemes.CreateCatalog(
+                TestSecretVerifierSchemes.CreateOptions(iterations)
+            ),
+            Microsoft.Extensions.Options.Options.Create(new SharedSecretVerifierOptions())
+        );
+        var protector = CreateProtector();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            generator.ImportSharedSecret(
+                protector,
+                CreateImportRequest("import-6"),
+                SecureEncoding.UTF8.GetBytes("my-chosen-client-secret")
+            )
         );
     }
 

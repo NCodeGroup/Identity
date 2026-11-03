@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using NCode.Buffers;
@@ -36,15 +37,27 @@ public class SecretVerifierFormatTests
         return $"$ncode-pbkdf2-sha256${iterations}${Base64Url.EncodeToString(salt)}${Base64Url.EncodeToString(key)}";
     }
 
-    private static SecretVerifier Parse(string text)
+    private static readonly DefaultSecretVerifierSchemeCatalog Catalog =
+        TestSecretVerifierSchemes.CreateCatalog();
+
+    private static ISecretVerifierScheme GetScheme(string name)
     {
-        Assert.True(
-            SecretVerifierFormat.TryParse(
-                Metadata,
-                SecureEncoding.ASCII.GetBytes(text),
-                out var verifier
-            )
-        );
+        Assert.True(Catalog.TryGet(name, out var scheme));
+        return scheme;
+    }
+
+    private static byte[] Write(string schemeName, byte[] secret)
+    {
+        var writer = new ArrayBufferWriter<byte>();
+        SecretVerifierFormat.Write(GetScheme(schemeName), secret, writer);
+        return writer.WrittenSpan.ToArray();
+    }
+
+    private static SecretVerifier Parse(string text) => Parse(SecureEncoding.ASCII.GetBytes(text));
+
+    private static SecretVerifier Parse(byte[] text)
+    {
+        Assert.True(SecretVerifierFormat.TryParse(Catalog, Metadata, text, out var verifier));
         return verifier;
     }
 
@@ -52,6 +65,7 @@ public class SecretVerifierFormatTests
     {
         Assert.False(
             SecretVerifierFormat.TryParse(
+                Catalog,
                 Metadata,
                 SecureEncoding.ASCII.GetBytes(text),
                 out var verifier
@@ -60,86 +74,88 @@ public class SecretVerifierFormatTests
         Assert.Null(verifier);
     }
 
-    #region CreateSha256 Tests
+    private static Task<bool> VerifyAsync(SecretVerifier verifier, byte[] secret) =>
+        verifier.VerifyAsync(secret, CancellationToken.None).AsTask();
+
+    #region Write Tests
 
     [Fact]
-    public void CreateSha256_WritesTheSchemeAndTheDigest()
+    public void Write_WhenSha256_WritesTheSchemeAndTheDigest()
     {
-        using var lease = SecretVerifierFormat.CreateSha256(Secret, out var verifier);
+        var text = Write(SecretVerifierSchemes.Sha256, Secret);
 
-        Assert.Equal(Sha256Text(Secret), SecureEncoding.ASCII.GetString(verifier.Span));
+        Assert.Equal(Sha256Text(Secret), SecureEncoding.ASCII.GetString(text));
     }
 
     [Fact]
-    public void CreateSha256_RoundTripsThroughTryParse()
+    public async Task Write_WhenSha256_RoundTripsThroughTryParse()
     {
-        using var lease = SecretVerifierFormat.CreateSha256(Secret, out var text);
+        var verifier = Parse(Write(SecretVerifierSchemes.Sha256, Secret));
 
-        Assert.True(SecretVerifierFormat.TryParse(Metadata, text.Span, out var verifier));
         Assert.Equal(SecretVerifierSchemes.Sha256, verifier.Scheme);
         Assert.Equal("secret-1", verifier.KeyId);
         Assert.Equal(Metadata, verifier.Metadata);
-        Assert.True(verifier.Verify(Secret));
-        Assert.False(verifier.Verify(OtherSecret));
-        Assert.False(verifier.Verify([]));
+        Assert.True(await VerifyAsync(verifier, Secret));
+        Assert.False(await VerifyAsync(verifier, OtherSecret));
+        Assert.False(await VerifyAsync(verifier, []));
     }
 
-    #endregion
-
-    #region CreatePbkdf2 Tests
-
     [Fact]
-    public void CreatePbkdf2_WritesTheSchemeTheIterationsTheSaltAndTheDerivedKey()
+    public void Write_WhenPbkdf2_WritesTheSchemeTheIterationsTheSaltAndTheDerivedKey()
     {
-        using var lease = SecretVerifierFormat.CreatePbkdf2(Secret, 1_000, out var verifier);
+        var text = Write(SecretVerifierSchemes.Pbkdf2Sha256, Secret);
 
-        var segments = SecureEncoding.ASCII.GetString(verifier.Span).Split('$');
+        var segments = SecureEncoding.ASCII.GetString(text).Split('$');
         Assert.Equal(5, segments.Length);
         Assert.Empty(segments[0]);
         Assert.Equal("ncode-pbkdf2-sha256", segments[1]);
         Assert.Equal("1000", segments[2]);
 
         var salt = Base64Url.DecodeFromChars(segments[3]);
-        Assert.Equal(SecretVerifierFormat.Pbkdf2SaltByteCount, salt.Length);
+        Assert.Equal(Pbkdf2SecretVerifierScheme.SaltByteCount, salt.Length);
         var expectedKey = Rfc2898DeriveBytes.Pbkdf2(
             Secret,
             salt,
             1_000,
             HashAlgorithmName.SHA256,
-            SecretVerifierFormat.Pbkdf2DerivedKeyByteCount
+            Pbkdf2SecretVerifierScheme.DerivedKeyByteCount
         );
         Assert.Equal(expectedKey, Base64Url.DecodeFromChars(segments[4]));
     }
 
     [Fact]
-    public void CreatePbkdf2_DrawsAFreshSaltEachTime()
+    public void Write_WhenPbkdf2_DrawsAFreshSaltEachTime()
     {
-        using var first = SecretVerifierFormat.CreatePbkdf2(Secret, 1_000, out var firstText);
-        using var second = SecretVerifierFormat.CreatePbkdf2(Secret, 1_000, out var secondText);
+        var first = Write(SecretVerifierSchemes.Pbkdf2Sha256, Secret);
+        var second = Write(SecretVerifierSchemes.Pbkdf2Sha256, Secret);
 
-        Assert.False(firstText.Span.SequenceEqual(secondText.Span));
+        Assert.NotEqual(first, second);
     }
 
     [Fact]
-    public void CreatePbkdf2_RoundTripsThroughTryParse()
+    public async Task Write_WhenPbkdf2_RoundTripsThroughTryParse()
     {
-        using var lease = SecretVerifierFormat.CreatePbkdf2(Secret, 1_000, out var text);
+        var verifier = Parse(Write(SecretVerifierSchemes.Pbkdf2Sha256, Secret));
 
-        Assert.True(SecretVerifierFormat.TryParse(Metadata, text.Span, out var verifier));
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
-        Assert.True(verifier.Verify(Secret));
-        Assert.False(verifier.Verify(OtherSecret));
+        Assert.True(await VerifyAsync(verifier, Secret));
+        Assert.False(await VerifyAsync(verifier, OtherSecret));
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-5)]
-    public void CreatePbkdf2_WhenIterationsAreBelowOne_Throws(int iterations)
+    public void Write_WhenPbkdf2IterationsAreBelowOne_Throws(int iterations)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-        {
-            using var lease = SecretVerifierFormat.CreatePbkdf2(Secret, iterations, out _);
-        });
+        var scheme = new Pbkdf2SecretVerifierScheme(
+            Microsoft.Extensions.Options.Options.Create(
+                TestSecretVerifierSchemes.CreateOptions(iterations)
+            )
+        );
+
+        Assert.Throws<InvalidOperationException>(() =>
+            SecretVerifierFormat.Write(scheme, Secret, new ArrayBufferWriter<byte>())
+        );
     }
 
     #endregion
@@ -147,13 +163,13 @@ public class SecretVerifierFormatTests
     #region TryParse Tests
 
     [Fact]
-    public void TryParse_ReadsAPbkdf2VerifierOfTheFamilysPasswordHashFormatWithOtherParameters()
+    public async Task TryParse_ReadsAPbkdf2VerifierOfTheFamilysPasswordHashFormatWithOtherParameters()
     {
         // The parameters come from the text, so a verifier made with other parameters keeps verifying.
         var verifier = Parse(Pbkdf2Text(Secret, iterations: 1_234, saltLength: 32, keyLength: 64));
 
-        Assert.True(verifier.Verify(Secret));
-        Assert.False(verifier.Verify(OtherSecret));
+        Assert.True(await VerifyAsync(verifier, Secret));
+        Assert.False(await VerifyAsync(verifier, OtherSecret));
     }
 
     [Theory]
@@ -161,6 +177,8 @@ public class SecretVerifierFormatTests
     [InlineData("ncode-sha256$AAAA")]
     [InlineData("$ncode-sha256")]
     [InlineData("$unknown-scheme$AAAA")]
+    [InlineData("$$AAAA")]
+    [InlineData("$ncode sha256$AAAA")]
     [InlineData("$NCODE-SHA256$47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU")]
     [InlineData("$ncode-sha256$")]
     [InlineData("$ncode-sha256$not base64url!")]

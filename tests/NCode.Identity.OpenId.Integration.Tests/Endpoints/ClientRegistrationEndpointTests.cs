@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Persistence;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
@@ -778,6 +779,157 @@ public class ClientRegistrationEndpointTests
         Assert.False(update.TryGetProperty("client_secret", out _));
         Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenSwitchedFromAKeyMethodToASecretMethod_IssuesASecretAndKeepsTheKeys()
+    {
+        // A client that held no shared secret is issued one when it moves to a method that verifies one; its
+        // registered public keys stay. See ADR-1391.
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+        var jwk = CreateRsaJwk(rsa, "client-key");
+        var metadata = CreateKeyRegistration(jwk);
+        metadata["token_endpoint_auth_method"] = OpenIdProtocol
+            .ClientAuthenticationMethods
+            .PrivateKeyJwt;
+        using var response = await client.PostAsJsonAsync("/oauth2/register", metadata);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var registration = JsonElement.Parse(body);
+        Assert.False(registration.TryGetProperty("client_secret", out _));
+        var clientId = registration.GetProperty("client_id").GetString() ?? string.Empty;
+
+        var update = await UpdateRegistrationAsync(
+            client,
+            registration,
+            CreateKeyRegistration(jwk)
+        );
+
+        var clientSecret = update.GetProperty("client_secret").GetString();
+        Assert.False(string.IsNullOrEmpty(clientSecret));
+        Assert.Equal(0, update.GetProperty("client_secret_expires_at").GetInt64());
+        Assert.Equal(["client-key"], GetKeyIds(update));
+
+        var stored = await factory.GetClientSecretsAsync(clientId);
+        Assert.Contains(stored, secret => secret.SecretType == SecretTypes.Rsa);
+        var shared = Assert.Single(stored, secret => secret.SecretType == SecretTypes.Symmetric);
+        Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, shared.SecretEncoding);
+        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenTheClientsOnlySecretHasExpired_IssuesANewSecret()
+    {
+        // An expired secret authenticates nothing, so an update that keeps a method that verifies a secret issues one.
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var (clientId, expiredSecret, registration) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+        await factory.ExpireClientSecretsAsync(clientId);
+
+        var update = await UpdateAuthenticationMethodAsync(
+            client,
+            registration,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var newSecret = update.GetProperty("client_secret").GetString();
+        Assert.False(string.IsNullOrEmpty(newSecret));
+        Assert.NotEqual(expiredSecret, newSecret);
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.True(stored.ExpiresWhen > DateTimeOffset.UtcNow);
+        Assert.Null(await RevokeWithSecretAsync(client, clientId, newSecret));
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.InvalidClient,
+            await RevokeWithSecretAsync(client, clientId, expiredSecret)
+        );
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenTheClientKeepsAnUnexpiredVerifier_IssuesNoNewSecret()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var (clientId, clientSecret, registration) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var update = await UpdateAuthenticationMethodAsync(
+            client,
+            registration,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        Assert.False(update.TryGetProperty("client_secret", out _));
+        Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAComparedSecretWouldSignRequestObjects_ReturnsInvalidClientMetadata()
+    {
+        // A secret stored as a one-way verifier keys no HS256 request object. See ADR-1391.
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretBasic,
+                ["request_object_signing_alg"] = "HS256",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
+            "request_object_signing_alg_values_supported"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenAKeyedSecretWouldSignRequestObjects_RegistersTheClient()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .ClientSecretJwt,
+                ["request_object_signing_alg"] = "HS256",
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        Assert.Equal(
+            "HS256",
+            JsonElement.Parse(body).GetProperty("request_object_signing_alg").GetString()
+        );
     }
 
     [Fact]
@@ -1559,26 +1711,34 @@ public class ClientRegistrationEndpointTests
         return (clientId, clientSecret, registration);
     }
 
-    private static async Task<JsonElement> UpdateAuthenticationMethodAsync(
+    private static Task<JsonElement> UpdateAuthenticationMethodAsync(
         HttpClient client,
         JsonElement registration,
         string tokenEndpointAuthMethod
+    ) =>
+        UpdateRegistrationAsync(
+            client,
+            registration,
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+            }
+        );
+
+    private static async Task<JsonElement> UpdateRegistrationAsync(
+        HttpClient client,
+        JsonElement registration,
+        Dictionary<string, object> metadata
     )
     {
+        metadata["client_id"] = registration.GetProperty("client_id").GetString() ?? string.Empty;
         using var request = new HttpRequestMessage(
             HttpMethod.Put,
             registration.GetProperty("registration_client_uri").GetString()
         )
         {
-            Content = JsonContent.Create(
-                new Dictionary<string, object>
-                {
-                    ["client_id"] =
-                        registration.GetProperty("client_id").GetString() ?? string.Empty,
-                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
-                    ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
-                }
-            ),
+            Content = JsonContent.Create(metadata),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "Bearer",

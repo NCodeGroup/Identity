@@ -33,11 +33,18 @@ public abstract class SecretVerifier
 
     /// <summary>
     /// Determines whether the specified secret is the secret this verifier was made from. The comparison takes the same
-    /// time wherever the presented secret first differs.
+    /// time wherever the presented secret first differs. A verifier with a work factor may wait for its turn before it
+    /// computes, so the costly verifications that run at once stay bounded.
     /// </summary>
     /// <param name="secret">The octets of the presented secret, such as the UTF-8 bytes of a <c>client_secret</c>.</param>
-    /// <returns><see langword="true"/> when <paramref name="secret"/> matches; otherwise, <see langword="false"/>.</returns>
-    public abstract bool Verify(ReadOnlySpan<byte> secret);
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous
+    /// operation, including the wait for its turn.</param>
+    /// <returns>A <see cref="ValueTask{TResult}"/> that represents the asynchronous operation, containing
+    /// <see langword="true"/> when <paramref name="secret"/> matches; otherwise, <see langword="false"/>.</returns>
+    public abstract ValueTask<bool> VerifyAsync(
+        ReadOnlyMemory<byte> secret,
+        CancellationToken cancellationToken
+    );
 
     /// <inheritdoc />
     public override string ToString() =>

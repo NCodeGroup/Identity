@@ -162,6 +162,10 @@ internal static class DefaultRegistration
             );
 
             serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, ClientSecretKeyCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IClientCoherenceRule, IdTokenEncryptionCoherenceRule>()
             );
 

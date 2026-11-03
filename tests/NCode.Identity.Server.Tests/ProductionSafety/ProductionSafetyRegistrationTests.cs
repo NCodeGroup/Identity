@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.ProductionSafety;
 using Xunit;
 
@@ -209,6 +210,48 @@ public class ProductionSafetyRegistrationTests
             ],
             exception.Failures
         );
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenProductionAndPbkdf2IterationsAreBelowTheRecommendation_FailsOnStart()
+    {
+        var services = new ServiceCollection();
+        services.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Production)
+        );
+        services.Configure<KeyManagementOptions>(options =>
+        {
+            options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
+            options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
+        });
+        services.Configure<Pbkdf2SecretVerifierOptions>(options =>
+            options.Iterations = Pbkdf2SecretVerifierOptions.MinimumProductionIterations - 1
+        );
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IStartupValidator>().Validate()
+        );
+
+        Assert.Equal(
+            [ProductionSafetyRegistration.Pbkdf2IterationsTooLowMessage],
+            exception.Failures
+        );
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenNotProduction_AllowsAnyPbkdf2Iterations()
+    {
+        var services = new ServiceCollection();
+        services.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Development)
+        );
+        services.Configure<Pbkdf2SecretVerifierOptions>(options => options.Iterations = 1);
+        using var serviceProvider = services.BuildServiceProvider();
+
+        Assert.Null(serviceProvider.GetService<IStartupValidator>());
     }
 
     [Fact]

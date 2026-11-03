@@ -19,13 +19,19 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <summary>
 /// Provides a default implementation for the <see cref="ISecretSerializer"/> abstraction: a thin persistence wrapper
 /// that unprotects the stored key material and delegates decoding to the <see cref="ISecretKeyTypeDescriptor"/> for
-/// the secret's type (the single extensibility seam).
+/// the secret's type (the single extensibility seam). A stored verifier is read by the registered
+/// <see cref="ISecretVerifierScheme"/> its text names.
 /// </summary>
-// See ADR-1235.
-internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalog)
-    : ISecretSerializer
+// See ADR-1235 and ADR-1391.
+internal class DefaultSecretSerializer(
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog
+) : ISecretSerializer
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private ISecretVerifierSchemeCatalog SecretVerifierSchemeCatalog { get; } =
+        secretVerifierSchemeCatalog;
 
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
@@ -91,7 +97,7 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
         return verifiers;
     }
 
-    private static SecretVerifier DeserializeVerifierCore(
+    private SecretVerifier DeserializeVerifierCore(
         ISecretProtector protector,
         PersistedSecret persistedSecret
     )
@@ -117,10 +123,17 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
         ReadPrivateKeyMaterial(protector, persistedSecret, verifierWriter);
 
         using var verifierSpanLease = verifierBuffer.GetSpanLease(isSensitive: true);
-        if (!SecretVerifierFormat.TryParse(metadata, verifierSpanLease.Span, out var verifier))
+        if (
+            !SecretVerifierFormat.TryParse(
+                SecretVerifierSchemeCatalog,
+                metadata,
+                verifierSpanLease.Span,
+                out var verifier
+            )
+        )
         {
             throw new FormatException(
-                $"The secret '{persistedSecret.SecretId}' holds a verifier of an unknown scheme or with invalid parameters."
+                $"The secret '{persistedSecret.SecretId}' holds a verifier of a scheme that is not registered or with invalid parameters."
             );
         }
 

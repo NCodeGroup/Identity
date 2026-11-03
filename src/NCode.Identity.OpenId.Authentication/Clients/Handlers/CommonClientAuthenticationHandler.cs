@@ -271,7 +271,8 @@ internal abstract class CommonClientAuthenticationHandler(
     }
 
     // A presented secret is compared with the client's verifiers, and with the shared secrets it holds as keys, which a
-    // client issued a secret for client_secret_jwt keeps when it is registered for another method. See ADR-1391.
+    // client issued a secret for client_secret_jwt keeps when it is registered for another method. A verifier with a
+    // work factor waits for its turn, so unauthenticated requests cannot occupy every processor. See ADR-1391.
     private async ValueTask<ClientAuthenticationResult> VerifyClientSecretAsync(
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
@@ -279,18 +280,18 @@ internal abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
-        var credentialId = FindMatchingSecret(
+        var credentialId = await FindMatchingSecretAsync(
             publicClient,
-            clientSecretBytes.Span,
-            out var matched
+            clientSecretBytes,
+            cancellationToken
         );
-        if (matched)
+        if (credentialId is { } matchedCredentialId)
         {
             var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
                 openIdContext,
                 publicClient,
                 AuthenticationMethod,
-                credentialId,
+                matchedCredentialId.KeyId,
                 confirmation: null,
                 cancellationToken
             );
@@ -308,31 +309,31 @@ internal abstract class CommonClientAuthenticationHandler(
         );
     }
 
-    private static string? FindMatchingSecret(
+    // The identifier of the credential that matched, which may itself be null; a null result means none matched.
+    private readonly record struct MatchedCredential(string? KeyId);
+
+    private static async ValueTask<MatchedCredential?> FindMatchingSecretAsync(
         OpenIdClient client,
-        ReadOnlySpan<byte> clientSecretBytes,
-        out bool matched
+        ReadOnlyMemory<byte> clientSecretBytes,
+        CancellationToken cancellationToken
     )
     {
         foreach (var verifier in client.SecretVerifiers)
         {
-            if (verifier.Verify(clientSecretBytes))
+            if (await verifier.VerifyAsync(clientSecretBytes, cancellationToken))
             {
-                matched = true;
-                return verifier.KeyId;
+                return new MatchedCredential(verifier.KeyId);
             }
         }
 
         foreach (var secretKey in client.SecretKeys.OfType<SymmetricSecretKey>())
         {
-            if (IsSecretEqual(secretKey, clientSecretBytes))
+            if (IsSecretEqual(secretKey, clientSecretBytes.Span))
             {
-                matched = true;
-                return secretKey.KeyId;
+                return new MatchedCredential(secretKey.KeyId);
             }
         }
 
-        matched = false;
         return null;
     }
 

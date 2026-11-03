@@ -7,9 +7,9 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Secrets.Verifiers;
 
 /// <summary>
-/// Contains the names of the schemes a <see cref="SecretVerifier"/> is made with. A stored verifier names its scheme
-/// first, as <c>$&lt;scheme&gt;$…</c>, so a verifier made with any scheme keeps verifying when the scheme chosen for
-/// new secrets changes.
+/// Contains the names of the <see cref="ISecretVerifierScheme"/> instances the family registers. A stored verifier
+/// names its scheme first, as <c>$&lt;scheme&gt;$…</c>, so a verifier made with any registered scheme keeps verifying
+/// when the scheme chosen for new secrets changes; a package registers a scheme of its own under another name.
 /// </summary>
 // See ADR-1391.
 [PublicAPI]

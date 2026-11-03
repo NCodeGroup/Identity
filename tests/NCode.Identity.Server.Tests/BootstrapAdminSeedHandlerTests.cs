@@ -44,6 +44,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         SeededClientValidator? seededClientValidator = null
     )
     {
+        // The settings resolver and the method catalog are asked only when an existing client's secret is refreshed.
         // Strict mocks: none of these collaborators are touched on the no-op guard paths.
         var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
         var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
@@ -57,6 +58,8 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             mockCryptoService.Object,
             TimeProvider.System,
             seededClientValidator ?? CreateStrictSeededClientValidator(),
+            CreateStrictMock<IEffectiveSettingsResolver>().Object,
+            CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
             mockLogger.Object
         );
     }
@@ -64,7 +67,9 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
     private BootstrapAdminSeedHandler CreateHandler(
         BootstrapAdminOptions bootstrapOptions,
         ServiceProvider secretServices,
-        SeededClientValidator? seededClientValidator = null
+        SeededClientValidator? seededClientValidator = null,
+        IEffectiveSettingsResolver? effectiveSettingsResolver = null,
+        IClientAuthenticationMethodCatalog? clientAuthenticationMethodCatalog = null
     )
     {
         // The real generator and protector provider, because the generator's ImportSharedSecret takes a span that a
@@ -83,8 +88,72 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             mockCryptoService.Object,
             TimeProvider.System,
             seededClientValidator ?? CreateStrictSeededClientValidator(),
+            effectiveSettingsResolver ?? CreateStrictMock<IEffectiveSettingsResolver>().Object,
+            clientAuthenticationMethodCatalog
+                ?? CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
             mockLogger.Object
         );
+    }
+
+    // Resolves the existing client's settings as the runtime resolves them, server, then tenant, then client, to the
+    // method the client is registered for now.
+    private IEffectiveSettingsResolver CreateExistingClientResolver(
+        JsonElement clientSettings,
+        string tokenEndpointAuthMethod
+    )
+    {
+        var server = CreateLooseMock<ISettingCollection>().Object;
+        var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
+        var mockClientSettings = CreateStrictMock<ISettingCollection>();
+        mockClientSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod))
+            .Returns(tokenEndpointAuthMethod)
+            .Verifiable();
+
+        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        mockResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(server)
+            .Verifiable();
+        mockResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    server,
+                    OpenIdSettingScopes.Tenant,
+                    WorkloadTenantId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(tenantSettings)
+            .Verifiable();
+        mockResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    tenantSettings,
+                    OpenIdSettingScopes.Client,
+                    ClientId,
+                    clientSettings
+                )
+            )
+            .Returns(mockClientSettings.Object)
+            .Verifiable();
+        return mockResolver.Object;
+    }
+
+    private IClientAuthenticationMethodCatalog CreateMethodCatalog(
+        string name,
+        bool usesClientSecretAsKey
+    )
+    {
+        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
+        ClientAuthenticationMethodDescriptor? descriptor = new()
+        {
+            Name = name,
+            RequiresClientSecret = true,
+            UsesClientSecretAsKey = usesClientSecretAsKey,
+        };
+        mockCatalog.Setup(x => x.TryGet(name, out descriptor)).Returns(true).Verifiable();
+        return mockCatalog.Object;
     }
 
     // Strict mocks: none of the validator's collaborators is touched unless the seed reaches the check.
@@ -274,20 +343,46 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         );
     }
 
-    [Fact]
-    public async Task HandleAsync_WhenClientExists_ReplacesItsSecretUnderTheTenantsMasterKey()
+    [Theory]
+    [InlineData("client_secret_basic", false)]
+    [InlineData("client_secret_jwt", true)]
+    public async Task HandleAsync_WhenClientExists_ReplacesItsSecretUnderTheTenantsMasterKey(
+        string tokenEndpointAuthMethod,
+        bool usesClientSecretAsKey
+    )
     {
+        // The refreshed secret's form follows the method the client is registered for now, which an operator may have
+        // changed since it was seeded. See ADR-1391.
         var owner = SecretOwner.ForTenant(WorkloadTenantId);
         var secretServices = CreateSecretServices(owner);
-        var handler = CreateHandler(CreateConfiguredOptions(), secretServices);
+        var clientSettings = JsonElement.Parse(
+            $"{{\"token_endpoint_auth_method\":\"{tokenEndpointAuthMethod}\"}}"
+        );
+        var handler = CreateHandler(
+            CreateConfiguredOptions(),
+            secretServices,
+            effectiveSettingsResolver: CreateExistingClientResolver(
+                clientSettings,
+                tokenEndpointAuthMethod
+            ),
+            clientAuthenticationMethodCatalog: CreateMethodCatalog(
+                tokenEndpointAuthMethod,
+                usesClientSecretAsKey
+            )
+        );
 
-        // The handler only checks that the client exists; it works on the client's secrets through the store.
+        // The handler reads the client's settings; it works on the client's secrets through the store.
         var existingClient = new PersistedClient
         {
             TenantId = WorkloadTenantId,
             ClientId = ClientId,
             IsDisabled = false,
-            Settings = null!,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = WorkloadTenantId,
+                ClientId = ClientId,
+                Value = clientSettings,
+            },
             Secrets = null!,
         };
         var staleSecret = new PersistedSecret
@@ -322,6 +417,100 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         mockClientStore
             .Setup(x => x.RemoveSecretAsync(ClientId, StaleSecretId, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<bool>(true))
+            .Verifiable();
+        mockClientStore
+            .Setup(x =>
+                x.AddSecretAsync(
+                    ClientId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (string _, PersistedSecret secret, CancellationToken _) => addedSecret = secret
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await handler.HandleAsync(
+            CreateCommand(
+                WorkloadTenantId,
+                TenantPlane.Workload,
+                CreateStoreManager(mockClientStore.Object)
+            ),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(addedSecret);
+        if (usesClientSecretAsKey)
+        {
+            await AssertSecretIsProtectedUnderTenantAsync(
+                secretServices,
+                owner,
+                addedSecret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
+        else
+        {
+            await AssertSecretIsVerifierUnderTenantAsync(
+                secretServices,
+                owner,
+                addedSecret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheExistingClientsSettingsCannotBeRead_StoresAVerifier()
+    {
+        // A client whose settings cannot be read authenticates with no method, so the refresh still heals its secret,
+        // in the form its seeded client_secret_basic needs.
+        var owner = SecretOwner.ForTenant(WorkloadTenantId);
+        var secretServices = CreateSecretServices(owner);
+        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        mockResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(
+                new UnreadableSettingsException(
+                    OpenIdSettingScopes.Server,
+                    "server",
+                    new JsonException("unreadable")
+                )
+            )
+            .Verifiable();
+        var handler = CreateHandler(
+            CreateConfiguredOptions(),
+            secretServices,
+            effectiveSettingsResolver: mockResolver.Object
+        );
+
+        var existingClient = new PersistedClient
+        {
+            TenantId = WorkloadTenantId,
+            ClientId = ClientId,
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = WorkloadTenantId,
+                ClientId = ClientId,
+                Value = JsonElement.Parse("{}"),
+            },
+            Secrets = null!,
+        };
+
+        PersistedSecret? addedSecret = null;
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<PersistedClient?>(existingClient))
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<PersistedClientSecrets?>((PersistedClientSecrets?)null))
             .Verifiable();
         mockClientStore
             .Setup(x =>

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 
@@ -187,6 +188,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = secret.SecretType,
             KeySizeBits = secret.KeySizeBits,
+            IsVerifier = SecretEncodings.IsVerifier(secret.SecretEncoding),
         };
     }
 
@@ -214,6 +216,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = secret.SecretType,
             KeySizeBits = secret.KeySizeBits,
+            IsVerifier = SecretEncodings.IsVerifier(secret.SecretEncoding),
             SecretMaterial = secretMaterial,
         };
     }

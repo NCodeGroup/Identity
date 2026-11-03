@@ -90,7 +90,7 @@ public class ClientSecretStorageTests
             administrator,
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
         );
-        var (_, verifiedSecret) = await CreateSecretAsync(administrator, clientId);
+        var (verifiedSecretId, verifiedSecret) = await CreateSecretAsync(administrator, clientId);
 
         await SetAuthenticationMethodAsync(
             administrator,
@@ -98,13 +98,16 @@ public class ClientSecretStorageTests
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
         );
 
-        // A verifier is no HMAC key, so the secret issued for client_secret_post cannot sign an assertion.
+        // A verifier is no HMAC key, so the secret issued for client_secret_post cannot sign an assertion, and the
+        // secret's resource says so, which tells the operator to create a new one.
         Assert.Equal(
             "invalid_client",
             await AuthenticateWithAssertionAsync(client, clientId, verifiedSecret, issuer)
         );
+        Assert.True(await IsVerifierAsync(administrator, clientId, verifiedSecretId));
 
         var (keySecretId, keySecret) = await CreateSecretAsync(administrator, clientId);
+        Assert.False(await IsVerifierAsync(administrator, clientId, keySecretId));
 
         var stored = Assert.Single(
             await factory.GetClientSecretsAsync(clientId),
@@ -153,6 +156,37 @@ public class ClientSecretStorageTests
         );
         Assert.Null(await AuthenticateWithSecretAsync(client, clientId, replacementMaterial));
         Assert.Null(await AuthenticateWithSecretAsync(client, clientId, secretMaterial));
+    }
+
+    [Fact]
+    public async Task PostClient_WhenAComparedSecretWouldSignRequestObjects_RefusesTheSettings()
+    {
+        // A secret stored as a one-way verifier keys no HS256 request object. See ADR-1391.
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretBasic,
+                    ["request_object_signing_alg_values_supported"] = new[] { "HS256" },
+                },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+        Assert.Contains(
+            "request_object_signing_alg_values_supported",
+            body,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -288,6 +322,20 @@ public class ClientSecretStorageTests
             GetRequiredString(jsonElement, "secretId"),
             GetRequiredString(jsonElement, "secretMaterial")
         );
+    }
+
+    private static async Task<bool> IsVerifierAsync(
+        HttpClient administrator,
+        string clientId,
+        string secretId
+    )
+    {
+        using var response = await administrator.GetAsync(
+            $"{TenantApiPath}/clients/{clientId}/secrets/{secretId}"
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        return JsonElement.Parse(body).GetProperty("isVerifier").GetBoolean();
     }
 
     private static async Task<(string SecretId, string SecretMaterial)> RotateAsync(

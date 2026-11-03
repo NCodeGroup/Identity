@@ -39,7 +39,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
 
         public override string Scheme => SecretVerifierSchemes.Sha256;
 
-        public override bool Verify(ReadOnlySpan<byte> secret) => secret.SequenceEqual(Secret);
+        public override ValueTask<bool> VerifyAsync(
+            ReadOnlyMemory<byte> secret,
+            CancellationToken cancellationToken
+        ) => ValueTask.FromResult(secret.Span.SequenceEqual(Secret));
     }
 
     // A shared secret the client holds as a key, as a client issued a secret for client_secret_jwt does.
@@ -58,24 +61,34 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         }
     }
 
+    // The secret keys are set up only for a test whose presented secret matches no verifier, so it reaches them; a
+    // test that passes none proves through the strict client mock that a matching verifier ends the search.
     private OpenIdClient CreateRegisteredClient(
         IReadOnlyCollection<SecretVerifier> verifiers,
-        IReadOnlyCollection<SecretKey> secretKeys,
+        IReadOnlyCollection<SecretKey>? secretKeys,
         bool readsClientId
     )
     {
-        var mockSecretKeys = CreateStrictMock<ISecretKeyCollection>();
-        mockSecretKeys
-            .As<IEnumerable>()
-            .Setup(x => x.GetEnumerator())
-            .Returns(() => secretKeys.GetEnumerator());
         var client = CreateClient(
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost],
             readsClientId
         );
-        Mock.Get(client).SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object);
         Mock.Get(client).SetupGet(x => x.SecretVerifiers).Returns(verifiers).Verifiable();
+        if (secretKeys is not null)
+        {
+            var mockSecretKeys = CreateStrictMock<ISecretKeyCollection>();
+            mockSecretKeys
+                .As<IEnumerable>()
+                .Setup(x => x.GetEnumerator())
+                .Returns(() => secretKeys.GetEnumerator())
+                .Verifiable();
+            Mock.Get(client)
+                .SetupGet(x => x.SecretKeys)
+                .Returns(mockSecretKeys.Object)
+                .Verifiable();
+        }
+
         return client;
     }
 
@@ -244,7 +257,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
                 new FakeVerifier("verifier-1", "another-secret"),
                 new FakeVerifier("verifier-2", "presented-secret"),
             ],
-            [],
+            secretKeys: null,
             readsClientId: false
         );
         SetupResolvedClient(client);

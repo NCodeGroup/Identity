@@ -9,7 +9,6 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
-using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -56,6 +55,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         SeededLocalAccountValidator? seededLocalAccountValidator = null
     )
     {
+        // A client without a secret never asks how its method uses the secret, so the catalog is a bare strict mock.
         // Strict mocks: on the guard paths under test the secret, protector, crypto, and time dependencies are
         // untouched, and a client without a secret never loads the tenant's protector.
         var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
@@ -76,7 +76,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             mockSecretGenerator.Object,
             mockSecretProtectorProvider.Object,
             clientKeyImporter ?? CreateStrictMock<IClientKeyImporter>().Object,
-            CreateMethodCatalog(),
+            CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
             mockCryptoService.Object,
             TimeProvider.System,
             new SeededClientValidator(
@@ -95,7 +95,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         ISettingSerializer settingSerializer,
         IOpenIdEnvironmentProvider openIdEnvironmentProvider,
         CoherencePolicy coherencePolicy,
-        ServiceProvider secretServices
+        ServiceProvider secretServices,
+        IClientAuthenticationMethodCatalog methodCatalog
     )
     {
         // The real generator and protector provider, because the generator's ImportSharedSecret takes a span that a
@@ -111,7 +112,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             secretServices.GetRequiredService<ISecretGenerator>(),
             secretServices.GetRequiredService<ISecretProtectorProvider>(),
             CreateStrictMock<IClientKeyImporter>().Object,
-            CreateMethodCatalog(),
+            methodCatalog,
             mockCryptoService.Object,
             TimeProvider.System,
             new SeededClientValidator(
@@ -128,29 +129,21 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         );
     }
 
-    // The client-authentication methods a seeded client may register: only client_secret_jwt keys an HMAC from its
-    // secret, so only its secret is kept reversible. See ADR-1391.
-    private IClientAuthenticationMethodCatalog CreateMethodCatalog()
+    // The catalog answers for the one method the seeded client registers, and the test verifies that it was asked: the
+    // answer decides whether the secret is stored as a verifier or kept reversible. See ADR-1391.
+    private IClientAuthenticationMethodCatalog CreateMethodCatalog(
+        string name,
+        bool usesClientSecretAsKey
+    )
     {
-        var mockCatalog = CreateLooseMock<IClientAuthenticationMethodCatalog>();
-        foreach (
-            var (name, usesClientSecretAsKey) in new[]
-            {
-                (OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic, false),
-                (OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost, false),
-                (OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt, true),
-            }
-        )
+        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
+        ClientAuthenticationMethodDescriptor? descriptor = new()
         {
-            ClientAuthenticationMethodDescriptor? descriptor = new()
-            {
-                Name = name,
-                RequiresClientSecret = true,
-                UsesClientSecretAsKey = usesClientSecretAsKey,
-            };
-            mockCatalog.Setup(x => x.TryGet(name, out descriptor)).Returns(true);
-        }
-
+            Name = name,
+            RequiresClientSecret = true,
+            UsesClientSecretAsKey = usesClientSecretAsKey,
+        };
+        mockCatalog.Setup(x => x.TryGet(name, out descriptor)).Returns(true).Verifiable();
         return mockCatalog.Object;
     }
 
@@ -791,6 +784,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
     }
 
     [Theory]
+    [InlineData("client_secret_basic", false)]
     [InlineData("client_secret_post", false)]
     [InlineData("client_secret_jwt", true)]
     public async Task HandleAsync_WhenClientHasASecret_StoresItProtectedUnderTheTenantsMasterKey(
@@ -834,7 +828,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
             CreateCoherencePolicy(),
-            secretServices
+            secretServices,
+            CreateMethodCatalog(tokenEndpointAuthMethod, usesClientSecretAsKey)
         );
 
         PersistedClient? storedClient = null;

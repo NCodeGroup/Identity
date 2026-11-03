@@ -12,6 +12,15 @@ NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.LocalKeyWrappe
 NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.PreviousKeyPaths.get -> string![]!
 NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.PreviousKeyPaths.set -> void
 NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions
-NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.Pbkdf2Iterations.get -> int
-NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.Pbkdf2Iterations.set -> void
 NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.SharedSecretVerifierOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.GeneratedSecretScheme.get -> string!
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.GeneratedSecretScheme.set -> void
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.SuppliedSecretScheme.get -> string!
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.SuppliedSecretScheme.set -> void
+const NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MinimumProductionIterations = 600000 -> int
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Iterations.get -> int
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Iterations.set -> void
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxConcurrency.get -> int
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.MaxConcurrency.set -> void
+NCode.Identity.Secrets.Persistence.Options.Pbkdf2SecretVerifierOptions.Pbkdf2SecretVerifierOptions() -> void

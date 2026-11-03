@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.KeyWrapping;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.ProductionSafety;
 
@@ -51,6 +52,12 @@ public static class ProductionSafetyRegistration
         "Refusing to start in the Production environment: the Data Protection key ring has no XmlEncryptor. "
         + "Configure the 'SecretProtection' section: its root key protects the key ring and every stored secret.";
 
+    internal const string Pbkdf2IterationsTooLowMessage =
+        "Refusing to start in the Production environment: 'Pbkdf2SecretVerifierOptions.Iterations' is below "
+        + "600000, the OWASP recommendation for PBKDF2-HMAC-SHA256. A supplied client secret is stored as a "
+        + "PBKDF2 verifier, and a lower work factor lets whoever holds the root key and the database search it "
+        + "faster. Remove the override from this deployment.";
+
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
@@ -58,8 +65,9 @@ public static class ProductionSafetyRegistration
         /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
         /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
         /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
-        /// Data Protection key ring that has no repository or is not encrypted at rest, and configured server settings
-        /// whose <c>environment_type</c> is a registered non-production type.
+        /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
+        /// client secrets below the recommended one, and configured server settings whose <c>environment_type</c> is a
+        /// registered non-production type.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
@@ -88,6 +96,18 @@ public static class ProductionSafetyRegistration
                     KeyRingRepositoryMissingMessage
                 )
                 .Validate(options => options.XmlEncryptor is not null, KeyRingUnprotectedMessage)
+                .ValidateOnStart();
+
+            // A supplied client secret's verifier keeps at least the recommended work factor (ADR-1391). The options
+            // are configured in code, so they are checked as the host starts.
+            serviceCollection
+                .AddOptions<Pbkdf2SecretVerifierOptions>()
+                .Validate(
+                    options =>
+                        options.Iterations
+                        >= Pbkdf2SecretVerifierOptions.MinimumProductionIterations,
+                    Pbkdf2IterationsTooLowMessage
+                )
                 .ValidateOnStart();
 
             // The server-wide environment type needs the registered types, so it is checked as the host starts too.

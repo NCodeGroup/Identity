@@ -25,6 +25,7 @@ const symmetricSecret: SecretResource = {
   expiresWhen: '2099-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
+  isVerifier: true,
 };
 
 type OwnerCase = {

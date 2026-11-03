@@ -94,8 +94,8 @@ public abstract class SecretProtectionTestBase : BaseTests
         });
 
         // A verifier records its own work factor, so a low one exercises the same path faster.
-        serviceCollection.Configure<SharedSecretVerifierOptions>(options =>
-            options.Pbkdf2Iterations = 1_000
+        serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options =>
+            options.Iterations = 1_000
         );
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
@@ -181,7 +181,17 @@ public abstract class SecretProtectionTestBase : BaseTests
         var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [secret]));
 
         Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
-        Assert.True(verifier.Verify(SecureEncoding.UTF8.GetBytes(expectedSecretText)));
-        Assert.False(verifier.Verify(SecureEncoding.UTF8.GetBytes(expectedSecretText + "x")));
+        Assert.True(
+            await verifier.VerifyAsync(
+                SecureEncoding.UTF8.GetBytes(expectedSecretText),
+                CancellationToken.None
+            )
+        );
+        Assert.False(
+            await verifier.VerifyAsync(
+                SecureEncoding.UTF8.GetBytes(expectedSecretText + "x"),
+                CancellationToken.None
+            )
+        );
     }
 }

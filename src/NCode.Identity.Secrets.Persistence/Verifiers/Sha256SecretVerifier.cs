@@ -22,7 +22,17 @@ internal sealed class Sha256SecretVerifier(KeyMetadata metadata, byte[] digest) 
     public override string Scheme => SecretVerifierSchemes.Sha256;
 
     /// <inheritdoc />
-    public override bool Verify(ReadOnlySpan<byte> secret)
+    public override ValueTask<bool> VerifyAsync(
+        ReadOnlyMemory<byte> secret,
+        CancellationToken cancellationToken
+    )
+    {
+        // One hash costs no more than the request that carries it, so the verification neither waits nor is bounded.
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Verify(secret.Span));
+    }
+
+    private bool Verify(ReadOnlySpan<byte> secret)
     {
         // Both digests are 32 bytes, so the comparison takes the same time for every presented secret.
         Span<byte> computed = stackalloc byte[SHA256.HashSizeInBytes];

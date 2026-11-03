@@ -1633,6 +1633,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         // A client registered for client_secret_jwt keys an HMAC from its secret, so the server keeps one it can read
         // back; any other client's secret is stored as a one-way verifier. See ADR-1391.
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -2656,6 +2658,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task RotateSecretAsync_WhenTheClientUsesItsSecretAsAKey_GeneratesAReversibleReplacement()
     {
         // The replacement's form follows the method the client is registered for when it is rotated. See ADR-1391.
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
         SetupStore();
         var rotated = CreatePersistedSecret("secret-1", "rotated-ct");
         MockClientStore

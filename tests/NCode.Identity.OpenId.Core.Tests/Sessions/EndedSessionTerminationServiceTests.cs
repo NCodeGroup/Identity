@@ -1,12 +1,15 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Moq.Protected;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -43,6 +46,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
     private Mock<ISessionService> MockSessionService { get; }
     private Mock<IExpiringKeySet> MockExpiringKeySet { get; }
     private FakeTimeProvider TimeProvider { get; } = new(Now);
+    private FakeLogger<EndedSessionTerminationService> Logger { get; } = new();
     private ServiceProvider RootServiceProvider { get; }
     private EndedSessionTerminationService Service { get; }
 
@@ -65,7 +69,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
             MockExpiringKeySet.Object,
             Options.Create(new EndedSessionTerminationOptions()),
             TimeProvider,
-            NullLogger<EndedSessionTerminationService>.Instance
+            Logger
         );
     }
 
@@ -110,10 +114,10 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         return mockContext;
     }
 
-    private void SetupLease(bool acquired)
+    private void SetupLease(bool acquired, CancellationToken cancellationToken = default)
     {
         MockExpiringKeySet
-            .Setup(x => x.TryAddAsync(LeaseKey, LeaseExpiresWhen, CancellationToken.None))
+            .Setup(x => x.TryAddAsync(LeaseKey, LeaseExpiresWhen, cancellationToken))
             .ReturnsAsync(acquired)
             .Verifiable();
     }
@@ -132,6 +136,14 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
     }
 
     private void SetupPage(string? cursor, string? nextCursor, params PersistedGrant[] grants) =>
+        SetupPage(cursor, nextCursor, grants, CancellationToken.None);
+
+    private void SetupPage(
+        string? cursor,
+        string? nextCursor,
+        PersistedGrant[] grants,
+        CancellationToken cancellationToken
+    ) =>
         MockGrantStore
             .Setup(x =>
                 x.GetUnrevokedExpiredPageAsync(
@@ -142,7 +154,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
                         Cursor = cursor,
                         Limit = EndedSessionTerminationService.PageSize,
                     },
-                    CancellationToken.None
+                    cancellationToken
                 )
             )
             .ReturnsAsync(
@@ -230,6 +242,60 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         SetupTenantContext("t2", CreateContext(), ("s3", true));
 
         await Service.TerminateEndedSessionsAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task TerminateEndedSessionsAsync_WhenASessionIsMalformed_LogsItAndTerminatesTheTenantsOtherSessions()
+    {
+        SetupLease(acquired: true);
+        SetupStores();
+        SetupPage(cursor: null, nextCursor: null, CreateGrant("t1", "s1"), CreateGrant("t1", "s2"));
+        var mockContext = CreateContext();
+        SetupTenantContext("t1", mockContext, ("s2", true));
+        var exception = new JsonException("malformed");
+        MockSessionService
+            .Setup(x => x.TerminateIfEndedAsync(mockContext.Object, "s1", CancellationToken.None))
+            .ThrowsAsync(exception)
+            .Verifiable(Times.Once);
+
+        await Service.TerminateEndedSessionsAsync(CancellationToken.None);
+
+        var records = Logger.Collector.GetSnapshot();
+        var failure = Assert.Single(records, x => x.Level == LogLevel.Warning);
+        Assert.Equal(EventIds.EndedSessionTerminationFailedForSession, failure.Id.Id);
+        Assert.Same(exception, failure.Exception);
+        Assert.Contains(failure.StructuredState ?? [], x => x is { Key: "SessionId", Value: "s1" });
+        Assert.Contains(failure.StructuredState ?? [], x => x is { Key: "TenantId", Value: "t1" });
+        var terminated = Assert.Single(records, x => x.Level == LogLevel.Information);
+        Assert.Equal(EventIds.EndedSessionsTerminated, terminated.Id.Id);
+    }
+
+    [Fact]
+    public async Task TerminateEndedSessionsAsync_WhenCancelledWhileTerminatingASession_Throws()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        SetupLease(acquired: true, cancellationToken);
+        SetupStores();
+        SetupPage(cursor: null, nextCursor: null, [CreateGrant("t1", "s1")], cancellationToken);
+        var mockContext = CreateContext();
+        MockOpenIdContextFactory
+            .Setup(x =>
+                x.CreateForBackgroundAsync(It.IsAny<IServiceProvider>(), "t1", cancellationToken)
+            )
+            .ReturnsAsync(mockContext.Object)
+            .Verifiable(Times.Once);
+        MockSessionService
+            .Setup(x => x.TerminateIfEndedAsync(mockContext.Object, "s1", cancellationToken))
+            .Callback(cancellationTokenSource.Cancel)
+            .ThrowsAsync(new OperationCanceledException(cancellationToken))
+            .Verifiable(Times.Once);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Service.TerminateEndedSessionsAsync(cancellationToken)
+        );
+
+        Assert.Empty(Logger.Collector.GetSnapshot());
     }
 
     [Fact]

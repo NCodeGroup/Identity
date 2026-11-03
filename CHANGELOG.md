@@ -2440,10 +2440,12 @@ describes the family as it is rather than its changes
   `IPersistedPayloadSerializer` seam, which wraps it in a self-describing envelope `{ "$ver": N, "$payload": … }`
   stamped with the schema version declared by `[PersistedPayloadVersion(N)]` (default `1`). On read, registered
   `IPersistedPayloadUpcaster` steps bring an older stored document up to the current version before deserialization; a
-  document without an envelope reads as version `1`, and a document newer than the current version is read
-  forward-compatibly. The long-lived, in-place-mutated payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`) carry a
-  `[JsonExtensionData]` bag, so a mixed-version node never drops unknown members on a read-modify-write
-  ([ADR-1113](docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)).
+  document newer than the current version is read forward-compatibly, and a document that is not an envelope, or that
+  lacks a member the serving code always writes, is rejected with a `JsonException`. The long-lived, in-place-mutated
+  payloads (`SessionGrant`, `CibaGrant`, `DeviceCodeGrant`) carry a `[JsonExtensionData]` bag, so a mixed-version node
+  never drops unknown members on a read-modify-write
+  ([ADR-1113](docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md),
+  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
 
 - **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
   and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read it
@@ -2556,12 +2558,12 @@ describes the family as it is rather than its changes
   `ncode.identity.client_authentication.method`.
 
 - **Audit events are CloudTrail-shaped JSON records.** `AuditRecordWriter` writes each audit event as one compact,
-  snake_case record whose field names are the constants of `AuditRecordFields`: `schema_version` (`"1.1"`), `event_id`
+  snake_case record whose field names are the constants of `AuditRecordFields`: `schema_version` (`"1.0"`), `event_id`
   (a UUIDv7), `event_time` (UTC), `event_name`, `event_category`, `event_source`, `outcome`, `severity`, `tenant_id`,
-  `subject_id`, `client_id`, the `actor`, `request` and `error` objects, a `resources` array of `{type, id}` and an
-  event-specific `details` object that the event writes through `ISupportAuditDetails`. Null members and an empty
-  `resources` are omitted. `AuditActor`, `AuditRequest`, `AuditResource` and `AuditError` model the objects, and
-  `AuditActorTypes`, `AuditSeverities`, `AuditEventCategories`, `AuditEventSources`, `AuditResourceTypes`,
+  `tenant_environment_type`, `subject_id`, `client_id`, the `actor`, `request` and `error` objects, a `resources` array
+  of `{type, id}` and an event-specific `details` object that the event writes through `ISupportAuditDetails`. Null
+  members and an empty `resources` are omitted. `AuditActor`, `AuditRequest`, `AuditResource` and `AuditError` model the
+  objects, and `AuditActorTypes`, `AuditSeverities`, `AuditEventCategories`, `AuditEventSources`, `AuditResourceTypes`,
   `OpenIdAuditEventNames` and `ManagementAuditEventNames` hold the open vocabularies. An `AuditEvent` declares an
   abstract `EventName` and `EventCategory`, a required `EventSource` and its `EventTime`, and `OpenIdErrorEvent` carries
   its `Error`. `AuditRequestFactory` builds `request` from the HTTP context: the request, trace and span ids, the source
@@ -2979,7 +2981,7 @@ describes the family as it is rather than its changes
   `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
   `staging` and `production` (a package registers more as `ITenantEnvironmentType`), and the name is a display label. A
   tenant that declares nothing is `production`, and the Development and Conformance host settings declare `development`
-  and `testing`. A non-production tenant's login pages show an environment banner. The audit record (schema 1.1) carries
+  and `testing`. A non-production tenant's login pages show an environment banner. The audit record carries
   `tenant_environment_type`, and management audit events that name a tenant carry it too, resolved from the tenant's
   effective settings once per request; the metric attribute `ncode.identity.tenant.environment_type` tags
   `ncode.identity.events.published` and `ncode.identity.rate_limiting.requests`
@@ -4279,29 +4281,35 @@ describes the family as it is rather than its changes
 - **Every end-user session ends, and its lifetimes are required.** `session_absolute_lifetime` defaults to 30 days and
   accepts one second to 365 days, and `session_idle_timeout` defaults to 3 days and accepts one second to 100 days; a
   zero value is refused. `CreateSessionRequest.AbsoluteLifetime` and `CreateSessionRequest.IdleTimeout` are required
-  positive `TimeSpan`s, and `SessionGrant.AbsoluteExpiresWhen` records the absolute end. A session's grant expires at
-  the end of its idle window or, if earlier, at its absolute end, and each renewal of the window extends the expiry
-  through `IPersistedGrantService.UpdatePayloadAndExpirationAsync`, a member a custom implementation implements, so the
-  grant prune removes an abandoned session after the retention. `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen`
-  and `expiresWhen` of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An
-  authorize request that finds an ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes
-  the grants issued under it and notifies its relying parties
-  ([ADR-1220](docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), issue
-  [#271](https://github.com/NCodeGroup/Identity/issues/271)).
+  positive `TimeSpan`s, and the required `SessionGrant.IdleTimeout` and `SessionGrant.AbsoluteExpiresWhen` carry the
+  idle window and the absolute end with the session. A session's grant always expires, at the end of its idle window
+  or, if earlier, at its absolute end, and each renewal of the window extends the expiry in the same
+  `IPersistedGrantService.UpdatePayloadAsync` write (`PersistedGrantUpdate<TPayload>.ExpiresWhen`), so the grant prune
+  removes an abandoned session after the retention. A stored session without its bounds or its expiry is malformed:
+  reading it throws, so it is never served. `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen`
+  of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An authorize
+  request that finds an ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants
+  issued under it and notifies its relying parties
+  ([ADR-1220](docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md),
+  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  issue [#271](https://github.com/NCodeGroup/Identity/issues/271)).
 
 - **A session that ends while no request uses it is terminated within a minute.** One replica in each
   `OpenId:EndedSessionTermination:Interval` (one minute by default) revokes the grants issued under each session that
   ended unused, sends back-channel logout to its relying parties (`idle_timeout` or `absolute_expiry`), and audits the
   termination, once: a request and the pass that find the same ended session terminate it once. The claim revokes the
-  grants issued under the session in one unit of work, so a failure after it leaves no token of the session active. The
-  grant prune keeps a session until it is terminated and removes it one retention after.
+  grants issued under the session in one unit of work, so a failure after it leaves no token of the session active. A
+  session the pass cannot terminate, such as a malformed one, is logged with its tenant and identifier and skipped, so
+  the tenant's other ended sessions are terminated; a request that reads a malformed session fails closed. The grant
+  prune keeps a session until it is terminated and removes it one retention after.
   `IPersistedGrantService.SetRevokedOnceAsync` returns `bool`, `IGrantStore.RemoveEndedBeforeAsync` takes the grant
   types that end by revocation, and `IGrantStore.GetUnrevokedExpiredPageAsync`,
   `IPersistedGrantService.RevokeSessionOnceAsync`, `ISessionService.TerminateIfEndedAsync`,
   `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedServerAccessor` serve the pass, which the grants
   table's index on grant type, revocation and expiry supports
-  ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md), issue
-  [#281](https://github.com/NCodeGroup/Identity/issues/281)).
+  ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
+  [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
+  issue [#281](https://github.com/NCodeGroup/Identity/issues/281)).
 
 - **Logout revokes only the terminating session's grants**, so signing out of one login leaves the subject's other
   sessions intact (issue [#55](https://github.com/NCodeGroup/Identity/issues/55),

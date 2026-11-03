@@ -81,7 +81,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Eight family records override template records:
+so a bare ADR number names one record. Nine family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -108,6 +108,11 @@ so a bare ADR number names one record. Eight family records override template re
   project template's Keep a Changelog grouping and its `**Breaking:**` entry label, because nothing is shipped: until
   the first stable release, `## [Unreleased]` is a present-tense catalog of what the family does under `### Added` and
   `### Security` only, and no commit subject or pull request title carries the conventional-commit `!` marker.
+- [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)
+  supersedes project-template ADR-0108's reading of a document without `$ver` as version 1, because every grant payload
+  the family stores is an envelope from its first document, so one without it is malformed and rejected; and, until the
+  first stable release, its additive-by-default rule, because no stored shape is one a reader must keep: a payload's
+  shape changes in place, with no version bump or upcaster.
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.

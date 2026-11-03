@@ -98,6 +98,8 @@ public class DefaultSessionServiceTests : BaseTests
                 IdentityProvider = null,
                 ClientIds = clientIds,
                 LastActivityWhen = UtcNow,
+                IdleTimeout = TimeSpan.FromHours(1),
+                AbsoluteExpiresWhen = UtcNow.AddDays(30),
             },
         };
 
@@ -117,6 +119,8 @@ public class DefaultSessionServiceTests : BaseTests
                 AuthTime = UtcNow,
                 ClientIds = clientIds,
                 LastActivityWhen = UtcNow,
+                IdleTimeout = TimeSpan.FromHours(1),
+                AbsoluteExpiresWhen = UtcNow.AddDays(30),
             },
         };
 
@@ -516,7 +520,7 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     private static PersistedGrant<SessionGrant> CreateIdleSession(
-        TimeSpan? idleTimeout,
+        TimeSpan idleTimeout,
         DateTimeOffset lastActivityWhen
     ) =>
         new()
@@ -601,7 +605,7 @@ public class DefaultSessionServiceTests : BaseTests
     private void SetupClaim(Mock<OpenIdContext> mockContext, PersistedGrantId grantId, bool claimed)
     {
         PersistedGrant<SessionGrant>? claimedSession = claimed
-            ? CreateIdleSession(idleTimeout: null, UtcNow) with
+            ? CreateIdleSession(TimeSpan.FromHours(1), UtcNow) with
             {
                 Status = PersistedGrantStatus.Revoked,
             }
@@ -647,21 +651,6 @@ public class DefaultSessionServiceTests : BaseTests
             )
             .ReturnsAsync(true)
             .Verifiable();
-
-    [Fact]
-    public async Task ValidateAndTouchAsync_WhenNoIdleTimeout_ReturnsTrueWithoutWrite()
-    {
-        var mockContext = CreateContext();
-        SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
-
-        var result = await Service.ValidateAndTouchAsync(
-            mockContext.Object,
-            SessionId,
-            CancellationToken.None
-        );
-
-        Assert.True(result);
-    }
 
     [Fact]
     public async Task ValidateAndTouchAsync_WhenRevoked_ReturnsFalse()
@@ -737,31 +726,6 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task ValidateAndTouchAsync_WhenStoredWithoutAnEnd_TerminatesWithAbsoluteExpiry()
-    {
-        var mockContext = CreateContextWithMediator(out var mockMediator);
-        var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-30));
-        var grantId = SetupGetSession(
-            mockContext,
-            session with
-            {
-                ExpiresWhen = null,
-                Payload = session.Payload with { AbsoluteExpiresWhen = null },
-            }
-        );
-        SetupClaim(mockContext, grantId, claimed: true);
-        SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
-
-        var result = await Service.ValidateAndTouchAsync(
-            mockContext.Object,
-            SessionId,
-            CancellationToken.None
-        );
-
-        Assert.False(result);
-    }
-
-    [Fact]
     public async Task ValidateAndTouchAsync_WhenMissing_ReturnsFalse()
     {
         var mockContext = CreateContext();
@@ -774,6 +738,29 @@ public class DefaultSessionServiceTests : BaseTests
         );
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenTheSessionGrantHasNoExpiration_Throws()
+    {
+        var mockContext = CreateContext();
+        SetupGetSession(
+            mockContext,
+            CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-5)) with
+            {
+                ExpiresWhen = null,
+            }
+        );
+
+        // No UpdatePayloadAsync or RevokeSessionOnceAsync setup exists; the malformed session is neither touched nor
+        // terminated.
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Service.ValidateAndTouchAsync(
+                mockContext.Object,
+                SessionId,
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]
@@ -873,33 +860,6 @@ public class DefaultSessionServiceTests : BaseTests
         Assert.True(result);
         Assert.NotNull(update);
         Assert.Equal(UtcNow.AddMinutes(10), update.Value.ExpiresWhen);
-    }
-
-    [Fact]
-    public async Task ValidateAndTouchAsync_WhenStoredWithoutAnAbsoluteEnd_StampsTheGrantsExpiryAsItsAbsoluteEnd()
-    {
-        var mockContext = CreateContext();
-        var session = CreateIdleSession(idleTimeout: null, UtcNow.AddMinutes(-5));
-        var stored = session with
-        {
-            ExpiresWhen = UtcNow.AddDays(1),
-            Payload = session.Payload with { AbsoluteExpiresWhen = null },
-        };
-        var grantId = SetupGetSession(mockContext, stored);
-
-        PersistedGrantUpdate<SessionGrant>? update = null;
-        SetupTouch(mockContext, grantId, stored, touch => update = touch);
-
-        var result = await Service.ValidateAndTouchAsync(
-            mockContext.Object,
-            SessionId,
-            CancellationToken.None
-        );
-
-        Assert.True(result);
-        Assert.NotNull(update);
-        Assert.Equal(UtcNow.AddDays(1), update.Value.Payload.AbsoluteExpiresWhen);
-        Assert.Equal(UtcNow.AddDays(1), update.Value.ExpiresWhen);
     }
 
     [Fact]
@@ -1136,31 +1096,6 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task TerminateIfEndedAsync_WhenStoredWithoutAnEnd_TerminatesItWithAbsoluteExpiry()
-    {
-        var mockContext = CreateContextWithMediator(out var mockMediator);
-        var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-30));
-        var grantId = SetupGetSession(
-            mockContext,
-            session with
-            {
-                ExpiresWhen = null,
-                Payload = session.Payload with { AbsoluteExpiresWhen = null },
-            }
-        );
-        SetupClaim(mockContext, grantId, claimed: true);
-        SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
-
-        var result = await Service.TerminateIfEndedAsync(
-            mockContext.Object,
-            SessionId,
-            CancellationToken.None
-        );
-
-        Assert.True(result);
-    }
-
-    [Fact]
     public async Task TerminateIfEndedAsync_WhenTheSessionHasNotEnded_ReturnsFalse()
     {
         var mockContext = CreateContext();
@@ -1177,6 +1112,27 @@ public class DefaultSessionServiceTests : BaseTests
         );
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public async Task TerminateIfEndedAsync_WhenTheSessionGrantHasNoExpiration_Throws()
+    {
+        var mockContext = CreateContext();
+        SetupGetSession(
+            mockContext,
+            CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddHours(-2)) with
+            {
+                ExpiresWhen = null,
+            }
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Service.TerminateIfEndedAsync(
+                mockContext.Object,
+                SessionId,
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]
@@ -1407,7 +1363,7 @@ public class DefaultSessionServiceTests : BaseTests
                     AuthTime = createdWhen,
                     ClientIds = clientIds ?? [],
                     LastActivityWhen = lastActivityWhen ?? createdWhen,
-                    IdleTimeout = idleTimeout,
+                    IdleTimeout = idleTimeout ?? TimeSpan.FromDays(30),
                     AbsoluteExpiresWhen = absoluteExpiresWhen ?? createdWhen.AddDays(30),
                 },
                 JsonOptions
@@ -1480,6 +1436,40 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task GetSessionsAsync_WhenASessionPayloadIsMalformed_Throws()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        var malformed = CreateEnvelope("malformed", UtcNow.AddMinutes(-5));
+        malformed.ProtectedPayload = """test:{"$ver":1,"$payload":{}}""";
+        SetupSessionEnumeration(
+            mockContext,
+            malformed,
+            CreateEnvelope("live", UtcNow.AddMinutes(-1))
+        );
+
+        await Assert.ThrowsAsync<JsonException>(async () =>
+            await Service.GetSessionsAsync(mockContext.Object, SubjectId, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task GetSessionsAsync_WhenASessionGrantHasNoExpiration_Throws()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        var malformed = CreateEnvelope("malformed", UtcNow.AddMinutes(-5));
+        malformed.ExpiresWhen = null;
+        SetupSessionEnumeration(
+            mockContext,
+            malformed,
+            CreateEnvelope("live", UtcNow.AddMinutes(-1))
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Service.GetSessionsAsync(mockContext.Object, SubjectId, CancellationToken.None)
+        );
+    }
+
+    [Fact]
     public async Task GetSessionsAsync_SkipsSessionsPastTheirAbsoluteEnd()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -1490,36 +1480,6 @@ public class DefaultSessionServiceTests : BaseTests
                 UtcNow.AddHours(-2),
                 absoluteExpiresWhen: UtcNow.AddMinutes(-1)
             ),
-            CreateEnvelope("live", UtcNow.AddMinutes(-1))
-        );
-
-        var sessions = await Service.GetSessionsAsync(
-            mockContext.Object,
-            SubjectId,
-            CancellationToken.None
-        );
-
-        Assert.Equal(["live"], sessions.Select(session => session.SessionId));
-    }
-
-    [Fact]
-    public async Task GetSessionsAsync_SkipsSessionsStoredWithoutAnEnd()
-    {
-        var mockContext = CreateStrictMock<OpenIdContext>();
-        var withoutEnd = CreateEnvelope("without-end", UtcNow.AddMinutes(-5));
-        withoutEnd.ExpiresWhen = null;
-        withoutEnd.ProtectedPayload = TestGrantPayloadProtector.Protect(
-            new SessionGrant
-            {
-                AuthTime = UtcNow.AddMinutes(-5),
-                ClientIds = [],
-                LastActivityWhen = UtcNow.AddMinutes(-5),
-            },
-            JsonOptions
-        );
-        SetupSessionEnumeration(
-            mockContext,
-            withoutEnd,
             CreateEnvelope("live", UtcNow.AddMinutes(-1))
         );
 

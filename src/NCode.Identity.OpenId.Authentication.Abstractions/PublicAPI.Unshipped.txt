@@ -1321,9 +1321,9 @@ NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ClientIds.get -> Syst
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ClientIds.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.LastActivityWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.LastActivityWhen.init -> void
-NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdleTimeout.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdleTimeout.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.IdleTimeout.init -> void
-NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.AbsoluteExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.AbsoluteExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.AbsoluteExpiresWhen.init -> void
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.UserAgent.get -> string?
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.UserAgent.init -> void

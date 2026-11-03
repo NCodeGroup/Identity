@@ -375,9 +375,9 @@ public class DefaultOpenIdTenantFactory(
             return tenantIssuer;
         }
 
-        // Every write path gives a tenant a strategy serves an issuer (ADR-1165), so only a tenant written around those
-        // paths reaches this point. It fails closed: deriving an origin from the request would let a caller's Host
-        // header choose where the server tells clients to send their credentials (ADR-1129).
+        // Every write path gives a tenant a strategy serves an issuer (ADR-1165), so a tenant without one is malformed
+        // and fails closed (ADR-1395): deriving an origin from the request would let a caller's Host header choose
+        // where the server tells clients to send their credentials (ADR-1129).
         throw new InvalidOperationException(
             $"The tenant with id '{persistedTenant.TenantId}' has no issuer and cannot be served. Give it an issuer "
                 + "through the management API."

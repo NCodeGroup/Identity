@@ -56,15 +56,20 @@ public class DefaultPersistedPayloadSerializerTests
         Assert.Equal(5, result.Count);
     }
 
-    [Fact]
-    public void Deserialize_WhenDocumentLacksEnvelope_ReadsAsVersionOne()
+    [Theory]
+    [InlineData("""{ "name": "abc" }""")]
+    [InlineData("""[ { "name": "abc" } ]""")]
+    [InlineData("""{ "$payload": { "name": "abc" } }""")]
+    [InlineData("""{ "$ver": "1", "$payload": { "name": "abc" } }""")]
+    [InlineData("""{ "$ver": 1 }""")]
+    public void Deserialize_WhenDocumentIsNotAnEnvelope_Throws(string document)
     {
         var serializer = new DefaultPersistedPayloadSerializer([]);
-        var legacy = JsonSerializer.SerializeToElement(new { name = "abc" }, JsonOptions);
+        var stored = ParseDocument(document);
 
-        var result = serializer.Deserialize<SimplePayload>(legacy, JsonOptions);
-
-        Assert.Equal("abc", result.Name);
+        Assert.Throws<JsonException>(() =>
+            serializer.Deserialize<SimplePayload>(stored, JsonOptions)
+        );
     }
 
     [Fact]
@@ -117,6 +122,30 @@ public class DefaultPersistedPayloadSerializerTests
         Assert.Equal("abc", result.Name);
     }
 
+    [Theory]
+    [InlineData("idleTimeout")]
+    [InlineData("absoluteExpiresWhen")]
+    public void Deserialize_WhenSessionLacksABound_Throws(string missingMember)
+    {
+        var serializer = new DefaultPersistedPayloadSerializer([]);
+        var payload = new JsonObject
+        {
+            ["authTime"] = "2026-01-01T00:00:00+00:00",
+            ["clientIds"] = new JsonArray("client-1"),
+            ["lastActivityWhen"] = "2026-01-01T00:00:00+00:00",
+            ["idleTimeout"] = "01:00:00",
+            ["absoluteExpiresWhen"] = "2026-01-31T00:00:00+00:00",
+        };
+        payload.Remove(missingMember);
+        var stored = JsonSerializer.SerializeToElement(
+            new JsonObject { ["$ver"] = 1, ["$payload"] = payload }
+        );
+
+        Assert.Throws<JsonException>(() =>
+            serializer.Deserialize<SessionGrant>(stored, JsonOptions)
+        );
+    }
+
     #endregion
 
     #region Constructor Tests
@@ -148,6 +177,8 @@ public class DefaultPersistedPayloadSerializerTests
                     "authTime": "2026-01-01T00:00:00+00:00",
                     "clientIds": ["client-1"],
                     "lastActivityWhen": "2026-01-01T00:00:00+00:00",
+                    "idleTimeout": "01:00:00",
+                    "absoluteExpiresWhen": "2026-01-31T00:00:00+00:00",
                     "futureMember": "keep-me"
                 }
             }

@@ -6,7 +6,10 @@
   [ADR-1228](1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
   a claim returns the session as it was revoked;
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a replica materializes its
-  server when it starts, so a pass runs from then, or from the first request when the store cannot be read at start; amended by
+  server when it starts, so a pass runs from then, or from the first request when the store cannot be read at start;
+  [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md): the pass
+  selects only grants whose expiration has passed, so a grant without one is not selected, and it logs and skips a
+  session it cannot terminate, so the tenant's other sessions are terminated;
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names)

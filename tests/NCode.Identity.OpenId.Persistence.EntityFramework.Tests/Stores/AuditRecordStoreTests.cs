@@ -66,7 +66,7 @@ public sealed class AuditRecordStoreTests : IDisposable
             TraceId = "0af7651916cd43dd8448eb211c80319c",
             SourceIp = "203.0.113.7",
             Resources = resources,
-            Record = JsonElement.Parse("""{"schema_version":"1.1"}"""),
+            Record = JsonElement.Parse("""{"schema_version":"1.0"}"""),
         };
 
     private static ServiceProvider CreateInMemoryProvider()

@@ -528,11 +528,23 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.EndedSessionTerminationFailedForTenant,
         Level = LogLevel.Warning,
-        Message = "The sessions of tenant {TenantId} that ended while unused could not all be terminated; a session whose grants were not revoked is terminated at the next pass."
+        Message = "The sessions of tenant {TenantId} that ended while unused could not be terminated because the tenant's context could not be created; they are terminated at the next pass."
     )]
     internal static partial void EndedSessionTerminationFailedForTenant(
         this ILogger logger,
         string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.EndedSessionTerminationFailedForSession,
+        Level = LogLevel.Warning,
+        Message = "The session {SessionId} of tenant {TenantId} that ended while unused could not be terminated and is skipped; the pass terminates the tenant's other sessions."
+    )]
+    internal static partial void EndedSessionTerminationFailedForSession(
+        this ILogger logger,
+        string tenantId,
+        string sessionId,
         Exception exception
     );
 

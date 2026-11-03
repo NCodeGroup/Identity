@@ -20,10 +20,11 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// <see cref="EndedSessionTerminationOptions.Interval"/>, once the replica has materialized its server. One replica
 /// runs each interval's pass: it reads the sessions that are not revoked and have ended in pages of
 /// <see cref="PageSize"/> sessions, and terminates each in the context of its tenant, which revokes the grants issued
-/// under it, notifies its relying parties, and audits the termination. A pass that fails is logged and run again at the
-/// next interval.
+/// under it, notifies its relying parties, and audits the termination. A session that cannot be terminated, such as a
+/// malformed one, is logged and skipped, so the pass terminates the sessions after it. A pass that fails is logged and
+/// run again at the next interval.
 /// </summary>
-// See ADR-1223.
+// See ADR-1223 and ADR-1395.
 internal sealed class EndedSessionTerminationService(
     IMaterializedServerAccessor materializedServerAccessor,
     IServiceScopeFactory serviceScopeFactory,
@@ -172,7 +173,7 @@ internal sealed class EndedSessionTerminationService(
 
     /// <summary>
     /// Terminates the specified sessions of one tenant that have ended, in a scope and a context of their own. A tenant
-    /// whose sessions cannot be terminated is logged and skipped, so the other tenants' sessions are terminated.
+    /// whose context cannot be created is logged and skipped, so the other tenants' sessions are terminated.
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant of the sessions.</param>
     /// <param name="sessionIds">The opaque identifiers (<c>sid</c>) of the sessions.</param>
@@ -185,21 +186,32 @@ internal sealed class EndedSessionTerminationService(
         CancellationToken cancellationToken
     )
     {
+        await using var scope = ServiceScopeFactory.CreateAsyncScope();
+
+        OpenIdContext openIdContext;
         try
         {
-            await using var scope = ServiceScopeFactory.CreateAsyncScope();
-            await using var openIdContext = await OpenIdContextFactory.CreateForBackgroundAsync(
+            openIdContext = await OpenIdContextFactory.CreateForBackgroundAsync(
                 scope.ServiceProvider,
                 tenantId,
                 cancellationToken
             );
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            Logger.EndedSessionTerminationFailedForTenant(tenantId, exception);
+            return 0;
+        }
 
+        await using (openIdContext)
+        {
             var count = 0;
             foreach (var sessionId in sessionIds)
             {
                 if (
-                    await SessionService.TerminateIfEndedAsync(
+                    await TryTerminateSessionAsync(
                         openIdContext,
+                        tenantId,
                         sessionId,
                         cancellationToken
                     )
@@ -211,10 +223,38 @@ internal sealed class EndedSessionTerminationService(
 
             return count;
         }
+    }
+
+    /// <summary>
+    /// Terminates the specified session if it has ended. A session that cannot be terminated, such as a malformed one
+    /// that a request reading it would fail on, is logged and skipped, so one session does not stop the pass from
+    /// terminating the sessions after it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> of the session's tenant.</param>
+    /// <param name="tenantId">The identifier of the tenant of the session.</param>
+    /// <param name="sessionId">The opaque identifier (<c>sid</c>) of the session.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing
+    /// <see langword="true"/> when this call terminated the session.</returns>
+    private async ValueTask<bool> TryTerminateSessionAsync(
+        OpenIdContext openIdContext,
+        string tenantId,
+        string sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await SessionService.TerminateIfEndedAsync(
+                openIdContext,
+                sessionId,
+                cancellationToken
+            );
+        }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
-            Logger.EndedSessionTerminationFailedForTenant(tenantId, exception);
-            return 0;
+            Logger.EndedSessionTerminationFailedForSession(tenantId, sessionId, exception);
+            return false;
         }
     }
 }

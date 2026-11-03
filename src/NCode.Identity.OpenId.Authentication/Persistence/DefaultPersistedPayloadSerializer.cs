@@ -70,24 +70,19 @@ internal sealed class DefaultPersistedPayloadSerializer : IPersistedPayloadSeria
         JsonSerializerOptions jsonOptions
     )
     {
-        var storedVersion = DefaultVersion;
-        JsonNode? payloadNode;
-
         if (
-            jsonElement.ValueKind == JsonValueKind.Object
-            && jsonElement.TryGetPropertyValue<int>(VersionPropertyName, out storedVersion)
-            && jsonElement.TryGetProperty(PayloadPropertyName, out var payloadProperty)
+            jsonElement.ValueKind != JsonValueKind.Object
+            || !jsonElement.TryGetPropertyValue<int>(VersionPropertyName, out var storedVersion)
+            || !jsonElement.TryGetProperty(PayloadPropertyName, out var payloadProperty)
         )
         {
-            payloadNode = JsonSerializer.SerializeToNode(payloadProperty, jsonOptions);
-        }
-        else
-        {
-            // A document written before the schema-versioned envelope existed; read it as-is at version 1.
-            storedVersion = DefaultVersion;
-            payloadNode = JsonSerializer.SerializeToNode(jsonElement, jsonOptions);
+            throw new JsonException(
+                $"The persisted payload of type '{typeof(TPayload)}' is not a schema-versioned envelope: it must be "
+                    + $"an object with an integer '{VersionPropertyName}' and a '{PayloadPropertyName}'."
+            );
         }
 
+        var payloadNode = JsonSerializer.SerializeToNode(payloadProperty, jsonOptions);
         var currentVersion = GetCurrentVersion(typeof(TPayload));
         payloadNode = Upcast(typeof(TPayload), payloadNode, storedVersion, currentVersion);
 

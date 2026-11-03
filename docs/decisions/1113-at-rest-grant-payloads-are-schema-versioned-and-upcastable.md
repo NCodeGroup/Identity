@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-1265](1265-grant-payloads-are-protected-under-the-tenant-master-key.md): the versioned document is stored
-  protected)
+  protected;
+  [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md): a
+  document that is not a schema-versioned envelope is rejected, and until the first stable release a payload's shape
+  changes in place with no version bump or upcaster)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md)

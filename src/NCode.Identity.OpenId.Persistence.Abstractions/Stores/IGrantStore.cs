@@ -30,8 +30,8 @@ public interface IGrantStore : IStore<PersistedGrant>
 
     /// <summary>
     /// Gets a single page of the <see cref="PersistedGrant"/> instances of the specified grant type that are not
-    /// revoked and whose expiration is at or before <paramref name="expiredAt"/> or that never expire, ordered by
-    /// their identifier using keyset (cursor) pagination. The grants of a disabled tenant are not returned.
+    /// revoked and whose expiration is at or before <paramref name="expiredAt"/>, ordered by their identifier using
+    /// keyset (cursor) pagination. A grant without an expiration and the grants of a disabled tenant are not returned.
     /// </summary>
     /// <param name="grantType">The grant type of the grants that are returned.</param>
     /// <param name="expiredAt">The time at or before which the expiration of a grant selects it.</param>

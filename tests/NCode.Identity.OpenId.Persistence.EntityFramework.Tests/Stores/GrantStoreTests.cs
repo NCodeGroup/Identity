@@ -238,7 +238,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
     #region GetUnrevokedExpiredPageAsync Tests
 
     [Fact]
-    public async Task GetUnrevokedExpiredPageAsync_ReturnsTheUnrevokedGrantsOfTheTypeThatExpiredOrNeverExpire()
+    public async Task GetUnrevokedExpiredPageAsync_ReturnsTheUnrevokedGrantsOfTheTypeThatExpired()
     {
         var expiredAt = DateTimeOffset.UnixEpoch.AddDays(10);
         var expired = CreateGrant(
@@ -247,12 +247,12 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
             grantType: SessionGrantType
         );
         expired.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
-        var neverExpires = CreateGrant(
-            hashedKey: "hk-never",
-            grantId: "grant-never",
+        var withoutExpiry = CreateGrant(
+            hashedKey: "hk-without-expiry",
+            grantId: "grant-without-expiry",
             grantType: SessionGrantType
         );
-        neverExpires.ExpiresWhen = null;
+        withoutExpiry.ExpiresWhen = null;
         var revoked = CreateGrant(
             hashedKey: "hk-revoked",
             grantId: "grant-revoked",
@@ -270,7 +270,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         otherType.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
 
         await _store.AddAsync(expired, CancellationToken.None);
-        await _store.AddAsync(neverExpires, CancellationToken.None);
+        await _store.AddAsync(withoutExpiry, CancellationToken.None);
         await _store.AddAsync(revoked, CancellationToken.None);
         await _store.AddAsync(notExpired, CancellationToken.None);
         await _store.AddAsync(otherType, CancellationToken.None);
@@ -284,10 +284,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
             CancellationToken.None
         );
 
-        Assert.Equal(
-            new[] { "grant-expired", "grant-never" },
-            page.Items.Select(grant => grant.GrantId).ToList()
-        );
+        Assert.Equal("grant-expired", Assert.Single(page.Items).GrantId);
         Assert.Null(page.NextCursor);
     }
 

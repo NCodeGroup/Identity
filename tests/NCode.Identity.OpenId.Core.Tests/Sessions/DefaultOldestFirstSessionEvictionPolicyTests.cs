@@ -27,6 +27,8 @@ public class DefaultOldestFirstSessionEvictionPolicyTests
                 AuthTime = createdWhen,
                 ClientIds = [],
                 LastActivityWhen = createdWhen,
+                IdleTimeout = TimeSpan.FromHours(1),
+                AbsoluteExpiresWhen = createdWhen.AddDays(1),
             }
         );
 

@@ -10,8 +10,8 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// A locale the interactive surface renders: the BCP 47 language tag it is selected and advertised by, and the text of
 /// the pages the surface renders on the server. The surface registers one as an <see cref="IUiLocale"/> for every
 /// locale it ships, and a host adds a locale, or replaces a shipped one by its tag, through
-/// <c>AddInteractiveLocale</c>; the <c>apps/auth</c> bundle renders the locales its own catalog holds, in its
-/// default language for any other.
+/// <c>AddInteractiveLocale</c>. The single-page bundle that mounts over the pages renders the locales it carries a
+/// catalog for, and renders any other in its default language while its forms still carry the locale's tag.
 /// </summary>
 /// <param name="LanguageTag">The BCP 47 language tag of the locale, such as <c>fr</c>.</param>
 /// <param name="Messages">The text of the server-rendered pages in the locale.</param>

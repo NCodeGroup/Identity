@@ -12,80 +12,53 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// Selects the locale a page of the interactive surface renders in. The end-user's preferences are the request's
 /// <c>ui_locales</c> (the authorization request's, carried on the redirect to the surface and on its forms) followed
 /// by the user agent's <c>Accept-Language</c>, and the tenant's effective settings bound the choice through the
-/// registered <see cref="IUiLocaleCatalog"/>.
+/// registered <see cref="IUiLocaleCatalog"/>. It also writes the <c>ui_locales</c> query a redirect to a page of the
+/// surface carries.
 /// </summary>
 /// <remarks>
 /// Every registered UI locale must be an <see cref="InteractiveLocale"/>, since the surface renders every locale the
-/// catalog can select: <see cref="InteractiveAuthenticationOptionsValidator"/> stops the host when one carries no messages, and
-/// the selector refuses such a catalog when it is composed, so no page renders in the wrong language.
+/// catalog can select: the surface's options validation stops the host as it starts when one carries no messages,
+/// and the selector refuses such a catalog when it is composed, so no page renders in the wrong language.
 /// </remarks>
 // See ADR-1402.
 internal sealed class InteractiveLocaleSelector
 {
     private const char PreferenceSeparator = ' ';
+    private const char QueryStart = '?';
+    private const char QuerySeparator = '&';
     private const string AnyLanguage = "*";
 
-    private IUiLocaleCatalog UiLocaleCatalog { get; }
+    /// <summary>
+    /// Appends the <c>ui_locales</c> query that carries <paramref name="languageTags"/>, in their order, to
+    /// <paramref name="url"/>, which may already have a query: <c>?ui_locales=fr%20de</c> or
+    /// <c>&amp;ui_locales=fr%20de</c>. The URL is returned as it is when there is no tag to carry.
+    /// </summary>
+    /// <param name="url">The URL of a page of the surface.</param>
+    /// <param name="languageTags">The preferred language tags, most preferred first, or <see langword="null"/>.</param>
+    /// <returns>The URL with the query appended, or <paramref name="url"/> when there is no tag to carry.</returns>
+    public static string AppendUiLocalesQuery(string url, IReadOnlyList<string>? languageTags) =>
+        languageTags is null || languageTags.Count == 0
+            ? url
+            : AppendUiLocalesQuery(url, string.Join(PreferenceSeparator, languageTags));
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="InteractiveLocaleSelector"/> class.
+    /// Appends the <c>ui_locales</c> query that carries <paramref name="languageTag"/> to <paramref name="url"/>,
+    /// which may already have a query. The URL is returned as it is when there is no tag to carry.
     /// </summary>
-    /// <param name="uiLocaleCatalog">The registered UI locales, every one an <see cref="InteractiveLocale"/>.</param>
-    /// <exception cref="InvalidOperationException">A registered UI locale carries no interactive messages.</exception>
-    public InteractiveLocaleSelector(IUiLocaleCatalog uiLocaleCatalog)
+    /// <param name="url">The URL of a page of the surface.</param>
+    /// <param name="languageTag">The language tag to carry, or <see langword="null"/>.</param>
+    /// <returns>The URL with the query appended, or <paramref name="url"/> when there is no tag to carry.</returns>
+    public static string AppendUiLocalesQuery(string url, string? languageTag)
     {
-        var failures = InteractiveAuthenticationOptionsValidator.FindLocalesWithoutMessages(
-            uiLocaleCatalog
-        );
-        if (failures.Count > 0)
+        if (string.IsNullOrEmpty(languageTag))
         {
-            throw new InvalidOperationException(string.Join(' ', failures));
+            return url;
         }
 
-        UiLocaleCatalog = uiLocaleCatalog;
+        var separator = url.Contains(QueryStart) ? QuerySeparator : QueryStart;
+        return $"{url}{separator}{OpenIdProtocol.Parameters.UiLocales}="
+            + Uri.EscapeDataString(languageTag);
     }
-
-    /// <summary>
-    /// Selects the locale the page of <paramref name="httpContext"/> renders in for the tenant whose effective
-    /// settings are <paramref name="settings"/>, or for no tenant when they are <see langword="null"/>.
-    /// </summary>
-    /// <param name="httpContext">The request of the page.</param>
-    /// <param name="settings">The tenant's effective settings, or <see langword="null"/> when the request resolved no
-    /// tenant.</param>
-    /// <returns>The selected locale.</returns>
-    public InteractiveLocale Select(HttpContext httpContext, IReadOnlySettingCollection? settings)
-    {
-        var preferences = ReadPreferences(httpContext.Request);
-        var locale = settings is null
-            ? UiLocaleCatalog.Select(preferences, null, null)
-            : UiLocaleCatalog.Select(settings, preferences);
-
-        // The constructor refuses a catalog with any other kind of locale, and the validator stops the host first.
-        return (InteractiveLocale)locale;
-    }
-
-    /// <summary>
-    /// Formats the query suffix that carries <paramref name="languageTags"/> to a page of the surface as its
-    /// <c>ui_locales</c>, in their order: <c>&amp;ui_locales=fr%20de</c>, or empty when there is none to carry.
-    /// </summary>
-    /// <param name="languageTags">The preferred language tags, most preferred first, or <see langword="null"/>.</param>
-    /// <returns>The query suffix, which starts with <c>&amp;</c>, or an empty string.</returns>
-    public static string FormatUiLocalesQuery(IReadOnlyList<string>? languageTags) =>
-        languageTags is null || languageTags.Count == 0
-            ? string.Empty
-            : $"&{OpenIdProtocol.Parameters.UiLocales}="
-                + Uri.EscapeDataString(string.Join(PreferenceSeparator, languageTags));
-
-    /// <summary>
-    /// Returns the language tag a form or a redirect carries as its <c>ui_locales</c>, when it names a registered
-    /// locale, so a page the surface redirects back to renders in the same locale; any other value is dropped.
-    /// </summary>
-    /// <param name="uiLocales">The carried <c>ui_locales</c> value, or <see langword="null"/>.</param>
-    /// <returns>The registered locale's language tag, or <see langword="null"/>.</returns>
-    public string? GetCarriedLanguageTag(string? uiLocales) =>
-        !string.IsNullOrEmpty(uiLocales) && UiLocaleCatalog.TryGet(uiLocales, out var locale)
-            ? locale.LanguageTag
-            : null;
 
     // The ui_locales preferences come first, in their order; then the Accept-Language values by descending quality,
     // without the wildcard and the values a quality of zero rules out. The method runs on every page request, so it
@@ -152,4 +125,54 @@ internal sealed class InteractiveLocaleSelector
 
     // RFC 9110 §12.4.2: a value without a quality weight has a weight of 1.
     private static double GetQuality(StringWithQualityHeaderValue header) => header.Quality ?? 1.0;
+
+    private IUiLocaleCatalog UiLocaleCatalog { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InteractiveLocaleSelector"/> class.
+    /// </summary>
+    /// <param name="uiLocaleCatalog">The registered UI locales, every one an <see cref="InteractiveLocale"/>.</param>
+    /// <exception cref="InvalidOperationException">A registered UI locale carries no interactive messages.</exception>
+    public InteractiveLocaleSelector(IUiLocaleCatalog uiLocaleCatalog)
+    {
+        var failures = InteractiveAuthenticationOptionsValidator.FindLocalesWithoutMessages(
+            uiLocaleCatalog
+        );
+        if (failures.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(PreferenceSeparator, failures));
+        }
+
+        UiLocaleCatalog = uiLocaleCatalog;
+    }
+
+    /// <summary>
+    /// Selects the locale the page of <paramref name="httpContext"/> renders in for the tenant whose effective
+    /// settings are <paramref name="settings"/>, or for no tenant when they are <see langword="null"/>.
+    /// </summary>
+    /// <param name="httpContext">The request of the page.</param>
+    /// <param name="settings">The tenant's effective settings, or <see langword="null"/> when the request resolved no
+    /// tenant.</param>
+    /// <returns>The selected locale.</returns>
+    public InteractiveLocale Select(HttpContext httpContext, IReadOnlySettingCollection? settings)
+    {
+        var preferences = ReadPreferences(httpContext.Request);
+        var locale = settings is null
+            ? UiLocaleCatalog.Select(preferences, null, null)
+            : UiLocaleCatalog.Select(settings, preferences);
+
+        // The constructor refuses a catalog with any other kind of locale, and the validator stops the host first.
+        return (InteractiveLocale)locale;
+    }
+
+    /// <summary>
+    /// Returns the language tag a form or a redirect carries as its <c>ui_locales</c>, when it names a registered
+    /// locale, so a page the surface redirects back to renders in the same locale; any other value is dropped.
+    /// </summary>
+    /// <param name="uiLocales">The carried <c>ui_locales</c> value, or <see langword="null"/>.</param>
+    /// <returns>The registered locale's language tag, or <see langword="null"/>.</returns>
+    public string? GetCarriedLanguageTag(string? uiLocales) =>
+        !string.IsNullOrEmpty(uiLocales) && UiLocaleCatalog.TryGet(uiLocales, out var locale)
+            ? locale.LanguageTag
+            : null;
 }

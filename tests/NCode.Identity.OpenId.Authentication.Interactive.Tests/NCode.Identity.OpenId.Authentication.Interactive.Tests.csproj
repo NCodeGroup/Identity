@@ -33,5 +33,11 @@
             Link="auth-index.html"
             CopyToOutputDirectory="PreserveNewest"
         />
+        <!-- The bundle's message catalogs, so the tests prove each shipped locale's wording is in its catalog. -->
+        <Content
+            Include="..\..\src\frontend\apps\auth\src\i18n\*.ts"
+            Link="auth-i18n\%(Filename)%(Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+        />
     </ItemGroup>
 </Project>

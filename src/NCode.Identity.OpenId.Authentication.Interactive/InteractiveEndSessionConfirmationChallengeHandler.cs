@@ -33,10 +33,10 @@ internal sealed class InteractiveEndSessionConfirmationChallengeHandler(
             command.OpenIdContext.Http,
             InteractiveAuthenticationDefaults.LogoutConfirmPath
         );
-        var location =
-            $"{confirmPath}?ReturnUrl="
-            + Uri.EscapeDataString(command.ContinueUrl)
-            + InteractiveLocaleSelector.FormatUiLocalesQuery(command.Request.UiLocales);
+        var location = InteractiveLocaleSelector.AppendUiLocalesQuery(
+            $"{confirmPath}?ReturnUrl=" + Uri.EscapeDataString(command.ContinueUrl),
+            command.Request.UiLocales
+        );
 
         RedirectHttpResult result = TypedResults.Redirect(location);
         var disposition = ReadOnlyEndpointDisposition.Handled(result);

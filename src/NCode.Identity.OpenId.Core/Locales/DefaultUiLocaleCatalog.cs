@@ -16,21 +16,97 @@ namespace NCode.Identity.OpenId.Locales;
 /// </summary>
 /// <remarks>
 /// The registered set is validated when the catalog is composed: a locale whose tag is not a well-formed BCP 47
-/// language tag, or a tag registered more than once, is an error, never ignored. The catalog reads only the registered
-/// locales, so the setting descriptors that name its domain can consult it inside options validation.
+/// language tag, or a tag registered more than once, is an error, never ignored, and one error names every such tag.
+/// The catalog reads only the registered locales, so the setting descriptors that name its domain can consult it
+/// inside options validation.
 /// </remarks>
 // See ADR-1402.
-internal sealed partial class DefaultUiLocaleCatalog(IEnumerable<IUiLocale> locales)
-    : IUiLocaleCatalog
+internal sealed partial class DefaultUiLocaleCatalog : IUiLocaleCatalog
 {
     private const char SubtagSeparator = '-';
+    private const char FailureSeparator = ' ';
+
+    // A language subtag of two to eight letters, then any number of subtags of one to eight letters or digits (BCP 47
+    // §2.1), which keeps a tag safe to write into an HTML attribute and a URL.
+    [GeneratedRegex("^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*\\z", RegexOptions.CultureInvariant)]
+    private static partial Regex LanguageTagRegex();
+
+    // Every malformed or duplicate tag is reported in the one error, so a host with several misregistrations fixes
+    // them in one restart.
+    private static FrozenDictionary<string, IUiLocale> Index(ImmutableArray<IUiLocale> locales)
+    {
+        var localesByTag = new Dictionary<string, IUiLocale>(StringComparer.OrdinalIgnoreCase);
+        List<string> failures = [];
+        foreach (var locale in locales)
+        {
+            var languageTag = locale.LanguageTag;
+            if (string.IsNullOrEmpty(languageTag) || !LanguageTagRegex().IsMatch(languageTag))
+            {
+                failures.Add(
+                    $"The UI locale '{languageTag}' is not a well-formed BCP 47 language tag."
+                );
+            }
+            else if (!localesByTag.TryAdd(languageTag, locale))
+            {
+                failures.Add($"The UI locale '{languageTag}' is registered more than once.");
+            }
+        }
+
+        if (failures.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(FailureSeparator, failures));
+        }
+
+        return localesByTag.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    }
+
+    // An unset ui_locales_supported lets every registered locale be selected (ADR-1010).
+    private static bool IsSupported(
+        IUiLocale locale,
+        IReadOnlyCollection<string>? supportedLanguageTags
+    )
+    {
+        if (supportedLanguageTags is null)
+        {
+            return true;
+        }
+
+        foreach (var supportedLanguageTag in supportedLanguageTags)
+        {
+            if (
+                string.Equals(
+                    supportedLanguageTag,
+                    locale.LanguageTag,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<IUiLocale> Locales => LocaleList;
 
-    private ImmutableArray<IUiLocale> LocaleList { get; } = [.. locales];
+    private ImmutableArray<IUiLocale> LocaleList { get; }
 
-    private FrozenDictionary<string, IUiLocale> LocalesByTag { get; } = Index(locales);
+    private FrozenDictionary<string, IUiLocale> LocalesByTag { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultUiLocaleCatalog"/> class.
+    /// </summary>
+    /// <param name="locales">The registered UI locales, in their registration order.</param>
+    /// <exception cref="InvalidOperationException">A registered locale's tag is not a well-formed BCP 47 language
+    /// tag, or a tag is registered more than once; the message names every such tag.</exception>
+    public DefaultUiLocaleCatalog(IEnumerable<IUiLocale> locales)
+    {
+        // The injected sequence is enumerated once, so the list and the index always hold the same locales.
+        LocaleList = [.. locales];
+        LocalesByTag = Index(LocaleList);
+    }
 
     /// <inheritdoc />
     public bool TryGet(string languageTag, [MaybeNullWhen(false)] out IUiLocale locale)
@@ -141,61 +217,4 @@ internal sealed partial class DefaultUiLocaleCatalog(IEnumerable<IUiLocale> loca
         locale = null;
         return false;
     }
-
-    // An unset ui_locales_supported lets every registered locale be selected (ADR-1010).
-    private static bool IsSupported(
-        IUiLocale locale,
-        IReadOnlyCollection<string>? supportedLanguageTags
-    )
-    {
-        if (supportedLanguageTags is null)
-        {
-            return true;
-        }
-
-        foreach (var supportedLanguageTag in supportedLanguageTags)
-        {
-            if (
-                string.Equals(
-                    supportedLanguageTag,
-                    locale.LanguageTag,
-                    StringComparison.OrdinalIgnoreCase
-                )
-            )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static FrozenDictionary<string, IUiLocale> Index(IEnumerable<IUiLocale> locales)
-    {
-        var localesByTag = new Dictionary<string, IUiLocale>(StringComparer.OrdinalIgnoreCase);
-        foreach (var locale in locales)
-        {
-            var languageTag = locale.LanguageTag;
-            if (string.IsNullOrEmpty(languageTag) || !LanguageTagRegex().IsMatch(languageTag))
-            {
-                throw new InvalidOperationException(
-                    $"The UI locale '{languageTag}' is not a well-formed BCP 47 language tag."
-                );
-            }
-
-            if (!localesByTag.TryAdd(languageTag, locale))
-            {
-                throw new InvalidOperationException(
-                    $"The UI locale '{languageTag}' is registered more than once."
-                );
-            }
-        }
-
-        return localesByTag.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-    }
-
-    // A language subtag of two to eight letters, then any number of subtags of one to eight letters or digits (BCP 47
-    // §2.1), which keeps a tag safe to write into an HTML attribute and a URL.
-    [GeneratedRegex("^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*\\z", RegexOptions.CultureInvariant)]
-    private static partial Regex LanguageTagRegex();
 }

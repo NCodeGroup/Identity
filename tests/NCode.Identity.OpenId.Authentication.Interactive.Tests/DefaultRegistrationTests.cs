@@ -58,6 +58,12 @@ public sealed class DefaultRegistrationTests : IDisposable
             .Value;
     }
 
+    private static List<IUiLocale?> GetRegisteredLocales(IServiceCollection serviceCollection) =>
+        serviceCollection
+            .Where(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+            .Select(descriptor => descriptor.ImplementationInstance as IUiLocale)
+            .ToList();
+
     private static InteractiveLocale CreateRewordedEnglish() =>
         InteractiveLocales.English with
         {
@@ -254,6 +260,80 @@ public sealed class DefaultRegistrationTests : IDisposable
         Assert.Equal(InteractiveLocales.All.Length, locales.Count);
         Assert.Same(reworded, locales[0]);
         Assert.DoesNotContain(InteractiveLocales.English, locales);
+    }
+
+    [Fact]
+    public void AddInteractiveAuthentication_WhenTheHostRegisteredANewTagFirst_KeepsTheShippedLocalesAheadOfIt()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var italian = InteractiveLocales.English with { LanguageTag = "it" };
+
+        builder.AddInteractiveLocale(italian);
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        var locales = GetRegisteredLocales(serviceCollection);
+        Assert.Equal([.. InteractiveLocales.All, italian], locales);
+        Assert.Same(InteractiveLocales.English, locales[0]);
+    }
+
+    [Fact]
+    public void AddInteractiveAuthentication_WhenTheHostRewordedAShippedLocaleOtherThanEnglishFirst_KeepsEnglishFirst()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var reworded = InteractiveLocales.German with
+        {
+            Messages = InteractiveLocales.German.Messages with { SignInTitle = "Einloggen" },
+        };
+
+        builder.AddInteractiveLocale(reworded);
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        var locales = GetRegisteredLocales(serviceCollection);
+        Assert.Equal(
+            [
+                InteractiveLocales.English,
+                reworded,
+                InteractiveLocales.Spanish,
+                InteractiveLocales.French,
+            ],
+            locales
+        );
+    }
+
+    [Fact]
+    public void AddInteractiveAuthentication_WhenTheHostRegisteredSeveralLocalesFirst_InsertsEachMissingShippedLocaleInItsPlace()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var italian = InteractiveLocales.English with { LanguageTag = "it" };
+        var rewordedFrench = InteractiveLocales.French with
+        {
+            Messages = InteractiveLocales.French.Messages with { SignInTitle = "Connexion" },
+        };
+
+        builder.AddInteractiveLocale(italian);
+        builder.AddInteractiveLocale(rewordedFrench);
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        var locales = GetRegisteredLocales(serviceCollection);
+        Assert.Equal(
+            [
+                InteractiveLocales.English,
+                InteractiveLocales.German,
+                InteractiveLocales.Spanish,
+                italian,
+                rewordedFrench,
+            ],
+            locales
+        );
     }
 
     [Fact]

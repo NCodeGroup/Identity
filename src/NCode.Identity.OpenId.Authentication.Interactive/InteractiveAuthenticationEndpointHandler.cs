@@ -140,20 +140,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var tokens = IssueAntiforgeryTokens(httpContext);
         var query = httpContext.Request.Query;
         var branding = ReadBranding(httpContext);
-        var locale = SelectLocale(httpContext);
         var security = InteractivePageSecurity.Create(branding);
+        var frame = await CreatePageFrameAsync(httpContext, branding, security);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             html,
-            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
-            SurfacePaths.GetSurfaceBase(httpContext),
-            branding,
-            security.Nonce,
-            locale,
+            frame,
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
-            DescribeLoginError(query[ErrorQueryName].ToString(), locale.Messages)
+            DescribeLoginError(query[ErrorQueryName].ToString(), frame.Locale.Messages)
         );
         return new InteractiveHtmlResult(html, security.Policy);
     }
@@ -208,11 +204,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             html,
-            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
-            SurfacePaths.GetSurfaceBase(httpContext),
-            branding,
-            security.Nonce,
-            SelectLocale(httpContext),
+            await CreatePageFrameAsync(httpContext, branding, security),
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -699,16 +691,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var returnUrl = httpContext.Request.Query["ReturnUrl"].ToString();
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
-        var shell = await BundleReader.TryReadShellAsync(httpContext.RequestAborted);
-        var surfaceBase = SurfacePaths.GetSurfaceBase(httpContext);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             html,
-            shell,
-            surfaceBase,
-            branding,
-            security.Nonce,
-            SelectLocale(httpContext),
+            await CreatePageFrameAsync(httpContext, branding, security),
             returnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty
@@ -758,7 +744,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             httpContext,
             InteractiveAuthenticationDefaults.AccountPath
         );
-        return TypedResults.Redirect(AppendUiLocalesQuery(accountPath, languageTag));
+        return TypedResults.Redirect(
+            InteractiveLocaleSelector.AppendUiLocalesQuery(accountPath, languageTag)
+        );
     }
 
     /// <summary>
@@ -1187,14 +1175,38 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             html,
+            CreatePageFrame(httpContext, shell, branding, security)
+        );
+        return new InteractiveHtmlResult(html, security.Policy);
+    }
+
+    // The document a page of the request's tenant is written into: the bundle when the host has one, the surface
+    // beneath the tenant as its base, the tenant's branding, the response's nonce and the locale the request selects.
+    private async ValueTask<InteractivePageFrame> CreatePageFrameAsync(
+        HttpContext httpContext,
+        InteractiveBranding branding,
+        InteractivePageSecurity security
+    ) =>
+        CreatePageFrame(
+            httpContext,
+            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
+            branding,
+            security
+        );
+
+    private InteractivePageFrame CreatePageFrame(
+        HttpContext httpContext,
+        InteractiveBundleShell? shell,
+        InteractiveBranding branding,
+        InteractivePageSecurity security
+    ) =>
+        new(
             shell,
             SurfacePaths.GetSurfaceBase(httpContext),
             branding,
             security.Nonce,
             SelectLocale(httpContext)
         );
-        return new InteractiveHtmlResult(html, security.Policy);
-    }
 
     // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-1253).
     private InteractiveBranding ReadBranding(HttpContext httpContext) =>
@@ -1263,12 +1275,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var languageTag = LocaleSelector.GetCarriedLanguageTag(
             httpContext.Request.Query[InteractiveAuthenticationPageRenderer.UiLocalesFieldName]
         );
-        var returnUrl = AppendUiLocalesQuery(
+        var returnUrl = InteractiveLocaleSelector.AppendUiLocalesQuery(
             SurfacePaths.GetSurfacePath(httpContext, returnSurfacePath),
             languageTag
         );
         return TypedResults.Redirect(
-            AppendUiLocalesQuery(BuildLoginUrl(httpContext, returnUrl), languageTag)
+            InteractiveLocaleSelector.AppendUiLocalesQuery(
+                BuildLoginUrl(httpContext, returnUrl),
+                languageTag
+            )
         );
     }
 
@@ -1279,28 +1294,11 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         string error,
         string? languageTag
     ) =>
-        AppendUiLocalesQuery(
+        InteractiveLocaleSelector.AppendUiLocalesQuery(
             BuildLoginUrl(httpContext, returnUrl)
                 + $"&{ErrorQueryName}={Uri.EscapeDataString(error)}",
             languageTag
         );
-
-    // Appends the ui_locales query that carries languageTag to url, which may already have a query, or returns url
-    // as it is when there is no tag to carry.
-    private static string AppendUiLocalesQuery(string url, string? languageTag)
-    {
-        if (languageTag is null)
-        {
-            return url;
-        }
-
-        var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
-        return url
-            + separator
-            + InteractiveAuthenticationPageRenderer.UiLocalesFieldName
-            + '='
-            + Uri.EscapeDataString(languageTag);
-    }
 
     private RedirectHttpResult RedirectToPasswordPage(
         HttpContext httpContext,

@@ -30,12 +30,10 @@ internal sealed class InteractiveConsentChallengeHandler(InteractiveSurfacePaths
             command.OpenIdContext.Http,
             InteractiveAuthenticationDefaults.ConsentPath
         );
-        var location =
-            $"{consentPath}?ReturnUrl="
-            + Uri.EscapeDataString(command.ContinueUrl)
-            + InteractiveLocaleSelector.FormatUiLocalesQuery(
-                command.AuthorizationRequest.UiLocales
-            );
+        var location = InteractiveLocaleSelector.AppendUiLocalesQuery(
+            $"{consentPath}?ReturnUrl=" + Uri.EscapeDataString(command.ContinueUrl),
+            command.AuthorizationRequest.UiLocales
+        );
 
         RedirectHttpResult result = TypedResults.Redirect(location);
         return ValueTask.FromResult(ReadOnlyEndpointDisposition.Handled(result));

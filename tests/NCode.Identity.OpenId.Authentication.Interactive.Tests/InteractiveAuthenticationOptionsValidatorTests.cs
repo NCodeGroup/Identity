@@ -30,7 +30,7 @@ public sealed class InteractiveAuthenticationOptionsValidatorTests : IDisposable
     [Fact]
     public void Validate_WhenEveryRegisteredLocaleCarriesMessages_Succeeds()
     {
-        var validator = CreateValidator(InteractiveLocales.English, InteractiveLocales.French);
+        var validator = CreateValidator(TestLocales.Xx, TestLocales.Yy);
 
         var result = validator.Validate(null, new InteractiveAuthenticationOptions());
 
@@ -42,7 +42,7 @@ public sealed class InteractiveAuthenticationOptionsValidatorTests : IDisposable
     {
         var validator = CreateValidator(
             new PlainLocale("it"),
-            InteractiveLocales.English,
+            TestLocales.Xx,
             new PlainLocale("pt-BR")
         );
 

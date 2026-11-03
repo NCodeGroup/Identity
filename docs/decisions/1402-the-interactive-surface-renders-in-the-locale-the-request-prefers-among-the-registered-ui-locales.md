@@ -67,11 +67,15 @@ forms carry on.**
    first, German, Spanish and French; a host adds a locale, or changes a page's wording with a locale built from a
    shipped one and its own messages, through `AddInteractiveLocale`, which registers the `InteractiveLocale` in place
    of any registered locale of its tag, keeping that locale's place in the registration order, before or after
-   `AddInteractiveAuthentication`, which never registers a shipped locale over a tag the host registered. A UI
-   locale is registered data: both registrations register each locale as a singleton instance and find the
-   registered locale of a tag among the instances, which `TryAddEnumerable` cannot, since it dedupes by
-   implementation type and every shipped locale is the one record type. A locale a host registers through a type
-   or a factory is outside the replace-by-tag rule, and the catalog refuses its tag when it is registered twice.
+   `AddInteractiveAuthentication`, which never registers a shipped locale over a tag the host registered and
+   inserts each shipped locale the host did not register, in the shipped order, ahead of the first locale the host
+   registered under a new tag. So English is the first registered locale, and the surface's default language,
+   whatever the order of the calls, and a host that wants another default language names it in the tenant's
+   `default_ui_locale`. A UI locale is registered data: both registrations register each locale as a singleton
+   instance and find the registered locale of a tag among the instances, which `TryAddEnumerable` cannot, since it
+   dedupes by implementation type and every shipped locale is the one record type. A locale a host registers
+   through a type or a factory is outside the replace-by-tag rule, and the catalog refuses its tag when it is
+   registered twice.
 6. **The page states its locale, and the forms carry it.** The server writes the selected locale's tag into the
    `lang` attribute of the `html` element: as the attribute of its standalone document, and in place of the
    `__NCODE_LANG__` placeholder the bundle's `index.html` carries (`InteractiveBundleShell.LanguagePlaceholder`,
@@ -81,7 +85,11 @@ forms carry on.**
    carries it as the `ui_locales` query, when it names a registered locale: the login page after a refused sign-in,
    the account page after a declined sign-out, and the login page an anonymous request for an account page is sent
    to, together with the page it returns to. So the next page renders in the same locale without a stored
-   preference.
+   preference. The account pages the bundle draws (the account, sessions, applications and change-password pages)
+   belong to no authorization or end-session request, so `ui_locales` is not theirs to carry: their forms and links
+   carry none, and a page the server redirects to after a password change or a session revocation renders from the
+   user agent's `Accept-Language` and the tenant's settings, as the page before it did. A language an end-user
+   chooses for their account is a stored preference of theirs, outside this decision.
 7. **The bundle renders the page's language.** `mountSurface` reads the document's `lang` before it renders
    (`readPageLanguage`), and `LocaleProvider` resolves it to a catalog the bundle holds (`apps/auth/src/i18n`:
    `Messages` is the shape every catalog satisfies, `en` is the default, and `resolveLocale` applies the same lookup

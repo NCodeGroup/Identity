@@ -8,18 +8,19 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// The locales the interactive surface ships, which <c>AddInteractiveAuthentication</c> registers. English is the
-/// first registered locale, so it is the surface's default language for a tenant that sets no
-/// <c>default_ui_locale</c>. A host that changes the wording of a page registers a locale built from one of these
-/// with its own <see cref="InteractiveMessages"/> through <c>AddInteractiveLocale</c>, which takes the shipped
-/// locale's place.
+/// first registered locale, whatever the order of the registration calls, so it is the surface's default language
+/// for a tenant that sets no <c>default_ui_locale</c>. A host that changes the wording of a page registers a locale
+/// built from one of these with its own <see cref="InteractiveMessages"/> through <c>AddInteractiveLocale</c>, which
+/// takes the shipped locale's place.
 /// </summary>
 /// <remarks>
-/// The <c>apps/auth</c> bundle that mounts over these pages carries the same wording for each of these locales in
-/// its own catalogs, <c>src/frontend/apps/auth/src/i18n/{en,de,es,fr}.ts</c>, so the page the server renders and
-/// the page the bundle draws over it read the same. A change to a page's wording in one of these locales is made in
-/// both.
+/// The single-page bundle that mounts over the server-rendered pages carries the same wording for each of these
+/// locales in catalogs of its own, so the page the server renders and the page the bundle draws over it read the
+/// same.
 /// </remarks>
-// See ADR-1402.
+// The bundle's catalogs are src/frontend/apps/auth/src/i18n/{en,de,es,fr}.ts. A change to a page's wording in one of
+// these locales is made in both: InteractiveLocalesTests reads the catalogs from the build output and fails when a
+// message of a shipped locale is missing from its catalog. See ADR-1402.
 [PublicAPI]
 public static class InteractiveLocales
 {

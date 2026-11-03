@@ -5,7 +5,9 @@
  *
  * The pages the host renders before the bundle mounts carry the same wording for each shipped locale in
  * `InteractiveLocales` (`src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocales.cs`), so the first
- * paint and the mounted page read the same. A change to a page's wording in a shipped locale is made in both.
+ * paint and the mounted page read the same. A change to a page's wording in a shipped locale is made in both: the
+ * host's `InteractiveLocalesTests` reads these catalogs and fails when a message of a shipped locale is missing from
+ * its catalog.
  */
 export type Messages = {
   readonly login: {

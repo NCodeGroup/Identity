@@ -76,11 +76,7 @@ public class InteractiveBundleShellTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell,
-            surfaceBase: "/acme/account/",
-            branding: null,
-            nonce: "n0nce",
-            locale: InteractiveLocales.English,
+            new InteractivePageFrame(shell, "/acme/account/", null, "n0nce", TestLocales.Xx),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -124,7 +120,7 @@ public class InteractiveBundleShellTests
 
         // The build keeps the language placeholder in the html element's lang attribute, which the host replaces
         // with the selected locale's tag, so the bundle reads the page's language from the document.
-        Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
+        Assert.Contains("<html lang=\"xx\">", html, StringComparison.Ordinal);
         Assert.DoesNotContain(
             InteractiveBundleShell.LanguagePlaceholder,
             html,

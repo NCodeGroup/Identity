@@ -59,7 +59,7 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
     public void Constructor_WhenARegisteredLocaleCarriesNoMessages_Throws()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            CreateSelector(InteractiveLocales.English, new PlainLocale("it"))
+            CreateSelector(TestLocales.Xx, new PlainLocale("it"))
         );
 
         Assert.Contains("'it'", exception.Message, StringComparison.Ordinal);
@@ -72,7 +72,7 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
     [Fact]
     public void Select_WhenTheRequestCarriesUiLocales_PrefersThemInOrderBeforeAcceptLanguage()
     {
-        var selector = CreateSelector(InteractiveLocales.English, InteractiveLocales.French);
+        var selector = CreateSelector(TestLocales.Xx, TestLocales.Yy);
         var settings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var httpContext = CreateHttpContext(
             "?ReturnUrl=%2F&ui_locales=fr-CA%20de&ui_locales=es",
@@ -87,18 +87,18 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
                     )
                 )
             )
-            .Returns(InteractiveLocales.French)
+            .Returns(TestLocales.Yy)
             .Verifiable();
 
         var locale = selector.Select(httpContext, settings);
 
-        Assert.Same(InteractiveLocales.French, locale);
+        Assert.Same(TestLocales.Yy, locale);
     }
 
     [Fact]
     public void Select_WhenOnlyAcceptLanguageIsSent_OrdersItByQualityWithoutTheWildcard()
     {
-        var selector = CreateSelector(InteractiveLocales.English);
+        var selector = CreateSelector(TestLocales.Xx);
         var settings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var httpContext = CreateHttpContext(
             acceptLanguage: "de;q=0.5, fr, *;q=0.1, es;q=0, en-GB;q=0.8"
@@ -112,18 +112,41 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
                     )
                 )
             )
-            .Returns(InteractiveLocales.English)
+            .Returns(TestLocales.Xx)
             .Verifiable();
 
         var locale = selector.Select(httpContext, settings);
 
-        Assert.Same(InteractiveLocales.English, locale);
+        Assert.Same(TestLocales.Xx, locale);
+    }
+
+    [Fact]
+    public void Select_WhenAcceptLanguageTiesQualities_KeepsTheHeadersOrderAmongThem()
+    {
+        var selector = CreateSelector(TestLocales.Xx);
+        var settings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var httpContext = CreateHttpContext(acceptLanguage: "es;q=0.7, de;q=0.7, en, fr;q=0.7, it");
+        MockCatalog
+            .Setup(x =>
+                x.Select(
+                    settings,
+                    It.Is<IEnumerable<string>>(preferences =>
+                        IsSequence(preferences, "en", "it", "es", "de", "fr")
+                    )
+                )
+            )
+            .Returns(TestLocales.Xx)
+            .Verifiable();
+
+        var locale = selector.Select(httpContext, settings);
+
+        Assert.Same(TestLocales.Xx, locale);
     }
 
     [Fact]
     public void Select_WhenTheRequestResolvedNoTenant_SelectsWithoutSettings()
     {
-        var selector = CreateSelector(InteractiveLocales.English, InteractiveLocales.German);
+        var selector = CreateSelector(TestLocales.Xx, TestLocales.Yy);
         var httpContext = CreateHttpContext("?ui_locales=de");
         MockCatalog
             .Setup(x =>
@@ -133,30 +156,30 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
                     null
                 )
             )
-            .Returns(InteractiveLocales.German)
+            .Returns(TestLocales.Yy)
             .Verifiable();
 
         var locale = selector.Select(httpContext, settings: null);
 
-        Assert.Same(InteractiveLocales.German, locale);
+        Assert.Same(TestLocales.Yy, locale);
     }
 
     [Fact]
     public void Select_WhenTheRequestStatesNoPreference_SelectsWithAnEmptyList()
     {
-        var selector = CreateSelector(InteractiveLocales.English);
+        var selector = CreateSelector(TestLocales.Xx);
         var settings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var httpContext = CreateHttpContext("?ui_locales=");
         MockCatalog
             .Setup(x =>
                 x.Select(settings, It.Is<IEnumerable<string>>(preferences => !preferences.Any()))
             )
-            .Returns(InteractiveLocales.English)
+            .Returns(TestLocales.Xx)
             .Verifiable();
 
         var locale = selector.Select(httpContext, settings);
 
-        Assert.Same(InteractiveLocales.English, locale);
+        Assert.Same(TestLocales.Xx, locale);
     }
 
     #endregion
@@ -167,16 +190,16 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
     [InlineData(null, null)]
     [InlineData("", null)]
     [InlineData("it", null)]
-    [InlineData("FR", "fr")]
+    [InlineData("YY", "yy")]
     public void GetCarriedLanguageTag_Always_KeepsOnlyARegisteredTag(
         string? uiLocales,
         string? expected
     )
     {
-        var selector = CreateSelector(InteractiveLocales.English, InteractiveLocales.French);
+        var selector = CreateSelector(TestLocales.Xx, TestLocales.Yy);
         if (!string.IsNullOrEmpty(uiLocales))
         {
-            IUiLocale? locale = expected is null ? null : InteractiveLocales.French;
+            IUiLocale? locale = expected is null ? null : TestLocales.Yy;
             MockCatalog
                 .Setup(x => x.TryGet(uiLocales, out locale))
                 .Returns(expected is not null)
@@ -190,21 +213,44 @@ public sealed class InteractiveLocaleSelectorTests : IDisposable
 
     #endregion
 
-    #region FormatUiLocalesQuery Tests
+    #region AppendUiLocalesQuery Tests
 
-    [Fact]
-    public void FormatUiLocalesQuery_WhenThereAreTags_EscapesThemAsOneParameter()
+    [Theory]
+    [InlineData("/acme/account/login", "/acme/account/login?ui_locales=fr-CA%20de")]
+    [InlineData(
+        "/acme/account/login?ReturnUrl=%2F",
+        "/acme/account/login?ReturnUrl=%2F&ui_locales=fr-CA%20de"
+    )]
+    public void AppendUiLocalesQuery_WhenThereAreTags_EscapesThemAsOneParameterAfterAnyQuery(
+        string url,
+        string expected
+    )
     {
-        var query = InteractiveLocaleSelector.FormatUiLocalesQuery(["fr-CA", "de"]);
+        var result = InteractiveLocaleSelector.AppendUiLocalesQuery(url, ["fr-CA", "de"]);
 
-        Assert.Equal("&ui_locales=fr-CA%20de", query);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void FormatUiLocalesQuery_WhenThereAreNone_IsEmpty()
+    public void AppendUiLocalesQuery_WhenThereAreNone_ReturnsTheUrlAsItIs()
     {
-        Assert.Equal(string.Empty, InteractiveLocaleSelector.FormatUiLocalesQuery(null));
-        Assert.Equal(string.Empty, InteractiveLocaleSelector.FormatUiLocalesQuery([]));
+        const string url = "/acme/account/login?ReturnUrl=%2F";
+
+        Assert.Same(url, InteractiveLocaleSelector.AppendUiLocalesQuery(url, (string?)null));
+        Assert.Same(url, InteractiveLocaleSelector.AppendUiLocalesQuery(url, string.Empty));
+        Assert.Same(
+            url,
+            InteractiveLocaleSelector.AppendUiLocalesQuery(url, (IReadOnlyList<string>?)null)
+        );
+        Assert.Same(url, InteractiveLocaleSelector.AppendUiLocalesQuery(url, []));
+    }
+
+    [Fact]
+    public void AppendUiLocalesQuery_WhenThereIsOneTag_CarriesIt()
+    {
+        var result = InteractiveLocaleSelector.AppendUiLocalesQuery("/acme/account", "fr");
+
+        Assert.Equal("/acme/account?ui_locales=fr", result);
     }
 
     #endregion

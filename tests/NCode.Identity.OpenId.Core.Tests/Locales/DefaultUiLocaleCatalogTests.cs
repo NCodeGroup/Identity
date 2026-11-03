@@ -35,6 +35,21 @@ public class DefaultUiLocaleCatalogTests : BaseTests
     #region Constructor Tests
 
     [Fact]
+    public void Constructor_WhenSeveralTagsAreBad_NamesEveryOneInTheOneError()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            CreateCatalog("en", "e", "EN", "fr CA", "fr")
+        );
+
+        Assert.Equal(
+            "The UI locale 'e' is not a well-formed BCP 47 language tag. "
+                + "The UI locale 'EN' is registered more than once. "
+                + "The UI locale 'fr CA' is not a well-formed BCP 47 language tag.",
+            exception.Message
+        );
+    }
+
+    [Fact]
     public void Constructor_WhenATagIsRegisteredTwiceInAnyCase_Throws()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>

@@ -14,9 +14,9 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// element and the SPA replaces it on mount (progressive enhancement); when the bundle is absent the form is served
 /// standalone. This is what makes the interactive surface driveable by clients that do not execute JavaScript —
 /// assistive technology, hardened browsers, and the OpenID conformance suite's headless browser. Every page is
-/// rendered in one <see cref="InteractiveLocale"/>: its text comes from the locale's messages, its <c>html</c> element
-/// carries the locale's language tag, and its form carries the tag as <c>ui_locales</c> so a page the surface
-/// redirects back to renders in the same locale.
+/// written into an <see cref="InteractivePageFrame"/> and rendered in its <see cref="InteractiveLocale"/>: its text
+/// comes from the locale's messages, its <c>html</c> element carries the locale's language tag, and its form carries
+/// the tag as <c>ui_locales</c> so a page the surface redirects back to renders in the same locale.
 /// </summary>
 // Each page is written segment by segment into an IBufferWriter<char> — the bundle's head, the page's markup, and the
 // bundle's tail — so neither the form nor the combined document is ever composed as a string. See ADR-1402 for the
@@ -53,31 +53,23 @@ internal static class InteractiveAuthenticationPageRenderer
     /// return URL, and the antiforgery token, with the stable <c>username</c> / <c>password</c> / <c>login</c> ids.
     /// </summary>
     /// <param name="writer">The buffer the page is written to.</param>
-    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
-    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
-    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
-    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
-    /// placeholder.</param>
-    /// <param name="locale">The locale the page renders in.</param>
+    /// <param name="frame">The document the page is written into.</param>
     /// <param name="returnUrl">The URL the form carries so the end-user returns to it once signed in.</param>
     /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
     /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
     /// <param name="errorMessage">The message shown above the form, or <see langword="null"/> for none.</param>
     public static void RenderLoginPage(
         IBufferWriter<char> writer,
-        InteractiveBundleShell? shell,
-        string surfaceBase,
-        InteractiveBranding? branding,
-        string nonce,
-        InteractiveLocale locale,
+        InteractivePageFrame frame,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
         string? errorMessage
     )
     {
+        var locale = frame.Locale;
         var messages = locale.Messages;
-        WriteHead(writer, shell, surfaceBase, branding, nonce, locale, messages.SignInTitle);
+        WriteHead(writer, frame, messages.SignInTitle);
         // The action is relative to the page, so the form posts to the login endpoint of the tenant that served it.
         Write(writer, "<main class=\"auth-card\"><form method=\"post\" action=\"login\"><h1>");
         WriteEncoded(writer, messages.SignInTitle);
@@ -106,7 +98,7 @@ internal static class InteractiveAuthenticationPageRenderer
         );
         WriteEncoded(writer, messages.SignInButton);
         Write(writer, "</button></form></main>");
-        WriteTail(writer, shell, nonce, locale);
+        WriteTail(writer, frame);
     }
 
     /// <summary>
@@ -114,12 +106,7 @@ internal static class InteractiveAuthenticationPageRenderer
     /// stable <c>consent-allow</c> / <c>consent-deny</c> ids, posting to the consent endpoint.
     /// </summary>
     /// <param name="writer">The buffer the page is written to.</param>
-    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
-    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
-    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
-    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
-    /// placeholder.</param>
-    /// <param name="locale">The locale the page renders in.</param>
+    /// <param name="frame">The document the page is written into.</param>
     /// <param name="returnUrl">The URL the form carries so the request resumes once consent is given.</param>
     /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
     /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
@@ -127,11 +114,7 @@ internal static class InteractiveAuthenticationPageRenderer
     /// <param name="scopes">The requested scopes, each presented as a checkbox.</param>
     public static void RenderConsentPage(
         IBufferWriter<char> writer,
-        InteractiveBundleShell? shell,
-        string surfaceBase,
-        InteractiveBranding? branding,
-        string nonce,
-        InteractiveLocale locale,
+        InteractivePageFrame frame,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
@@ -139,16 +122,9 @@ internal static class InteractiveAuthenticationPageRenderer
         IReadOnlyList<ScopeView> scopes
     )
     {
+        var locale = frame.Locale;
         var messages = locale.Messages;
-        WriteHead(
-            writer,
-            shell,
-            surfaceBase,
-            branding,
-            nonce,
-            locale,
-            messages.AuthorizeAccessTitle
-        );
+        WriteHead(writer, frame, messages.AuthorizeAccessTitle);
         Write(writer, "<main class=\"auth-card\"><form method=\"post\" action=\"consent\"><h1>");
         WriteEncoded(writer, messages.AuthorizeAccessTitle);
         Write(writer, "</h1><p>");
@@ -175,7 +151,7 @@ internal static class InteractiveAuthenticationPageRenderer
         );
         WriteEncoded(writer, messages.AllowButton);
         Write(writer, "</button></form></main>");
-        WriteTail(writer, shell, nonce, locale);
+        WriteTail(writer, frame);
     }
 
     /// <summary>
@@ -183,29 +159,21 @@ internal static class InteractiveAuthenticationPageRenderer
     /// buttons, posting to the logout confirmation endpoint.
     /// </summary>
     /// <param name="writer">The buffer the page is written to.</param>
-    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
-    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
-    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
-    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
-    /// placeholder.</param>
-    /// <param name="locale">The locale the page renders in.</param>
+    /// <param name="frame">The document the page is written into.</param>
     /// <param name="returnUrl">The URL the form carries so the logout resumes once it is confirmed.</param>
     /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
     /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
     public static void RenderLogoutConfirmationPage(
         IBufferWriter<char> writer,
-        InteractiveBundleShell? shell,
-        string surfaceBase,
-        InteractiveBranding? branding,
-        string nonce,
-        InteractiveLocale locale,
+        InteractivePageFrame frame,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken
     )
     {
+        var locale = frame.Locale;
         var messages = locale.Messages;
-        WriteHead(writer, shell, surfaceBase, branding, nonce, locale, messages.SignOutTitle);
+        WriteHead(writer, frame, messages.SignOutTitle);
         Write(
             writer,
             "<main class=\"auth-card\"><form method=\"post\" action=\"logout/confirm\"><h1>"
@@ -226,7 +194,7 @@ internal static class InteractiveAuthenticationPageRenderer
         );
         WriteEncoded(writer, messages.SignOutButton);
         Write(writer, "</button></form></main>");
-        WriteTail(writer, shell, nonce, locale);
+        WriteTail(writer, frame);
     }
 
     /// <summary>
@@ -237,35 +205,19 @@ internal static class InteractiveAuthenticationPageRenderer
     /// OpenID conformance suite's <c>oidcc-ensure-registered-redirect-uri</c> browser task — can assert on it.
     /// </summary>
     /// <param name="writer">The buffer the page is written to.</param>
-    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
-    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
-    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
-    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
-    /// placeholder.</param>
-    /// <param name="locale">The locale the page renders in.</param>
+    /// <param name="frame">The document the page is written into.</param>
     /// <param name="errorCode">The error code, such as <c>invalid_client</c>.</param>
     /// <param name="errorDescription">The human-readable error description, or <see langword="null"/> for none.</param>
     public static void RenderErrorPage(
         IBufferWriter<char> writer,
-        InteractiveBundleShell? shell,
-        string surfaceBase,
-        InteractiveBranding? branding,
-        string nonce,
-        InteractiveLocale locale,
+        InteractivePageFrame frame,
         string errorCode,
         string? errorDescription
     )
     {
+        var locale = frame.Locale;
         var messages = locale.Messages;
-        WriteHead(
-            writer,
-            shell,
-            surfaceBase,
-            branding,
-            nonce,
-            locale,
-            messages.AuthorizationErrorTitle
-        );
+        WriteHead(writer, frame, messages.AuthorizationErrorTitle);
         Write(writer, "<main class=\"auth-card\"><h1>");
         WriteEncoded(writer, messages.AuthorizationErrorTitle);
         Write(
@@ -286,7 +238,7 @@ internal static class InteractiveAuthenticationPageRenderer
             Write(writer, "</p>");
         }
         Write(writer, "</main>");
-        WriteTail(writer, shell, nonce, locale);
+        WriteTail(writer, frame);
     }
 
     /// <summary>
@@ -294,23 +246,21 @@ internal static class InteractiveAuthenticationPageRenderer
     /// bundle's document with its base set to the surface beneath the tenant and its mount point left empty.
     /// </summary>
     /// <param name="writer">The buffer the page is written to.</param>
-    /// <param name="shell">The bundle's split <c>index.html</c>.</param>
-    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
-    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
-    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
-    /// placeholder.</param>
-    /// <param name="locale">The locale the page renders in.</param>
-    public static void RenderBundlePage(
-        IBufferWriter<char> writer,
-        InteractiveBundleShell shell,
-        string surfaceBase,
-        InteractiveBranding? branding,
-        string nonce,
-        InteractiveLocale locale
-    )
+    /// <param name="frame">The document the page is written into, whose <see cref="InteractivePageFrame.Shell"/> is
+    /// the bundle's split <c>index.html</c>.</param>
+    /// <exception cref="ArgumentException">The frame has no bundle.</exception>
+    public static void RenderBundlePage(IBufferWriter<char> writer, InteractivePageFrame frame)
     {
-        WriteHead(writer, shell, surfaceBase, branding, nonce, locale, title: string.Empty);
-        WriteTail(writer, shell, nonce, locale);
+        if (frame.Shell is null)
+        {
+            throw new ArgumentException(
+                "A page the bundle draws needs the bundle's document.",
+                nameof(frame)
+            );
+        }
+
+        WriteHead(writer, frame, title: string.Empty);
+        WriteTail(writer, frame);
     }
 
     // The sentence is written around its placeholder, every part encoded, so a format without the placeholder is
@@ -366,31 +316,27 @@ internal static class InteractiveAuthenticationPageRenderer
     // place of their placeholders; no rendered value does. See ADR-1256 and ADR-1402.
     private static void WriteHead(
         IBufferWriter<char> writer,
-        InteractiveBundleShell? shell,
-        string surfaceBase,
-        InteractiveBranding? branding,
-        string nonce,
-        InteractiveLocale locale,
+        InteractivePageFrame frame,
         string title
     )
     {
-        if (shell is not null)
+        if (frame.Shell is { } shell)
         {
-            WriteShellSegment(writer, shell.Prelude.Span, nonce, locale);
-            WriteBase(writer, surfaceBase);
-            if (branding is not null)
+            WriteShellSegment(writer, shell.Prelude.Span, frame);
+            WriteBase(writer, frame.SurfaceBase);
+            if (frame.Branding is { } branding)
             {
                 WriteBranding(writer, branding);
             }
 
-            WriteShellSegment(writer, shell.Head.Span, nonce, locale);
+            WriteShellSegment(writer, shell.Head.Span, frame);
             return;
         }
 
         Write(writer, StandaloneHeadStart);
-        WriteEncoded(writer, locale.LanguageTag);
+        WriteEncoded(writer, frame.Locale.LanguageTag);
         Write(writer, StandaloneHeadAfterLanguage);
-        WriteBase(writer, surfaceBase);
+        WriteBase(writer, frame.SurfaceBase);
         Write(writer, StandaloneTitleStart);
         WriteEncoded(writer, title);
         Write(writer, StandaloneHeadEnd);
@@ -412,16 +358,11 @@ internal static class InteractiveAuthenticationPageRenderer
         Write(writer, BrandingEnd);
     }
 
-    private static void WriteTail(
-        IBufferWriter<char> writer,
-        InteractiveBundleShell? shell,
-        string nonce,
-        InteractiveLocale locale
-    )
+    private static void WriteTail(IBufferWriter<char> writer, InteractivePageFrame frame)
     {
-        if (shell is not null)
+        if (frame.Shell is { } shell)
         {
-            WriteShellSegment(writer, shell.Tail.Span, nonce, locale);
+            WriteShellSegment(writer, shell.Tail.Span, frame);
             return;
         }
 
@@ -433,8 +374,7 @@ internal static class InteractiveAuthenticationPageRenderer
     private static void WriteShellSegment(
         IBufferWriter<char> writer,
         ReadOnlySpan<char> segment,
-        string nonce,
-        InteractiveLocale locale
+        InteractivePageFrame frame
     )
     {
         while (true)
@@ -462,11 +402,11 @@ internal static class InteractiveAuthenticationPageRenderer
             Write(writer, segment[..index]);
             if (isNonceFirst)
             {
-                Write(writer, nonce);
+                Write(writer, frame.Nonce);
             }
             else
             {
-                WriteEncoded(writer, locale.LanguageTag);
+                WriteEncoded(writer, frame.Locale.LanguageTag);
             }
 
             segment = segment[(index + placeholderLength)..];

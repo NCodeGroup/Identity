@@ -159,21 +159,15 @@ export function SessionsPage({
                       )}
                     </Stack>
                     <Stack spacing={0.5} sx={{ mt: 1 }}>
-                      {session.ipAddress ? (
-                        <DetailRow label={text.ipAddress} value={session.ipAddress} />
-                      ) : null}
-                      {formatTimestamp(session.lastActivityWhen, locale) ? (
-                        <DetailRow
-                          label={text.lastActive}
-                          value={formatTimestamp(session.lastActivityWhen, locale)!}
-                        />
-                      ) : null}
-                      {formatTimestamp(session.createdWhen, locale) ? (
-                        <DetailRow
-                          label={text.signedIn}
-                          value={formatTimestamp(session.createdWhen, locale)!}
-                        />
-                      ) : null}
+                      <DetailRow label={text.ipAddress} value={session.ipAddress} />
+                      <DetailRow
+                        label={text.lastActive}
+                        value={formatTimestamp(session.lastActivityWhen, locale)}
+                      />
+                      <DetailRow
+                        label={text.signedIn}
+                        value={formatTimestamp(session.createdWhen, locale)}
+                      />
                     </Stack>
                     <Divider sx={{ mt: 1 }} />
                   </Box>
@@ -219,7 +213,17 @@ export function SessionsPage({
   );
 }
 
-function DetailRow({ label, value }: { readonly label: string; readonly value: string }) {
+/** One labelled detail of a session; a detail without a value draws nothing. */
+function DetailRow({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: string | null | undefined;
+}) {
+  if (!value) {
+    return null;
+  }
   return (
     <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>

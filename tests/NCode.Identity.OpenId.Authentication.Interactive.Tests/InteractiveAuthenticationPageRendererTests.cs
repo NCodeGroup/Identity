@@ -28,32 +28,12 @@ public class InteractiveAuthenticationPageRendererTests
     private static InteractiveBranding AcmeBranding { get; } =
         new("Acme", null, null, null, "dark", null);
 
-    // A locale of the test's own, so the locale tests prove how the renderer writes a locale rather than the shipped
-    // wording, which InteractiveLocalesTests covers; its accented text proves the renderer encodes a message.
-    private static InteractiveLocale XxLocale { get; } =
-        new(
-            "xx",
-            new InteractiveMessages
-            {
-                SignInTitle = "Xx sign-in title",
-                UsernameLabel = "Xx username",
-                PasswordLabel = "Xx password",
-                SignInButton = "Xx sign-in button",
-                AuthorizeAccessTitle = "Xx authorize title",
-                ConsentPromptFormat = "{0} xx consent prompt:",
-                DenyButton = "Xx deny",
-                AllowButton = "Xx allow",
-                SignOutTitle = "Xx sign-out titlé",
-                SignOutQuestion = "Xx sign-out question?",
-                StaySignedInButton = "Xx stay signéd in",
-                SignOutButton = "Xx sign-out button",
-                AuthorizationErrorTitle = "Xx error title",
-                InvalidCredentialsError = "Xx invalid credentials",
-                MissingCredentialsError = "Xx missing credentials",
-                AccessDeniedError = "Xx access denied",
-                SignInFailedError = "Xx sign-in failed",
-            }
-        );
+    private static InteractivePageFrame CreateFrame(
+        InteractiveBundleShell? shell = null,
+        string surfaceBase = SurfaceBase,
+        InteractiveBranding? branding = null,
+        InteractiveLocale? locale = null
+    ) => new(shell, surfaceBase, branding, Nonce, locale ?? TestLocales.Xx);
 
     #region RenderLoginPage Tests
 
@@ -63,11 +43,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "/connect/authorize",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "token-123",
@@ -97,11 +73,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -119,11 +91,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -140,11 +108,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: InteractiveBundleShell.TryCreate(BundleShell),
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(shell: InteractiveBundleShell.TryCreate(BundleShell)),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -164,11 +128,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: InteractiveBundleShell.TryCreate(BundleShell),
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(shell: InteractiveBundleShell.TryCreate(BundleShell)),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -196,11 +156,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>(initialCapacity: 1);
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -221,11 +177,10 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: InteractiveBundleShell.TryCreate(BundleShell),
-            surfaceBase: SurfaceBase,
-            branding: AcmeBranding,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(
+                shell: InteractiveBundleShell.TryCreate(BundleShell),
+                branding: AcmeBranding
+            ),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -248,18 +203,17 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: InteractiveBundleShell.TryCreate(BundleShell),
-            surfaceBase: SurfaceBase,
-            branding: new InteractiveBranding(
-                "</script><script>alert(1)</script>",
-                null,
-                null,
-                null,
-                null,
-                null
+            CreateFrame(
+                shell: InteractiveBundleShell.TryCreate(BundleShell),
+                branding: new InteractiveBranding(
+                    "</script><script>alert(1)</script>",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                )
             ),
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -277,11 +231,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: AcmeBranding,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(branding: AcmeBranding),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -302,11 +252,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -327,11 +273,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -367,11 +309,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t"
@@ -395,11 +333,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t"
@@ -419,11 +353,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             errorCode: "unauthorized_client",
             errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
         );
@@ -446,11 +376,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -470,11 +396,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(),
             errorCode: "\"><script>alert(1)</script>",
             errorDescription: null
         );
@@ -489,11 +411,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: InteractiveBundleShell.TryCreate(BundleShell),
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(shell: InteractiveBundleShell.TryCreate(BundleShell)),
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -510,11 +428,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: null,
-            surfaceBase: "/a&b/account/",
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(surfaceBase: "/a&b/account/"),
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -533,11 +447,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: InteractiveBundleShell.TryCreate(NonceBundleShell),
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English,
+            CreateFrame(shell: InteractiveBundleShell.TryCreate(NonceBundleShell)),
             errorCode: "invalid_client",
             errorDescription: "__NCODE_CSP_NONCE__"
         );
@@ -561,11 +471,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             writer,
-            InteractiveBundleShell.TryCreate(BundleShell)!,
-            SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English
+            CreateFrame(shell: InteractiveBundleShell.TryCreate(BundleShell))
         );
 
         Assert.Equal(
@@ -576,16 +482,28 @@ public class InteractiveAuthenticationPageRendererTests
     }
 
     [Fact]
+    public void RenderBundlePage_WhenTheFrameHasNoBundle_Throws()
+    {
+        var writer = new ArrayBufferWriter<char>();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            InteractiveAuthenticationPageRenderer.RenderBundlePage(writer, CreateFrame())
+        );
+
+        Assert.Equal("frame", exception.ParamName);
+        Assert.Equal(0, writer.WrittenCount);
+    }
+
+    [Fact]
     public void RenderBundlePage_WhenBrandingIsGiven_EmbedsItAfterTheBase()
     {
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             writer,
-            InteractiveBundleShell.TryCreate(BundleShell)!,
-            SurfaceBase,
-            AcmeBranding,
-            nonce: Nonce,
-            locale: InteractiveLocales.English
+            CreateFrame(
+                shell: InteractiveBundleShell.TryCreate(BundleShell),
+                branding: AcmeBranding
+            )
         );
 
         Assert.Equal(
@@ -602,11 +520,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             writer,
-            InteractiveBundleShell.TryCreate(NonceBundleShell)!,
-            SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: InteractiveLocales.English
+            CreateFrame(shell: InteractiveBundleShell.TryCreate(NonceBundleShell))
         );
 
         Assert.Equal(
@@ -628,15 +542,11 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: XxLocale,
+            CreateFrame(),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
-            errorMessage: XxLocale.Messages.InvalidCredentialsError
+            errorMessage: TestLocales.Xx.Messages.InvalidCredentialsError
         );
         var html = writer.WrittenSpan.ToString();
 
@@ -671,11 +581,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
-            shell,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: XxLocale,
+            CreateFrame(shell: shell),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -708,11 +614,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: XxLocale,
+            CreateFrame(),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -731,18 +633,17 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderConsentPage_WhenTheFormatHasNoPlaceholder_WritesItAsItIs()
     {
-        var locale = XxLocale with
+        var locale = TestLocales.Xx with
         {
-            Messages = XxLocale.Messages with { ConsentPromptFormat = "Choose what to allow:" },
+            Messages = TestLocales.Xx.Messages with
+            {
+                ConsentPromptFormat = "Choose what to allow:",
+            },
         };
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale,
+            CreateFrame(locale: locale),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -761,11 +662,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: XxLocale,
+            CreateFrame(),
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t"
@@ -786,11 +683,7 @@ public class InteractiveAuthenticationPageRendererTests
         var writer = new ArrayBufferWriter<char>();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
-            shell: null,
-            surfaceBase: SurfaceBase,
-            branding: null,
-            nonce: Nonce,
-            locale: XxLocale,
+            CreateFrame(),
             errorCode: "invalid_client",
             errorDescription: null
         );

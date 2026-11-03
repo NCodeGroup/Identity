@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -109,13 +110,25 @@ public static class DefaultRegistration
             // A UI locale is registered data: each is registered as an instance, and the registration dedupes by tag,
             // which TryAddEnumerable cannot, since it dedupes by implementation type and every shipped locale is the
             // one record type. A tag the host registered through AddInteractiveLocale keeps the host's locale,
-            // whichever call came first, and a locale registered without the surface's messages stops the host
-            // (ADR-1402).
+            // whichever call came first; a shipped locale the host did not register is inserted in the shipped order
+            // ahead of the first locale the host registered under a new tag, so English is the first registered
+            // locale, and the surface's default language, whatever the order of the calls. A locale registered
+            // without the surface's messages stops the host (ADR-1402).
+            var insertIndex = FindFirstUiLocale(serviceCollection);
             foreach (var locale in InteractiveLocales.All)
             {
-                if (FindUiLocale(serviceCollection, locale.LanguageTag) < 0)
+                var index = FindUiLocale(serviceCollection, locale.LanguageTag);
+                if (index < 0)
                 {
-                    serviceCollection.AddSingleton<IUiLocale>(locale);
+                    serviceCollection.Insert(
+                        insertIndex,
+                        ServiceDescriptor.Singleton<IUiLocale>(locale)
+                    );
+                    insertIndex++;
+                }
+                else
+                {
+                    insertIndex = index + 1;
                 }
             }
 
@@ -235,7 +248,9 @@ public static class DefaultRegistration
         /// language tag: a host adds a language with a new tag, and changes the wording of a shipped locale by
         /// registering one built from it with its own <see cref="InteractiveMessages"/>, before or after
         /// <see cref="AddInteractiveAuthentication"/>. A replaced locale keeps its place in the registration order, so
-        /// replacing the first registered locale keeps it the surface's default language.
+        /// replacing the first registered locale keeps it the surface's default language, and a locale with a new tag
+        /// follows the shipped locales whichever call came first, so English stays the surface's default language
+        /// unless a tenant's <c>default_ui_locale</c> names another.
         /// </summary>
         /// <remarks>
         /// A UI locale is registered data, so this method and <see cref="AddInteractiveAuthentication"/> register
@@ -274,11 +289,8 @@ public static class DefaultRegistration
     {
         for (var index = 0; index < serviceCollection.Count; index++)
         {
-            var descriptor = serviceCollection[index];
             if (
-                descriptor.ServiceType == typeof(IUiLocale)
-                && !descriptor.IsKeyedService
-                && descriptor.ImplementationInstance is IUiLocale registered
+                TryGetUiLocale(serviceCollection[index], out var registered)
                 && string.Equals(
                     registered.LanguageTag,
                     languageTag,
@@ -291,6 +303,39 @@ public static class DefaultRegistration
         }
 
         return -1;
+    }
+
+    // The index of the first registered IUiLocale instance, or the end of the collection when none is registered.
+    private static int FindFirstUiLocale(IServiceCollection serviceCollection)
+    {
+        for (var index = 0; index < serviceCollection.Count; index++)
+        {
+            if (TryGetUiLocale(serviceCollection[index], out _))
+            {
+                return index;
+            }
+        }
+
+        return serviceCollection.Count;
+    }
+
+    private static bool TryGetUiLocale(
+        ServiceDescriptor descriptor,
+        [MaybeNullWhen(false)] out IUiLocale locale
+    )
+    {
+        if (
+            descriptor.ServiceType == typeof(IUiLocale)
+            && !descriptor.IsKeyedService
+            && descriptor.ImplementationInstance is IUiLocale registered
+        )
+        {
+            locale = registered;
+            return true;
+        }
+
+        locale = null;
+        return false;
     }
 
     // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed

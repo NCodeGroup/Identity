@@ -3,7 +3,10 @@
 - **Status:** Accepted (amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
-  migration rewrites stored data)
+  migration rewrites stored data; amended by
+  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md):
+  until the first stable release a setting is renamed, removed or narrowed outright, and no retired descriptor
+  stays registered)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)

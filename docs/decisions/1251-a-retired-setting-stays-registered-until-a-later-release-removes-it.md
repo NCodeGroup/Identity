@@ -1,6 +1,9 @@
 # 1251. A retired setting stays registered until a later release removes it
 
-- **Status:** Accepted
+- **Status:** Superseded by
+  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md): until the
+  first stable release a setting is renamed, removed or narrowed outright, and the first stable release designs how a
+  released setting retires
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

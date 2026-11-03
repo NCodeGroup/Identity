@@ -153,11 +153,6 @@ reason names the release that stopped reading the old shape
 ([ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
 [ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
 
-Retiring a setting, or giving its value a home outside the settings documents, is an expansion too: the descriptor stays
-registered with a `RetiredReason`, the migration copies the value and leaves the stored setting, and a later release
-removes both
-([ADR-1251](../../docs/decisions/1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)).
-
 Until the first stable release ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each context has one
 migration, `InitialCreate`, which creates its whole model and changes no data
 ([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
@@ -175,8 +170,9 @@ dotnet ef migrations add InitialCreate `
 ```
 
 Strip the UTF-8 BOM the scaffolder writes from each generated file. Renaming, retiring or narrowing a setting edits its
-descriptor and needs no migration: a stored settings document that names an unregistered setting fails closed. A local
-database that an earlier `InitialCreate` built is reset with `build/dev-db-reset.ps1` (below).
+descriptor and needs no migration: a stored settings document that names an unregistered setting fails closed
+([ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md)).
+A local database that an earlier `InitialCreate` built is reset with `build/dev-db-reset.ps1` (below).
 
 The Definition of Done fails if the model has changes no migration captures (`dotnet ef migrations
 has-pending-model-changes`, run for both contexts), so scaffold the migration before pushing.

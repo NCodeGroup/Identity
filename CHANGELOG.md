@@ -2611,13 +2611,6 @@ describes the family as it is rather than its changes
   entity's scope beneath the one it inherits from and declares its own settings for it, with no change to the library
   ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
 
-- **A retired setting stays registered while it is retired.** `SettingDescriptor.RetiredReason` and `IsRetired` retire a
-  setting: reads ignore it, `ValidateSettings` and the configuration reader refuse it, and
-  `ISettingSerializer.ValidateSettingsUpdate`, a member every implementation implements, accepts it only with its stored
-  value or removed; the management API's settings updates validate through it
-  ([ADR-1251](docs/decisions/1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md),
-  [#206](https://github.com/NCodeGroup/Identity/issues/206)).
-
 - **A setting with no declared default is absent from the settings lattice, value types included, and
   `GetValueOrNull<TValue>()` reads such a setting as a `Nullable<TValue>`.** `SettingDescriptor<TValue>.HasDefault` is
   `true` only when a default is supplied, so the root settings data source loads no `default(TValue)` for a value-type

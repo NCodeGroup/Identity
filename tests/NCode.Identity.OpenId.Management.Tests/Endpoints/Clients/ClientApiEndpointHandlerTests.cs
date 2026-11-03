@@ -287,34 +287,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             ])
             .Verifiable();
 
-    private void SetupValidSettingsUpdate() =>
-        MockSettingSerializer
-            .Setup(x =>
-                x.ValidateSettingsUpdate(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Client,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns([])
-            .Verifiable();
-
-    private void SetupInvalidSettingsUpdate() =>
-        MockSettingSerializer
-            .Setup(x =>
-                x.ValidateSettingsUpdate(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Client,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns([
-                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
-            ])
-            .Verifiable();
-
     private static void AssertSettingsValidationProblem(IResult result)
     {
         var problem = Assert.IsType<ValidationProblem>(result);
@@ -1234,7 +1206,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
         SetupClientChangedAudit();
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1273,7 +1245,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupInvalidSettingsUpdate();
+        SetupInvalidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1298,7 +1270,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
     {
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1352,7 +1324,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithPublicKeys_ReturnsConflict()
     {
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1381,7 +1353,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithOnlySharedSecrets_ReturnsNoContent()
     {
         SetupClientChangedAudit();
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))

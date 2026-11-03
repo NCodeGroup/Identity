@@ -383,13 +383,10 @@ than inlining the rationale.
   value outside its domain fails closed
   ([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
   A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`) is still a registered
-  setting. Retiring a setting, or giving its value a home outside the settings documents, keeps
-  the previous release working: keep the descriptor registered with a `RetiredReason` (a stored document that carries
-  it loads, an update through `ISettingSerializer.ValidateSettingsUpdate` may keep or remove it, any other write refuses
-  it), copy the value in an `[ExpandMigration]` that leaves the key, and remove the key and the descriptor in a later
-  release's `[ContractMigration]`; a rename is a contract step, since the previous release fails closed on a name it
-  does not know. See [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md) and
-  [ADR-1251](../../docs/decisions/1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md).
+  setting. No descriptor stays registered for a name nothing reads, and a management request that loads a stored
+  document naming an unregistered setting answers `409`. See
+  [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md) and
+  [ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
   `OneOf`, a lifetime or interval is at least one second, a timeout is positive, a list applies `Each` to its values, and

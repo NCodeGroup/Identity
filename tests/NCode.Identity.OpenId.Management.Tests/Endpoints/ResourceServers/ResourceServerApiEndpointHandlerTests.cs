@@ -219,34 +219,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             ])
             .Verifiable();
 
-    private void SetupValidSettingsUpdate() =>
-        MockSettingSerializer
-            .Setup(x =>
-                x.ValidateSettingsUpdate(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.ResourceServer,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns([])
-            .Verifiable();
-
-    private void SetupInvalidSettingsUpdate() =>
-        MockSettingSerializer
-            .Setup(x =>
-                x.ValidateSettingsUpdate(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.ResourceServer,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns([
-                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
-            ])
-            .Verifiable();
-
     private static void AssertSettingsValidationProblem(IResult result)
     {
         var problem = Assert.IsType<ValidationProblem>(result);
@@ -688,7 +660,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
         SetupResourceServerChangedAudit();
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -723,7 +695,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupInvalidSettingsUpdate();
+        SetupInvalidSettings();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore

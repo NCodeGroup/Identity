@@ -24,6 +24,7 @@ public static class SecretSerializerExtensions
         /// secret type is not registered, or whose stored public key is malformed or of a form its key type does not
         /// read.
         /// </summary>
+        /// <exception cref="ArgumentNullException"><paramref name="persistedSecret"/> is <c>null</c>.</exception>
         /// <param name="persistedSecret">The <see cref="PersistedSecret"/> whose public half is read.</param>
         /// <param name="publicKey">When this method returns <c>true</c>, the public half of the secret.</param>
         /// <param name="error">When this method returns <c>false</c>, the reason the public half cannot be read.</param>
@@ -35,6 +36,7 @@ public static class SecretSerializerExtensions
         )
         {
             ArgumentNullException.ThrowIfNull(serializer);
+            ArgumentNullException.ThrowIfNull(persistedSecret);
 
             try
             {

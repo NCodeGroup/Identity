@@ -102,7 +102,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
         Assert.Collection(
             keyType.KeyBitSizes,
-            size => Assert.Equal((256, 384, 128), (size.MinSize, size.MaxSize, size.SkipSize)),
+            size => Assert.Equal((256, 256, 0), (size.MinSize, size.MaxSize, size.SkipSize)),
+            size => Assert.Equal((384, 384, 0), (size.MinSize, size.MaxSize, size.SkipSize)),
             size => Assert.Equal((521, 521, 0), (size.MinSize, size.MaxSize, size.SkipSize))
         );
         Assert.Equal(

@@ -29,7 +29,7 @@ change to the public API is a **major** version bump.
   `ECDH-ES`. An agreement whose shared secret is all zeros, from an `epk` or a recipient key of small order, is refused
   on both sides ([#336](https://github.com/NCodeGroup/Identity/issues/336), [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 - **ES256K over secp256k1, as an opt-in package.** `AddSecp256k1()` in the new `NCode.Identity.Jose.Secp256k1`
-  package, on the JOSE library's builder (`IServiceBuilder<JoseLibrary>`) as `AddEdDsa()` now is, registers the
+  package, on the JOSE library's builder (`IServiceBuilder<JoseLibrary>`) as `AddEdDsa()` is, registers the
   secp256k1 curve (`crv` `secp256k1`, RFC 8812) in the elliptic-curve catalog, so `ecc` keys on it are generated,
   imported and published as JSON Web Keys, and the `ES256K` JWS algorithm (ECDSA over secp256k1 with SHA-256), bound
   to the curve: a P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`. It registers nothing where the platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
@@ -1175,9 +1175,9 @@ change to the public API is a **major** version bump.
   with its `ISecretKeyTypeDescriptor` — generate, JWK/PEM public import, JWK + SPKI-PEM public export, and PKCS#8 / SPKI
   deserialize, with the private seed held data-protected in memory and exported only through `ExportPrivateKey` — and a
   single `EdDsaSignatureAlgorithm` that selects the curve from the signing key's `crv`. A host enables it with one
-  `AddEdDsa()` call on the JOSE library's builder (`AddSecretsLibrary().AddJoseLibrary().AddEdDsa()`); discovery then
-  advertises `EdDSA` in the asymmetric token-signing metadata automatically (the signing-algorithm partition keys on
-  `AsymmetricSecretKey`), and the existing FAPI signing-algorithm ceiling already lists it. See [ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md).
+  `serviceCollection.AddEdDsa()` call; discovery then advertises `EdDSA` in the asymmetric token-signing metadata
+  automatically (the signing-algorithm partition keys on `AsymmetricSecretKey`), and the existing FAPI signing-algorithm
+  ceiling already lists it. See [ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md).
 
 - **Asymmetric secret keys now model their public half as `SubjectPublicKeyInfo` DER through a buffer writer, making the
   key model forward-compatible with Edwards-curve (OKP) and post-quantum keys.** The `AsymmetricSecretKey` base replaces
@@ -1440,6 +1440,11 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   `AlgorithmCapabilityResource.KeyTypes` (`{ secretType, keyBitSizes, curves }` per compatible secret type) replaces
   `SecretTypes` and `KeyBitSizes`, and the console bounds a new secret's key size by the chosen type's entry ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+- **Breaking: `AddEdDsa()` extends the JOSE library's builder.** `AddEdDsa()` in `NCode.Identity.Jose.EdDsa` is an
+  extension of `IServiceBuilder<JoseLibrary>` and returns it, instead of an extension of `IServiceCollection`, so a
+  host cannot register EdDSA without the JOSE library whose key types and algorithms it adds to; replace
+  `serviceCollection.AddEdDsa()` with `serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddEdDsa()`, or call it on
+  the builder `AddJoseLibrary()` returns ([#336](https://github.com/NCodeGroup/Identity/issues/336), [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 - **`ECDH-ES+A*KW` wraps a random content encryption key.** The key-wrapping ECDH-ES algorithms generate the content
   encryption key at random and wrap it with the agreed key, as RFC 7518 §4.6 describes, instead of deriving it from a
   second agreement whose ephemeral key was discarded. The JWE does not change form: the content key was always wrapped

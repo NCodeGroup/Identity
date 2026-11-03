@@ -10,8 +10,9 @@ using NCode.Registration;
 namespace NCode.Identity.Jose.Secp256k1;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceBuilder{TMarker}"/> to register secp256k1 support: the secp256k1 curve
-/// (<c>JWK</c> <c>crv</c> <c>secp256k1</c>) and the <c>ES256K</c> <c>JWS</c> signature algorithm (RFC 8812).
+/// Provides extension methods for <see cref="IServiceBuilder{TMarker}"/> to register secp256k1 support: the
+/// secp256k1 curve (<c>JWK</c> <c>crv</c> <c>secp256k1</c>) and the <c>ES256K</c> <c>JWS</c> signature algorithm
+/// (RFC 8812).
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -22,8 +23,8 @@ public static class DefaultRegistration
     {
         /// <summary>
         /// Registers secp256k1 support where the platform's cryptography supports the curve, and nothing where it does
-        /// not, such as on macOS: the secp256k1 <see cref="EccCurveSpecification"/>, through which <c>ecc</c> keys on the
-        /// curve are generated, imported and published as <c>JWK</c>s with <c>crv</c> <c>secp256k1</c>, and the
+        /// not, such as on macOS: the secp256k1 <see cref="EccCurveSpecification"/>, through which <c>ecc</c> keys on
+        /// the curve are generated, imported and published as <c>JWK</c>s with <c>crv</c> <c>secp256k1</c>, and the
         /// <c>ES256K</c> <see cref="EccSignatureAlgorithmSpecification"/> (<c>ECDSA</c> over secp256k1 with SHA-256,
         /// RFC 8812), which accepts only keys on secp256k1. Safe to call more than once.
         /// </summary>

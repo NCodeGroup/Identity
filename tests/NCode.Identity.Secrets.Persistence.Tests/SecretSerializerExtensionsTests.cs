@@ -98,6 +98,16 @@ public class SecretSerializerExtensionsTests : IDisposable
         );
     }
 
+    [Fact]
+    public void TryDeserializePublicSecret_WhenThePersistedSecretIsNull_Throws()
+    {
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            _serializer.Object.TryDeserializePublicSecret(null!, out _, out _)
+        );
+
+        Assert.Equal("persistedSecret", exception.ParamName);
+    }
+
     #endregion
 
     private sealed class StubSecretKey : SecretKey

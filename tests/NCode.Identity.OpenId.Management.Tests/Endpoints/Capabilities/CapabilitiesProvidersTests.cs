@@ -183,7 +183,9 @@ public sealed class CapabilitiesProvidersTests : IDisposable
                 Assert.Collection(
                     ecc.KeyBitSizes,
                     size =>
-                        Assert.Equal((256, 384, 128), (size.MinBits, size.MaxBits, size.SkipBits)),
+                        Assert.Equal((256, 256, 0), (size.MinBits, size.MaxBits, size.SkipBits)),
+                    size =>
+                        Assert.Equal((384, 384, 0), (size.MinBits, size.MaxBits, size.SkipBits)),
                     size => Assert.Equal((521, 521, 0), (size.MinBits, size.MaxBits, size.SkipBits))
                 );
                 Assert.Equal(["P-256", "P-384", "P-521"], ecc.Curves);

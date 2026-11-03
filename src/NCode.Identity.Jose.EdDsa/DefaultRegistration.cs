@@ -14,9 +14,10 @@ using NCode.Registration;
 namespace NCode.Identity.Jose.EdDsa;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceBuilder{TMarker}"/> to register clean-room <c>OKP</c> (RFC 8037) support
-/// — the <c>OKP</c> secret-key type, <c>EdDSA</c> signing over Ed25519 and Ed448 (the <c>EdDSA</c>, <c>Ed25519</c> and
-/// <c>Ed448</c> <c>JWS</c> signature algorithms, RFC 9864), and <c>ECDH-ES</c> key agreement over X25519 and X448.
+/// Provides extension methods for <see cref="IServiceBuilder{TMarker}"/> to register clean-room <c>OKP</c>
+/// (RFC 8037) support — the <c>OKP</c> secret-key type, <c>EdDSA</c> signing over Ed25519 and Ed448 (the
+/// <c>EdDSA</c>, <c>Ed25519</c> and <c>Ed448</c> <c>JWS</c> signature algorithms, RFC 9864), and <c>ECDH-ES</c> key
+/// agreement over X25519 and X448.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration

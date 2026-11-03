@@ -47,11 +47,16 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
         }
     }
 
+    // The key sizes and the curves both come from the supported curves, so they cannot drift apart.
     /// <inheritdoc />
     public AlgorithmKeyType KeyType { get; } =
         new(
             typeof(EccSecretKey),
-            [new KeySizes(minSize: 256, maxSize: 384, skipSize: 128), new KeySizes(521, 521, 0)]
+            SupportedCurves.Select(curve => new KeySizes(
+                minSize: curve.CurveSizeBits,
+                maxSize: curve.CurveSizeBits,
+                skipSize: 0
+            ))
         )
         {
             Curves =

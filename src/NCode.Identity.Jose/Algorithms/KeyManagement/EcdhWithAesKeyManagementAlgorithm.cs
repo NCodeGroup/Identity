@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using NCode.Buffers;
@@ -40,8 +39,8 @@ internal class EcdhWithAesKeyManagementAlgorithm(
         AesKeyWrap.GetEncryptedContentKeySizeBytes(cekSizeBytes);
 
     /// <summary>
-    /// Generates a random content encryption key (CEK), which <see cref="WrapKey"/> wraps with the agreed key
-    /// encryption key (RFC 7518 §4.6): in key agreement with key wrapping mode the CEK is not the agreed key.
+    /// Generates a random content encryption key (CEK), which <see cref="WrapKey"/> wraps under the key encryption key
+    /// agreed with the <c>epk</c> it writes to the header (RFC 7518 §4.6).
     /// </summary>
     /// <param name="secretKey">The recipient's key.</param>
     /// <param name="header">The JOSE header for the current cryptographic operation.</param>
@@ -64,15 +63,15 @@ internal class EcdhWithAesKeyManagementAlgorithm(
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        using var newKekLease = BufferFactory.Rent(
+        using var kekLease = BufferFactory.Rent(
             KekSizeBytes,
             isSensitive: true,
-            out Span<byte> newKek
+            out Span<byte> kek
         );
 
-        base.NewKey(secretKey, header, newKek);
+        AgreeAndDeriveKey(secretKey, header, kek);
 
-        AesKeyWrap.WrapKey(newKek, contentKey, ref encryptedContentKeyWriter);
+        AesKeyWrap.WrapKey(kek, contentKey, ref encryptedContentKeyWriter);
     }
 
     /// <inheritdoc />
@@ -103,14 +102,17 @@ internal class EcdhWithAesKeyManagementAlgorithm(
             return false;
         }
 
-        using var newKek = BufferFactory.CreatePinnedArray(KekSizeBytes);
+        using var kekLease = BufferFactory.Rent(
+            KekSizeBytes,
+            isSensitive: true,
+            out Span<byte> kek
+        );
 
-        var result = base.TryUnwrapKey(secretKey, header, [], newKek, out var newKekBytesWritten);
-        Debug.Assert(result && newKekBytesWritten == KekSizeBytes);
+        ReceiveAndDeriveKey(secretKey, header, kek);
 
         var contentKeyWriter = contentKey.GetFixedBufferWriter();
 
-        AesKeyWrap.UnwrapKey(newKek, encryptedContentKey, ref contentKeyWriter);
+        AesKeyWrap.UnwrapKey(kek, encryptedContentKey, ref contentKeyWriter);
 
         bytesWritten = contentKeyWriter.WrittenCount;
         return true;

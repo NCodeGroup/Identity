@@ -6,7 +6,6 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -33,6 +32,12 @@ internal sealed class DefaultSecretValidator(
     ISecretSerializer secretSerializer
 ) : ISecretValidator
 {
+    private static ManagementError Error(string detail) =>
+        new() { StatusCode = StatusCodes.Status400BadRequest, Detail = detail };
+
+    private static SecretCreateValidation Invalid(string detail) =>
+        SecretCreateValidation.Invalid(Error(detail));
+
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
 
@@ -42,37 +47,14 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1389 and ADR-1392.
-    public string? ResolveCurve(CreateSecretRequest request)
+    public SecretCreateValidation ValidateCreate(CreateSecretRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (
-            request.Curve is not null
-            || request.Algorithm is not { } algorithm
-            || !SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor)
-            || !AlgorithmCollectionProvider.Collection.TryGetKeyedAlgorithm(
-                algorithm,
-                out var keyedAlgorithm,
-                out _
-            )
-            || !keyedAlgorithm.TryGetKeyType(descriptor.KeyClrType, out var algorithmKeyType)
-        )
-        {
-            return request.Curve;
-        }
-
-        // Two curves can share a key size, so the key is generated on the first curve the algorithm accepts that has
-        // the requested size, never on whichever curve the key type picks for the size.
-        return algorithmKeyType.TryGetCurve(request.KeySizeBits, out var curve) ? curve.Name : null;
-    }
-
-    /// <inheritdoc />
-    public ManagementError? ValidateCreate(CreateSecretRequest request)
-    {
         var secretType = request.SecretType;
         if (!SecretKeyTypeCatalog.TryGet(secretType, out var descriptor))
         {
-            return Error(
+            return Invalid(
                 $"The secret type '{secretType}' is not supported or cannot be created through the "
                     + "management API."
             );
@@ -81,46 +63,61 @@ internal sealed class DefaultSecretValidator(
         var use = request.Use;
         if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
         {
-            return Error(
+            return Invalid(
                 $"The use '{use}' is not supported; expected "
                     + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
             );
         }
 
-        // The descriptor validates the intrinsic generation parameters (key size and, for ECC, the curve).
-        var curve = ResolveCurve(request);
-        var generationError = descriptor.ValidateGeneration(
-            new SecretKeyGenerationParameters { KeySizeBits = request.KeySizeBits, Curve = curve }
-        );
-        if (generationError is not null)
+        // When an algorithm is specified, its registered metadata is authoritative for the use, the key type, the legal
+        // key sizes and the curve the key is generated on: two curves can share a key size, so the key is generated on
+        // the first curve the algorithm accepts that has the requested size, never on whichever curve the key type
+        // picks for the size.
+        var parameters = new SecretKeyGenerationParameters
         {
-            return Error(generationError);
-        }
-
-        // When an algorithm is specified, its registered metadata is authoritative for the use, the
-        // required key type, and the legal key sizes.
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+        };
         if (request.Algorithm is { } algorithm)
         {
-            var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
-                new KeyAlgorithmDeclaration
-                {
-                    KeyType = descriptor.KeyClrType,
-                    KeySizeBits = request.KeySizeBits,
-                    Use = use,
-                    Algorithm = algorithm,
-                    Curve = curve,
-                }
-            );
-            return algorithmError is null ? null : Error(algorithmError);
+            if (
+                !AlgorithmCollectionProvider.Collection.TryResolveKeyGeneration(
+                    new KeyGenerationDeclaration
+                    {
+                        KeyClrType = descriptor.KeyClrType,
+                        KeySizeBits = request.KeySizeBits,
+                        Curve = request.Curve,
+                        Use = use,
+                        Algorithm = algorithm,
+                    },
+                    out var resolved,
+                    out var algorithmError
+                )
+            )
+            {
+                return Invalid(algorithmError);
+            }
+
+            parameters = new SecretKeyGenerationParameters
+            {
+                KeySizeBits = resolved.KeySizeBits,
+                Curve = resolved.Curve,
+            };
         }
 
-        return null;
+        // The descriptor validates the intrinsic generation parameters (key size and, for a key type with curves, the
+        // curve).
+        var generationError = descriptor.ValidateGeneration(parameters);
+        return generationError is null
+            ? SecretCreateValidation.Valid(parameters)
+            : Invalid(generationError);
     }
 
     /// <inheritdoc />
     public ManagementError? ValidateImport(ImportSecretRequest request)
     {
-        // Each key type declares the formats it parses, so a key type another package registers brings its own (ADR-1150).
+        // Each key type declares the formats it parses, so a key type another package registers brings its own
+        // (ADR-1150).
         var secretType = request.SecretType;
         if (
             !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
@@ -180,31 +177,39 @@ internal sealed class DefaultSecretValidator(
         if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
             return Error($"The secret type '{secret.SecretType}' is not supported.");
 
-        // The public key, stored as the key itself or beside its private half, shows the key's curve, which its type and
-        // size do not.
-        SecretKey? publicKey = null;
-        if (
-            descriptor.IsAsymmetric
-            && (SecretEncodings.IsPublic(secret.SecretEncoding) || secret.PublicKey is not null)
-            && !SecretSerializer.TryDeserializePublicSecret(secret, out publicKey, out _)
-        )
+        // An asymmetric key is checked by its stored public half, stored as the key itself or beside its private half
+        // (ADR-1268), which shows the key's curve that its type and size do not.
+        if (descriptor.IsAsymmetric)
         {
-            return Error("The key's stored public key cannot be read.");
+            if (!SecretSerializer.TryDeserializePublicSecret(secret, out var publicKey, out _))
+            {
+                return Error("The key's stored public key cannot be read.");
+            }
+
+            var keyError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
+                new KeyAlgorithmDeclaration
+                {
+                    Key = publicKey,
+                    Use = use,
+                    Algorithm = algorithm,
+                }
+            );
+            return keyError is null ? null : Error(keyError);
         }
 
-        var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
-            new KeyAlgorithmDeclaration
+        // A symmetric key has no curve, so its type and size are all an algorithm checks.
+        return AlgorithmCollectionProvider.Collection.TryResolveKeyGeneration(
+            new KeyGenerationDeclaration
             {
-                KeyType = descriptor.KeyClrType,
+                KeyClrType = descriptor.KeyClrType,
                 KeySizeBits = secret.KeySizeBits,
                 Use = use,
                 Algorithm = algorithm,
-                Key = publicKey,
-            }
-        );
-        return algorithmError is null ? null : Error(algorithmError);
+            },
+            out _,
+            out var symmetricError
+        )
+            ? null
+            : Error(symmetricError);
     }
-
-    private static ManagementError Error(string detail) =>
-        new() { StatusCode = StatusCodes.Status400BadRequest, Detail = detail };
 }

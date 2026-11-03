@@ -534,11 +534,9 @@ internal class DefaultClientKeyImporter(
             error = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
                 new KeyAlgorithmDeclaration
                 {
-                    KeyType = descriptor.KeyClrType,
-                    KeySizeBits = imported.KeySizeBits,
+                    Key = publicKey,
                     Use = use ?? operationsUse,
                     Algorithm = algorithm,
-                    Key = publicKey,
                 }
             );
             if (error is not null)

@@ -83,18 +83,21 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
+    private ManagementError? CreateError(CreateSecretRequest request) =>
+        Validator.ValidateCreate(request).Error;
+
     #region Curve Tests
 
     [Fact]
     public void ValidateCreate_WhenEccWithKnownCurve_ReturnsNull()
     {
-        Assert.Null(Validator.ValidateCreate(CreateRequest("ecc", 0, curve: "P-384")));
+        Assert.Null(CreateError(CreateRequest("ecc", 0, curve: "P-384")));
     }
 
     [Fact]
     public void ValidateCreate_WhenEccWithUnknownCurve_Returns400()
     {
-        var error = Validator.ValidateCreate(CreateRequest("ecc", 256, curve: "not-a-curve"));
+        var error = CreateError(CreateRequest("ecc", 256, curve: "not-a-curve"));
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
     }
@@ -104,9 +107,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData("rsa", 2048)]
     public void ValidateCreate_WhenCurveOnNonEcc_Returns400(string secretType, int keySizeBits)
     {
-        var error = Validator.ValidateCreate(
-            CreateRequest(secretType, keySizeBits, curve: "P-256")
-        );
+        var error = CreateError(CreateRequest(secretType, keySizeBits, curve: "P-256"));
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
     }
@@ -120,9 +121,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string curve
     )
     {
-        var error = Validator.ValidateCreate(
-            CreateRequest("ecc", 256, algorithm: algorithm, curve: curve)
-        );
+        var error = CreateError(CreateRequest("ecc", 256, algorithm: algorithm, curve: curve));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -133,54 +132,73 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenAlgorithmIsBoundToACurveAndNoneIsNamed_ReturnsNull()
     {
-        Assert.Null(
-            Validator.ValidateCreate(CreateRequest("ecc", 256, algorithm: BrainpoolAlgorithm))
-        );
+        Assert.Null(CreateError(CreateRequest("ecc", 256, algorithm: BrainpoolAlgorithm)));
     }
 
     #endregion
 
-    #region ResolveCurve Tests
+    #region GenerationParameters Tests
 
     [Theory]
     [InlineData("ES256", 256, "P-256")]
     [InlineData(BrainpoolAlgorithm, 256, "brainpoolP256r1")]
     [InlineData("ECDH-ES", 384, "P-384")]
     [InlineData("ECDH-ES", 521, "P-521")]
-    public void ResolveCurve_WhenRequestNamesNoCurve_ReturnsTheAlgorithmsCurveOfTheSize(
+    public void ValidateCreate_WhenRequestNamesNoCurve_GeneratesOnTheAlgorithmsCurveOfTheSize(
         string algorithm,
         int keySizeBits,
         string expected
     )
     {
-        Assert.Equal(
-            expected,
-            Validator.ResolveCurve(CreateRequest("ecc", keySizeBits, algorithm: algorithm))
+        var validation = Validator.ValidateCreate(
+            CreateRequest("ecc", keySizeBits, algorithm: algorithm)
         );
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(expected, validation.GenerationParameters.Curve);
+        Assert.Equal(keySizeBits, validation.GenerationParameters.KeySizeBits);
     }
 
     [Fact]
-    public void ResolveCurve_WhenRequestNamesACurve_ReturnsIt()
+    public void ValidateCreate_WhenRequestNamesACurveTheAlgorithmAccepts_GeneratesOnIt()
     {
-        Assert.Equal(
-            "P-384",
-            Validator.ResolveCurve(CreateRequest("ecc", 384, algorithm: "ES256", curve: "P-384"))
+        var validation = Validator.ValidateCreate(
+            CreateRequest("ecc", 384, algorithm: "ECDH-ES", curve: "P-384")
         );
+
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-384", validation.GenerationParameters.Curve);
+        Assert.Equal(384, validation.GenerationParameters.KeySizeBits);
     }
 
     [Theory]
-    [InlineData("ecc", 256, null)]
-    [InlineData("rsa", 2048, "RS256")]
-    [InlineData("ecc", 256, "XX999")]
-    public void ResolveCurve_WhenNoAlgorithmCurveApplies_ReturnsNull(
+    [InlineData("ecc", 256, null, null)]
+    [InlineData("ecc", 384, null, "P-384")]
+    [InlineData("rsa", 2048, "RS256", null)]
+    public void ValidateCreate_WhenNoAlgorithmCurveApplies_GeneratesWithTheRequestsParameters(
         string secretType,
         int keySizeBits,
-        string? algorithm
+        string? algorithm,
+        string? curve
     )
     {
-        Assert.Null(
-            Validator.ResolveCurve(CreateRequest(secretType, keySizeBits, algorithm: algorithm))
+        var validation = Validator.ValidateCreate(
+            CreateRequest(secretType, keySizeBits, algorithm: algorithm, curve: curve)
         );
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(curve, validation.GenerationParameters.Curve);
+        Assert.Equal(keySizeBits, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateCreate_WhenRequestIsNotCoherent_HasNoGenerationParameters()
+    {
+        var validation = Validator.ValidateCreate(CreateRequest("unknown", 256));
+
+        Assert.False(validation.IsValid);
+        Assert.Null(validation.GenerationParameters);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
     }
 
     #endregion
@@ -196,7 +214,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         int keySizeBits
     )
     {
-        var error = Validator.ValidateCreate(CreateRequest(secretType, keySizeBits));
+        var error = CreateError(CreateRequest(secretType, keySizeBits));
 
         Assert.Null(error);
     }
@@ -208,7 +226,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData("unknown")]
     public void ValidateCreate_WhenUnknownSecretType_Returns400(string secretType)
     {
-        var error = Validator.ValidateCreate(CreateRequest(secretType, 256));
+        var error = CreateError(CreateRequest(secretType, 256));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -225,7 +243,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData(-128)]
     public void ValidateCreate_WhenSymmetricKeySizeInvalid_Returns400(int keySizeBits)
     {
-        var error = Validator.ValidateCreate(CreateRequest("symmetric", keySizeBits));
+        var error = CreateError(CreateRequest("symmetric", keySizeBits));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -237,7 +255,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData(32768)]
     public void ValidateCreate_WhenRsaKeySizeInvalid_Returns400(int keySizeBits)
     {
-        var error = Validator.ValidateCreate(CreateRequest("rsa", keySizeBits));
+        var error = CreateError(CreateRequest("rsa", keySizeBits));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -249,7 +267,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData(4096)]
     public void ValidateCreate_WhenRsaKeySizeValid_ReturnsNull(int keySizeBits)
     {
-        var error = Validator.ValidateCreate(CreateRequest("rsa", keySizeBits));
+        var error = CreateError(CreateRequest("rsa", keySizeBits));
 
         Assert.Null(error);
     }
@@ -260,7 +278,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData(520)]
     public void ValidateCreate_WhenEccKeySizeInvalid_Returns400(int keySizeBits)
     {
-        var error = Validator.ValidateCreate(CreateRequest("ecc", keySizeBits));
+        var error = CreateError(CreateRequest("ecc", keySizeBits));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -272,7 +290,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData(521)]
     public void ValidateCreate_WhenEccKeySizeValid_ReturnsNull(int keySizeBits)
     {
-        var error = Validator.ValidateCreate(CreateRequest("ecc", keySizeBits));
+        var error = CreateError(CreateRequest("ecc", keySizeBits));
 
         Assert.Null(error);
     }
@@ -286,7 +304,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData("enc")]
     public void ValidateCreate_WhenKnownUse_ReturnsNull(string use)
     {
-        var error = Validator.ValidateCreate(CreateRequest("symmetric", 256, use));
+        var error = CreateError(CreateRequest("symmetric", 256, use));
 
         Assert.Null(error);
     }
@@ -297,7 +315,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [InlineData("SIG")]
     public void ValidateCreate_WhenUnknownUse_Returns400(string use)
     {
-        var error = Validator.ValidateCreate(CreateRequest("symmetric", 256, use));
+        var error = CreateError(CreateRequest("symmetric", 256, use));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -322,9 +340,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string algorithm
     )
     {
-        var error = Validator.ValidateCreate(
-            CreateRequest(secretType, keySizeBits, use, algorithm)
-        );
+        var error = CreateError(CreateRequest(secretType, keySizeBits, use, algorithm));
 
         Assert.Null(error);
     }
@@ -332,7 +348,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenSignatureAlgorithmPairedWithEncryptionUse_Returns400()
     {
-        var error = Validator.ValidateCreate(CreateRequest("rsa", 2048, "enc", "RS256"));
+        var error = CreateError(CreateRequest("rsa", 2048, "enc", "RS256"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -341,7 +357,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenEncryptionAlgorithmPairedWithSignatureUse_Returns400()
     {
-        var error = Validator.ValidateCreate(CreateRequest("rsa", 2048, "sig", "RSA-OAEP"));
+        var error = CreateError(CreateRequest("rsa", 2048, "sig", "RSA-OAEP"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -350,7 +366,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenAlgorithmRequiresDifferentSecretType_Returns400()
     {
-        var error = Validator.ValidateCreate(CreateRequest("ecc", 256, "sig", "RS256"));
+        var error = CreateError(CreateRequest("ecc", 256, "sig", "RS256"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -359,9 +375,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenAlgorithmIncompatibleWithTypeAndNoUse_Returns400()
     {
-        var error = Validator.ValidateCreate(
-            CreateRequest("symmetric", 256, use: null, algorithm: "RS256")
-        );
+        var error = CreateError(CreateRequest("symmetric", 256, use: null, algorithm: "RS256"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -371,7 +385,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateCreate_WhenKeySizeIllegalForAlgorithm_Returns400()
     {
         // RS256 requires a key of at least 2048 bits (RFC 7518); 1024 is a multiple of 8 but too small.
-        var error = Validator.ValidateCreate(CreateRequest("rsa", 1024, "sig", "RS256"));
+        var error = CreateError(CreateRequest("rsa", 1024, "sig", "RS256"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -381,9 +395,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateCreate_WhenAlgorithmNotRegistered_Returns400()
     {
         // An algorithm the server does not support can never be used, so creation is rejected.
-        var error = Validator.ValidateCreate(
-            CreateRequest("rsa", 2048, "sig", algorithm: "CUSTOM-ALG")
-        );
+        var error = CreateError(CreateRequest("rsa", 2048, "sig", algorithm: "CUSTOM-ALG"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -436,7 +448,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Contains("not compatible with the key", error.Detail, StringComparison.Ordinal);
+        Assert.Contains("'brainpoolP256r1'", error.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -487,6 +499,36 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    // A symmetric key has no stored public half, and no curve, so its type and size are what the algorithm checks.
+    [Theory]
+    [InlineData(256, "HS256", true)]
+    [InlineData(256, "RS256", false)]
+    [InlineData(256, "not-an-algorithm", false)]
+    public void ValidateUpdate_WhenKeyIsSymmetric_ChecksItsTypeAndSize(
+        int keySizeBits,
+        string algorithm,
+        bool expected
+    )
+    {
+        var secret = new PersistedSecret
+        {
+            SecretId = "key-1",
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Symmetric,
+            SecretEncoding = SecretEncodings.SymmetricRaw,
+            KeySizeBits = keySizeBits,
+            EncodedValue = "protected",
+        };
+
+        var error = Validator.ValidateUpdate(secret, CreateUpdateRequest("sig", algorithm));
+
+        Assert.Equal(expected, error is null);
     }
 
     [Fact]

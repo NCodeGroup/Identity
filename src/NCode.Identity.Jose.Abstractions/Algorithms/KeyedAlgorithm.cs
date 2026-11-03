@@ -25,19 +25,19 @@ public abstract class KeyedAlgorithm : Algorithm
     /// <summary>
     /// Gets the first of <see cref="KeyTypes"/> that keys of the specified runtime type are of.
     /// </summary>
-    /// <param name="keyType">The runtime type of a key.</param>
+    /// <param name="keyClrType">The runtime type of a key.</param>
     /// <param name="algorithmKeyType">When this method returns <c>true</c>, the matching key type.</param>
     /// <returns><c>true</c> when the algorithm accepts keys of the type; otherwise, <c>false</c>.</returns>
     public bool TryGetKeyType(
-        Type keyType,
+        Type keyClrType,
         [NotNullWhen(true)] out AlgorithmKeyType? algorithmKeyType
     )
     {
-        ArgumentNullException.ThrowIfNull(keyType);
+        ArgumentNullException.ThrowIfNull(keyClrType);
 
         foreach (var candidate in KeyTypes)
         {
-            if (candidate.Accepts(keyType))
+            if (candidate.Accepts(keyClrType))
             {
                 algorithmKeyType = candidate;
                 return true;
@@ -59,13 +59,14 @@ public abstract class KeyedAlgorithm : Algorithm
         where TKey : SecretKey =>
         KeyTypes.Count > 0
         && KeyTypes.All(algorithmKeyType =>
-            typeof(TKey).IsAssignableFrom(algorithmKeyType.KeyType)
+            typeof(TKey).IsAssignableFrom(algorithmKeyType.KeyClrType)
         );
 
     /// <summary>
-    /// Determines whether a secret key can be used with this algorithm. The default checks that the key's type is one
-    /// of <see cref="KeyTypes"/> and that its size is one that key type accepts; an algorithm that is bound to a
-    /// specific curve overrides it to check the curve too.
+    /// Determines whether a secret key can be used with this algorithm. The default checks the key against the first of
+    /// <see cref="KeyTypes"/> that its runtime type is of, with <see cref="AlgorithmKeyType.IsKeyCompatible"/>: its
+    /// size, and for a key type on curves its curve, must be one that key type accepts. An algorithm overrides it only
+    /// to add a check its key types cannot express, such as a key agreement that must serve the key.
     /// </summary>
     /// <param name="secretKey">The <see cref="SecretKey"/> to check.</param>
     /// <returns><c>true</c> if the key can be used with this algorithm; otherwise, <c>false</c>.</returns>
@@ -74,6 +75,6 @@ public abstract class KeyedAlgorithm : Algorithm
         ArgumentNullException.ThrowIfNull(secretKey);
 
         return TryGetKeyType(secretKey.GetType(), out var algorithmKeyType)
-            && algorithmKeyType.IsLegalSize(secretKey.KeySizeBits);
+            && algorithmKeyType.IsKeyCompatible(secretKey);
     }
 }

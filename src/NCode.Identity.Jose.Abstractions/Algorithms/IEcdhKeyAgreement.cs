@@ -21,19 +21,12 @@ namespace NCode.Identity.Jose.Algorithms;
 public interface IEcdhKeyAgreement
 {
     /// <summary>
-    /// Gets the type of key this agreement serves, with the sizes and the curves it accepts keys of that type in.
-    /// Several agreements may serve one key type, each over its own curves, as long as no key is accepted by two of
-    /// them: the algorithms agree a key with the one agreement whose <see cref="IsKeyCompatible"/> accepts it.
+    /// Gets the type of key this agreement serves, with the curves, or for a key type without curves the sizes, it
+    /// accepts keys of that type on. A key takes part in the agreement when
+    /// <see cref="Algorithms.AlgorithmKeyType.IsKeyCompatible"/> accepts it. Several agreements may serve one key type,
+    /// each over its own curves, as long as no key is accepted by two of them.
     /// </summary>
-    AlgorithmKeyType KeyType { get; }
-
-    /// <summary>
-    /// Determines whether a key of <see cref="KeyType"/> can take part in the agreement, for example whether its
-    /// curve is one the agreement supports (an <c>OKP</c> X25519 key can, an <c>OKP</c> Ed25519 key cannot).
-    /// </summary>
-    /// <param name="secretKey">The recipient's key.</param>
-    /// <returns><c>true</c> when the key can take part in the agreement; otherwise, <c>false</c>.</returns>
-    bool IsKeyCompatible(SecretKey secretKey);
+    AlgorithmKeyType AlgorithmKeyType { get; }
 
     /// <summary>
     /// Gets the size, in bytes, of the shared secret <c>Z</c> that an agreement with the specified key produces.

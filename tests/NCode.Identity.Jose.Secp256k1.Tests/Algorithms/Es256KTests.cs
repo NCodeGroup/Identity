@@ -253,7 +253,7 @@ public sealed class Es256KTests : IAsyncDisposable
     {
         var keyType = Assert.Single(Es256K.KeyTypes);
 
-        Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
+        Assert.Equal(typeof(EccSecretKey), keyType.KeyClrType);
         var curve = Assert.Single(keyType.Curves);
         Assert.Equal("secp256k1", curve.Name);
         Assert.Equal(256, curve.KeySizeBits);

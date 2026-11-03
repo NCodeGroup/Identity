@@ -38,7 +38,6 @@ public class ContributedKeyTypeEcdhTests : BaseTests
     public ContributedKeyTypeEcdhTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, XkpSecretKeyTypeDescriptor>()
@@ -92,10 +91,8 @@ public class ContributedKeyTypeEcdhTests : BaseTests
     // An ECDH agreement over the XKP type's P-256 key material.
     private sealed class XkpEcdhKeyAgreement : IEcdhKeyAgreement
     {
-        public AlgorithmKeyType KeyType { get; } =
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
             new(typeof(XkpSecretKey), [new KeySizes(minSize: 256, maxSize: 256, skipSize: 0)]);
-
-        public bool IsKeyCompatible(SecretKey secretKey) => secretKey is XkpSecretKey;
 
         public int GetSharedSecretSizeBytes(SecretKey secretKey) => 32;
 
@@ -153,16 +150,15 @@ public class ContributedKeyTypeEcdhTests : BaseTests
 
         Assert.Equal(
             [typeof(EccSecretKey), typeof(XkpSecretKey)],
-            algorithm.KeyTypes.Select(keyType => keyType.KeyType)
+            algorithm.KeyTypes.Select(keyType => keyType.KeyClrType)
         );
         Assert.True(algorithm.IsKeyCompatible(CreateRecipientKey()));
     }
 
     [Fact]
-    public async Task KeyTypes_WhenAgreementIsRegisteredBeforeTheCore_StillListsTheCoreOnesFirst()
+    public async Task KeyTypes_WhenAgreementIsRegisteredBeforeTheCore_ListsItsKeyTypeFirst()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<IEcdhKeyAgreement, XkpEcdhKeyAgreement>()
         );
@@ -177,8 +173,8 @@ public class ContributedKeyTypeEcdhTests : BaseTests
 
         Assert.True(collection.TryGetKeyManagementAlgorithm("ECDH-ES", out var algorithm));
         Assert.Equal(
-            [typeof(EccSecretKey), typeof(XkpSecretKey)],
-            algorithm.KeyTypes.Select(keyType => keyType.KeyType)
+            [typeof(XkpSecretKey), typeof(EccSecretKey)],
+            algorithm.KeyTypes.Select(keyType => keyType.KeyClrType)
         );
     }
 

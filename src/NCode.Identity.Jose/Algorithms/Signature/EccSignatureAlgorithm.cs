@@ -51,24 +51,17 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
 
         KeyTypes =
         [
-            new(
+            AlgorithmKeyType.OnCurves(
                 typeof(EccSecretKey),
-                [new KeySizes(minSize: keySizeBits, maxSize: keySizeBits, skipSize: 0)]
-            )
-            {
-                Curves = [new(specification.Curve.CurveName, keySizeBits)],
-            },
+                [new AlgorithmCurve(specification.Curve.CurveName, keySizeBits)]
+            ),
         ];
     }
 
     /// <inheritdoc />
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
 
-    /// <inheritdoc />
-    public override bool IsKeyCompatible(SecretKey secretKey) =>
-        base.IsKeyCompatible(secretKey)
-        && EccCurveSpecification.IsSameNamedCurve(((EccSecretKey)secretKey).GetECCurve(), Curve);
-
+    // The key's curve is checked again when it is used, by the curve itself rather than its name.
     private void EnsureCurve(ECDsa key)
     {
         if (

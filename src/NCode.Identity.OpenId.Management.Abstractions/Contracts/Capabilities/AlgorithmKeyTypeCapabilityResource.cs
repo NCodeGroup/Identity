@@ -7,9 +7,9 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.Capabilities;
 
 /// <summary>
-/// Describes one secret type an algorithm accepts and the key sizes it accepts keys of that type in. An algorithm whose
-/// name serves several key types, such as <c>ECDH-ES</c> over <c>EC</c> and <c>OKP</c> keys (RFC 8037 §3.2), lists one
-/// per secret type, each with its own sizes.
+/// Describes one secret type an algorithm accepts and the key sizes and curves it accepts keys of that type on. An
+/// algorithm whose name serves several key types, such as <c>ECDH-ES</c> over <c>EC</c> and <c>OKP</c> keys
+/// (RFC 8037 §3.2), lists one per secret type, each with its own sizes and curves.
 /// </summary>
 // See ADR-1389.
 [PublicAPI]
@@ -29,9 +29,9 @@ public sealed class AlgorithmKeyTypeCapabilityResource
     public required IReadOnlyList<KeyBitSizesResource> KeyBitSizes { get; init; }
 
     /// <summary>
-    /// Gets the <c>JWK</c> <c>crv</c> names of the curves that keys of <see cref="SecretType"/> must be on for the
-    /// algorithm, in its order of preference (for example <c>secp256k1</c> for <c>ES256K</c>), or an empty list when
-    /// the type has no curve. A key created without a curve is generated on the first of them that has its size.
+    /// Gets the curves that keys of <see cref="SecretType"/> must be on for the algorithm, in its order of preference
+    /// (for example <c>secp256k1</c> for <c>ES256K</c>), each with the size of its keys, or an empty list when the type
+    /// has no curve. A key created without a curve is generated on the first of them that has its size.
     /// </summary>
-    public IReadOnlyList<string> Curves { get; init; } = [];
+    public required IReadOnlyList<AlgorithmCurveCapabilityResource> Curves { get; init; }
 }

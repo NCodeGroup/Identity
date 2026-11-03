@@ -55,6 +55,11 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IEcdhKeyAgreement, EccEcdhKeyAgreement>()
             );
 
+            // ES256, ES384 and ES512 (RFC 7518 §3.4) are registered as data, as a package registers ES256K (ADR-1392).
+            serviceCollection.TryAddEnumerableInstance(EccSignatureAlgorithmSpecification.Es256);
+            serviceCollection.TryAddEnumerableInstance(EccSignatureAlgorithmSpecification.Es384);
+            serviceCollection.TryAddEnumerableInstance(EccSignatureAlgorithmSpecification.Es512);
+
             serviceCollection.TryAddSingleton<IJoseSerializer, JoseSerializer>();
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<IDPoPProofService, DefaultDPoPProofService>();

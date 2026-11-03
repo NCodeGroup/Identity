@@ -1074,10 +1074,10 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validationError = SecretValidator.ValidateCreate(request);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateCreate(request);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
 
         if (
@@ -1111,8 +1111,8 @@ internal class ClientApiEndpointHandler(
             {
                 SecretId = secretId,
                 SecretType = request.SecretType,
-                KeySizeBits = request.KeySizeBits,
-                Curve = SecretValidator.ResolveCurve(request),
+                KeySizeBits = validation.GenerationParameters.KeySizeBits,
+                Curve = validation.GenerationParameters.Curve,
                 Use = request.Use,
                 Algorithm = request.Algorithm,
                 CreatedWhen = TimeProvider.GetUtcNow(),
@@ -1596,10 +1596,10 @@ internal class ClientApiEndpointHandler(
             Algorithm = secret.Algorithm,
             ExpiresWhen = request.ExpiresWhen,
         };
-        var validationError = SecretValidator.ValidateCreate(createRequest);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateCreate(createRequest);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
 
         var replacementId = CryptoService.GenerateResourceId();
@@ -1620,7 +1620,7 @@ internal class ClientApiEndpointHandler(
                 {
                     SecretId = replacementId,
                     SecretType = createRequest.SecretType,
-                    KeySizeBits = createRequest.KeySizeBits,
+                    KeySizeBits = validation.GenerationParameters.KeySizeBits,
                     Use = createRequest.Use,
                     Algorithm = createRequest.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

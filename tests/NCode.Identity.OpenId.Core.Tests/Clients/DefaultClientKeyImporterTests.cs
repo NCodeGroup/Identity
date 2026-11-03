@@ -38,7 +38,6 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     {
         // The real key-type catalog, secret importer, and algorithms are the policy's sources of truth.
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddIdentityLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
@@ -399,7 +398,6 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
     )
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddIdentityLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
@@ -434,7 +432,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         Assert.Equal(expected, imported);
         if (!expected)
         {
-            Assert.Contains("not compatible with the key", error, StringComparison.Ordinal);
+            Assert.Contains($"The curve '{curve}'", error, StringComparison.Ordinal);
         }
     }
 

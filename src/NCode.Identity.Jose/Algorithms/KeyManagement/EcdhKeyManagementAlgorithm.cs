@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
@@ -33,56 +34,38 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
     /// <summary>
-    /// Orders the agreements independently of the order they were registered in: the core's <c>EC</c> agreement of
-    /// RFC 7518 first, then the contributed ones by key type and agreement type name, so the key types and curves the
-    /// algorithm prefers, and the key a tenant is provisioned with, never depend on which package was added first.
-    /// </summary>
-    // See ADR-1389.
-    private static IEcdhKeyAgreement[] OrderKeyAgreements(
-        IEnumerable<IEcdhKeyAgreement> keyAgreements
-    ) =>
-        [
-            .. keyAgreements
-                .OrderBy(keyAgreement => keyAgreement is EccEcdhKeyAgreement ? 0 : 1)
-                .ThenBy(
-                    keyAgreement => keyAgreement.KeyType.KeyType.FullName,
-                    StringComparer.Ordinal
-                )
-                .ThenBy(keyAgreement => keyAgreement.GetType().FullName, StringComparer.Ordinal),
-        ];
-
-    /// <summary>
-    /// Merges the key types of agreements that serve the same runtime key type, such as two agreements over
-    /// different <c>EC</c> curves, into one <see cref="AlgorithmKeyType"/> with the sizes and curves of both, so a
-    /// package can add an agreement over another curve of a key type the core already serves.
+    /// Merges the key types of agreements that serve the same runtime key type, such as two agreements over different
+    /// <c>EC</c> curves, into one <see cref="AlgorithmKeyType"/> with the curves of both, so a package can add an
+    /// agreement over another curve of a key type the core already serves. The key types keep the order the agreements
+    /// were registered in: the core's first, through <c>AddJoseLibrary()</c>, then each package's in the order the host
+    /// adds them.
     /// </summary>
     private static AlgorithmKeyType[] MergeKeyTypes(IEnumerable<IEcdhKeyAgreement> keyAgreements) =>
         [
             .. keyAgreements
-                .GroupBy(keyAgreement => keyAgreement.KeyType.KeyType)
+                .GroupBy(keyAgreement => keyAgreement.AlgorithmKeyType.KeyClrType)
                 .Select(group =>
                 {
-                    var keyTypes = group.Select(keyAgreement => keyAgreement.KeyType).ToList();
+                    var keyTypes = group
+                        .Select(keyAgreement => keyAgreement.AlgorithmKeyType)
+                        .ToList();
                     if (keyTypes.Count == 1)
                     {
                         return keyTypes[0];
                     }
 
-                    // A key type whose agreement does not restrict the curve accepts every curve.
-                    var curves = keyTypes.Any(keyType => keyType.Curves.Count == 0)
-                        ? []
-                        : keyTypes
-                            .SelectMany(keyType => keyType.Curves)
-                            .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
-                            .ToArray();
-
-                    return new AlgorithmKeyType(
-                        group.Key,
-                        keyTypes.SelectMany(keyType => keyType.KeyBitSizes)
-                    )
-                    {
-                        Curves = curves,
-                    };
+                    // A key type whose agreement does not restrict the curve accepts every curve of its sizes.
+                    return keyTypes.Any(keyType => keyType.Curves.Count == 0)
+                        ? new AlgorithmKeyType(
+                            group.Key,
+                            keyTypes.SelectMany(keyType => keyType.KeyBitSizes)
+                        )
+                        : AlgorithmKeyType.OnCurves(
+                            group.Key,
+                            keyTypes
+                                .SelectMany(keyType => keyType.Curves)
+                                .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
+                        );
                 }),
         ];
 
@@ -377,7 +360,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; }
 
-    private IReadOnlyList<IEcdhKeyAgreement> KeyAgreements { get; }
+    private ImmutableArray<IEcdhKeyAgreement> KeyAgreements { get; }
 
     private bool IsDirectAgreement { get; }
 
@@ -412,7 +395,8 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <c>epk</c>.</param>
     /// <param name="keyAgreements">The registered key agreements; a key is agreed by the one agreement that accepts
     /// it.</param>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic
+    /// algorithm.</param>
     /// <param name="isDirectAgreement"><c>true</c> if the algorithm is to use direct key agreement mode;
     /// otherwise, <c>false</c> if the algorithm is to use key agreement with key wrapping mode.</param>
     protected EcdhKeyManagementAlgorithm(
@@ -423,7 +407,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     )
     {
         SecretKeyTypeCatalog = secretKeyTypeCatalog;
-        KeyAgreements = OrderKeyAgreements(keyAgreements);
+        KeyAgreements = [.. keyAgreements];
         Code = code;
         IsDirectAgreement = isDirectAgreement;
         AlgorithmField = isDirectAgreement ? JoseClaimNames.Header.Enc : JoseClaimNames.Header.Alg;
@@ -446,6 +430,22 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         SecretKey secretKey,
         IDictionary<string, object> header,
         Span<byte> contentKey
+    ) => AgreeAndDeriveKey(secretKey, header, contentKey);
+
+    /// <summary>
+    /// The sender's half of the agreement: agrees a shared secret with the recipient's key through an ephemeral key,
+    /// writes the ephemeral public key to the header as the <c>epk</c>, and derives the key with the Concat KDF
+    /// (RFC 7518 §4.6.2). In direct key agreement mode the derived key is the content encryption key; in key agreement
+    /// with key wrapping mode it is the key encryption key.
+    /// </summary>
+    /// <param name="secretKey">The recipient's key.</param>
+    /// <param name="header">The JOSE header for the current cryptographic operation, which receives the
+    /// <c>epk</c>.</param>
+    /// <param name="destination">The destination for the derived key, whose length is the key's size.</param>
+    protected void AgreeAndDeriveKey(
+        SecretKey secretKey,
+        IDictionary<string, object> header,
+        Span<byte> destination
     )
     {
         var (keyAgreement, descriptor, jwkKeyType) = Resolve(secretKey);
@@ -478,7 +478,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             ephemeralPublicKey.Span
         );
 
-        DeriveKey(algorithm, apu, apv, sharedSecret, contentKey);
+        DeriveKey(algorithm, apu, apv, sharedSecret, destination);
     }
 
     /// <inheritdoc />
@@ -522,6 +522,26 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             );
         }
 
+        ReceiveAndDeriveKey(secretKey, header, contentKey);
+
+        bytesWritten = contentKey.Length;
+        return true;
+    }
+
+    /// <summary>
+    /// The recipient's half of the agreement: agrees the shared secret from the recipient's private key and the
+    /// <c>epk</c> the header carries, and derives the key with the Concat KDF (RFC 7518 §4.6.2), the same key
+    /// <see cref="AgreeAndDeriveKey"/> derived for the sender.
+    /// </summary>
+    /// <param name="secretKey">The recipient's private key.</param>
+    /// <param name="header">The JOSE header of the token, which carries the <c>epk</c>.</param>
+    /// <param name="destination">The destination for the derived key, whose length is the key's size.</param>
+    protected void ReceiveAndDeriveKey(
+        SecretKey secretKey,
+        JsonElement header,
+        Span<byte> destination
+    )
+    {
         var keyAgreement = ResolveKeyAgreement(secretKey);
         var ephemeralPublicKey = ValidateHeaderForUnwrap(
             secretKey,
@@ -539,10 +559,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
 
         keyAgreement.Agree(secretKey, ephemeralPublicKey, sharedSecret);
 
-        DeriveKey(algorithm, apu, apv, sharedSecret, contentKey);
-
-        bytesWritten = contentKey.Length;
-        return true;
+        DeriveKey(algorithm, apu, apv, sharedSecret, destination);
     }
 
     /// <summary>
@@ -597,16 +614,13 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         var servesKeyType = false;
         foreach (var candidate in KeyAgreements)
         {
-            if (!candidate.KeyType.Accepts(keyType))
+            if (!candidate.AlgorithmKeyType.Accepts(keyType))
             {
                 continue;
             }
 
             servesKeyType = true;
-            if (
-                !candidate.KeyType.IsLegalSize(secretKey.KeySizeBits)
-                || !candidate.IsKeyCompatible(secretKey)
-            )
+            if (!candidate.AlgorithmKeyType.IsKeyCompatible(secretKey))
             {
                 continue;
             }

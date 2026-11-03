@@ -191,23 +191,10 @@ NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!)
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).ValidateKeyAlgorithm(NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration declaration) -> string?
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Accepts(System.Type! keyType) -> bool
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curves.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>!
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curves.init -> void
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalCurve(string! curve, int keySizeBits) -> bool
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(int keySizeBits, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmCurve
 NCode.Identity.Jose.Algorithms.AlgorithmCurve.AlgorithmCurve(string! name, int keySizeBits) -> void
 NCode.Identity.Jose.Algorithms.AlgorithmCurve.KeySizeBits.get -> int
 NCode.Identity.Jose.Algorithms.AlgorithmCurve.Name.get -> string!
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Curve.get -> string?
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Curve.init -> void
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Key.get -> NCode.Identity.Secrets.Keys.SecretKey?
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Key.init -> void
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.AlgorithmKeyType(System.Type! keyType, System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! keyBitSizes) -> void
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalSize(int keySizeBits) -> bool
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<System.Security.Cryptography.KeySizes!>!
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyType.get -> System.Type!
 NCode.Identity.Jose.Algorithms.AlgorithmType
 NCode.Identity.Jose.Algorithms.AlgorithmType.AuthenticatedEncryption = 3 -> NCode.Identity.Jose.Algorithms.AlgorithmType
 NCode.Identity.Jose.Algorithms.AlgorithmType.Compression = 4 -> NCode.Identity.Jose.Algorithms.AlgorithmType
@@ -240,22 +227,10 @@ NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement
 NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.Agree(NCode.Identity.Secrets.Keys.SecretKey! recipientKey, NCode.Identity.Secrets.Keys.SecretKey! ephemeralPublicKey, System.Span<byte> sharedSecret) -> void
 NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.AgreeWithEphemeralKey(NCode.Identity.Secrets.Keys.SecretKey! recipientKey, System.Buffers.IBufferWriter<byte>! ephemeralPublicKeyWriter, System.Span<byte> sharedSecret) -> void
 NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.GetSharedSecretSizeBytes(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> int
-NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
-NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.KeyType.get -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
 NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.get -> string!
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.init -> void
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyAlgorithmDeclaration() -> void
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeySizeBits.get -> int
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeySizeBits.init -> void
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyType.get -> System.Type!
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyType.init -> void
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.get -> string?
-NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.init -> void
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm.AcceptsOnly<TKey>() -> bool
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm.KeyedAlgorithm() -> void
-NCode.Identity.Jose.Algorithms.KeyedAlgorithm.TryGetKeyType(System.Type! keyType, out NCode.Identity.Jose.Algorithms.AlgorithmKeyType? algorithmKeyType) -> bool
 NCode.Identity.Jose.Algorithms.KeyedHashFunctionDelegate
 NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm
 NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.KeyManagementAlgorithm() -> void
@@ -467,3 +442,51 @@ NCode.Identity.Jose.DPoP.IDPoPProofService
 NCode.Identity.Jose.DPoP.IDPoPProofService.CreateProof(NCode.Identity.Jose.DPoP.DPoPProofCreationOptions! options) -> string!
 NCode.Identity.Jose.DPoP.IDPoPProofService.TryValidateProof(string! proofJwt, NCode.Identity.Jose.DPoP.DPoPProofValidationParameters! parameters, out NCode.Identity.Jose.DPoP.DPoPProof? proof, out string? error) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).TryGetKeyedAlgorithm(string! code, out NCode.Identity.Jose.Algorithms.KeyedAlgorithm? algorithm, out string? impliedUse) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Accepts(System.Type! keyClrType) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.AlgorithmKeyType(System.Type! keyClrType, System.Collections.Generic.IEnumerable<System.Security.Cryptography.KeySizes!>! keyBitSizes) -> void
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curves.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>!
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalCurve(string? curve, int keySizeBits) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalSize(int keySizeBits) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<System.Security.Cryptography.KeySizes!>!
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyClrType.get -> System.Type!
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(int keySizeBits, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(string! name, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
+static NCode.Identity.Jose.Algorithms.AlgorithmKeyType.OnCurves(System.Type! keyClrType, System.Collections.Generic.IEnumerable<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>! curves) -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
+NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).TryResolveKeyGeneration(NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration declaration, out NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration? resolved, out string? error) -> bool
+static NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Es256.get -> NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification!
+static NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Es384.get -> NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification!
+static NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Es512.get -> NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification!
+NCode.Identity.Jose.Algorithms.IEcdhKeyAgreement.AlgorithmKeyType.get -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.get -> string!
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.init -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Key.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Key.init -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyAlgorithmDeclaration() -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.get -> string?
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.init -> void
+NCode.Identity.Jose.Algorithms.KeyedAlgorithm.TryGetKeyType(System.Type! keyClrType, out NCode.Identity.Jose.Algorithms.AlgorithmKeyType? algorithmKeyType) -> bool
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Algorithm.get -> string!
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Algorithm.init -> void
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Curve.get -> string?
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Curve.init -> void
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeyClrType.get -> System.Type!
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeyClrType.init -> void
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeyGenerationDeclaration() -> void
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeySizeBits.get -> int?
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeySizeBits.init -> void
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Use.get -> string?
+NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Use.init -> void
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Algorithm.get -> NCode.Identity.Jose.Algorithms.KeyedAlgorithm!
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Algorithm.init -> void
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.AlgorithmKeyType.get -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.AlgorithmKeyType.init -> void
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Curve.get -> string?
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Curve.init -> void
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.KeySizeBits.get -> int
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.KeySizeBits.init -> void
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.ResolvedKeyGeneration() -> void
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Use.get -> string!
+NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Use.init -> void

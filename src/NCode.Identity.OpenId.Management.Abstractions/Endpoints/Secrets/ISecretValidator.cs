@@ -21,22 +21,16 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 public interface ISecretValidator
 {
     /// <summary>
-    /// Validates that the specified <see cref="CreateSecretRequest"/> describes a coherent secret.
+    /// Validates that the specified <see cref="CreateSecretRequest"/> describes a coherent secret, and resolves the
+    /// parameters the key is generated with. A request that names an algorithm bound to curves, such as <c>ES256K</c>,
+    /// and no curve resolves to the first curve the algorithm accepts that has the requested size, so the key is never
+    /// generated on the curve the key type picks for the size; the caller generates the key with
+    /// <see cref="SecretCreateValidation.GenerationParameters"/>.
     /// </summary>
     /// <param name="request">The <see cref="CreateSecretRequest"/> to validate.</param>
-    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
-    ManagementError? ValidateCreate(CreateSecretRequest request);
-
-    /// <summary>
-    /// Gets the curve the key a <see cref="CreateSecretRequest"/> describes is generated on: the request's curve, or,
-    /// when it names none, the first curve its algorithm accepts for the secret type that has keys of the requested
-    /// size, so a key for an algorithm bound to a curve, such as <c>ES256K</c>, is generated on that curve rather than
-    /// on the one the key type picks for the size.
-    /// </summary>
-    /// <param name="request">The <see cref="CreateSecretRequest"/> that describes the key.</param>
-    /// <returns>The <c>JWK</c> <c>crv</c> name of the curve, or <c>null</c> when the request names none and the key
-    /// type selects one by size or has none.</returns>
-    string? ResolveCurve(CreateSecretRequest request);
+    /// <returns>The <see cref="SecretCreateValidation"/>: the generation parameters, or the first failed
+    /// check.</returns>
+    SecretCreateValidation ValidateCreate(CreateSecretRequest request);
 
     /// <summary>
     /// Validates that the specified <see cref="ImportSecretRequest"/> describes a coherent public-key import. The

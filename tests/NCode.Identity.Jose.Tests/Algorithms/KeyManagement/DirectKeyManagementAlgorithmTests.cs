@@ -25,7 +25,7 @@ public class DirectKeyManagementAlgorithmTests : BaseTests
     [Fact]
     public void KeyType_ReturnsSymmetricSecretKey()
     {
-        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(Algorithm.KeyTypes).KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(Algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]

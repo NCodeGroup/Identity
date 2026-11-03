@@ -19,7 +19,8 @@ public class DefaultSecretImporterTests
     {
         var provider = new EphemeralDataProtectionProvider();
         var secretKeyFactory = new DefaultSecretKeyFactory(
-            new TestDataProtectorFactory<SecretKey>(provider.CreateProtector("factory"))
+            new TestDataProtectorFactory<SecretKey>(provider.CreateProtector("factory")),
+            new DefaultEccCurveCatalog([])
         );
 
         var catalog = new DefaultSecretKeyTypeCatalog([

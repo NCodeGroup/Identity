@@ -21,7 +21,6 @@ public class DefaultRegistrationTests
     )
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         register(serviceCollection.AddSecretsLibrary().AddJoseLibrary());
         return serviceCollection.BuildServiceProvider();
     }
@@ -48,7 +47,6 @@ public class DefaultRegistrationTests
     public async Task AddSecp256k1_WhenCalledTwice_RegistersOnce()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         var jose = serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         jose.AddSecp256k1();
         jose.AddSecp256k1();
@@ -56,7 +54,9 @@ public class DefaultRegistrationTests
         Assert.Single(serviceCollection, x => x.ServiceType == typeof(EccCurveSpecification));
         Assert.Single(
             serviceCollection,
-            x => x.ServiceType == typeof(EccSignatureAlgorithmSpecification)
+            x =>
+                x.ServiceType == typeof(EccSignatureAlgorithmSpecification)
+                && x.ImplementationInstance is EccSignatureAlgorithmSpecification { Code: "ES256K" }
         );
 
         await using var serviceProvider = serviceCollection.BuildServiceProvider();

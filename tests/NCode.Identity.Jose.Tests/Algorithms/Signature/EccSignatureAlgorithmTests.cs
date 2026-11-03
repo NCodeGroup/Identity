@@ -25,7 +25,7 @@ public class EccSignatureAlgorithmTests : BaseTests
     }
 
     [Fact]
-    public void KeyType_ReturnsEccSecretKey()
+    public void KeyTypes_ReturnsEccSecretKey()
     {
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
@@ -35,7 +35,7 @@ public class EccSignatureAlgorithmTests : BaseTests
             ECCurve.NamedCurves.nistP384,
             anyValidHashAlgorithmName
         );
-        Assert.Equal(typeof(EccSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
+        Assert.Equal(typeof(EccSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     public static IEnumerable<object[]> GetKeyBitSizesTestData()
@@ -218,7 +218,7 @@ public class EccSignatureAlgorithmTests : BaseTests
     public void IsKeyCompatible_WhenEs512AndSameSizeDifferentCurve_ReturnsFalse()
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.brainpoolP512r1);
-        var secretKey = new StubEccSecretKey(key, curveSizeBits: 521);
+        var secretKey = new StubEccSecretKey(key, "brainpoolP512r1", curveSizeBits: 521);
 
         var algorithm = EccSignatureAlgorithmFactory.Create(
             "ES512",
@@ -253,8 +253,13 @@ public class EccSignatureAlgorithmTests : BaseTests
         );
     }
 
-    private sealed class StubEccSecretKey(ECDsa ecdsa, int curveSizeBits)
-        : EccSecretKey(new KeyMetadata { KeyId = "keyId" }, curveSizeBits, certificateRawData: null)
+    private sealed class StubEccSecretKey(ECDsa ecdsa, string curveName, int curveSizeBits)
+        : EccSecretKey(
+            new KeyMetadata { KeyId = "keyId" },
+            curveName,
+            curveSizeBits,
+            certificateRawData: null
+        )
     {
         public override ECDsa ExportECDsa() =>
             ECDsa.Create(ecdsa.ExportParameters(includePrivateParameters: true));

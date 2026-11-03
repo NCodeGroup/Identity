@@ -4,6 +4,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Secp256k1.Algorithms;
 using NCode.Identity.Jose.Secp256k1.KeyTypes;
+using NCode.Registration;
 
 namespace NCode.Identity.Jose.Secp256k1;
 
@@ -32,29 +33,11 @@ internal static class Secp256k1Registration
             return serviceCollection;
         }
 
-        // Each is registered as an instance, and TryAddEnumerable keeps one registration per implementation type, which
-        // would drop every other curve or ECDSA algorithm an application registers; so the instance is checked instead.
-        AddInstanceOnce(serviceCollection, Secp256k1Curve.Specification);
-        AddInstanceOnce(serviceCollection, Secp256k1Algorithms.Es256K);
+        // Each is registered as an instance, kept beside the other curves and ECDSA algorithms the application
+        // registers.
+        serviceCollection.TryAddEnumerableInstance(Secp256k1Curve.Specification);
+        serviceCollection.TryAddEnumerableInstance(Secp256k1Algorithms.Es256K);
 
         return serviceCollection;
-    }
-
-    private static void AddInstanceOnce<TService>(
-        IServiceCollection serviceCollection,
-        TService instance
-    )
-        where TService : class
-    {
-        if (
-            !serviceCollection.Any(descriptor =>
-                descriptor.ServiceType == typeof(TService)
-                && !descriptor.IsKeyedService
-                && ReferenceEquals(descriptor.ImplementationInstance, instance)
-            )
-        )
-        {
-            serviceCollection.AddSingleton(instance);
-        }
     }
 }

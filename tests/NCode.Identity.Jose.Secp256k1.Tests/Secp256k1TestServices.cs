@@ -25,7 +25,6 @@ public sealed class Secp256k1TestServices : IAsyncDisposable
     public Secp256k1TestServices()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddSecp256k1();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 

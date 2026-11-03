@@ -16,7 +16,7 @@ public class EdDsaSignatureAlgorithmTests
 
     private static EdDsaSignatureAlgorithm CreateFixedAlgorithm(string code, string curveName)
     {
-        Assert.True(OkpCurves.TryGetByName(curveName, out var curve));
+        Assert.True(OkpCurves.TryGetByName(curveName, out EdwardsOkpCurve? curve));
         return new(code, curve);
     }
 

@@ -68,7 +68,7 @@ partial class JoseSerializer
         {
             var expected = string.Join(
                 "', '",
-                keyManagementAlgorithm.KeyTypes.Select(keyType => keyType.KeyType.FullName)
+                keyManagementAlgorithm.KeyTypes.Select(keyType => keyType.KeyClrType.FullName)
             );
             throw new ArgumentException(
                 $"The secret key was expected to be a type of '{expected}', but '{secretKey.GetType().FullName}' was given instead.",

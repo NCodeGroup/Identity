@@ -8,12 +8,23 @@ using Microsoft.AspNetCore.DataProtection;
 using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Secrets.KeyMaterial;
 
 public class DefaultSecretKeyFactoryTests : BaseTests
 {
-    private DefaultSecretKeyFactory CreateSecretKeyFactory()
+    private static EccCurveSpecification Brainpool256 { get; } =
+        new()
+        {
+            CurveName = "brainpoolP256r1",
+            CurveSizeBits = 256,
+            Curve = ECCurve.NamedCurves.brainpoolP256r1,
+        };
+
+    private DefaultSecretKeyFactory CreateSecretKeyFactory(
+        params IEnumerable<EccCurveSpecification> additionalCurves
+    )
     {
         var provider = new EphemeralDataProtectionProvider();
         var protector = provider.CreateProtector("test");
@@ -21,7 +32,10 @@ public class DefaultSecretKeyFactoryTests : BaseTests
         var mockFactory = CreateStrictMock<IDataProtectorFactory<SecretKey>>();
         mockFactory.Setup(x => x.CreateDataProtector()).Returns(protector).Verifiable();
 
-        return new DefaultSecretKeyFactory(mockFactory.Object);
+        return new DefaultSecretKeyFactory(
+            mockFactory.Object,
+            new DefaultEccCurveCatalog(additionalCurves)
+        );
     }
 
     #region Empty Property Tests
@@ -148,6 +162,57 @@ public class DefaultSecretKeyFactoryTests : BaseTests
 
         using var exportedDh = key.ExportECDiffieHellman();
         Assert.Equal(expectedSizeBits, exportedDh.KeySize);
+    }
+
+    [Theory]
+    [InlineData("nistP256", "P-256")]
+    [InlineData("nistP384", "P-384")]
+    [InlineData("nistP521", "P-521")]
+    public void CreateEcc_FromKey_NamesTheCurveAsTheCatalogDoes(
+        string friendlyName,
+        string expected
+    )
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.CreateFromFriendlyName(friendlyName));
+
+        var key = factory.CreateEcc(new KeyMetadata { KeyId = "ecc" }, ecdsa);
+
+        Assert.Equal(expected, key.CurveName);
+    }
+
+    // brainpoolP256r1 has P-256's size, so the curve is named by its OID, and only when the catalog holds it.
+    [Fact]
+    public void CreateEcc_WhenTheCatalogHoldsTheCurve_NamesItByItsOid()
+    {
+        var factory = CreateSecretKeyFactory(Brainpool256);
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
+
+        var key = factory.CreateEcc(new KeyMetadata { KeyId = "ecc" }, ecdsa);
+
+        Assert.Equal("brainpoolP256r1", key.CurveName);
+    }
+
+    [Fact]
+    public void CreateEcc_WhenTheCatalogDoesNotHoldTheCurve_HasNoCurveName()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
+
+        var key = factory.CreateEcc(new KeyMetadata { KeyId = "ecc" }, ecdsa);
+
+        Assert.Null(key.CurveName);
+    }
+
+    [Fact]
+    public void CreateEccSpki_NamesTheCurveOfThePublicKey()
+    {
+        var factory = CreateSecretKeyFactory();
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP384);
+
+        var key = factory.CreateEccSpki(new KeyMetadata(), ecdsa.ExportSubjectPublicKeyInfo());
+
+        Assert.Equal("P-384", key.CurveName);
     }
 
     [Fact]

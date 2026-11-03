@@ -10,10 +10,10 @@ namespace NCode.Identity.Jose.EdDsa.Keys;
 
 /// <summary>
 /// Represents an <c>OKP</c> (Octet Key Pair) secret key (RFC 8037): an Ed25519 or Ed448 key, which signs with
-/// <c>EdDSA</c>, or an X25519 or X448 key, which agrees keys with <c>ECDH-ES</c>. Its <see cref="Curve"/> decides which,
-/// and a key of one use is never accepted for the other. The key material is the raw public key (always present) and,
-/// for a private key, the raw private key (the seed of an Edwards curve, the scalar of a Montgomery curve), exposed
-/// only through <see cref="ExportPrivateKey{TWriter}"/>. OKP keys have no
+/// <c>EdDSA</c>, or an X25519 or X448 key, which agrees keys with <c>ECDH-ES</c>. Its <see cref="CurveName"/> decides
+/// which, and a key of one use is never accepted for the other. The key material is the raw public key (always present)
+/// and, for a private key, the raw private key (the seed of an Edwards curve, the scalar of a Montgomery curve),
+/// exposed only through <see cref="ExportPrivateKey{TWriter}"/>. OKP keys have no
 /// <see cref="System.Security.Cryptography.AsymmetricAlgorithm"/> representation; their public material is produced
 /// as <c>SubjectPublicKeyInfo</c> DER (RFC 8410).
 /// </summary>
@@ -43,7 +43,7 @@ public abstract class OkpSecretKey(
     /// <summary>
     /// Gets the JWK <c>crv</c> name of the key: <c>Ed25519</c>, <c>Ed448</c>, <c>X25519</c> or <c>X448</c>.
     /// </summary>
-    public string Curve { get; } = curve;
+    public override string CurveName { get; } = curve;
 
     /// <summary>
     /// Gets a value indicating whether this key holds the private key, and can therefore sign or, on a key-agreement
@@ -73,9 +73,9 @@ public abstract class OkpSecretKey(
     /// <inheritdoc />
     public override void ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)
     {
-        if (!OkpCurves.TryGetByName(Curve, out var curve))
+        if (!OkpCurves.TryGetByName(CurveName, out var curve))
         {
-            throw new InvalidOperationException($"The OKP curve '{Curve}' is not supported.");
+            throw new InvalidOperationException($"The OKP curve '{CurveName}' is not supported.");
         }
 
         OkpKeyEncoder.WriteSubjectPublicKeyInfo(curve, _publicKey.Span, ref destination);

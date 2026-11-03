@@ -44,7 +44,7 @@ NCode.Identity.Secrets.Keys.AsymmetricSecretKey.IssuerCertificatesRawData.get ->
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.KeySizeBits.get -> int
 override NCode.Identity.Secrets.Keys.AsymmetricSecretKey.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.EccSecretKey
-NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
+NCode.Identity.Secrets.Keys.EccSecretKey.EccSecretKey(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string? curveName, int curveSizeBits, System.ReadOnlyMemory<byte>? certificateRawData, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<byte>>? issuerCertificatesRawData = null) -> void
 override NCode.Identity.Secrets.Keys.EccSecretKey.ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination) -> void
 NCode.Identity.Secrets.Keys.KeyMetadata
 NCode.Identity.Secrets.Keys.KeyMetadata.Algorithm.get -> string?
@@ -208,3 +208,5 @@ NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secre
 static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P256.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
 static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P384.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
 static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P521.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+override NCode.Identity.Secrets.Keys.EccSecretKey.CurveName.get -> string?
+virtual NCode.Identity.Secrets.Keys.AsymmetricSecretKey.CurveName.get -> string?

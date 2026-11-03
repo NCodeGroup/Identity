@@ -27,7 +27,7 @@ public class RsaOaepKeyManagementAlgorithmTests : BaseTests
         const string code = nameof(code);
 
         var algorithm = new RsaOaepKeyManagementAlgorithm(code, HashAlgorithmName.SHA256);
-        Assert.Equal(typeof(RsaSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
+        Assert.Equal(typeof(RsaSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]

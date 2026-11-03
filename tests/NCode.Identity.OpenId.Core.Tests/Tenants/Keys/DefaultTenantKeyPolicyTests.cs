@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -17,7 +18,6 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
@@ -42,6 +42,11 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
         };
+
+    private static ConcurrentDictionary<
+        (string SecretType, int KeySizeBits),
+        string
+    > PublicKeys { get; } = new();
 
     private readonly ServiceProvider _serviceProvider;
 
@@ -90,10 +95,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     // they do with a package that contributes OKP keys (ADR-1389); provisioning never performs an agreement.
     private sealed class RsaKeyTypeAgreementStub : IEcdhKeyAgreement
     {
-        public AlgorithmKeyType KeyType { get; } =
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
             new(typeof(RsaSecretKey), [new KeySizes(minSize: 2048, maxSize: 4096, skipSize: 1024)]);
-
-        public bool IsKeyCompatible(SecretKey secretKey) => secretKey is RsaSecretKey;
 
         public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
             throw new NotSupportedException();
@@ -109,18 +112,6 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             SecretKey ephemeralPublicKey,
             Span<byte> sharedSecret
         ) => throw new NotSupportedException();
-    }
-
-    // Hands the JOSE library's builder to a package before the library itself is added, so the package's registrations
-    // precede the core's; it registers no marker, which the library then registers.
-    private sealed class PrecedingJoseBuilder(IServiceCollection serviceCollection)
-        : IServiceBuilder<JoseLibrary>
-    {
-        public IServiceCollection ServiceCollection { get; } = serviceCollection;
-
-        public IServiceBuilder<TNewMarker> NewBuilder<TNewMarker>()
-            where TNewMarker : IRegistrationMarker<TNewMarker>, new() =>
-            throw new NotSupportedException();
     }
 
     // A registered signature algorithm keyed by the abstract SecretKey, which no secret key type describes.
@@ -430,7 +421,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         int keySizeBits
     )
     {
-        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst: false);
+        await using var serviceProvider = BuildEdDsaServiceProvider();
         var policy = CreatePolicy(serviceProvider);
 
         var resolution = policy.ResolveSpecifications(
@@ -447,7 +438,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Fact]
     public async Task ResolveSpecifications_WhenPolymorphicEdDsa_GeneratesTheKeyOnItsFirstCurve()
     {
-        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst: false);
+        await using var serviceProvider = BuildEdDsaServiceProvider();
         var policy = CreatePolicy(serviceProvider);
 
         var resolution = policy.ResolveSpecifications(
@@ -471,7 +462,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         string curve
     )
     {
-        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst: false);
+        await using var serviceProvider = BuildEdDsaServiceProvider();
         var policy = CreatePolicy(serviceProvider);
 
         var resolution = policy.ResolveSpecifications(
@@ -498,15 +489,71 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
     }
 
-    // The ECDH-ES algorithms list their key types in the same order whichever package is registered first.
+    // A configured curve selects among the algorithm's curves and gives the key its size.
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ResolveSpecifications_WhenEcdhEsNamesNoSecretType_GeneratesAnEcKeyWhateverTheRegistrationOrder(
-        bool addEdDsaFirst
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, null, "Ed448", 456)]
+    [InlineData(AlgorithmCodes.KeyManagement.EcdhEs, "okp", "X448", 448)]
+    [InlineData(AlgorithmCodes.KeyManagement.EcdhEs, null, "P-384", 384)]
+    public async Task ResolveSpecifications_WhenCurveIsConfigured_GeneratesTheKeyOnIt(
+        string algorithm,
+        string? secretType,
+        string curve,
+        int keySizeBits
     )
     {
-        await using var serviceProvider = BuildEdDsaServiceProvider(addEdDsaFirst);
+        await using var serviceProvider = BuildEdDsaServiceProvider();
+        var policy = CreatePolicy(serviceProvider);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = algorithm,
+                    SecretType = secretType,
+                    Curve = curve,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Errors);
+        var specification = Assert.Single(resolution.Specifications);
+        Assert.Equal(curve, specification.Curve);
+        Assert.Equal(keySizeBits, specification.KeySizeBits);
+    }
+
+    [Theory]
+    [InlineData("Ed25519", null)]
+    [InlineData("X448", 256)]
+    public async Task ResolveSpecifications_WhenCurveIsNotOneTheAlgorithmAcceptsWithTheSize_ReportsIt(
+        string curve,
+        int? keySizeBits
+    )
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider();
+        var policy = CreatePolicy(serviceProvider);
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                    SecretType = "okp",
+                    Curve = curve,
+                    KeySizeBits = keySizeBits,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Contains($"'{curve}'", Assert.Single(resolution.Errors), StringComparison.Ordinal);
+    }
+
+    // The JOSE library registers its EC agreement before any package adds its own, so EC keys are ECDH-ES's first key
+    // type.
+    [Fact]
+    public async Task ResolveSpecifications_WhenEcdhEsNamesNoSecretType_GeneratesAnEcKey()
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider();
         var policy = CreatePolicy(serviceProvider);
 
         var resolution = policy.ResolveSpecifications(
@@ -579,8 +626,9 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.False(Policy.IsSatisfiedBy(Rs256, secret));
     }
 
+    // A key held in a form this policy does not know, such as an external keystore's, is checked by its public half.
     [Fact]
-    public void IsSatisfiedBy_WhenSecretIsHeldInAnUnknownEncoding_TrustsItRatherThanDuplicatingIt()
+    public void IsSatisfiedBy_WhenSecretIsHeldInAnUnknownEncoding_ChecksItsPublicHalf()
     {
         var secret = CreateSecret(
             algorithm: "RS256",
@@ -674,6 +722,19 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Equal(expected, Policy.IsSatisfiedBy(specification, secret));
     }
 
+    // Without its public half the key's curve cannot be read, so the key cannot be shown to fit and one is provisioned.
+    [Fact]
+    public void IsSatisfiedBy_WhenPrivateSecretHasNoPublicHalf_ReturnsFalse()
+    {
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            withPublicKey: false
+        );
+
+        Assert.False(Policy.IsSatisfiedBy(Rs256, secret));
+    }
+
     [Fact]
     public void IsSatisfiedBy_WhenStoredPublicKeyCannotBeRead_ReturnsFalse()
     {
@@ -690,24 +751,12 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
 
     #region Helpers
 
-    private static ServiceProvider BuildEdDsaServiceProvider(bool addEdDsaFirst)
+    private static ServiceProvider BuildEdDsaServiceProvider()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
-        if (addEdDsaFirst)
-        {
-            // A builder that registers no marker lets the package register before the JOSE library does.
-            new PrecedingJoseBuilder(serviceCollection).AddEdDsa();
-        }
-
         var secrets = serviceCollection.AddSecretsLibrary();
-        var jose = secrets.AddJoseLibrary();
+        secrets.AddJoseLibrary().AddEdDsa();
         secrets.AddPersistenceLibrary();
-        if (!addEdDsaFirst)
-        {
-            jose.AddEdDsa();
-        }
-
         return serviceCollection.BuildServiceProvider();
     }
 
@@ -738,17 +787,44 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             Curve = curve,
         };
 
+    // Every private asymmetric secret stores its public half (ADR-1268), so the helper stores one of the secret's type
+    // and size unless the test gives its own; a type the helper cannot generate a key of has none.
+    private static string? CreatePublicKey(string secretType, int keySizeBits) =>
+        secretType switch
+        {
+            SecretKeyTypes.Rsa => PublicKeys.GetOrAdd(
+                (secretType, keySizeBits),
+                static key =>
+                {
+                    using var rsa = RSA.Create(key.KeySizeBits);
+                    return Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo());
+                }
+            ),
+            SecretKeyTypes.Ecc when keySizeBits == 256 => PublicKeys.GetOrAdd(
+                (secretType, keySizeBits),
+                static _ =>
+                {
+                    using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+                    return Base64Url.EncodeToString(ecdsa.ExportSubjectPublicKeyInfo());
+                }
+            ),
+            _ => null,
+        };
+
     private static PersistedSecret CreateSecret(
         string? algorithm,
         string? use,
         string encoding = SecretEncodings.Pkcs8,
         string secretType = SecretKeyTypes.Rsa,
         int keySizeBits = 3072,
-        string? publicKey = null
+        string? publicKey = null,
+        bool withPublicKey = true
     ) =>
         new()
         {
-            PublicKey = publicKey,
+            PublicKey = withPublicKey
+                ? publicKey ?? CreatePublicKey(secretType, keySizeBits)
+                : null,
             SecretId = "secret",
             Use = use,
             Algorithm = algorithm,

@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -149,17 +150,18 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
     }
-
-    // Only a request that generates a key resolves the curve it is generated on, which is the request's own here; the
-    // validator's rule is tested on its own.
-    private void SetupCurveResolution() =>
-        MockSecretValidator
-            .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
-            .Returns((CreateSecretRequest request) => request.Curve)
-            .Verifiable();
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>
@@ -1571,7 +1573,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
         SetupSecretCreateValidation();
-        SetupCurveResolution();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -1618,7 +1619,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateSecretAsync_WhenAsymmetric_DoesNotRevealMaterial()
     {
         SetupSecretCreateValidation();
-        SetupCurveResolution();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -1657,6 +1657,70 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Null(created.Value?.SecretMaterial);
     }
 
+    // The key is generated with the parameters the validator resolves, such as the curve of an algorithm bound to one,
+    // not with the request's own.
+    [Fact]
+    public async Task CreateSecretAsync_WhenValidationResolvesTheCurve_GeneratesTheKeyOnIt()
+    {
+        SetupClientSecretChangedAudit();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        MockSecretValidator
+            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns(
+                SecretCreateValidation.Valid(
+                    new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "secp256k1" }
+                )
+            )
+            .Verifiable();
+
+        var protector = SetupGenerateSecretProtector();
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateSecret(
+                    protector,
+                    It.Is<GenerateSecretRequest>(generate =>
+                        generate.KeySizeBits == 256 && generate.Curve == "secp256k1"
+                    )
+                )
+            )
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            new CreateSecretRequest
+            {
+                SecretType = SecretTypes.Ecc,
+                KeySizeBits = 256,
+                Use = "sig",
+                Algorithm = "ES256K",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<CreatedSecretResource>>(result);
+    }
+
     [Fact]
     public async Task CreateSecretAsync_WhenClientNotFound_ReturnsNotFound()
     {
@@ -1692,11 +1756,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Detail = "incoherent",
-                }
+                SecretCreateValidation.Invalid(
+                    new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Detail = "incoherent",
+                    }
+                )
             )
             .Verifiable();
 
@@ -1726,7 +1792,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -1779,7 +1854,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndSecretIsShared_ReturnsCreated()
     {
         SetupSecretCreateValidation();
-        SetupCurveResolution();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore

@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -48,14 +47,12 @@ internal class DefaultTenantKeyPolicy(
 
     /// <summary>
     /// Builds the specification of a key of one of the algorithm's key types: its size, and the curve it is generated on
-    /// when the key type lists curves.
+    /// when the key type lists curves, as <see cref="AlgorithmCollectionExtensions"/> resolves them.
     /// </summary>
     private static bool TryBuildSpecification(
         IAlgorithmCollection collection,
         OpenIdTenantKeyOptions key,
-        string use,
         ISecretKeyTypeDescriptor descriptor,
-        AlgorithmKeyType algorithmKeyType,
         out TenantKeySpecification specification,
         [NotNullWhen(false)] out string? error
     )
@@ -73,55 +70,33 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        int keySizeBits;
-        if (key.KeySizeBits is { } configuredKeySizeBits)
+        // See ADR-1389 and ADR-1392: two curves can share a key size, so the key is generated on the configured curve,
+        // or on the first curve the algorithm accepts that has the configured size, never on whichever curve the key
+        // type picks for the size.
+        if (
+            !collection.TryResolveKeyGeneration(
+                new KeyGenerationDeclaration
+                {
+                    KeyClrType = descriptor.KeyClrType,
+                    KeySizeBits = key.KeySizeBits,
+                    Curve = key.Curve,
+                    Algorithm = algorithmCode,
+                },
+                out var resolved,
+                out var resolutionError
+            )
+        )
         {
-            keySizeBits = configuredKeySizeBits;
-        }
-        else if (algorithmKeyType.KeyBitSizes.Count > 0)
-        {
-            keySizeBits = algorithmKeyType.KeyBitSizes.Min(legalSize => legalSize.MinSize);
-        }
-        else
-        {
-            error = $"The algorithm '{algorithmCode}' accepts no key size.";
-            return false;
-        }
-
-        // See ADR-1389 and ADR-1392: two curves can share a key size, so the key is generated on the first curve the
-        // algorithm accepts that has that size, rather than on whichever curve the key type picks for the size.
-        string? curve = null;
-        if (algorithmKeyType.Curves.Count > 0)
-        {
-            if (!algorithmKeyType.TryGetCurve(keySizeBits, out var algorithmCurve))
-            {
-                error =
-                    $"A key for the algorithm '{algorithmCode}' cannot be generated: no curve it accepts for "
-                    + $"'{descriptor.KeyType}' keys has keys of {keySizeBits} bits.";
-                return false;
-            }
-
-            curve = algorithmCurve.Name;
-        }
-
-        var declarationError = collection.ValidateKeyAlgorithm(
-            new KeyAlgorithmDeclaration
-            {
-                KeyType = descriptor.KeyClrType,
-                KeySizeBits = keySizeBits,
-                Use = use,
-                Algorithm = algorithmCode,
-                Curve = curve,
-            }
-        );
-        if (declarationError is not null)
-        {
-            error = declarationError;
+            error = resolutionError;
             return false;
         }
 
         var generationError = descriptor.ValidateGeneration(
-            new SecretKeyGenerationParameters { KeySizeBits = keySizeBits, Curve = curve }
+            new SecretKeyGenerationParameters
+            {
+                KeySizeBits = resolved.KeySizeBits,
+                Curve = resolved.Curve,
+            }
         );
         if (generationError is not null)
         {
@@ -133,10 +108,10 @@ internal class DefaultTenantKeyPolicy(
         specification = new TenantKeySpecification
         {
             Algorithm = algorithmCode,
-            Use = use,
+            Use = resolved.Use,
             SecretType = descriptor.KeyType,
-            KeySizeBits = keySizeBits,
-            Curve = curve,
+            KeySizeBits = resolved.KeySizeBits,
+            Curve = resolved.Curve,
         };
         error = null;
         return true;
@@ -209,8 +184,8 @@ internal class DefaultTenantKeyPolicy(
     {
         ArgumentNullException.ThrowIfNull(secret);
 
-        // A key bound to another algorithm is never selected for this one; an unbound key serves any algorithm its type
-        // and size fit, as the runtime credential selector treats it.
+        // A key bound to another algorithm is never selected for this one; an unbound key serves any algorithm that
+        // accepts it, as the runtime credential selector treats it.
         if (
             secret.Algorithm is not null
             && !string.Equals(secret.Algorithm, specification.Algorithm, StringComparison.Ordinal)
@@ -219,12 +194,8 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        // Public material cannot sign or decrypt. Only the encodings known to carry a public key are excluded, so a key
-        // held in a form this policy does not know — an external keystore's, say — is trusted rather than duplicated.
-        if (
-            string.Equals(secret.SecretEncoding, SecretEncodings.Spki, StringComparison.Ordinal)
-            || string.Equals(secret.SecretEncoding, SecretEncodings.X509, StringComparison.Ordinal)
-        )
+        // Public material cannot sign or decrypt.
+        if (SecretEncodings.IsPublic(secret.SecretEncoding))
         {
             return false;
         }
@@ -242,12 +213,13 @@ internal class DefaultTenantKeyPolicy(
         }
 
         // See ADR-1392: two curves can share a key size, as P-256 and secp256k1 do, so the type and size alone do not
-        // show that the algorithm accepts the key. The stored public half answers it, and one that cannot be read cannot
-        // be shown to fit, so a key is provisioned; a key held without one is trusted as above.
-        SecretKey? publicKey = null;
+        // show that the algorithm accepts the key. Every private asymmetric secret stores its public half (ADR-1268),
+        // which shows its curve; a secret whose public half is missing or cannot be read cannot be shown to fit, so a
+        // key is provisioned for the specification.
         if (
-            secret.PublicKey is not null
-            && !SecretSerializer.TryDeserializePublicSecret(secret, out publicKey, out _)
+            !descriptor.IsAsymmetric
+            || secret.PublicKey is null
+            || !SecretSerializer.TryDeserializePublicSecret(secret, out var publicKey, out _)
         )
         {
             return false;
@@ -256,11 +228,9 @@ internal class DefaultTenantKeyPolicy(
         var declarationError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
             new KeyAlgorithmDeclaration
             {
-                KeyType = descriptor.KeyClrType,
-                KeySizeBits = secret.KeySizeBits,
+                Key = publicKey,
                 Use = secret.Use,
                 Algorithm = specification.Algorithm,
-                Key = publicKey,
             }
         );
         return declarationError is null;
@@ -276,7 +246,7 @@ internal class DefaultTenantKeyPolicy(
         var algorithmCode = key.Algorithm;
         specification = default;
 
-        if (!collection.TryGetKeyedAlgorithm(algorithmCode, out var algorithm, out var use))
+        if (!collection.TryGetKeyedAlgorithm(algorithmCode, out var algorithm, out _))
         {
             error =
                 $"The algorithm '{algorithmCode}' is not a registered signature or key-management algorithm.";
@@ -296,7 +266,7 @@ internal class DefaultTenantKeyPolicy(
                 return false;
             }
 
-            if (!algorithm.TryGetKeyType(descriptor.KeyClrType, out var algorithmKeyType))
+            if (!algorithm.TryGetKeyType(descriptor.KeyClrType, out _))
             {
                 error =
                     $"The algorithm '{algorithmCode}' does not accept '{secretType}' keys; expected "
@@ -311,15 +281,7 @@ internal class DefaultTenantKeyPolicy(
                 return false;
             }
 
-            return TryBuildSpecification(
-                collection,
-                key,
-                use,
-                descriptor,
-                algorithmKeyType,
-                out specification,
-                out error
-            );
+            return TryBuildSpecification(collection, key, descriptor, out specification, out error);
         }
 
         // See ADR-1389: an algorithm may accept several key types. Unless the configured secret type selects one, the
@@ -329,7 +291,7 @@ internal class DefaultTenantKeyPolicy(
         foreach (var algorithmKeyType in algorithm.KeyTypes)
         {
             var descriptor = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
-                candidate.KeyClrType == algorithmKeyType.KeyType
+                candidate.KeyClrType == algorithmKeyType.KeyClrType
             );
             if (descriptor is null)
             {
@@ -340,9 +302,7 @@ internal class DefaultTenantKeyPolicy(
                 TryBuildSpecification(
                     collection,
                     key,
-                    use,
                     descriptor,
-                    algorithmKeyType,
                     out specification,
                     out var candidateError
                 )

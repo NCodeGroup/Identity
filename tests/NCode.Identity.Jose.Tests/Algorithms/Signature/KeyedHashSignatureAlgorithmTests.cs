@@ -28,7 +28,7 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
         var algorithm = new KeyedHashSignatureAlgorithm(code, anyValidHashAlgorithmName, null!);
-        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     [Theory]

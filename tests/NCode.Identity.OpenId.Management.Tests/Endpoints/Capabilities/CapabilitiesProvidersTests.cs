@@ -136,7 +136,12 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             section,
             algorithm => algorithm.Code == AlgorithmCodes.DigitalSignature.EcdsaSha256
         );
-        Assert.Equal(["P-256"], Assert.Single(es256.KeyTypes).Curves);
+        Assert.Equal(
+            [("P-256", 256)],
+            Assert
+                .Single(es256.KeyTypes)
+                .Curves.Select(curve => (curve.CurveName, curve.CurveSizeBits))
+        );
 
         var rsaOaep = Assert.Single(
             section,
@@ -152,7 +157,6 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         // ECDH-ES serves every key type that has a registered agreement (ADR-1389); a second agreement adds a second key
         // type with sizes of its own, which the section lists after the first, in the algorithm's order of preference.
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         serviceCollection.AddSingleton<IEcdhKeyAgreement, RsaKeyTypeAgreementStub>();
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
@@ -188,13 +192,17 @@ public sealed class CapabilitiesProvidersTests : IDisposable
                         Assert.Equal((384, 384, 0), (size.MinBits, size.MaxBits, size.SkipBits)),
                     size => Assert.Equal((521, 521, 0), (size.MinBits, size.MaxBits, size.SkipBits))
                 );
-                Assert.Equal(["P-256", "P-384", "P-521"], ecc.Curves);
+                Assert.Equal(
+                    [("P-256", 256), ("P-384", 384), ("P-521", 521)],
+                    ecc.Curves.Select(curve => (curve.CurveName, curve.CurveSizeBits))
+                );
             },
             rsa =>
             {
                 Assert.Equal(SecretKeyTypes.Rsa, rsa.SecretType);
                 var size = Assert.Single(rsa.KeyBitSizes);
                 Assert.Equal((2048, 4096, 1024), (size.MinBits, size.MaxBits, size.SkipBits));
+                Assert.Empty(rsa.Curves);
             }
         );
     }
@@ -202,10 +210,8 @@ public sealed class CapabilitiesProvidersTests : IDisposable
     // Declares a second key type for the ECDH-ES algorithms; the capabilities listing never performs an agreement.
     private sealed class RsaKeyTypeAgreementStub : IEcdhKeyAgreement
     {
-        public AlgorithmKeyType KeyType { get; } =
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
             new(typeof(RsaSecretKey), [new KeySizes(minSize: 2048, maxSize: 4096, skipSize: 1024)]);
-
-        public bool IsKeyCompatible(SecretKey secretKey) => throw new NotSupportedException();
 
         public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
             throw new NotSupportedException();

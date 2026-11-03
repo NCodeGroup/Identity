@@ -42,7 +42,6 @@ public class JoseSerializerTests : BaseTests
 
     private static void ConfigureServices(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
     }
 

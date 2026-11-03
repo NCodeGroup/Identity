@@ -32,7 +32,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
         var mockFactory = CreateStrictMock<IDataProtectorFactory<SecretKey>>();
         mockFactory.Setup(x => x.CreateDataProtector()).Returns(protector).Verifiable();
 
-        _factory = new DefaultSecretKeyFactory(mockFactory.Object);
+        _factory = new DefaultSecretKeyFactory(mockFactory.Object, new DefaultEccCurveCatalog([]));
     }
 
     private RsaSecretKeyTypeDescriptor Rsa() => new(_factory);

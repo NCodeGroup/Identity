@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -784,11 +785,16 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
-            .Verifiable();
-        MockSecretValidator
-            .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
-            .Returns((CreateSecretRequest request) => request.Curve)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))

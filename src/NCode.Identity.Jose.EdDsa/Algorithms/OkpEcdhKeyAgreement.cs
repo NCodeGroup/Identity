@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
@@ -23,14 +22,7 @@ namespace NCode.Identity.Jose.EdDsa.Algorithms;
 // See ADR-1390.
 internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
 {
-    private static bool TryResolveCurve(
-        OkpSecretKey secretKey,
-        [NotNullWhen(true)] out OkpCurveInfo? curve
-    ) =>
-        OkpCurves.TryGetByName(secretKey.Curve, OkpCurveUse.KeyAgreement, out curve)
-        && secretKey.KeySizeBits == curve.KeySizeBits;
-
-    private static void ValidateSharedSecretSize(OkpCurveInfo curve, Span<byte> sharedSecret)
+    private static void ValidateSharedSecretSize(MontgomeryOkpCurve curve, Span<byte> sharedSecret)
     {
         if (sharedSecret.Length != curve.PublicKeySize)
         {
@@ -42,35 +34,14 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
     }
 
     /// <inheritdoc />
-    public AlgorithmKeyType KeyType { get; } =
-        new(
+    public AlgorithmKeyType AlgorithmKeyType { get; } =
+        AlgorithmKeyType.OnCurves(
             typeof(OkpSecretKey),
             [
-                new KeySizes(
-                    minSize: OkpCurves.X25519KeySizeBits,
-                    maxSize: OkpCurves.X25519KeySizeBits,
-                    skipSize: 0
-                ),
-                new KeySizes(
-                    minSize: OkpCurves.X448KeySizeBits,
-                    maxSize: OkpCurves.X448KeySizeBits,
-                    skipSize: 0
-                ),
+                new AlgorithmCurve(OkpCurves.X25519.Name, OkpCurves.X25519.KeySizeBits),
+                new AlgorithmCurve(OkpCurves.X448.Name, OkpCurves.X448.KeySizeBits),
             ]
-        )
-        {
-            Curves =
-            [
-                new(OkpCurves.X25519Name, OkpCurves.X25519KeySizeBits),
-                new(OkpCurves.X448Name, OkpCurves.X448KeySizeBits),
-            ],
-        };
-
-    /// <inheritdoc />
-    public bool IsKeyCompatible(SecretKey secretKey) =>
-        secretKey is OkpSecretKey okpSecretKey
-        && KeyType.IsLegalSize(secretKey.KeySizeBits)
-        && TryResolveCurve(okpSecretKey, out _);
+        );
 
     /// <inheritdoc />
     public int GetSharedSecretSizeBytes(SecretKey secretKey) => Validate(secretKey).PublicKeySize;
@@ -94,11 +65,11 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
         try
         {
             RandomNumberGenerator.Fill(ephemeralPrivateKey);
-            OkpCurves.GeneratePublicKey(curve, ephemeralPrivateKey, ephemeralPublicKey);
+            curve.GeneratePublicKey(ephemeralPrivateKey, ephemeralPublicKey);
 
             // RFC 7748 §6: a recipient key of small order makes every shared secret all zeros, so the content would be
             // encrypted under a key anyone can derive.
-            if (!OkpCurves.TryAgree(curve, ephemeralPrivateKey, recipientPublicKey, sharedSecret))
+            if (!curve.TryAgree(ephemeralPrivateKey, recipientPublicKey, sharedSecret))
             {
                 CryptographicOperations.ZeroMemory(sharedSecret);
                 throw new JoseException(
@@ -135,7 +106,7 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
 
         if (
             ephemeralPublicKey is not OkpSecretKey ephemeralOkpSecretKey
-            || !string.Equals(ephemeralOkpSecretKey.Curve, curve.Name, StringComparison.Ordinal)
+            || !string.Equals(ephemeralOkpSecretKey.CurveName, curve.Name, StringComparison.Ordinal)
             || ephemeralOkpSecretKey.KeySizeBits != curve.KeySizeBits
         )
         {
@@ -156,7 +127,7 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
 
             // RFC 7748 §6 and RFC 8037 §4: an ephemeral key of small order yields an all-zero shared secret, which
             // the sender could have chosen to force a known content encryption key.
-            if (!OkpCurves.TryAgree(curve, privateKey, peerPublicKey, sharedSecret))
+            if (!curve.TryAgree(privateKey, peerPublicKey, sharedSecret))
             {
                 CryptographicOperations.ZeroMemory(sharedSecret);
                 throw new JoseException(
@@ -170,16 +141,20 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
         }
     }
 
-    private OkpCurveInfo Validate(SecretKey secretKey)
+    // The key's curve is checked again when it is used, so a key on a signing curve never agrees keys.
+    private MontgomeryOkpCurve Validate(SecretKey secretKey)
     {
-        var okpSecretKey = secretKey.Validate<OkpSecretKey>(KeyType.KeyBitSizes);
+        var okpSecretKey = secretKey.Validate<OkpSecretKey>(AlgorithmKeyType.KeyBitSizes);
 
-        if (!TryResolveCurve(okpSecretKey, out var curve))
+        if (
+            !OkpCurves.TryGetByName(okpSecretKey.CurveName, out MontgomeryOkpCurve? curve)
+            || okpSecretKey.KeySizeBits != curve.KeySizeBits
+        )
         {
             // the argument that is invalid is the caller's key, not this helper's parameter
 #pragma warning disable CA2208
             throw new ArgumentException(
-                $"The OKP curve '{okpSecretKey.Curve}' is not valid for the ECDH-ES algorithms; expected "
+                $"The OKP curve '{okpSecretKey.CurveName}' is not valid for the ECDH-ES algorithms; expected "
                     + $"'{OkpCurves.X25519Name}' or '{OkpCurves.X448Name}'.",
                 "recipientKey"
             );

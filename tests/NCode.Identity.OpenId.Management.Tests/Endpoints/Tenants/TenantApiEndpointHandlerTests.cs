@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -138,17 +139,18 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
-            .Returns((ManagementError?)null)
+            .Returns(
+                (CreateSecretRequest request) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
             .Verifiable();
     }
-
-    // Only a request that generates a key resolves the curve it is generated on, which is the request's own here; the
-    // validator's rule is tested on its own.
-    private void SetupCurveResolution() =>
-        MockSecretValidator
-            .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
-            .Returns((CreateSecretRequest request) => request.Curve)
-            .Verifiable();
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>
@@ -1385,7 +1387,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupTenantChangedAnnouncement();
         SetupSecretCreateValidation();
-        SetupCurveResolution();
         SetupTenantSecretChangedAudit();
         SetupStore();
         MockTenantStore
@@ -1450,7 +1451,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
     {
         SetupSecretCreateValidation();
-        SetupCurveResolution();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1496,11 +1496,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Detail = "incoherent",
-                }
+                SecretCreateValidation.Invalid(
+                    new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Detail = "incoherent",
+                    }
+                )
             )
             .Verifiable();
 

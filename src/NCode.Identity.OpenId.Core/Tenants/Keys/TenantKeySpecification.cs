@@ -30,9 +30,9 @@ internal readonly record struct TenantKeySpecification
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the <c>JWK</c> <c>crv</c> name of the curve to generate the key on: the first curve the algorithm accepts
-    /// that has keys of <see cref="KeySizeBits"/>, or <c>null</c> when the algorithm names no curve for the key
-    /// type.
+    /// Gets the <c>JWK</c> <c>crv</c> name of the curve to generate the key on: the configured curve, or the first
+    /// curve the algorithm accepts that has keys of <see cref="KeySizeBits"/>, or <c>null</c> when the algorithm names
+    /// no curve for the key type.
     /// </summary>
     public string? Curve { get; init; }
 }

@@ -28,7 +28,6 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         MockAesKeyWrap = CreateStrictMock<IAesKeyWrap>();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
         SecretKeyTypeCatalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();

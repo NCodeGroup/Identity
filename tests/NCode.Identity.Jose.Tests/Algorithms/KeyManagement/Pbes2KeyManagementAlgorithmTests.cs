@@ -57,7 +57,7 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
     public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = Create();
-        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]

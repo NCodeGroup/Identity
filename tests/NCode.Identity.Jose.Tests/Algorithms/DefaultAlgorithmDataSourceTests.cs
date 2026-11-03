@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 
@@ -37,7 +38,6 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
     )
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         serviceCollection.AddSingleton(Brainpool256);
         foreach (var specification in specifications)
@@ -51,10 +51,13 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
     private static IAlgorithmCollection GetCollection(IServiceProvider serviceProvider) =>
         serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>().Collection;
 
-    private static EccSecretKey CreateKey(ECCurve curve)
+    // The service provider's key factory names the key's curve from the curve catalog the test registers into.
+    private static EccSecretKey CreateKey(IServiceProvider serviceProvider, ECCurve curve)
     {
         using var key = ECDsa.Create(curve);
-        return SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "keyId" }, key);
+        return serviceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateEcc(new KeyMetadata { KeyId = "keyId" }, key);
     }
 
     #endregion
@@ -96,8 +99,14 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
             "brainpoolP256r1",
             Assert.Single(Assert.Single(algorithm.KeyTypes).Curves).Name
         );
-        Assert.True(algorithm.IsKeyCompatible(CreateKey(ECCurve.NamedCurves.brainpoolP256r1)));
-        Assert.False(algorithm.IsKeyCompatible(CreateKey(ECCurve.NamedCurves.nistP256)));
+        Assert.True(
+            algorithm.IsKeyCompatible(
+                CreateKey(serviceProvider, ECCurve.NamedCurves.brainpoolP256r1)
+            )
+        );
+        Assert.False(
+            algorithm.IsKeyCompatible(CreateKey(serviceProvider, ECCurve.NamedCurves.nistP256))
+        );
     }
 
     [Fact]
@@ -108,7 +117,49 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
         Assert.True(
             GetCollection(serviceProvider).TryGetSignatureAlgorithm("ES256", out var es256)
         );
-        Assert.False(es256.IsKeyCompatible(CreateKey(ECCurve.NamedCurves.brainpoolP256r1)));
+        Assert.False(
+            es256.IsKeyCompatible(CreateKey(serviceProvider, ECCurve.NamedCurves.brainpoolP256r1))
+        );
+    }
+
+    // A key on a curve the catalog does not hold cannot be generated, imported or named, so the algorithm is refused.
+    [Fact]
+    public async Task Collection_WhenEcdsaAlgorithmsCurveIsNotRegistered_Throws()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        serviceCollection.AddSingleton(CreateSpecification(BrainpoolCode));
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            GetCollection(serviceProvider)
+        );
+        Assert.Contains("'brainpoolP256r1'", exception.Message, StringComparison.Ordinal);
+    }
+
+    // The curve is matched by its OID too, so a specification that names a registered curve but is on another one is
+    // refused.
+    [Fact]
+    public async Task Collection_WhenEcdsaAlgorithmsCurveHasARegisteredNameButAnotherOid_Throws()
+    {
+        await using var serviceProvider = BuildServiceProvider(
+            new EccSignatureAlgorithmSpecification
+            {
+                Code = BrainpoolCode,
+                Curve = new EccCurveSpecification
+                {
+                    CurveName = "P-256",
+                    CurveSizeBits = 256,
+                    Curve = ECCurve.NamedCurves.brainpoolP256r1,
+                },
+                HashAlgorithmName = HashAlgorithmName.SHA256,
+            }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            GetCollection(serviceProvider)
+        );
+        Assert.Contains($"'{BrainpoolCode}'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -154,7 +205,6 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
     public async Task Collection_WhenRegisteredSpecificationIsNull_Throws()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         serviceCollection.AddSingleton<EccSignatureAlgorithmSpecification>(_ => null!);
         await using var serviceProvider = serviceCollection.BuildServiceProvider();

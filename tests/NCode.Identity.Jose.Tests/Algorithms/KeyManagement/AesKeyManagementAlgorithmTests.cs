@@ -36,7 +36,7 @@ public class AesKeyManagementAlgorithmTests : BaseTests
     public void KeyType_ReturnsSymmetricSecretKey()
     {
         var algorithm = CreateAlgorithm();
-        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyType);
+        Assert.Equal(typeof(SymmetricSecretKey), Assert.Single(algorithm.KeyTypes).KeyClrType);
     }
 
     [Fact]

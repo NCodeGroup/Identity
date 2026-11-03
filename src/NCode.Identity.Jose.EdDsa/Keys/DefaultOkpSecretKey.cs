@@ -15,7 +15,7 @@ namespace NCode.Identity.Jose.EdDsa.Keys;
 internal sealed class DefaultOkpSecretKey(
     IDataProtector dataProtector,
     KeyMetadata metadata,
-    OkpCurveInfo curve,
+    OkpCurve curve,
     ReadOnlyMemory<byte> protectedSeed,
     ReadOnlyMemory<byte> publicKey
 ) : OkpSecretKey(metadata, curve.Name, curve.KeySizeBits, publicKey, certificateRawData: null)

@@ -68,6 +68,14 @@ public abstract class AsymmetricSecretKey(
     public override int KeySizeBits { get; } = keySizeBits;
 
     /// <summary>
+    /// Gets the <c>JWK</c> <c>crv</c> name of the curve the key is on (for example <c>P-256</c>, <c>secp256k1</c> or
+    /// <c>X25519</c>), or <see langword="null"/> when the key's family has no curve, as for <c>RSA</c>, or the key is
+    /// on a curve that has no registered name. Two curves can share a key size, so an algorithm bound to a curve checks
+    /// this name rather than the size.
+    /// </summary>
+    public virtual string? CurveName => null;
+
+    /// <summary>
     /// Gets a value indicating whether this asymmetric key has an associated certificate.
     /// </summary>
     [MemberNotNullWhen(true, nameof(CertificateRawData))]

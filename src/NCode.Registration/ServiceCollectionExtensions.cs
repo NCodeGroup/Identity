@@ -59,6 +59,36 @@ public static class ServiceCollectionExtensions
         }
 
         /// <summary>
+        /// Registers <paramref name="instance"/> as a singleton <typeparamref name="TService"/>, one of several of that
+        /// service, unless the same instance is already registered for it. <c>TryAddEnumerable</c> keeps one
+        /// registration per implementation type, which would drop every other instance of the same type, such as the
+        /// other curves or algorithm specifications an application registers; this keeps them all and still makes a
+        /// repeated registration of one instance safe.
+        /// </summary>
+        /// <typeparam name="TService">The service type the instance is registered as.</typeparam>
+        /// <param name="instance">The instance to register.</param>
+        /// <returns>The <see cref="IServiceCollection"/> instance for chaining additional calls.</returns>
+        [PublicAPI]
+        public IServiceCollection TryAddEnumerableInstance<TService>(TService instance)
+            where TService : class
+        {
+            ArgumentNullException.ThrowIfNull(instance);
+
+            if (
+                !serviceCollection.Any(descriptor =>
+                    descriptor.ServiceType == typeof(TService)
+                    && !descriptor.IsKeyedService
+                    && ReferenceEquals(descriptor.ImplementationInstance, instance)
+                )
+            )
+            {
+                serviceCollection.AddSingleton(instance);
+            }
+
+            return serviceCollection;
+        }
+
+        /// <summary>
         /// Creates a new <see cref="IServiceBuilder{TNewMarker}"/> over this <see cref="IServiceCollection"/>,
         /// discriminated by the specified marker type.
         /// </summary>

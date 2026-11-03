@@ -63,7 +63,8 @@ internal sealed class AlgorithmCapabilitiesProvider(
     }
 
     // See ADR-1389: an algorithm may accept several key types, each with its own sizes, so each compatible secret type
-    // is listed once, with the sizes of the algorithm's first key type it is of, in the order the algorithm prefers them.
+    // is listed once, with the sizes and curves of the algorithm's first key type it is of, in the order the algorithm
+    // prefers them.
     private static List<AlgorithmKeyTypeCapabilityResource> GetKeyTypes(
         KeyedAlgorithm algorithm,
         List<ISecretKeyTypeDescriptor> descriptors
@@ -86,7 +87,16 @@ internal sealed class AlgorithmCapabilitiesProvider(
                                 SkipBits = keySizes.SkipSize,
                             })
                             .ToList(),
-                        Curves = [.. algorithmKeyType.Curves.Select(curve => curve.Name)],
+                        Curves =
+                        [
+                            .. algorithmKeyType.Curves.Select(
+                                curve => new AlgorithmCurveCapabilityResource
+                                {
+                                    CurveName = curve.Name,
+                                    CurveSizeBits = curve.KeySizeBits,
+                                }
+                            ),
+                        ],
                     })
             ),
         ];

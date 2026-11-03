@@ -44,7 +44,6 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
     public OkpEcdhKeyAgreementTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
@@ -89,7 +88,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         return Assert.IsType<OkpSecretKey>(secretKey, exactMatch: false);
     }
 
-    private OkpSecretKey CreatePrivateKey(OkpCurveInfo curve, string privateKey) =>
+    private OkpSecretKey CreatePrivateKey(OkpCurve curve, string privateKey) =>
         Assert.IsType<OkpSecretKey>(
             Descriptor.DeserializeKeyMaterial(
                 new KeyMetadata { KeyId = "recipient" },
@@ -142,7 +141,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
 
         Assert.Equal(
             [typeof(EccSecretKey), typeof(OkpSecretKey)],
-            algorithm.KeyTypes.Select(keyType => keyType.KeyType)
+            algorithm.KeyTypes.Select(keyType => keyType.KeyClrType)
         );
     }
 
@@ -196,7 +195,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         var recipientKey = CreatePrivateKey(OkpCurves.X25519, BobPrivateKey);
         var keyAgreement = ServiceProvider
             .GetServices<IEcdhKeyAgreement>()
-            .Single(candidate => candidate.IsKeyCompatible(recipientKey));
+            .Single(candidate => candidate.AlgorithmKeyType.IsKeyCompatible(recipientKey));
         var sharedSecret = new byte[keyAgreement.GetSharedSecretSizeBytes(recipientKey)];
 
         keyAgreement.Agree(
@@ -251,7 +250,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         var publicKey = new ArrayBufferWriter<byte>();
         secretKey.ExportPublicKey(ref publicKey);
 
-        Assert.Equal(OkpCurves.X25519Name, secretKey.Curve);
+        Assert.Equal(OkpCurves.X25519Name, secretKey.CurveName);
         Assert.Equal(256, secretKey.KeySizeBits);
         Assert.Equal(
             Convert.FromHexString(

@@ -59,6 +59,7 @@ const exportRsaOnly: ManagementCapabilitiesResource = {
   secretTypes: [
     { secretType: 'symmetric', isAsymmetric: false, supportsPublicKeyExport: false },
     { secretType: 'rsa', isAsymmetric: true, supportsPublicKeyExport: true },
+    { secretType: 'ecc', isAsymmetric: true, supportsPublicKeyExport: false },
   ],
 };
 
@@ -210,7 +211,7 @@ describe('SecretsManager', () => {
                 {
                   secretType: 'ecc',
                   keyBitSizes: [{ minBits: 384, maxBits: 384, skipBits: 0 }],
-                  curves: ['P-384'],
+                  curves: [{ curveName: 'P-384', curveSizeBits: 384 }],
                 },
               ],
             },

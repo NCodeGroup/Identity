@@ -16,7 +16,7 @@ internal static class OkpKeyEncoder
 {
     /// <summary>Writes the SPKI (<c>SubjectPublicKeyInfo</c>) DER for the raw public key to the buffer writer.</summary>
     public static void WriteSubjectPublicKeyInfo<TWriter>(
-        OkpCurveInfo curve,
+        OkpCurve curve,
         ReadOnlySpan<byte> publicKey,
         ref TWriter destination
     )
@@ -40,7 +40,7 @@ internal static class OkpKeyEncoder
     }
 
     /// <summary>Builds the PKCS#8 (<c>OneAsymmetricKey</c>) DER for the raw private seed.</summary>
-    public static byte[] BuildPkcs8(OkpCurveInfo curve, ReadOnlySpan<byte> seed)
+    public static byte[] BuildPkcs8(OkpCurve curve, ReadOnlySpan<byte> seed)
     {
         // The privateKey OCTET STRING contains an inner CurvePrivateKey ::= OCTET STRING of the seed (RFC 8410 §7).
         var inner = new AsnWriter(AsnEncodingRules.DER);
@@ -72,7 +72,7 @@ internal static class OkpKeyEncoder
     /// supported OKP key or is malformed.</summary>
     public static bool TryParseSubjectPublicKeyInfo(
         ReadOnlySpan<byte> spki,
-        out OkpCurveInfo? curve,
+        out OkpCurve? curve,
         out byte[]? publicKey
     )
     {
@@ -110,7 +110,7 @@ internal static class OkpKeyEncoder
     /// unsupported.</summary>
     public static bool TryParsePkcs8(
         ReadOnlySpan<byte> pkcs8,
-        out OkpCurveInfo? curve,
+        out OkpCurve? curve,
         out byte[]? seed
     )
     {

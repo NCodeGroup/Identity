@@ -1243,10 +1243,10 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validationError = SecretValidator.ValidateCreate(request);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateCreate(request);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
 
         var secretId = CryptoService.GenerateResourceId();
@@ -1266,8 +1266,8 @@ internal class TenantApiEndpointHandler(
                 {
                     SecretId = secretId,
                     SecretType = request.SecretType,
-                    KeySizeBits = request.KeySizeBits,
-                    Curve = SecretValidator.ResolveCurve(request),
+                    KeySizeBits = validation.GenerationParameters.KeySizeBits,
+                    Curve = validation.GenerationParameters.Curve,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

@@ -5,8 +5,7 @@
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), the construction
   of the `ES*` algorithms; [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), how a provisioned key is
-  generated and when a stored key satisfies it; [ADR-1390](1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md),
-  its consequence that no `OKP` key can be provisioned
+  generated and when a stored key satisfies it
 
 ## Context
 
@@ -26,30 +25,36 @@ Three facts shape how it is added:
 - Tenant key provisioning ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)) generates a key from
   an algorithm's key type and size. The `ecc` key type picks P-256 for 256 bits, so provisioning `ES256K` would store a
   P-256 key that `ES256K` refuses. Provisioning also counts a stored key as satisfying an algorithm by its type and size,
-  so an unbound P-256 key would satisfy `ES256K`. [ADR-1390](1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)
-  records the same gap for `OKP` keys, where Ed25519 and X25519 share a size.
+  so an unbound P-256 key would satisfy `ES256K`. The same holds for `OKP` keys, where Ed25519 and X25519 share a size.
 
 ## Decision
 
 1. **An ECDSA algorithm is data.** `EccSignatureAlgorithmSpecification` in `NCode.Identity.Jose.Abstractions` names an
-   algorithm's `alg` code, its one `EccCurveSpecification` and its hash function. The JOSE library serves `ES256`,
-   `ES384` and `ES512` from its own specifications and one ECDSA algorithm for every registered specification, and
-   startup fails when a specification is null or its code is empty, whitespace or registered twice, a built-in one
-   included. The algorithm's key size and its signature size, twice the curve's size in whole bytes, come from the
-   curve. The NIST curves are defined once, as `EccCurveSpecification.P256`, `P384` and `P521`, which the curve catalog
-   seeds and the built-in `ES*` algorithms and the core's `ECDH-ES` agreement are bound to.
+   algorithm's `alg` code, its one `EccCurveSpecification` and its hash function, and the JOSE library serves one ECDSA
+   algorithm for every registered specification. `AddJoseLibrary()` registers `ES256`, `ES384` and `ES512` the same
+   way a package registers `ES256K`, as `EccSignatureAlgorithmSpecification.Es256`, `Es384` and `Es512`, so the core's
+   algorithms and a package's come from one composition path, as the core's `ECDH-ES` agreement and a package's do.
+   The registered specifications are validated as a whole when they are composed: startup fails when a specification
+   is null, its code is empty, whitespace or registered twice, or its curve is not the elliptic-curve catalog's curve
+   of that `crv`, compared by OID too, because a key on a curve the catalog does not hold could be neither generated,
+   imported nor named. The algorithm's key size and its signature size, twice the curve's size in whole bytes, come
+   from the curve. The NIST curves are defined once, as `EccCurveSpecification.P256`, `P384` and `P521`, which the
+   curve catalog seeds and the core's `ES*` specifications and `ECDH-ES` agreement are bound to.
 
 2. **An algorithm's key type names the curves it is bound to.** `AlgorithmKeyType.Curves` lists the curves the
    algorithm's keys must be on, each with its `crv` and its key size: the one curve of `P-256`, `P-384`, `P-521` or
    `secp256k1` for each `ES*` algorithm, `Ed25519` or `Ed448` for the fully-specified EdDSA algorithms, both for the
-   polymorphic `EdDSA`, and the agreements' curves for `ECDH-ES` (ADR-1389). The algorithm's own `IsKeyCompatible`
-   stays the check of a key.
+   polymorphic `EdDSA`, and the agreements' curves for `ECDH-ES`. A key is checked against them by its `crv`
+   (ADR-1389 decision 2), and the ECDSA algorithm compares the key's curve by OID again when it signs or verifies.
 
-3. **Tenant provisioning generates on that curve and checks the stored key.** A specification carries the first of the
-   key type's curves with the key's size into the generation request, so `ES256K` gets a secp256k1 key and `Ed25519`
-   an Ed25519 key; a key created through the management API without a curve is generated the same way. A stored key with a
-   stored public half satisfies a specification only when the algorithm's `IsKeyCompatible` accepts that public key; a
-   public half that cannot be read does not satisfy it, and a key held without one is trusted as before.
+3. **Provisioning and creation generate on that curve, and a stored key is checked by its public half.** Tenant key
+   provisioning and the management API's secret creation resolve the key to generate with `TryResolveKeyGeneration`
+   (ADR-1389 decision 5), so `ES256K` gets a secp256k1 key and `Ed25519` an Ed25519 key, and pass the resolved curve
+   into the generation request; `ISecretValidator.ValidateCreate` returns those generation parameters, so an endpoint
+   generates with what was validated. A stored key satisfies a tenant key specification only when the algorithm's
+   `IsKeyCompatible` accepts its stored public half. Every private asymmetric secret stores that half
+   ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)), so a secret whose public half is missing or
+   cannot be read cannot be shown to fit and does not satisfy the specification, and a key is provisioned.
 
 4. **`NCode.Identity.Jose.Secp256k1` is an opt-in package.** `AddSecp256k1()` registers the secp256k1
    `EccCurveSpecification` (OID `1.3.132.0.10`, `crv` `secp256k1`), through which the `ecc` key type generates, imports
@@ -57,8 +62,9 @@ Three facts shape how it is added:
    abstractions, and it extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose curve catalog and
    algorithms it adds to, as `AddEdDsa()` does, so a host cannot call it without the JOSE library
    ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). Each is registered as an instance, once,
-   with `AddSingleton` after a check that the same instance is not registered yet, because `TryAddEnumerable` keeps
-   one registration per implementation type and would drop the application's other curves.
+   with `TryAddEnumerableInstance` from `NCode.Registration`, which adds an instance unless the same instance is
+   registered, because `TryAddEnumerable` keeps one registration per implementation type and would drop the
+   application's other curves and specifications.
 
 5. **Registration is gated on the platform.** `AddSecp256k1()` first probes whether the platform's cryptography can
    create a secp256k1 key and sign and verify with it, and registers nothing where it cannot, so discovery, the JWKS and
@@ -86,8 +92,9 @@ Three facts shape how it is added:
   other asymmetric signing algorithms, and `ecc` keys on secp256k1 are imported and exported as JWKs with
   `crv` `secp256k1`. A P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`.
 - On macOS the package registers nothing, and its platform-dependent tests are skipped.
-- A tenant can be provisioned with `ES256K`, `Ed25519` and `Ed448` keys, and, because the size selects among the
-  algorithm's curves, with `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`.
+- A tenant can be provisioned with `ES256K`, `Ed25519` and `Ed448` keys, and, because the configured curve or size
+  selects among the algorithm's curves, with `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`.
+- An application that registers an ECDSA specification registers its curve too, or startup fails.
 - A P-256 key declared for `ES256K`, or a secp256k1 key declared for `ES256`, is refused when a client registers it or
   the management API creates or updates it.
 - An application can contribute another ECDSA algorithm, such as one over a Brainpool curve, by registering its curve
@@ -103,8 +110,9 @@ Three facts shape how it is added:
   [ADR-1069](1069-registration-library-compile-time-marker-nesting.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1390](1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)
+  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
 - Issue [#337](https://github.com/NCodeGroup/Identity/issues/337), part of [#66](https://github.com/NCodeGroup/Identity/issues/66)
 - `EccSignatureAlgorithmSpecification` and `AlgorithmKeyType` in `NCode.Identity.Jose.Abstractions`,
   `DefaultAlgorithmDataSource` and `EccSignatureAlgorithm` in `NCode.Identity.Jose`, `DefaultTenantKeyPolicy` in

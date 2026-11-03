@@ -1,8 +1,6 @@
 # 1390. X25519 and X448 agree keys beside the OKP signing keys, and a curve's use separates them
 
-- **Status:** Accepted (amended by [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md):
-  tenant provisioning generates an `OKP` key on the first of its algorithm's curves that has the key's size, so
-  `Ed25519`, `Ed448`, the polymorphic `EdDSA` and `ECDH-ES` can all be provisioned with `OKP` keys)
+- **Status:** Accepted
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md), decision 3's registration and
@@ -32,35 +30,41 @@ order makes the shared secret all zeros, which a party who chose that key knows 
    iterations, and a byte-for-byte differential test against a test-only oracle.
 2. **The keys are `OKP` keys, and every curve has one use.** `OkpSecretKey`, its descriptor and its PKCS#8 / SPKI
    encoding (RFC 8410, OIDs `1.3.101.110` and `1.3.101.111`) serve all four curves; generation, import, export and
-   storage are those of the signing keys. The internal curve catalog records each curve's use, signature or key
-   agreement, and every consumer resolves a curve through its use: the `EdDSA`, `Ed25519` and `Ed448` algorithms accept
-   only a signing curve, and the agreement only a key-agreement curve. An X25519 key therefore never signs and an
-   Ed25519 key never agrees, although their sizes match. A key's size is `8 ×` its public key's length, so an X448 key
-   is 448 bits and an Ed448 key 456.
+   storage are those of the signing keys. The package's internal curve table holds each curve as one object of its
+   kind, an Edwards curve that signs and verifies or a Montgomery curve that agrees, indexed by `crv` and OID, so a
+   curve's use is the operations it has and a curve is added by adding one object. The `EdDSA`, `Ed25519` and `Ed448`
+   algorithms list only signing curves and the agreement only key-agreement curves
+   ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md) decision 2), and each resolves a key's curve
+   as the kind it needs when it uses the key. An X25519 key therefore never signs and an Ed25519 key never agrees,
+   although their sizes match. A key's size is `8 ×` its public key's length, so an X448 key is 448 bits and an Ed448
+   key 456.
 3. **One agreement serves both curves.** `OkpEcdhKeyAgreement` is the `IEcdhKeyAgreement` for `OkpSecretKey`, because
    the two curves share the agreement's code and differ only in the function it calls; it lists X25519 at 256 bits and
-   X448 at 448 bits, and resolves the curve from the key. The shared secret `Z` is the function's output, 32 or 56 bytes, and the Concat KDF stays the
-   algorithm's.
+   X448 at 448 bits, and resolves the curve from the key. The shared secret `Z` is the function's output, 32 or 56
+   bytes, and the Concat KDF stays the algorithm's.
 4. **An all-zero shared secret is refused on both sides.** The recipient refuses an `epk` of small order, and the
    sender refuses a recipient key of small order rather than encrypting under a key anyone can derive. The check reads
    every byte whatever its value. Public keys are not otherwise validated, as RFC 7748 §6 allows. An `epk` holding `d`
    is refused, the `epk` of a sent message carries only `kty`, `crv` and `x`, and an `epk` on another curve than the
-   recipient's key, including a signing curve, is refused (ADR-1389 decision 3).
+   recipient's key, including a signing curve, is refused (ADR-1389 decision 4).
 5. **`AddEdDsa()` registers the agreement.** The package's one registration adds the `OKP` key type, the signing
    algorithms and the agreement, because they share the key type and a host that adds `OKP` keys expects every
    registered use of them. It extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose algorithms,
    key types and agreements it adds to, so a host cannot call it without the JOSE library
-   ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). The package keeps its name; it remains
-   opt-in, and a host that does not call it is unaffected.
+   ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). The package is opt-in: a host that calls
+   `AddEdDsa()` gets the `OKP` key type, the EdDSA algorithms and the X25519 and X448 agreement.
 
 ## Options considered
 
 - **A separate key type for the key-agreement curves.** Rejected: RFC 8037 defines one `OKP` key type for both uses,
   so a second secret type would split one JSON Web Key `kty` across two descriptors, and the catalog's JSON Web Key
-  lookup could no longer resolve a received `OKP` key.
+  lookup could not resolve a received `OKP` key.
 - **A separate package and registration for X25519 and X448.** Rejected: the keys, descriptor and field arithmetic are
   this package's; a second package would depend on its internals or duplicate them.
 - **Telling the curves apart by key size.** Rejected: X25519 and Ed25519 keys are both 256 bits.
+- **A curve record with a use flag, dispatched by name.** Rejected: every operation would switch over the curve names,
+  each new curve would be added to every switch, and a curve that cannot sign would carry a signature size it does not
+  have. A curve object of its kind carries only the operations its use has.
 - **Validating public keys against a list of small-order points.** Rejected: the all-zero check catches every one of
   them, including non-canonical encodings, at the point where the secret is used, as RFC 7748 §6 recommends.
 
@@ -70,7 +74,7 @@ order makes the shared secret all zeros, which a party who chose that key knows 
   keys after the `EC` keys, and the JWE decryption key check, the credential selector and the capabilities document
   serve them unchanged.
 - Tenant key provisioning chooses an `OKP` key's curve from the algorithm's curves and the key's size (ADR-1389
-  decision 5): `ECDH-ES` with `SecretType` `okp` gets an X25519 key at 256 bits and an X448 key at 448, and the
+  decision 6): `ECDH-ES` with `SecretType` `okp` gets an X25519 key at 256 bits and an X448 key at 448, and the
   polymorphic `EdDSA` an Ed25519 key at 256 bits and an Ed448 key at 456.
 - A key on a curve of the other use is refused when it is declared for an algorithm, as an Ed25519 key for `ECDH-ES`
   or an X25519 key for `EdDSA` is when a client registers it.

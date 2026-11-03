@@ -14,7 +14,8 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// Provides the <see cref="IEcdhKeyAgreement"/> of the <c>ECDH-ES</c> algorithms over <c>EC</c> keys on the
 /// <c>P-256</c>, <c>P-384</c> and <c>P-521</c> curves (RFC 7518 §4.6). The shared secret <c>Z</c> is the
 /// x-coordinate of the agreed point, of the curve's field size (NIST SP 800-56A §5.7.1.2). An ephemeral public key is
-/// validated to lie on the recipient's curve when it is imported.
+/// validated to lie on the recipient's curve when it is imported, and the recipient's curve is checked again when the
+/// key is used.
 /// </summary>
 // See ADR-1389.
 internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
@@ -47,32 +48,15 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
         }
     }
 
-    // The key sizes and the curves both come from the supported curves, so they cannot drift apart.
     /// <inheritdoc />
-    public AlgorithmKeyType KeyType { get; } =
-        new(
+    public AlgorithmKeyType AlgorithmKeyType { get; } =
+        AlgorithmKeyType.OnCurves(
             typeof(EccSecretKey),
-            SupportedCurves.Select(curve => new KeySizes(
-                minSize: curve.CurveSizeBits,
-                maxSize: curve.CurveSizeBits,
-                skipSize: 0
+            SupportedCurves.Select(curve => new AlgorithmCurve(
+                curve.CurveName,
+                curve.CurveSizeBits
             ))
-        )
-        {
-            Curves =
-            [
-                .. SupportedCurves.Select(curve => new AlgorithmCurve(
-                    curve.CurveName,
-                    curve.CurveSizeBits
-                )),
-            ],
-        };
-
-    /// <inheritdoc />
-    public bool IsKeyCompatible(SecretKey secretKey) =>
-        secretKey is EccSecretKey eccSecretKey
-        && KeyType.IsLegalSize(secretKey.KeySizeBits)
-        && IsSupportedCurve(eccSecretKey.GetECCurve());
+        );
 
     /// <inheritdoc />
     public int GetSharedSecretSizeBytes(SecretKey secretKey) => (secretKey.KeySizeBits + 7) >> 3;
@@ -123,7 +107,7 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
 
     private EccSecretKey Validate(SecretKey secretKey)
     {
-        var eccSecretKey = secretKey.Validate<EccSecretKey>(KeyType.KeyBitSizes);
+        var eccSecretKey = secretKey.Validate<EccSecretKey>(AlgorithmKeyType.KeyBitSizes);
 
         if (!IsSupportedCurve(eccSecretKey.GetECCurve()))
         {

@@ -331,30 +331,40 @@ export type KeyBitSizes = {
 };
 
 /**
- * Mirror of `AlgorithmKeyTypeCapabilityResource` — one secret type an algorithm accepts, with the key sizes legal
- * for keys of that type. An algorithm such as `ECDH-ES` lists one per secret type it serves (ADR-1389).
+ * Mirror of `AlgorithmCurveCapabilityResource` — one curve an algorithm accepts keys of a secret type on, with the size
+ * of its keys.
+ */
+export type AlgorithmCurveCapability = {
+  /** The JWK `crv` name of the curve (e.g. `P-384`, `secp256k1`, `X25519`). */
+  readonly curveName: string;
+  readonly curveSizeBits: number;
+};
+
+/**
+ * Mirror of `AlgorithmKeyTypeCapabilityResource` — one secret type an algorithm accepts, with the key sizes and
+ * curves legal for keys of that type. An algorithm such as `ECDH-ES` lists one per secret type it serves (ADR-1389).
  */
 export type AlgorithmKeyTypeCapability = {
-  /** The secret-type discriminator (e.g. `rsa`, `ecc`) whose key material is compatible with the algorithm. */
+  /** The secret-type discriminator (e.g. `rsa`, `ecc`, `okp`) whose key material is compatible with the algorithm. */
   readonly secretType: string;
   readonly keyBitSizes: readonly KeyBitSizes[];
   /**
-   * The JWK `crv` names of the curves keys of the secret type must be on for the algorithm, in its order of
-   * preference (e.g. `secp256k1` for `ES256K`); empty when the type has no curve.
+   * The curves keys of the secret type must be on for the algorithm, in its order of preference (e.g. `secp256k1`
+   * for `ES256K`), each with its key size; empty when the type has no curve.
    */
-  readonly curves: readonly string[];
+  readonly curves: readonly AlgorithmCurveCapability[];
 };
 
 /**
  * Mirror of `AlgorithmCapabilityResource` — one signature or key-management algorithm the server supports, with
- * its implied use and each compatible secret type with its legal key sizes, so the create-secret form can drive its
- * algorithm, use, and key-size inputs from server discovery rather than hard-coded defaults.
+ * its implied use and each compatible secret type with its legal key sizes and curves, so the create-secret form can
+ * drive its algorithm, use, key-size and curve inputs from server discovery rather than hard-coded defaults.
  */
 export type AlgorithmCapability = {
   readonly code: string;
   /** The key use the algorithm implies: `sig` for signature, `enc` for key-management. */
   readonly use: string;
-  /** The compatible secret types, each with its legal key sizes, in the algorithm's order of preference. */
+  /** The compatible secret types, each with its legal key sizes and curves, in the algorithm's order of preference. */
   readonly keyTypes: readonly AlgorithmKeyTypeCapability[];
 };
 

@@ -7,9 +7,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Jose;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using Base64Url = NCode.Encoders.Base64Url;
@@ -21,6 +23,14 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
 {
     private const string Enc = "A128GCM";
 
+    private static EccCurveSpecification BrainpoolCurve { get; } =
+        new()
+        {
+            CurveName = "brainpoolP256r1",
+            CurveSizeBits = 256,
+            Curve = ECCurve.NamedCurves.brainpoolP256r1,
+        };
+
     private ServiceProvider ServiceProvider { get; }
 
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; }
@@ -30,7 +40,6 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     public EcdhKeyManagementAlgorithmTests()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
@@ -99,7 +108,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     public void KeyTypes_ReturnsTheKeyTypeOfEachAgreement()
     {
         var keyType = Assert.Single(Algorithm.KeyTypes);
-        Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
+        Assert.Equal(typeof(EccSecretKey), keyType.KeyClrType);
         Assert.Collection(
             keyType.KeyBitSizes,
             size => Assert.Equal((256, 256, 0), (size.MinSize, size.MaxSize, size.SkipSize)),
@@ -115,17 +124,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     // An agreement over another EC curve, as a package would contribute one; it only decides which keys it accepts.
     private sealed class BrainpoolEcdhKeyAgreement : IEcdhKeyAgreement
     {
-        public AlgorithmKeyType KeyType { get; } =
-            new(typeof(EccSecretKey), [new KeySizes(minSize: 256, maxSize: 256, skipSize: 0)])
-            {
-                Curves = [new("brainpoolP256r1", 256)],
-            };
-
-        public bool IsKeyCompatible(SecretKey secretKey) =>
-            secretKey is EccSecretKey eccSecretKey
-            && EccCurveSpecification.IsSameNamedCurve(
-                eccSecretKey.GetECCurve(),
-                ECCurve.NamedCurves.brainpoolP256r1
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(
+                typeof(EccSecretKey),
+                [new AlgorithmCurve(BrainpoolCurve.CurveName, BrainpoolCurve.CurveSizeBits)]
             );
 
         public int GetSharedSecretSizeBytes(SecretKey secretKey) => 32;
@@ -143,10 +145,15 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         ) => throw new NotSupportedException();
     }
 
+    // A key on a curve the application registers in the elliptic-curve catalog, which names it.
     private static EccSecretKey CreateBrainpoolKey()
     {
-        using var key = ECDiffieHellman.Create(ECCurve.NamedCurves.brainpoolP256r1);
-        return SecretKeyFactory.CreateEcc(new KeyMetadata { KeyId = "brainpool" }, key);
+        var factory = new DefaultSecretKeyFactory(
+            new DefaultSecretKeyDataProtectorFactory(NullLoggerFactory.Instance),
+            new DefaultEccCurveCatalog([BrainpoolCurve])
+        );
+        using var key = ECDiffieHellman.Create(BrainpoolCurve.Curve);
+        return factory.CreateEcc(new KeyMetadata { KeyId = "brainpool" }, key);
     }
 
     [Fact]
@@ -158,9 +165,9 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         );
 
         var keyType = Assert.Single(algorithm.KeyTypes);
-        Assert.Equal(typeof(EccSecretKey), keyType.KeyType);
+        Assert.Equal(typeof(EccSecretKey), keyType.KeyClrType);
         Assert.Equal(
-            ["P-256", "P-384", "P-521", "brainpoolP256r1"],
+            ["brainpoolP256r1", "P-256", "P-384", "P-521"],
             keyType.Curves.Select(curve => curve.Name)
         );
         Assert.True(keyType.IsLegalSize(521));

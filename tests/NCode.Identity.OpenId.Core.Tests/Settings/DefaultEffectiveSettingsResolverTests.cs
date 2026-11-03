@@ -140,7 +140,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     public void ResolveStored_WhenTheDocumentCannotBeHonored_ThrowsNamingTheOwner()
     {
         const string documentError =
-            "The settings are invalid: 'it_retired_setting' is not a registered setting.";
+            "The settings are invalid: 'it_unregistered_setting' is not a registered setting.";
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         var cause = new JsonException(documentError);

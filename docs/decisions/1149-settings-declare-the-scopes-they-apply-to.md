@@ -4,7 +4,10 @@
   request-object, UserInfo, and ID token algorithm lists apply to clients; extended by
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md): the access-token
   lifetime, signing, and sender-constraint settings apply to resource servers, and every setting that applies to
-  resource servers merges with a lattice operation)
+  resource servers merges with a lattice operation; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

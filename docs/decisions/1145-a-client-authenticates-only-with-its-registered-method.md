@@ -8,7 +8,10 @@
   [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a client bound to a resource
   server authenticates the same way and is accepted only at introspection; amended by
   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): the registered method
-  descriptors, not the handlers, name the methods)
+  descriptors, not the handlers, name the methods; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -154,5 +157,4 @@ API operation.
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/DefaultAuthorizationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Settings/DefaultClientSettingDescriptorDataSource.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/20261019163430_RegisterClientAuthenticationMethod.cs`.
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.

@@ -1,7 +1,10 @@
 # 1161. A client's public keys have one source and are imported under one policy
 
 - **Status:** Accepted (applied to every owner's keys by
-  [ADR-1186](1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md))
+  [ADR-1186](1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md); amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

@@ -1,7 +1,10 @@
 # 1209. A replica adds each usage batch to the ledger once
 
 - **Status:** Accepted (amended by [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md): the prune removes
-  a bounded batch per unit of work)
+  a bounded batch per unit of work; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, which
+  creates the schema this record names)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

@@ -177,7 +177,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     }
 
     [Theory]
-    [InlineData("tenant_issuer", "https://op.example")]
+    [InlineData("unregistered_setting", "https://op.example")]
     [InlineData("flag", "yes")]
     public void Reload_WhenSettingsCannotBeHonored_KeepsThePreviousSettingsAndLogsAnError(
         string name,

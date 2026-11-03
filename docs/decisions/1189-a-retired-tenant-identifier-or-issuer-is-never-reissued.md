@@ -1,6 +1,9 @@
 # 1189. A retired tenant identifier or issuer is never reissued
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, which
+  creates the schema this record names)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

@@ -653,8 +653,7 @@ internal class ServerApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettingsUpdate(
-            serverSettings.Value,
+        var settingErrors = SettingSerializer.ValidateSettings(
             settingsValue,
             OpenIdSettingScopes.Server,
             jsonOptions

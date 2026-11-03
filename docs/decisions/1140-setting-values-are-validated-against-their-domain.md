@@ -10,7 +10,10 @@
   value names a registered profile; extended by [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): the same
   entry points also reject a setting at a scope that never reads it; client-authentication-method domain amended by
   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): the names of the registered
-  method descriptors)
+  method descriptors; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

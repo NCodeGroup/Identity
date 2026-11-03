@@ -4,7 +4,10 @@
   [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's key is
   imported under one client-key policy, keeps its own `kid`, and registration no longer stores the `jwks` document;
   import formats amended by [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): a format is an open name
-  each key type declares, see decision 6)
+  each key type declares, see decision 6; amended by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration, and no
+  migration rewrites stored data)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 

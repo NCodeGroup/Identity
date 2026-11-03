@@ -3,7 +3,9 @@
 - **Status:** Accepted (expand-and-contract checked by
   [ADR-1184](1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md); amended by
   [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md): raw
-  SQL is classified)
+  SQL is classified; refined by
+  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  until the first stable release each host database context has one re-scaffolded initial migration)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)

@@ -23,6 +23,24 @@ namespace NCode.Identity.Jose.EdDsa.Algorithms;
 // See ADR-1390.
 internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
 {
+    private static bool TryResolveCurve(
+        OkpSecretKey secretKey,
+        [NotNullWhen(true)] out OkpCurveInfo? curve
+    ) =>
+        OkpCurves.TryGetByName(secretKey.Curve, OkpCurveUse.KeyAgreement, out curve)
+        && secretKey.KeySizeBits == curve.KeySizeBits;
+
+    private static void ValidateSharedSecretSize(OkpCurveInfo curve, Span<byte> sharedSecret)
+    {
+        if (sharedSecret.Length != curve.PublicKeySize)
+        {
+            throw new ArgumentException(
+                $"The shared secret of an {curve.Name} agreement is {curve.PublicKeySize} bytes.",
+                nameof(sharedSecret)
+            );
+        }
+    }
+
     /// <inheritdoc />
     public AlgorithmKeyType KeyType { get; } =
         new(
@@ -149,24 +167,6 @@ internal sealed class OkpEcdhKeyAgreement : IEcdhKeyAgreement
         finally
         {
             CryptographicOperations.ZeroMemory(privateKey);
-        }
-    }
-
-    private static bool TryResolveCurve(
-        OkpSecretKey secretKey,
-        [NotNullWhen(true)] out OkpCurveInfo? curve
-    ) =>
-        OkpCurves.TryGetByName(secretKey.Curve, OkpCurveUse.KeyAgreement, out curve)
-        && secretKey.KeySizeBits == curve.KeySizeBits;
-
-    private static void ValidateSharedSecretSize(OkpCurveInfo curve, Span<byte> sharedSecret)
-    {
-        if (sharedSecret.Length != curve.PublicKeySize)
-        {
-            throw new ArgumentException(
-                $"The shared secret of an {curve.Name} agreement is {curve.PublicKeySize} bytes.",
-                nameof(sharedSecret)
-            );
         }
     }
 

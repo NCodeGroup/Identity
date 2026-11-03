@@ -24,7 +24,25 @@ public sealed class Es256KTests : IAsyncDisposable
 {
     // RFC 8812 publishes no test vectors. This key and JWS were made with Python's `cryptography` library (OpenSSL), an
     // implementation independent of this package: the private scalar is SHA-256("NCode.Identity ES256K test key") mod n,
-    // and the signature is ECDSA with SHA-256 over the JWS signing input, encoded as R || S (RFC 7518 §3.4).
+    // and the signature is ECDSA with SHA-256 over the JWS signing input, encoded as R || S (RFC 7518 §3.4). The script
+    // below prints x, y and d, then a JWS; ECDSA signing is randomized, so a rerun prints another valid signature over
+    // the same signing input.
+    //
+    //   import base64, hashlib, json
+    //   from cryptography.hazmat.primitives import hashes
+    //   from cryptography.hazmat.primitives.asymmetric import ec
+    //   from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+    //   b64u = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+    //   compact = lambda o: b64u(json.dumps(o, separators=(",", ":")).encode())
+    //   n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    //   d = int.from_bytes(hashlib.sha256(b"NCode.Identity ES256K test key").digest(), "big") % n
+    //   key = ec.derive_private_key(d, ec.SECP256K1())
+    //   pub = key.public_key().public_numbers()
+    //   print(b64u(pub.x.to_bytes(32, "big")), b64u(pub.y.to_bytes(32, "big")), b64u(d.to_bytes(32, "big")))
+    //   header = compact({"alg": "ES256K", "kid": "secp256k1-test"})
+    //   signing_input = header + "." + compact({"iss": "https://issuer.example", "sub": "alice"})
+    //   r, s = decode_dss_signature(key.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256())))
+    //   print(signing_input + "." + b64u(r.to_bytes(32, "big") + s.to_bytes(32, "big")))
     private const string KnownX = "M6OK6DCIZD8csw9Fn_s_BFQHcUQT3SgSvddFnL-7X-0";
     private const string KnownY = "15rv8RHVzqiowf7c2PfjYH8CA4sGYg_xqHu8sbqMoug";
     private const string KnownD = "c2RvzFdi4LWhKdVV0ZD8Urc6RxAyDYijkRpyt-TPxNk";

@@ -17,6 +17,7 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
@@ -108,6 +109,18 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             SecretKey ephemeralPublicKey,
             Span<byte> sharedSecret
         ) => throw new NotSupportedException();
+    }
+
+    // Hands the JOSE library's builder to a package before the library itself is added, so the package's registrations
+    // precede the core's; it registers no marker, which the library then registers.
+    private sealed class PrecedingJoseBuilder(IServiceCollection serviceCollection)
+        : IServiceBuilder<JoseLibrary>
+    {
+        public IServiceCollection ServiceCollection { get; } = serviceCollection;
+
+        public IServiceBuilder<TNewMarker> NewBuilder<TNewMarker>()
+            where TNewMarker : IRegistrationMarker<TNewMarker>, new() =>
+            throw new NotSupportedException();
     }
 
     // A registered signature algorithm keyed by the abstract SecretKey, which no secret key type describes.
@@ -351,25 +364,40 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
     }
 
-    [Theory]
-    [InlineData(SecretKeyTypes.Ecc, "The algorithm 'RS256' does not accept 'ecc' keys.")]
-    [InlineData(
-        "unregistered",
-        "The secret type 'unregistered' is not a registered secret key type."
-    )]
-    public void ResolveSpecifications_WhenSecretTypeIsNotOneTheAlgorithmAccepts_ReportsIt(
-        string secretType,
-        string expectedError
-    )
+    [Fact]
+    public void ResolveSpecifications_WhenSecretTypeIsNotOneTheAlgorithmAccepts_ListsTheAcceptedTypes()
     {
         var resolution = Policy.ResolveSpecifications(
             CreateOptions(
-                new OpenIdTenantKeyOptions { Algorithm = "RS256", SecretType = secretType }
+                new OpenIdTenantKeyOptions { Algorithm = "RS256", SecretType = SecretKeyTypes.Ecc }
             )
         );
 
         Assert.Empty(resolution.Specifications);
-        Assert.Equal(expectedError, Assert.Single(resolution.Errors));
+        Assert.Equal(
+            "The algorithm 'RS256' does not accept 'ecc' keys; expected 'rsa'.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenSecretTypeIsNotRegistered_ListsTheRegisteredTypes()
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions { Algorithm = "RS256", SecretType = "unregistered" }
+            )
+        );
+
+        Assert.Empty(resolution.Specifications);
+        var error = Assert.Single(resolution.Errors);
+        Assert.StartsWith(
+            "The secret type 'unregistered' is not a registered secret key type; expected ",
+            error,
+            StringComparison.Ordinal
+        );
+        Assert.Contains($"'{SecretKeyTypes.Rsa}'", error, StringComparison.Ordinal);
+        Assert.Contains($"'{SecretKeyTypes.Ecc}'", error, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -668,15 +696,16 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         serviceCollection.AddLogging();
         if (addEdDsaFirst)
         {
-            serviceCollection.AddEdDsa();
+            // A builder that registers no marker lets the package register before the JOSE library does.
+            new PrecedingJoseBuilder(serviceCollection).AddEdDsa();
         }
 
         var secrets = serviceCollection.AddSecretsLibrary();
-        secrets.AddJoseLibrary();
+        var jose = secrets.AddJoseLibrary();
         secrets.AddPersistenceLibrary();
         if (!addEdDsaFirst)
         {
-            serviceCollection.AddEdDsa();
+            jose.AddEdDsa();
         }
 
         return serviceCollection.BuildServiceProvider();

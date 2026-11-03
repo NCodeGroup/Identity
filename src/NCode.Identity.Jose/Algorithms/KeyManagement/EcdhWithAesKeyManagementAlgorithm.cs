@@ -15,7 +15,7 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 /// Provides an implementation of <see cref="KeyManagementAlgorithm"/> that uses the <c>ECDH-ES with AES</c> cryptographic algorithm for key management.
 /// </summary>
 /// <param name="secretKeyTypeCatalog">The registered key types, whose descriptors write and read the <c>epk</c>.</param>
-/// <param name="keyAgreements">The registered key agreements, one per key type.</param>
+/// <param name="keyAgreements">The registered key agreements; a key is agreed by the one agreement that accepts it.</param>
 /// <param name="aesKeyWrap">Provides the AES key wrap functionality.</param>
 /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
 /// <param name="kekSizeBits">Contains the size, in bits, of the derived key encryption key (KEK).</param>
@@ -64,21 +64,15 @@ internal class EcdhWithAesKeyManagementAlgorithm(
         IBufferWriter<byte> encryptedContentKeyWriter
     )
     {
-        var newKek =
-            KekSizeBytes <= JoseConstants.MaxStackAlloc
-                ? stackalloc byte[KekSizeBytes]
-                : GC.AllocateUninitializedArray<byte>(KekSizeBytes, pinned: true);
+        using var newKekLease = BufferFactory.Rent(
+            KekSizeBytes,
+            isSensitive: true,
+            out Span<byte> newKek
+        );
 
-        try
-        {
-            base.NewKey(secretKey, header, newKek);
+        base.NewKey(secretKey, header, newKek);
 
-            AesKeyWrap.WrapKey(newKek, contentKey, ref encryptedContentKeyWriter);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(newKek);
-        }
+        AesKeyWrap.WrapKey(newKek, contentKey, ref encryptedContentKeyWriter);
     }
 
     /// <inheritdoc />

@@ -136,12 +136,33 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
         Assert.Contains($"'{BrainpoolCode}'", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Collection_WhenRegisteredCodeIsEmpty_Throws()
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("\t")]
+    public async Task Collection_WhenRegisteredCodeIsEmptyOrWhitespace_Throws(string code)
     {
-        await using var serviceProvider = BuildServiceProvider(CreateSpecification(string.Empty));
+        await using var serviceProvider = BuildServiceProvider(CreateSpecification(code));
 
-        Assert.Throws<InvalidOperationException>(() => GetCollection(serviceProvider));
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            GetCollection(serviceProvider)
+        );
+        Assert.Contains("empty or whitespace code", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Collection_WhenRegisteredSpecificationIsNull_Throws()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        serviceCollection.AddSingleton<EccSignatureAlgorithmSpecification>(_ => null!);
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            GetCollection(serviceProvider)
+        );
+        Assert.Contains("specification is null", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

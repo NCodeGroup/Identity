@@ -26,8 +26,7 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
-        serviceCollection.AddEdDsa();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
         ServiceProvider = serviceCollection.BuildServiceProvider();
     }
 

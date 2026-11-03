@@ -30,9 +30,9 @@ public sealed class OpenIdTenantKeyOptions
     /// <summary>
     /// Gets or sets the secret key type to generate the key as (for example <c>ecc</c>), or <c>null</c> to generate
     /// the first key type the algorithm accepts that has a registered secret key type and that a key can be generated
-    /// as. It selects among the key types
-    /// of an algorithm that accepts several, such as <c>ECDH-ES</c>, which accepts <c>EC</c> keys and, with a package
-    /// that contributes them, <c>OKP</c> keys (RFC 8037 §3.2). The type must be one the algorithm accepts.
+    /// as. It selects among the key types of an algorithm that accepts several, such as <c>ECDH-ES</c>, which accepts
+    /// <c>EC</c> keys and, with a package that contributes them, <c>OKP</c> keys (RFC 8037 §3.2). The type must be one
+    /// the algorithm accepts.
     /// </summary>
     // See ADR-1389.
     public string? SecretType { get; set; }

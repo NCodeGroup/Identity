@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts.Capabilities;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -18,6 +19,9 @@ public sealed class CapabilitiesProvidersTests : IDisposable
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
     public void Dispose() => MockRepository.Verify();
+
+    // The providers read only the capabilities document, so a strict context with no setups proves they never touch it.
+    private OpenIdContext CreateOpenIdContext() => MockRepository.Create<OpenIdContext>().Object;
 
     [Fact]
     public async Task SecretTypeCapabilitiesProvider_AddsSecretTypesSection()
@@ -35,7 +39,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 
@@ -69,7 +73,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 
@@ -98,7 +102,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 
@@ -160,7 +164,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
-            new DiscoverManagementCapabilitiesCommand(null!, capabilities),
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
             CancellationToken.None
         );
 

@@ -36,37 +36,57 @@ internal sealed class DefaultAlgorithmDataSource(
             new()
             {
                 Code = AlgorithmCodes.DigitalSignature.EcdsaSha256,
-                Curve = new EccCurveSpecification
-                {
-                    CurveName = "P-256",
-                    CurveSizeBits = 256,
-                    Curve = ECCurve.NamedCurves.nistP256,
-                },
+                Curve = EccCurveSpecification.P256,
                 HashAlgorithmName = HashAlgorithmName.SHA256,
             },
             new()
             {
                 Code = AlgorithmCodes.DigitalSignature.EcdsaSha384,
-                Curve = new EccCurveSpecification
-                {
-                    CurveName = "P-384",
-                    CurveSizeBits = 384,
-                    Curve = ECCurve.NamedCurves.nistP384,
-                },
+                Curve = EccCurveSpecification.P384,
                 HashAlgorithmName = HashAlgorithmName.SHA384,
             },
             new()
             {
                 Code = AlgorithmCodes.DigitalSignature.EcdsaSha512,
-                Curve = new EccCurveSpecification
-                {
-                    CurveName = "P-521",
-                    CurveSizeBits = 521,
-                    Curve = ECCurve.NamedCurves.nistP521,
-                },
+                Curve = EccCurveSpecification.P521,
                 HashAlgorithmName = HashAlgorithmName.SHA512,
             },
         ];
+
+    private static ImmutableArray<EccSignatureAlgorithmSpecification> ComposeEccSignatureAlgorithms(
+        IEnumerable<EccSignatureAlgorithmSpecification> registered
+    )
+    {
+        var composed = new List<EccSignatureAlgorithmSpecification>();
+        var codes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var specification in BuiltInEccSignatureAlgorithms.Concat(registered))
+        {
+            if (specification is null)
+            {
+                throw new InvalidOperationException(
+                    "A registered ECDSA signature algorithm specification is null."
+                );
+            }
+
+            if (string.IsNullOrWhiteSpace(specification.Code))
+            {
+                throw new InvalidOperationException(
+                    "A registered ECDSA signature algorithm has an empty or whitespace code."
+                );
+            }
+
+            if (!codes.Add(specification.Code))
+            {
+                throw new InvalidOperationException(
+                    $"The ECDSA signature algorithm '{specification.Code}' is registered more than once."
+                );
+            }
+
+            composed.Add(specification);
+        }
+
+        return [.. composed];
+    }
 
     // See ADR-1392: the built-in ECDSA algorithms and every registered one, validated as a whole.
     private ImmutableArray<EccSignatureAlgorithmSpecification> EccSignatureAlgorithms { get; } =
@@ -409,33 +429,5 @@ internal sealed class DefaultAlgorithmDataSource(
 
             #endregion
         }
-    }
-
-    private static ImmutableArray<EccSignatureAlgorithmSpecification> ComposeEccSignatureAlgorithms(
-        IEnumerable<EccSignatureAlgorithmSpecification> registered
-    )
-    {
-        var composed = new List<EccSignatureAlgorithmSpecification>();
-        var codes = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var specification in BuiltInEccSignatureAlgorithms.Concat(registered))
-        {
-            if (string.IsNullOrEmpty(specification.Code))
-            {
-                throw new InvalidOperationException(
-                    "A registered ECDSA signature algorithm has an empty code."
-                );
-            }
-
-            if (!codes.Add(specification.Code))
-            {
-                throw new InvalidOperationException(
-                    $"The ECDSA signature algorithm '{specification.Code}' is registered more than once."
-                );
-            }
-
-            composed.Add(specification);
-        }
-
-        return [.. composed];
     }
 }

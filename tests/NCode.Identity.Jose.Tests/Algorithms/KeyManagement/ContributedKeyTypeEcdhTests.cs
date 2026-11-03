@@ -133,8 +133,8 @@ public class ContributedKeyTypeEcdhTests : BaseTests
                 ((XkpSecretKey)ephemeralPublicKey).SubjectPublicKeyInfo,
                 out _
             );
-            using var ephemeralPublicKey2 = ephemeral.PublicKey;
-            recipient.DeriveRawSecretAgreement(ephemeralPublicKey2).CopyTo(sharedSecret);
+            using var ephemeralPublic = ephemeral.PublicKey;
+            recipient.DeriveRawSecretAgreement(ephemeralPublic).CopyTo(sharedSecret);
         }
     }
 

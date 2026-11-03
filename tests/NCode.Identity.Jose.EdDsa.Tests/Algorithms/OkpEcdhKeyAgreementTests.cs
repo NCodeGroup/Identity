@@ -45,8 +45,7 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
-        serviceCollection.AddEdDsa();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddEdDsa();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         var catalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();

@@ -122,11 +122,15 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null)
             .Verifiable();
-        // The curve a key is generated on is the request's own here; the validator's rule is tested on its own.
+    }
+
+    // Only a request that generates a key resolves the curve it is generated on, which is the request's own here; the
+    // validator's rule is tested on its own.
+    private void SetupCurveResolution() =>
         MockSecretValidator
             .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
-            .Returns((CreateSecretRequest request) => request.Curve);
-    }
+            .Returns((CreateSecretRequest request) => request.Curve)
+            .Verifiable();
 
     // Only a request that changes a secret records it.
     private void SetupServerSecretChangedAudit() =>
@@ -1334,6 +1338,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
@@ -1432,6 +1437,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     public async Task CreateSecretAsync_WhenGeneratorRejectsInput_ReturnsBadRequest()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -1462,6 +1468,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))

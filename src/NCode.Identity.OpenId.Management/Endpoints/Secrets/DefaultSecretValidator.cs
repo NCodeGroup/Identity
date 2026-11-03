@@ -1,8 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -52,7 +50,11 @@ internal sealed class DefaultSecretValidator(
             request.Curve is not null
             || request.Algorithm is not { } algorithm
             || !SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor)
-            || !TryGetKeyedAlgorithm(algorithm, out var keyedAlgorithm)
+            || !AlgorithmCollectionProvider.Collection.TryGetKeyedAlgorithm(
+                algorithm,
+                out var keyedAlgorithm,
+                out _
+            )
             || !keyedAlgorithm.TryGetKeyType(descriptor.KeyClrType, out var algorithmKeyType)
         )
         {
@@ -184,22 +186,10 @@ internal sealed class DefaultSecretValidator(
         if (
             descriptor.IsAsymmetric
             && (SecretEncodings.IsPublic(secret.SecretEncoding) || secret.PublicKey is not null)
+            && !SecretSerializer.TryDeserializePublicSecret(secret, out publicKey, out _)
         )
         {
-            try
-            {
-                publicKey = SecretSerializer.DeserializePublicSecret(secret);
-            }
-            catch (Exception exception)
-                when (exception
-                        is CryptographicException
-                            or ArgumentException
-                            or InvalidOperationException
-                            or FormatException
-                )
-            {
-                return Error("The key's stored public key cannot be read.");
-            }
+            return Error("The key's stored public key cannot be read.");
         }
 
         var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
@@ -213,28 +203,6 @@ internal sealed class DefaultSecretValidator(
             }
         );
         return algorithmError is null ? null : Error(algorithmError);
-    }
-
-    private bool TryGetKeyedAlgorithm(
-        string algorithm,
-        [NotNullWhen(true)] out KeyedAlgorithm? keyedAlgorithm
-    )
-    {
-        var collection = AlgorithmCollectionProvider.Collection;
-        if (collection.TryGetSignatureAlgorithm(algorithm, out var signatureAlgorithm))
-        {
-            keyedAlgorithm = signatureAlgorithm;
-            return true;
-        }
-
-        if (collection.TryGetKeyManagementAlgorithm(algorithm, out var keyManagementAlgorithm))
-        {
-            keyedAlgorithm = keyManagementAlgorithm;
-            return true;
-        }
-
-        keyedAlgorithm = null;
-        return false;
     }
 
     private static ManagementError Error(string detail) =>

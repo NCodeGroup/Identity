@@ -19,8 +19,33 @@ namespace NCode.Identity.Jose.Algorithms.KeyManagement;
 // See ADR-1389.
 internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
 {
-    private static ECCurve[] SupportedCurves { get; } =
-    [ECCurve.NamedCurves.nistP256, ECCurve.NamedCurves.nistP384, ECCurve.NamedCurves.nistP521];
+    // RFC 7518 §4.6 names ECDH-ES over the NIST curves, which the curve catalog also seeds (ADR-1068).
+    private static EccCurveSpecification[] SupportedCurves { get; } =
+    [EccCurveSpecification.P256, EccCurveSpecification.P384, EccCurveSpecification.P521];
+
+    private static bool IsSupportedCurve(ECCurve curve) =>
+        SupportedCurves.Any(supported =>
+            EccCurveSpecification.IsSameNamedCurve(curve, supported.Curve)
+        );
+
+    private static void CopySharedSecret(byte[] secret, Span<byte> sharedSecret)
+    {
+        try
+        {
+            if (secret.Length != sharedSecret.Length)
+            {
+                throw new CryptographicException(
+                    "The shared secret does not have the size of the curve's field."
+                );
+            }
+
+            secret.CopyTo(sharedSecret);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(secret);
+        }
+    }
 
     /// <inheritdoc />
     public AlgorithmKeyType KeyType { get; } =
@@ -29,7 +54,13 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
             [new KeySizes(minSize: 256, maxSize: 384, skipSize: 128), new KeySizes(521, 521, 0)]
         )
         {
-            Curves = [new("P-256", 256), new("P-384", 384), new("P-521", 521)],
+            Curves =
+            [
+                .. SupportedCurves.Select(curve => new AlgorithmCurve(
+                    curve.CurveName,
+                    curve.CurveSizeBits
+                )),
+            ],
         };
 
     /// <inheritdoc />
@@ -85,9 +116,6 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
         CopySharedSecret(recipient.DeriveRawSecretAgreement(ephemeralPublic), sharedSecret);
     }
 
-    private static bool IsSupportedCurve(ECCurve curve) =>
-        SupportedCurves.Any(supported => EccCurveSpecification.IsSameNamedCurve(curve, supported));
-
     private EccSecretKey Validate(SecretKey secretKey)
     {
         var eccSecretKey = secretKey.Validate<EccSecretKey>(KeyType.KeyBitSizes);
@@ -104,24 +132,5 @@ internal sealed class EccEcdhKeyAgreement : IEcdhKeyAgreement
         }
 
         return eccSecretKey;
-    }
-
-    private static void CopySharedSecret(byte[] secret, Span<byte> sharedSecret)
-    {
-        try
-        {
-            if (secret.Length != sharedSecret.Length)
-            {
-                throw new CryptographicException(
-                    "The shared secret does not have the size of the curve's field."
-                );
-            }
-
-            secret.CopyTo(sharedSecret);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(secret);
-        }
     }
 }

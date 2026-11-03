@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets;
 
@@ -15,6 +16,43 @@ public static class AlgorithmCollectionExtensions
     /// <param name="collection">The <see cref="IAlgorithmCollection"/> of registered algorithms.</param>
     extension(IAlgorithmCollection collection)
     {
+        /// <summary>
+        /// Gets the registered signature or key-management algorithm with the specified code, the algorithms a key is
+        /// declared for, together with the use it implies: <c>sig</c> for a signature algorithm and <c>enc</c> for a
+        /// key-management algorithm.
+        /// </summary>
+        /// <param name="code">The algorithm's code.</param>
+        /// <param name="algorithm">When this method returns <c>true</c>, the algorithm.</param>
+        /// <param name="impliedUse">When this method returns <c>true</c>, the use the algorithm implies.</param>
+        /// <returns><c>true</c> when a signature or key-management algorithm is registered with the code; otherwise,
+        /// <c>false</c>.</returns>
+        public bool TryGetKeyedAlgorithm(
+            string code,
+            [NotNullWhen(true)] out KeyedAlgorithm? algorithm,
+            [NotNullWhen(true)] out string? impliedUse
+        )
+        {
+            ArgumentNullException.ThrowIfNull(collection);
+
+            if (collection.TryGetSignatureAlgorithm(code, out var signatureAlgorithm))
+            {
+                algorithm = signatureAlgorithm;
+                impliedUse = SecretKeyUses.Signature;
+                return true;
+            }
+
+            if (collection.TryGetKeyManagementAlgorithm(code, out var keyManagementAlgorithm))
+            {
+                algorithm = keyManagementAlgorithm;
+                impliedUse = SecretKeyUses.Encryption;
+                return true;
+            }
+
+            algorithm = null;
+            impliedUse = null;
+            return false;
+        }
+
         /// <summary>
         /// Checks that a key may be declared for an algorithm: the algorithm is a registered signature or
         /// key-management algorithm, the use it implies (<c>sig</c> for a signature algorithm, <c>enc</c> for a
@@ -32,21 +70,13 @@ public static class AlgorithmCollectionExtensions
 
             var algorithm = declaration.Algorithm;
 
-            KeyedAlgorithm keyedAlgorithm;
-            string impliedUse;
-            if (collection.TryGetSignatureAlgorithm(algorithm, out var signatureAlgorithm))
-            {
-                keyedAlgorithm = signatureAlgorithm;
-                impliedUse = SecretKeyUses.Signature;
-            }
-            else if (
-                collection.TryGetKeyManagementAlgorithm(algorithm, out var keyManagementAlgorithm)
+            if (
+                !collection.TryGetKeyedAlgorithm(
+                    algorithm,
+                    out var keyedAlgorithm,
+                    out var impliedUse
+                )
             )
-            {
-                keyedAlgorithm = keyManagementAlgorithm;
-                impliedUse = SecretKeyUses.Encryption;
-            }
-            else
             {
                 return $"The algorithm '{algorithm}' is not a supported signature or key-management algorithm.";
             }

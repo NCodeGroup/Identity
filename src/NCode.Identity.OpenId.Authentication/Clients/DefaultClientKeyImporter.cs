@@ -12,7 +12,6 @@ using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -520,21 +519,15 @@ internal class DefaultClientKeyImporter(
             // See ADR-1389: the imported key itself is checked, because its type and size alone do not show its curve,
             // and a key on a curve the algorithm does not accept, such as an Ed25519 key declared for ECDH-ES or a
             // P-256 key declared for ES256K, must not be registered.
-            SecretKey publicKey;
-            try
-            {
-                publicKey = SecretSerializer.DeserializePublicSecret(imported);
-            }
-            catch (Exception exception)
-                when (exception
-                        is ArgumentException
-                            or InvalidOperationException
-                            or NotSupportedException
-                            or CryptographicException
-                            or FormatException
+            if (
+                !SecretSerializer.TryDeserializePublicSecret(
+                    imported,
+                    out var publicKey,
+                    out var readError
                 )
+            )
             {
-                error = $"The key is invalid: {exception.Message}";
+                error = $"The key is invalid: {readError}";
                 return false;
             }
 

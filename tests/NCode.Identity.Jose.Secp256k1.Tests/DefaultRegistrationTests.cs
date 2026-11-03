@@ -7,6 +7,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Secp256k1.KeyTypes;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Registration;
 using Xunit;
 
 namespace NCode.Identity.Jose.Secp256k1.Tests;
@@ -15,12 +16,13 @@ public class DefaultRegistrationTests
 {
     #region Helpers
 
-    private static ServiceProvider BuildServiceProvider(Action<IServiceCollection> register)
+    private static ServiceProvider BuildServiceProvider(
+        Action<IServiceBuilder<JoseLibrary>> register
+    )
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
-        register(serviceCollection);
+        register(serviceCollection.AddSecretsLibrary().AddJoseLibrary());
         return serviceCollection.BuildServiceProvider();
     }
 
@@ -34,7 +36,7 @@ public class DefaultRegistrationTests
     [Secp256k1Fact]
     public async Task AddSecp256k1_WhenPlatformSupportsTheCurve_RegistersTheCurveAndEs256K()
     {
-        await using var serviceProvider = BuildServiceProvider(services => services.AddSecp256k1());
+        await using var serviceProvider = BuildServiceProvider(jose => jose.AddSecp256k1());
 
         var catalog = serviceProvider.GetRequiredService<IEccCurveCatalog>();
         Assert.True(catalog.TryGetByName("secp256k1", out var specification));
@@ -46,8 +48,10 @@ public class DefaultRegistrationTests
     public async Task AddSecp256k1_WhenCalledTwice_RegistersOnce()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSecp256k1();
-        serviceCollection.AddSecp256k1();
+        serviceCollection.AddLogging();
+        var jose = serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        jose.AddSecp256k1();
+        jose.AddSecp256k1();
 
         Assert.Single(serviceCollection, x => x.ServiceType == typeof(EccCurveSpecification));
         Assert.Single(
@@ -55,8 +59,6 @@ public class DefaultRegistrationTests
             x => x.ServiceType == typeof(EccSignatureAlgorithmSpecification)
         );
 
-        serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
         Assert.True(GetAlgorithms(serviceProvider).TryGetSignatureAlgorithm("ES256K", out _));
     }
@@ -71,10 +73,10 @@ public class DefaultRegistrationTests
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
         };
 
-        await using var serviceProvider = BuildServiceProvider(services =>
+        await using var serviceProvider = BuildServiceProvider(jose =>
         {
-            services.AddSingleton(brainpool);
-            services.AddSecp256k1();
+            jose.ServiceCollection.AddSingleton(brainpool);
+            jose.AddSecp256k1();
         });
 
         var catalog = serviceProvider.GetRequiredService<IEccCurveCatalog>();
@@ -85,7 +87,7 @@ public class DefaultRegistrationTests
     [Secp256k1Fact]
     public async Task AddSecp256k1_WhenRegistered_KeepsP256TheCurveSelectedBySize()
     {
-        await using var serviceProvider = BuildServiceProvider(services => services.AddSecp256k1());
+        await using var serviceProvider = BuildServiceProvider(jose => jose.AddSecp256k1());
 
         var catalog = serviceProvider.GetRequiredService<IEccCurveCatalog>();
         Assert.True(catalog.TryGetByCurveSizeBits(256, out var bySize));
@@ -99,8 +101,8 @@ public class DefaultRegistrationTests
     [Fact]
     public async Task Register_WhenPlatformDoesNotSupportTheCurve_RegistersNothing()
     {
-        await using var serviceProvider = BuildServiceProvider(services =>
-            Secp256k1Registration.Register(services, isPlatformSupported: false)
+        await using var serviceProvider = BuildServiceProvider(jose =>
+            Secp256k1Registration.Register(jose.ServiceCollection, isPlatformSupported: false)
         );
 
         Assert.False(

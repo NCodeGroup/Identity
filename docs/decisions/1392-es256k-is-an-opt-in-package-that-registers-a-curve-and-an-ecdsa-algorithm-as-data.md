@@ -34,8 +34,10 @@ Three facts shape how it is added:
 1. **An ECDSA algorithm is data.** `EccSignatureAlgorithmSpecification` in `NCode.Identity.Jose.Abstractions` names an
    algorithm's `alg` code, its one `EccCurveSpecification` and its hash function. The JOSE library serves `ES256`,
    `ES384` and `ES512` from its own specifications and one ECDSA algorithm for every registered specification, and
-   startup fails when a code is empty or registered twice, a built-in one included. The algorithm's key size and its
-   signature size, twice the curve's size in whole bytes, come from the curve.
+   startup fails when a specification is null or its code is empty, whitespace or registered twice, a built-in one
+   included. The algorithm's key size and its signature size, twice the curve's size in whole bytes, come from the
+   curve. The NIST curves are defined once, as `EccCurveSpecification.P256`, `P384` and `P521`, which the curve catalog
+   seeds and the built-in `ES*` algorithms and the core's `ECDH-ES` agreement are bound to.
 
 2. **An algorithm's key type names the curves it is bound to.** `AlgorithmKeyType.Curves` lists the curves the
    algorithm's keys must be on, each with its `crv` and its key size: the one curve of `P-256`, `P-384`, `P-521` or
@@ -52,8 +54,11 @@ Three facts shape how it is added:
 4. **`NCode.Identity.Jose.Secp256k1` is an opt-in package.** `AddSecp256k1()` registers the secp256k1
    `EccCurveSpecification` (OID `1.3.132.0.10`, `crv` `secp256k1`), through which the `ecc` key type generates, imports
    and publishes keys on the curve, and the `ES256K` specification. It depends only on the JOSE and Secrets
-   abstractions. Each is registered as an instance, once, because `TryAddEnumerable` keeps one registration per
-   implementation type and would drop the application's other curves.
+   abstractions, and it extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose curve catalog and
+   algorithms it adds to, as `AddEdDsa()` does, so a host cannot call it without the JOSE library
+   ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). Each is registered as an instance, once,
+   with `AddSingleton` after a check that the same instance is not registered yet, because `TryAddEnumerable` keeps
+   one registration per implementation type and would drop the application's other curves.
 
 5. **Registration is gated on the platform.** `AddSecp256k1()` first probes whether the platform's cryptography can
    create a secp256k1 key and sign and verify with it, and registers nothing where it cannot, so discovery, the JWKS and
@@ -95,6 +100,7 @@ Three facts shape how it is added:
   SEC 2 §2.4.1
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
   [ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md),
+  [ADR-1069](1069-registration-library-compile-time-marker-nesting.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),

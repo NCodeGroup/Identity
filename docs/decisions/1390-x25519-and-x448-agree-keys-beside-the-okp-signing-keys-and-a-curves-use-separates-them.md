@@ -1,8 +1,8 @@
 # 1390. X25519 and X448 agree keys beside the OKP signing keys, and a curve's use separates them
 
 - **Status:** Accepted (amended by [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md):
-  tenant provisioning generates the `Ed25519` and `Ed448` algorithms' keys on their curves, and only an algorithm that
-  names no curve, such as `EdDSA` or `ECDH-ES`, still cannot be provisioned with an `OKP` key)
+  tenant provisioning generates an `OKP` key on the first of its algorithm's curves that has the key's size, so
+  `Ed25519`, `Ed448`, the polymorphic `EdDSA` and `ECDH-ES` can all be provisioned with `OKP` keys)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md), decision 3's registration and
@@ -48,8 +48,10 @@ order makes the shared secret all zeros, which a party who chose that key knows 
    recipient's key, including a signing curve, is refused (ADR-1389 decision 3).
 5. **`AddEdDsa()` registers the agreement.** The package's one registration adds the `OKP` key type, the signing
    algorithms and the agreement, because they share the key type and a host that adds `OKP` keys expects every
-   registered use of them. The package keeps its name; it remains opt-in, and a host that does not call it is
-   unaffected.
+   registered use of them. It extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose algorithms,
+   key types and agreements it adds to, so a host cannot call it without the JOSE library
+   ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). The package keeps its name; it remains
+   opt-in, and a host that does not call it is unaffected.
 
 ## Options considered
 
@@ -79,7 +81,8 @@ order makes the shared secret all zeros, which a party who chose that key knows 
 
 - [RFC 7748](https://datatracker.ietf.org/doc/html/rfc7748), [RFC 8037](https://datatracker.ietf.org/doc/html/rfc8037),
   [RFC 8410](https://datatracker.ietf.org/doc/html/rfc8410), [RFC 7518 §4.6](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6)
-- [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
+- [ADR-1069](1069-registration-library-compile-time-marker-nesting.md),
+  [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
 - Issue [#336](https://github.com/NCodeGroup/Identity/issues/336), part of [#66](https://github.com/NCodeGroup/Identity/issues/66)

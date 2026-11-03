@@ -9,18 +9,21 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa.Algorithms;
 using NCode.Identity.Jose.EdDsa.KeyTypes;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Registration;
 
 namespace NCode.Identity.Jose.EdDsa;
 
 /// <summary>
-/// Provides extension methods for <see cref="IServiceCollection"/> to register clean-room <c>OKP</c> (RFC 8037) support
+/// Provides extension methods for <see cref="IServiceBuilder{TMarker}"/> to register clean-room <c>OKP</c> (RFC 8037) support
 /// — the <c>OKP</c> secret-key type, <c>EdDSA</c> signing over Ed25519 and Ed448 (the <c>EdDSA</c>, <c>Ed25519</c> and
 /// <c>Ed448</c> <c>JWS</c> signature algorithms, RFC 9864), and <c>ECDH-ES</c> key agreement over X25519 and X448.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
 {
-    extension(IServiceCollection serviceCollection)
+    /// <param name="builder">The <see cref="IServiceBuilder{T}"/> of the <see cref="JoseLibrary"/>, whose key types,
+    /// algorithms and key agreements the registration adds to.</param>
+    extension(IServiceBuilder<JoseLibrary> builder)
     {
         /// <summary>
         /// Registers clean-room <c>OKP</c> support: the <c>OKP</c> secret-key type descriptor (generate / import /
@@ -30,9 +33,11 @@ public static class DefaultRegistration
         /// <c>ECDH-ES+A192KW</c> and <c>ECDH-ES+A256KW</c> key-management algorithms accept <c>OKP</c> keys
         /// (RFC 8037 §3.2). Safe to call more than once.
         /// </summary>
-        /// <returns>The same <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-        public IServiceCollection AddEdDsa()
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
+        public IServiceBuilder<JoseLibrary> AddEdDsa()
         {
+            var serviceCollection = builder.ServiceCollection;
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, OkpSecretKeyTypeDescriptor>()
             );
@@ -49,7 +54,7 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IEcdhKeyAgreement, OkpEcdhKeyAgreement>()
             );
 
-            return serviceCollection;
+            return builder;
         }
     }
 }

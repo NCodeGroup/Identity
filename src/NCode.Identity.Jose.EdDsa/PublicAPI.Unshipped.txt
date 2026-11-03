@@ -1,7 +1,7 @@
 #nullable enable
 NCode.Identity.Jose.EdDsa.DefaultRegistration
-NCode.Identity.Jose.EdDsa.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Jose.EdDsa.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddEdDsa() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.Jose.EdDsa.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
+NCode.Identity.Jose.EdDsa.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddEdDsa() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!
 NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey
 NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.Curve.get -> string!
 NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.ExportPublicKey<TWriter>(ref TWriter destination) -> void

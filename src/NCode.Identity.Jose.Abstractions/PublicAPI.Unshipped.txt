@@ -466,3 +466,4 @@ NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.Lifetime.init -> void
 NCode.Identity.Jose.DPoP.IDPoPProofService
 NCode.Identity.Jose.DPoP.IDPoPProofService.CreateProof(NCode.Identity.Jose.DPoP.DPoPProofCreationOptions! options) -> string!
 NCode.Identity.Jose.DPoP.IDPoPProofService.TryValidateProof(string! proofJwt, NCode.Identity.Jose.DPoP.DPoPProofValidationParameters! parameters, out NCode.Identity.Jose.DPoP.DPoPProof? proof, out string? error) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).TryGetKeyedAlgorithm(string! code, out NCode.Identity.Jose.Algorithms.KeyedAlgorithm? algorithm, out string? impliedUse) -> bool

@@ -46,8 +46,9 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
-        serviceCollection.AddEdDsa();
+        var jose = serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        jose.AddJwtLibrary();
+        jose.AddEdDsa();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         RsaKey = ServiceProvider

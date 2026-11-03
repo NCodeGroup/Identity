@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Text;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -150,11 +151,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null)
             .Verifiable();
-        // The curve a key is generated on is the request's own here; the validator's rule is tested on its own.
+    }
+
+    // Only a request that generates a key resolves the curve it is generated on, which is the request's own here; the
+    // validator's rule is tested on its own.
+    private void SetupCurveResolution() =>
         MockSecretValidator
             .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
-            .Returns((CreateSecretRequest request) => request.Curve);
-    }
+            .Returns((CreateSecretRequest request) => request.Curve)
+            .Verifiable();
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>
@@ -423,7 +428,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private static string CreateRsaSubjectPublicKeyInfo()
     {
         using var rsa = RSA.Create(2048);
-        return System.Buffers.Text.Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo());
+        return Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo());
     }
 
     private static PersistedSecret CreatePublicKeySecret(string secretId, string? keyId) =>
@@ -1566,6 +1571,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -1612,6 +1618,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateSecretAsync_WhenAsymmetric_DoesNotRevealMaterial()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -1772,6 +1779,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndSecretIsShared_ReturnsCreated()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore

@@ -339,8 +339,10 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var eccKey = Assert.IsType<EccSecretKey>(ephemeralKey, exactMatch: false);
         using var ecdh = eccKey.ExportECDiffieHellman();
         var parameters = ecdh.ExportParameters(includePrivateParameters: false);
-        Assert.Equal(epk["x"]!.GetValue<string>(), Base64Url.Encode(parameters.Q.X));
-        Assert.Equal(epk["y"]!.GetValue<string>(), Base64Url.Encode(parameters.Q.Y));
+        var x = Assert.IsType<JsonValue>(epk["x"], exactMatch: false);
+        var y = Assert.IsType<JsonValue>(epk["y"], exactMatch: false);
+        Assert.Equal(x.GetValue<string>(), Base64Url.Encode(parameters.Q.X));
+        Assert.Equal(y.GetValue<string>(), Base64Url.Encode(parameters.Q.Y));
     }
 
     [Fact]
@@ -439,7 +441,8 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
     public void ValidateHeaderForUnwrap_WhenThePointIsNotOnTheCurve_Throws()
     {
         var epk = CreateEpk(256);
-        var y = Base64Url.Decode(epk["y"]!.GetValue<string>());
+        var yMember = Assert.IsType<JsonValue>(epk["y"], exactMatch: false);
+        var y = Base64Url.Decode(yMember.GetValue<string>());
         y[^1] ^= 0x01;
         epk["y"] = Base64Url.Encode(y);
 

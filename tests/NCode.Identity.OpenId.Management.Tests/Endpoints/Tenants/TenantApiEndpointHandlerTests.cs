@@ -140,11 +140,15 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null)
             .Verifiable();
-        // The curve a key is generated on is the request's own here; the validator's rule is tested on its own.
+    }
+
+    // Only a request that generates a key resolves the curve it is generated on, which is the request's own here; the
+    // validator's rule is tested on its own.
+    private void SetupCurveResolution() =>
         MockSecretValidator
             .Setup(x => x.ResolveCurve(It.IsAny<CreateSecretRequest>()))
-            .Returns((CreateSecretRequest request) => request.Curve);
-    }
+            .Returns((CreateSecretRequest request) => request.Curve)
+            .Verifiable();
 
     // Only a request that creates the resource assigns its creator as its owner.
     private void SetupCreatorAssignment() =>
@@ -1381,6 +1385,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupTenantChangedAnnouncement();
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupTenantSecretChangedAudit();
         SetupStore();
         MockTenantStore
@@ -1445,6 +1450,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
     {
         SetupSecretCreateValidation();
+        SetupCurveResolution();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))

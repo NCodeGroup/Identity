@@ -110,8 +110,14 @@ package could contribute another key type to it although `NCode.Identity.Jose.Ed
 - `KeyedAlgorithm.KeyType` and `KeyBitSizes` are gone; implementers declare `KeyTypes`, and callers that compared a
   single key type use `TryGetKeyType` or `AcceptsOnly<TKey>()`.
 - `ECDH-ES+A*KW` generates its content encryption key at random and wraps it with the agreed key encryption key, as
-  RFC 7518 §4.6 describes, instead of deriving it from a discarded agreement.
+  RFC 7518 §4.6 describes, instead of deriving it from a second agreement whose ephemeral key was discarded. The JWE
+  does not change form: the content key was always wrapped under the key agreed with the `epk` the header carries, and
+  a recipient unwraps it without deriving it, so a token written before the change still decrypts, and a conforming
+  implementation decrypted it then as now.
 - The capabilities contract changes shape; the console reads `keyTypes`.
+- `ECDH-ES` refuses an `EC` key on a curve no registered agreement serves; the core serves P-256, P-384 and P-521.
+  Before, the algorithm accepted any `EC` key of 256, 384 or 521 bits and labeled its `epk` with the P-curve of that
+  size, so a Brainpool or secp256k1 key produced a token no conforming implementation could decrypt.
 - A key whose curve the algorithm does not accept is refused when it is declared, imported or provisioned, not only
   when it is first used; a declaration that names neither the key's curve nor the key itself is still checked only by
   type and size.

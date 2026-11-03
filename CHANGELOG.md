@@ -29,13 +29,15 @@ change to the public API is a **major** version bump.
   `ECDH-ES`. An agreement whose shared secret is all zeros, from an `epk` or a recipient key of small order, is refused
   on both sides ([#336](https://github.com/NCodeGroup/Identity/issues/336), [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 - **ES256K over secp256k1, as an opt-in package.** `AddSecp256k1()` in the new `NCode.Identity.Jose.Secp256k1`
-  package registers the secp256k1 curve (`crv` `secp256k1`, RFC 8812) in the elliptic-curve catalog, so `ecc` keys on
-  it are generated, imported and published as JSON Web Keys, and the `ES256K` JWS algorithm (ECDSA over secp256k1 with
-  SHA-256), bound to the curve: a P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`. It
-  registers nothing where the platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  package, on the JOSE library's builder (`IServiceBuilder<JoseLibrary>`) as `AddEdDsa()` now is, registers the
+  secp256k1 curve (`crv` `secp256k1`, RFC 8812) in the elliptic-curve catalog, so `ecc` keys on it are generated,
+  imported and published as JSON Web Keys, and the `ES256K` JWS algorithm (ECDSA over secp256k1 with SHA-256), bound
+  to the curve: a P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`. It registers nothing where the platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
-  ECDSA algorithm for it beside `ES256`, `ES384` and `ES512`; startup fails on an empty or duplicate code ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  ECDSA algorithm for it beside `ES256`, `ES384` and `ES512`; startup fails on a null specification or an empty,
+  whitespace or duplicate code. `EccCurveSpecification.P256`, `P384` and `P521` define the NIST curves once, for the
+  curve catalog, the `ES*` algorithms and `ECDH-ES` ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **Tenant keys are generated on their algorithm's curve.** `AlgorithmKeyType.Curves` lists the curves an algorithm
   accepts keys on, each an `AlgorithmCurve` with its `crv` and key size, and tenant key provisioning generates the key on
   the first of them with the key's size, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic
@@ -45,7 +47,13 @@ change to the public API is a **major** version bump.
   unbound P-256 key no longer stands in for `ES256K` ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **A tenant key can name its secret type.** `OpenId:Tenant:KeyProvisioning:Keys` entries take an optional
   `SecretType` that selects which of the algorithm's key types the key is generated as; unset, it is the algorithm's
-  first key type that has a registered secret key type and can be provisioned ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  first key type that has a registered secret key type and can be provisioned. A secret type that is not registered,
+  or that the algorithm does not accept, is reported with the types that would be ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+- **One lookup of a declared key's algorithm and stored public key.** `TryGetKeyedAlgorithm` on `IAlgorithmCollection`
+  returns a registered signature or key-management algorithm with the use it implies, and `TryDeserializePublicSecret`
+  on `ISecretSerializer` reads a stored secret's public half and reports one that cannot be read instead of throwing;
+  the client key importer, the management secret validator and tenant key provisioning share both, so a stored public
+  key that cannot be read is handled the same way on each path ([#327](https://github.com/NCodeGroup/Identity/issues/327)).
 
 - **The BFF serves more token requirements and forwards remote APIs.** Besides `user`, an endpoint or remote API can name
   `client` (the BFF's own `client_credentials` token, served only to a request with a session and cached in memory on
@@ -1167,9 +1175,9 @@ change to the public API is a **major** version bump.
   with its `ISecretKeyTypeDescriptor` — generate, JWK/PEM public import, JWK + SPKI-PEM public export, and PKCS#8 / SPKI
   deserialize, with the private seed held data-protected in memory and exported only through `ExportPrivateKey` — and a
   single `EdDsaSignatureAlgorithm` that selects the curve from the signing key's `crv`. A host enables it with one
-  `serviceCollection.AddEdDsa()` call; discovery then advertises `EdDSA` in the asymmetric token-signing metadata
-  automatically (the signing-algorithm partition keys on `AsymmetricSecretKey`), and the existing FAPI signing-algorithm
-  ceiling already lists it. See [ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md).
+  `AddEdDsa()` call on the JOSE library's builder (`AddSecretsLibrary().AddJoseLibrary().AddEdDsa()`); discovery then
+  advertises `EdDSA` in the asymmetric token-signing metadata automatically (the signing-algorithm partition keys on
+  `AsymmetricSecretKey`), and the existing FAPI signing-algorithm ceiling already lists it. See [ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md).
 
 - **Asymmetric secret keys now model their public half as `SubjectPublicKeyInfo` DER through a buffer writer, making the
   key model forward-compatible with Edwards-curve (OKP) and post-quantum keys.** The `AsymmetricSecretKey` base replaces
@@ -1421,17 +1429,22 @@ effective-settings`, and `GET /api/servers/{serverId}/effective-settings`. Each 
   replaced by `KeyTypes`, a list of `AlgorithmKeyType` values (a `SecretKey` type with the sizes legal for it) in the
   algorithm's order of preference, with `TryGetKeyType` to match a key and `AcceptsOnly<TKey>()` to ask whether every
   key type is of a family. The JWE decryption key check, `ValidateKeyAlgorithm`, tenant key provisioning and the client
-  authentication and decryption policies read it. `AuthenticatedEncryptionAlgorithm` no longer derives from
+  authentication and decryption policies read it. `ECDH-ES` now accepts an `EC` key only on a curve a registered
+  agreement serves (P-256, P-384 and P-521 in the core): it used to accept any `EC` key of 256, 384 or 521 bits and
+  label its `epk` with the P-curve of that size, so a token issued to a Brainpool or secp256k1 key, which no conforming
+  implementation could decrypt, no longer decrypts here either. `AuthenticatedEncryptionAlgorithm` no longer derives from
   `KeyedAlgorithm`, because its key is a content encryption key, not a `SecretKey`. The JOSE algorithm collection now
   resolves the secret key-type catalog, whose descriptors log, so a container that resolves it needs logging registered
   (`AddLogging()`) ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **Breaking: the `algorithms` capability lists each secret type with its own key sizes.**
-  `AlgorithmCapabilityResource.KeyTypes` (`{ secretType, keyBitSizes }` per compatible secret type) replaces
+  `AlgorithmCapabilityResource.KeyTypes` (`{ secretType, keyBitSizes, curves }` per compatible secret type) replaces
   `SecretTypes` and `KeyBitSizes`, and the console bounds a new secret's key size by the chosen type's entry ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **`ECDH-ES+A*KW` wraps a random content encryption key.** The key-wrapping ECDH-ES algorithms generate the content
   encryption key at random and wrap it with the agreed key, as RFC 7518 §4.6 describes, instead of deriving it from a
-  second agreement whose ephemeral key was discarded ([#327](https://github.com/NCodeGroup/Identity/issues/327)).
+  second agreement whose ephemeral key was discarded. The JWE does not change form: the content key was always wrapped
+  under the key agreed with the `epk` the header carries, and a recipient unwraps it without deriving it, so tokens
+  written before still decrypt, and conforming implementations decrypted them then as now ([#327](https://github.com/NCodeGroup/Identity/issues/327)).
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`, instead of
   `no-store` alone ([#512](https://github.com/NCodeGroup/Identity/issues/512),

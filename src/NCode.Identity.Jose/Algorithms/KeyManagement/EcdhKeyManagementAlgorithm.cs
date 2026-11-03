@@ -32,6 +32,340 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     private static IEnumerable<KeySizes> StaticCekByteSizes { get; } =
     [new(minSize: 1, maxSize: int.MaxValue, skipSize: 1)];
 
+    /// <summary>
+    /// Orders the agreements independently of the order they were registered in: the core's <c>EC</c> agreement of
+    /// RFC 7518 first, then the contributed ones by key type and agreement type name, so the key types and curves the
+    /// algorithm prefers, and the key a tenant is provisioned with, never depend on which package was added first.
+    /// </summary>
+    // See ADR-1389.
+    private static IEcdhKeyAgreement[] OrderKeyAgreements(
+        IEnumerable<IEcdhKeyAgreement> keyAgreements
+    ) =>
+        [
+            .. keyAgreements
+                .OrderBy(keyAgreement => keyAgreement is EccEcdhKeyAgreement ? 0 : 1)
+                .ThenBy(
+                    keyAgreement => keyAgreement.KeyType.KeyType.FullName,
+                    StringComparer.Ordinal
+                )
+                .ThenBy(keyAgreement => keyAgreement.GetType().FullName, StringComparer.Ordinal),
+        ];
+
+    /// <summary>
+    /// Merges the key types of agreements that serve the same runtime key type, such as two agreements over
+    /// different <c>EC</c> curves, into one <see cref="AlgorithmKeyType"/> with the sizes and curves of both, so a
+    /// package can add an agreement over another curve of a key type the core already serves.
+    /// </summary>
+    private static AlgorithmKeyType[] MergeKeyTypes(IEnumerable<IEcdhKeyAgreement> keyAgreements) =>
+        [
+            .. keyAgreements
+                .GroupBy(keyAgreement => keyAgreement.KeyType.KeyType)
+                .Select(group =>
+                {
+                    var keyTypes = group.Select(keyAgreement => keyAgreement.KeyType).ToList();
+                    if (keyTypes.Count == 1)
+                    {
+                        return keyTypes[0];
+                    }
+
+                    // A key type whose agreement does not restrict the curve accepts every curve.
+                    var curves = keyTypes.Any(keyType => keyType.Curves.Count == 0)
+                        ? []
+                        : keyTypes
+                            .SelectMany(keyType => keyType.Curves)
+                            .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
+                            .ToArray();
+
+                    return new AlgorithmKeyType(
+                        group.Key,
+                        keyTypes.SelectMany(keyType => keyType.KeyBitSizes)
+                    )
+                    {
+                        Curves = curves,
+                    };
+                }),
+        ];
+
+    /// <summary>
+    /// Writes the ephemeral public key as the <c>epk</c> JSON Web Key: the descriptor exports the key and only the
+    /// required members of the key type (RFC 7638 §3.2) are kept, so the <c>epk</c> carries the minimum that
+    /// represents the key (RFC 7518 §4.6.1.1) and never a private member.
+    /// </summary>
+    private static Dictionary<string, object> WriteEphemeralKey(
+        ISecretKeyTypeDescriptor descriptor,
+        JsonWebKeyTypeDescriptor jwkKeyType,
+        ReadOnlySpan<byte> subjectPublicKeyInfo
+    )
+    {
+        SecretKey ephemeralPublicKey;
+        try
+        {
+            ephemeralPublicKey = descriptor.DeserializeKeyMaterial(
+                default,
+                SecretEncodings.Spki,
+                subjectPublicKeyInfo
+            );
+        }
+        catch (Exception exception)
+            when (exception is InvalidOperationException or CryptographicException)
+        {
+            throw new JoseException(
+                "The ephemeral public key cannot be read by its key type.",
+                exception
+            );
+        }
+
+        var exported =
+            descriptor.ExportPublicKey(ephemeralPublicKey)
+            ?? throw new JoseException(
+                "The ephemeral public key cannot be represented as a JSON Web Key."
+            );
+        var jwk = exported.Jwk.AsElement();
+
+        var epk = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var member in jwkKeyType.ThumbprintMembers)
+        {
+            // RFC 7518 §4.6.1.1: the ephemeral private key never leaves the sender.
+            if (jwkKeyType.PrivateMembers.Contains(member))
+            {
+                throw new JoseException(
+                    $"The key type '{jwkKeyType.Name}' lists the private member '{member}' among its required members."
+                );
+            }
+
+            if (!jwk.TryGetProperty(member, out var value))
+            {
+                throw new JoseException(
+                    $"The ephemeral public key's JSON Web Key is missing the '{member}' member."
+                );
+            }
+
+            epk[member] =
+                value.ValueKind == JsonValueKind.String && value.GetString() is { } text
+                    ? text
+                    : value.Clone();
+        }
+
+        return epk;
+    }
+
+    private static SecretKey ReadEphemeralKey(
+        ISecretKeyTypeDescriptor descriptor,
+        JsonWebKeyTypeDescriptor jwkKeyType,
+        JsonElement epk
+    )
+    {
+        if (epk.ValueKind != JsonValueKind.Object)
+        {
+            throw new JoseException("The 'epk' header must be a JSON object.");
+        }
+
+        if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Kty, out var kty))
+        {
+            throw new JoseException("The 'epk' header is missing the 'kty' field.");
+        }
+
+        if (!string.Equals(kty, jwkKeyType.Name, StringComparison.Ordinal))
+        {
+            throw new JoseException($"The 'kty' field was expected to be '{jwkKeyType.Name}'.");
+        }
+
+        // RFC 7518 §4.6.1.1: an ephemeral key that carries its private key has disclosed the content encryption key to
+        // anyone holding the token, so the content is no longer confidential.
+        foreach (var privateMember in jwkKeyType.PrivateMembers)
+        {
+            if (epk.TryGetProperty(privateMember, out _))
+            {
+                throw new JoseException(
+                    $"The 'epk' header must contain only public key parameters, but it contains '{privateMember}'."
+                );
+            }
+        }
+
+        // The private members of every standard key type are refused too, so a contributed key type fails closed.
+        if (new JsonWebKey(epk, jwkKeyType).ContainsPrivateKeyMaterial)
+        {
+            throw new JoseException("The 'epk' header must contain only public key parameters.");
+        }
+
+        // Only the key type's required members are imported; any other member is ignored (RFC 7518 §4.6.1.1).
+        using var minimalBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        using (var writer = new Utf8JsonWriter(minimalBuffer))
+        {
+            writer.WriteStartObject();
+            foreach (var member in jwkKeyType.ThumbprintMembers)
+            {
+                if (!epk.TryGetProperty(member, out var value))
+                {
+                    throw new JoseException($"The 'epk' header is missing the '{member}' field.");
+                }
+
+                writer.WritePropertyName(member);
+                value.WriteTo(writer);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        using var minimalJwk = minimalBuffer.GetSpanLease(isSensitive: false);
+
+        try
+        {
+            var imported = descriptor.ImportPublicKeyMaterial(
+                new SecretKeyImportParameters
+                {
+                    Format = SecretKeyImportFormats.Jwk,
+                    KeyMaterial = SecureEncoding.UTF8.GetString(minimalJwk.Span),
+                },
+                // The material is a public key, so it is carried rather than protected.
+                static publicKey =>
+                    Convert.ToBase64String(publicKey)
+            );
+
+            return descriptor.DeserializeKeyMaterial(
+                default,
+                imported.SecretEncoding,
+                Convert.FromBase64String(imported.ProtectedKeyMaterial)
+            );
+        }
+        catch (Exception exception)
+            when (exception
+                    is ArgumentException
+                        or InvalidOperationException
+                        or NotSupportedException
+                        or CryptographicException
+                        or FormatException
+            )
+        {
+            throw new JoseException(
+                $"The 'epk' header is not a valid '{jwkKeyType.Name}' public key.",
+                exception
+            );
+        }
+    }
+
+    /// <summary>
+    /// Derives the key with the Concat KDF of NIST SP 800-56A §5.8.1 (RFC 7518 §4.6.2):
+    /// <c>K(i) = SHA-256(counter(i) || Z || OtherInfo)</c>.
+    /// </summary>
+    private static void DeriveKey(
+        string algorithm,
+        string? apu,
+        string? apv,
+        ReadOnlySpan<byte> sharedSecret,
+        Span<byte> destination
+    )
+    {
+        var keySizeBits = destination.Length << 3;
+
+        // RFC 7518 §4.6.2: the Concat KDF Digest Method is SHA-256 for EVERY curve — the digest is fixed by the JWE
+        // algorithm, not chosen from the key's curve. Selecting it from the curve size instead (SHA-384 for P-384,
+        // SHA-512 for P-521) is what the Windows CNG SP800_56A_CONCAT KDF does, and it derives a different content
+        // encryption key than every conforming JOSE implementation on those curves.
+        const int hashSizeBytes = SHA256.HashSizeInBytes;
+
+        var otherInfo = GetOtherInfo(algorithm, apu, apv, keySizeBits);
+
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Span<byte> counter = stackalloc byte[sizeof(int)];
+        Span<byte> block = stackalloc byte[hashSizeBytes];
+
+        try
+        {
+            for (var rep = 1; destination.Length > 0; ++rep)
+            {
+                BinaryPrimitives.WriteInt32BigEndian(counter, rep);
+                hash.AppendData(counter);
+                hash.AppendData(sharedSecret);
+                hash.AppendData(otherInfo);
+
+                var written = hash.GetHashAndReset(block);
+                Debug.Assert(written == hashSizeBytes);
+
+                var partialLength = Math.Min(hashSizeBytes, destination.Length);
+                block[..partialLength].CopyTo(destination);
+                destination = destination[partialLength..];
+            }
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(block);
+        }
+    }
+
+    private static byte[] GetOtherInfo(string algorithm, string? apu, string? apv, int keySizeBits)
+    {
+        var apuBytes = DecodePartyInfo(JoseClaimNames.Header.Apu, apu);
+        var apvBytes = DecodePartyInfo(JoseClaimNames.Header.Apv, apv);
+        var algorithmByteCount = SecureEncoding.ASCII.GetByteCount(algorithm);
+
+        var bytes = GC.AllocateUninitializedArray<byte>(
+            // AlgorithmID: length prefix and ASCII bytes
+            sizeof(int)
+                + algorithmByteCount
+                // PartyUInfo: length prefix and bytes
+                + sizeof(int)
+                + apuBytes.Length
+                // PartyVInfo: length prefix and bytes
+                + sizeof(int)
+                + apvBytes.Length
+                // SuppPubInfo: key size in bits
+                + sizeof(int),
+            pinned: false
+        );
+        var pos = bytes.AsSpan();
+
+        BinaryPrimitives.WriteInt32BigEndian(pos, algorithmByteCount);
+        pos = pos[sizeof(int)..];
+
+        var bytesWritten = SecureEncoding.ASCII.GetBytes(algorithm, pos);
+        Debug.Assert(bytesWritten == algorithmByteCount);
+        pos = pos[algorithmByteCount..];
+
+        BinaryPrimitives.WriteInt32BigEndian(pos, apuBytes.Length);
+        pos = pos[sizeof(int)..];
+
+        apuBytes.CopyTo(pos);
+        pos = pos[apuBytes.Length..];
+
+        BinaryPrimitives.WriteInt32BigEndian(pos, apvBytes.Length);
+        pos = pos[sizeof(int)..];
+
+        apvBytes.CopyTo(pos);
+        pos = pos[apvBytes.Length..];
+
+        BinaryPrimitives.WriteInt32BigEndian(pos, keySizeBits);
+
+        return bytes;
+    }
+
+    private static byte[] DecodePartyInfo(string name, string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return [];
+        }
+
+        // A value that is present but malformed fails closed rather than being read as empty.
+        try
+        {
+            var bytes = new byte[Base64Url.GetByteCountForDecode(value.Length)];
+            if (
+                Base64Url.TryDecode(value, bytes, out var bytesWritten)
+                && bytesWritten == bytes.Length
+            )
+            {
+                return bytes;
+            }
+        }
+        catch (Exception exception) when (exception is FormatException or ArgumentException)
+        {
+            throw new JoseException($"The '{name}' header is not valid base64url.", exception);
+        }
+
+        throw new JoseException($"The '{name}' header is not valid base64url.");
+    }
+
     /// <inheritdoc />
     public override string Code { get; }
 
@@ -96,60 +430,6 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         KeyTypes = MergeKeyTypes(KeyAgreements);
     }
 
-    /// <summary>
-    /// Orders the agreements independently of the order they were registered in: the core's <c>EC</c> agreement of
-    /// RFC 7518 first, then the contributed ones by key type and agreement type name, so the key types and curves the
-    /// algorithm prefers, and the key a tenant is provisioned with, never depend on which package was added first.
-    /// </summary>
-    // See ADR-1389.
-    private static IEcdhKeyAgreement[] OrderKeyAgreements(
-        IEnumerable<IEcdhKeyAgreement> keyAgreements
-    ) =>
-        [
-            .. keyAgreements
-                .OrderBy(keyAgreement => keyAgreement is EccEcdhKeyAgreement ? 0 : 1)
-                .ThenBy(
-                    keyAgreement => keyAgreement.KeyType.KeyType.FullName,
-                    StringComparer.Ordinal
-                )
-                .ThenBy(keyAgreement => keyAgreement.GetType().FullName, StringComparer.Ordinal),
-        ];
-
-    /// <summary>
-    /// Merges the key types of agreements that serve the same runtime key type, such as two agreements over
-    /// different <c>EC</c> curves, into one <see cref="AlgorithmKeyType"/> with the sizes and curves of both, so a
-    /// package can add an agreement over another curve of a key type the core already serves.
-    /// </summary>
-    private static AlgorithmKeyType[] MergeKeyTypes(IEnumerable<IEcdhKeyAgreement> keyAgreements) =>
-        [
-            .. keyAgreements
-                .GroupBy(keyAgreement => keyAgreement.KeyType.KeyType)
-                .Select(group =>
-                {
-                    var keyTypes = group.Select(keyAgreement => keyAgreement.KeyType).ToList();
-                    if (keyTypes.Count == 1)
-                    {
-                        return keyTypes[0];
-                    }
-
-                    // A key type whose agreement does not restrict the curve accepts every curve.
-                    var curves = keyTypes.Any(keyType => keyType.Curves.Count == 0)
-                        ? []
-                        : keyTypes
-                            .SelectMany(keyType => keyType.Curves)
-                            .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
-                            .ToArray();
-
-                    return new AlgorithmKeyType(
-                        group.Key,
-                        keyTypes.SelectMany(keyType => keyType.KeyBitSizes)
-                    )
-                    {
-                        Curves = curves,
-                    };
-                }),
-        ];
-
     /// <inheritdoc />
     public override bool IsKeyCompatible(SecretKey secretKey) =>
         base.IsKeyCompatible(secretKey) && TryGetKeyAgreement(secretKey, out _, out _);
@@ -178,34 +458,27 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         header.TryGetValue<string>(JoseClaimNames.Header.Apu, out var apu);
         header.TryGetValue<string>(JoseClaimNames.Header.Apv, out var apv);
 
-        var sharedSecretSizeBytes = keyAgreement.GetSharedSecretSizeBytes(secretKey);
-        var sharedSecret =
-            sharedSecretSizeBytes <= JoseConstants.MaxStackAlloc
-                ? stackalloc byte[sharedSecretSizeBytes]
-                : GC.AllocateUninitializedArray<byte>(sharedSecretSizeBytes, pinned: true);
+        // The shared secret's size is the agreement's, which a package contributes, so it is a sensitive rental, zeroed
+        // when it is returned.
+        using var sharedSecretLease = BufferFactory.Rent(
+            keyAgreement.GetSharedSecretSizeBytes(secretKey),
+            isSensitive: true,
+            out Span<byte> sharedSecret
+        );
 
-        try
-        {
-            using var ephemeralPublicKeyBuffer = BufferFactory.CreatePooledBufferWriter(
-                isSensitive: false
-            );
-            keyAgreement.AgreeWithEphemeralKey(secretKey, ephemeralPublicKeyBuffer, sharedSecret);
+        using var ephemeralPublicKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: false
+        );
+        keyAgreement.AgreeWithEphemeralKey(secretKey, ephemeralPublicKeyBuffer, sharedSecret);
 
-            using var ephemeralPublicKey = ephemeralPublicKeyBuffer.GetSpanLease(
-                isSensitive: false
-            );
-            header[JoseClaimNames.Header.Epk] = WriteEphemeralKey(
-                descriptor,
-                jwkKeyType,
-                ephemeralPublicKey.Span
-            );
+        using var ephemeralPublicKey = ephemeralPublicKeyBuffer.GetSpanLease(isSensitive: false);
+        header[JoseClaimNames.Header.Epk] = WriteEphemeralKey(
+            descriptor,
+            jwkKeyType,
+            ephemeralPublicKey.Span
+        );
 
-            DeriveKey(algorithm, apu, apv, sharedSecret, contentKey);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(sharedSecret);
-        }
+        DeriveKey(algorithm, apu, apv, sharedSecret, contentKey);
     }
 
     /// <inheritdoc />
@@ -258,22 +531,15 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
             out var apv
         );
 
-        var sharedSecretSizeBytes = keyAgreement.GetSharedSecretSizeBytes(secretKey);
-        var sharedSecret =
-            sharedSecretSizeBytes <= JoseConstants.MaxStackAlloc
-                ? stackalloc byte[sharedSecretSizeBytes]
-                : GC.AllocateUninitializedArray<byte>(sharedSecretSizeBytes, pinned: true);
+        using var sharedSecretLease = BufferFactory.Rent(
+            keyAgreement.GetSharedSecretSizeBytes(secretKey),
+            isSensitive: true,
+            out Span<byte> sharedSecret
+        );
 
-        try
-        {
-            keyAgreement.Agree(secretKey, ephemeralPublicKey, sharedSecret);
+        keyAgreement.Agree(secretKey, ephemeralPublicKey, sharedSecret);
 
-            DeriveKey(algorithm, apu, apv, sharedSecret, contentKey);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(sharedSecret);
-        }
+        DeriveKey(algorithm, apu, apv, sharedSecret, contentKey);
 
         bytesWritten = contentKey.Length;
         return true;
@@ -407,283 +673,5 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         }
 
         return (keyAgreement, descriptor, jwkKeyType);
-    }
-
-    /// <summary>
-    /// Writes the ephemeral public key as the <c>epk</c> JSON Web Key: the descriptor exports the key and only the
-    /// required members of the key type (RFC 7638 §3.2) are kept, so the <c>epk</c> carries the minimum that
-    /// represents the key (RFC 7518 §4.6.1.1) and never a private member.
-    /// </summary>
-    private static Dictionary<string, object> WriteEphemeralKey(
-        ISecretKeyTypeDescriptor descriptor,
-        JsonWebKeyTypeDescriptor jwkKeyType,
-        ReadOnlySpan<byte> subjectPublicKeyInfo
-    )
-    {
-        SecretKey ephemeralPublicKey;
-        try
-        {
-            ephemeralPublicKey = descriptor.DeserializeKeyMaterial(
-                default,
-                SecretEncodings.Spki,
-                subjectPublicKeyInfo
-            );
-        }
-        catch (Exception exception)
-            when (exception is InvalidOperationException or CryptographicException)
-        {
-            throw new JoseException(
-                "The ephemeral public key cannot be read by its key type.",
-                exception
-            );
-        }
-
-        var exported =
-            descriptor.ExportPublicKey(ephemeralPublicKey)
-            ?? throw new JoseException(
-                "The ephemeral public key cannot be represented as a JSON Web Key."
-            );
-        var jwk = exported.Jwk.AsElement();
-
-        var epk = new Dictionary<string, object>(StringComparer.Ordinal);
-        foreach (var member in jwkKeyType.ThumbprintMembers)
-        {
-            // RFC 7518 §4.6.1.1: the ephemeral private key never leaves the sender.
-            if (jwkKeyType.PrivateMembers.Contains(member))
-            {
-                throw new JoseException(
-                    $"The key type '{jwkKeyType.Name}' lists the private member '{member}' among its required members."
-                );
-            }
-
-            if (!jwk.TryGetProperty(member, out var value))
-            {
-                throw new JoseException(
-                    $"The ephemeral public key's JSON Web Key is missing the '{member}' member."
-                );
-            }
-
-            epk[member] =
-                value.ValueKind == JsonValueKind.String && value.GetString() is { } text
-                    ? text
-                    : value.Clone();
-        }
-
-        return epk;
-    }
-
-    private static SecretKey ReadEphemeralKey(
-        ISecretKeyTypeDescriptor descriptor,
-        JsonWebKeyTypeDescriptor jwkKeyType,
-        JsonElement epk
-    )
-    {
-        if (epk.ValueKind != JsonValueKind.Object)
-        {
-            throw new JoseException("The 'epk' header must be a JSON object.");
-        }
-
-        if (!epk.TryGetPropertyValue<string>(JoseClaimNames.Header.Kty, out var kty))
-        {
-            throw new JoseException("The 'epk' header is missing the 'kty' field.");
-        }
-
-        if (!string.Equals(kty, jwkKeyType.Name, StringComparison.Ordinal))
-        {
-            throw new JoseException($"The 'kty' field was expected to be '{jwkKeyType.Name}'.");
-        }
-
-        // RFC 7518 §4.6.1.1: an ephemeral key that carries its private key has disclosed the content encryption key to
-        // anyone holding the token, so the content is no longer confidential.
-        foreach (var privateMember in jwkKeyType.PrivateMembers)
-        {
-            if (epk.TryGetProperty(privateMember, out _))
-            {
-                throw new JoseException(
-                    $"The 'epk' header must contain only public key parameters, but it contains '{privateMember}'."
-                );
-            }
-        }
-
-        // The private members of every standard key type are refused too, so a contributed key type fails closed.
-        if (new JsonWebKey(epk, jwkKeyType).ContainsPrivateKeyMaterial)
-        {
-            throw new JoseException("The 'epk' header must contain only public key parameters.");
-        }
-
-        // Only the key type's required members are imported; any other member is ignored (RFC 7518 §4.6.1.1).
-        var minimalBuffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(minimalBuffer))
-        {
-            writer.WriteStartObject();
-            foreach (var member in jwkKeyType.ThumbprintMembers)
-            {
-                if (!epk.TryGetProperty(member, out var value))
-                {
-                    throw new JoseException($"The 'epk' header is missing the '{member}' field.");
-                }
-
-                writer.WritePropertyName(member);
-                value.WriteTo(writer);
-            }
-
-            writer.WriteEndObject();
-        }
-
-        try
-        {
-            var imported = descriptor.ImportPublicKeyMaterial(
-                new SecretKeyImportParameters
-                {
-                    Format = SecretKeyImportFormats.Jwk,
-                    KeyMaterial = SecureEncoding.UTF8.GetString(minimalBuffer.WrittenSpan),
-                },
-                // The material is a public key, so it is carried rather than protected.
-                static publicKey =>
-                    Convert.ToBase64String(publicKey)
-            );
-
-            return descriptor.DeserializeKeyMaterial(
-                default,
-                imported.SecretEncoding,
-                Convert.FromBase64String(imported.ProtectedKeyMaterial)
-            );
-        }
-        catch (Exception exception)
-            when (exception
-                    is ArgumentException
-                        or InvalidOperationException
-                        or NotSupportedException
-                        or CryptographicException
-                        or FormatException
-            )
-        {
-            throw new JoseException(
-                $"The 'epk' header is not a valid '{jwkKeyType.Name}' public key.",
-                exception
-            );
-        }
-    }
-
-    /// <summary>
-    /// Derives the key with the Concat KDF of NIST SP 800-56A §5.8.1 (RFC 7518 §4.6.2):
-    /// <c>K(i) = SHA-256(counter(i) || Z || OtherInfo)</c>.
-    /// </summary>
-    private static void DeriveKey(
-        string algorithm,
-        string? apu,
-        string? apv,
-        ReadOnlySpan<byte> sharedSecret,
-        Span<byte> destination
-    )
-    {
-        var keySizeBits = destination.Length << 3;
-
-        // RFC 7518 §4.6.2: the Concat KDF Digest Method is SHA-256 for EVERY curve — the digest is fixed by the JWE
-        // algorithm, not chosen from the key's curve. Selecting it from the curve size instead (SHA-384 for P-384,
-        // SHA-512 for P-521) is what the Windows CNG SP800_56A_CONCAT KDF does, and it derives a different content
-        // encryption key than every conforming JOSE implementation on those curves.
-        const int hashSizeBytes = 256 >> 3;
-
-        var otherInfo = GetOtherInfo(algorithm, apu, apv, keySizeBits);
-
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        Span<byte> counter = stackalloc byte[sizeof(int)];
-        Span<byte> block = stackalloc byte[hashSizeBytes];
-
-        try
-        {
-            for (var rep = 1; destination.Length > 0; ++rep)
-            {
-                BinaryPrimitives.WriteInt32BigEndian(counter, rep);
-                hash.AppendData(counter);
-                hash.AppendData(sharedSecret);
-                hash.AppendData(otherInfo);
-
-                var written = hash.GetHashAndReset(block);
-                Debug.Assert(written == hashSizeBytes);
-
-                var partialLength = Math.Min(hashSizeBytes, destination.Length);
-                block[..partialLength].CopyTo(destination);
-                destination = destination[partialLength..];
-            }
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(block);
-        }
-    }
-
-    private static byte[] GetOtherInfo(string algorithm, string? apu, string? apv, int keySizeBits)
-    {
-        var apuBytes = DecodePartyInfo(JoseClaimNames.Header.Apu, apu);
-        var apvBytes = DecodePartyInfo(JoseClaimNames.Header.Apv, apv);
-        var algorithmByteCount = SecureEncoding.ASCII.GetByteCount(algorithm);
-
-        var bytes = GC.AllocateUninitializedArray<byte>(
-            // AlgorithmID: length prefix and ASCII bytes
-            sizeof(int)
-                + algorithmByteCount
-                // PartyUInfo: length prefix and bytes
-                + sizeof(int)
-                + apuBytes.Length
-                // PartyVInfo: length prefix and bytes
-                + sizeof(int)
-                + apvBytes.Length
-                // SuppPubInfo: key size in bits
-                + sizeof(int),
-            pinned: false
-        );
-        var pos = bytes.AsSpan();
-
-        BinaryPrimitives.WriteInt32BigEndian(pos, algorithmByteCount);
-        pos = pos[sizeof(int)..];
-
-        var bytesWritten = SecureEncoding.ASCII.GetBytes(algorithm, pos);
-        Debug.Assert(bytesWritten == algorithmByteCount);
-        pos = pos[algorithmByteCount..];
-
-        BinaryPrimitives.WriteInt32BigEndian(pos, apuBytes.Length);
-        pos = pos[sizeof(int)..];
-
-        apuBytes.CopyTo(pos);
-        pos = pos[apuBytes.Length..];
-
-        BinaryPrimitives.WriteInt32BigEndian(pos, apvBytes.Length);
-        pos = pos[sizeof(int)..];
-
-        apvBytes.CopyTo(pos);
-        pos = pos[apvBytes.Length..];
-
-        BinaryPrimitives.WriteInt32BigEndian(pos, keySizeBits);
-
-        return bytes;
-    }
-
-    private static byte[] DecodePartyInfo(string name, string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return [];
-        }
-
-        // A value that is present but malformed fails closed rather than being read as empty.
-        try
-        {
-            var bytes = new byte[Base64Url.GetByteCountForDecode(value.Length)];
-            if (
-                Base64Url.TryDecode(value, bytes, out var bytesWritten)
-                && bytesWritten == bytes.Length
-            )
-            {
-                return bytes;
-            }
-        }
-        catch (Exception exception) when (exception is FormatException or ArgumentException)
-        {
-            throw new JoseException($"The '{name}' header is not valid base64url.", exception);
-        }
-
-        throw new JoseException($"The '{name}' header is not valid base64url.");
     }
 }

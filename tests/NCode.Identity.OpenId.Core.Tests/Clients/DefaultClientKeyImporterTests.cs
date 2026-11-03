@@ -25,6 +25,11 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
 {
+    // RFC 8037 Appendix A.2's Ed25519 public key and Appendix A.6's X25519 public key: both are 256-bit OKP keys, so
+    // only the curve tells them apart.
+    private const string Ed25519PublicKey = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
+    private const string X25519PublicKey = "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08";
+
     private readonly ServiceProvider _serviceProvider;
     private readonly RSA _rsa = RSA.Create(2048);
     private readonly ECDsa _ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -137,11 +142,6 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.MaxValue,
         };
-
-    // RFC 8037 Appendix A.2's Ed25519 public key and Appendix A.6's X25519 public key: both are 256-bit OKP keys, so
-    // only the curve tells them apart.
-    private const string Ed25519PublicKey = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
-    private const string X25519PublicKey = "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08";
 
     #endregion
 
@@ -403,8 +403,7 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
         serviceCollection.AddIdentityLibrary();
         var secrets = serviceCollection.AddSecretsLibrary();
         secrets.AddPersistenceLibrary();
-        secrets.AddJoseLibrary();
-        serviceCollection.AddEdDsa();
+        secrets.AddJoseLibrary().AddEdDsa();
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
         var importer = new DefaultClientKeyImporter(
             serviceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),

@@ -205,3 +205,6 @@ const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Ephemeral = "ephemeral"
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.GoogleCloudKms = "google-cloud-kms" -> string!
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Local = "local" -> string!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2Collection! certificates) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!
+static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P256.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P384.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+static NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.P521.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!

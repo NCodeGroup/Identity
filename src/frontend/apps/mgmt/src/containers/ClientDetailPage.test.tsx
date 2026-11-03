@@ -2,7 +2,12 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import { tenantScope, type ClientResource } from '@ncode/api';
+import {
+  tenantScope,
+  type ClientResource,
+  type CreatedSecretResource,
+  type SecretResource,
+} from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ClientDetailPage } from './ClientDetailPage.js';
 
@@ -70,8 +75,11 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-const createdSecret = {
+// A client registered for a method that compares its secret, such as client_secret_basic, holds a one-way verifier
+// (ADR-1391).
+const createdSecret: CreatedSecretResource = {
   secretId: 's-new',
+  keyId: 's-new',
   concurrencyToken: 'sc1',
   use: null,
   algorithm: null,
@@ -79,6 +87,7 @@ const createdSecret = {
   expiresWhen: '2027-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
+  isVerifier: true,
   secretMaterial: 'one-time-material',
 };
 
@@ -259,6 +268,7 @@ describe('ClientDetailPage', () => {
           secrets: [
             {
               secretId: 's-rsa',
+              keyId: 's-rsa',
               concurrencyToken: 'sc1',
               use: null,
               algorithm: null,
@@ -266,7 +276,8 @@ describe('ClientDetailPage', () => {
               expiresWhen: '2099-01-01T00:00:00Z',
               secretType: 'rsa',
               keySizeBits: 2048,
-            },
+              isVerifier: false,
+            } satisfies SecretResource,
           ],
         });
       }
@@ -313,6 +324,51 @@ describe('ClientDetailPage', () => {
       const patch = calls.find((c) => c.method === 'PATCH');
       expect(patch?.url).toBe('https://api.test/api/tenants/acme/clients/web/settings');
       expect(JSON.parse(patch?.body ?? '[]')).toEqual([{ op: 'replace', path: '/a', value: 2 }]);
+    });
+    expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
+  });
+
+  it('reveals once the secret a settings change issues for the client', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      if (url.endsWith('/clients/web/settings') && method === 'PATCH') {
+        return jsonResponse({
+          ...createdSecret,
+          secretId: 's-issued',
+          keyId: 's-issued',
+          // client_secret_jwt uses the secret as its HMAC key, so the server keeps it rather than a verifier.
+          isVerifier: false,
+          secretMaterial: 'issued-once',
+        });
+      }
+      if (url.endsWith('/clients/web/settings')) {
+        return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
+      }
+      if (url.endsWith('/clients/web/effective-settings')) {
+        return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('client-tab-settings'));
+
+    const editor = await screen.findByTestId('settings-json');
+    fireEvent.change(editor, {
+      target: { value: '{"a": 1, "token_endpoint_auth_method": "client_secret_jwt"}' },
+    });
+    fireEvent.click(screen.getByTestId('settings-save'));
+
+    expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent('issued-once');
+    expect(screen.getByTestId('reveal-secret-id')).toHaveTextContent('s-issued');
+    fireEvent.click(screen.getByTestId('reveal-secret-done'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
     });
   });
 });

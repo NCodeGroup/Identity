@@ -104,7 +104,8 @@ flowchart TB
 | Data                                                                                    | Owner                | At rest                                                                                                    |
 | --------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Server and tenant **private signing and encryption keys**                               | Server / tenant      | `nce1.` envelope                                                                                           |
-| **Client secrets** and resource-server keys                                             | Tenant               | `nce1.` envelope                                                                                           |
+| **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
+| **Client secrets** of a client that uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope |
 | **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
 | ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Server               | Each key in an `nce1.` envelope                                                                            |
 | Your own application's sensitive data                                                   | Server / tenant      | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
@@ -346,7 +347,6 @@ We'd rather say what this doesn't do yet:
 | Rewrap and recovery tool                          | [#172](https://github.com/NCodeGroup/Identity/issues/172) |
 | More root key providers (OpenBao/Vault Transit, PKCS#11, Infisical) | [#173](https://github.com/NCodeGroup/Identity/issues/173) |
 | Per-tenant root keys (bring your own key)         | [#174](https://github.com/NCodeGroup/Identity/issues/174) |
-| Hash client secrets that only need verifying      | [#163](https://github.com/NCodeGroup/Identity/issues/163) |
 
 ## Further reading
 
@@ -358,6 +358,7 @@ We'd rather say what this doesn't do yet:
 - [ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
 - [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md): spans, pooled writers and secure lifetimes
 - [ADR-1050](../decisions/1050-secret-material-revealed-once-on-create.md): secret material is revealed once, on create
+- [ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a client secret that is only compared is stored as a one-way verifier
 
 **Code**
 

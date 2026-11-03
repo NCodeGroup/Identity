@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Collections;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
@@ -26,9 +27,17 @@ public abstract class OpenIdClient
     public abstract IReadOnlySettingCollection Settings { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyCollection"/> which contains secrets only known to the client.
+    /// Gets the <see cref="ISecretKeyCollection"/> which contains the client's keys: its public keys, and the shared
+    /// secrets the server also uses as keys, such as the <c>client_secret</c> of a <c>client_secret_jwt</c> client.
     /// </summary>
     public abstract ISecretKeyCollection SecretKeys { get; }
+
+    /// <summary>
+    /// Gets the one-way verifiers of the shared secrets the client presents that the server only compares, such as the
+    /// <c>client_secret</c> of a <c>client_secret_basic</c> or <c>client_secret_post</c> client. A verifier is not a
+    /// key, so it is never among <see cref="SecretKeys"/>.
+    /// </summary>
+    public abstract IReadOnlyCollection<SecretVerifier> SecretVerifiers { get; }
 
     /// <summary>
     /// Gets the collection of redirect addresses registered for this client.

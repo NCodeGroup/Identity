@@ -72,6 +72,7 @@ internal sealed class DefaultSecretImporter(ISecretKeyTypeCatalog secretKeyTypeC
             ExpiresWhen = request.ExpiresWhen,
             SecretType = request.SecretType,
             SecretEncoding = material.SecretEncoding,
+            Origin = SecretOrigins.Supplied,
             KeySizeBits = material.KeySizeBits,
             EncodedValue = material.ProtectedKeyMaterial,
         };

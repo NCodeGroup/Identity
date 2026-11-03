@@ -1,17 +1,18 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.Secrets.Keys;
+using NCode.Identity.OpenId.Messages;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 
@@ -222,7 +223,8 @@ internal abstract class CommonClientAuthenticationHandler(
     /// <summary>
     /// Authenticates the client identified by <paramref name="clientId"/> with the shared
     /// <paramref name="clientSecret"/> it presented: the client must be registered for this handler's method, and the
-    /// secret must match one of the client's stored secrets.
+    /// secret must match one of the client's one-way verifiers, the form every secret of a method that compares its
+    /// secret is stored in.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="clientId">Contains the client identifier.</param>
@@ -269,6 +271,10 @@ internal abstract class CommonClientAuthenticationHandler(
         );
     }
 
+    // A presented secret is compared only with the client's verifiers: a method that compares its secret stores nothing
+    // else. A verifier with a work factor waits for its turn, so unauthenticated requests cannot occupy every
+    // processor, and one refused a turn answers 503 instead of invalid_client, because the secret was never compared.
+    // See ADR-1391.
     private async ValueTask<ClientAuthenticationResult> VerifyClientSecretAsync(
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
@@ -276,56 +282,100 @@ internal abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
-        foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
-        {
-            if (!IsSecretEqual(secretKey, clientSecretBytes.Span))
-                continue;
-
-            var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
-                openIdContext,
-                publicClient,
-                AuthenticationMethod,
-                secretKey,
-                confirmation: null,
-                cancellationToken
-            );
-
-            return new ClientAuthenticationResult(confidentialClient);
-        }
-
-        // client secret was specified but failed to verify
-        Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
-        return await FailAsync(
-            openIdContext,
-            publicClient.ClientId,
-            "invalid_client_secret",
+        var match = await FindMatchingSecretAsync(
+            publicClient,
+            clientSecretBytes,
             cancellationToken
         );
+
+        switch (match.Result)
+        {
+            case SecretVerificationResult.Success:
+                var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
+                    openIdContext,
+                    publicClient,
+                    AuthenticationMethod,
+                    match.CredentialId,
+                    confirmation: null,
+                    cancellationToken
+                );
+                return new ClientAuthenticationResult(confidentialClient);
+
+            case SecretVerificationResult.Unavailable:
+                Logger.ClientAuthenticationSecretVerificationUnavailable(publicClient.ClientId);
+                await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
+                    openIdContext,
+                    publicClient.ClientId,
+                    AuthenticationMethod,
+                    "secret_verification_unavailable",
+                    cancellationToken
+                );
+                return new ClientAuthenticationResult(
+                    CreateVerificationUnavailableError(openIdContext)
+                );
+
+            default:
+                // client secret was specified but failed to verify
+                Logger.ClientAuthenticationSecretMismatch(publicClient.ClientId);
+                return await FailAsync(
+                    openIdContext,
+                    publicClient.ClientId,
+                    "invalid_client_secret",
+                    cancellationToken
+                );
+        }
     }
 
-    /// <summary>
-    /// Determines whether the specified symmetric <paramref name="secretKey"/> is equal to the specified <paramref name="clientSecretBytes"/>.
-    /// </summary>
-    /// <param name="secretKey">The <see cref="SymmetricSecretKey"/> instance to compare.</param>
-    /// <param name="clientSecretBytes">The client secret byte array to compare.</param>
-    /// <returns><c>true</c> if the specified symmetric <paramref name="secretKey"/> is equal to the specified <paramref name="clientSecretBytes"/>; otherwise, <c>false</c>.</returns>
-    protected static bool IsSecretEqual(
-        SymmetricSecretKey secretKey,
-        ReadOnlySpan<byte> clientSecretBytes
+    // The verifiers without a work factor run first, so a presented secret that matches a generated secret's SHA-256
+    // verifier never waits for a turn, and a wrong one costs a derivation only for a client that holds a supplied
+    // secret. Each comparison is constant-time; which one matched, if any, is what the caller learns anyway.
+    private static async ValueTask<ClientSecretMatch> FindMatchingSecretAsync(
+        OpenIdClient client,
+        ReadOnlyMemory<byte> clientSecretBytes,
+        CancellationToken cancellationToken
     )
     {
-        // increase our chances for a single-segment buffer
-        using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
-            isSensitive: true,
-            clientSecretBytes.Length
-        );
-        IBufferWriter<byte> privateKeyWriter = privateKeyBuffer;
+        foreach (var verifier in client.SecretVerifiers)
+        {
+            if (
+                !verifier.HasWorkFactor
+                && await verifier.VerifyAsync(clientSecretBytes, cancellationToken)
+                    == SecretVerificationResult.Success
+            )
+            {
+                return ClientSecretMatch.Matched(verifier.KeyId);
+            }
+        }
 
-        secretKey.ExportPrivateKey(ref privateKeyWriter);
+        foreach (var verifier in client.SecretVerifiers)
+        {
+            if (!verifier.HasWorkFactor)
+            {
+                continue;
+            }
 
-        using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
-        var privateKeySpan = privateKeySpanLease.Span;
+            var result = await verifier.VerifyAsync(clientSecretBytes, cancellationToken);
+            if (result == SecretVerificationResult.Success)
+            {
+                return ClientSecretMatch.Matched(verifier.KeyId);
+            }
 
-        return CryptographicOperations.FixedTimeEquals(privateKeySpan, clientSecretBytes);
+            if (result == SecretVerificationResult.Unavailable)
+            {
+                return ClientSecretMatch.Unavailable;
+            }
+        }
+
+        return ClientSecretMatch.Failed;
     }
+
+    // The server is saturated, not the client's credential wrong: 503 with temporarily_unavailable, as the rate limits
+    // answer temporarily_unavailable, and a Retry-After of one second. See ADR-1391.
+    private static IOpenIdError CreateVerificationUnavailableError(OpenIdContext openIdContext) =>
+        openIdContext
+            .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable)
+            .WithDescription("The client secret could not be verified; retry later.")
+            .WithStatusCode(StatusCodes.Status503ServiceUnavailable)
+            .WithResponseHeader(HeaderNames.RetryAfter, "1")
+            .WithResponseHeader(HeaderNames.CacheControl, "no-store");
 }

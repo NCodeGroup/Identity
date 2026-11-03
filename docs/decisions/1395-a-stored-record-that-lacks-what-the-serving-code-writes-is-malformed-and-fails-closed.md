@@ -63,7 +63,7 @@ gives it:
    is at or before `expiredAt`, of a tenant that is not disabled. A grant without an expiration has not expired, and
    the pass does not select it; a session grant without one is malformed (decision 3). The pass terminates each
    selected session on its own: a session that it cannot terminate, such as a malformed one, is logged with its
-   identifier as `EndedSessionTerminationFailedForSession` (event 2070, Warning) and skipped, so the tenant's other
+   identifier as `EndedSessionTerminationFailedForSession` (event 2071, Warning) and skipped, so the tenant's other
    ended sessions are terminated. `EndedSessionTerminationFailedForTenant` covers only a tenant whose context cannot be
    created.
 5. **Until the first stable release, a stored payload has one shape.** A grant payload's members are added (required

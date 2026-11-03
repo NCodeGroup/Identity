@@ -44,7 +44,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     TimeProvider timeProvider,
     LinkGenerator linkGenerator,
     ICryptoService cryptoService,
-    ISecretGenerator secretGenerator,
+    IClientSecretIssuer clientSecretIssuer,
     IClientKeyImporter clientKeyImporter,
     ISecretSerializer secretSerializer,
     ISecretProtectorProvider secretProtectorProvider,
@@ -55,7 +55,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     ISectorIdentifierValidator sectorIdentifierValidator,
     IClientScopeService clientScopeService,
     ISettingSerializer settingSerializer,
-    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     IClientCoherenceValidator clientCoherenceValidator
 ) : IEndpointProvider
 {
@@ -79,7 +78,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
@@ -92,8 +91,6 @@ internal class DefaultClientRegistrationEndpointHandler(
         sectorIdentifierValidator;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
-    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
-        clientAuthenticationMethodCatalog;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
@@ -277,7 +274,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         var secretsError = BuildClientSecrets(
             protector,
             request,
-            IssuesClientSecret(resolved.TokenEndpointAuthMethod),
+            resolved.TokenEndpointAuthMethod,
             createdWhen,
             errorFactory,
             out var secrets,
@@ -599,11 +596,20 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         client.Secrets.Value = await ReplacePublicKeysAsync(store, client, keys, cancellationToken);
 
+        var clientSecret = await ReconcileClientSecretsAsync(
+            store,
+            client,
+            resolved.TokenEndpointAuthMethod,
+            cancellationToken
+        );
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var response = await ToResponseAsync(client, cancellationToken);
         response = response with
         {
+            ClientSecret = clientSecret,
+            ClientSecretExpiresAt = clientSecret is null ? null : 0,
             RegistrationClientUri = GetRegistrationClientUri(openIdContext, clientId),
         };
 
@@ -647,6 +653,46 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         return secrets;
+    }
+
+    /// <summary>
+    /// Brings an updated client's shared secrets into the form its registered method needs, through the
+    /// <see cref="IClientSecretIssuer"/>, and returns the <c>client_secret</c> it issued, revealed once in the response
+    /// (RFC 7592 §2.2), or <see langword="null"/> when the client keeps a secret it holds. The client discards every
+    /// other shared secret, none of which can authenticate it.
+    /// </summary>
+    // See ADR-1391.
+    private async ValueTask<string?> ReconcileClientSecretsAsync(
+        IClientStore store,
+        PersistedClient client,
+        string tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
+    )
+    {
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+        var reconciliation = ClientSecretIssuer.ReconcileClientSecrets(
+            protector,
+            tokenEndpointAuthMethod,
+            client.Secrets.Value
+        );
+
+        foreach (var secret in reconciliation.RemovedSecrets)
+        {
+            await store.RemoveSecretAsync(client.ClientId, secret.SecretId, cancellationToken);
+        }
+
+        foreach (var secret in reconciliation.AddedSecrets)
+        {
+            await store.AddSecretAsync(client.ClientId, secret, cancellationToken);
+        }
+
+        client.Secrets.Value = [.. reconciliation.Secrets];
+
+        return reconciliation.IssuedSecret?.SecretMaterial;
     }
 
     private async ValueTask<IResult> DeleteClientAsync(
@@ -1261,18 +1307,6 @@ internal class DefaultClientRegistrationEndpointHandler(
                 && x5c.GetArrayLength() > 0
             );
 
-    /// <summary>
-    /// Determines whether the registration issues a <c>client_secret</c> to a client that registers the specified
-    /// client-authentication method: the client is issued one when the method's descriptor requires a client secret;
-    /// a method that is not registered receives none.
-    /// </summary>
-    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
-    /// <returns><see langword="true"/> when the client is issued a <c>client_secret</c>.</returns>
-    // See ADR-1145 and ADR-1207.
-    internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
-        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
-        && descriptor.RequiresClientSecret;
-
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
         string description
@@ -1326,7 +1360,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private IResult? BuildClientSecrets(
         ISecretProtector protector,
         RegisterClientRequest request,
-        bool issuesClientSecret,
+        string tokenEndpointAuthMethod,
         DateTimeOffset createdWhen,
         IOpenIdErrorFactory errorFactory,
         out List<PersistedSecret> secrets,
@@ -1336,25 +1370,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         secrets = [];
         clientSecret = null;
 
-        if (issuesClientSecret)
+        if (ClientSecretIssuer.RequiresClientSecret(tokenEndpointAuthMethod))
         {
-            // A client_secret is an opaque string the client later presents verbatim. GenerateSharedSecret stores it
-            // as the UTF-8 bytes client authentication compares against (see CommonClientAuthenticationHandler.
-            // IsSecretEqual), unlike GenerateSecret's raw-byte crypto-key material whose base64url reveal never
-            // round-trips back to the stored bytes.
-            var generated = SecretGenerator.GenerateSharedSecret(
-                protector,
-                new GenerateSecretRequest
-                {
-                    SecretId = CryptoService.GenerateResourceId(),
-                    SecretType = SecretTypes.Symmetric,
-                    KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
-                    Use = null,
-                    Algorithm = null,
-                    CreatedWhen = createdWhen,
-                    ExpiresWhen = DateTimeOffset.MaxValue,
-                }
-            );
+            var generated = GenerateClientSecret(protector, tokenEndpointAuthMethod, createdWhen);
             clientSecret = generated.SecretMaterial;
             secrets.Add(generated.Secret);
         }
@@ -1368,6 +1386,27 @@ internal class DefaultClientRegistrationEndpointHandler(
         secrets.AddRange(keys);
         return null;
     }
+
+    /// <summary>
+    /// Generates a <c>client_secret</c>, an opaque string the client later presents verbatim, with the policy's minimum
+    /// entropy and no expiry, stored by the <see cref="IClientSecretIssuer"/> in the form the client's method needs.
+    /// </summary>
+    // See ADR-1110 and ADR-1391.
+    private GeneratedSecret GenerateClientSecret(
+        ISecretProtector protector,
+        string tokenEndpointAuthMethod,
+        DateTimeOffset createdWhen
+    ) =>
+        ClientSecretIssuer.GenerateClientSecret(
+            protector,
+            tokenEndpointAuthMethod,
+            new SharedSecretRequest
+            {
+                SecretId = CryptoService.GenerateResourceId(),
+                CreatedWhen = createdWhen,
+                ExpiresWhen = DateTimeOffset.MaxValue,
+            }
+        );
 
     /// <summary>
     /// Imports the public keys of the <c>jwks</c> set a registration request carries, under the client-key policy: every

@@ -65,6 +65,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             ExpiresWhen = DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = secretEncoding,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = encodedValue,
         };

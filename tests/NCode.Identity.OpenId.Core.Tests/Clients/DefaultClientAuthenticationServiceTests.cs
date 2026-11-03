@@ -66,7 +66,12 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     ) =>
         new([
             new StaticDataSource<ClientAuthenticationMethodDescriptor>([
-                .. names.Select(name => new ClientAuthenticationMethodDescriptor { Name = name }),
+                .. names.Select(name => new ClientAuthenticationMethodDescriptor
+                {
+                    Name = name,
+                    RequiresClientSecret = false,
+                    UsesClientSecretAsKey = false,
+                }),
             ]),
         ]);
 

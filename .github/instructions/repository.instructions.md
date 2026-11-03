@@ -188,6 +188,16 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` check on the
    pull request finds it.
+    - **The frontend has its own gate.** `./build/dod.ps1` never runs the frontend's checks. A change under
+      `src/frontend` also runs CI's frontend job locally from `src/frontend`, with the pnpm version its `package.json`
+      names: `pnpm install --frozen-lockfile`, then `pnpm run format:check`, `lint`, `typecheck`, `build` and
+      `test:report`. `test:report` runs every package's tests with coverage, and a package under its coverage threshold
+      fails the job.
+    - **A merge conflict that only touches documentation skips the gate.** A push that only merges the base branch
+      into a topic branch, and resolves conflicts only in documentation (Markdown files such as `CHANGELOG.md`,
+      `docs/**` and the decision records), changes no code the gate checks. Resolve the conflicts, run the checks the
+      resolved files have (`.template/Test-AdrIndex.ps1` for `docs/decisions/README.md`), and push without
+      `./build/dod.ps1`. A merge that conflicts in any other file runs the gate.
 
 The user then reviews the draft: a comment left as an unresolved thread requests changes, and resolving every thread,
 clicking **Ready for review** and enabling auto-merge (`gh pr merge <number> --auto --squash`) approves it. Once

@@ -4,7 +4,6 @@
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -35,7 +34,8 @@ public interface IOpenIdClientFactory
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="publicClient">The <see cref="OpenIdClient"/> that represents the public client.</param>
     /// <param name="method">The <see cref="string"/> that contains the client authentication method.</param>
-    /// <param name="secretKey">The <see cref="SecretKey"/> instance that contains the secret how the client was authenticated.</param>
+    /// <param name="credentialId">The identifier of the registered credential the client authenticated with, or
+    /// <c>null</c> when it has none.</param>
     /// <param name="confirmation">The <see cref="JsonElement"/> that contains the client confirmation, if any.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation,
@@ -44,7 +44,7 @@ public interface IOpenIdClientFactory
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
         string method,
-        SecretKey secretKey,
+        string? credentialId,
         JsonElement? confirmation,
         CancellationToken cancellationToken
     );

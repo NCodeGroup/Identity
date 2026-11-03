@@ -1171,6 +1171,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("PublicKey")
                         .HasMaxLength(4000)
                         .IsUnicode(false)

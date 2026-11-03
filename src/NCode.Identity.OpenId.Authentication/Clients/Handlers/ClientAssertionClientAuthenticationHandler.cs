@@ -308,7 +308,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
             openIdContext,
             publicClient,
             AuthenticationMethod,
-            result.DecodedJwt.SigningKey,
+            result.DecodedJwt.SigningKey.KeyId,
             confirmation: null,
             cancellationToken
         );

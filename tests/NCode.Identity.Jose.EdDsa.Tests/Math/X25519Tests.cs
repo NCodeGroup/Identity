@@ -116,6 +116,26 @@ public class X25519Tests
         Assert.Throws<ArgumentException>(() => ScalarMult(new byte[31], new byte[32]));
     }
 
+    [Fact]
+    public void ScalarMult_WhenUHasWrongLength_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            ScalarMult(new byte[32], new byte[31])
+        );
+
+        Assert.Equal("u", exception.ParamName);
+    }
+
+    [Fact]
+    public void ScalarMult_WhenOutputIsTooSmall_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            X25519.ScalarMult(new byte[32], new byte[32], new byte[X25519.SharedSecretSize - 1])
+        );
+
+        Assert.Equal("output", exception.ParamName);
+    }
+
     #endregion
 
     #region GeneratePublicKey Tests

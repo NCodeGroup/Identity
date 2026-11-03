@@ -128,5 +128,26 @@ public class OkpCurvesTests
         Assert.Equal(Shake256.HashData("abc"u8, 114), destination);
     }
 
+    [Fact]
+    public void GetTokenHashFunction_WhenEd448DestinationIsTooSmall_ReturnsFalse()
+    {
+        var hash = OkpCurves.Ed448.GetTokenHashFunction(out var size);
+        var destination = new byte[size - 1];
+
+        Assert.False(hash("abc"u8, destination, out var bytesWritten));
+        Assert.Equal(0, bytesWritten);
+        Assert.All(destination, value => Assert.Equal(0, value));
+    }
+
+    #endregion
+
+    #region SupportedNames Property Tests
+
+    [Fact]
+    public void SupportedNames_ListsEveryCurveQuoted()
+    {
+        Assert.Equal("'Ed25519', 'Ed448', 'X25519', 'X448'", OkpCurves.SupportedNames);
+    }
+
     #endregion
 }

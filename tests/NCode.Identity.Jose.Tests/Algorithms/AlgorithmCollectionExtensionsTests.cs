@@ -1,10 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -65,6 +67,36 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
         using var ecdsa = ECDsa.Create(BrainpoolCurve.Curve);
         return factory.CreateEcc(new KeyMetadata { KeyId = "brainpool" }, ecdsa);
     }
+
+    // An agreement over EC keys that names neither a curve nor a size, as a contributed agreement may declare.
+    private sealed class SizelessEcdhKeyAgreement : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } = new(typeof(EccSecretKey), []);
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    // A collection whose only algorithm is ECDH-ES over the specified agreements.
+    private IAlgorithmCollection CreateEcdhCollection(params IEcdhKeyAgreement[] keyAgreements) =>
+        new DefaultAlgorithmCollection([
+            new EcdhKeyManagementAlgorithm(
+                ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+                keyAgreements
+            ),
+        ]);
 
     private string? Validate(SecretKey key, string? use, string algorithm) =>
         AlgorithmCollection.ValidateKeyAlgorithm(
@@ -187,6 +219,41 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Contains("without a named curve", error, StringComparison.Ordinal);
+    }
+
+    // A symmetric key has no curve, which an algorithm whose key type names no curve does not ask for.
+    [Fact]
+    public void ValidateKeyAlgorithm_WhenSymmetricKeyMatchesAlgorithm_ReturnsNull()
+    {
+        var key = SecretKeyFactory.CreateSymmetric(
+            new KeyMetadata { KeyId = "oct" },
+            RandomNumberGenerator.GetBytes(32)
+        );
+
+        var error = Validate(key, SecretKeyUses.Signature, "HS256");
+
+        Assert.Null(error);
+    }
+
+    // The key's type, size and curve fit, but two agreements accept it, so the algorithm itself refuses it.
+    [Fact]
+    public void ValidateKeyAlgorithm_WhenTheAlgorithmRefusesAKeyOfAnAcceptedTypeSizeAndCurve_ReturnsError()
+    {
+        var collection = CreateEcdhCollection(new EccEcdhKeyAgreement(), new EccEcdhKeyAgreement());
+
+        var error = collection.ValidateKeyAlgorithm(
+            new KeyAlgorithmDeclaration
+            {
+                Key = CreateEccKey(ECCurve.NamedCurves.nistP256),
+                Use = SecretKeyUses.Encryption,
+                Algorithm = "ECDH-ES",
+            }
+        );
+
+        Assert.Equal(
+            "The algorithm 'ECDH-ES' is not compatible with the key, whose parameters it does not accept.",
+            error
+        );
     }
 
     #endregion
@@ -324,6 +391,42 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Contains("'XX999'", error, StringComparison.Ordinal);
+    }
+
+    // Only a declared size can make a curve the algorithm accepts refuse a key, so a refused curve without a declared
+    // size is reported without one.
+    [Fact]
+    public void TryResolveKeyGeneration_WhenCurveIsNotOneTheAlgorithmAcceptsAndNoSizeIsDeclared_ReportsNoSize()
+    {
+        Assert.False(
+            TryResolve(typeof(EccSecretKey), null, "secp256k1", "ECDH-ES", out _, out var error)
+        );
+
+        Assert.Equal(
+            "The curve 'secp256k1' is not valid for algorithm 'ECDH-ES'; expected 'P-256' (256 bits), "
+                + "'P-384' (384 bits), 'P-521' (521 bits).",
+            error
+        );
+    }
+
+    [Fact]
+    public void TryResolveKeyGeneration_WhenAlgorithmAcceptsNoKeySize_ReturnsError()
+    {
+        var collection = CreateEcdhCollection(new SizelessEcdhKeyAgreement());
+
+        var result = collection.TryResolveKeyGeneration(
+            new KeyGenerationDeclaration
+            {
+                KeyClrType = typeof(EccSecretKey),
+                Algorithm = "ECDH-ES",
+            },
+            out var resolved,
+            out var error
+        );
+
+        Assert.False(result);
+        Assert.Null(resolved);
+        Assert.Equal("The algorithm 'ECDH-ES' accepts no key size.", error);
     }
 
     #endregion

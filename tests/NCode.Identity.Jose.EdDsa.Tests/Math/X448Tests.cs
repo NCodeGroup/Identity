@@ -115,6 +115,26 @@ public class X448Tests
         Assert.Throws<ArgumentException>(() => ScalarMult(new byte[56], new byte[57]));
     }
 
+    [Fact]
+    public void ScalarMult_WhenScalarHasWrongLength_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            ScalarMult(new byte[55], new byte[56])
+        );
+
+        Assert.Equal("scalar", exception.ParamName);
+    }
+
+    [Fact]
+    public void ScalarMult_WhenOutputIsTooSmall_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            X448.ScalarMult(new byte[56], new byte[56], new byte[X448.SharedSecretSize - 1])
+        );
+
+        Assert.Equal("output", exception.ParamName);
+    }
+
     #endregion
 
     #region GeneratePublicKey Tests

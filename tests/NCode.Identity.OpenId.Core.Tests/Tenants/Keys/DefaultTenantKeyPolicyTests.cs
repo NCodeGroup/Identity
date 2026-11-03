@@ -12,6 +12,7 @@ using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa;
+using NCode.Identity.Jose.EdDsa.Keys;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
@@ -115,14 +116,19 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     }
 
     // A registered signature algorithm keyed by the abstract SecretKey, which no secret key type describes.
-    private sealed class UntypedKeySignatureAlgorithm : SignatureAlgorithm
+    private const string UntypedKeyAlgorithm = "X-UNTYPED";
+
+    // A registered signature algorithm keyed by OKP keys, whose secret key type the EdDSA package registers and this
+    // composition does not, so no registered secret key type is one it accepts.
+    private const string OkpKeyAlgorithm = "X-OKP";
+
+    // A signature algorithm that accepts keys of one runtime type, of no particular size.
+    private sealed class StubKeySignatureAlgorithm(string code, Type keyClrType)
+        : SignatureAlgorithm
     {
-        public const string AlgorithmCode = "X-UNTYPED";
+        public override string Code => code;
 
-        public override string Code => AlgorithmCode;
-
-        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
-        [new(typeof(SecretKey), [])];
+        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } = [new(keyClrType, [])];
 
         public override HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
 
@@ -142,9 +148,38 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         ) => throw new NotSupportedException();
     }
 
+    // Gives the ECDH-ES algorithms an EC curve that the elliptic-curve catalog does not register; provisioning never
+    // performs an agreement.
+    private sealed class UnregisteredCurveAgreementStub : IEcdhKeyAgreement
+    {
+        public const string CurveName = "brainpoolP256r1";
+
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(typeof(EccSecretKey), [new AlgorithmCurve(CurveName, 256)]);
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
     private sealed class UntypedKeyAlgorithmDataSource : ICollectionDataSource<Algorithm>
     {
-        public IEnumerable<Algorithm> Collection { get; } = [new UntypedKeySignatureAlgorithm()];
+        public IEnumerable<Algorithm> Collection { get; } =
+        [
+            new StubKeySignatureAlgorithm(UntypedKeyAlgorithm, typeof(SecretKey)),
+            new StubKeySignatureAlgorithm(OkpKeyAlgorithm, typeof(OkpSecretKey)),
+        ];
 
         public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
     }
@@ -259,10 +294,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Theory]
     [InlineData("XX999", "is not a registered signature or key-management algorithm")]
     [InlineData("HS256", "uses a symmetric key")]
-    [InlineData(
-        UntypedKeySignatureAlgorithm.AlgorithmCode,
-        "uses a key type that has no registered secret key type"
-    )]
+    [InlineData(UntypedKeyAlgorithm, "uses a key type that has no registered secret key type")]
     [InlineData("", "does not name an algorithm")]
     public void ResolveSpecifications_WhenAlgorithmCannotBeProvisioned_ReportsIt(
         string algorithm,
@@ -389,6 +421,66 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         );
         Assert.Contains($"'{SecretKeyTypes.Rsa}'", error, StringComparison.Ordinal);
         Assert.Contains($"'{SecretKeyTypes.Ecc}'", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenNoRegisteredSecretTypeIsOneTheAlgorithmAccepts_ListsNone()
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = OkpKeyAlgorithm,
+                    SecretType = SecretKeyTypes.Rsa,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(
+            $"The algorithm '{OkpKeyAlgorithm}' does not accept 'rsa' keys; expected none.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    // The algorithm accepts a curve the elliptic-curve catalog does not register, so the algorithm resolves the key and
+    // its key type cannot generate it.
+    [Fact]
+    public async Task ResolveSpecifications_WhenTheKeyTypeCannotGenerateTheResolvedKey_ReportsIt()
+    {
+        var serviceCollection = new ServiceCollection();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddJoseLibrary();
+        secrets.AddPersistenceLibrary();
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEcdhKeyAgreement, UnregisteredCurveAgreementStub>()
+        );
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        SecretType = SecretKeyTypes.Ecc,
+                        Curve = UnregisteredCurveAgreementStub.CurveName,
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Specifications);
+        var error = Assert.Single(resolution.Errors);
+        Assert.StartsWith(
+            "A key for the algorithm 'ECDH-ES' cannot be generated: ",
+            error,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            $"'{UnregisteredCurveAgreementStub.CurveName}'",
+            error,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -754,6 +846,26 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     }
 
     // Without its public half the key's curve cannot be read, so the key cannot be shown to fit and one is provisioned.
+    // A secret of the specification's type that no registered key type describes cannot be read, so one is provisioned.
+    [Fact]
+    public void IsSatisfiedBy_WhenSecretTypeIsNotRegistered_ReturnsFalse()
+    {
+        var specification = CreateSpecification(
+            "RS256",
+            SecretKeyUses.Signature,
+            "unregistered",
+            3072
+        );
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            secretType: "unregistered",
+            publicKey: CreatePublicKey(SecretKeyTypes.Rsa, 3072)
+        );
+
+        Assert.False(Policy.IsSatisfiedBy(specification, secret));
+    }
+
     [Fact]
     public void IsSatisfiedBy_WhenPrivateSecretHasNoPublicHalf_ReturnsFalse()
     {

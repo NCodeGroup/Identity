@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Jose.EdDsa.Algorithms;
 using NCode.Identity.Jose.EdDsa.Keys;
 using NCode.Identity.Jose.EdDsa.KeyTypes;
 using NCode.Identity.Jose.Exceptions;
@@ -126,6 +127,102 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
     private static JsonElement CreateHeader(string field, string value, JsonObject epk) =>
         new JsonObject { [field] = value, ["epk"] = epk }.Deserialize<JsonElement>();
 
+    private static string UnsupportedCurveMessage(string curve) =>
+        $"The OKP curve '{curve}' is not valid for the ECDH-ES algorithms; expected 'X25519' or 'X448'. "
+        + "(Parameter 'recipientKey')";
+
+    // An OKP key that declares a curve and a size of its own choosing, as a key of another package could.
+    private sealed class StubOkpSecretKey(string curve, int keySizeBits)
+        : OkpSecretKey(
+            new KeyMetadata { KeyId = "stub" },
+            curve,
+            keySizeBits,
+            new byte[keySizeBits / 8],
+            certificateRawData: null
+        )
+    {
+        public override bool HasPrivateKey => true;
+
+        public override void ExportPrivateKey<TWriter>(ref TWriter destination) =>
+            throw new NotSupportedException();
+    }
+
+    private OkpEcdhKeyAgreement KeyAgreement { get; } = new();
+
+    #endregion
+
+    #region GetSharedSecretSizeBytes Tests
+
+    [Theory]
+    [InlineData(OkpCurves.X25519Name, 256, 32)]
+    [InlineData(OkpCurves.X448Name, 448, 56)]
+    public void GetSharedSecretSizeBytes_WhenKeyAgreementCurve_ReturnsTheCurvesSize(
+        string curve,
+        int keySizeBits,
+        int expected
+    )
+    {
+        Assert.Equal(
+            expected,
+            KeyAgreement.GetSharedSecretSizeBytes(GenerateKey(curve, keySizeBits))
+        );
+    }
+
+    // Ed25519 has X25519's size, so only the curve's use refuses it.
+    [Fact]
+    public void GetSharedSecretSizeBytes_WhenSigningCurveOfTheSameSize_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            KeyAgreement.GetSharedSecretSizeBytes(GenerateKey(OkpCurves.Ed25519Name, 256))
+        );
+
+        Assert.Equal("recipientKey", exception.ParamName);
+        Assert.Equal(UnsupportedCurveMessage(OkpCurves.Ed25519Name), exception.Message);
+    }
+
+    // The key names X25519 but declares X448's size, which the agreement accepts for X448 keys only.
+    [Fact]
+    public void GetSharedSecretSizeBytes_WhenKeySizeIsNotItsCurves_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            KeyAgreement.GetSharedSecretSizeBytes(new StubOkpSecretKey(OkpCurves.X25519Name, 448))
+        );
+
+        Assert.Equal("recipientKey", exception.ParamName);
+        Assert.Equal(UnsupportedCurveMessage(OkpCurves.X25519Name), exception.Message);
+    }
+
+    #endregion
+
+    #region AgreeWithEphemeralKey Tests
+
+    [Theory]
+    [InlineData(OkpCurves.X25519Name, 256, 31)]
+    [InlineData(OkpCurves.X448Name, 448, 32)]
+    public void AgreeWithEphemeralKey_WhenSharedSecretHasTheWrongSize_ThrowsAndWritesNoEphemeralKey(
+        string curve,
+        int keySizeBits,
+        int sharedSecretSize
+    )
+    {
+        var ephemeralPublicKey = new ArrayBufferWriter<byte>();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            KeyAgreement.AgreeWithEphemeralKey(
+                GenerateKey(curve, keySizeBits),
+                ephemeralPublicKey,
+                new byte[sharedSecretSize]
+            )
+        );
+
+        Assert.Equal("sharedSecret", exception.ParamName);
+        Assert.Equal(
+            $"The shared secret of an {curve} agreement is {keySizeBits / 8} bytes. (Parameter 'sharedSecret')",
+            exception.Message
+        );
+        Assert.Equal(0, ephemeralPublicKey.WrittenCount);
+    }
+
     #endregion
 
     #region KeyTypes Property Tests
@@ -210,6 +307,56 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
             ),
             sharedSecret
         );
+    }
+
+    [Fact]
+    public void Agree_WhenSharedSecretHasTheWrongSize_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            KeyAgreement.Agree(
+                CreatePrivateKey(OkpCurves.X25519, BobPrivateKey),
+                ImportPublicKey(OkpCurves.X25519Name, EphemeralPublicKey),
+                new byte[56]
+            )
+        );
+
+        Assert.Equal("sharedSecret", exception.ParamName);
+    }
+
+    // The RFC 8037 Appendix A.6 agreement, with Bob's public key in place of his private key.
+    [Fact]
+    public void Agree_WhenRecipientKeyHoldsOnlyItsPublicHalf_Throws()
+    {
+        var sharedSecret = new byte[32];
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            KeyAgreement.Agree(
+                ImportPublicKey(OkpCurves.X25519Name, BobPublicKey),
+                ImportPublicKey(OkpCurves.X25519Name, EphemeralPublicKey),
+                sharedSecret
+            )
+        );
+
+        Assert.Equal(
+            "The OKP secret key holds only the public half and cannot agree keys as a recipient.",
+            exception.Message
+        );
+        Assert.All(sharedSecret, value => Assert.Equal(0, value));
+    }
+
+    [Fact]
+    public void Agree_WhenRecipientKeyIsOnASigningCurve_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            KeyAgreement.Agree(
+                GenerateKey(OkpCurves.Ed25519Name, 256),
+                ImportPublicKey(OkpCurves.X25519Name, EphemeralPublicKey),
+                new byte[32]
+            )
+        );
+
+        Assert.Equal("recipientKey", exception.ParamName);
+        Assert.Equal(UnsupportedCurveMessage(OkpCurves.Ed25519Name), exception.Message);
     }
 
     #endregion

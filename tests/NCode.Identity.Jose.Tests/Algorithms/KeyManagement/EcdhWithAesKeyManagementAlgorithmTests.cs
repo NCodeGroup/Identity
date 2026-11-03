@@ -68,6 +68,17 @@ public class EcdhWithAesKeyManagementAlgorithmTests : BaseTests
         Assert.Equal(encryptedCekSizeBytes, result);
     }
 
+    #region SupportsKeyWrapping Property Tests
+
+    // RFC 7518 §4.6: in key agreement with key wrapping mode the agreed key wraps the content encryption key.
+    [Fact]
+    public void SupportsKeyWrapping_WhenKeyAgreementWithKeyWrapping_ReturnsTrue()
+    {
+        Assert.True(CreateAlgorithm().SupportsKeyWrapping);
+    }
+
+    #endregion
+
     public static IEnumerable<object[]> RoundTripTestData
     {
         get

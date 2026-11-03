@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -145,11 +146,15 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         ) => throw new NotSupportedException();
     }
 
-    // An agreement over EC keys of 256 bits that names no curve, so it accepts every 256-bit curve.
-    private sealed class SizedEccEcdhKeyAgreement : IEcdhKeyAgreement
+    // An agreement over EC keys of one size, 256 bits unless named, that names no curve, so it accepts every curve of
+    // that size.
+    private sealed class SizedEccEcdhKeyAgreement(int keySizeBits = 256) : IEcdhKeyAgreement
     {
         public AlgorithmKeyType AlgorithmKeyType { get; } =
-            new(typeof(EccSecretKey), [new KeySizes(minSize: 256, maxSize: 256, skipSize: 0)]);
+            new(
+                typeof(EccSecretKey),
+                [new KeySizes(minSize: keySizeBits, maxSize: keySizeBits, skipSize: 0)]
+            );
 
         public int GetSharedSecretSizeBytes(SecretKey secretKey) => 32;
 
@@ -713,4 +718,217 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         var controlResult = controlAlgorithm.Unwrap([], recipientKey, keySizeBits, header);
         Assert.Equal(controlResult, cek1);
     }
+
+    #region Refusal Scaffolding
+
+    private const string NoJsonWebKeyFormMessage =
+        "The key type 'ecc' has no registered JSON Web Key form, so it cannot carry an ephemeral public key.";
+
+    // An agreement over P-256 that writes an ephemeral public key its key type cannot read, as a faulty package could.
+    private sealed class UnreadableEphemeralKeyAgreement : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(typeof(EccSecretKey), [new AlgorithmCurve("P-256", 256)]);
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) => 32;
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => ephemeralPublicKeyWriter.Write<byte>([0x30, 0x03, 0x02, 0x01, 0x00]);
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    // The algorithm over the real EC agreement, with a key type catalog that answers for the 'ecc' key type only.
+    private EcdhKeyManagementAlgorithm CreateAlgorithmWithCatalog(
+        bool registered,
+        ISecretKeyTypeDescriptor? descriptor
+    )
+    {
+        var mockCatalog = CreateStrictMock<ISecretKeyTypeCatalog>();
+        mockCatalog
+            .Setup(x => x.TryGet(SecretKeyTypes.Ecc, out descriptor))
+            .Returns(registered)
+            .Verifiable();
+        return new EcdhKeyManagementAlgorithm(mockCatalog.Object, [new EccEcdhKeyAgreement()]);
+    }
+
+    #endregion
+
+    #region KeyTypes Property Tests
+
+    [Fact]
+    public void KeyTypes_WhenTwoAgreementsOfOneKeyTypeNameOnlySizes_MergesTheirSizes()
+    {
+        var algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new SizedEccEcdhKeyAgreement(256), new SizedEccEcdhKeyAgreement(384)]
+        );
+
+        var keyType = Assert.Single(algorithm.KeyTypes);
+        Assert.Equal(typeof(EccSecretKey), keyType.KeyClrType);
+        Assert.Empty(keyType.Curves);
+        Assert.Equal(
+            [(256, 256, 0), (384, 384, 0)],
+            keyType.KeyBitSizes.Select(size => (size.MinSize, size.MaxSize, size.SkipSize))
+        );
+    }
+
+    #endregion
+
+    #region SupportsKeyWrapping Property Tests
+
+    // RFC 7518 §4.6: in direct key agreement mode the agreed key is the content encryption key, so nothing is wrapped.
+    [Fact]
+    public void SupportsKeyWrapping_WhenDirectKeyAgreement_ReturnsFalse()
+    {
+        Assert.False(Algorithm.SupportsKeyWrapping);
+    }
+
+    #endregion
+
+    #region NewKey Tests
+
+    // RFC 7518 §4.6.2: the Concat KDF's AlgorithmID is the 'enc' value in direct key agreement mode.
+    [Fact]
+    public void NewKey_WhenTheHeaderHasNoEnc_Throws()
+    {
+        var header = new Dictionary<string, object>();
+
+        var exception = Assert.Throws<JoseException>(() =>
+            Algorithm.NewKey(CreateRecipientKey(256), header, new byte[16])
+        );
+
+        Assert.Equal("The JWT header is missing the 'enc' field.", exception.Message);
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    // The brainpool key has the size of P-256, so the agreement's curve, not its size, refuses it.
+    [Fact]
+    public void NewKey_WhenNoAgreementAcceptsTheKeysCurve_Throws()
+    {
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Algorithm.NewKey(CreateBrainpoolKey(), header, new byte[16])
+        );
+
+        Assert.Equal("secretKey", exception.ParamName);
+        Assert.Equal(
+            "The secret key's size or curve is not valid for this cryptographic algorithm. (Parameter 'secretKey')",
+            exception.Message
+        );
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    [Fact]
+    public void NewKey_WhenTheKeyTypeIsNotRegistered_Throws()
+    {
+        var algorithm = CreateAlgorithmWithCatalog(registered: false, descriptor: null);
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(256), header, new byte[16])
+        );
+
+        Assert.Equal(NoJsonWebKeyFormMessage, exception.Message);
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    [Fact]
+    public void NewKey_WhenTheKeyTypeHasNoJsonWebKeyType_Throws()
+    {
+        var mockDescriptor = CreateStrictMock<ISecretKeyTypeDescriptor>();
+        mockDescriptor
+            .Setup(x => x.JwkKeyType)
+            .Returns((JsonWebKeyTypeDescriptor?)null)
+            .Verifiable();
+        var algorithm = CreateAlgorithmWithCatalog(registered: true, mockDescriptor.Object);
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(256), header, new byte[16])
+        );
+
+        Assert.Equal(NoJsonWebKeyFormMessage, exception.Message);
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    // The recipient reads the epk as a JSON Web Key, so a key type that cannot import one cannot carry the epk.
+    [Fact]
+    public void NewKey_WhenTheKeyTypeCannotImportAJsonWebKey_Throws()
+    {
+        var mockDescriptor = CreateStrictMock<ISecretKeyTypeDescriptor>();
+        mockDescriptor.Setup(x => x.JwkKeyType).Returns(JsonWebKeyTypeDescriptors.Ec).Verifiable();
+        mockDescriptor
+            .Setup(x => x.PublicKeyImportFormats)
+            .Returns([SecretKeyImportFormats.Pem])
+            .Verifiable();
+        var algorithm = CreateAlgorithmWithCatalog(registered: true, mockDescriptor.Object);
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(256), header, new byte[16])
+        );
+
+        Assert.Equal(NoJsonWebKeyFormMessage, exception.Message);
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    [Fact]
+    public void NewKey_WhenTheAgreementWritesAnEphemeralKeyItsKeyTypeCannotRead_Throws()
+    {
+        var algorithm = new EcdhKeyManagementAlgorithm(
+            SecretKeyTypeCatalog,
+            [new UnreadableEphemeralKeyAgreement()]
+        );
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(256), header, new byte[16])
+        );
+
+        Assert.Equal("The ephemeral public key cannot be read by its key type.", exception.Message);
+        Assert.IsAssignableFrom<CryptographicException>(exception.InnerException);
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    #endregion
+
+    #region TryUnwrapKey Tests
+
+    // A length of five characters leaves a single trailing character, which no base64url value has.
+    [Theory]
+    [InlineData("apu")]
+    [InlineData("apv")]
+    public void TryUnwrapKey_WhenPartyInfoHasAnInvalidLength_Throws(string name)
+    {
+        var header = new JsonObject
+        {
+            ["enc"] = Enc,
+            ["epk"] = CreateEpk(256),
+            [name] = "AAAAA",
+        };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            Algorithm.TryUnwrapKey(
+                CreateRecipientKey(256),
+                header.Deserialize<JsonElement>(),
+                [],
+                new byte[16],
+                out _
+            )
+        );
+
+        Assert.Equal($"The '{name}' header is not valid base64url.", exception.Message);
+        Assert.IsType<FormatException>(exception.InnerException);
+    }
+
+    #endregion
 }

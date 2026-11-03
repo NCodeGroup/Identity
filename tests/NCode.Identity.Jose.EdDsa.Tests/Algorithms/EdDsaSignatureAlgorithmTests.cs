@@ -240,4 +240,28 @@ public class EdDsaSignatureAlgorithmTests
     }
 
     #endregion
+
+    #region GetTokenHashFunction Tests
+
+    // X25519 has Ed25519's size, so only the curve's use refuses it.
+    [Fact]
+    public void GetTokenHashFunction_WhenKeyIsOnAKeyAgreementCurve_Throws()
+    {
+        var algorithm = CreateFixedAlgorithm(
+            AlgorithmCodes.DigitalSignature.Ed25519,
+            OkpCurves.Ed25519Name
+        );
+        var secretKey = new StubOkpSecretKey(OkpCurves.X25519Name, 256);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            algorithm.GetTokenHashFunction(secretKey, out _)
+        );
+
+        Assert.Equal(
+            "The OKP curve 'X25519' is not supported by the 'Ed25519' algorithm.",
+            exception.Message
+        );
+    }
+
+    #endregion
 }

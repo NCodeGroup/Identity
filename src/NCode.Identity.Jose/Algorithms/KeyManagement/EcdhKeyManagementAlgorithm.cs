@@ -348,21 +348,12 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         // A value that is present but malformed fails closed rather than being read as empty.
         try
         {
-            var bytes = new byte[Base64Url.GetByteCountForDecode(value.Length)];
-            if (
-                Base64Url.TryDecode(value, bytes, out var bytesWritten)
-                && bytesWritten == bytes.Length
-            )
-            {
-                return bytes;
-            }
+            return Base64Url.Decode(value);
         }
         catch (Exception exception) when (exception is FormatException or ArgumentException)
         {
             throw new JoseException($"The '{name}' header is not valid base64url.", exception);
         }
-
-        throw new JoseException($"The '{name}' header is not valid base64url.");
     }
 
     /// <inheritdoc />

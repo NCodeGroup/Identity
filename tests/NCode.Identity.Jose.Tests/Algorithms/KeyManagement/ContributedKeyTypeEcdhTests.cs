@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Tests.ContributedKeyTypes;
 using NCode.Identity.Jwk;
@@ -135,6 +136,81 @@ public class ContributedKeyTypeEcdhTests : BaseTests
         }
     }
 
+    // The XKP descriptor with a JSON Web Key form a faulty package could register: a JWK key type of its own, or an export
+    // of its own; every other member is the real descriptor's.
+    private sealed class FaultyXkpSecretKeyTypeDescriptor(
+        ISecretKeyTypeDescriptor inner,
+        JsonWebKeyTypeDescriptor jwkKeyType,
+        Func<SecretKey, ExportedPublicKey?> exportPublicKey
+    ) : ISecretKeyTypeDescriptor
+    {
+        public string KeyType => inner.KeyType;
+
+        public Type KeyClrType => inner.KeyClrType;
+
+        public JsonWebKeyTypeDescriptor JwkKeyType => jwkKeyType;
+
+        public bool IsAsymmetric => inner.IsAsymmetric;
+
+        public bool SupportsPublicKeyExport => inner.SupportsPublicKeyExport;
+
+        public IReadOnlyCollection<string> PublicKeyImportFormats => inner.PublicKeyImportFormats;
+
+        public string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
+            inner.ValidateGeneration(parameters);
+
+        public GeneratedSecretKeyMaterial GenerateKeyMaterial(
+            SecretKeyGenerationParameters parameters,
+            SecretKeyMaterialProtector protect
+        ) => inner.GenerateKeyMaterial(parameters, protect);
+
+        public ImportedSecretKeyMaterial ImportPublicKeyMaterial(
+            SecretKeyImportParameters parameters,
+            SecretKeyMaterialProtector protect
+        ) => inner.ImportPublicKeyMaterial(parameters, protect);
+
+        public SecretKey DeserializeKeyMaterial(
+            KeyMetadata metadata,
+            string secretEncoding,
+            ReadOnlySpan<byte> keyMaterial
+        ) => inner.DeserializeKeyMaterial(metadata, secretEncoding, keyMaterial);
+
+        public ExportedPublicKey? ExportPublicKey(SecretKey secretKey) =>
+            exportPublicKey(secretKey);
+    }
+
+    private ISecretKeyTypeDescriptor GetXkpDescriptor()
+    {
+        Assert.True(SecretKeyTypeCatalog.TryGet(XkpKeyType.SecretKeyTypeName, out var descriptor));
+        return descriptor;
+    }
+
+    // The ECDH-ES algorithm over the XKP agreement, whose key type the specified descriptor describes.
+    private EcdhKeyManagementAlgorithm CreateAlgorithm(ISecretKeyTypeDescriptor descriptor)
+    {
+        var mockCatalog = CreateStrictMock<ISecretKeyTypeCatalog>();
+        ISecretKeyTypeDescriptor? registered = descriptor;
+        mockCatalog
+            .Setup(x => x.TryGet(XkpKeyType.SecretKeyTypeName, out registered))
+            .Returns(true)
+            .Verifiable();
+        return new EcdhKeyManagementAlgorithm(mockCatalog.Object, [new XkpEcdhKeyAgreement()]);
+    }
+
+    // The real descriptor's export of the key, with the members of the JSON Web Key changed as specified.
+    private ExportedPublicKey? ExportWith(SecretKey secretKey, Action<JsonObject> change)
+    {
+        var exported = GetXkpDescriptor().ExportPublicKey(secretKey);
+        Assert.NotNull(exported);
+        var members = Assert.IsType<JsonObject>(JsonNode.Parse(exported.Jwk.ToJsonString()));
+        change(members);
+        return new ExportedPublicKey
+        {
+            Jwk = new JsonWebKey(members, XkpKeyType.JwkKeyType),
+            Pem = exported.Pem,
+        };
+    }
+
     #endregion
 
     #region KeyTypes Tests
@@ -193,6 +269,118 @@ public class ContributedKeyTypeEcdhTests : BaseTests
         var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
         Assert.Equal(["kty", XkpKeyType.PublicMember], epk.Keys.Order(StringComparer.Ordinal));
         Assert.Equal(XkpKeyType.JwkKeyType.Name, epk["kty"]);
+    }
+
+    // RFC 7518 §4.6.1.1: the ephemeral private key never leaves the sender, so a key type whose required members name a
+    // private member cannot carry an epk.
+    [Fact]
+    public void NewKey_WhenTheKeyTypeRequiresAPrivateMember_Throws()
+    {
+        var inner = GetXkpDescriptor();
+        var algorithm = CreateAlgorithm(
+            new FaultyXkpSecretKeyTypeDescriptor(
+                inner,
+                new JsonWebKeyTypeDescriptor(
+                    XkpKeyType.JwkKeyType.Name,
+                    [XkpKeyType.PublicMember, XkpKeyType.PrivateMember],
+                    [XkpKeyType.PrivateMember]
+                ),
+                inner.ExportPublicKey
+            )
+        );
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(), header, new byte[16])
+        );
+
+        Assert.Equal(
+            "The key type 'XKP' lists the private member 'sk' among its required members.",
+            exception.Message
+        );
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    [Fact]
+    public void NewKey_WhenTheExportedKeyLacksARequiredMember_Throws()
+    {
+        var inner = GetXkpDescriptor();
+        var algorithm = CreateAlgorithm(
+            new FaultyXkpSecretKeyTypeDescriptor(
+                inner,
+                new JsonWebKeyTypeDescriptor(
+                    XkpKeyType.JwkKeyType.Name,
+                    ["crv", XkpKeyType.PublicMember],
+                    [XkpKeyType.PrivateMember]
+                ),
+                inner.ExportPublicKey
+            )
+        );
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(), header, new byte[16])
+        );
+
+        Assert.Equal(
+            "The ephemeral public key's JSON Web Key is missing the 'crv' member.",
+            exception.Message
+        );
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    [Fact]
+    public void NewKey_WhenTheKeyTypeCannotExportTheEphemeralKey_Throws()
+    {
+        var algorithm = CreateAlgorithm(
+            new FaultyXkpSecretKeyTypeDescriptor(
+                GetXkpDescriptor(),
+                XkpKeyType.JwkKeyType,
+                static _ => null
+            )
+        );
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        var exception = Assert.Throws<JoseException>(() =>
+            algorithm.NewKey(CreateRecipientKey(), header, new byte[16])
+        );
+
+        Assert.Equal(
+            "The ephemeral public key cannot be represented as a JSON Web Key.",
+            exception.Message
+        );
+        Assert.DoesNotContain("epk", header.Keys);
+    }
+
+    // A required member that is not a string, which a contributed key type may have, is carried as its JSON value.
+    [Fact]
+    public void NewKey_WhenARequiredMemberIsNotAString_WritesItsJsonValue()
+    {
+        const string sizeMember = "len";
+        var algorithm = CreateAlgorithm(
+            new FaultyXkpSecretKeyTypeDescriptor(
+                GetXkpDescriptor(),
+                new JsonWebKeyTypeDescriptor(
+                    XkpKeyType.JwkKeyType.Name,
+                    [XkpKeyType.PublicMember, sizeMember],
+                    [XkpKeyType.PrivateMember]
+                ),
+                secretKey => ExportWith(secretKey, members => members[sizeMember] = 256)
+            )
+        );
+        var header = new Dictionary<string, object> { ["enc"] = Enc };
+
+        algorithm.NewKey(CreateRecipientKey(), header, new byte[16]);
+
+        var epk = Assert.IsType<Dictionary<string, object>>(Assert.Contains("epk", header));
+        Assert.Equal(
+            ["kty", sizeMember, XkpKeyType.PublicMember],
+            epk.Keys.Order(StringComparer.Ordinal)
+        );
+        var size = Assert.IsType<JsonElement>(epk[sizeMember]);
+        Assert.Equal(JsonValueKind.Number, size.ValueKind);
+        Assert.Equal(256, size.GetInt32());
+        Assert.IsType<string>(epk[XkpKeyType.PublicMember]);
     }
 
     #endregion

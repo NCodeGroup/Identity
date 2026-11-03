@@ -238,10 +238,12 @@ public static class AlgorithmCollectionExtensions
                         )
                     )
                     {
+                        // A curve the algorithm accepts is refused only for a declared size, so the error names the
+                        // declared size, or none for a curve the algorithm does not accept.
                         error = FormatCurveError(
                             algorithm,
                             curve,
-                            declaration.KeySizeBits ?? algorithmCurve?.KeySizeBits,
+                            declaration.KeySizeBits,
                             algorithmKeyType
                         );
                         return false;

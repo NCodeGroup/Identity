@@ -12,16 +12,22 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
-/// The interactive surface renders in the first of the authorization request's <c>ui_locales</c> that it serves and
-/// the tenant's <c>ui_locales_supported</c> lists, otherwise in the tenant's default language, and a preference it
-/// cannot honor never fails the request (OpenID Connect Core 1.0 §3.1.2.1).
+/// The interactive surface renders in the first of the authorization or end-session request's <c>ui_locales</c> that
+/// it serves and the tenant's <c>ui_locales_supported</c> lists, otherwise in the tenant's default language, a
+/// preference it cannot honor never fails the request (OpenID Connect Core 1.0 §3.1.2.1, RP-Initiated Logout 1.0 §2),
+/// and every page the surface redirects to renders in the locale the form or the request carried.
 /// </summary>
 // See ADR-1402.
 public class InteractiveUiLocalesTests
 {
     private const string ClientId = "it-ui-locales";
     private const string RedirectUri = "https://client.example/callback";
+    private const string UserName = "ui-locales-user";
+    private const string Password = "ui-locales-password";
     private const string LoginPath = "/account/login";
+    private const string AccountPath = "/account";
+    private const string ConsentPath = "/account/consent";
+    private const string EndSessionPath = "/oauth2/end_session";
 
     private static readonly Dictionary<string, object> EnglishAndFrench = new()
     {
@@ -62,17 +68,41 @@ public class InteractiveUiLocalesTests
     private static async Task<string> GetPageAsync(
         HttpClient client,
         string url,
-        string? acceptLanguage = null
+        string? acceptLanguage = null,
+        string? sessionCookie = null
     )
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         if (acceptLanguage is not null)
             request.Headers.AcceptLanguage.ParseAdd(acceptLanguage);
+        if (sessionCookie is not null)
+            request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
 
         using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return await response.Content.ReadAsStringAsync();
+    }
+
+    private static async Task<Uri> GetRedirectAsync(
+        HttpClient client,
+        string url,
+        string sessionCookie,
+        string expectedPath
+    )
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        var location = new Uri(
+            new Uri("http://localhost"),
+            response.Headers.Location.OriginalString
+        );
+        Assert.Equal(expectedPath, location.AbsolutePath);
+        return location;
     }
 
     [Fact]
@@ -158,6 +188,25 @@ public class InteractiveUiLocalesTests
     }
 
     [Fact]
+    public async Task GetLoginPage_WhenTheTenantSupportsOnlyALaterRegisteredLocale_RendersInItWithoutAPreference()
+    {
+        // The advertised set bounds the fallback too, so the page never renders in a locale the tenant left out.
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.UiLocalesSupported] = new[] { "fr" },
+            }
+        );
+        using var client = CreateClient(factory);
+
+        var html = await GetPageAsync(client, LoginPath);
+
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Se connecter</h1>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GetLoginPage_WhenOnlyTheUserAgentStatesALanguage_RendersInItWhenSupported()
     {
         using var factory = new HostApplicationFactory();
@@ -203,6 +252,128 @@ public class InteractiveUiLocalesTests
             html,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public async Task Authorize_WhenConsentIsRequiredAndTheRequestPrefersASupportedLocale_TheConsentPageRendersInIt()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPublicClientWithSettingsAsync(
+            ClientId,
+            new Dictionary<string, object> { [OpenIdSettingNames.RequireConsent] = true },
+            RedirectUri
+        );
+        using var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        var consentUrl = await GetRedirectAsync(
+            client,
+            AuthorizeUrl("fr"),
+            sessionCookie,
+            ConsentPath
+        );
+        Assert.Equal("fr", HttpUtility.ParseQueryString(consentUrl.Query)["ui_locales"]);
+
+        var html = await GetPageAsync(
+            client,
+            consentUrl.PathAndQuery,
+            sessionCookie: sessionCookie
+        );
+
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Autoriser l&#x2019;acc&#xE8;s</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"fr\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EndSession_WhenTheRequestPrefersASupportedLocale_TheConfirmationPageRendersInIt()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        using var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        var confirmUrl = await GetRedirectAsync(
+            client,
+            $"{EndSessionPath}?ui_locales=fr",
+            sessionCookie,
+            InteractiveLogin.LogoutConfirmPath
+        );
+        Assert.Equal("fr", HttpUtility.ParseQueryString(confirmUrl.Query)["ui_locales"]);
+
+        var html = await GetPageAsync(
+            client,
+            confirmUrl.PathAndQuery,
+            sessionCookie: sessionCookie
+        );
+
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Se d&#xE9;connecter</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("name=\"ui_locales\" value=\"fr\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PostLogoutConfirmation_WhenTheEndUserDeclines_ReturnsToTheAccountPageInTheSameLocale()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        using var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var confirmUrl = await GetRedirectAsync(
+            client,
+            $"{EndSessionPath}?ui_locales=fr",
+            sessionCookie,
+            InteractiveLogin.LogoutConfirmPath
+        );
+        var returnUrl = HttpUtility.ParseQueryString(confirmUrl.Query)["ReturnUrl"];
+        Assert.NotNull(returnUrl);
+
+        using var response = await InteractiveLogin.PostFormAsync(
+            client,
+            confirmUrl.PathAndQuery,
+            InteractiveLogin.LogoutConfirmPath,
+            sessionCookie,
+            new Dictionary<string, string>
+            {
+                ["action"] = "cancel",
+                ["ReturnUrl"] = returnUrl,
+                ["ui_locales"] = "fr",
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        var location = new Uri(
+            new Uri("http://localhost"),
+            response.Headers.Location.OriginalString
+        );
+        Assert.Equal(AccountPath, location.AbsolutePath);
+        Assert.Equal("fr", HttpUtility.ParseQueryString(location.Query)["ui_locales"]);
+    }
+
+    [Fact]
+    public async Task GetAccountPage_WhenAnonymousAndTheRequestCarriesALocale_RedirectsToTheLoginPageInIt()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        using var client = CreateClient(factory);
+
+        using var response = await client.GetAsync($"{AccountPath}?ui_locales=fr");
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        var location = new Uri(
+            new Uri("http://localhost"),
+            response.Headers.Location.OriginalString
+        );
+        Assert.Equal(LoginPath, location.AbsolutePath);
+        var query = HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal($"{AccountPath}?ui_locales=fr", query["ReturnUrl"]);
+        Assert.Equal("fr", query["ui_locales"]);
     }
 
     [Fact]

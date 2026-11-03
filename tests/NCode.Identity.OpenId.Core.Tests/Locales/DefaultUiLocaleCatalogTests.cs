@@ -142,7 +142,7 @@ public class DefaultUiLocaleCatalogTests : BaseTests
     {
         var catalog = CreateCatalog("en", "de", "fr");
 
-        var locale = catalog.Select(["it"], ["en", "de"], "fr");
+        var locale = catalog.Select(["it"], ["en", "fr"], "fr");
 
         Assert.Equal("fr", locale.LanguageTag);
     }
@@ -160,6 +160,44 @@ public class DefaultUiLocaleCatalogTests : BaseTests
         var locale = catalog.Select(["it"], null, defaultLanguageTag);
 
         Assert.Equal("de", locale.LanguageTag);
+    }
+
+    [Fact]
+    public void Select_WhenTheDefaultLocaleIsOutsideTheSupportedSet_FallsBackToTheFirstRegisteredInIt()
+    {
+        var catalog = CreateCatalog("en", "de", "fr");
+
+        var locale = catalog.Select(["it"], ["FR", "de"], "en");
+
+        Assert.Equal("de", locale.LanguageTag);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Select_WhenNoDefaultIsSetAndTheSupportedSetOmitsTheFirstRegistered_FallsBackToTheFirstRegisteredInIt(
+        string? defaultLanguageTag
+    )
+    {
+        var catalog = CreateCatalog("en", "de", "fr");
+
+        var locale = catalog.Select([], ["fr"], defaultLanguageTag);
+
+        Assert.Equal("fr", locale.LanguageTag);
+    }
+
+    [Theory]
+    [InlineData(new object[] { new string[0] })]
+    [InlineData(new object[] { new[] { "it" } })]
+    public void Select_WhenTheSupportedSetHoldsNoRegisteredLocale_FallsBackToTheFirstRegistered(
+        string[] supported
+    )
+    {
+        var catalog = CreateCatalog("en", "de");
+
+        var locale = catalog.Select(["de"], supported, "de");
+
+        Assert.Equal("en", locale.LanguageTag);
     }
 
     [Fact]

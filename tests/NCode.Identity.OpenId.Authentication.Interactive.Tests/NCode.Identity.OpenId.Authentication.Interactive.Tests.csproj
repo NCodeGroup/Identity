@@ -25,4 +25,13 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Authentication.Interactive\NCode.Identity.OpenId.Authentication.Interactive.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+        <!-- The bundle's source index.html, so the tests prove the host and the bundle agree on its placeholders. -->
+        <Content
+            Include="..\..\src\frontend\apps\auth\index.html"
+            Link="auth-index.html"
+            CopyToOutputDirectory="PreserveNewest"
+        />
+    </ItemGroup>
 </Project>

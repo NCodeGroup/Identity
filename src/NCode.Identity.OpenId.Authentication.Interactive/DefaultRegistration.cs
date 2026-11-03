@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
@@ -104,12 +105,23 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
 
-            // The locales the surface ships are the UI locales the tenant settings and discovery name, English first;
-            // a host adds one by registering another InteractiveLocale as an IUiLocale (ADR-1402).
+            // The locales the surface ships are the UI locales the tenant settings and discovery name, English first.
+            // A tag the host registered through AddInteractiveLocale keeps the host's locale, whichever call came
+            // first, and a locale registered without the surface's messages stops the host (ADR-1402).
             foreach (var locale in InteractiveLocales.All)
             {
-                serviceCollection.TryAddEnumerableInstance<IUiLocale>(locale);
+                if (FindUiLocale(serviceCollection, locale.LanguageTag) < 0)
+                {
+                    serviceCollection.AddSingleton<IUiLocale>(locale);
+                }
             }
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<InteractiveAuthenticationOptions>,
+                    InteractiveLocalesValidator
+                >()
+            );
 
             serviceCollection.TryAddSingleton<InteractiveLocaleSelector>();
 
@@ -214,6 +226,61 @@ public static class DefaultRegistration
 
             return builder;
         }
+
+        /// <summary>
+        /// Registers a locale the interactive surface renders, in place of any registered UI locale of the same
+        /// language tag: a host adds a language with a new tag, and changes the wording of a shipped locale by
+        /// registering one built from it with its own <see cref="InteractiveMessages"/>, before or after
+        /// <see cref="AddInteractiveAuthentication"/>. A replaced locale keeps its place in the registration order, so
+        /// replacing the first registered locale keeps it the surface's default language.
+        /// </summary>
+        /// <param name="locale">The locale to register.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddInteractiveLocale(
+            InteractiveLocale locale
+        )
+        {
+            ArgumentNullException.ThrowIfNull(locale);
+
+            var serviceCollection = builder.ServiceCollection;
+            var descriptor = ServiceDescriptor.Singleton<IUiLocale>(locale);
+            var index = FindUiLocale(serviceCollection, locale.LanguageTag);
+            if (index < 0)
+            {
+                serviceCollection.Add(descriptor);
+            }
+            else
+            {
+                serviceCollection[index] = descriptor;
+            }
+
+            return builder;
+        }
+    }
+
+    // The index of the registered IUiLocale instance whose tag is languageTag, compared without regard to case as
+    // BCP 47 tags are, or -1 when none is registered.
+    private static int FindUiLocale(IServiceCollection serviceCollection, string languageTag)
+    {
+        for (var index = 0; index < serviceCollection.Count; index++)
+        {
+            var descriptor = serviceCollection[index];
+            if (
+                descriptor.ServiceType == typeof(IUiLocale)
+                && !descriptor.IsKeyedService
+                && descriptor.ImplementationInstance is IUiLocale registered
+                && string.Equals(
+                    registered.LanguageTag,
+                    languageTag,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed

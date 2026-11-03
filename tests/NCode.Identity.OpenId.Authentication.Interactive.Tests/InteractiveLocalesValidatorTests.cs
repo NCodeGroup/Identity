@@ -1,0 +1,63 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Moq;
+using NCode.Identity.OpenId.Locales;
+using Xunit;
+
+namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
+
+public sealed class InteractiveLocalesValidatorTests : IDisposable
+{
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+    private Mock<IUiLocaleCatalog> MockCatalog { get; }
+
+    public InteractiveLocalesValidatorTests()
+    {
+        MockCatalog = MockRepository.Create<IUiLocaleCatalog>();
+    }
+
+    public void Dispose() => MockRepository.Verify();
+
+    private sealed record PlainLocale(string LanguageTag) : IUiLocale;
+
+    private InteractiveLocalesValidator CreateValidator(params IUiLocale[] locales)
+    {
+        MockCatalog.SetupGet(x => x.Locales).Returns(locales).Verifiable();
+        return new InteractiveLocalesValidator(MockCatalog.Object);
+    }
+
+    #region Validate Tests
+
+    [Fact]
+    public void Validate_WhenEveryRegisteredLocaleCarriesMessages_Succeeds()
+    {
+        var validator = CreateValidator(InteractiveLocales.English, InteractiveLocales.French);
+
+        var result = validator.Validate(null, new InteractiveAuthenticationOptions());
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenARegisteredLocaleCarriesNoMessages_FailsNamingEachSuchTag()
+    {
+        var validator = CreateValidator(
+            new PlainLocale("it"),
+            InteractiveLocales.English,
+            new PlainLocale("pt-BR")
+        );
+
+        var result = validator.Validate(null, new InteractiveAuthenticationOptions());
+
+        Assert.True(result.Failed);
+        Assert.NotNull(result.Failures);
+        Assert.Collection(
+            result.Failures,
+            failure => Assert.Contains("'it'", failure, StringComparison.Ordinal),
+            failure => Assert.Contains("'pt-BR'", failure, StringComparison.Ordinal)
+        );
+    }
+
+    #endregion
+}

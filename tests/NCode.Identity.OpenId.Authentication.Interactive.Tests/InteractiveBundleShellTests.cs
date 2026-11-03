@@ -121,6 +121,32 @@ public class InteractiveBundleShellTests
             html,
             StringComparison.Ordinal
         );
+
+        // The build keeps the language placeholder in the html element's lang attribute, which the host replaces
+        // with the selected locale's tag, so the bundle reads the page's language from the document.
+        Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            InteractiveBundleShell.LanguagePlaceholder,
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void LanguagePlaceholder_Always_IsTheLangAttributeOfTheBundlesIndex()
+    {
+        // The bundle's source index.html and the host agree on the placeholder, so a page the host serves never
+        // keeps the raw placeholder as its language; the bundle's own tests hold its side of the contract.
+        var indexHtml = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "auth-index.html"),
+            SecureEncoding.UTF8
+        );
+
+        Assert.Contains(
+            $"<html lang=\"{InteractiveBundleShell.LanguagePlaceholder}\">",
+            indexHtml,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

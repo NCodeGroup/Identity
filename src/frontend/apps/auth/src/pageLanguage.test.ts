@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import indexHtml from '../index.html?raw';
 import { LANGUAGE_PLACEHOLDER, readPageLanguage } from './pageLanguage.js';
+
+describe('LANGUAGE_PLACEHOLDER', () => {
+  it('is the lang attribute of the bundle index', () => {
+    // The host writes the selected language in its place, so the index and the bundle must agree on it; the host's
+    // own tests hold its side of the contract.
+    expect(indexHtml).toContain(`<html lang="${LANGUAGE_PLACEHOLDER}">`);
+  });
+});
 
 describe('readPageLanguage', () => {
   afterEach(() => {

@@ -1980,7 +1980,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // default_ui_locale: the registered UI locale the end-user interface renders in when no preference selects
-            // another; empty renders in the first registered locale (ADR-1402). Not advertised.
+            // another; empty, or a value the effective ui_locales_supported leaves out, renders in the first registered
+            // locale that ceiling lists (ADR-1402). Not advertised.
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {

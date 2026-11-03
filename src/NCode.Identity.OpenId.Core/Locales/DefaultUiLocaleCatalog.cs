@@ -94,9 +94,23 @@ internal sealed partial class DefaultUiLocaleCatalog(IEnumerable<IUiLocale> loca
             }
         }
 
-        if (!string.IsNullOrEmpty(defaultLanguageTag) && TryGet(defaultLanguageTag, out var locale))
+        if (
+            !string.IsNullOrEmpty(defaultLanguageTag)
+            && TryGet(defaultLanguageTag, out var defaultLocale)
+            && IsSupported(defaultLocale, supportedLanguageTags)
+        )
         {
-            return locale;
+            return defaultLocale;
+        }
+
+        // The ceiling bounds the fallback too, so the page renders in a locale the tenant advertises whenever the
+        // ceiling lists a registered one; a ceiling that lists none leaves only the first registered locale.
+        foreach (var locale in LocaleList)
+        {
+            if (IsSupported(locale, supportedLanguageTags))
+            {
+                return locale;
+            }
         }
 
         return LocaleList[0];

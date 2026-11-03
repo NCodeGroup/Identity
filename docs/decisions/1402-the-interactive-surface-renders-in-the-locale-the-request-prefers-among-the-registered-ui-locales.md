@@ -45,8 +45,11 @@ forms carry on.**
 3. **The catalog selects the locale.** `IUiLocaleCatalog.Select` takes the end-user's preferences, most preferred
    first, and the bounds: each preference selects a registered locale by lookup (RFC 4647 §3.4: the tag, then the tag
    with its last subtag removed, so `fr-CA` selects a registered `fr`), and the first selection the tenant's
-   `ui_locales_supported` lists wins; otherwise the tenant's `default_ui_locale`; otherwise the first registered
-   locale. A preference that selects nothing is a preference the end-user does not get, never an error: the
+   `ui_locales_supported` lists wins; otherwise the tenant's `default_ui_locale`, when `ui_locales_supported` lists
+   it or is unset; otherwise the first registered locale `ui_locales_supported` lists; otherwise the first registered
+   locale. The ceiling bounds the fallback as it bounds a preference, so a page renders in a locale discovery
+   advertises whenever the tenant advertises a registered one, and a `default_ui_locale` outside the ceiling is never
+   rendered. A preference that selects nothing is a preference the end-user does not get, never an error: the
    authorization request's validation does not check `ui_locales` against `ui_locales_supported`.
 4. **The request's preferences reach the surface.** The authorization endpoint's login challenge sets the request's
    `ui_locales` as an authentication-properties parameter of that name, which the interactive cookie scheme's login
@@ -57,19 +60,24 @@ forms carry on.**
    query, in order, then the user agent's `Accept-Language` by descending quality (without the wildcard and a
    quality of zero), and selects through the catalog with the tenant's effective settings; the authorization error
    page a request without a tenant renders selects with no bounds. The surface registers its locales as
-   `InteractiveLocale` records, each carrying the `InteractiveMessages` of its server-rendered pages, and the
-   selector refuses a catalog that holds any other kind of locale when it is composed, so no page renders text in
-   one language under the tag of another. `InteractiveLocales` ships English, which it registers first, German,
-   Spanish and French; a host adds a locale by registering another `InteractiveLocale` as an `IUiLocale`, and
-   changes a page's wording by registering a locale built from a shipped one with its own messages.
+   `InteractiveLocale` records, each carrying the `InteractiveMessages` of its server-rendered pages;
+   `InteractiveLocalesValidator` stops the host as it starts when the catalog holds any other kind of locale, and
+   the selector refuses such a catalog too, so no page renders text in one language under the tag of another and
+   the error is found at deploy time, never by an end-user. `InteractiveLocales` ships English, which it registers
+   first, German, Spanish and French; a host adds a locale, or changes a page's wording with a locale built from a
+   shipped one and its own messages, through `AddInteractiveLocale`, which registers the `InteractiveLocale` in place
+   of any registered locale of its tag, keeping that locale's place in the registration order, before or after
+   `AddInteractiveAuthentication`, which never registers a shipped locale over a tag the host registered.
 6. **The page states its locale, and the forms carry it.** The server writes the selected locale's tag into the
    `lang` attribute of the `html` element: as the attribute of its standalone document, and in place of the
    `__NCODE_LANG__` placeholder the bundle's `index.html` carries (`InteractiveBundleShell.LanguagePlaceholder`,
    beside the nonce placeholder of
    [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
-   Every server-rendered form carries the tag as a hidden `ui_locales` field, and a redirect back to the login page
-   after a refused sign-in carries it as the `ui_locales` query, when it names a registered locale, so the next page
-   renders in the same locale without a stored preference.
+   Every server-rendered form carries the tag as a hidden `ui_locales` field, and a page the surface redirects to
+   carries it as the `ui_locales` query, when it names a registered locale: the login page after a refused sign-in,
+   the account page after a declined sign-out, and the login page an anonymous request for an account page is sent
+   to, together with the page it returns to. So the next page renders in the same locale without a stored
+   preference.
 7. **The bundle renders the page's language.** `mountSurface` reads the document's `lang` before it renders
    (`readPageLanguage`), and `LocaleProvider` resolves it to a catalog the bundle holds (`apps/auth/src/i18n`:
    `Messages` is the shape every catalog satisfies, `en` is the default, and `resolveLocale` applies the same lookup
@@ -84,7 +92,7 @@ forms carry on.**
   carrying the preference on the redirect and the forms costs nothing and reaches the end-session and account pages
   the parked request does not cover.
 - **Remember the selected locale in a cookie.** Rejected: a cookie is state the tenant route must scope
-  ([ADR-1310](1310-cookies-are-host-only-and-named-for-the-tenant.md)) and a second source of truth beside the
+  ([ADR-1310](1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md)) and a second source of truth beside the
   request's preference; the hidden field and the query carry the choice exactly as far as it applies.
 - **Let the bundle negotiate from `navigator.languages`.** Rejected: the no-JavaScript pages would stay in one
   language, the first frame would flash another, and the document's `lang` would not match what the user reads. The
@@ -103,11 +111,13 @@ forms carry on.**
 - A request's `ui_locales` is honored on every page of the interaction, in its order, and an unsupported preference
   costs nothing. The end-session confirmation page honors the end-session request's `ui_locales` too.
 - A tenant advertises only locales the interface renders, chooses which of them a request may select, and chooses
-  its default language. A stored `ui_locales_supported` or `default_ui_locale` that names an unregistered locale is
-  outside its domain and fails closed like any other setting
-  ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
+  its default language among them: the advertised set and the rendered default never disagree. A stored
+  `ui_locales_supported` or `default_ui_locale` that names an unregistered locale is outside its domain and fails
+  closed like any other setting ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
 - A host that renders its own interface registers its locales and reads the request's preference the same way; a
-  host that keeps the surface adds a language with one `InteractiveLocale` and one bundle catalog.
+  host that keeps the surface adds a language with one `InteractiveLocale` and one bundle catalog, and rewords a
+  shipped one with `AddInteractiveLocale`. A locale registered without the surface's messages stops the host as it
+  starts.
 - The `lang` attribute, the `ui_locales` hidden field and the `ui_locales` query are part of the contract between
   the host's pages and the bundle, as the stable ids are
   ([ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)).
@@ -127,5 +137,7 @@ forms carry on.**
   `src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions/InteractiveLocale.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocales.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocaleSelector.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocalesValidator.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
   `src/frontend/apps/auth/src/i18n/`, `src/frontend/apps/auth/src/pageLanguage.ts`.

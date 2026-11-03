@@ -15,8 +15,8 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 /// <remarks>
 /// Every registered UI locale must be an <see cref="InteractiveLocale"/>, since the surface renders every locale the
-/// catalog can select: a locale registered without the surface's messages is an error when the selector is composed,
-/// never a page in the wrong language.
+/// catalog can select: <see cref="InteractiveLocalesValidator"/> stops the host when one carries no messages, and
+/// the selector refuses such a catalog when it is composed, so no page renders in the wrong language.
 /// </remarks>
 // See ADR-1402.
 internal sealed class InteractiveLocaleSelector
@@ -32,15 +32,10 @@ internal sealed class InteractiveLocaleSelector
     /// <exception cref="InvalidOperationException">A registered UI locale carries no interactive messages.</exception>
     public InteractiveLocaleSelector(IUiLocaleCatalog uiLocaleCatalog)
     {
-        foreach (var locale in uiLocaleCatalog.Locales)
+        var failures = InteractiveLocalesValidator.FindLocalesWithoutMessages(uiLocaleCatalog);
+        if (failures.Count > 0)
         {
-            if (locale is not InteractiveLocale)
-            {
-                throw new InvalidOperationException(
-                    $"The UI locale '{locale.LanguageTag}' carries no interactive messages; register it as an "
-                        + $"{nameof(InteractiveLocale)}."
-                );
-            }
+            throw new InvalidOperationException(string.Join(' ', failures));
         }
 
         UiLocaleCatalog = uiLocaleCatalog;
@@ -61,7 +56,7 @@ internal sealed class InteractiveLocaleSelector
             ? UiLocaleCatalog.Select(preferences, null, null)
             : UiLocaleCatalog.Select(settings, preferences);
 
-        // The constructor refuses a catalog with any other kind of locale.
+        // The constructor refuses a catalog with any other kind of locale, and the validator stops the host first.
         return (InteractiveLocale)locale;
     }
 

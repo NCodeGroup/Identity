@@ -10,7 +10,8 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// The locales the interactive surface ships, which <c>AddInteractiveAuthentication</c> registers. English is the
 /// first registered locale, so it is the surface's default language for a tenant that sets no
 /// <c>default_ui_locale</c>. A host that changes the wording of a page registers a locale built from one of these
-/// with its own <see cref="InteractiveMessages"/>.
+/// with its own <see cref="InteractiveMessages"/> through <c>AddInteractiveLocale</c>, which takes the shipped
+/// locale's place.
 /// </summary>
 // See ADR-1402.
 [PublicAPI]

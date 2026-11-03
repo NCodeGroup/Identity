@@ -719,15 +719,18 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// <summary>
     /// Records the end-user's answer to a logout confirmation: a confirmation redirects to the parked logout's one-time
     /// continue URL, which resumes it; any other answer refuses the continuation, so the logout is spent and the
-    /// session is left, and returns to the account page.
+    /// session is left, and returns to the account page in the locale the form carried.
     /// </summary>
     public async ValueTask<IResult> PostLogoutConfirmationAsync(
         HttpContext httpContext,
         [FromForm] string? action,
-        [FromForm(Name = "ReturnUrl")] string? returnUrl
+        [FromForm(Name = "ReturnUrl")] string? returnUrl,
+        [FromForm(Name = InteractiveAuthenticationPageRenderer.UiLocalesFieldName)]
+            string? uiLocales
     )
     {
         var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
+        var languageTag = LocaleSelector.GetCarriedLanguageTag(uiLocales);
 
         // See ADR-1380.
         if (string.Equals(action, LogoutAction, StringComparison.OrdinalIgnoreCase))
@@ -755,7 +758,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             httpContext,
             InteractiveAuthenticationDefaults.AccountPath
         );
-        return TypedResults.Redirect(accountPath);
+        return TypedResults.Redirect(AppendUiLocalesQuery(accountPath, languageTag));
     }
 
     /// <summary>
@@ -1253,10 +1256,21 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private string BuildLoginUrl(HttpContext httpContext, string returnUrl) =>
         $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl={Uri.EscapeDataString(returnUrl)}";
 
-    private RedirectHttpResult RedirectToLogin(HttpContext httpContext, string returnSurfacePath) =>
-        TypedResults.Redirect(
-            BuildLoginUrl(httpContext, SurfacePaths.GetSurfacePath(httpContext, returnSurfacePath))
+    // An anonymous request for an account page is sent to the login page, which returns to the page it asked for;
+    // both carry the request's ui_locales, so the login page and the page after it render in the same locale.
+    private RedirectHttpResult RedirectToLogin(HttpContext httpContext, string returnSurfacePath)
+    {
+        var languageTag = LocaleSelector.GetCarriedLanguageTag(
+            httpContext.Request.Query[InteractiveAuthenticationPageRenderer.UiLocalesFieldName]
         );
+        var returnUrl = AppendUiLocalesQuery(
+            SurfacePaths.GetSurfacePath(httpContext, returnSurfacePath),
+            languageTag
+        );
+        return TypedResults.Redirect(
+            AppendUiLocalesQuery(BuildLoginUrl(httpContext, returnUrl), languageTag)
+        );
+    }
 
     // A page the surface redirects back to renders in the locale the form carried.
     private string BuildLoginRedirect(
@@ -1264,15 +1278,28 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         string returnUrl,
         string error,
         string? languageTag
-    )
-    {
-        var url =
+    ) =>
+        AppendUiLocalesQuery(
             BuildLoginUrl(httpContext, returnUrl)
-            + $"&{ErrorQueryName}={Uri.EscapeDataString(error)}";
-        return languageTag is null
-            ? url
-            : url
-                + $"&{InteractiveAuthenticationPageRenderer.UiLocalesFieldName}={Uri.EscapeDataString(languageTag)}";
+                + $"&{ErrorQueryName}={Uri.EscapeDataString(error)}",
+            languageTag
+        );
+
+    // Appends the ui_locales query that carries languageTag to url, which may already have a query, or returns url
+    // as it is when there is no tag to carry.
+    private static string AppendUiLocalesQuery(string url, string? languageTag)
+    {
+        if (languageTag is null)
+        {
+            return url;
+        }
+
+        var separator = url.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+        return url
+            + separator
+            + InteractiveAuthenticationPageRenderer.UiLocalesFieldName
+            + '='
+            + Uri.EscapeDataString(languageTag);
     }
 
     private RedirectHttpResult RedirectToPasswordPage(

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Settings;
 using NCode.Registration;
 using Xunit;
 
@@ -45,6 +47,7 @@ public sealed class DefaultRegistrationTests : IDisposable
             .Build();
 
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IUiLocaleCatalog, StubUiLocaleCatalog>();
         serviceCollection
             .NewBuilder<OpenIdAuthenticationLibrary>()
             .AddInteractiveAuthentication(configuration, hostEnvironment, configureOptions);
@@ -54,6 +57,12 @@ public sealed class DefaultRegistrationTests : IDisposable
             .GetRequiredService<IOptions<InteractiveAuthenticationOptions>>()
             .Value;
     }
+
+    private static InteractiveLocale CreateRewordedEnglish() =>
+        InteractiveLocales.English with
+        {
+            Messages = InteractiveLocales.English.Messages with { SignInTitle = "Log in" },
+        };
 
     #region AddInteractiveAuthentication Tests
 
@@ -226,6 +235,124 @@ public sealed class DefaultRegistrationTests : IDisposable
         );
     }
 
+    [Fact]
+    public void AddInteractiveAuthentication_WhenTheHostRegisteredATagItShipsFirst_KeepsTheHostsLocaleInItsPlace()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var reworded = CreateRewordedEnglish();
+
+        builder.AddInteractiveLocale(reworded);
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        var locales = serviceCollection
+            .Where(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .ToList();
+        Assert.Equal(InteractiveLocales.All.Length, locales.Count);
+        Assert.Same(reworded, locales[0]);
+        Assert.DoesNotContain(InteractiveLocales.English, locales);
+    }
+
+    [Fact]
+    public void AddInteractiveAuthentication_WhenARegisteredLocaleCarriesNoMessages_FailsTheOptionsValidation()
+    {
+        // The validation runs when the host starts, so the misregistration stops the host, not its first page.
+        var hostEnvironment = CreateHostEnvironment();
+        var configuration = new ConfigurationBuilder().Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IUiLocaleCatalog, StubUiLocaleCatalog>();
+        serviceCollection.AddSingleton<IUiLocale>(new PlainLocale("it"));
+        serviceCollection
+            .NewBuilder<OpenIdAuthenticationLibrary>()
+            .AddInteractiveAuthentication(configuration, hostEnvironment);
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<
+            IOptions<InteractiveAuthenticationOptions>
+        >();
+
+        var exception = Assert.Throws<OptionsValidationException>(() => options.Value);
+
+        var failure = Assert.Single(exception.Failures);
+        Assert.Contains("'it'", failure, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region AddInteractiveLocale Tests
+
+    [Fact]
+    public void AddInteractiveLocale_WhenTheTagIsShipped_TakesTheShippedLocalesPlace()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var reworded = CreateRewordedEnglish();
+
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+        builder.AddInteractiveLocale(reworded);
+
+        var locales = serviceCollection
+            .Where(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .ToList();
+        Assert.Equal(InteractiveLocales.All.Length, locales.Count);
+        Assert.Same(reworded, locales[0]);
+        Assert.DoesNotContain(InteractiveLocales.English, locales);
+    }
+
+    [Fact]
+    public void AddInteractiveLocale_WhenTheTagDiffersOnlyInCase_TakesTheRegisteredLocalesPlace()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var reworded = CreateRewordedEnglish() with { LanguageTag = "EN" };
+
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+        builder.AddInteractiveLocale(reworded);
+
+        var locales = serviceCollection
+            .Where(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .ToList();
+        Assert.Equal(InteractiveLocales.All.Length, locales.Count);
+        Assert.Same(reworded, locales[0]);
+    }
+
+    [Fact]
+    public void AddInteractiveLocale_WhenTheTagIsNew_RegistersTheLocaleAfterTheShippedOnes()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        var italian = InteractiveLocales.English with { LanguageTag = "it" };
+
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+        builder.AddInteractiveLocale(italian);
+
+        var locales = serviceCollection
+            .Where(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+            .Select(descriptor => descriptor.ImplementationInstance)
+            .ToList();
+        Assert.Equal(InteractiveLocales.All.Length + 1, locales.Count);
+        Assert.Same(InteractiveLocales.English, locales[0]);
+        Assert.Same(italian, locales[^1]);
+    }
+
+    [Fact]
+    public void AddInteractiveLocale_WhenTheLocaleIsNull_Throws()
+    {
+        var builder = new ServiceCollection().NewBuilder<OpenIdAuthenticationLibrary>();
+
+        Assert.Throws<ArgumentNullException>(() => builder.AddInteractiveLocale(null!));
+    }
+
     [Theory]
     [InlineData(null, "")]
     [InlineData("", "")]
@@ -290,5 +417,27 @@ public sealed class DefaultRegistrationTests : IDisposable
             .AddInteractiveAuthentication(configuration, hostEnvironment.Object);
 
         return serviceCollection.BuildServiceProvider();
+    }
+
+    private sealed record PlainLocale(string LanguageTag) : IUiLocale;
+
+    // The registered locales as the core catalog lists them; the registration under test resolves nothing else.
+    private sealed class StubUiLocaleCatalog(IEnumerable<IUiLocale> locales) : IUiLocaleCatalog
+    {
+        public IReadOnlyList<IUiLocale> Locales { get; } = [.. locales];
+
+        public bool TryGet(string languageTag, [MaybeNullWhen(false)] out IUiLocale locale) =>
+            throw new NotSupportedException();
+
+        public IUiLocale Select(
+            IReadOnlySettingCollection settings,
+            IEnumerable<string> preferredLanguageTags
+        ) => throw new NotSupportedException();
+
+        public IUiLocale Select(
+            IEnumerable<string> preferredLanguageTags,
+            IReadOnlyCollection<string>? supportedLanguageTags,
+            string? defaultLanguageTag
+        ) => throw new NotSupportedException();
     }
 }

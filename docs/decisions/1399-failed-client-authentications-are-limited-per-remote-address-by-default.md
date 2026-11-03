@@ -10,7 +10,8 @@
 
 A client authenticates at the token, pushed authorization, introspection, revocation, device authorization and
 backchannel authentication endpoints with a credential that a caller can guess online: a `client_secret` an operator
-supplied, an assertion signed with it, or simply a `client_id` that the server looks up. The server stores a supplied
+supplied, an assertion signed with it, or a certificate matched against a registration. A public client presents no
+credential: its `client_id` is not a secret (RFC 6749 §2.2), so a lookup that fails guesses nothing. The server stores a supplied
 secret as a PBKDF2 verifier and bounds the concurrent derivations
 ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), which bounds the processors
 a flood of guesses takes, not the number of guesses.
@@ -36,10 +37,11 @@ Brute-force protection is a correctness guard: it must hold while its store is u
 
 ## Decision
 
-**Every client-authentication handler asks `IClientAuthenticationAttemptLimiter` before it resolves a client or
-verifies a credential, and counts each credential or identifier it refuses. The default limiter counts failures in the
-shared `IExpiringCounterSet` per remote address and per remote address and `client_id`, with limits that hold by
-default, and refuses a partition at its limit until its window ends, the way a rate limit refuses.**
+**Every handler of a client-authentication method that verifies a credential asks
+`IClientAuthenticationAttemptLimiter` before it verifies one, and counts each credential it refuses; `none`, which
+verifies none, neither asks nor counts. The default limiter counts failures in the shared `IExpiringCounterSet` per
+remote address and per remote address and `client_id`, with limits that hold by default, and refuses a partition at its
+limit until its window ends, the way a rate limit refuses.**
 
 1. **The seam.** `IClientAuthenticationAttemptLimiter`, in `NCode.Identity.OpenId.Authentication.Abstractions`
    (namespace `NCode.Identity.OpenId.Authentication.Clients`), has `CheckAsync(OpenIdContext, string? clientId,
@@ -47,19 +49,31 @@ default, and refuses a partition at its limit until its window ends, the way a r
    `RecordFailureAsync(OpenIdContext, string? clientId, CancellationToken)`. The `client_id` is the unverified one the
    request presents, or null when it presents none that can be read. `DefaultClientAuthenticationAttemptLimiter` is
    registered by `AddClientServices()`.
-2. **Every handler asks first and counts every refusal.** `CommonClientAuthenticationHandler`, the base of every
-   built-in handler, asks the limiter in `ResolveClientAsync`, before the client is looked up; the mutual-TLS handlers
-   ask before their own lookup, and the assertion handlers ask before they refuse an assertion whose `iss` and `sub`
-   name no client. `FailAsync`, which every `invalid_client` a handler answers goes through, records the failure with
-   `CancellationToken.None`, so a caller that disconnects after it sends a guess is still counted. A verification that
-   the PBKDF2 gate refuses (`503`) is not counted, because the secret was never compared; a refusal at the limit is not
-   counted either, because it verifies nothing. A failure after a credential verified, such as a method the client is not
-   registered for that the authentication service refuses, is not a guess and is not counted.
+2. **A handler that verifies a credential asks first and counts every credential it refuses.**
+   `CommonClientAuthenticationHandler`, the base of every built-in handler, asks the limiter in `ResolveClientAsync`,
+   before the client is looked up, so a refused request of `client_secret_basic`, `client_secret_post`,
+   `private_key_jwt` or `client_secret_jwt` costs no lookup; the assertion handlers also ask before they refuse an
+   assertion whose `iss` and `sub` name no client. The mutual-TLS handlers ask once the resolved client's registration
+   says the request is theirs, because until then a request that carries only a `client_id` is a public client's as
+   much as a mutual-TLS client's, so a refusal is audited with the method the client is registered for and costs no
+   certificate verification. `FailAsync`, which every refused credential goes through, the identifier of a client that
+   cannot be found included, counts the failure first, with `CancellationToken.None` and before the audit, so a caller
+   that disconnects after it sends a guess is still counted even when a replaced audit recorder honours the request's
+   cancellation. Nothing that verifies no credential is counted: a `none` authentication, since a public client's
+   `client_id` is no secret and refusing it would only deny the public clients behind an address (`VerifiesCredential`
+   is `false` for its handler, so it neither asks nor counts); a Basic header that is empty, not Base64 or without a
+   colon, which carries no secret and is answered `invalid_client` without an audit or a count; a verification that the
+   PBKDF2 gate refuses (`503`), because the secret was never compared; a refusal at the limit; and a failure after a
+   credential verified, such as a method the client is not registered for that the authentication service refuses,
+   which is not a guess.
 3. **Two partitions, never the `client_id` alone.** One counter holds the failures of a remote address for every
    `client_id`, limited by `client_authentication_failed_attempts_address_limit`, and one the failures of the remote
    address with one `client_id`, limited by `client_authentication_failed_attempts_limit`. An address is partitioned as
    the request rate limiter partitions it: an IPv6 address by its `/64`, and an IPv4-mapped address as the IPv4 address
-   it maps (`RemoteAddressPartition`). A request without a remote address is not limited. A caller at another address
+   it maps (`RemoteAddressPartition`). A request without a remote address, which a host sees when its proxy does not
+   forward the client's address or Kestrel listens on a socket, is not limited, and the limiter logs
+   `ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress` (event 2073) at `Warning` once per process, naming the
+   tenant, so the operator learns that the limit is off. A caller at another address
    can never refuse a client's own requests, so the limit is no lockout lever; the address partition bounds one address
    that tries many `client_id`s, and the narrower partition bounds one address that guesses one client's credential.
 4. **Fixed windows that hold by default.** The counters count in fixed windows of
@@ -121,6 +135,19 @@ default, and refuses a partition at its limit until its window ends, the way a r
   exactly when an attacker can cause one (project-template ADR-0144).
 - **Audit only the failure that reaches a limit.** Rejected: an operator investigating a refused client needs each
   refusal, and the refused requests are already published as `openid.error`; a refusal costs no verification.
+- **Refuse and count a public client's `none` authentication too.** Rejected: it verifies no credential, so a refusal
+  protects nothing, while an attacker behind the carrier-grade NAT or corporate egress of a public client's users could
+  send a hundred invented `client_id`s a window and deny every code exchange and refresh of every user behind that
+  address; and a failed lookup of a public `client_id` guesses nothing worth bounding. A credential-bearing request from
+  the same address is still refused at the limit, which is the address's own exposure.
+- **Count a Basic header that carries no credential.** Rejected: nothing is verified, so there is nothing to bound, and
+  the request is already answered `invalid_client` and published as `openid.error`.
+- **Ask the limiter before the mutual-TLS lookup.** Rejected: the handler owns the request only once the resolved
+  client's registration says so, so an earlier refusal would be audited with a mutual-TLS method for a public client
+  that never used one, and would refuse public clients, which the first option rejects.
+- **Fail client authentication, or the host, without a remote address.** Rejected: a host that listens on a socket in a
+  trusted network has none by design, and an in-process test host has none; a warning tells the operator the limit is
+  off without refusing a legitimate deployment.
 
 ## Consequences
 
@@ -128,9 +155,12 @@ default, and refuses a partition at its limit until its window ends, the way a r
   authenticates a client, without a per-`client_id` lockout.
 - Every client authentication from an address costs one read of the shared state, and each failure one batched write;
   on Valkey each is a round trip.
-- Every client behind one address shares the address's allowance: an attacker behind a client's NAT gateway can make
-  that client wait until the window ends. A host behind a reverse proxy must forward the client's address
-  (`ReverseProxy`), or every caller shares the proxy's address.
+- Every confidential client behind one address shares the address's allowance: an attacker behind a client's NAT
+  gateway can make that client wait until the window ends. A public client is never refused. A host behind a reverse
+  proxy must forward the client's address (`ReverseProxy`), or every caller shares the proxy's address; a host that
+  sees no remote address at all is not limited, and its log says so once.
+- A failed lookup of a public `client_id` is not bounded; the response tells a caller whether a `client_id` exists and
+  is public, which a public `client_id` reveals anyway.
 - Concurrent failures can exceed a limit by the number in flight, because the count is read before the verification and
   incremented after it.
 - An outage of the shared state fails client authentication.

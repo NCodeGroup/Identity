@@ -17,8 +17,9 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// <c>self_signed_tls_client_auth</c>) defined by <see href="https://datatracker.ietf.org/doc/html/rfc8705">RFC 8705</see>
 /// §2. The client presents its <c>client_id</c> in the token request and a client certificate on the mutual-TLS
 /// connection; the handler owns the request only when the resolved client is registered for this handler's method,
-/// then verifies the presented certificate against the client's registration and promotes the client to a confidential
-/// client on success. The two concrete handlers differ only in how they match the certificate: <c>tls_client_auth</c>
+/// then asks the limit of failed client authentications, verifies the presented certificate against the client's
+/// registration and promotes the client to a confidential client on success. The two concrete handlers differ only in
+/// how they match the certificate: <c>tls_client_auth</c>
 /// matches the certificate's subject DN / SAN against the client's registered metadata (PKI); whereas
 /// <c>self_signed_tls_client_auth</c> matches the certificate against one of the client's registered certificates by
 /// thumbprint.
@@ -88,11 +89,6 @@ internal abstract class MutualTlsClientAuthenticationHandler(
 
         var clientId = clientIdValues.ToString();
 
-        // Asked before the client is resolved, so a request refused at the limit costs no lookup. See ADR-1399.
-        var refusal = await RejectIfAttemptLimitedAsync(openIdContext, clientId, cancellationToken);
-        if (refusal is { } refused)
-            return refused;
-
         OpenIdClient? publicClient;
         try
         {
@@ -129,7 +125,13 @@ internal abstract class MutualTlsClientAuthenticationHandler(
             return ClientAuthenticationResult.Undefined;
         }
 
-        // From here the request is owned by this handler: any failure is a conclusive invalid_client.
+        // From here the request is owned by this handler: any failure is a conclusive invalid_client. The limit is asked
+        // only here, once the registration says the request is this method's and not a public client's, so a refusal is
+        // audited with the method the client is registered for and costs no certificate verification. See ADR-1399.
+        var refusal = await RejectIfAttemptLimitedAsync(openIdContext, clientId, cancellationToken);
+        if (refusal is { } refused)
+            return refused;
+
         var rejection = await RejectUnlessPermittedAsync(
             openIdContext,
             publicClient,

@@ -20,9 +20,11 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// <summary>
 /// Provides a common base for <see cref="IClientAuthenticationHandler"/> implementations. A handler authenticates only
 /// a client registered to use its <see cref="AuthenticationMethod"/> whose ceiling permits it, so the credential a client
-/// presents never authenticates it with a method other than the one it is registered for. Before a handler resolves a
-/// client or verifies a credential it asks the <see cref="IClientAuthenticationAttemptLimiter"/> whether the request's
-/// remote address may still try, and every failure it reports is counted.
+/// presents never authenticates it with a method other than the one it is registered for. Before a handler of a method
+/// that verifies a credential resolves the client or verifies the credential, it asks the
+/// <see cref="IClientAuthenticationAttemptLimiter"/> whether the request's remote address may still try, and every
+/// failure it reports is counted; a handler of a method that verifies none (<see cref="VerifiesCredential"/>) neither
+/// asks nor counts.
 /// </summary>
 // See ADR-1145 and ADR-1399.
 internal abstract class CommonClientAuthenticationHandler(
@@ -67,6 +69,15 @@ internal abstract class CommonClientAuthenticationHandler(
     /// <inheritdoc />
     public abstract string AuthenticationMethod { get; }
 
+    /// <summary>
+    /// Gets whether this handler's method verifies a credential, which the limit of failed client authentications bounds
+    /// the guessing of. The default is <see langword="true"/>. A handler of a method that verifies none, such as
+    /// <c>none</c>, whose <c>client_id</c> is no secret, is neither refused at the limit nor counted, so an address at
+    /// its limit cannot deny the public clients behind it.
+    /// </summary>
+    // See ADR-1399.
+    protected virtual bool VerifiesCredential => true;
+
     /// <inheritdoc />
     public abstract ValueTask<ClientAuthenticationResult> AuthenticateClientAsync(
         OpenIdContext openIdContext,
@@ -95,8 +106,8 @@ internal abstract class CommonClientAuthenticationHandler(
     /// Refuses the request when its remote address, or its remote address and <paramref name="clientId"/>, reached the
     /// tenant's limit of failed client authentications: the refusal is audited and answered with
     /// <c>429 Too Many Requests</c>, <c>temporarily_unavailable</c> and a <c>Retry-After</c> until the window ends, as a
-    /// rate limit answers. A handler calls this before it resolves the client or verifies a credential, so a refused
-    /// request costs no verification and reveals nothing about the credential.
+    /// rate limit answers. A handler calls this before it verifies a credential, so a refused request costs no
+    /// verification and reveals nothing about the credential; a handler whose method verifies none never refuses.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="clientId">Contains the unverified client identifier, or <see langword="null"/> when the request names
@@ -111,6 +122,9 @@ internal abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
+        if (!VerifiesCredential)
+            return null;
+
         var decision = await AttemptLimiter.CheckAsync(openIdContext, clientId, cancellationToken);
         if (decision.RetryAfter is not { } retryAfter)
             return null;
@@ -130,9 +144,9 @@ internal abstract class CommonClientAuthenticationHandler(
 
     /// <summary>
     /// Resolves the client named by <paramref name="clientId"/>, once the request is not refused at the limit of failed
-    /// client authentications. The result contains the client, the refusal, or the conclusive <c>invalid_client</c>
-    /// failure when no enabled client with that identifier belongs to the tenant or its stored credentials cannot be
-    /// read.
+    /// client authentications, so a refused request costs no lookup. The result contains the client, the refusal, or
+    /// the conclusive <c>invalid_client</c> failure when no enabled client with that identifier belongs to the tenant or
+    /// its stored credentials cannot be read.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="clientId">Contains the client identifier.</param>
@@ -253,9 +267,10 @@ internal abstract class CommonClientAuthenticationHandler(
     }
 
     /// <summary>
-    /// Records a failed client authentication, audits it and counts it against the limit of failed client
-    /// authentications, and creates the <c>invalid_client</c> result for it. The failure is counted even when the
-    /// request is cancelled, so a caller that disconnects after it presents a guess does not skip the count.
+    /// Records a failed client authentication: counts it against the limit of failed client authentications when this
+    /// handler's method verifies a credential, audits it, and creates the <c>invalid_client</c> result for it. The
+    /// failure is counted first and with no cancellation token, before the audit, which a replaced recorder may cancel,
+    /// so a caller that disconnects after it presents a guess does not skip the count.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="clientId">Contains the unverified identifier of the client that failed to authenticate, or
@@ -271,6 +286,13 @@ internal abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
+        if (VerifiesCredential)
+            await AttemptLimiter.RecordFailureAsync(
+                openIdContext,
+                clientId,
+                CancellationToken.None
+            );
+
         await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
             openIdContext,
             clientId ?? UnknownClientId,
@@ -278,7 +300,6 @@ internal abstract class CommonClientAuthenticationHandler(
             reason,
             cancellationToken
         );
-        await AttemptLimiter.RecordFailureAsync(openIdContext, clientId, CancellationToken.None);
         return CreateInvalidClientResult(openIdContext);
     }
 

@@ -52,8 +52,10 @@ when the host starts; empty, the default, asks every registered source in the de
    receives every registered source, the catalog and the options, and asks the sources that `Sources` names in its
    order, or every described source in the default order when it is empty; a source the selection leaves out is never
    asked. The first answer that is not `Unknown` decides. Its constructor refuses a source that
-   no descriptor names, two sources of one name, and a descriptor without a source, so a registration that does not
-   correspond fails the first resolution of the checker rather than skipping a source.
+   no descriptor names, two sources of one name, and a descriptor without a source, and the hosted
+   `ClientCertificateRevocationCheckerWarmup` resolves the checker as the host starts, after the options are
+   validated, so a registration that does not correspond stops the host rather than skipping a source or failing the
+   first mutual-TLS authentication ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
 5. **ADR-1259 is amended.** Its decision 2 asks the sources in the configured order or the descriptors' default order,
    not in registration order, and the option it deferred is this decision. A host replaces the checker only to combine
    the sources other than by asking them in turn.
@@ -79,8 +81,9 @@ when the host starts; empty, the default, asks every registered source in the de
 - A deployment that cannot reach its OCSP responders configures `Sources` as `crl` alone and never waits for a
   responder; one that trusts its CRLs first configures `crl`, `ocsp`.
 - A package that adds a source registers its descriptor with it, and the source can be named in configuration at once;
-  a source without a descriptor fails the checker's construction.
+  a source without a descriptor, or a descriptor without a source, stops the host when it starts.
 - A misspelled or repeated source name stops the host when it starts.
+- The host constructs every revocation source as it starts, so a source's own dependencies must resolve then.
 - The selection is one for the whole server.
 - This implements issue [#38](https://github.com/NCodeGroup/Identity/issues/38).
 

@@ -660,4 +660,14 @@ internal static partial class Log
         int limit,
         TimeSpan window
     );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress,
+        Level = LogLevel.Warning,
+        Message = "A client authentication to tenant '{TenantId}' has no remote address, so the limit of failed client authentications does not apply to it; a host behind a reverse proxy forwards the client's address through its 'ReverseProxy' section. This is logged once per process."
+    )]
+    internal static partial void ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress(
+        this ILogger logger,
+        string tenantId
+    );
 }

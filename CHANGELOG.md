@@ -3645,9 +3645,14 @@ describes the family as it is rather than its changes
   ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **Failed client authentications are limited per remote address by default, without a per-client lockout.** Every
-  client-authentication handler asks `IClientAuthenticationAttemptLimiter` before it resolves a client or verifies a
-  credential, at every endpoint that authenticates a client, and counts each credential or identifier it refuses. The
-  default limiter counts failures in the shared `IExpiringCounterSet`, so the limits hold across replicas, in fixed
+  handler of a client-authentication method that verifies a credential asks `IClientAuthenticationAttemptLimiter`
+  before it verifies one, at every endpoint that authenticates a client, and counts each credential it refuses, the
+  identifier of a client it cannot find included, before it audits the failure and with no cancellation token, so a
+  caller that disconnects after a guess is counted. A public client's `none` authentication verifies no credential, so
+  it is neither refused at the limit nor counted, and an address at its limit cannot deny the public clients behind it;
+  a Basic header that carries no credential is answered without a count. The mutual-TLS handlers ask once the resolved
+  client's registration says the request is theirs, so a refusal is audited with the method the client is registered
+  for. The default limiter counts failures in the shared `IExpiringCounterSet`, so the limits hold across replicas, in fixed
   windows of `client_authentication_failed_attempts_window` (15 minutes by default, one minute to one day) and in two
   partitions: one remote address with one `client_id`, limited by `client_authentication_failed_attempts_limit` (10 by
   default, at most 100), and one remote address across every `client_id`, limited by
@@ -3658,7 +3663,9 @@ describes the family as it is rather than its changes
   verifies nothing and is answered as a rate limit answers: `429 Too Many Requests` with `temporarily_unavailable`, a
   `Retry-After` until the window ends and `Cache-Control: no-store`; it is audited as a `client.authentication` failure
   with the error code `attempt_limit_reached`, logged as event 2072 without the address or the `client_id`, and not
-  recorded as usage. A shared state that cannot be reached fails client authentication rather than admitting unlimited
+  recorded as usage. A request without a remote address is not limited, and the first one logs event 2073 at
+  `Warning`, so a host whose proxy does not forward the client's address learns that the limit is off. A shared state
+  that cannot be reached fails client authentication rather than admitting unlimited
   guesses ([ADR-1399](docs/decisions/1399-failed-client-authentications-are-limited-per-remote-address-by-default.md),
   [#533](https://github.com/NCodeGroup/Identity/issues/533)).
 
@@ -4021,7 +4028,9 @@ describes the family as it is rather than its changes
   `ClientCertificateRevocationSourceDescriptor` of the same name (`ClientCertificateRevocationSourceNames` names the
   built-in `ocsp` and `crl`), collected by `IClientCertificateRevocationSourceCatalog`, so a package adds a source with
   its descriptor and the configured names are validated when the host starts without constructing a source: a name no
-  descriptor registers, or a name listed twice, stops the host. With no sources configured, every registered source is
+  descriptor registers, or a name listed twice, stops the host, and so does a registered source that no descriptor
+  names or a descriptor without a source, which the host finds as it resolves the checker at start. With no sources
+  configured, every registered source is
   asked in its descriptor's default order, `ocsp` then `crl`, and a deployment that cannot reach its PKI's OCSP
   responders configures `crl` alone so it never waits for a responder's timeout. The `ocsp`
   source queries the responders that the certificate's authority information access names (RFC 6960 with the RFC 5019

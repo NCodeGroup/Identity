@@ -4,6 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Registration;
@@ -95,6 +96,15 @@ internal static class DefaultRegistration
                 IClientCertificateRevocationChecker,
                 DefaultClientCertificateRevocationChecker
             >();
+
+            // The host constructs the checker as it starts, so a source and descriptor that do not correspond stop the
+            // host rather than the first mutual-TLS authentication. See ADR-1400.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IHostedService,
+                    ClientCertificateRevocationCheckerWarmup
+                >()
+            );
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

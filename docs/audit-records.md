@@ -173,7 +173,7 @@ The recorder states the actor explicitly for each event, so the actor does not d
 | `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. |
 | `administrator` | The administrator's subject id, when known | Every management event. The subject id is read with the server-default claim types, not the request tenant's setting.                                      |
 | `system`        | None                                       | `session.terminated`; its `details.termination_reason` says why. No caller acted.                                                                          |
-| `anonymous`     | None                                       | `subject.authentication` on failure and `openid.error`: the caller is not identified.                                                                      |
+| `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                      |
 
 ### Resource types
 

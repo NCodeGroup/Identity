@@ -155,6 +155,8 @@ public class NoneClientAuthenticationHandlerTests : ClientAuthenticationHandlerT
     [Fact]
     public async Task AuthenticateClientAsync_WhenTheClientIsUnknown_ReturnsInvalidClient()
     {
+        // A public client presents no credential, so the strict limiter proves the request is neither asked about nor
+        // counted, on this path and on every other of this handler. See ADR-1399.
         SetupClientIdForm();
         SetupErrorFactory();
         SetupTenant();

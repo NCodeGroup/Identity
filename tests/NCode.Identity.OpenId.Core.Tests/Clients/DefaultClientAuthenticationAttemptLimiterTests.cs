@@ -3,6 +3,7 @@
 
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -127,6 +128,30 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
         );
 
         Assert.False(decision.IsRejected);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WithoutARemoteAddress_WarnsOnce()
+    {
+        // The limit is off for every request such a host sees, so the operator is told once, never per request.
+        var mockCounterSet = CreateStrictMock<IExpiringCounterSet>();
+        var limiter = new DefaultClientAuthenticationAttemptLimiter(
+            mockCounterSet.Object,
+            TimeProvider,
+            Logger
+        );
+
+        await limiter.CheckAsync(CreateContext(null), ClientId, CancellationToken.None);
+        await limiter.RecordFailureAsync(CreateContext(null), ClientId, CancellationToken.None);
+        await limiter.CheckAsync(CreateContext(null), ClientId, CancellationToken.None);
+
+        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        Assert.Equal(
+            EventIds.ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress,
+            record.Id.Id
+        );
+        Assert.Equal(LogLevel.Warning, record.Level);
+        Assert.Contains(TenantId, record.Message, StringComparison.Ordinal);
     }
 
     [Fact]

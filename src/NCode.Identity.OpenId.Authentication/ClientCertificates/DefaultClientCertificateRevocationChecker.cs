@@ -14,7 +14,8 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// <see cref="ClientCertificateRevocationStatus.Unknown"/> when every selected source is inconclusive. The constructor
 /// throws an <see cref="InvalidOperationException"/> unless every registered source has a
 /// <see cref="ClientCertificateRevocationSourceDescriptor"/>, no two sources share a name, and every described source is
-/// registered.
+/// registered; <see cref="ClientCertificateRevocationCheckerWarmup"/> resolves it as the host starts, so such a
+/// registration stops the host.
 /// </summary>
 // See ADR-1259 and ADR-1400.
 internal sealed class DefaultClientCertificateRevocationChecker(

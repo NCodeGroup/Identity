@@ -8,7 +8,6 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
-using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Verifiers;
 using Xunit;
@@ -155,8 +154,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             ceiling: null,
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("authentication_method_not_registered");
+        SetupFailureCounted();
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -177,8 +178,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             ceiling: null,
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("authentication_method_not_registered");
+        SetupFailureCounted();
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -199,8 +202,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             [OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt],
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("authentication_method_not_permitted");
+        SetupFailureCounted();
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -220,8 +225,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             [new FakeSecretVerifier("verifier-1", "another-secret")],
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("invalid_client_secret");
+        SetupFailureCounted();
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -233,35 +240,12 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
     }
 
     [Fact]
-    public async Task AuthenticateClientAsync_WhenTheRegisteredClientPresentsAnUnknownSecret_CountsTheFailure()
-    {
-        SetupCredentialsForm();
-        SetupErrorFactory();
-        var client = CreateRegisteredClient(
-            [new FakeSecretVerifier("verifier-1", "another-secret")],
-            readsClientId: true
-        );
-        SetupResolvedClient(client);
-        SetupAudit("invalid_client_secret");
-        MockAttemptLimiter
-            .Setup(x => x.RecordFailureAsync(MockContext.Object, ClientId, CancellationToken.None))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        var handler = CreateHandler();
-
-        await handler.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
-    }
-
-    [Fact]
     public async Task AuthenticateClientAsync_WhenTheAttemptLimitIsReached_RefusesBeforeResolvingTheClient()
     {
         // The strict resolver has no setup, so resolving the client or verifying a secret would fail the test.
         SetupCredentialsForm();
         SetupErrorFactory();
-        MockAttemptLimiter
-            .Setup(x => x.CheckAsync(MockContext.Object, ClientId, CancellationToken.None))
-            .ReturnsAsync(new RateLimitDecision(TimeSpan.FromSeconds(90.5)))
-            .Verifiable();
+        SetupAttemptRefused();
         SetupAudit("attempt_limit_reached");
         var handler = CreateHandler();
 
@@ -270,13 +254,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             CancellationToken.None
         );
 
-        Assert.True(result.IsError);
-        Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, result.Error.Code);
-        Assert.Equal(StatusCodes.Status429TooManyRequests, result.Error.StatusCode);
-        var headers = result.Error.ResponseHeaders;
-        Assert.NotNull(headers);
-        Assert.Equal("91", headers[HeaderNames.RetryAfter].ToString());
-        Assert.Equal("no-store", headers[HeaderNames.CacheControl].ToString());
+        AssertAttemptLimitRefusal(result);
     }
 
     [Fact]
@@ -291,6 +269,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             ],
             readsClientId: false
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         var expected = SetupConfidentialClient(client, "verifier-2");
         var handler = CreateHandler();
@@ -313,8 +292,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             [new FakeSecretVerifier("verifier-1", "presented-secret-2")],
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("invalid_client_secret");
+        SetupFailureCounted();
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(
@@ -336,6 +317,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             [costly, new FakeSecretVerifier("verifier-2", "presented-secret")],
             readsClientId: false
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         var expected = SetupConfidentialClient(client, "verifier-2");
         var handler = CreateHandler();
@@ -359,6 +341,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             [new FakeSecretVerifier("verifier-2", "presented-secret", hasWorkFactor: true), cheap],
             readsClientId: false
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         var expected = SetupConfidentialClient(client, "verifier-2");
         var handler = CreateHandler();
@@ -390,6 +373,7 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             ],
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("secret_verification_unavailable");
         var handler = CreateHandler();

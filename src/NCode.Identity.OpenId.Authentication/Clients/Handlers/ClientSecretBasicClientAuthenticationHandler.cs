@@ -123,7 +123,9 @@ internal class ClientSecretBasicClientAuthenticationHandler(
         var encodedCredentials = authorizationValue[prefix.Length..].Trim();
         if (encodedCredentials.IsEmpty)
             // The client attempted Basic authentication but supplied no credentials; this is a failed
-            // authentication (invalid_client), which RFC 6749 §5.2 requires be answered with a 401 challenge.
+            // authentication (invalid_client), which RFC 6749 §5.2 requires be answered with a 401 challenge. A header
+            // that carries no credential verifies nothing, so it is answered without a count against the limit of
+            // failed client authentications, as the two malformed shapes below are. See ADR-1399.
             return CreateInvalidClientResult(openIdContext);
 
         return await AuthenticateCredentialsAsync(

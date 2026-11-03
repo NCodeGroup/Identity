@@ -11,9 +11,11 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Limits the failed client authentications that one remote address may make, so a client's credential can be
 /// guessed online only a limited number of times. Failures are counted per remote address and per remote address and
 /// <c>client_id</c>, never per <c>client_id</c> alone, so a caller that knows a client's identifier cannot refuse the
-/// client's own requests from another address. Every client-authentication handler asks <see cref="CheckAsync"/> before
-/// it resolves a client or verifies a credential, and calls <see cref="RecordFailureAsync"/> for each credential or
-/// identifier it refuses; a request refused at the limit is not counted.
+/// client's own requests from another address. Every handler of a client-authentication method that verifies a
+/// credential asks <see cref="CheckAsync"/> before it verifies one, and calls <see cref="RecordFailureAsync"/> for each
+/// credential it refuses, the identifier of a client it cannot find included; a request refused at the limit is not
+/// counted. A <c>none</c> authentication verifies no credential, so it is neither refused nor counted, and a credential
+/// too malformed to carry a secret, such as a Basic header that is empty, is answered without a count.
 /// </summary>
 // See ADR-1399.
 [PublicAPI]

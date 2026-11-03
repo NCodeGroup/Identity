@@ -19,8 +19,9 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// that start at multiples of the window's length, in two partitions: the request's remote address, limited by
 /// <c>client_authentication_failed_attempts_address_limit</c>, and the remote address with the presented
 /// <c>client_id</c>, limited by <c>client_authentication_failed_attempts_limit</c>. A partition at its limit refuses
-/// every client authentication it covers until its window ends. A request without a remote address is not limited. A
-/// counter store that throws propagates the exception, so the limit fails closed.
+/// every client authentication it covers until its window ends. A request without a remote address is not limited,
+/// and the first such request logs a warning, so a host whose proxy does not forward the client's address learns that
+/// the limit is off. A counter store that throws propagates the exception, so the limit fails closed.
 /// </summary>
 /// <remarks>
 /// Every failure increments both counters of its window together, so the count of an address and a <c>client_id</c>
@@ -50,6 +51,9 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
 
     private static object ItemKey { get; } = new();
 
+    // Set once the warning about a request without a remote address is logged, so a flood of such requests logs one.
+    private int _warnedWithoutRemoteAddress;
+
     private IExpiringCounterSet CounterSet { get; } = counterSet;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -65,7 +69,10 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
     {
         var httpContext = openIdContext.Http;
         if (httpContext.Connection.RemoteIpAddress is not { } address)
+        {
+            WarnWithoutRemoteAddress(openIdContext);
             return RateLimitDecision.Admitted;
+        }
 
         var tenantId = openIdContext.Tenant.TenantId;
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
@@ -124,7 +131,10 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
     {
         var httpContext = openIdContext.Http;
         if (httpContext.Connection.RemoteIpAddress is not { } address)
+        {
+            WarnWithoutRemoteAddress(openIdContext);
             return;
+        }
 
         var tenantId = openIdContext.Tenant.TenantId;
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
@@ -170,6 +180,16 @@ internal sealed class DefaultClientAuthenticationAttemptLimiter(
             state.AddressCount = counts[0].Count;
         if (clientId is not null && counts.Count > 1)
             state.ClientCounts[clientId] = counts[1].Count;
+    }
+
+    // The limit is off for every request of a host that sees no remote address, so the operator is told once per
+    // process, never per request.
+    private void WarnWithoutRemoteAddress(OpenIdContext openIdContext)
+    {
+        if (Interlocked.Exchange(ref _warnedWithoutRemoteAddress, 1) == 0)
+            Logger.ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress(
+                openIdContext.Tenant.TenantId
+            );
     }
 
     private RateLimitDecision Refuse(

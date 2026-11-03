@@ -38,8 +38,12 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
     /// <c>EC</c> curves, into one <see cref="AlgorithmKeyType"/> with the curves of both, so a package can add an
     /// agreement over another curve of a key type the core already serves. The key types keep the order the agreements
     /// were registered in: the core's first, through <c>AddJoseLibrary()</c>, then each package's in the order the host
-    /// adds them.
+    /// adds them. The agreements of one key type either all name their curves or all name sizes only: an agreement
+    /// without curves accepts every curve of its sizes, so beside one on curves the merged key type could list no curve,
+    /// and the composition fails.
     /// </summary>
+    /// <exception cref="InvalidOperationException">An agreement that names curves and one that does not serve the same
+    /// key type.</exception>
     private static AlgorithmKeyType[] MergeKeyTypes(IEnumerable<IEcdhKeyAgreement> keyAgreements) =>
         [
             .. keyAgreements
@@ -54,18 +58,30 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
                         return keyTypes[0];
                     }
 
-                    // A key type whose agreement does not restrict the curve accepts every curve of its sizes.
-                    return keyTypes.Any(keyType => keyType.Curves.Count == 0)
-                        ? new AlgorithmKeyType(
+                    var onCurves = keyTypes.Count(keyType => keyType.Curves.Count > 0);
+                    if (onCurves == 0)
+                    {
+                        return new AlgorithmKeyType(
                             group.Key,
                             keyTypes.SelectMany(keyType => keyType.KeyBitSizes)
-                        )
-                        : AlgorithmKeyType.OnCurves(
-                            group.Key,
-                            keyTypes
-                                .SelectMany(keyType => keyType.Curves)
-                                .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
                         );
+                    }
+
+                    if (onCurves != keyTypes.Count)
+                    {
+                        throw new InvalidOperationException(
+                            $"The ECDH key agreements for the key type '{group.Key.FullName}' mix agreements that "
+                                + "name their curves with agreements that do not; every agreement for one key type "
+                                + "names its curves, or none does."
+                        );
+                    }
+
+                    return AlgorithmKeyType.OnCurves(
+                        group.Key,
+                        keyTypes
+                            .SelectMany(keyType => keyType.Curves)
+                            .DistinctBy(curve => curve.Name, StringComparer.Ordinal)
+                    );
                 }),
         ];
 

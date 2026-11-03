@@ -145,6 +145,27 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
         ) => throw new NotSupportedException();
     }
 
+    // An agreement over EC keys of 256 bits that names no curve, so it accepts every 256-bit curve.
+    private sealed class SizedEccEcdhKeyAgreement : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            new(typeof(EccSecretKey), [new KeySizes(minSize: 256, maxSize: 256, skipSize: 0)]);
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) => 32;
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
     // A key on a curve the application registers in the elliptic-curve catalog, which names it.
     private static EccSecretKey CreateBrainpoolKey()
     {
@@ -171,6 +192,24 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             keyType.Curves.Select(curve => curve.Name)
         );
         Assert.True(keyType.IsLegalSize(521));
+    }
+
+    // A merged key type without curves would accept every curve of its sizes and list none.
+    [Fact]
+    public void Constructor_WhenAgreementsOfOneKeyTypeMixCurvesAndSizesOnly_Throws()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new EcdhKeyManagementAlgorithm(
+                SecretKeyTypeCatalog,
+                [new EccEcdhKeyAgreement(), new SizedEccEcdhKeyAgreement()]
+            )
+        );
+
+        Assert.Contains(
+            typeof(EccSecretKey).FullName!,
+            exception.Message,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

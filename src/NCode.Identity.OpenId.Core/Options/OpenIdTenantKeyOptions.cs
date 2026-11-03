@@ -20,10 +20,11 @@ public sealed class OpenIdTenantKeyOptions
     public string Algorithm { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the size, in bits, of the key to generate, or <c>null</c> to take the size of <see cref="Curve"/>
-    /// or, without one, the smallest size the algorithm accepts. The size must be one the algorithm accepts. For a key
-    /// type with curves and no <see cref="Curve"/>, the key is generated on the first curve the algorithm accepts that
-    /// has this size, such as X448 for a 448-bit <c>OKP</c> key for <c>ECDH-ES</c>.
+    /// Gets or sets the size, in bits, of the key to generate, or <c>null</c> to take the size of the key's curve,
+    /// <see cref="Curve"/> or, without one, the algorithm's first curve, or, for a key type without curves, the
+    /// smallest size the algorithm accepts. The size must be one the algorithm accepts. For a key type with curves and
+    /// no <see cref="Curve"/>, the key is generated on the first curve the algorithm accepts that has this size, such
+    /// as X448 for a 448-bit <c>OKP</c> key for <c>ECDH-ES</c>.
     /// </summary>
     public int? KeySizeBits { get; set; }
 
@@ -32,7 +33,8 @@ public sealed class OpenIdTenantKeyOptions
     /// <c>X25519</c>), or <c>null</c> to generate it on the first curve the algorithm accepts that has
     /// <see cref="KeySizeBits"/>, or on the algorithm's first curve when no size is set either. The curve must be one
     /// the algorithm accepts for the key type, and <see cref="KeySizeBits"/>, when set, must be its size. It selects
-    /// among curves that share a size, such as a contributed curve beside <c>P-256</c> for <c>ECDH-ES</c>.
+    /// among curves that share a size, such as a contributed curve beside <c>P-256</c> for <c>ECDH-ES</c>. A stored key
+    /// satisfies this key only when it is on the curve this key is generated on.
     /// </summary>
     // See ADR-1389.
     public string? Curve { get; set; }

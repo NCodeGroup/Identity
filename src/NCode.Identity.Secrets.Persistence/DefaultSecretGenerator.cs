@@ -33,11 +33,7 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
         }
 
         var material = descriptor.GenerateKeyMaterial(
-            new SecretKeyGenerationParameters
-            {
-                KeySizeBits = request.KeySizeBits,
-                Curve = request.Curve,
-            },
+            request.GenerationParameters,
             bytes =>
                 protector.ProtectToString(
                     bytes,
@@ -75,7 +71,13 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
             );
         }
 
-        if (request.KeySizeBits <= 0 || request.KeySizeBits % 8 != 0)
+        var entropyBits = request.GenerationParameters.KeySizeBits;
+        if (request.GenerationParameters.Curve is not null)
+        {
+            throw new ArgumentException("A shared secret has no curve.", nameof(request));
+        }
+
+        if (entropyBits <= 0 || entropyBits % 8 != 0)
         {
             throw new ArgumentException(
                 "The shared-secret entropy size (in bits) must be a positive multiple of 8.",
@@ -83,7 +85,7 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
             );
         }
 
-        if (request.KeySizeBits < SharedSecretPolicy.MinimumEntropyBits)
+        if (entropyBits < SharedSecretPolicy.MinimumEntropyBits)
         {
             throw new ArgumentException(
                 $"A shared secret must have at least {SharedSecretPolicy.MinimumEntropyBits} bits of entropy.",
@@ -93,7 +95,7 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
 
         // The opaque secret string is what an external party holds and later presents; its UTF-8 bytes are stored as
         // the symmetric key material so a UTF-8 comparison of the presented secret against the stored material matches.
-        var entropyByteLength = request.KeySizeBits >> 3;
+        var entropyByteLength = entropyBits >> 3;
         using var entropyLease = BufferFactory.Rent(
             entropyByteLength,
             isSensitive: true,

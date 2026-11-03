@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -1348,7 +1349,10 @@ internal class DefaultClientRegistrationEndpointHandler(
                 {
                     SecretId = CryptoService.GenerateResourceId(),
                     SecretType = SecretTypes.Symmetric,
-                    KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
+                    GenerationParameters = new SecretKeyGenerationParameters
+                    {
+                        KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
+                    },
                     Use = null,
                     Algorithm = null,
                     CreatedWhen = createdWhen,

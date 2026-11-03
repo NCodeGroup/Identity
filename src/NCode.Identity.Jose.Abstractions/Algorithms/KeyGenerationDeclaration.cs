@@ -6,10 +6,10 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Jose.Algorithms;
 
 /// <summary>
-/// Describes a key to generate for an algorithm, or a key whose material is not at hand, by its runtime type and,
-/// optionally, its size and curve, together with the use and the algorithm declared for it. <see
-/// cref="AlgorithmCollectionExtensions"/> resolves it against the registered algorithms into a <see
-/// cref="ResolvedKeyGeneration"/>, filling in the size and the curve the algorithm prefers when they are not given.
+/// Describes a key to generate for an algorithm by its runtime type and, optionally, its size and curve, together with
+/// the use and the algorithm declared for it. <see cref="AlgorithmCollectionExtensions"/> resolves it against the
+/// registered algorithms into a <see cref="ResolvedKeyGeneration"/>, filling in the size and the curve the algorithm
+/// prefers when they are not given.
 /// </summary>
 [PublicAPI]
 public readonly record struct KeyGenerationDeclaration
@@ -20,14 +20,16 @@ public readonly record struct KeyGenerationDeclaration
     public required Type KeyClrType { get; init; }
 
     /// <summary>
-    /// Gets the size, in bits, of the key, or <c>null</c> to take the size of the named curve or, without one, the
-    /// first size the algorithm accepts.
+    /// Gets the size, in bits, of the key, or <c>null</c> to take the size of its curve: the named curve or, without
+    /// one, the algorithm's first curve; for a key type without curves, <c>null</c> takes the smallest size the
+    /// algorithm accepts.
     /// </summary>
     public int? KeySizeBits { get; init; }
 
     /// <summary>
     /// Gets the <c>JWK</c> <c>crv</c> name of the key's curve (for example <c>P-256</c> or <c>X25519</c>), or
-    /// <c>null</c> to take the first curve the algorithm accepts that has the key's size.
+    /// <c>null</c> to take the first curve the algorithm accepts that has the key's size. It must be <c>null</c> for a
+    /// key type the algorithm names no curve for.
     /// </summary>
     public string? Curve { get; init; }
 

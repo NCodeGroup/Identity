@@ -13,6 +13,7 @@ export const Create: Story = {
   args: {
     open: true,
     initialValues: { ...emptySecretFormValues, expiresWhen: '2027-01-01T00:00' },
+    secretTypes: ['symmetric', 'rsa', 'ecc'],
     onSubmit: () => undefined,
     onCancel: () => undefined,
   },
@@ -23,6 +24,7 @@ export const WithError: Story = {
     open: true,
     initialValues: { ...emptySecretFormValues, expiresWhen: '2027-01-01T00:00' },
     error: 'The secret could not be generated from the supplied parameters.',
+    secretTypes: ['symmetric', 'rsa', 'ecc'],
     onSubmit: () => undefined,
     onCancel: () => undefined,
   },

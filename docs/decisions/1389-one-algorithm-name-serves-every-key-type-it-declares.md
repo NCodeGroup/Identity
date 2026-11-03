@@ -51,7 +51,10 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
    is refused as ambiguous. Several agreements may therefore serve one key type, each over its own curves, so a package
    can add ECDH-ES over another curve of the `EC` key type, such as a Brainpool curve, without replacing the core's
    agreement. The algorithms' `KeyTypes` merge the agreements that serve one key type into one entry with all their
-   curves, and keep the order the agreements are registered in: `AddJoseLibrary()` registers the core's `EC` agreement
+   curves, and keep the order the agreements are registered in. The agreements of one key type all name their curves
+   or all name sizes only, and a mix fails composition: an agreement without curves accepts every curve of its sizes,
+   so the merged entry could list no curve, and a key would be generated and checked by its size alone. The order is
+   the registration order: `AddJoseLibrary()` registers the core's `EC` agreement
    over P-256, P-384 and P-521 first, and a package registers its agreement beside its key type through the JOSE
    library's builder, so the host's order of packages is the order of preference. The Concat KDF stays in the
    algorithm and stays SHA-256 for every key type
@@ -78,8 +81,12 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
    is registered, not only when it is first used. A key that is still to be generated is a `KeyGenerationDeclaration`
    (CLR type, optional size, optional curve), which `TryResolveKeyGeneration` resolves into a `ResolvedKeyGeneration`:
    for an entry on curves, the named curve, which the entry must list, or the first curve the entry lists with the
-   requested size, or its first curve, and the curve's size. Tenant key provisioning and management secret creation
-   share that resolver, so no path checks a curve-bound algorithm by type and size alone. The JWE decryption key check
+   requested size, or its first curve, and the curve's size; for an entry without curves, a declared curve is refused.
+   Tenant key provisioning and management secret creation share that resolver, so no path checks a curve-bound
+   algorithm by type and size alone. A held key of a type without curves whose material is not at hand, such as a
+   stored symmetric key whose metadata the management API updates, is a `KeySizeDeclaration` (CLR type and size), which
+   `ValidateKeySize` checks against the entry's sizes and refuses for an entry on curves, whose keys only the key itself
+   can show to fit. The JWE decryption key check
    asks `IsKeyCompatible` too, so a decryption key on the wrong curve is reported as the caller's configuration error;
    the check reads only the configured key, never the token
    ([RFC 7516 §11.5](https://datatracker.ietf.org/doc/html/rfc7516#section-11.5)). A policy that needs a family of
@@ -91,13 +98,16 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
    yields to the next. `OpenIdTenantKeyOptions.Curve`, when set, selects which of the entry's curves the key is
    generated on, so a contributed curve that shares a size with a NIST curve, such as a Brainpool curve for `ECDH-ES`,
    can be provisioned; unset, the resolver chooses it, so a 256-bit `OKP` key for `ECDH-ES` is an X25519 key and a
-   448-bit one an X448 key. An unset size is the curve's, or, for a key type without curves, the smallest the entry
-   accepts. A persisted key satisfies the specification only when its secret type is the specification's.
+   448-bit one an X448 key. An unset size is the size of the chosen curve, or, for a key type without curves, the
+   smallest the entry accepts. A persisted key satisfies the specification only when its secret type is the
+   specification's and, for a key type on curves, its curve, read from its stored public half, is the specification's
+   curve, whether that curve was configured or chosen by the resolver.
 7. **The capabilities document lists each secret type with its own sizes and curves.**
    `AlgorithmCapabilityResource.KeyTypes` lists `{ secretType, keyBitSizes, curves }` per compatible secret type, each
    curve with its `curveName` and `curveSizeBits`, in the algorithm's order of preference. The management console
    offers the secret types the server advertises, bounds the key size by every size the chosen type's entry allows,
-   and offers that entry's curves, taking the key size from the chosen curve.
+   and offers that entry's curves, taking the key size from the chosen curve; a secret type with curves takes a curve,
+   and the first of them is chosen with the type.
 8. **AEAD algorithms are not keyed algorithms.** An authenticated encryption algorithm's key is a content encryption
    key of `ContentKeySizeBits`, never a `SecretKey`, so `AuthenticatedEncryptionAlgorithm` derives from `Algorithm`.
 
@@ -118,7 +128,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   curve. One rule over the key's `CurveName` keeps the declared curves and the check the same thing.
 - **A declaration that names the key's type, size and, optionally, curve.** Rejected: a declaration without a curve
   could only be checked by type and size, which do not tell P-256 from secp256k1. A held key carries its curve, and a
-  key to generate is resolved onto one.
+  key to generate is resolved onto one; only a key of a type without curves is checked by its type and size.
 - **Infer the tenant key's type from its size alone.** Rejected: `EC` P-256 and `OKP` X25519 keys are both 256 bits.
 - **One agreement per key type, failing composition on an overlap.** Rejected: the core's `EC` agreement serves only
   the NIST curves, so no package could add ECDH-ES over another `EC` curve without replacing it, which closes the curve

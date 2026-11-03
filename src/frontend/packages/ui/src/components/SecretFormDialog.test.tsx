@@ -44,6 +44,8 @@ const es256: AlgorithmOption = {
 };
 const algorithms = [rs256, rsaOaep, es256];
 
+const secretTypes = ['symmetric', 'rsa', 'ecc'];
+
 const eccCurves = [
   { curveName: 'P-256', curveSizeBits: 256 },
   { curveName: 'P-384', curveSizeBits: 384 },
@@ -61,7 +63,13 @@ describe('SecretFormDialog', () => {
   it('submits the seeded values, trimming optional fields', () => {
     const onSubmit = vi.fn();
     render(
-      <SecretFormDialog open initialValues={initial} onSubmit={onSubmit} onCancel={vi.fn()} />,
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
     );
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith({
@@ -77,7 +85,13 @@ describe('SecretFormDialog', () => {
   it('submits hand-entered values when no algorithms are discovered', () => {
     const onSubmit = vi.fn();
     render(
-      <SecretFormDialog open initialValues={initial} onSubmit={onSubmit} onCancel={vi.fn()} />,
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
     );
 
     // Without discovery the use is free text and the key size is unconstrained beyond being positive.
@@ -108,7 +122,15 @@ describe('SecretFormDialog', () => {
   });
 
   it('blocks submit when the key size is not positive', () => {
-    render(<SecretFormDialog open initialValues={initial} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
     expect(screen.getByTestId('secret-form-submit')).toBeEnabled();
     fireEvent.change(screen.getByTestId('secret-key-size'), { target: { value: '0' } });
     expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
@@ -119,6 +141,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256 }}
         eccCurves={eccCurves}
         onSubmit={onSubmit}
@@ -133,22 +156,47 @@ describe('SecretFormDialog', () => {
     );
   });
 
-  it('keeps the key size when the curve is chosen by key size', () => {
+  // Two curves can share a key size, so a secret type with curves takes a curve and the size never selects one.
+  it('requires a curve for a secret type with curves', () => {
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256, curve: '' }}
+        eccCurves={eccCurves}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-curve')).toHaveValue('');
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Curve/ }));
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Choose a curve', 'P-256', 'P-384']);
+  });
+
+  it('selects the first curve of a secret type with curves when the type is chosen', () => {
     const onSubmit = vi.fn();
     render(
       <SecretFormDialog
         open
-        initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 521, curve: 'P-256' }}
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 2048 }}
         eccCurves={eccCurves}
         onSubmit={onSubmit}
         onCancel={vi.fn()}
       />,
     );
 
-    fireEvent.change(screen.getByTestId('secret-curve'), { target: { value: '' } });
+    fireEvent.change(screen.getByTestId('secret-type'), { target: { value: 'ecc' } });
+    expect(screen.getByTestId('secret-curve')).toHaveValue('P-256');
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ secretType: 'ecc', curve: '', keySizeBits: 521 }),
+      expect.objectContaining({ secretType: 'ecc', curve: 'P-256', keySizeBits: 256 }),
     );
   });
 
@@ -159,6 +207,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc' }}
         {...(curves ? { eccCurves: curves } : {})}
         onSubmit={vi.fn()}
@@ -173,6 +222,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{
           ...initial,
           secretType: 'ecc',
@@ -205,6 +255,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa' }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -234,6 +285,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 4096 }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -260,6 +312,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 384 }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -318,6 +371,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: row.secretType, keySizeBits: 1 }}
         algorithms={[multiType]}
         onSubmit={onSubmit}
@@ -355,6 +409,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256, curve: 'P-256' }}
         eccCurves={eccCurves}
         algorithms={[es256, es256k]}
@@ -404,6 +459,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'ecc', keySizeBits: 256 }}
         algorithms={[ecdhEs]}
         onSubmit={onSubmit}
@@ -482,6 +538,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 2048 }}
         algorithms={algorithms}
         onSubmit={vi.fn()}
@@ -499,6 +556,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{
           ...initial,
           secretType: 'rsa',
@@ -526,6 +584,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={{ ...initial, secretType: 'rsa', keySizeBits: 2048 }}
         algorithms={algorithms}
         onSubmit={onSubmit}
@@ -542,8 +601,8 @@ describe('SecretFormDialog', () => {
     fireEvent.click(screen.getByTestId('secret-form-submit'));
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       secretType: 'ecc',
-      keySizeBits: 2048,
-      curve: '',
+      keySizeBits: 256,
+      curve: 'P-256',
       use: '',
       algorithm: '',
       expiresWhen: '2027-01-01T00:00',
@@ -555,6 +614,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={emptySecretFormValues}
         onSubmit={onSubmit}
         onCancel={vi.fn()}
@@ -567,6 +627,7 @@ describe('SecretFormDialog', () => {
     render(
       <SecretFormDialog
         open
+        secretTypes={secretTypes}
         initialValues={initial}
         isSubmitting
         error="Boom"
@@ -584,7 +645,13 @@ describe('SecretFormDialog', () => {
     const onCancel = vi.fn();
     const onSubmit = vi.fn();
     render(
-      <SecretFormDialog open initialValues={initial} onSubmit={onSubmit} onCancel={onCancel} />,
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+      />,
     );
     expect(screen.queryByTestId('secret-form-error')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('secret-form-cancel'));
@@ -593,7 +660,7 @@ describe('SecretFormDialog', () => {
   });
 
   it('keeps in-progress edits while open and reseeds from initialValues on reopen', () => {
-    const props = { onSubmit: vi.fn(), onCancel: vi.fn() };
+    const props = { secretTypes, onSubmit: vi.fn(), onCancel: vi.fn() };
     const { rerender } = render(<SecretFormDialog {...props} open initialValues={initial} />);
     fireEvent.change(screen.getByTestId('secret-expires'), {
       target: { value: '2028-01-01T00:00' },

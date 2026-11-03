@@ -1111,8 +1111,7 @@ internal class ClientApiEndpointHandler(
             {
                 SecretId = secretId,
                 SecretType = request.SecretType,
-                KeySizeBits = validation.GenerationParameters.KeySizeBits,
-                Curve = validation.GenerationParameters.Curve,
+                GenerationParameters = validation.GenerationParameters,
                 Use = request.Use,
                 Algorithm = request.Algorithm,
                 CreatedWhen = TimeProvider.GetUtcNow(),
@@ -1620,7 +1619,7 @@ internal class ClientApiEndpointHandler(
                 {
                     SecretId = replacementId,
                     SecretType = createRequest.SecretType,
-                    KeySizeBits = validation.GenerationParameters.KeySizeBits,
+                    GenerationParameters = validation.GenerationParameters,
                     Use = createRequest.Use,
                     Algorithm = createRequest.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

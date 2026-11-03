@@ -43,7 +43,9 @@ public interface ISecretValidator
 
     /// <summary>
     /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is
-    /// supported, and the <c>algorithm</c>, when set, agrees with the <c>use</c> and accepts the key's type and size.
+    /// supported, and the <c>algorithm</c>, when set, agrees with the <c>use</c> and accepts the key. An asymmetric key
+    /// is checked by its stored public half, which shows its type, size and curve, and fails the check when that half
+    /// cannot be read; a symmetric key is checked by its type and size.
     /// </summary>
     /// <param name="secret">The <see cref="PersistedSecret"/> the update applies to.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> to validate.</param>

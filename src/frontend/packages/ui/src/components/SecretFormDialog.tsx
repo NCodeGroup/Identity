@@ -50,9 +50,6 @@ export type AlgorithmOption = {
 /** The secret type whose curve catalog the `eccCurves` capability lists. */
 const eccSecretType = 'ecc';
 
-/** The secret types offered when the server advertises none. */
-const defaultSecretTypes: readonly string[] = ['symmetric', 'rsa', eccSecretType];
-
 const secretTypeLabels: Readonly<Record<string, string>> = { symmetric: 'Symmetric' };
 
 /** A display label for a secret-type discriminator, such as `RSA` for `rsa` or `OKP` for `okp`. */
@@ -104,19 +101,18 @@ const curvesFor = (
   selectedAlgorithm: AlgorithmOption | undefined,
   algorithms: readonly AlgorithmOption[],
   eccCurves: readonly CurveOption[],
-): { readonly curves: readonly CurveOption[]; readonly boundByAlgorithm: boolean } => {
+): readonly CurveOption[] => {
   const algorithmCurves = keyTypeFor(selectedAlgorithm, secretType)?.curves ?? [];
   if (algorithmCurves.length > 0) {
-    return { curves: algorithmCurves, boundByAlgorithm: true };
+    return algorithmCurves;
   }
   const discovered = [
     ...(secretType === eccSecretType ? eccCurves : []),
     ...algorithms.flatMap((algorithm) => keyTypeFor(algorithm, secretType)?.curves ?? []),
   ];
-  const curves = discovered.filter(
+  return discovered.filter(
     (curve, index) => discovered.findIndex((c) => c.curveName === curve.curveName) === index,
   );
-  return { curves, boundByAlgorithm: false };
 };
 
 /** The secret create form's own field shape. `expiresWhen` is a `datetime-local` string (local time). */
@@ -124,7 +120,7 @@ export type SecretFormValues = {
   /** The secret-type discriminator, one of those the server advertises (e.g. `symmetric`, `rsa`, `ecc`, `okp`). */
   readonly secretType: string;
   readonly keySizeBits: number;
-  /** The curve name (empty selects a curve by key size); only meaningful for a secret type with curves. */
+  /** The curve name, required for a secret type with curves and empty for one without. */
   readonly curve: string;
   readonly use: string;
   readonly algorithm: string;
@@ -137,7 +133,7 @@ export type SecretFormDialogProps = {
   readonly isSubmitting?: boolean;
   readonly error?: string | undefined;
   /** The secret types to offer, discovered from server capabilities. */
-  readonly secretTypes?: readonly string[];
+  readonly secretTypes: readonly string[];
   /** The server's elliptic-curve catalog, offered for the `ecc` type, discovered from server capabilities. */
   readonly eccCurves?: readonly CurveOption[];
   /** The signature/key-management algorithms to offer, discovered from server capabilities. */
@@ -186,8 +182,6 @@ export function SecretFormDialog({
 
   // The secret types are discovered from the server (ADR-1150), so a type a package contributes, such as `okp`, is
   // offered without the form knowing it.
-  const offeredSecretTypes =
-    secretTypes && secretTypes.length > 0 ? secretTypes : defaultSecretTypes;
 
   // When the server advertises algorithms, the algorithm, use, key-size and curve inputs are driven by discovery
   // (ADR-1067) instead of free-text defaults; only algorithms compatible with the chosen type are offered.
@@ -202,17 +196,20 @@ export function SecretFormDialog({
   const keySizeRanges = keyTypeFor(selectedAlgorithm, values.secretType)?.keyBitSizes ?? [];
   const [singleRange] = keySizeRanges;
   // An algorithm bound to curves, such as ES256K or EdDSA, offers only those, since a curve of the same size is not
-  // one it accepts (ADR-1389); a curve fixes the key size.
-  const { curves: offeredCurves, boundByAlgorithm } = curvesFor(
+  // one it accepts (ADR-1389); a curve fixes the key size. Two curves can share a size, so a secret type with curves
+  // takes a curve and never leaves it to the size.
+  const offeredCurves = curvesFor(
     values.secretType,
     selectedAlgorithm,
     discovered,
     eccCurves ?? [],
   );
   const selectedCurve = offeredCurves.find((curve) => curve.curveName === values.curve);
+  const curveRequired = offeredCurves.length > 0;
 
   const canSubmit =
     values.keySizeBits > 0 &&
+    (!curveRequired || selectedCurve !== undefined) &&
     isLegalSize(keySizeRanges, values.keySizeBits) &&
     values.expiresWhen.trim().length > 0 &&
     !isSubmitting;
@@ -249,19 +246,23 @@ export function SecretFormDialog({
             select
             label="Type"
             value={values.secretType}
-            onChange={(event) =>
+            onChange={(event) => {
+              const secretType = event.target.value;
+              // A curve belongs to its type, so the type's first curve is selected with its size; the discovered
+              // algorithm and use are re-derived on selection, so no algorithm narrows the curves yet.
+              const [firstCurve] = curvesFor(secretType, undefined, discovered, eccCurves ?? []);
               setValues((v) => ({
                 ...v,
-                secretType: event.target.value,
-                // A curve belongs to its type; the discovered algorithm and use are re-derived on selection.
-                curve: '',
+                secretType,
+                curve: firstCurve ? firstCurve.curveName : '',
+                keySizeBits: firstCurve ? firstCurve.curveSizeBits : v.keySizeBits,
                 ...(algorithmsProvided ? { algorithm: '', use: '' } : {}),
-              }))
-            }
+              }));
+            }}
             fullWidth
             slotProps={{ htmlInput: { 'data-testid': 'secret-type' } }}
           >
-            {offeredSecretTypes.map((secretType) => (
+            {secretTypes.map((secretType) => (
               <MenuItem key={secretType} value={secretType}>
                 {secretTypeLabel(secretType)}
               </MenuItem>
@@ -314,10 +315,16 @@ export function SecretFormDialog({
                   keySizeBits: match ? match.curveSizeBits : v.keySizeBits,
                 }));
               }}
+              required
               fullWidth
+              error={!selectedCurve}
               slotProps={{ htmlInput: { 'data-testid': 'secret-curve' } }}
             >
-              {!boundByAlgorithm && <MenuItem value="">By key size</MenuItem>}
+              {!selectedCurve && (
+                <MenuItem value="" disabled>
+                  Choose a curve
+                </MenuItem>
+              )}
               {offeredCurves.map((curve) => (
                 <MenuItem key={curve.curveName} value={curve.curveName}>
                   {curve.curveName}

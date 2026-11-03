@@ -197,19 +197,16 @@ internal sealed class DefaultSecretValidator(
             return keyError is null ? null : Error(keyError);
         }
 
-        // A symmetric key has no curve, so its type and size are all an algorithm checks.
-        return AlgorithmCollectionProvider.Collection.TryResolveKeyGeneration(
-            new KeyGenerationDeclaration
+        // A symmetric key has no curve, and its material is not at hand, so it is checked by its type and size.
+        var sizeError = AlgorithmCollectionProvider.Collection.ValidateKeySize(
+            new KeySizeDeclaration
             {
                 KeyClrType = descriptor.KeyClrType,
                 KeySizeBits = secret.KeySizeBits,
                 Use = use,
                 Algorithm = algorithm,
-            },
-            out _,
-            out var symmetricError
-        )
-            ? null
-            : Error(symmetricError);
+            }
+        );
+        return sizeError is null ? null : Error(sizeError);
     }
 }

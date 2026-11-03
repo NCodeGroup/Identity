@@ -26,7 +26,8 @@ change to the public API is a **major** version bump.
   agreement over P-256, P-384 and P-521, and ECDH-ES accepts an `EC` key only on a curve a registered agreement serves.
   Several agreements may serve one key type, each over its own curves (`IEcdhKeyAgreement.AlgorithmKeyType`), so a
   package can also add ECDH-ES over another `EC` curve: a key is agreed by the one agreement whose key type accepts it,
-  and a key two agreements accept is refused. The algorithms list key types in the order their agreements are
+  and a key two agreements accept is refused. The agreements of one key type all name their curves or all name sizes
+  only; a mix fails building the algorithm collection. The algorithms list key types in the order their agreements are
   registered: the core's, through `AddJoseLibrary()`, then each package's in the order the host adds it. The `epk`
   header is written and read through the key type's `ISecretKeyTypeDescriptor` and JSON Web Key rules: it carries only
   the type's required members, its `kty` must be the recipient key's, and a received `epk` that holds any private member
@@ -48,32 +49,37 @@ change to the public API is a **major** version bump.
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
   ECDSA algorithm for each registered one; `AddJoseLibrary()` registers `ES256`, `ES384` and `ES512` the same way, as
-  `EccSignatureAlgorithmSpecification.Es256`, `Es384` and `Es512`. Startup fails on a null specification, an empty,
-  whitespace or duplicate code, or a curve the elliptic-curve catalog does not hold by both `crv` and OID.
+  `EccSignatureAlgorithmSpecification.Es256`, `Es384` and `Es512`. Building the algorithm collection fails on a null
+  specification, an empty, whitespace or duplicate code, or a curve the elliptic-curve catalog does not hold by both `crv` and OID.
   `EccCurveSpecification.P256`, `P384` and `P521` define the NIST curves once, for the curve catalog, the `ES*`
   algorithms and `ECDH-ES`. `TryAddEnumerableInstance` in `NCode.Registration` registers such an instance once
   without dropping the other instances of its type ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **Keys are generated on their algorithm's curve.** `TryResolveKeyGeneration` on `IAlgorithmCollection` resolves a
   `KeyGenerationDeclaration` (CLR type, optional size, optional curve, use and algorithm) into a
   `ResolvedKeyGeneration`: for a key type on curves the key is generated on the named curve, which the algorithm must
-  accept, or on the first curve it accepts that has the requested size, and its size is its curve's. Tenant key
-  provisioning and management secret creation share it, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for
-  the polymorphic `EdDSA` and for `ECDH-ES`, are generated on the right curve. `ISecretValidator.ValidateCreate`
-  returns a `SecretCreateValidation` that carries the `SecretKeyGenerationParameters` the endpoints generate the key
-  with. A stored tenant key satisfies an algorithm only when the algorithm accepts its stored public half, so a key
-  whose public half is missing or unreadable is provisioned ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  accept, or on the first curve it accepts that has the requested size, and its size is its curve's; a curve named for
+  a key type the algorithm binds to no curve is refused. Tenant key provisioning and management secret creation share
+  it, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`, are
+  generated on the right curve. `ISecretValidator.ValidateCreate`
+  returns a `SecretCreateValidation` that carries the `SecretKeyGenerationParameters`, and `GenerateSecretRequest`
+  carries them whole as `GenerationParameters`, so the endpoints generate the key with what was validated.
+  `ValidateKeySize` checks a held key of a type without curves, such as a stored symmetric key, by a
+  `KeySizeDeclaration` of its type and size, and refuses an algorithm that binds the type to curves. A stored tenant
+  key satisfies an algorithm only when it is on the specification's curve and the algorithm accepts its stored public
+  half, so a key whose public half is missing or unreadable is provisioned ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **A tenant key can name its secret type and curve.** `OpenId:Tenant:KeyProvisioning:Keys` entries take an optional
   `SecretType` that selects which of the algorithm's key types the key is generated as, and an optional `Curve` that
   selects which of the algorithm's curves it is generated on, such as a contributed curve that shares P-256's size for
   `ECDH-ES`. Unset, the type is the algorithm's first key type that has a registered secret key type and can be
   provisioned, and the curve is the first the algorithm accepts that has the configured size, or the algorithm's first
-  curve. A secret type or curve the algorithm does not accept is reported with the ones it does ([#327](https://github.com/NCodeGroup/Identity/issues/327),
+  curve. A stored key satisfies the configured key only when it is on that curve. A secret type or curve the
+  algorithm does not accept is reported with the ones it does ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **The `algorithms` capability lists each secret type's sizes and curves.** Each algorithm lists every compatible
   secret type with its key sizes and curves (`keyTypes: [{ secretType, keyBitSizes, curves: [{ curveName,
   curveSizeBits }] }]`). The console offers the secret types the server advertises, such as `okp`, bounds a new
   secret's size by every size the chosen type's entry allows, and offers the chosen type's curves, such as `P-384` for
-  `ECDH-ES` or `Ed448` for `EdDSA`, sizing the key from the chosen curve ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  `ECDH-ES` or `Ed448` for `EdDSA`, sizing the key from the chosen curve; a secret type with curves takes a curve ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 - **One lookup of a declared key's algorithm and stored public key.** `TryGetKeyedAlgorithm` on `IAlgorithmCollection`
   returns a registered signature or key-management algorithm with the use it implies, and `TryDeserializePublicSecret`
   on `ISecretSerializer` reads a stored secret's public half and returns `false` with the reason for one it cannot read;

@@ -1686,7 +1686,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 x.GenerateSecret(
                     protector,
                     It.Is<GenerateSecretRequest>(generate =>
-                        generate.KeySizeBits == 256 && generate.Curve == "secp256k1"
+                        generate.GenerationParameters.KeySizeBits == 256
+                        && generate.GenerationParameters.Curve == "secp256k1"
                     )
                 )
             )
@@ -2511,7 +2512,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     It.Is<GenerateSecretRequest>(generate =>
                         generate.SecretId == "secret-2"
                         && generate.SecretType == rotated.SecretType
-                        && generate.KeySizeBits == 256
+                        && generate.GenerationParameters.KeySizeBits == 256
                         && generate.Use == rotated.Use
                         && generate.Algorithm == rotated.Algorithm
                         && generate.ExpiresWhen == expiresWhen

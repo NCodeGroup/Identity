@@ -22,10 +22,10 @@ Three facts shape how it is added:
   package can therefore neither construct it nor reference the JOSE library.
 - .NET's ECDSA serves secp256k1 only where the platform's cryptography does: OpenSSL on Linux and CNG on Windows
   support it, Apple's platform cryptography on macOS does not, and `ECDsa.Create` throws there.
-- Tenant key provisioning ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)) generates a key from
-  an algorithm's key type and size. The `ecc` key type picks P-256 for 256 bits, so provisioning `ES256K` would store a
-  P-256 key that `ES256K` refuses. Provisioning also counts a stored key as satisfying an algorithm by its type and size,
-  so an unbound P-256 key would satisfy `ES256K`. The same holds for `OKP` keys, where Ed25519 and X25519 share a size.
+- The `ecc` key type picks P-256 for a 256-bit key, so a key generated for `ES256K` from its key type and size alone,
+  as tenant key provisioning ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md)) and the management
+  API generate keys, would be a P-256 key that `ES256K` refuses, and a stored key judged by its type and size alone
+  would satisfy `ES256K` on P-256. The same holds for `OKP` keys, where Ed25519 and X25519 share a size.
 
 ## Decision
 
@@ -34,8 +34,8 @@ Three facts shape how it is added:
    algorithm for every registered specification. `AddJoseLibrary()` registers `ES256`, `ES384` and `ES512` the same
    way a package registers `ES256K`, as `EccSignatureAlgorithmSpecification.Es256`, `Es384` and `Es512`, so the core's
    algorithms and a package's come from one composition path, as the core's `ECDH-ES` agreement and a package's do.
-   The registered specifications are validated as a whole when they are composed: startup fails when a specification
-   is null, its code is empty, whitespace or registered twice, or its curve is not the elliptic-curve catalog's curve
+   The registered specifications are validated as a whole when they are composed: building the algorithm collection
+   fails when a specification is null, its code is empty, whitespace or registered twice, or its curve is not the elliptic-curve catalog's curve
    of that `crv`, compared by OID too, because a key on a curve the catalog does not hold could be neither generated,
    imported nor named. The algorithm's key size and its signature size, twice the curve's size in whole bytes, come
    from the curve. The NIST curves are defined once, as `EccCurveSpecification.P256`, `P384` and `P521`, which the
@@ -50,9 +50,10 @@ Three facts shape how it is added:
 3. **Provisioning and creation generate on that curve, and a stored key is checked by its public half.** Tenant key
    provisioning and the management API's secret creation resolve the key to generate with `TryResolveKeyGeneration`
    (ADR-1389 decision 5), so `ES256K` gets a secp256k1 key and `Ed25519` an Ed25519 key, and pass the resolved curve
-   into the generation request; `ISecretValidator.ValidateCreate` returns those generation parameters, so an endpoint
-   generates with what was validated. A stored key satisfies a tenant key specification only when the algorithm's
-   `IsKeyCompatible` accepts its stored public half. Every private asymmetric secret stores that half
+   into the generation request; `ISecretValidator.ValidateCreate` returns those generation parameters, and the
+   generation request carries that object whole as its `GenerationParameters`, so an endpoint generates with what was
+   validated and copies no field of it. A stored key satisfies a tenant key specification only when its stored public
+   half is on the specification's curve and the algorithm's `IsKeyCompatible` accepts it. Every private asymmetric secret stores that half
    ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)), so a secret whose public half is missing or
    cannot be read cannot be shown to fit and does not satisfy the specification, and a key is provisioned.
 
@@ -94,7 +95,8 @@ Three facts shape how it is added:
 - On macOS the package registers nothing, and its platform-dependent tests are skipped.
 - A tenant can be provisioned with `ES256K`, `Ed25519` and `Ed448` keys, and, because the configured curve or size
   selects among the algorithm's curves, with `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`.
-- An application that registers an ECDSA specification registers its curve too, or startup fails.
+- An application that registers an ECDSA specification registers its curve too, or building the algorithm collection
+  fails.
 - A P-256 key declared for `ES256K`, or a secp256k1 key declared for `ES256`, is refused when a client registers it or
   the management API creates or updates it.
 - An application can contribute another ECDSA algorithm, such as one over a Brainpool curve, by registering its curve

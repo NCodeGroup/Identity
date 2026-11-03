@@ -722,6 +722,37 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Equal(expected, Policy.IsSatisfiedBy(specification, secret));
     }
 
+    // ECDH-ES accepts EC keys on P-256, P-384 and P-521; a specification on P-384 names a P-384 key, so a P-256 key the
+    // algorithm also accepts does not satisfy it.
+    [Theory]
+    [InlineData("P-384", true)]
+    [InlineData("P-256", false)]
+    public void IsSatisfiedBy_WhenSpecificationNamesACurve_RequiresTheKeyOnIt(
+        string curveName,
+        bool expected
+    )
+    {
+        var curve =
+            curveName == "P-256" ? ECCurve.NamedCurves.nistP256 : ECCurve.NamedCurves.nistP384;
+        using var key = ECDiffieHellman.Create(curve);
+        var specification = CreateSpecification(
+            AlgorithmCodes.KeyManagement.EcdhEs,
+            SecretKeyUses.Encryption,
+            SecretKeyTypes.Ecc,
+            384,
+            "P-384"
+        );
+        var secret = CreateSecret(
+            algorithm: null,
+            use: SecretKeyUses.Encryption,
+            secretType: SecretKeyTypes.Ecc,
+            keySizeBits: curveName == "P-256" ? 256 : 384,
+            publicKey: Base64Url.EncodeToString(key.ExportSubjectPublicKeyInfo())
+        );
+
+        Assert.Equal(expected, Policy.IsSatisfiedBy(specification, secret));
+    }
+
     // Without its public half the key's curve cannot be read, so the key cannot be shown to fit and one is provisioned.
     [Fact]
     public void IsSatisfiedBy_WhenPrivateSecretHasNoPublicHalf_ReturnsFalse()

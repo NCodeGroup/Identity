@@ -286,10 +286,10 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     )
     {
         Assert.Equal(specification.SecretType, request.SecretType);
-        Assert.Equal(specification.KeySizeBits, request.KeySizeBits);
+        Assert.Equal(specification.KeySizeBits, request.GenerationParameters.KeySizeBits);
         Assert.Equal(specification.Use, request.Use);
         Assert.Equal(specification.Algorithm, request.Algorithm);
-        Assert.Equal(specification.Curve, request.Curve);
+        Assert.Equal(specification.Curve, request.GenerationParameters.Curve);
         Assert.Equal(request.CreatedWhen.AddYears(100), request.ExpiresWhen);
     }
 

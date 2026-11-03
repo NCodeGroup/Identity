@@ -50,13 +50,11 @@ NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.get -> string
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Algorithm.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.CreatedWhen.init -> void
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Curve.get -> string?
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.Curve.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerateSecretRequest() -> void
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.KeySizeBits.get -> int
-NCode.Identity.Secrets.Persistence.GenerateSecretRequest.KeySizeBits.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerationParameters.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters!
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.GenerationParameters.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretId.get -> string!
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretId.init -> void
 NCode.Identity.Secrets.Persistence.GenerateSecretRequest.SecretType.get -> string!

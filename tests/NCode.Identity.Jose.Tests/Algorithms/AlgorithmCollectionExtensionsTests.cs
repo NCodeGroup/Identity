@@ -279,6 +279,17 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
     }
 
     [Fact]
+    public void TryResolveKeyGeneration_WhenTypeHasNoCurvesAndCurveIsDeclared_ReturnsError()
+    {
+        Assert.False(
+            TryResolve(typeof(RsaSecretKey), 2048, "P-256", "PS256", out _, out var error)
+        );
+
+        Assert.NotNull(error);
+        Assert.Contains("'P-256'", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TryResolveKeyGeneration_WhenKeyTypeIsIncompatible_ReturnsError()
     {
         Assert.False(TryResolve(typeof(RsaSecretKey), 2048, null, "ES256", out _, out var error));
@@ -313,6 +324,71 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Contains("'XX999'", error, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateKeySize Tests
+
+    private string? ValidateSize(Type keyClrType, int keySizeBits, string? use, string algorithm) =>
+        AlgorithmCollection.ValidateKeySize(
+            new KeySizeDeclaration
+            {
+                KeyClrType = keyClrType,
+                KeySizeBits = keySizeBits,
+                Use = use,
+                Algorithm = algorithm,
+            }
+        );
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("sig")]
+    public void ValidateKeySize_WhenAlgorithmAcceptsTheTypeAndSize_ReturnsNull(string? use)
+    {
+        Assert.Null(ValidateSize(typeof(SymmetricSecretKey), 256, use, "HS256"));
+    }
+
+    [Fact]
+    public void ValidateKeySize_WhenSizeIsIllegal_ReturnsError()
+    {
+        var error = ValidateSize(typeof(SymmetricSecretKey), 128, null, "HS256");
+
+        Assert.NotNull(error);
+        Assert.Contains("'128'", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateKeySize_WhenUseContradictsAlgorithm_ReturnsError()
+    {
+        var error = ValidateSize(
+            typeof(SymmetricSecretKey),
+            256,
+            SecretKeyUses.Encryption,
+            "HS256"
+        );
+
+        Assert.NotNull(error);
+        Assert.Contains("'sig'", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateKeySize_WhenKeyTypeIsIncompatible_ReturnsError()
+    {
+        var error = ValidateSize(typeof(SymmetricSecretKey), 256, null, "RS256");
+
+        Assert.NotNull(error);
+        Assert.Contains("type", error, StringComparison.Ordinal);
+    }
+
+    // Type and size do not show a key's curve, so they never show that a curve-bound algorithm accepts the key.
+    [Fact]
+    public void ValidateKeySize_WhenAlgorithmBindsTheTypeToCurves_ReturnsError()
+    {
+        var error = ValidateSize(typeof(EccSecretKey), 256, null, "ES256");
+
+        Assert.NotNull(error);
+        Assert.Contains("curves", error, StringComparison.Ordinal);
     }
 
     #endregion

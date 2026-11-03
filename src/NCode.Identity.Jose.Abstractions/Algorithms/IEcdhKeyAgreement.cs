@@ -24,7 +24,8 @@ public interface IEcdhKeyAgreement
     /// Gets the type of key this agreement serves, with the curves, or for a key type without curves the sizes, it
     /// accepts keys of that type on. A key takes part in the agreement when
     /// <see cref="Algorithms.AlgorithmKeyType.IsKeyCompatible"/> accepts it. Several agreements may serve one key type,
-    /// each over its own curves, as long as no key is accepted by two of them.
+    /// each over its own curves, as long as no key is accepted by two of them; the agreements of one key type all name
+    /// their curves, or none does.
     /// </summary>
     AlgorithmKeyType AlgorithmKeyType { get; }
 

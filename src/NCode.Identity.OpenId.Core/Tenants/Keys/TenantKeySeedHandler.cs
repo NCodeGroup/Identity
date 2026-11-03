@@ -8,6 +8,7 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -163,8 +164,11 @@ internal class TenantKeySeedHandler(
                 {
                     SecretId = CryptoService.GenerateResourceId(),
                     SecretType = specification.SecretType,
-                    KeySizeBits = specification.KeySizeBits,
-                    Curve = specification.Curve,
+                    GenerationParameters = new SecretKeyGenerationParameters
+                    {
+                        KeySizeBits = specification.KeySizeBits,
+                        Curve = specification.Curve,
+                    },
                     Use = specification.Use,
                     Algorithm = specification.Algorithm,
                     CreatedWhen = now,

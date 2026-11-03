@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -26,17 +27,10 @@ public sealed class GenerateSecretRequest
     public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets the size, in bits, of the key material to generate. For symmetric secrets this is the size of the
-    /// random key; for <c>RSA</c> the modulus size; for <c>ECC</c> the curve size (advisory when
-    /// <see cref="Curve"/> is specified).
+    /// Gets the parameters the key material is generated with: its size, in bits, and, for a key type with curves, the
+    /// curve. For a shared secret the size is the entropy of the opaque string, and no curve applies.
     /// </summary>
-    public required int KeySizeBits { get; init; }
-
-    /// <summary>
-    /// Gets the requested elliptic-curve identifier (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c>), or
-    /// <c>null</c> to select a curve by <see cref="KeySizeBits"/>. Only applies to <c>ECC</c> secrets.
-    /// </summary>
-    public string? Curve { get; init; }
+    public required SecretKeyGenerationParameters GenerationParameters { get; init; }
 
     /// <summary>
     /// Gets the intended use for the generated secret, or <c>null</c> for any compatible use.

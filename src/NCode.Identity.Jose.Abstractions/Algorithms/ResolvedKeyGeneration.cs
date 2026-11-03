@@ -36,8 +36,8 @@ public sealed class ResolvedKeyGeneration
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the <c>JWK</c> <c>crv</c> name of the curve the key is generated on: one of the key type's curves, or, for
-    /// a key type without curves, the declared curve, which is <c>null</c> when none was declared.
+    /// Gets the <c>JWK</c> <c>crv</c> name of the curve the key is generated on: one of the key type's curves, or
+    /// <c>null</c> for a key type without curves.
     /// </summary>
     public required string? Curve { get; init; }
 }

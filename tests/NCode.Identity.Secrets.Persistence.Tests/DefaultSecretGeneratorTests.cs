@@ -45,7 +45,7 @@ public class DefaultSecretGeneratorTests
         {
             SecretId = "gen-1",
             SecretType = secretType,
-            KeySizeBits = keySizeBits,
+            GenerationParameters = new SecretKeyGenerationParameters { KeySizeBits = keySizeBits },
             Use = "sig",
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -140,6 +140,28 @@ public class DefaultSecretGeneratorTests
     {
         var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 128);
+
+        Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(protector, request));
+    }
+
+    [Fact]
+    public void GenerateSharedSecret_WhenACurveIsGiven_Throws()
+    {
+        var protector = CreateProtector();
+        var request = new GenerateSecretRequest
+        {
+            SecretId = "gen-1",
+            SecretType = SecretTypes.Symmetric,
+            GenerationParameters = new SecretKeyGenerationParameters
+            {
+                KeySizeBits = 256,
+                Curve = "P-256",
+            },
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
 
         Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(protector, request));
     }
@@ -326,8 +348,11 @@ public class DefaultSecretGeneratorTests
         {
             SecretId = "gen-ecc",
             SecretType = SecretTypes.Ecc,
-            KeySizeBits = 0,
-            Curve = "P-384",
+            GenerationParameters = new SecretKeyGenerationParameters
+            {
+                KeySizeBits = 0,
+                Curve = "P-384",
+            },
             Use = "sig",
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,

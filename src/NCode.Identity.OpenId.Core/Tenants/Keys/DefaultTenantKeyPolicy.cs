@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -220,6 +221,21 @@ internal class DefaultTenantKeyPolicy(
             !descriptor.IsAsymmetric
             || secret.PublicKey is null
             || !SecretSerializer.TryDeserializePublicSecret(secret, out var publicKey, out _)
+        )
+        {
+            return false;
+        }
+
+        // An algorithm may accept several curves, and the specification names the one its key is on: the configured
+        // curve, or the one the configured size or the algorithm selects. A key on another curve the algorithm accepts is
+        // not the key the specification names, so a key on the specification's curve is provisioned.
+        if (
+            specification.Curve is not null
+            && !string.Equals(
+                (publicKey as AsymmetricSecretKey)?.CurveName,
+                specification.Curve,
+                StringComparison.Ordinal
+            )
         )
         {
             return false;

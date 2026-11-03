@@ -1266,8 +1266,7 @@ internal class TenantApiEndpointHandler(
                 {
                     SecretId = secretId,
                     SecretType = request.SecretType,
-                    KeySizeBits = validation.GenerationParameters.KeySizeBits,
-                    Curve = validation.GenerationParameters.Curve,
+                    GenerationParameters = validation.GenerationParameters,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
                     CreatedWhen = TimeProvider.GetUtcNow(),

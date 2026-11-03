@@ -478,6 +478,17 @@ NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeySizeBits.get -> int?
 NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.KeySizeBits.init -> void
 NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Use.get -> string?
 NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration.Use.init -> void
+NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).ValidateKeySize(NCode.Identity.Jose.Algorithms.KeySizeDeclaration declaration) -> string?
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.Algorithm.get -> string!
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.Algorithm.init -> void
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.KeyClrType.get -> System.Type!
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.KeyClrType.init -> void
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.KeySizeBits.get -> int
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.KeySizeBits.init -> void
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.KeySizeDeclaration() -> void
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.Use.get -> string?
+NCode.Identity.Jose.Algorithms.KeySizeDeclaration.Use.init -> void
 NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration
 NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Algorithm.get -> NCode.Identity.Jose.Algorithms.KeyedAlgorithm!
 NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration.Algorithm.init -> void

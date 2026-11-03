@@ -133,14 +133,58 @@ public static class AlgorithmCollectionExtensions
         }
 
         /// <summary>
+        /// Checks that a held key of a type without curves, known by its type and size because its material is not at
+        /// hand, as for a stored symmetric key, may be declared for an algorithm: the algorithm is a registered signature
+        /// or key-management algorithm, the use it implies agrees with the key's declared use, and the algorithm accepts
+        /// keys of the type and size. Type and size do not show a key's curve, so a key type the algorithm binds to curves
+        /// is refused; such a key is checked by the key itself, with <c>ValidateKeyAlgorithm</c>.
+        /// </summary>
+        /// <param name="declaration">The key's type and size, and the use and algorithm declared for it.</param>
+        /// <returns><c>null</c> when the declaration is coherent; otherwise a human-readable reason.</returns>
+        public string? ValidateKeySize(KeySizeDeclaration declaration)
+        {
+            ArgumentNullException.ThrowIfNull(collection);
+            ArgumentNullException.ThrowIfNull(declaration.KeyClrType, nameof(declaration));
+
+            var algorithm = declaration.Algorithm;
+            if (
+                !collection.TryGetDeclaredAlgorithm(
+                    algorithm,
+                    declaration.Use,
+                    out var keyedAlgorithm,
+                    out _,
+                    out var error
+                )
+            )
+            {
+                return error;
+            }
+
+            if (!keyedAlgorithm.TryGetKeyType(declaration.KeyClrType, out var algorithmKeyType))
+            {
+                return $"The algorithm '{algorithm}' is not compatible with the key's type.";
+            }
+
+            if (algorithmKeyType.Curves.Count > 0)
+            {
+                return $"The algorithm '{algorithm}' accepts keys of this type only on its curves, which the key's "
+                    + "type and size do not show.";
+            }
+
+            return algorithmKeyType.IsLegalSize(declaration.KeySizeBits)
+                ? null
+                : $"The key size '{declaration.KeySizeBits}' bits is not valid for algorithm '{algorithm}'.";
+        }
+
+        /// <summary>
         /// Resolves a key to generate for an algorithm: the algorithm is a registered signature or key-management
         /// algorithm, the use it implies agrees with the declared use, and the algorithm accepts keys of the declared
         /// runtime type. For a key type on curves, the key is generated on the declared curve, which must be one the
         /// algorithm accepts, or, when none is declared, on the first curve the algorithm accepts that has the declared
         /// size, or on its first curve when no size is declared either; the key's size is its curve's. For a key type
-        /// without curves, the declared size must be one the algorithm accepts, and the smallest it accepts is taken
-        /// when none is declared. Two curves can share a key size, so a key is never generated on whichever curve the
-        /// key type picks for the size.
+        /// without curves, no curve may be declared, and the declared size must be one the algorithm accepts, the
+        /// smallest it accepts being taken when none is declared. Two curves can share a key size, so a key is never
+        /// generated on whichever curve the key type picks for the size.
         /// </summary>
         /// <param name="declaration">The key to generate and the use and algorithm declared for it.</param>
         /// <param name="resolved">When this method returns <c>true</c>, the resolved key.</param>
@@ -221,6 +265,13 @@ public static class AlgorithmCollectionExtensions
 
                 keySizeBits = algorithmCurve.KeySizeBits;
                 curve = algorithmCurve.Name;
+            }
+            else if (curve is not null)
+            {
+                error =
+                    $"The algorithm '{algorithm}' names no curve for keys of this type, so the curve '{curve}' cannot "
+                    + "be declared.";
+                return false;
             }
             else if (declaration.KeySizeBits is { } size)
             {

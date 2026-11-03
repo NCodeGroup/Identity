@@ -95,9 +95,8 @@ Each module below exercises OP behavior that a specification requires; the OP be
   runs only at the authorization endpoint, via `ValidateSubjectAuthenticationCommand.EnforceAuthenticationAge`, so the
   token and refresh endpoints never re-evaluate it against a later clock.
 - **`oidcc-prompt-none-logged-in` / `oidcc-id-token-hint`** — `SettingDescriptor<TValue>.HasDefault` tracks an explicit
-  flag, so a value-type setting with no declared default stays absent instead of loading `default(TValue)` (for
-  `subject_max_age`, a zero-second freshness window). `IReadOnlySettingCollection.GetValueOrNull<TValue>()` (struct
-  constraint, genuine `Nullable<TValue>`) is the optional-value reader. A 32-concurrent `prompt=none` integration test
+  flag, so a value-type setting with no declared default is absent. `IReadOnlySettingCollection.GetValueOrNull<TValue>()`
+  (struct constraint, genuine `Nullable<TValue>`) reads optional values. A 32-concurrent `prompt=none` integration test
   guards it.
 - **`oidcc-ensure-registered-redirect-uri`** — the OP refuses an unregistered `redirect_uri` with a 400
   `unauthorized_client` and renders the non-redirectable error page (OIDC Core §3.1.2.4); 4xx `OpenIdException`s log at

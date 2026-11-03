@@ -2240,7 +2240,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // mtls_endpoint_alias_authority: a retired setting (ADR-1251). A tenant's mTLS endpoint alias is its
-            // MtlsEndpointAliasAuthority property (ADR-1195). Issue #37 tracks removing this descriptor and the key
+            // MtlsEndpointAliasAuthority property (ADR-1195). issue #37 tracks removing this descriptor and the key
             // from the stored settings documents.
             yield return new SettingDescriptor<string>
             {

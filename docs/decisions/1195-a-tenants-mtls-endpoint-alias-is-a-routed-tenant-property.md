@@ -1,15 +1,14 @@
 # 1195. A tenant's mTLS endpoint alias is a routed tenant property
 
 - **Status:** Accepted (amended by
-  [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md), which
-  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md) supersedes: the
-  setting is retired and its value copied; amended by
+  [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): the setting is retired and
+  its value copied; amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
-  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md):
-  until the first stable release a setting is renamed, removed or narrowed outright, and no retired descriptor
-  stays registered)
+  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md), which
+  supersedes ADR-1251: until the first stable release a setting is renamed, removed or narrowed outright, and no
+  retired descriptor stays registered)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

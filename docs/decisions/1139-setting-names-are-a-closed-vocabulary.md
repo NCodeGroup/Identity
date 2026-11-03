@@ -4,18 +4,17 @@
   values are validated against their domain, not only their type; and by
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): a setting is accepted only at a scope that reads it;
   amended by
-  [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md), which
-  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md) supersedes: a
-  retired setting stays registered until a later release removes it; and by
+  [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): a retired setting stays
+  registered until a later release removes it; and by
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md):
   `DeveloperKeys` has no mode and no ephemeral fallback, only the `PruneUnreadableKeys` opt-in, and
   `AddProductionSafety` refuses a `DeveloperKeys` or `Cors` section in Production; amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
-  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md):
-  until the first stable release a setting is renamed, removed or narrowed outright, and no retired descriptor
-  stays registered)
+  [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md), which
+  supersedes ADR-1251: until the first stable release a setting is renamed, removed or narrowed outright, and no
+  retired descriptor stays registered)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

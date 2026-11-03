@@ -287,6 +287,8 @@ describes the family as it is rather than its changes
   and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share,
   where each of its two contexts has one `InitialCreate` migration that creates its whole model
   ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  When a context's migrations history records a migration the project does not hold, the worker applies nothing and
+  fails with a message that names the context and says to reset the local database with `build/dev-db-reset.ps1`.
   The host persists its Data Protection key ring in the same database (`PersistKeysToDbContext`), so one purge resets
   the OpenID data, the tenants' master keys and signing keys, and the ring together, with nothing on the filesystem; the
   per-machine development root key lives outside the database, so a purged database gets fresh master keys under it.

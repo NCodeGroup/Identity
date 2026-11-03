@@ -127,9 +127,13 @@ previous release the expand-first rule (decision 4) holds for every migration.
 
 - A change to the EF model touches the context's `InitialCreate`, its designer file and its model snapshot, and
   nothing else under `Migrations/`.
-- A re-scaffold gives `InitialCreate` a fresh identifier, and the migration worker fails on the first `CREATE TABLE`
-  of a database whose schema another identifier created. `build/dev-db-reset.ps1` resets the local database, and the
-  next AppHost run creates the schema and seeds the development data.
+- A re-scaffold gives `InitialCreate` a fresh identifier. Before it applies any migration, `MigrationRunner` compares
+  the identifiers each context's migrations history records with the migrations the database assembly holds; when the
+  history records one the assembly lacks, it applies nothing and fails fast with a message that names the context and
+  says to reset the local database with `build/dev-db-reset.ps1`, the actionable failure
+  [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md) asks for in place of a provider error.
+  The check reads only the migrations history. `build/dev-db-reset.ps1` resets the local database, and the next
+  AppHost run creates the schema and seeds the development data.
 - A setting vocabulary change is a descriptor change: the closed vocabulary and the fail-closed read of a stored
   document stay, and no SQL accompanies the change.
 - Until the first stable release, no migration carries `[ExpandMigration]` or `[ContractMigration]`: the
@@ -150,6 +154,8 @@ previous release the expand-first rule (decision 4) holds for every migration.
 - `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/`,
   `src/NCode.Identity.OpenId.Host.Database/Migrations/DataProtection/`,
   `src/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
-  `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs` and
-  `tests/NCode.Identity.OpenId.Host.Database.Tests/InitialCreateTests.cs`.
+  `src/NCode.Identity.OpenId.Host.Database/MigrationRunner.cs`,
+  `tests/NCode.Identity.OpenId.Host.Database.Tests/ExpandOnlyRuleTests.cs`,
+  `tests/NCode.Identity.OpenId.Host.Database.Tests/InitialCreateTests.cs` and
+  `tests/NCode.Identity.OpenId.Host.Database.Tests/MigrationRunnerTests.cs`.
 - [`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1).

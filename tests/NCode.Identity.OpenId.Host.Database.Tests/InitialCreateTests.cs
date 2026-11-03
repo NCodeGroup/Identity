@@ -11,7 +11,7 @@ public sealed class InitialCreateTests
 {
     private const string InitialCreate = "InitialCreate";
 
-    public static TheoryData<string> HostMigrations => HostMigrationCatalog.GetNames();
+    #region Host Context Tests
 
     [Fact]
     public void HostMigrations_WhenEnumerated_BelongToTheTwoContexts()
@@ -50,6 +50,12 @@ public sealed class InitialCreateTests
         Assert.EndsWith($"_{InitialCreate}", id, StringComparison.Ordinal);
     }
 
+    #endregion
+
+    #region Host Migration Tests
+
+    public static TheoryData<string> HostMigrations => HostMigrationCatalog.GetNames();
+
     [Theory]
     [MemberData(nameof(HostMigrations))]
     public void HostMigration_WhenRead_ChangesNoData(string migrationName)
@@ -63,4 +69,6 @@ public sealed class InitialCreateTests
 
         Assert.True(dataChanges.Count == 0, $"{migrationName}: {string.Join(" ", dataChanges)}");
     }
+
+    #endregion
 }

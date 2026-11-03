@@ -17,7 +17,10 @@ password are not in the overlay: they are generated once per machine, outside th
 `ConformanceSeed__` environment variables by the LocalDev AppHost and by
 [`run-conformance.ps1`](../../build/conformance/run-conformance.ps1), through
 [`Get-ConformanceSeedCredentials.ps1`](../../build/conformance/Get-ConformanceSeedCredentials.ps1)
-([#514](https://github.com/NCodeGroup/Identity/issues/514)). The remaining conformance
+([#514](https://github.com/NCodeGroup/Identity/issues/514)). The host stores each seeded secret as a PBKDF2 verifier,
+from which the secret cannot be read back, unless its client registers `client_secret_jwt`, which keys its assertion
+from the secret itself
+([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)). The remaining conformance
 prerequisite is the reachable HTTPS host with a byte-matched `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
 ## Goal

@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -278,6 +279,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             protector,
             request,
             IssuesClientSecret(resolved.TokenEndpointAuthMethod),
+            UsesClientSecretAsKey(resolved.TokenEndpointAuthMethod),
             createdWhen,
             errorFactory,
             out var secrets,
@@ -599,11 +601,20 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         client.Secrets.Value = await ReplacePublicKeysAsync(store, client, keys, cancellationToken);
 
+        var clientSecret = await ReissueClientSecretOrDefaultAsync(
+            store,
+            client,
+            resolved.TokenEndpointAuthMethod,
+            cancellationToken
+        );
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var response = await ToResponseAsync(client, cancellationToken);
         response = response with
         {
+            ClientSecret = clientSecret,
+            ClientSecretExpiresAt = clientSecret is null ? null : 0,
             RegistrationClientUri = GetRegistrationClientUri(openIdContext, clientId),
         };
 
@@ -648,6 +659,83 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         return secrets;
     }
+
+    /// <summary>
+    /// Issues a new <c>client_secret</c> to an updated client whose registered method verifies one when none of the
+    /// client's shared secrets can authenticate it with that method, returning the one-time secret, or
+    /// <see langword="null"/> when the client keeps its secrets. A method that uses the secret as a key needs a secret
+    /// the server can read back, so a client switched to it from a method whose secrets are one-way verifiers is
+    /// issued one. The new secret replaces the client's other shared secrets, which the client discards
+    /// (RFC 7592 §2.2).
+    /// </summary>
+    // See ADR-1391.
+    private async ValueTask<string?> ReissueClientSecretOrDefaultAsync(
+        IClientStore store,
+        PersistedClient client,
+        string tokenEndpointAuthMethod,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!IssuesClientSecret(tokenEndpointAuthMethod))
+        {
+            return null;
+        }
+
+        var usesClientSecretAsKey = UsesClientSecretAsKey(tokenEndpointAuthMethod);
+        var now = TimeProvider.GetUtcNow();
+        var secrets = client.Secrets.Value;
+        if (secrets.Any(secret => CanAuthenticate(secret, usesClientSecretAsKey, now)))
+        {
+            return null;
+        }
+
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+        var generated = GenerateClientSecret(protector, usesClientSecretAsKey, now);
+
+        var kept = new List<PersistedSecret>(secrets.Count + 1);
+        foreach (var secret in secrets)
+        {
+            if (IsSharedSecret(secret))
+            {
+                await store.RemoveSecretAsync(client.ClientId, secret.SecretId, cancellationToken);
+            }
+            else
+            {
+                kept.Add(secret);
+            }
+        }
+
+        await store.AddSecretAsync(client.ClientId, generated.Secret, cancellationToken);
+        kept.Add(generated.Secret);
+        client.Secrets.Value = kept;
+
+        return generated.SecretMaterial;
+    }
+
+    // A shared secret authenticates a client registered for a method that uses it as a key only when the server can read
+    // it back; any unexpired shared secret authenticates a client registered for a method that compares it.
+    private static bool CanAuthenticate(
+        PersistedSecret secret,
+        bool usesClientSecretAsKey,
+        DateTimeOffset now
+    ) =>
+        IsSharedSecret(secret)
+        && secret.ExpiresWhen > now
+        && (
+            !usesClientSecretAsKey
+            || string.Equals(
+                secret.SecretEncoding,
+                SecretEncodings.SymmetricRaw,
+                StringComparison.Ordinal
+            )
+        );
+
+    private static bool IsSharedSecret(PersistedSecret secret) =>
+        string.Equals(secret.SecretType, SecretTypes.Symmetric, StringComparison.Ordinal);
 
     private async ValueTask<IResult> DeleteClientAsync(
         string clientId,
@@ -1273,6 +1361,18 @@ internal class DefaultClientRegistrationEndpointHandler(
         ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
         && descriptor.RequiresClientSecret;
 
+    /// <summary>
+    /// Determines whether a client that registers the specified client-authentication method is issued a
+    /// <c>client_secret</c> the server can read back, because the method uses the secret as a key; a client of any
+    /// other method is issued a secret stored as a one-way verifier.
+    /// </summary>
+    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
+    /// <returns><see langword="true"/> when the client's secret is stored so the server can read it back.</returns>
+    // See ADR-1391.
+    internal virtual bool UsesClientSecretAsKey(string tokenEndpointAuthMethod) =>
+        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
+        && descriptor.UsesClientSecretAsKey;
+
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
         string description
@@ -1327,6 +1427,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         ISecretProtector protector,
         RegisterClientRequest request,
         bool issuesClientSecret,
+        bool usesClientSecretAsKey,
         DateTimeOffset createdWhen,
         IOpenIdErrorFactory errorFactory,
         out List<PersistedSecret> secrets,
@@ -1338,23 +1439,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         if (issuesClientSecret)
         {
-            // A client_secret is an opaque string the client later presents verbatim. GenerateSharedSecret stores it
-            // as the UTF-8 bytes client authentication compares against (see CommonClientAuthenticationHandler.
-            // IsSecretEqual), unlike GenerateSecret's raw-byte crypto-key material whose base64url reveal never
-            // round-trips back to the stored bytes.
-            var generated = SecretGenerator.GenerateSharedSecret(
-                protector,
-                new GenerateSecretRequest
-                {
-                    SecretId = CryptoService.GenerateResourceId(),
-                    SecretType = SecretTypes.Symmetric,
-                    KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
-                    Use = null,
-                    Algorithm = null,
-                    CreatedWhen = createdWhen,
-                    ExpiresWhen = DateTimeOffset.MaxValue,
-                }
-            );
+            var generated = GenerateClientSecret(protector, usesClientSecretAsKey, createdWhen);
             clientSecret = generated.SecretMaterial;
             secrets.Add(generated.Secret);
         }
@@ -1367,6 +1452,34 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         secrets.AddRange(keys);
         return null;
+    }
+
+    /// <summary>
+    /// Generates a <c>client_secret</c>, an opaque string the client later presents verbatim, with 256 bits of entropy
+    /// and no expiry. It is stored as a one-way verifier, unless the client's method uses it as a key, in which case it
+    /// is stored as the UTF-8 bytes the method keys from.
+    /// </summary>
+    // See ADR-1110 and ADR-1391.
+    private GeneratedSecret GenerateClientSecret(
+        ISecretProtector protector,
+        bool usesClientSecretAsKey,
+        DateTimeOffset createdWhen
+    )
+    {
+        var request = new GenerateSecretRequest
+        {
+            SecretId = CryptoService.GenerateResourceId(),
+            SecretType = SecretTypes.Symmetric,
+            KeySizeBits = SharedSecretPolicy.MinimumEntropyBits,
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = createdWhen,
+            ExpiresWhen = DateTimeOffset.MaxValue,
+        };
+
+        return usesClientSecretAsKey
+            ? SecretGenerator.GenerateReversibleSharedSecret(protector, request)
+            : SecretGenerator.GenerateSharedSecret(protector, request);
     }
 
     /// <summary>

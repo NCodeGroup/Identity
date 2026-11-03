@@ -55,7 +55,8 @@ public static class DefaultRegistration
         /// <item><description><see cref="ISecretProtectorProvider"/> - Provides secret protectors backed by
         /// the cached, persisted master key ring.</description></item>
         /// <item><description>Options for <see cref="SecretProtectionOptions"/> and
-        /// <see cref="LocalKeyWrapperOptions"/>, which are bound to configuration elsewhere.</description></item>
+        /// <see cref="LocalKeyWrapperOptions"/>, which are bound to configuration elsewhere, and for
+        /// <see cref="SharedSecretVerifierOptions"/>.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAdd*</c> semantics, meaning existing registrations
@@ -87,6 +88,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ISecretProtectorProvider, DefaultMasterKeyRing>();
             serviceCollection.AddOptions<SecretProtectionOptions>();
             serviceCollection.AddOptions<LocalKeyWrapperOptions>();
+            serviceCollection.AddOptions<SharedSecretVerifierOptions>();
 
             return newBuilder;
         }

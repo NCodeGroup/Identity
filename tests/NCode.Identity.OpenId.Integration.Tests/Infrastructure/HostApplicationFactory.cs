@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Persistence.Stores;
@@ -358,6 +359,59 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             new Dictionary<string, object>(settings) { ["redirect_uris"] = redirectUris }
         );
 
+    /// <summary>
+    /// Reads the secrets stored for a client, so a test can check the form each is stored in.
+    /// </summary>
+    public async Task<IReadOnlyCollection<PersistedSecret>> GetClientSecretsAsync(string clientId)
+    {
+        using var scope = Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var secrets = await storeManager
+            .GetStore<IClientStore>()
+            .GetSecretsOrDefaultAsync(clientId, CancellationToken.None);
+        return secrets?.Value ?? [];
+    }
+
+    /// <summary>
+    /// Stores a known <c>client_secret</c> as production stores a supplied one: as its one-way verifier, unless the
+    /// client is registered for a method that uses the secret as a key, such as <c>client_secret_jwt</c>, which keeps it
+    /// as the UTF-8 bytes the method keys from.
+    /// </summary>
+    // See ADR-1391.
+    private static async Task<PersistedSecret> CreateSharedSecretAsync(
+        IServiceProvider serviceProvider,
+        string secretId,
+        string clientSecret,
+        string? tokenEndpointAuthMethod
+    )
+    {
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
+
+        var request = new ImportSharedSecretRequest
+        {
+            SecretId = secretId,
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+        };
+        var secretGenerator = serviceProvider.GetRequiredService<ISecretGenerator>();
+        var secretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
+
+        return string.Equals(
+            tokenEndpointAuthMethod,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
+            StringComparison.Ordinal
+        )
+            ? secretGenerator.ImportReversibleSharedSecret(protector, request, secretBytes)
+            : secretGenerator.ImportSharedSecret(protector, request, secretBytes);
+    }
+
     private async Task SeedSharedSecretClientAsync(
         string clientId,
         string clientSecret,
@@ -376,27 +430,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-1110), protected
-        // under the tenant's master key, so the stored UTF-8 shape is identical to a generated secret's and client
-        // authentication round-trips.
-        var protector = await serviceProvider
-            .GetRequiredService<ISecretProtectorProvider>()
-            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
-
-        var persistedSecret = serviceProvider
-            .GetRequiredService<ISecretGenerator>()
-            .ImportSharedSecret(
-                protector,
-                new ImportSharedSecretRequest
-                {
-                    SecretId = $"{clientId}-secret",
-                    Use = null,
-                    Algorithm = null,
-                    CreatedWhen = DateTimeOffset.UnixEpoch,
-                    ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-                },
-                SecureEncoding.UTF8.GetBytes(clientSecret)
-            );
+        // Persist the given client_secret through the same shared-secret primitives production uses (ADR-1110,
+        // ADR-1391), protected under the tenant's master key.
+        var persistedSecret = await CreateSharedSecretAsync(
+            serviceProvider,
+            $"{clientId}-secret",
+            clientSecret,
+            tokenEndpointAuthMethod
+        );
 
         var settings = additionalSettings is null
             ? new Dictionary<string, object>()
@@ -798,28 +839,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = await serviceProvider
-            .GetRequiredService<ISecretProtectorProvider>()
-            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
-
-        var secretId = $"{clientId}-secret";
-        var secretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
-
-        var persistedSecret = new PersistedSecret
-        {
-            SecretId = secretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            KeySizeBits = secretBytes.Length * 8,
-            EncodedValue = protector.ProtectToString(
-                secretBytes,
-                SecretProtectionContext.ForPersistedSecret(secretId)
-            ),
-        };
+        var persistedSecret = await CreateSharedSecretAsync(
+            serviceProvider,
+            $"{clientId}-secret",
+            clientSecret,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
 
         var settings = new Dictionary<string, object>
         {
@@ -959,11 +984,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             await storeManager.SaveChangesAsync(CancellationToken.None);
         }
 
-        var protector = await serviceProvider
-            .GetRequiredService<ISecretProtectorProvider>()
-            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
-        var secretId = $"{clientId}-secret";
-        var secretBytes = SecureEncoding.UTF8.GetBytes(storedSecret);
+        var persistedSecret = await CreateSharedSecretAsync(
+            serviceProvider,
+            $"{clientId}-secret",
+            storedSecret,
+            tokenEndpointAuthMethod: null
+        );
 
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             new Dictionary<string, object>()
@@ -986,24 +1012,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 {
                     TenantId = TenantId,
                     ClientId = clientId,
-                    Value =
-                    [
-                        new PersistedSecret
-                        {
-                            SecretId = secretId,
-                            Use = null,
-                            Algorithm = null,
-                            CreatedWhen = DateTimeOffset.UnixEpoch,
-                            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-                            SecretType = SecretTypes.Symmetric,
-                            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-                            KeySizeBits = secretBytes.Length * 8,
-                            EncodedValue = protector.ProtectToString(
-                                secretBytes,
-                                SecretProtectionContext.ForPersistedSecret(secretId)
-                            ),
-                        },
-                    ],
+                    Value = [persistedSecret],
                 },
             },
             CancellationToken.None
@@ -1231,6 +1240,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the host's own secure defaults.
             serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+
+            // A supplied client_secret is stored as a PBKDF2 verifier whose work factor would make every seeded
+            // client's token request cost what a password check costs; a verifier records its own count, so a low one
+            // exercises the same path faster. See ADR-1391.
+            serviceCollection.Configure<SharedSecretVerifierOptions>(options =>
+                options.Pbkdf2Iterations = 1_000
+            );
 
             // Seed no developer clients unless a derived factory opts in (the last registration wins, so the
             // developer seeder sees an empty set of clients).

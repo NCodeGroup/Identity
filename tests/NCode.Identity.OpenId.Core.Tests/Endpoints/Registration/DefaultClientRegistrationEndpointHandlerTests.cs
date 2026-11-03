@@ -667,6 +667,55 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.False(issues);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void UsesClientSecretAsKey_WhenTheMethodIsRegistered_FollowsItsDescriptor(
+        bool usesClientSecretAsKey
+    )
+    {
+        // A secret is stored so the server can read it back only for a method that keys from it. See ADR-1391.
+        ClientAuthenticationMethodDescriptor? descriptor = new()
+        {
+            Name = "test_method",
+            RequiresClientSecret = true,
+            UsesClientSecretAsKey = usesClientSecretAsKey,
+        };
+        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
+        mockCatalog.Setup(x => x.TryGet("test_method", out descriptor)).Returns(true).Verifiable();
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            clientAuthenticationMethodCatalog: mockCatalog.Object
+        );
+
+        var usesKey = handler.UsesClientSecretAsKey("test_method");
+
+        Assert.Equal(usesClientSecretAsKey, usesKey);
+    }
+
+    [Fact]
+    public void UsesClientSecretAsKey_WhenTheMethodIsNotRegistered_ReturnsFalse()
+    {
+        ClientAuthenticationMethodDescriptor? descriptor = null;
+        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
+        mockCatalog
+            .Setup(x => x.TryGet("unregistered_method", out descriptor))
+            .Returns(false)
+            .Verifiable();
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            clientAuthenticationMethodCatalog: mockCatalog.Object
+        );
+
+        var usesKey = handler.UsesClientSecretAsKey("unregistered_method");
+
+        Assert.False(usesKey);
+    }
+
     #endregion
 
     #region BuildSettingsObject

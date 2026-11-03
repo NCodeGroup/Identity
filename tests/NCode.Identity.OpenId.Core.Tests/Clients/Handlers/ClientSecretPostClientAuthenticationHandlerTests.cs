@@ -5,9 +5,12 @@ using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Buffers;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Verifiers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Clients.Handlers;
@@ -26,6 +29,82 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             MockAuditEventRecorder.Object,
             CreateLogger<ClientSecretPostClientAuthenticationHandler>()
         );
+
+    // A verifier that confirms one secret, as a stored one-way verifier does.
+    private sealed class FakeVerifier(string keyId, string secret) : SecretVerifier
+    {
+        private byte[] Secret { get; } = SecureEncoding.UTF8.GetBytes(secret);
+
+        public override KeyMetadata Metadata { get; } = new() { KeyId = keyId };
+
+        public override string Scheme => SecretVerifierSchemes.Sha256;
+
+        public override bool Verify(ReadOnlySpan<byte> secret) => secret.SequenceEqual(Secret);
+    }
+
+    // A shared secret the client holds as a key, as a client issued a secret for client_secret_jwt does.
+    private sealed class FakeSymmetricSecretKey(string keyId, string secret) : SymmetricSecretKey
+    {
+        private byte[] Secret { get; } = SecureEncoding.UTF8.GetBytes(secret);
+
+        public override KeyMetadata Metadata { get; } = new() { KeyId = keyId };
+
+        public override int KeySizeBits => Secret.Length * 8;
+
+        public override void ExportPrivateKey<TWriter>(ref TWriter destination)
+        {
+            Secret.CopyTo(destination.GetSpan(Secret.Length));
+            destination.Advance(Secret.Length);
+        }
+    }
+
+    private OpenIdClient CreateRegisteredClient(
+        IReadOnlyCollection<SecretVerifier> verifiers,
+        IReadOnlyCollection<SecretKey> secretKeys,
+        bool readsClientId
+    )
+    {
+        var mockSecretKeys = CreateStrictMock<ISecretKeyCollection>();
+        mockSecretKeys
+            .As<IEnumerable>()
+            .Setup(x => x.GetEnumerator())
+            .Returns(() => secretKeys.GetEnumerator());
+        var client = CreateClient(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost],
+            readsClientId
+        );
+        Mock.Get(client).SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object);
+        Mock.Get(client).SetupGet(x => x.SecretVerifiers).Returns(verifiers).Verifiable();
+        return client;
+    }
+
+    private OpenIdConfidentialClient SetupConfidentialClient(
+        OpenIdClient client,
+        string expectedCredentialId
+    )
+    {
+        var mockConfidentialClient = CreateStrictMock<OpenIdConfidentialClient>();
+        mockConfidentialClient.SetupGet(x => x.IsConfidential).Returns(true);
+        mockConfidentialClient
+            .SetupGet(x => x.ConfidentialClient)
+            .Returns(mockConfidentialClient.Object);
+        var confidentialClient = mockConfidentialClient.Object;
+        MockClientFactory
+            .Setup(x =>
+                x.CreateConfidentialClientAsync(
+                    MockContext.Object,
+                    client,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    expectedCredentialId,
+                    null,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(confidentialClient)
+            .Verifiable();
+        return confidentialClient;
+    }
 
     private void SetupCredentialsForm() =>
         SetupForm(
@@ -139,6 +218,85 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             readsClientId: true
         );
         Mock.Get(client).SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object).Verifiable();
+        Mock.Get(client)
+            .SetupGet(x => x.SecretVerifiers)
+            .Returns([new FakeVerifier("verifier-1", "another-secret")])
+            .Verifiable();
+        SetupResolvedClient(client);
+        SetupAudit("invalid_client_secret");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        AssertInvalidClient(result, StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheSecretMatchesAVerifier_AuthenticatesWithThatSecret()
+    {
+        // A secret the server only compares is stored as a one-way verifier. See ADR-1391.
+        SetupCredentialsForm();
+        var client = CreateRegisteredClient(
+            [
+                new FakeVerifier("verifier-1", "another-secret"),
+                new FakeVerifier("verifier-2", "presented-secret"),
+            ],
+            [],
+            readsClientId: false
+        );
+        SetupResolvedClient(client);
+        var expected = SetupConfidentialClient(client, "verifier-2");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsConfidential);
+        Assert.Same(expected, result.ConfidentialClient);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheSecretMatchesASecretHeldAsAKey_AuthenticatesWithThatSecret()
+    {
+        // A secret issued while the client was registered for client_secret_jwt is held as a key, and still
+        // authenticates the client once it is registered for a method that compares the secret.
+        SetupCredentialsForm();
+        var client = CreateRegisteredClient(
+            [new FakeVerifier("verifier-1", "another-secret")],
+            [
+                new FakeSymmetricSecretKey("key-1", "presented-secret-but-longer"),
+                new FakeSymmetricSecretKey("key-2", "presented-secret"),
+            ],
+            readsClientId: false
+        );
+        SetupResolvedClient(client);
+        var expected = SetupConfidentialClient(client, "key-2");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsConfidential);
+        Assert.Same(expected, result.ConfidentialClient);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheSecretIsAPrefixOfAStoredSecret_ReturnsInvalidClient()
+    {
+        SetupCredentialsForm();
+        SetupErrorFactory();
+        var client = CreateRegisteredClient(
+            [new FakeVerifier("verifier-1", "presented-secret-2")],
+            [new FakeSymmetricSecretKey("key-1", "presented-secret-2")],
+            readsClientId: true
+        );
         SetupResolvedClient(client);
         SetupAudit("invalid_client_secret");
         var handler = CreateHandler();

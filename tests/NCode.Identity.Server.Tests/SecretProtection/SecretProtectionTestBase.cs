@@ -12,6 +12,7 @@ using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -92,6 +93,11 @@ public abstract class SecretProtectionTestBase : BaseTests
             options.Recovery = new RecoveryKeyOptions { Disabled = true };
         });
 
+        // A verifier records its own work factor, so a low one exercises the same path faster.
+        serviceCollection.Configure<SharedSecretVerifierOptions>(options =>
+            options.Pbkdf2Iterations = 1_000
+        );
+
         var serviceProvider = serviceCollection.BuildServiceProvider();
         ServiceProviders.Add(serviceProvider);
         return serviceProvider;
@@ -145,5 +151,37 @@ public abstract class SecretProtectionTestBase : BaseTests
             SecureEncoding.UTF8.GetBytes(expectedSecretText),
             writer.WrittenSpan.ToArray()
         );
+    }
+
+    /// <summary>
+    /// Asserts that a stored secret is the one-way verifier of the expected text, protected under the owner's master
+    /// key: it is a <c>verifier</c> envelope that the real serializer opens with the owner's protector to a PBKDF2
+    /// verifier that confirms the expected text and nothing else.
+    /// </summary>
+    /// <param name="services">The service provider that <see cref="CreateSecretServices"/> built.</param>
+    /// <param name="owner">The owner whose protector opens the secret.</param>
+    /// <param name="secret">The stored secret to assert on.</param>
+    /// <param name="expectedSecretId">The id that the secret is expected to carry.</param>
+    /// <param name="expectedSecretText">The text whose UTF-8 bytes the verifier is expected to confirm.</param>
+    // See ADR-1391.
+    protected static async Task AssertSecretIsVerifierUnderTenantAsync(
+        ServiceProvider services,
+        SecretOwner owner,
+        PersistedSecret secret,
+        string expectedSecretId,
+        string expectedSecretText
+    )
+    {
+        Assert.Equal(expectedSecretId, secret.SecretId);
+        Assert.Equal(SecretEncodings.Verifier, secret.SecretEncoding);
+        Assert.StartsWith("nce1.", secret.EncodedValue, StringComparison.Ordinal);
+
+        var protector = await GetProtectorAsync(services, owner);
+        var serializer = services.GetRequiredService<ISecretSerializer>();
+        var verifier = Assert.Single(serializer.DeserializeVerifiers(protector, [secret]));
+
+        Assert.Equal(SecretVerifierSchemes.Pbkdf2Sha256, verifier.Scheme);
+        Assert.True(verifier.Verify(SecureEncoding.UTF8.GetBytes(expectedSecretText)));
+        Assert.False(verifier.Verify(SecureEncoding.UTF8.GetBytes(expectedSecretText + "x")));
     }
 }

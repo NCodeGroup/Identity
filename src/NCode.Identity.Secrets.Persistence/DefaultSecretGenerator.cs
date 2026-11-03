@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Persistence.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -15,12 +18,24 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides a default implementation of the <see cref="ISecretGenerator"/> abstraction that generates key
 /// material server-side and protects it under the owner's master key through an <see cref="ISecretProtector"/>. The
 /// per-type generation logic is delegated to the registered <see cref="ISecretKeyTypeDescriptor"/> for the requested
-/// key type.
+/// key type. A shared secret that is only ever compared is stored as its one-way verifier: a SHA-256 digest for a
+/// generated secret, and a PBKDF2-HMAC-SHA256 derivation for a supplied one.
 /// </summary>
-// See ADR-1067.
-internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog) : ISecretGenerator
+// See ADR-1067, ADR-1110 and ADR-1391.
+internal class DefaultSecretGenerator(
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor
+) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private int Pbkdf2Iterations { get; } = ValidateIterations(verifierOptionsAccessor.Value);
+
+    private static int ValidateIterations(SharedSecretVerifierOptions options)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.Pbkdf2Iterations, 1);
+        return options.Pbkdf2Iterations;
+    }
 
     /// <inheritdoc />
     public GeneratedSecret GenerateSecret(ISecretProtector protector, GenerateSecretRequest request)
@@ -66,6 +81,89 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
     public GeneratedSecret GenerateSharedSecret(
         ISecretProtector protector,
         GenerateSecretRequest request
+    ) =>
+        GenerateSharedSecretCore(
+            protector,
+            request,
+            static (utf8, protect) =>
+            {
+                // A generated secret has at least 256 bits of entropy, which no search can guess, so a SHA-256 digest
+                // verifies it without a work factor.
+                using var lease = SecretVerifierFormat.CreateSha256(utf8, out var verifier);
+                return (SecretEncodings.Verifier, protect(verifier.Span));
+            }
+        );
+
+    /// <inheritdoc />
+    public GeneratedSecret GenerateReversibleSharedSecret(
+        ISecretProtector protector,
+        GenerateSecretRequest request
+    ) =>
+        GenerateSharedSecretCore(
+            protector,
+            request,
+            static (utf8, protect) => (SecretEncodings.SymmetricRaw, protect(utf8))
+        );
+
+    /// <inheritdoc />
+    public PersistedSecret ImportSharedSecret(
+        ISecretProtector protector,
+        ImportSharedSecretRequest request,
+        ReadOnlySpan<byte> secretValue
+    )
+    {
+        EnsureNotEmpty(secretValue);
+
+        // A supplied secret was chosen by someone and its entropy is unknown, so its verifier carries the work factor
+        // of a password hash.
+        using var lease = SecretVerifierFormat.CreatePbkdf2(
+            secretValue,
+            Pbkdf2Iterations,
+            out var verifier
+        );
+
+        return CreateSharedSecret(
+            request.SecretId,
+            request.Use,
+            request.Algorithm,
+            request.CreatedWhen,
+            request.ExpiresWhen,
+            SecretEncodings.Verifier,
+            secretValue.Length,
+            Protect(protector, request.SecretId, verifier.Span)
+        );
+    }
+
+    /// <inheritdoc />
+    public PersistedSecret ImportReversibleSharedSecret(
+        ISecretProtector protector,
+        ImportSharedSecretRequest request,
+        ReadOnlySpan<byte> secretValue
+    )
+    {
+        EnsureNotEmpty(secretValue);
+
+        return CreateSharedSecret(
+            request.SecretId,
+            request.Use,
+            request.Algorithm,
+            request.CreatedWhen,
+            request.ExpiresWhen,
+            SecretEncodings.SymmetricRaw,
+            secretValue.Length,
+            Protect(protector, request.SecretId, secretValue)
+        );
+    }
+
+    private delegate (string SecretEncoding, string EncodedValue) SharedSecretEncoder(
+        ReadOnlySpan<byte> utf8SecretBytes,
+        SecretKeyMaterialProtector protect
+    );
+
+    private static GeneratedSecret GenerateSharedSecretCore(
+        ISecretProtector protector,
+        GenerateSecretRequest request,
+        SharedSecretEncoder encode
     )
     {
         if (request.SecretType != SecretTypes.Symmetric)
@@ -91,8 +189,8 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
             );
         }
 
-        // The opaque secret string is what an external party holds and later presents; its UTF-8 bytes are stored as
-        // the symmetric key material so a UTF-8 comparison of the presented secret against the stored material matches.
+        // The opaque secret string is what an external party holds and later presents; what is stored is computed from
+        // its UTF-8 bytes, which is what a presented secret is compared as.
         var entropyByteLength = request.KeySizeBits >> 3;
         using var entropyLease = BufferFactory.Rent(
             entropyByteLength,
@@ -111,29 +209,27 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
         );
         SecureEncoding.UTF8.GetBytes(secretMaterial, utf8);
 
+        var secretId = request.SecretId;
+        var (secretEncoding, encodedValue) = encode(
+            utf8,
+            bytes => Protect(protector, secretId, bytes)
+        );
+
         var secret = CreateSharedSecret(
-            request.SecretId,
+            secretId,
             request.Use,
             request.Algorithm,
             request.CreatedWhen,
             request.ExpiresWhen,
-            utf8,
-            bytes =>
-                protector.ProtectToString(
-                    bytes,
-                    SecretProtectionContext.ForPersistedSecret(request.SecretId)
-                )
+            secretEncoding,
+            utf8.Length,
+            encodedValue
         );
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
     }
 
-    /// <inheritdoc />
-    public PersistedSecret ImportSharedSecret(
-        ISecretProtector protector,
-        ImportSharedSecretRequest request,
-        ReadOnlySpan<byte> secretValue
-    )
+    private static void EnsureNotEmpty(ReadOnlySpan<byte> secretValue)
     {
         if (secretValue.IsEmpty)
         {
@@ -142,33 +238,26 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
                 nameof(secretValue)
             );
         }
-
-        return CreateSharedSecret(
-            request.SecretId,
-            request.Use,
-            request.Algorithm,
-            request.CreatedWhen,
-            request.ExpiresWhen,
-            secretValue,
-            bytes =>
-                protector.ProtectToString(
-                    bytes,
-                    SecretProtectionContext.ForPersistedSecret(request.SecretId)
-                )
-        );
     }
 
-    // The single correct-by-default construction of a shared-secret PersistedSecret (ADR-1110): a symmetric_raw secret
-    // whose stored key material is exactly the supplied UTF-8 octets of the opaque string, shared by GenerateSharedSecret
-    // (random value) and ImportSharedSecret (caller-supplied value) so the stored shape cannot drift between them.
+    private static string Protect(
+        ISecretProtector protector,
+        string secretId,
+        ReadOnlySpan<byte> bytes
+    ) => protector.ProtectToString(bytes, SecretProtectionContext.ForPersistedSecret(secretId));
+
+    // The single construction of a shared-secret PersistedSecret, shared by every generate and import method so the
+    // stored shape cannot drift between them: a Symmetric secret whose size is that of the secret's UTF-8 octets and
+    // whose stored value is the protected verifier or the protected octets themselves. See ADR-1110 and ADR-1391.
     private static PersistedSecret CreateSharedSecret(
         string secretId,
         string? use,
         string? algorithm,
         DateTimeOffset createdWhen,
         DateTimeOffset expiresWhen,
-        ReadOnlySpan<byte> utf8SecretBytes,
-        SecretKeyMaterialProtector protect
+        string secretEncoding,
+        int utf8SecretByteCount,
+        string encodedValue
     )
     {
         return new PersistedSecret
@@ -179,9 +268,9 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
             CreatedWhen = createdWhen,
             ExpiresWhen = expiresWhen,
             SecretType = SecretTypes.Symmetric,
-            SecretEncoding = SecretEncodings.SymmetricRaw,
-            KeySizeBits = utf8SecretBytes.Length * 8,
-            EncodedValue = protect(utf8SecretBytes),
+            SecretEncoding = secretEncoding,
+            KeySizeBits = utf8SecretByteCount * 8,
+            EncodedValue = encodedValue,
         };
     }
 }

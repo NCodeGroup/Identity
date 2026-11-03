@@ -265,7 +265,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         Assert.Equal(WorkloadTenantId, addedClient.TenantId);
         Assert.Equal(ClientId, addedClient.ClientId);
         var secret = Assert.Single(addedClient.Secrets.Value);
-        await AssertSecretIsProtectedUnderTenantAsync(
+        await AssertSecretIsVerifierUnderTenantAsync(
             secretServices,
             owner,
             secret,
@@ -347,7 +347,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         );
 
         Assert.NotNull(addedSecret);
-        await AssertSecretIsProtectedUnderTenantAsync(
+        await AssertSecretIsVerifierUnderTenantAsync(
             secretServices,
             owner,
             addedSecret,

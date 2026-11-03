@@ -11,6 +11,8 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -65,6 +67,66 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
         return DeserializeSecretCore(null, persistedSecret, readStoredPublicKey: true);
     }
 
+    /// <inheritdoc />
+    // See ADR-1391.
+    public IReadOnlyCollection<SecretVerifier> DeserializeVerifiers(
+        ISecretProtector protector,
+        IReadOnlyCollection<PersistedSecret> persistedSecrets
+    )
+    {
+        ArgumentNullException.ThrowIfNull(protector);
+        ArgumentNullException.ThrowIfNull(persistedSecrets);
+
+        if (persistedSecrets.Count == 0)
+        {
+            return [];
+        }
+
+        var verifiers = new List<SecretVerifier>(persistedSecrets.Count);
+        foreach (var persistedSecret in persistedSecrets)
+        {
+            verifiers.Add(DeserializeVerifierCore(protector, persistedSecret));
+        }
+
+        return verifiers;
+    }
+
+    private static SecretVerifier DeserializeVerifierCore(
+        ISecretProtector protector,
+        PersistedSecret persistedSecret
+    )
+    {
+        if (!SecretEncodings.IsVerifier(persistedSecret.SecretEncoding))
+        {
+            throw new InvalidOperationException(
+                $"The secret '{persistedSecret.SecretId}' holds '{persistedSecret.SecretEncoding}' key material, not a verifier."
+            );
+        }
+
+        var metadata = new KeyMetadata
+        {
+            KeyId = persistedSecret.KeyId ?? persistedSecret.SecretId,
+            Use = persistedSecret.Use,
+            Algorithm = persistedSecret.Algorithm,
+            ExpiresWhen = persistedSecret.ExpiresWhen,
+        };
+
+        // A verifier is protected like key material, so a database backup alone yields not even the verifier.
+        using var verifierBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: true, 128);
+        IBufferWriter<byte> verifierWriter = verifierBuffer;
+        ReadPrivateKeyMaterial(protector, persistedSecret, verifierWriter);
+
+        using var verifierSpanLease = verifierBuffer.GetSpanLease(isSensitive: true);
+        if (!SecretVerifierFormat.TryParse(metadata, verifierSpanLease.Span, out var verifier))
+        {
+            throw new FormatException(
+                $"The secret '{persistedSecret.SecretId}' holds a verifier of an unknown scheme or with invalid parameters."
+            );
+        }
+
+        return verifier;
+    }
+
     private SortedSet<SecretKey> DeserializeSecretsCore(
         ISecretProtector? protector,
         IEnumerable<PersistedSecret> persistedSecrets
@@ -88,6 +150,14 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
         bool readStoredPublicKey
     )
     {
+        if (SecretEncodings.IsVerifier(persistedSecret.SecretEncoding))
+        {
+            // See ADR-1391.
+            throw new InvalidOperationException(
+                $"The secret '{persistedSecret.SecretId}' holds a verifier, which is not key material."
+            );
+        }
+
         if (!SecretKeyTypeCatalog.TryGet(persistedSecret.SecretType, out var descriptor))
         {
             throw new InvalidOperationException(

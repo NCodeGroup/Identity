@@ -5,7 +5,6 @@ using System.Text.Json;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
-using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
@@ -65,6 +64,7 @@ internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyC
             definition.ClientId,
             definition.Settings,
             secretKeys,
+            definition.SecretVerifiers,
             redirectUris,
             definition.ResourceServerId,
             propertyBag
@@ -75,7 +75,7 @@ internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyC
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
         string method,
-        SecretKey secretKey,
+        string? credentialId,
         JsonElement? confirmation,
         CancellationToken cancellationToken
     )
@@ -83,7 +83,7 @@ internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyC
         OpenIdConfidentialClient confidentialClient = new DefaultOpenIdConfidentialClient(
             publicClient,
             method,
-            secretKey,
+            credentialId,
             confirmation
         );
 

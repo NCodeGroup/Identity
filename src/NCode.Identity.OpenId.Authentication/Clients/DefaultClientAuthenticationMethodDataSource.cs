@@ -46,6 +46,7 @@ internal sealed class DefaultClientAuthenticationMethodDataSource(INullChangeTok
             {
                 Name = OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
                 RequiresClientSecret = true,
+                UsesClientSecretAsKey = true,
             };
 
             yield return new ClientAuthenticationMethodDescriptor

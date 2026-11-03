@@ -93,11 +93,14 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.
+    /// For a shared secret, this is the size of its UTF-8 octets, whether it is stored as those octets or as a
+    /// verifier.
     /// </summary>
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the base64url encoded value of the key material.
+    /// Gets the stored value: the base64url-encoded public key material, or the protected envelope of the private or
+    /// symmetric key material or of a shared secret's verifier.
     /// </summary>
     [MaxLength(SecretMaxLengths.EncodedValue)]
     public required string EncodedValue { get; init; }

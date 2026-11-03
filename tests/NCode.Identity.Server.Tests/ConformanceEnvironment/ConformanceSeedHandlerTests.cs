@@ -9,6 +9,7 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
+using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -75,6 +76,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             mockSecretGenerator.Object,
             mockSecretProtectorProvider.Object,
             clientKeyImporter ?? CreateStrictMock<IClientKeyImporter>().Object,
+            CreateMethodCatalog(),
             mockCryptoService.Object,
             TimeProvider.System,
             new SeededClientValidator(
@@ -109,6 +111,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             secretServices.GetRequiredService<ISecretGenerator>(),
             secretServices.GetRequiredService<ISecretProtectorProvider>(),
             CreateStrictMock<IClientKeyImporter>().Object,
+            CreateMethodCatalog(),
             mockCryptoService.Object,
             TimeProvider.System,
             new SeededClientValidator(
@@ -123,6 +126,32 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             ),
             NullLogger<ConformanceSeedHandler>.Instance
         );
+    }
+
+    // The client-authentication methods a seeded client may register: only client_secret_jwt keys an HMAC from its
+    // secret, so only its secret is kept reversible. See ADR-1391.
+    private IClientAuthenticationMethodCatalog CreateMethodCatalog()
+    {
+        var mockCatalog = CreateLooseMock<IClientAuthenticationMethodCatalog>();
+        foreach (
+            var (name, usesClientSecretAsKey) in new[]
+            {
+                (OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic, false),
+                (OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost, false),
+                (OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt, true),
+            }
+        )
+        {
+            ClientAuthenticationMethodDescriptor? descriptor = new()
+            {
+                Name = name,
+                RequiresClientSecret = true,
+                UsesClientSecretAsKey = usesClientSecretAsKey,
+            };
+            mockCatalog.Setup(x => x.TryGet(name, out descriptor)).Returns(true);
+        }
+
+        return mockCatalog.Object;
     }
 
     private sealed record CoherencePolicy(
@@ -761,8 +790,13 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         Assert.Contains(redirectUri, exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task HandleAsync_WhenClientHasASecret_StoresItProtectedUnderTheTenantsMasterKey()
+    [Theory]
+    [InlineData("client_secret_post", false)]
+    [InlineData("client_secret_jwt", true)]
+    public async Task HandleAsync_WhenClientHasASecret_StoresItProtectedUnderTheTenantsMasterKey(
+        string tokenEndpointAuthMethod,
+        bool usesClientSecretAsKey
+    )
     {
         // The settings pass the validation and the coherence rules, so the seeding reaches the secret: it is imported
         // through the real generator and protected with the master key of the tenant that the client is seeded into.
@@ -790,7 +824,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
                 {
                     ClientSecret = EncodedSecret,
                     RedirectUris = ["https://client.example/callback"],
-                    TokenEndpointAuthMethod = "client_secret_post",
+                    TokenEndpointAuthMethod = tokenEndpointAuthMethod,
                 },
             },
             TestUserPassword = null,
@@ -828,14 +862,28 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         Assert.NotNull(storedClient);
         Assert.Equal(WorkloadTenantId, storedClient.TenantId);
         Assert.Equal("client", storedClient.ClientId);
+        // A secret client_secret_jwt keys an HMAC from is kept reversible; any other is stored as a verifier.
         var secret = Assert.Single(storedClient.Secrets.Value);
-        await AssertSecretIsProtectedUnderTenantAsync(
-            secretServices,
-            owner,
-            secret,
-            GeneratedSecretId,
-            SecretText
-        );
+        if (usesClientSecretAsKey)
+        {
+            await AssertSecretIsProtectedUnderTenantAsync(
+                secretServices,
+                owner,
+                secret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
+        else
+        {
+            await AssertSecretIsVerifierUnderTenantAsync(
+                secretServices,
+                owner,
+                secret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
     }
 
     private static IEnumerable<string?> GetStrings(JsonElement jsonElement, string propertyName) =>

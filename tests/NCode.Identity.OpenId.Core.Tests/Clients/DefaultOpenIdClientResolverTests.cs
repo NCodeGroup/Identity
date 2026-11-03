@@ -16,6 +16,7 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -110,7 +111,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
 
     private static PersistedSecret CreatePersistedSecret(
         string secretId,
-        DateTimeOffset expiresWhen
+        DateTimeOffset expiresWhen,
+        string secretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw
     ) =>
         new()
         {
@@ -121,7 +123,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = expiresWhen,
             SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
+            SecretEncoding = secretEncoding,
             KeySizeBits = 256,
             EncodedValue = "encoded",
         };
@@ -145,6 +147,15 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private OpenIdClient SetupClientCreation(
         string? expectedResourceServerId,
         params string[] expectedSecretIds
+    ) => SetupClientCreation(expectedResourceServerId, expectedSecretIds, [], []);
+
+    // Building the client also reads the secrets with the specified identifiers as verifiers, in their stored order,
+    // and gives the client the verifiers they produce.
+    private OpenIdClient SetupClientCreation(
+        string? expectedResourceServerId,
+        string[] expectedSecretIds,
+        string[] expectedVerifierIds,
+        IReadOnlyCollection<SecretVerifier> verifiers
     )
     {
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
@@ -192,6 +203,17 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             )
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
+        MockSecretSerializer
+            .Setup(x =>
+                x.DeserializeVerifiers(
+                    protector,
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
+                        secrets.Select(secret => secret.SecretId).SequenceEqual(expectedVerifierIds)
+                    )
+                )
+            )
+            .Returns(verifiers)
+            .Verifiable();
         MockClientFactory
             .Setup(x =>
                 x.CreatePublicClientAsync(
@@ -200,6 +222,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
                         definition.ClientId == ClientId
                         && definition.ResourceServerId == expectedResourceServerId
                         && ReferenceEquals(definition.Settings, effectiveSettings)
+                        && ReferenceEquals(definition.SecretVerifiers, verifiers)
                     ),
                     It.IsAny<CancellationToken>()
                 )
@@ -324,6 +347,56 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var client = await ResolveAsync();
 
         Assert.Null(client);
+    }
+
+    [Fact]
+    public async Task ResolveClientOrDefaultAsync_ReadsTheVerifiersApartFromTheKeys()
+    {
+        // A one-way verifier is not key material, so it is read apart from the client's keys. See ADR-1391.
+        var key = CreatePersistedSecret("key", Now.AddDays(1));
+        var firstVerifier = CreatePersistedSecret(
+            "verifier-1",
+            Now.AddDays(1),
+            NCode.Identity.Secrets.SecretEncodings.Verifier
+        );
+        var secondVerifier = CreatePersistedSecret(
+            "verifier-2",
+            Now.AddDays(2),
+            NCode.Identity.Secrets.SecretEncodings.Verifier
+        );
+        SetupStoredClient(CreatePersistedClient(secrets: [firstVerifier, key, secondVerifier]));
+        SecretVerifier[] verifiers = [CreateLooseMock<SecretVerifier>().Object];
+        var expected = SetupClientCreation(
+            expectedResourceServerId: null,
+            ["key"],
+            ["verifier-1", "verifier-2"],
+            verifiers
+        );
+
+        var client = await ResolveAsync();
+
+        Assert.Same(expected, client);
+    }
+
+    [Fact]
+    public async Task ResolveClientOrDefaultAsync_WhenEverySecretIsAVerifier_ReadsNoKeys()
+    {
+        var verifier = CreatePersistedSecret(
+            "verifier",
+            Now.AddDays(1),
+            NCode.Identity.Secrets.SecretEncodings.Verifier
+        );
+        var expiredVerifier = CreatePersistedSecret(
+            "expired",
+            Now,
+            NCode.Identity.Secrets.SecretEncodings.Verifier
+        );
+        SetupStoredClient(CreatePersistedClient(secrets: [expiredVerifier, verifier]));
+        var expected = SetupClientCreation(expectedResourceServerId: null, [], ["verifier"], []);
+
+        var client = await ResolveAsync();
+
+        Assert.Same(expected, client);
     }
 
     [Fact]

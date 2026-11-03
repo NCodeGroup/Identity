@@ -11,3 +11,7 @@ NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.KeyPath.set ->
 NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.LocalKeyWrapperOptions() -> void
 NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.PreviousKeyPaths.get -> string![]!
 NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.PreviousKeyPaths.set -> void
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.Pbkdf2Iterations.get -> int
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.Pbkdf2Iterations.set -> void
+NCode.Identity.Secrets.Persistence.Options.SharedSecretVerifierOptions.SharedSecretVerifierOptions() -> void

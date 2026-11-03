@@ -677,6 +677,110 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
+    public async Task PostRegister_WithClientSecretJwt_IssuesASecretThatKeysTheClientAssertion()
+    {
+        // A client registered for client_secret_jwt keys an HMAC from its secret, so it is issued one the server can
+        // read back; every other client's secret is stored as a one-way verifier. See ADR-1391.
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var issuer = await GetIssuerAsync(client);
+
+        var (clientId, clientSecret, _) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+        );
+
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Equal(NCode.Identity.Secrets.SecretEncodings.SymmetricRaw, stored.SecretEncoding);
+        Assert.Null(await RevokeWithAssertionAsync(client, clientId, clientSecret, issuer));
+    }
+
+    [Fact]
+    public async Task PostRegister_WithClientSecretPost_StoresOnlyAVerifierOfTheIssuedSecret()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var (clientId, clientSecret, _) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Equal(NCode.Identity.Secrets.SecretEncodings.Verifier, stored.SecretEncoding);
+        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.InvalidClient,
+            await RevokeWithSecretAsync(client, clientId, clientSecret + "x")
+        );
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenSwitchedToClientSecretJwt_IssuesANewSecretThatKeysTheClientAssertion()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var issuer = await GetIssuerAsync(client);
+
+        var (clientId, verifiedSecret, registration) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var update = await UpdateAuthenticationMethodAsync(
+            client,
+            registration,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+        );
+
+        // The verifier of the old secret is no HMAC key, so the update issues a replacement (RFC 7592 §2.2) that the
+        // client keeps instead of the old one.
+        var newSecret = update.GetProperty("client_secret").GetString();
+        Assert.False(string.IsNullOrEmpty(newSecret));
+        Assert.NotEqual(verifiedSecret, newSecret);
+        Assert.Equal(0, update.GetProperty("client_secret_expires_at").GetInt64());
+
+        var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Equal(NCode.Identity.Secrets.SecretEncodings.SymmetricRaw, stored.SecretEncoding);
+        Assert.Null(await RevokeWithAssertionAsync(client, clientId, newSecret, issuer));
+        Assert.Equal(
+            OpenIdProtocol.ErrorCodes.InvalidClient,
+            await RevokeWithAssertionAsync(client, clientId, verifiedSecret, issuer)
+        );
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenTheClientKeepsAUsableSecret_IssuesNoNewSecret()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        var (clientId, clientSecret, registration) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
+        );
+
+        // A secret the server can read back still authenticates a client that only compares it.
+        var update = await UpdateAuthenticationMethodAsync(
+            client,
+            registration,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        Assert.False(update.TryGetProperty("client_secret", out _));
+        Assert.Single(await factory.GetClientSecretsAsync(clientId));
+        Assert.Null(await RevokeWithSecretAsync(client, clientId, clientSecret));
+    }
+
+    [Fact]
     public async Task DeleteRegistration_RemovesTheClientWithItsKeysAndRegistrationAccessToken()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
@@ -1421,4 +1525,139 @@ public class ClientRegistrationEndpointTests
     }
 
     #endregion
+
+    private static async Task<string> GetIssuerAsync(HttpClient client)
+    {
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        var issuer = jsonElement.GetProperty("issuer").GetString();
+        Assert.NotNull(issuer);
+        return issuer;
+    }
+
+    private static async Task<(
+        string ClientId,
+        string ClientSecret,
+        JsonElement Registration
+    )> RegisterSharedSecretClientAsync(HttpClient client, string tokenEndpointAuthMethod)
+    {
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+            }
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var registration = JsonElement.Parse(body);
+        var clientId = registration.GetProperty("client_id").GetString();
+        var clientSecret = registration.GetProperty("client_secret").GetString();
+        Assert.NotNull(clientId);
+        Assert.NotNull(clientSecret);
+        return (clientId, clientSecret, registration);
+    }
+
+    private static async Task<JsonElement> UpdateAuthenticationMethodAsync(
+        HttpClient client,
+        JsonElement registration,
+        string tokenEndpointAuthMethod
+    )
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            registration.GetProperty("registration_client_uri").GetString()
+        )
+        {
+            Content = JsonContent.Create(
+                new Dictionary<string, object>
+                {
+                    ["client_id"] =
+                        registration.GetProperty("client_id").GetString() ?? string.Empty,
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+                }
+            ),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            registration.GetProperty("registration_access_token").GetString()
+        );
+
+        using var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        return JsonElement.Parse(body);
+    }
+
+    // Revoking an unknown token is a no-op once the client authenticates (RFC 7009 §2.2), so the response reports only
+    // whether the client was accepted: no error, or the error the endpoint returned.
+    private static async Task<string?> RevokeAsync(
+        HttpClient client,
+        Dictionary<string, string> credentials
+    )
+    {
+        credentials["token"] = "not-a-real-token";
+        using var content = new FormUrlEncodedContent(credentials);
+        using var response = await client.PostAsync("/oauth2/revoke", content);
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            return null;
+        }
+
+        var jsonElement = JsonElement.Parse(await response.Content.ReadAsStringAsync());
+        return jsonElement.GetProperty("error").GetString();
+    }
+
+    private static Task<string?> RevokeWithSecretAsync(
+        HttpClient client,
+        string clientId,
+        string clientSecret
+    ) =>
+        RevokeAsync(
+            client,
+            new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+            }
+        );
+
+    // A client_secret_jwt assertion (OpenID Connect Core §9): an HS256 JWT keyed by the UTF-8 bytes of the secret.
+    private static Task<string?> RevokeWithAssertionAsync(
+        HttpClient client,
+        string clientId,
+        string clientSecret,
+        string audience
+    )
+    {
+        var now = DateTimeOffset.UtcNow;
+        var header = new Dictionary<string, object> { ["alg"] = "HS256", ["typ"] = "JWT" };
+        var payload = new Dictionary<string, object>
+        {
+            ["iss"] = clientId,
+            ["sub"] = clientId,
+            ["aud"] = audience,
+            ["jti"] = Guid.NewGuid().ToString("N"),
+            ["iat"] = now.ToUnixTimeSeconds(),
+            ["exp"] = now.AddMinutes(5).ToUnixTimeSeconds(),
+        };
+        var signingInput =
+            $"{Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(header))}."
+            + Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload));
+        var signature = HMACSHA256.HashData(
+            SecureEncoding.UTF8.GetBytes(clientSecret),
+            SecureEncoding.ASCII.GetBytes(signingInput)
+        );
+
+        return RevokeAsync(
+            client,
+            new Dictionary<string, string>
+            {
+                ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
+                ["client_assertion"] = $"{signingInput}.{Base64Url.EncodeToString(signature)}",
+            }
+        );
+    }
 }

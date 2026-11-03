@@ -86,9 +86,9 @@ internal sealed class BootstrapAdminSeedHandler(
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
         {
-            // The configured secret is authoritative. It is re-protected under the tenant's current master key, so a
-            // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently
-            // unable to authenticate.
+            // The configured secret is authoritative. Its verifier is made again and protected under the tenant's
+            // current master key, so a stale or undecryptable stored secret is healed instead of leaving the bootstrap
+            // client permanently unable to authenticate.
             var refreshProtector = await GetProtectorAsync(tenantId, cancellationToken);
             await RefreshClientSecretAsync(
                 store,
@@ -214,8 +214,8 @@ internal sealed class BootstrapAdminSeedHandler(
     {
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the configured client_secret through the single shared-secret primitive (ADR-1110) so its stored
-        // UTF-8 shape cannot drift from generated secrets.
+        // Persist the configured client_secret through the shared-secret primitive (ADR-1110). The client registers
+        // client_secret_basic, which only compares the secret, so it is stored as its PBKDF2 verifier (ADR-1391).
         return SecretGenerator.ImportSharedSecret(
             protector,
             new ImportSharedSecretRequest

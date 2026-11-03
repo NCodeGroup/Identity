@@ -26,4 +26,13 @@ public sealed class ClientAuthenticationMethodDescriptor
     /// the method is issued a <c>client_secret</c>.
     /// </summary>
     public bool RequiresClientSecret { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the method uses the <c>client_secret</c> as a key, as <c>client_secret_jwt</c>
+    /// uses it as the HMAC key of the client's assertion. A secret issued to a client registered for such a method is
+    /// stored so the server can read it back; a secret issued to a client registered for any other method is stored
+    /// as a one-way verifier, which the server can only compare a presented secret with.
+    /// </summary>
+    // See ADR-1391.
+    public bool UsesClientSecretAsKey { get; init; }
 }

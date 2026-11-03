@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
@@ -30,6 +31,11 @@ public sealed class OpenIdClientDefinition
     /// Gets the secrets only known to the client.
     /// </summary>
     public required IReadOnlyCollection<SecretKey> Secrets { get; init; }
+
+    /// <summary>
+    /// Gets the one-way verifiers of the shared secrets the client presents that the server only compares.
+    /// </summary>
+    public IReadOnlyCollection<SecretVerifier> SecretVerifiers { get; init; } = [];
 
     /// <summary>
     /// Gets the identifier of the resource server the client acts for, or <c>null</c> for an ordinary client.

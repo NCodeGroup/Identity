@@ -40,6 +40,15 @@ public static class SecretEncodings
     public const string X509 = "x509";
 
     /// <summary>
+    /// Indicates that the stored material is a self-describing, one-way <b>verifier</b> of a shared secret, such as a
+    /// <c>client_secret</c> that is only ever compared: it confirms a presented secret and the secret cannot be read
+    /// back from it. A verifier is not key material; it is still stored encrypted, like every encoding that is not
+    /// public.
+    /// </summary>
+    // See ADR-1391.
+    public const string Verifier = "verifier";
+
+    /// <summary>
     /// Determines whether a secret encoding holds only public key material, which is stored without encryption.
     /// Every other encoding holds private or symmetric material and is always stored encrypted.
     /// </summary>
@@ -55,5 +64,21 @@ public static class SecretEncodings
 
         return string.Equals(secretEncoding, Spki, StringComparison.Ordinal)
             || string.Equals(secretEncoding, X509, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Determines whether a secret encoding holds a one-way verifier of a shared secret rather than key material.
+    /// </summary>
+    /// <param name="secretEncoding">The secret encoding to evaluate.</param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="secretEncoding"/> is <see cref="Verifier"/>; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    // See ADR-1391.
+    public static bool IsVerifier(string secretEncoding)
+    {
+        ArgumentNullException.ThrowIfNull(secretEncoding);
+
+        return string.Equals(secretEncoding, Verifier, StringComparison.Ordinal);
     }
 }

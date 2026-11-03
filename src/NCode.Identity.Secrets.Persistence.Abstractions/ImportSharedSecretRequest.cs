@@ -12,10 +12,12 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Contains the metadata used to import a caller-supplied shared secret (for example an OAuth <c>client_secret</c>)
 /// as a new <see cref="PersistedSecret"/>. The secret value itself is supplied separately to
 /// <see cref="ISecretGenerator.ImportSharedSecret(ISecretProtector, ImportSharedSecretRequest, ReadOnlySpan{byte})"/>
+/// or
+/// <see cref="ISecretGenerator.ImportReversibleSharedSecret(ISecretProtector, ImportSharedSecretRequest, ReadOnlySpan{byte})"/>
 /// as the UTF-8 octets of the opaque string, and its bit length is derived from those octets, so this request carries
 /// only the descriptive metadata.
 /// </summary>
-// See ADR-1110.
+// See ADR-1110 and ADR-1391.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class ImportSharedSecretRequest

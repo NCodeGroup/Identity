@@ -205,3 +205,15 @@ const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Ephemeral = "ephemeral"
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.GoogleCloudKms = "google-cloud-kms" -> string!
 const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Local = "local" -> string!
 NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Create(NCode.Identity.Secrets.Keys.KeyMetadata metadata, System.Security.Cryptography.X509Certificates.X509Certificate2Collection! certificates) -> NCode.Identity.Secrets.Keys.AsymmetricSecretKey!
+abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Metadata.get -> NCode.Identity.Secrets.Keys.KeyMetadata
+abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Scheme.get -> string!
+abstract NCode.Identity.Secrets.Verifiers.SecretVerifier.Verify(System.ReadOnlySpan<byte> secret) -> bool
+const NCode.Identity.Secrets.SecretEncodings.Verifier = "verifier" -> string!
+const NCode.Identity.Secrets.Verifiers.SecretVerifierSchemes.Pbkdf2Sha256 = "ncode-pbkdf2-sha256" -> string!
+const NCode.Identity.Secrets.Verifiers.SecretVerifierSchemes.Sha256 = "ncode-sha256" -> string!
+NCode.Identity.Secrets.Verifiers.SecretVerifier
+NCode.Identity.Secrets.Verifiers.SecretVerifier.KeyId.get -> string?
+NCode.Identity.Secrets.Verifiers.SecretVerifier.SecretVerifier() -> void
+NCode.Identity.Secrets.Verifiers.SecretVerifierSchemes
+override NCode.Identity.Secrets.Verifiers.SecretVerifier.ToString() -> string!
+static NCode.Identity.Secrets.SecretEncodings.IsVerifier(string! secretEncoding) -> bool

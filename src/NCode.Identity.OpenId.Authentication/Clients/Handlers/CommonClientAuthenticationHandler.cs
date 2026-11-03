@@ -222,7 +222,8 @@ internal abstract class CommonClientAuthenticationHandler(
     /// <summary>
     /// Authenticates the client identified by <paramref name="clientId"/> with the shared
     /// <paramref name="clientSecret"/> it presented: the client must be registered for this handler's method, and the
-    /// secret must match one of the client's stored secrets.
+    /// secret must match one of the client's stored secrets, which are one-way verifiers unless the secret was issued
+    /// for a method that uses it as a key.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="clientId">Contains the client identifier.</param>
@@ -269,6 +270,8 @@ internal abstract class CommonClientAuthenticationHandler(
         );
     }
 
+    // A presented secret is compared with the client's verifiers, and with the shared secrets it holds as keys, which a
+    // client issued a secret for client_secret_jwt keeps when it is registered for another method. See ADR-1391.
     private async ValueTask<ClientAuthenticationResult> VerifyClientSecretAsync(
         OpenIdContext openIdContext,
         OpenIdClient publicClient,
@@ -276,16 +279,18 @@ internal abstract class CommonClientAuthenticationHandler(
         CancellationToken cancellationToken
     )
     {
-        foreach (var secretKey in publicClient.SecretKeys.OfType<SymmetricSecretKey>())
+        var credentialId = FindMatchingSecret(
+            publicClient,
+            clientSecretBytes.Span,
+            out var matched
+        );
+        if (matched)
         {
-            if (!IsSecretEqual(secretKey, clientSecretBytes.Span))
-                continue;
-
             var confidentialClient = await ClientFactory.CreateConfidentialClientAsync(
                 openIdContext,
                 publicClient,
                 AuthenticationMethod,
-                secretKey,
+                credentialId,
                 confirmation: null,
                 cancellationToken
             );
@@ -303,8 +308,38 @@ internal abstract class CommonClientAuthenticationHandler(
         );
     }
 
+    private static string? FindMatchingSecret(
+        OpenIdClient client,
+        ReadOnlySpan<byte> clientSecretBytes,
+        out bool matched
+    )
+    {
+        foreach (var verifier in client.SecretVerifiers)
+        {
+            if (verifier.Verify(clientSecretBytes))
+            {
+                matched = true;
+                return verifier.KeyId;
+            }
+        }
+
+        foreach (var secretKey in client.SecretKeys.OfType<SymmetricSecretKey>())
+        {
+            if (IsSecretEqual(secretKey, clientSecretBytes))
+            {
+                matched = true;
+                return secretKey.KeyId;
+            }
+        }
+
+        matched = false;
+        return null;
+    }
+
     /// <summary>
-    /// Determines whether the specified symmetric <paramref name="secretKey"/> is equal to the specified <paramref name="clientSecretBytes"/>.
+    /// Determines whether the specified symmetric <paramref name="secretKey"/> is equal to the specified
+    /// <paramref name="clientSecretBytes"/>. Both are hashed with SHA-256 before they are compared, so the comparison
+    /// takes the same time whatever the lengths of the two and wherever they first differ.
     /// </summary>
     /// <param name="secretKey">The <see cref="SymmetricSecretKey"/> instance to compare.</param>
     /// <param name="clientSecretBytes">The client secret byte array to compare.</param>
@@ -326,6 +361,20 @@ internal abstract class CommonClientAuthenticationHandler(
         using var privateKeySpanLease = privateKeyBuffer.GetSpanLease(isSensitive: true);
         var privateKeySpan = privateKeySpanLease.Span;
 
-        return CryptographicOperations.FixedTimeEquals(privateKeySpan, clientSecretBytes);
+        // FixedTimeEquals returns at once when the lengths differ, so inputs of variable length are hashed to a fixed
+        // length first.
+        Span<byte> storedDigest = stackalloc byte[SHA256.HashSizeInBytes];
+        Span<byte> presentedDigest = stackalloc byte[SHA256.HashSizeInBytes];
+        try
+        {
+            SHA256.HashData(privateKeySpan, storedDigest);
+            SHA256.HashData(clientSecretBytes, presentedDigest);
+            return CryptographicOperations.FixedTimeEquals(storedDigest, presentedDigest);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(storedDigest);
+            CryptographicOperations.ZeroMemory(presentedDigest);
+        }
     }
 }

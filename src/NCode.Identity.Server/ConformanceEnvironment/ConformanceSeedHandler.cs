@@ -44,6 +44,7 @@ internal sealed class ConformanceSeedHandler(
     ISecretGenerator secretGenerator,
     ISecretProtectorProvider secretProtectorProvider,
     IClientKeyImporter clientKeyImporter,
+    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
@@ -61,6 +62,9 @@ internal sealed class ConformanceSeedHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
+
+    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
+        clientAuthenticationMethodCatalog;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
@@ -145,7 +149,13 @@ internal sealed class ConformanceSeedHandler(
                 [],
                 cancellationToken
             );
-            secrets.Add(CreatePersistedSecret(protector, client.ClientSecret));
+            secrets.Add(
+                CreatePersistedSecret(
+                    protector,
+                    client.ClientSecret,
+                    UsesClientSecretAsKey(client.TokenEndpointAuthMethod)
+                )
+            );
         }
         if (!string.IsNullOrEmpty(client.Jwks))
             secrets.AddRange(ImportKeys(clientId, client.Jwks));
@@ -326,7 +336,17 @@ internal sealed class ConformanceSeedHandler(
         // runtime must not inherit the conformance clients and test user.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
-    private PersistedSecret CreatePersistedSecret(ISecretProtector protector, string encodedSecret)
+    // A client registered for a method that uses its secret as a key (client_secret_jwt) keeps a secret the server can
+    // read back; every other client's secret is stored as a one-way verifier. See ADR-1391.
+    private bool UsesClientSecretAsKey(string tokenEndpointAuthMethod) =>
+        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
+        && descriptor.UsesClientSecretAsKey;
+
+    private PersistedSecret CreatePersistedSecret(
+        ISecretProtector protector,
+        string encodedSecret,
+        bool usesClientSecretAsKey
+    )
     {
         // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
         // directly; decode it straight into a pinned, zeroed-on-return buffer.
@@ -337,20 +357,21 @@ internal sealed class ConformanceSeedHandler(
 
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the given client_secret through the single shared-secret primitive (ADR-1110) so its stored UTF-8
-        // shape cannot drift from generated secrets.
-        return SecretGenerator.ImportSharedSecret(
-            protector,
-            new ImportSharedSecretRequest
-            {
-                // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.
-                SecretId = CryptoService.GenerateResourceId(),
-                Use = null,
-                Algorithm = null,
-                CreatedWhen = now,
-                ExpiresWhen = now.AddYears(100),
-            },
-            clientSecret
-        );
+        // Persist the given client_secret through the shared-secret primitives (ADR-1110) so its stored shape cannot
+        // drift from generated secrets: a supplied secret is stored as its PBKDF2 verifier unless the client uses it as
+        // a key (ADR-1391).
+        var request = new ImportSharedSecretRequest
+        {
+            // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.
+            SecretId = CryptoService.GenerateResourceId(),
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = now,
+            ExpiresWhen = now.AddYears(100),
+        };
+
+        return usesClientSecretAsKey
+            ? SecretGenerator.ImportReversibleSharedSecret(protector, request, clientSecret)
+            : SecretGenerator.ImportSharedSecret(protector, request, clientSecret);
     }
 }

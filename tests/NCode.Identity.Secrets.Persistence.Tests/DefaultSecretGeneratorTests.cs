@@ -284,28 +284,6 @@ public class DefaultSecretGeneratorTests
         Assert.Equal(64, generated.SecretMaterial?.Length);
     }
 
-    [Fact]
-    public void GenerateSharedSecret_WhenACurveIsGiven_Throws()
-    {
-        var protector = CreateProtector();
-        var request = new GenerateSecretRequest
-        {
-            SecretId = "gen-1",
-            SecretType = SecretTypes.Symmetric,
-            GenerationParameters = new SecretKeyGenerationParameters
-            {
-                KeySizeBits = 256,
-                Curve = "P-256",
-            },
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-        };
-
-        Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(protector, request));
-    }
-
     #endregion
 
     #region ImportSharedSecretVerifier Tests

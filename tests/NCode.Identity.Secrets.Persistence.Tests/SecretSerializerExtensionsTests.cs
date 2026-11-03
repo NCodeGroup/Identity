@@ -20,6 +20,7 @@ public class SecretSerializerExtensionsTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch,
             SecretType = SecretTypes.Rsa,
             SecretEncoding = SecretEncodings.Spki,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "AAAA",
         };

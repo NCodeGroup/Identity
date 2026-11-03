@@ -523,6 +523,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = SecretEncodings.SymmetricRaw,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = "protected",
         };

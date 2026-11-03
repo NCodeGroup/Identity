@@ -3,7 +3,10 @@
 - **Status:** Accepted (amended by
   [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): a touch is applied to the session as stored;
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session that ends unused is
-  terminated in the background, once, and the prune keeps it until it is terminated)
+  terminated in the background, once, and the prune keeps it until it is terminated;
+  [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md):
+  `SessionGrant.IdleTimeout` and `SessionGrant.AbsoluteExpiresWhen` are required, and a session ends at its own
+  absolute end with no fallback to its grant's expiry)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

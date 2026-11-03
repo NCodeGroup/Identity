@@ -147,6 +147,8 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
                             IdentityProvider = null,
                             ClientIds = [],
                             LastActivityWhen = DateTimeOffset.UnixEpoch,
+                            IdleTimeout = TimeSpan.FromHours(1),
+                            AbsoluteExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1),
                         },
                     }
                     : null

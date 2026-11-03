@@ -187,7 +187,7 @@ internal class GrantStore(
         query = query.Where(entity =>
             entity.GrantType == grantType
             && entity.RevokedWhen == null
-            && (entity.ExpiresWhen == null || entity.ExpiresWhen <= cutoff)
+            && entity.ExpiresWhen <= cutoff
             && !entity.Tenant.IsDisabled
         );
 

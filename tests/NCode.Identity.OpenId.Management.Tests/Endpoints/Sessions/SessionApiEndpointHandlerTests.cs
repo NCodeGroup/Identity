@@ -118,6 +118,8 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                 AuthTime = DateTimeOffset.UnixEpoch,
                 ClientIds = [],
                 LastActivityWhen = DateTimeOffset.UnixEpoch,
+                IdleTimeout = TimeSpan.FromHours(1),
+                AbsoluteExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1),
             }
         );
 
@@ -349,6 +351,8 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                         AuthTime = DateTimeOffset.UnixEpoch,
                         ClientIds = [],
                         LastActivityWhen = DateTimeOffset.UnixEpoch,
+                        IdleTimeout = TimeSpan.FromHours(1),
+                        AbsoluteExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1),
                     },
                 }
             )
@@ -411,6 +415,8 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                         AuthTime = DateTimeOffset.UnixEpoch,
                         ClientIds = [],
                         LastActivityWhen = DateTimeOffset.UnixEpoch,
+                        IdleTimeout = TimeSpan.FromHours(1),
+                        AbsoluteExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1),
                     },
                 }
             )

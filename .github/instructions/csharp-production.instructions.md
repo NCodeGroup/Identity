@@ -163,7 +163,12 @@ than inlining the rationale.
   `[PersistedPayloadVersion(N)]` on the payload and ships one `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
   A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) also carries the `[JsonExtensionData]` bag above
   so a mixed-version node cannot drop members on a read-modify-write. Payload members never begin with `$` (reserved for
-  the envelope).
+  the envelope). A stored document that lacks what the serving code writes — the envelope, or a member the serving
+  code always sets — is malformed and fails closed: the reader throws rather than supplying a default or a fallback.
+  **Until the first stable release** the additive rule does not apply: a payload's shape changes in place at its
+  current version (a member the serving code always writes is `required`), with no version bump, no upcaster and no
+  reader for the earlier shape, and a development store that holds the earlier shape is reset
+  ([ADR-1395](../../docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
 - 👁 **Buffer by default; stream deliberately** — template
   [Types and Collections](csharp.instructions.md#types-and-collections).
 - 👁 **Own every stored collection; pick the concrete type by usage** — template

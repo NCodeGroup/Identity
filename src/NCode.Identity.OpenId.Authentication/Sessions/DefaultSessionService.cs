@@ -51,17 +51,13 @@ internal class DefaultSessionService(
             sessionId
         );
 
-    // See ADR-1220.
-    private static DateTimeOffset? GetAbsoluteEnd(
-        SessionGrant payload,
-        DateTimeOffset? expiresWhen
-    ) => payload.AbsoluteExpiresWhen ?? expiresWhen;
-
     // When the session ends unless it is used again: the end of its idle window or, if earlier, its absolute end.
-    private static DateTimeOffset GetEnd(SessionGrant payload, DateTimeOffset absoluteEnd) =>
-        payload.IdleTimeout is { } idle && payload.LastActivityWhen + idle < absoluteEnd
-            ? payload.LastActivityWhen + idle
-            : absoluteEnd;
+    // See ADR-1220.
+    private static DateTimeOffset GetEnd(SessionGrant payload)
+    {
+        var idleEnd = payload.LastActivityWhen + payload.IdleTimeout;
+        return idleEnd < payload.AbsoluteExpiresWhen ? idleEnd : payload.AbsoluteExpiresWhen;
+    }
 
     // Why the session has ended at 'now', or null while it lasts.
     private static string? GetEndReason(
@@ -70,10 +66,10 @@ internal class DefaultSessionService(
         DateTimeOffset now
     )
     {
-        if (GetAbsoluteEnd(payload, expiresWhen) is not { } absoluteEnd || now >= absoluteEnd)
+        if (now >= payload.AbsoluteExpiresWhen)
             return SessionTerminationReasons.AbsoluteExpiry;
 
-        return expiresWhen <= now || now >= GetEnd(payload, absoluteEnd)
+        return expiresWhen <= now || now >= GetEnd(payload)
             ? SessionTerminationReasons.IdleTimeout
             : null;
     }
@@ -332,10 +328,7 @@ internal class DefaultSessionService(
 
         // Renew the sliding window and the grant's expiry together, throttled so a burst of requests does not write on
         // every one.
-        if (
-            now - payload.LastActivityWhen >= TouchGranularity
-            && GetAbsoluteEnd(payload, session.ExpiresWhen) is not null
-        )
+        if (now - payload.LastActivityWhen >= TouchGranularity)
         {
             try
             {
@@ -426,17 +419,16 @@ internal class DefaultSessionService(
 
         if (
             now - payload.LastActivityWhen < TouchGranularity
-            || GetAbsoluteEnd(payload, stored.ExpiresWhen) is not { } absoluteEnd
             || GetEndReason(payload, stored.ExpiresWhen, now) is not null
         )
             return null;
 
-        var touched = payload with { LastActivityWhen = now, AbsoluteExpiresWhen = absoluteEnd };
+        var touched = payload with { LastActivityWhen = now };
 
         return new PersistedGrantUpdate<SessionGrant>
         {
             Payload = touched,
-            ExpiresWhen = GetEnd(touched, absoluteEnd),
+            ExpiresWhen = GetEnd(touched),
         };
     }
 
@@ -490,20 +482,15 @@ internal class DefaultSessionService(
 
                 var payload = unprotected.Value;
 
-                if (
-                    GetAbsoluteEnd(payload, envelope.ExpiresWhen) is not { } absoluteEnd
-                    || GetEndReason(payload, envelope.ExpiresWhen, now) is not null
-                )
-                {
+                if (GetEndReason(payload, envelope.ExpiresWhen, now) is not null)
                     continue;
-                }
 
                 results.Add(
                     new SessionInfo(
                         sessionId,
                         envelope.SubjectId,
                         envelope.CreatedWhen,
-                        GetEnd(payload, absoluteEnd),
+                        GetEnd(payload),
                         payload
                     )
                 );

@@ -29,14 +29,15 @@ public interface IPersistedPayloadSerializer
     /// <summary>
     /// Deserializes an at-rest JSON document back into its payload, applying any registered
     /// <see cref="IPersistedPayloadUpcaster"/> steps needed to migrate the stored schema version up to the current
-    /// schema version of <typeparamref name="TPayload"/>. A document written before this envelope existed (one lacking
-    /// the version marker) is read as schema version <c>1</c>.
+    /// schema version of <typeparamref name="TPayload"/>. A document that is not a schema-versioned envelope is
+    /// malformed and is rejected.
     /// </summary>
     /// <param name="jsonElement">The <see cref="JsonElement"/> containing the at-rest document.</param>
     /// <param name="jsonOptions">The <see cref="JsonSerializerOptions"/> used to deserialize the payload members.</param>
     /// <typeparam name="TPayload">The type of the payload being deserialized.</typeparam>
     /// <returns>The deserialized payload.</returns>
-    /// <exception cref="JsonException">The document could not be deserialized, or an upcaster needed to migrate the
-    /// stored schema version to the current schema version was not registered.</exception>
+    /// <exception cref="JsonException">The document is not a schema-versioned envelope or could not be deserialized,
+    /// or an upcaster needed to migrate the stored schema version to the current schema version was not
+    /// registered.</exception>
     TPayload Deserialize<TPayload>(JsonElement jsonElement, JsonSerializerOptions jsonOptions);
 }

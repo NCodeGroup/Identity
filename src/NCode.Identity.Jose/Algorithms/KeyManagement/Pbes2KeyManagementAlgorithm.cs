@@ -148,8 +148,6 @@ internal class Pbes2KeyManagementAlgorithm(
         out int bytesWritten
     )
     {
-        // TODO: unit test for the edge cases in this method
-
         var validatedSecretKey = secretKey.Validate<SymmetricSecretKey>(KeyBitSizes);
 
         if (!header.TryGetPropertyValue<string>(JoseClaimNames.Header.Alg, out var alg))

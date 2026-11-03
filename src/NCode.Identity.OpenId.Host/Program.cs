@@ -75,7 +75,6 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
-// TODO
 var identityServer = serviceCollection.AddIdentityServer();
 identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
 

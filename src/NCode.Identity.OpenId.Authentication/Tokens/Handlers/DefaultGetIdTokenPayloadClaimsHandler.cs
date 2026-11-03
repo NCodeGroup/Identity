@@ -78,9 +78,6 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
                 cancellationToken
             );
         }
-
-        // TODO: the following protocol claims require foundational subsystems that do not yet exist:
-        // - cnf: requires a proof-of-possession (e.g. DPoP/mTLS) subsystem
     }
 
     private static void GenerateParameterHashes(

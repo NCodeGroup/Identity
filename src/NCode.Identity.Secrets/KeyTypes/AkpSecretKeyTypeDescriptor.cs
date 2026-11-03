@@ -224,18 +224,29 @@ public sealed class AkpSecretKeyTypeDescriptor(
         out string? error
     )
     {
-        // The AKP parameter set may be selected by its 'alg' name (carried in the 'Curve' slot) or by key size.
+        // The AKP parameter set may be selected by its 'alg' name (carried in the 'Curve' slot) or by key size. A
+        // parameter set fixes the size of its keys, so a named parameter set is refused for any other requested size.
         if (parameters.Curve is { } name)
         {
-            if (MlDsaParameterSets.TryGetByName(name, out algorithm))
+            if (!MlDsaParameterSets.TryGetByName(name, out algorithm))
             {
-                error = null;
-                return true;
+                error =
+                    $"The ML-DSA parameter set '{name}' is not supported; expected 'ML-DSA-44', 'ML-DSA-65', or 'ML-DSA-87'.";
+                return false;
             }
 
-            error =
-                $"The ML-DSA parameter set '{name}' is not supported; expected 'ML-DSA-44', 'ML-DSA-65', or 'ML-DSA-87'.";
-            return false;
+            var keySizeBits = algorithm.PublicKeySizeInBytes * 8;
+            if (keySizeBits != parameters.KeySizeBits)
+            {
+                error =
+                    $"The ML-DSA key size '{parameters.KeySizeBits}' bits is invalid for the parameter set '{name}', "
+                    + $"whose keys are {keySizeBits} bits.";
+                algorithm = null;
+                return false;
+            }
+
+            error = null;
+            return true;
         }
 
         if (MlDsaParameterSets.TryGetByKeySizeBits(parameters.KeySizeBits, out algorithm))

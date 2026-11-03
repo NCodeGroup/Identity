@@ -133,10 +133,12 @@ public static class AlgorithmCollectionExtensions
         }
 
         /// <summary>
-        /// Checks that a held key of a type without curves, known by its type and size because its material is not at
-        /// hand, as for a stored symmetric key, may be declared for an algorithm: the algorithm is a registered signature
-        /// or key-management algorithm, the use it implies agrees with the key's declared use, and the algorithm accepts
-        /// keys of the type and size. Type and size do not show a key's curve, so a key type the algorithm binds to curves
+        /// Checks that a held symmetric key, known by its type and size because its material is not at hand, as for a
+        /// stored key, may be declared for an algorithm: the algorithm is a registered signature or
+        /// key-management algorithm, the use it implies agrees with the key's declared use, and the algorithm accepts
+        /// keys of the type and size. A symmetric key is a byte string, so its type and size are all there is to check.
+        /// An asymmetric key has parameters its type and size do not show, such as its curve or its parameter set, and
+        /// its public half is always at hand, so an asymmetric key type, and a key type the algorithm binds to curves,
         /// is refused; such a key is checked by the key itself, with <c>ValidateKeyAlgorithm</c>.
         /// </summary>
         /// <param name="declaration">The key's type and size, and the use and algorithm declared for it.</param>
@@ -165,10 +167,17 @@ public static class AlgorithmCollectionExtensions
                 return $"The algorithm '{algorithm}' is not compatible with the key's type.";
             }
 
+            // See ADR-1398: only a symmetric key's type and size describe it whole.
             if (algorithmKeyType.Curves.Count > 0)
             {
                 return $"The algorithm '{algorithm}' accepts keys of this type only on its curves, which the key's "
                     + "type and size do not show.";
+            }
+
+            if (typeof(AsymmetricSecretKey).IsAssignableFrom(declaration.KeyClrType))
+            {
+                return $"The algorithm '{algorithm}' is checked against an asymmetric key by the key itself, whose "
+                    + "parameters its type and size do not show.";
             }
 
             return algorithmKeyType.IsLegalSize(declaration.KeySizeBits)
@@ -180,11 +189,13 @@ public static class AlgorithmCollectionExtensions
         /// Resolves a key to generate for an algorithm: the algorithm is a registered signature or key-management
         /// algorithm, the use it implies agrees with the declared use, and the algorithm accepts keys of the declared
         /// runtime type. For a key type on curves, the key is generated on the declared curve, which must be one the
-        /// algorithm accepts, or, when none is declared, on the first curve the algorithm accepts that has the declared
-        /// size, or on its first curve when no size is declared either; the key's size is its curve's. For a key type
-        /// without curves, no curve may be declared, and the declared size must be one the algorithm accepts, the
-        /// smallest it accepts being taken when none is declared. Two curves can share a key size, so a key is never
-        /// generated on whichever curve the key type picks for the size.
+        /// algorithm accepts, or, when none is declared, on the one curve the algorithm accepts that has the declared
+        /// size, or on its first curve when no size is declared either. Two curves can share a key size, so a declared
+        /// size that several of the algorithm's curves have is refused, and the curve must then be declared. The
+        /// resolved size is the declared size, or the curve's when none is declared; the key type's
+        /// <c>ISecretKeyTypeDescriptor.ValidateGeneration</c> refuses a size that is not its curve's, as for any
+        /// generation parameters. For a key type without curves, no curve may be declared, and the declared size must
+        /// be one the algorithm accepts, the smallest it accepts being taken when none is declared.
         /// </summary>
         /// <param name="declaration">The key to generate and the use and algorithm declared for it.</param>
         /// <param name="resolved">When this method returns <c>true</c>, the resolved key.</param>
@@ -225,25 +236,17 @@ public static class AlgorithmCollectionExtensions
             var curve = declaration.Curve;
             if (algorithmKeyType.Curves.Count > 0)
             {
-                // See ADR-1389 and ADR-1392: the curve, not the size, identifies the key an algorithm bound to curves
-                // accepts.
+                // See ADR-1389, ADR-1392 and ADR-1398: the curve, not the size, identifies the key an algorithm bound
+                // to curves accepts, so a size selects a curve only when exactly one of the algorithm's curves has it.
                 AlgorithmCurve? algorithmCurve;
                 if (curve is not null)
                 {
-                    if (
-                        !algorithmKeyType.TryGetCurve(curve, out algorithmCurve)
-                        || (
-                            declaration.KeySizeBits is { } size
-                            && size != algorithmCurve.KeySizeBits
-                        )
-                    )
+                    if (!algorithmKeyType.TryGetCurve(curve, out algorithmCurve))
                     {
-                        // A curve the algorithm accepts is refused only for a declared size, so the error names the
-                        // declared size, or none for a curve the algorithm does not accept.
                         error = FormatCurveError(
                             algorithm,
                             curve,
-                            declaration.KeySizeBits,
+                            keySizeBits: null,
                             algorithmKeyType
                         );
                         return false;
@@ -251,7 +254,8 @@ public static class AlgorithmCollectionExtensions
                 }
                 else if (declaration.KeySizeBits is { } size)
                 {
-                    if (!algorithmKeyType.TryGetCurve(size, out algorithmCurve))
+                    var curves = algorithmKeyType.GetCurves(size);
+                    if (curves.Count == 0)
                     {
                         error =
                             $"The key size '{size}' bits is not valid for algorithm '{algorithm}'; expected "
@@ -259,13 +263,27 @@ public static class AlgorithmCollectionExtensions
                             + ".";
                         return false;
                     }
+
+                    if (curves.Count > 1)
+                    {
+                        error =
+                            $"The key size '{size}' bits does not select a curve for algorithm '{algorithm}', which "
+                            + "accepts "
+                            + string.Join(", ", curves.Select(legal => $"'{legal.Name}'"))
+                            + " at that size; name the curve.";
+                        return false;
+                    }
+
+                    algorithmCurve = curves[0];
                 }
                 else
                 {
                     algorithmCurve = algorithmKeyType.Curves[0];
                 }
 
-                keySizeBits = algorithmCurve.KeySizeBits;
+                // See ADR-1398: a curve fixes the size of its keys, which the key type's descriptor checks when it
+                // validates the generation parameters, so a declared size is passed on to it rather than replaced.
+                keySizeBits = declaration.KeySizeBits ?? algorithmCurve.KeySizeBits;
                 curve = algorithmCurve.Name;
             }
             else if (curve is not null)

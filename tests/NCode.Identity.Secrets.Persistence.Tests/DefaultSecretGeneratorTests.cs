@@ -485,18 +485,15 @@ public class DefaultSecretGeneratorTests
         Assert.Null(generated.Secret.PublicKey);
     }
 
-    [Fact]
-    public void GenerateSecret_WhenEccWithCurveName_UsesThatCurveSize()
-    {
-        var protector = CreateProtector();
-        var request = new GenerateSecretRequest
+    private static GenerateSecretRequest CreateEccRequest(int keySizeBits, string curve) =>
+        new()
         {
             SecretId = "gen-ecc",
             SecretType = SecretTypes.Ecc,
             GenerationParameters = new SecretKeyGenerationParameters
             {
-                KeySizeBits = 0,
-                Curve = "P-384",
+                KeySizeBits = keySizeBits,
+                Curve = curve,
             },
             Use = "sig",
             Algorithm = null,
@@ -504,9 +501,27 @@ public class DefaultSecretGeneratorTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+    [Fact]
+    public void GenerateSecret_WhenEccWithCurveName_GeneratesOnThatCurve()
+    {
+        var protector = CreateProtector();
+
+        var persisted = _generator.GenerateSecret(protector, CreateEccRequest(384, "P-384")).Secret;
 
         Assert.Equal(384, persisted.KeySizeBits);
+    }
+
+    // A curve fixes the size of its keys, so a curve requested with another size generates nothing.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(256)]
+    public void GenerateSecret_WhenEccCurveNameHasAnotherSize_Throws(int keySizeBits)
+    {
+        var protector = CreateProtector();
+
+        Assert.Throws<ArgumentException>(() =>
+            _generator.GenerateSecret(protector, CreateEccRequest(keySizeBits, "P-384"))
+        );
     }
 
     #endregion

@@ -71,9 +71,9 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        // See ADR-1389 and ADR-1392: two curves can share a key size, so the key is generated on the configured curve,
-        // or on the first curve the algorithm accepts that has the configured size, never on whichever curve the key
-        // type picks for the size.
+        // See ADR-1389, ADR-1392 and ADR-1398: two curves can share a key size, so the key is generated on the
+        // configured curve, or on the one curve the algorithm accepts that has the configured size, never on whichever
+        // curve the key type picks for the size; a size two of the algorithm's curves share is refused.
         if (
             !collection.TryResolveKeyGeneration(
                 new KeyGenerationDeclaration
@@ -117,6 +117,19 @@ internal class DefaultTenantKeyPolicy(
         error = null;
         return true;
     }
+
+    /// <summary>
+    /// Determines whether a key type of the algorithm accepts the configured curve and size, before either is resolved
+    /// onto a key: a configured curve must be one of its curves, and a configured size, without a curve, one of its
+    /// sizes.
+    /// </summary>
+    private static bool AcceptsConfiguredKey(
+        AlgorithmKeyType algorithmKeyType,
+        OpenIdTenantKeyOptions key
+    ) =>
+        key.Curve is { } curve ? algorithmKeyType.TryGetCurve(curve, out _)
+        : key.KeySizeBits is { } keySizeBits ? algorithmKeyType.IsLegalSize(keySizeBits)
+        : true;
 
     private static string FormatList(IEnumerable<string> values)
     {
@@ -300,10 +313,12 @@ internal class DefaultTenantKeyPolicy(
             return TryBuildSpecification(collection, key, descriptor, out specification, out error);
         }
 
-        // See ADR-1389: an algorithm may accept several key types. Unless the configured secret type selects one, the
-        // key is generated as the first key type the algorithm lists that has a registered secret key type and that a
-        // key can be generated as, so a key type that cannot be provisioned yields to the next.
-        string? firstError = null;
+        // See ADR-1389 and ADR-1398: an algorithm may accept several key types. Unless the configured secret type selects
+        // one, the key is generated as the first key type the algorithm lists that has a registered asymmetric secret key
+        // type and that accepts the configured curve and size, so a key type that cannot be provisioned yields to the
+        // next, and that key type's resolution is the outcome: a configuration it refuses, such as a size two of its
+        // curves share, is reported, never provisioned as another key type.
+        ISecretKeyTypeDescriptor? firstDescriptor = null;
         foreach (var algorithmKeyType in algorithm.KeyTypes)
         {
             var descriptor = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
@@ -314,26 +329,33 @@ internal class DefaultTenantKeyPolicy(
                 continue;
             }
 
-            if (
-                TryBuildSpecification(
+            firstDescriptor ??= descriptor;
+            if (descriptor.IsAsymmetric && AcceptsConfiguredKey(algorithmKeyType, key))
+            {
+                return TryBuildSpecification(
                     collection,
                     key,
                     descriptor,
                     out specification,
-                    out var candidateError
-                )
-            )
-            {
-                error = null;
-                return true;
+                    out error
+                );
             }
-
-            firstError ??= candidateError;
         }
 
-        error =
-            firstError
-            ?? $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
-        return false;
+        if (firstDescriptor is null)
+        {
+            error =
+                $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
+            return false;
+        }
+
+        // No key type accepts the configured key, so the first one the algorithm lists reports why.
+        return TryBuildSpecification(
+            collection,
+            key,
+            firstDescriptor,
+            out specification,
+            out error
+        );
     }
 }

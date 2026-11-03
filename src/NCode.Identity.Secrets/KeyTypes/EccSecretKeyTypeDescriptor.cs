@@ -17,8 +17,8 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// <summary>
 /// The built-in <see cref="ISecretKeyTypeDescriptor"/> for <see cref="SecretKeyTypes.Ecc"/> keys. The supported
 /// curves come from the injected <see cref="IEccCurveCatalog"/> (the single, extensible source of truth), so a
-/// caller may request a specific curve by name or let one be selected by key size. ECC keys are asymmetric and
-/// therefore expose exportable and importable public-key material.
+/// caller may request a specific curve by name, with its key size, or let one be selected by key size. ECC keys are
+/// asymmetric and therefore expose exportable and importable public-key material.
 /// </summary>
 // See ADR-1068.
 internal sealed class EccSecretKeyTypeDescriptor(
@@ -161,7 +161,8 @@ internal sealed class EccSecretKeyTypeDescriptor(
         };
     }
 
-    // Resolves the requested curve by explicit name, else by key size, producing a human-readable error otherwise.
+    // Resolves the requested curve by explicit name, else by key size, producing a human-readable error otherwise. A
+    // curve fixes the size of its keys, so a named curve is refused for any other requested size.
     private bool TryResolveCurve(
         SecretKeyGenerationParameters parameters,
         [NotNullWhen(true)] out EccCurveSpecification? specification,
@@ -170,16 +171,25 @@ internal sealed class EccSecretKeyTypeDescriptor(
     {
         if (parameters.Curve is { } curveName)
         {
-            if (EccCurveCatalog.TryGetByName(curveName, out var byName))
+            if (!EccCurveCatalog.TryGetByName(curveName, out var byName))
             {
-                specification = byName;
-                error = null;
-                return true;
+                specification = null;
+                error = $"The ECC curve '{curveName}' is not supported.";
+                return false;
             }
 
-            specification = null;
-            error = $"The ECC curve '{curveName}' is not supported.";
-            return false;
+            if (byName.CurveSizeBits != parameters.KeySizeBits)
+            {
+                specification = null;
+                error =
+                    $"The ECC key size '{parameters.KeySizeBits}' bits is invalid for the curve '{curveName}', "
+                    + $"whose keys are {byName.CurveSizeBits} bits.";
+                return false;
+            }
+
+            specification = byName;
+            error = null;
+            return true;
         }
 
         if (EccCurveCatalog.TryGetByCurveSizeBits(parameters.KeySizeBits, out var bySize))

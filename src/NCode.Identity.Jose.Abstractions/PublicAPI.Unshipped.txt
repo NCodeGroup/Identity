@@ -450,7 +450,7 @@ NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalCurve(string? curve, int 
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalSize(int keySizeBits) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<System.Security.Cryptography.KeySizes!>!
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyClrType.get -> System.Type!
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(int keySizeBits, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.GetCurves(int keySizeBits) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>!
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(string! name, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
 static NCode.Identity.Jose.Algorithms.AlgorithmKeyType.OnCurves(System.Type! keyClrType, System.Collections.Generic.IEnumerable<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>! curves) -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).TryResolveKeyGeneration(NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration declaration, out NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration? resolved, out string? error) -> bool

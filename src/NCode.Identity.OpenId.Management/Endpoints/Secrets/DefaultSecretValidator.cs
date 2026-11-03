@@ -71,8 +71,8 @@ internal sealed class DefaultSecretValidator(
 
         // When an algorithm is specified, its registered metadata is authoritative for the use, the key type, the legal
         // key sizes and the curve the key is generated on: two curves can share a key size, so the key is generated on
-        // the first curve the algorithm accepts that has the requested size, never on whichever curve the key type
-        // picks for the size.
+        // the requested curve or on the one curve the algorithm accepts that has the requested size, never on whichever
+        // curve the key type picks for the size (ADR-1398).
         var parameters = new SecretKeyGenerationParameters
         {
             KeySizeBits = request.KeySizeBits,
@@ -105,8 +105,8 @@ internal sealed class DefaultSecretValidator(
             };
         }
 
-        // The descriptor validates the intrinsic generation parameters (key size and, for a key type with curves, the
-        // curve).
+        // The descriptor validates the intrinsic generation parameters: the key size and, for a key type with curves,
+        // the curve and that the size is the curve's.
         var generationError = descriptor.ValidateGeneration(parameters);
         return generationError is null
             ? SecretCreateValidation.Valid(parameters)

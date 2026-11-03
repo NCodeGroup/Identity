@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -35,7 +36,7 @@ namespace NCode.Identity.Server;
 // ADR-1219 (an existing client is reported by the reconciliation).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
-    ISecretGenerator secretGenerator,
+    IClientSecretIssuer clientSecretIssuer,
     ISecretProtectorProvider secretProtectorProvider,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
@@ -43,8 +44,13 @@ internal sealed class BootstrapAdminSeedHandler(
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
+    // The bootstrap credential is a shared secret, which RFC 6749 §2.3.1 has the client present with HTTP Basic.
+    private const string SeededAuthenticationMethod = OpenIdProtocol
+        .ClientAuthenticationMethods
+        .ClientSecretBasic;
+
     private BootstrapAdminOptions Options { get; } = bootstrapOptionsAccessor.Value;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -86,15 +92,24 @@ internal sealed class BootstrapAdminSeedHandler(
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
         {
-            // The configured secret is authoritative. It is re-protected under the tenant's current master key, so a
-            // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently
-            // unable to authenticate.
+            // The configured secret is authoritative. It is stored again under the tenant's current master key, so a
+            // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently unable
+            // to authenticate. Its form follows the method the client is registered for, which an operator may set to
+            // another method than the seeded one (ADR-1391).
+            var tokenEndpointAuthMethod = await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
+                tenantId,
+                context.Tenant.Settings.Value,
+                existing.ClientId,
+                existing.Settings.Value,
+                cancellationToken
+            );
             var refreshProtector = await GetProtectorAsync(tenantId, cancellationToken);
             await RefreshClientSecretAsync(
                 store,
                 refreshProtector,
                 clientId,
                 clientSecretBytes,
+                tokenEndpointAuthMethod,
                 cancellationToken
             );
             Logger.BootstrapAdminClientSecretRefreshed(clientId, tenantId);
@@ -142,6 +157,7 @@ internal sealed class BootstrapAdminSeedHandler(
         ISecretProtector protector,
         string clientId,
         ReadOnlyMemory<byte> clientSecret,
+        string? tokenEndpointAuthMethod,
         CancellationToken cancellationToken
     )
     {
@@ -156,7 +172,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
         await store.AddSecretAsync(
             clientId,
-            CreatePersistedSecret(protector, clientSecret),
+            CreatePersistedSecret(protector, clientSecret, tokenEndpointAuthMethod),
             cancellationToken
         );
     }
@@ -167,13 +183,10 @@ internal sealed class BootstrapAdminSeedHandler(
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
     private static JsonElement CreateSettings() =>
-        // The bootstrap credential is a shared secret, which RFC 6749 §2.3.1 has the client present with HTTP Basic.
         JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
             {
-                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .ClientSecretBasic,
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = SeededAuthenticationMethod,
             }
         );
 
@@ -185,7 +198,11 @@ internal sealed class BootstrapAdminSeedHandler(
         ISecretProtector protector
     )
     {
-        var persistedSecret = CreatePersistedSecret(protector, clientSecret);
+        var persistedSecret = CreatePersistedSecret(
+            protector,
+            clientSecret,
+            SeededAuthenticationMethod
+        );
 
         return new PersistedClient
         {
@@ -209,25 +226,27 @@ internal sealed class BootstrapAdminSeedHandler(
 
     private PersistedSecret CreatePersistedSecret(
         ISecretProtector protector,
-        ReadOnlyMemory<byte> clientSecret
+        ReadOnlyMemory<byte> clientSecret,
+        string? tokenEndpointAuthMethod
     )
     {
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the configured client_secret through the single shared-secret primitive (ADR-1110) so its stored
-        // UTF-8 shape cannot drift from generated secrets.
-        return SecretGenerator.ImportSharedSecret(
+        // Persist the configured client_secret through the client-secret issuer (ADR-1110), in the form the client's
+        // method needs: a PBKDF2 verifier when the method only compares it, reversible when it keys from it (ADR-1391).
+        var request = new SharedSecretRequest
+        {
+            // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
+            // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
+            SecretId = CryptoService.GenerateResourceId(),
+            CreatedWhen = now,
+            ExpiresWhen = now.AddYears(100),
+        };
+
+        return ClientSecretIssuer.ImportClientSecret(
             protector,
-            new ImportSharedSecretRequest
-            {
-                // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add
-                // in one unit of work) never collides with the outgoing secret's id, and the id reveals nothing.
-                SecretId = CryptoService.GenerateResourceId(),
-                Use = null,
-                Algorithm = null,
-                CreatedWhen = now,
-                ExpiresWhen = now.AddYears(100),
-            },
+            tokenEndpointAuthMethod,
+            request,
             clientSecret.Span
         );
     }

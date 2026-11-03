@@ -7,6 +7,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -16,7 +17,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IOpenIdClientResolver"/> that loads the persisted client, applies
-/// the tenant-merged effective settings and deserialized unexpired secrets, and builds the public
+/// the tenant-merged effective settings and the deserialized unexpired keys and shared-secret verifiers, and builds the public
 /// <see cref="OpenIdClient"/>. A client bound to a resource server is resolved only at an endpoint that accepts such
 /// clients (<see cref="IOpenIdEndpointResourceServerClientMetadata"/>); everywhere else it does not exist, so its
 /// credentials serve only the calls the resource server needs.
@@ -79,6 +80,64 @@ internal class DefaultOpenIdClientResolver(
         return unexpired;
     }
 
+    /// <summary>
+    /// Separates the secrets that hold one-way verifiers from the secrets that hold key material.
+    /// </summary>
+    /// <remarks>
+    /// Client resolution runs on every client-authenticated request, so no collection is copied when the secrets hold
+    /// only one kind.
+    /// </remarks>
+    /// <param name="secrets">The client's unexpired persisted secrets.</param>
+    /// <param name="keys">The secrets that hold key material.</param>
+    /// <param name="verifiers">The secrets that hold verifiers.</param>
+    // See ADR-1391.
+    private static void SplitVerifiers(
+        IReadOnlyCollection<PersistedSecret> secrets,
+        out IReadOnlyCollection<PersistedSecret> keys,
+        out IReadOnlyCollection<PersistedSecret> verifiers
+    )
+    {
+        var verifierCount = 0;
+        foreach (var secret in secrets)
+        {
+            if (SecretEncodings.IsVerifier(secret.SecretEncoding))
+            {
+                verifierCount++;
+            }
+        }
+
+        if (verifierCount == 0)
+        {
+            keys = secrets;
+            verifiers = [];
+            return;
+        }
+
+        if (verifierCount == secrets.Count)
+        {
+            keys = [];
+            verifiers = secrets;
+            return;
+        }
+
+        var keyList = new List<PersistedSecret>(secrets.Count - verifierCount);
+        var verifierList = new List<PersistedSecret>(verifierCount);
+        foreach (var secret in secrets)
+        {
+            if (SecretEncodings.IsVerifier(secret.SecretEncoding))
+            {
+                verifierList.Add(secret);
+            }
+            else
+            {
+                keyList.Add(secret);
+            }
+        }
+
+        keys = keyList;
+        verifiers = verifierList;
+    }
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
@@ -124,13 +183,18 @@ internal class DefaultOpenIdClientResolver(
             liveSecrets,
             cancellationToken
         );
-        var secrets = SecretSerializer.DeserializeSecrets(protector, liveSecrets);
+        // A shared secret the server only compares is stored as a one-way verifier, which is not key material, so it is
+        // read apart from the client's keys. See ADR-1391.
+        SplitVerifiers(liveSecrets, out var keySecrets, out var verifierSecrets);
+        var secrets = SecretSerializer.DeserializeSecrets(protector, keySecrets);
+        var verifiers = SecretSerializer.DeserializeVerifiers(protector, verifierSecrets);
 
         var definition = new OpenIdClientDefinition
         {
             ClientId = persistedClient.ClientId,
             Settings = effectiveSettings,
             Secrets = secrets,
+            SecretVerifiers = verifiers,
             ResourceServerId = persistedClient.ResourceServerId,
         };
 

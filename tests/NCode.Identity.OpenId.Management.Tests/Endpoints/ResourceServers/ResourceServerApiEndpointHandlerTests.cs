@@ -634,6 +634,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
         };

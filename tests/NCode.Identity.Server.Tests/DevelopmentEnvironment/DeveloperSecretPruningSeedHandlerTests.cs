@@ -379,6 +379,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = secretEncoding,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "AA",
         };

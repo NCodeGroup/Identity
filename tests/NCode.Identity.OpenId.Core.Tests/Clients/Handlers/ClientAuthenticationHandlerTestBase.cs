@@ -55,8 +55,16 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
             .Setup(x => x.Create(It.IsAny<string>()))
             .Returns<string>(code =>
             {
+                // The response headers the handler sets are kept, so a test can assert them.
+                var responseHeaders = new Dictionary<string, StringValues>(
+                    StringComparer.OrdinalIgnoreCase
+                );
                 var mockError = CreateLooseMock<IOpenIdError>();
                 mockError.SetupAllProperties();
+                mockError
+                    .Setup(x => x.SetResponseHeader(It.IsAny<string>(), It.IsAny<StringValues>()))
+                    .Callback<string, StringValues>((name, value) => responseHeaders[name] = value);
+                mockError.SetupGet(x => x.ResponseHeaders).Returns(responseHeaders);
                 mockError.Object.Code = code;
                 return mockError.Object;
             });

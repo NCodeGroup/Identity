@@ -1265,6 +1265,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "encoded",
         };
@@ -1897,6 +1898,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
         };

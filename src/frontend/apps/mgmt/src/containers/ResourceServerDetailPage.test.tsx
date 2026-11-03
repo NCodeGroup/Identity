@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import { tenantScope, type ResourceServerResource } from '@ncode/api';
+import { tenantScope, type CreatedSecretResource, type ResourceServerResource } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ResourceServerDetailPage } from './ResourceServerDetailPage.js';
 
@@ -73,8 +73,9 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-const createdSecret = {
+const createdSecret: CreatedSecretResource = {
   secretId: 's-new',
+  keyId: 's-new',
   concurrencyToken: 'sc1',
   use: null,
   algorithm: null,
@@ -82,6 +83,7 @@ const createdSecret = {
   expiresWhen: '2027-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
+  isVerifier: false,
   secretMaterial: 'one-time-material',
 };
 

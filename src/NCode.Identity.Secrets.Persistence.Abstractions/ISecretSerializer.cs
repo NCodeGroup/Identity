@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -57,4 +58,29 @@ public interface ISecretSerializer
     /// </exception>
     // See ADR-1235.
     SecretKey DeserializePublicSecret(PersistedSecret persistedSecret);
+
+    /// <summary>
+    /// Deserializes a collection of <see cref="PersistedSecret"/> instances that hold one-way verifiers of shared
+    /// secrets (<see cref="SecretEncodings.Verifier"/>) by unprotecting each verifier with a
+    /// <see cref="ISecretProtector"/> and reading it into a <see cref="SecretVerifier"/>. A verifier is not key material,
+    /// so <see cref="DeserializeSecrets(ISecretProtector, IReadOnlyCollection{PersistedSecret})"/> does not read it.
+    /// </summary>
+    /// <param name="protector">The <see cref="ISecretProtector"/> of the owner that the secrets belong to.</param>
+    /// <param name="persistedSecrets">The <see cref="PersistedSecret"/> instances to deserialize, each with the
+    /// <see cref="SecretEncodings.Verifier"/> encoding.</param>
+    /// <returns>The collection of <see cref="SecretVerifier"/> instances.</returns>
+    /// <exception cref="CryptographicException">
+    /// Thrown when a verifier cannot be unprotected.
+    /// </exception>
+    /// <exception cref="FormatException">
+    /// Thrown when a verifier names a scheme that is not known or has parameters that are not valid.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when a secret does not hold a verifier.
+    /// </exception>
+    // See ADR-1391.
+    IReadOnlyCollection<SecretVerifier> DeserializeVerifiers(
+        ISecretProtector protector,
+        IReadOnlyCollection<PersistedSecret> persistedSecrets
+    );
 }

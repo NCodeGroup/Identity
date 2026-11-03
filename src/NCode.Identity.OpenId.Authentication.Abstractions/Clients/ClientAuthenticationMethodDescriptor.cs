@@ -22,8 +22,19 @@ public sealed class ClientAuthenticationMethodDescriptor
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the method verifies a shared secret, so that a dynamically registered client of
-    /// the method is issued a <c>client_secret</c>.
+    /// Gets a value indicating whether the method verifies a shared secret, so that a client registered for the method
+    /// is issued a <c>client_secret</c> when it holds none the method can use. Every descriptor declares it.
     /// </summary>
-    public bool RequiresClientSecret { get; init; }
+    public required bool RequiresClientSecret { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the method uses the <c>client_secret</c> as a key, as <c>client_secret_jwt</c>
+    /// uses it as the HMAC key of the client's assertion. A secret issued to a client registered for such a method is
+    /// stored so the server can read it back; a secret issued to a client registered for any other method is stored
+    /// as a one-way verifier, which the server can only compare a presented secret with. Every descriptor declares it,
+    /// so a method that keys from its secret cannot be left to receive verifiers it cannot use; a method that uses the
+    /// secret as a key also requires one.
+    /// </summary>
+    // See ADR-1391.
+    public required bool UsesClientSecretAsKey { get; init; }
 }

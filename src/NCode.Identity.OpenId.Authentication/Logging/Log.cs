@@ -172,6 +172,16 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientAuthenticationSecretVerificationUnavailable,
+        Level = LogLevel.Information,
+        Message = "Client authentication refused: the presented secret for client '{ClientId}' was not verified because every turn for a costly verification was taken and the queue was full or the wait timed out."
+    )]
+    internal static partial void ClientAuthenticationSecretVerificationUnavailable(
+        this ILogger logger,
+        string clientId
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ClientAuthenticationMethodNotRegistered,
         Level = LogLevel.Information,
         Message = "Client authentication failed: client '{ClientId}' authenticated with '{AuthenticationMethod}', but it is registered to authenticate with '{RegisteredAuthenticationMethod}'."

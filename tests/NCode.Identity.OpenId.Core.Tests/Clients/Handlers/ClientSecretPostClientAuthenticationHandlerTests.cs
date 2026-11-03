@@ -1,13 +1,15 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Moq;
+using NCode.Buffers;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
-using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Verifiers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Clients.Handlers;
@@ -19,6 +21,47 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
 
     #region Scaffolding
 
+    // A verifier that confirms one secret, as a stored one-way verifier does, and counts its verifications. One with a
+    // work factor that is created unavailable answers Unavailable, as one refused a turn does.
+    private sealed class FakeSecretVerifier(
+        string keyId,
+        string secret,
+        bool hasWorkFactor = false,
+        bool isUnavailable = false
+    ) : SecretVerifier
+    {
+        private byte[] Secret { get; } = SecureEncoding.UTF8.GetBytes(secret);
+
+        private bool IsUnavailable { get; } = isUnavailable;
+
+        public int VerifyCount { get; private set; }
+
+        public override KeyMetadata Metadata { get; } = new() { KeyId = keyId };
+
+        public override string Scheme =>
+            HasWorkFactor ? SecretVerifierSchemes.Pbkdf2Sha256 : SecretVerifierSchemes.Sha256;
+
+        public override bool HasWorkFactor { get; } = hasWorkFactor;
+
+        public override ValueTask<SecretVerificationResult> VerifyAsync(
+            ReadOnlyMemory<byte> secret,
+            CancellationToken cancellationToken
+        )
+        {
+            VerifyCount++;
+            if (IsUnavailable)
+            {
+                return ValueTask.FromResult(SecretVerificationResult.Unavailable);
+            }
+
+            return ValueTask.FromResult(
+                secret.Span.SequenceEqual(Secret)
+                    ? SecretVerificationResult.Success
+                    : SecretVerificationResult.Failed
+            );
+        }
+    }
+
     private ClientSecretPostClientAuthenticationHandler CreateHandler() =>
         new(
             MockClientResolver.Object,
@@ -26,6 +69,50 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
             MockAuditEventRecorder.Object,
             CreateLogger<ClientSecretPostClientAuthenticationHandler>()
         );
+
+    // The client's keys are never set up: a method that compares its secret authenticates only against the client's
+    // verifiers, so the strict client mock proves the handler never reads them.
+    private OpenIdClient CreateRegisteredClient(
+        IReadOnlyCollection<SecretVerifier> verifiers,
+        bool readsClientId
+    )
+    {
+        var client = CreateClient(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost],
+            readsClientId
+        );
+        Mock.Get(client).SetupGet(x => x.SecretVerifiers).Returns(verifiers).Verifiable();
+        return client;
+    }
+
+    private OpenIdConfidentialClient SetupConfidentialClient(
+        OpenIdClient client,
+        string expectedCredentialId
+    )
+    {
+        var mockConfidentialClient = CreateStrictMock<OpenIdConfidentialClient>();
+        mockConfidentialClient.SetupGet(x => x.IsConfidential).Returns(true).Verifiable();
+        mockConfidentialClient
+            .SetupGet(x => x.ConfidentialClient)
+            .Returns(mockConfidentialClient.Object)
+            .Verifiable();
+        var confidentialClient = mockConfidentialClient.Object;
+        MockClientFactory
+            .Setup(x =>
+                x.CreateConfidentialClientAsync(
+                    MockContext.Object,
+                    client,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    expectedCredentialId,
+                    null,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(confidentialClient)
+            .Verifiable();
+        return confidentialClient;
+    }
 
     private void SetupCredentialsForm() =>
         SetupForm(
@@ -127,18 +214,10 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
     {
         SetupCredentialsForm();
         SetupErrorFactory();
-        var mockSecretKeys = CreateStrictMock<ISecretKeyCollection>();
-        mockSecretKeys
-            .As<IEnumerable>()
-            .Setup(x => x.GetEnumerator())
-            .Returns(() => Array.Empty<SecretKey>().GetEnumerator())
-            .Verifiable();
-        var client = CreateClient(
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
-            [OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost],
+        var client = CreateRegisteredClient(
+            [new FakeSecretVerifier("verifier-1", "another-secret")],
             readsClientId: true
         );
-        Mock.Get(client).SetupGet(x => x.SecretKeys).Returns(mockSecretKeys.Object).Verifiable();
         SetupResolvedClient(client);
         SetupAudit("invalid_client_secret");
         var handler = CreateHandler();
@@ -149,6 +228,135 @@ public class ClientSecretPostClientAuthenticationHandlerTests : ClientAuthentica
         );
 
         AssertInvalidClient(result, StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheSecretMatchesAVerifier_AuthenticatesWithThatSecret()
+    {
+        // A secret the server only compares is stored as a one-way verifier. See ADR-1391.
+        SetupCredentialsForm();
+        var client = CreateRegisteredClient(
+            [
+                new FakeSecretVerifier("verifier-1", "another-secret"),
+                new FakeSecretVerifier("verifier-2", "presented-secret"),
+            ],
+            readsClientId: false
+        );
+        SetupResolvedClient(client);
+        var expected = SetupConfidentialClient(client, "verifier-2");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsConfidential);
+        Assert.Same(expected, result.ConfidentialClient);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheSecretIsAPrefixOfAStoredSecret_ReturnsInvalidClient()
+    {
+        SetupCredentialsForm();
+        SetupErrorFactory();
+        var client = CreateRegisteredClient(
+            [new FakeSecretVerifier("verifier-1", "presented-secret-2")],
+            readsClientId: true
+        );
+        SetupResolvedClient(client);
+        SetupAudit("invalid_client_secret");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        AssertInvalidClient(result, StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenAVerifierWithoutAWorkFactorMatches_SkipsTheCostlyVerifiers()
+    {
+        // The verifiers without a work factor run first, so a generated secret costs no derivation, whatever the storage
+        // order. See ADR-1391.
+        SetupCredentialsForm();
+        var costly = new FakeSecretVerifier("verifier-1", "presented-secret", hasWorkFactor: true);
+        var client = CreateRegisteredClient(
+            [costly, new FakeSecretVerifier("verifier-2", "presented-secret")],
+            readsClientId: false
+        );
+        SetupResolvedClient(client);
+        var expected = SetupConfidentialClient(client, "verifier-2");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsConfidential);
+        Assert.Same(expected, result.ConfidentialClient);
+        Assert.Equal(0, costly.VerifyCount);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenOnlyACostlyVerifierMatches_AuthenticatesWithIt()
+    {
+        SetupCredentialsForm();
+        var cheap = new FakeSecretVerifier("verifier-1", "another-secret");
+        var client = CreateRegisteredClient(
+            [new FakeSecretVerifier("verifier-2", "presented-secret", hasWorkFactor: true), cheap],
+            readsClientId: false
+        );
+        SetupResolvedClient(client);
+        var expected = SetupConfidentialClient(client, "verifier-2");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsConfidential);
+        Assert.Same(expected, result.ConfidentialClient);
+        Assert.Equal(1, cheap.VerifyCount);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenACostlyVerificationIsRefused_ReturnsServiceUnavailable()
+    {
+        // The gate refused the derivation, so the secret was never compared: the answer is 503, never invalid_client.
+        SetupCredentialsForm();
+        SetupErrorFactory();
+        var client = CreateRegisteredClient(
+            [
+                new FakeSecretVerifier(
+                    "verifier-1",
+                    "presented-secret",
+                    hasWorkFactor: true,
+                    isUnavailable: true
+                ),
+            ],
+            readsClientId: true
+        );
+        SetupResolvedClient(client);
+        SetupAudit("secret_verification_unavailable");
+        var handler = CreateHandler();
+
+        var result = await handler.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsError);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, result.Error.Code);
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.Error.StatusCode);
+        var responseHeaders = result.Error.ResponseHeaders;
+        Assert.NotNull(responseHeaders);
+        Assert.Equal("1", responseHeaders[HeaderNames.RetryAfter]);
+        Assert.Equal("no-store", responseHeaders[HeaderNames.CacheControl]);
     }
 
     #endregion

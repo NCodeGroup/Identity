@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.Secrets.Collections;
-using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 internal class DefaultOpenIdConfidentialClient(
     OpenIdClient publicClient,
     string authenticationMethod,
-    SecretKey secretKey,
+    string? credentialId,
     JsonElement? confirmation
 ) : OpenIdConfidentialClient
 {
@@ -29,6 +29,10 @@ internal class DefaultOpenIdConfidentialClient(
 
     /// <inheritdoc />
     public override ISecretKeyCollection SecretKeys => PublicClient.SecretKeys;
+
+    /// <inheritdoc />
+    public override IReadOnlyCollection<SecretVerifier> SecretVerifiers =>
+        PublicClient.SecretVerifiers;
 
     /// <inheritdoc />
     public override IReadOnlyCollection<string> RedirectUris => PublicClient.RedirectUris;
@@ -49,7 +53,7 @@ internal class DefaultOpenIdConfidentialClient(
     public override string AuthenticationMethod { get; } = authenticationMethod;
 
     /// <inheritdoc />
-    public override SecretKey SecretKey { get; } = secretKey;
+    public override string? CredentialId { get; } = credentialId;
 
     /// <inheritdoc />
     public override JsonElement? Confirmation { get; } = confirmation;

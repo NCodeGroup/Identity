@@ -68,6 +68,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = "encoded",
             PublicKey = publicKey,

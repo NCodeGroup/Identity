@@ -127,6 +127,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     SecretType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     SecretEncoding = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    Origin = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     KeySizeBits = table.Column<int>(type: "integer", nullable: false),
                     EncodedValue = table.Column<string>(type: "character varying(8000)", unicode: false, maxLength: 8000, nullable: false),
                     PublicKey = table.Column<string>(type: "character varying(4000)", unicode: false, maxLength: 4000, nullable: true)

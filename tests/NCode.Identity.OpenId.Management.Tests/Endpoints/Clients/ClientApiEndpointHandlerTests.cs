@@ -1559,7 +1559,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var issued = CreatePersistedSecret("issued-1", "issued-ct");
         SetupClientChangedAudit();
         SetupClientSecretChangedAudit();
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1614,7 +1614,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var converted = CreatePersistedSecret("converted-1");
         SetupClientChangedAudit();
         SetupClientSecretChangedAudit();
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1660,7 +1660,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         // Issuing a secret is creating one, which needs the authority creating a secret needs.
         var issued = CreatePersistedSecret("issued-1");
-        SetupValidSettingsUpdate();
+        SetupValidSettings();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))

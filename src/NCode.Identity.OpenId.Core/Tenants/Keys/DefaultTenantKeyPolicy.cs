@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -61,13 +62,9 @@ internal class DefaultTenantKeyPolicy(
         var algorithmCode = key.Algorithm;
         specification = default;
 
-        // A tenant key is published in the tenant's JSON Web Key Set and used across trust boundaries, which only an
-        // asymmetric key can be.
         if (!descriptor.IsAsymmetric)
         {
-            error =
-                $"The algorithm '{algorithmCode}' uses a symmetric key, and a tenant is provisioned with asymmetric "
-                + "keys only.";
+            error = FormatSymmetricKeyError(algorithmCode);
             return false;
         }
 
@@ -136,6 +133,61 @@ internal class DefaultTenantKeyPolicy(
         var quoted = values.Select(value => $"'{value}'").ToList();
         return quoted.Count == 0 ? "none" : string.Join(", ", quoted);
     }
+
+    // A tenant key is published in the tenant's JSON Web Key Set and used across trust boundaries, which only an
+    // asymmetric key can be.
+    private static string FormatSymmetricKeyError(string algorithmCode) =>
+        $"The algorithm '{algorithmCode}' uses a symmetric key, and a tenant is provisioned with asymmetric keys "
+        + "only.";
+
+    // Formats the error for a configured curve or size that none of the algorithm's provisionable key types accepts:
+    // the curves, or the sizes, that each of them accepts, so an algorithm that accepts several key types, such as
+    // ECDH-ES over EC and OKP keys, reports every curve it accepts (ADR-1398).
+    private static string FormatConfiguredKeyError(
+        string algorithmCode,
+        OpenIdTenantKeyOptions key,
+        IEnumerable<(
+            AlgorithmKeyType AlgorithmKeyType,
+            ISecretKeyTypeDescriptor Descriptor
+        )> keyTypes
+    )
+    {
+        var byCurve = key.Curve is not null;
+        var subject = byCurve
+            ? $"The curve '{key.Curve}'"
+            : $"The key size '{key.KeySizeBits}' bits";
+        var expected = string.Join(
+            "; ",
+            keyTypes.Select(keyType =>
+                FormatAcceptedKeys(keyType.AlgorithmKeyType, byCurve)
+                + $" for '{keyType.Descriptor.KeyType}' keys"
+            )
+        );
+        return $"{subject} is not valid for algorithm '{algorithmCode}'; expected {expected}.";
+    }
+
+    private static string FormatAcceptedKeys(AlgorithmKeyType algorithmKeyType, bool byCurve)
+    {
+        if (algorithmKeyType.Curves.Count > 0)
+        {
+            return string.Join(
+                ", ",
+                algorithmKeyType.Curves.Select(curve =>
+                    $"'{curve.Name}' ({curve.KeySizeBits} bits)"
+                )
+            );
+        }
+
+        return byCurve
+            ? "no curve"
+            : string.Join(", ", algorithmKeyType.KeyBitSizes.Select(FormatKeySizes));
+    }
+
+    private static string FormatKeySizes(KeySizes keySizes) =>
+        keySizes.MinSize == keySizes.MaxSize ? $"{keySizes.MinSize} bits"
+        : keySizes.MaxSize == int.MaxValue ? $"{keySizes.MinSize} bits or more"
+        : keySizes.SkipSize == 0 ? $"{keySizes.MinSize} to {keySizes.MaxSize} bits"
+        : $"{keySizes.MinSize} to {keySizes.MaxSize} bits in steps of {keySizes.SkipSize}";
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
@@ -318,19 +370,38 @@ internal class DefaultTenantKeyPolicy(
         // type and that accepts the configured curve and size, so a key type that cannot be provisioned yields to the
         // next, and that key type's resolution is the outcome: a configuration it refuses, such as a size two of its
         // curves share, is reported, never provisioned as another key type.
-        ISecretKeyTypeDescriptor? firstDescriptor = null;
+        var keyTypes =
+            new List<(AlgorithmKeyType AlgorithmKeyType, ISecretKeyTypeDescriptor Descriptor)>();
         foreach (var algorithmKeyType in algorithm.KeyTypes)
         {
             var descriptor = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
                 candidate.KeyClrType == algorithmKeyType.KeyClrType
             );
-            if (descriptor is null)
+            if (descriptor is not null)
             {
-                continue;
+                keyTypes.Add((algorithmKeyType, descriptor));
             }
+        }
 
-            firstDescriptor ??= descriptor;
-            if (descriptor.IsAsymmetric && AcceptsConfiguredKey(algorithmKeyType, key))
+        if (keyTypes.Count == 0)
+        {
+            error =
+                $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
+            return false;
+        }
+
+        var asymmetricKeyTypes = keyTypes
+            .Where(keyType => keyType.Descriptor.IsAsymmetric)
+            .ToList();
+        if (asymmetricKeyTypes.Count == 0)
+        {
+            error = FormatSymmetricKeyError(algorithmCode);
+            return false;
+        }
+
+        foreach (var (algorithmKeyType, descriptor) in asymmetricKeyTypes)
+        {
+            if (AcceptsConfiguredKey(algorithmKeyType, key))
             {
                 return TryBuildSpecification(
                     collection,
@@ -342,20 +413,9 @@ internal class DefaultTenantKeyPolicy(
             }
         }
 
-        if (firstDescriptor is null)
-        {
-            error =
-                $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
-            return false;
-        }
-
-        // No key type accepts the configured key, so the first one the algorithm lists reports why.
-        return TryBuildSpecification(
-            collection,
-            key,
-            firstDescriptor,
-            out specification,
-            out error
-        );
+        // No key type accepts the configured curve or size, so the error lists what every provisionable key type of
+        // the algorithm accepts.
+        error = FormatConfiguredKeyError(algorithmCode, key, asymmetricKeyTypes);
+        return false;
     }
 }

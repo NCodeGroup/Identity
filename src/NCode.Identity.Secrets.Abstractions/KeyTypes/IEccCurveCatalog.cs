@@ -31,12 +31,13 @@ public interface IEccCurveCatalog
     );
 
     /// <summary>
-    /// Looks up the default curve for the specified size in bits (used when no curve is explicitly requested).
+    /// Gets the curves whose keys are the specified size, in bits, in the order they are registered with the built-in
+    /// curves first, or an empty list when no curve has the size. Two curves can share a size, so a size selects a
+    /// curve only when it is the one curve of that size.
     /// </summary>
-    bool TryGetByCurveSizeBits(
-        int curveSizeBits,
-        [NotNullWhen(true)] out EccCurveSpecification? specification
-    );
+    /// <param name="curveSizeBits">The size of the curves' keys, in bits.</param>
+    /// <returns>The curves of that size.</returns>
+    IReadOnlyList<EccCurveSpecification> GetByCurveSizeBits(int curveSizeBits);
 
     /// <summary>
     /// Looks up the curve that matches the specified <see cref="ECCurve"/> (by named-curve OID), used to name a

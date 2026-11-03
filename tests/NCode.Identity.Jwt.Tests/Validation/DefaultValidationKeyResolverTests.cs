@@ -15,7 +15,7 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jwt.Validation;
 
-public sealed class DefaultValidationKeyResolverTests : IDisposable
+public sealed class DefaultValidationKeyResolverTests : IAsyncLifetime, IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
     private readonly X509Certificate2 _certificate;
@@ -55,11 +55,11 @@ public sealed class DefaultValidationKeyResolverTests : IDisposable
 
     private ISecretKeyCollection SecretKeys { get; }
 
-    public void Dispose()
-    {
-        _certificate.Dispose();
-        _serviceProvider.Dispose();
-    }
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync() => await _serviceProvider.DisposeAsync();
+
+    public void Dispose() => _certificate.Dispose();
 
     private IEnumerable<SecretKey> Resolve(string name, string thumbprint) =>
         DefaultValidationKeyResolver.ResolveValidationKeys(

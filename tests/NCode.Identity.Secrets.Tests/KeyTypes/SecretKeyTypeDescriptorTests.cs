@@ -20,7 +20,17 @@ public class SecretKeyTypeDescriptorTests
 
     private static RsaSecretKeyTypeDescriptor Rsa() => new(Factory);
 
-    private static EccSecretKeyTypeDescriptor Ecc() => new(Factory, new DefaultEccCurveCatalog([]));
+    private static EccCurveSpecification Brainpool256 { get; } =
+        new()
+        {
+            CurveName = "brainpoolP256r1",
+            CurveSizeBits = 256,
+            Curve = ECCurve.NamedCurves.brainpoolP256r1,
+        };
+
+    private static EccSecretKeyTypeDescriptor Ecc(
+        params IEnumerable<EccCurveSpecification> additionalCurves
+    ) => new(Factory, new DefaultEccCurveCatalog(additionalCurves));
 
     private static AkpSecretKeyTypeDescriptor Akp() =>
         new(Mock.Of<IDataProtectorFactory<SecretKey>>());
@@ -109,6 +119,37 @@ public class SecretKeyTypeDescriptorTests
     }
 
     [Fact]
+    public void Ecc_ValidateGeneration_WhenNoCurveHasTheSize_ReturnsError()
+    {
+        Assert.Equal(
+            "The ECC key size '255' bits is invalid; expected 'P-256' (256 bits), 'P-384' (384 bits), 'P-521' "
+                + "(521 bits).",
+            Ecc().ValidateGeneration(Params(255))
+        );
+    }
+
+    // See ADR-1398: P-256 and brainpoolP256r1 are both 256 bits, so the size selects neither.
+    [Fact]
+    public void Ecc_ValidateGeneration_WhenTwoCurvesHaveTheSize_ReturnsError()
+    {
+        Assert.Equal(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'brainpoolP256r1' have that size, so name "
+                + "the curve.",
+            Ecc(Brainpool256).ValidateGeneration(Params(256))
+        );
+    }
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("brainpoolP256r1")]
+    public void Ecc_ValidateGeneration_WhenTheCurveSelectsAmongCurvesOfOneSize_ReturnsNull(
+        string curve
+    )
+    {
+        Assert.Null(Ecc(Brainpool256).ValidateGeneration(Params(256, curve)));
+    }
+
+    [Fact]
     public void Ecc_ValidateGeneration_ByCurveName()
     {
         Assert.Null(Ecc().ValidateGeneration(Params(384, curve: "P-384")));
@@ -172,6 +213,45 @@ public class SecretKeyTypeDescriptorTests
             "The ECC key size '256' bits is invalid for the curve 'P-384', whose keys are 384 bits.",
             exception.Message,
             StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Ecc_GenerateKeyMaterial_WhenTwoCurvesHaveTheSize_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Ecc(Brainpool256).GenerateKeyMaterial(Params(256), Protect)
+        );
+
+        Assert.StartsWith(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'brainpoolP256r1' have that size, so name "
+                + "the curve.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Ecc_GenerateKeyMaterial_WhenTheCurveSelectsAmongCurvesOfOneSize_GeneratesOnIt()
+    {
+        byte[]? pkcs8 = null;
+        SecretKeyMaterialProtector protect = bytes =>
+        {
+            pkcs8 = bytes.ToArray();
+            return "protected";
+        };
+
+        var material = Ecc(Brainpool256)
+            .GenerateKeyMaterial(Params(256, curve: "brainpoolP256r1"), protect);
+
+        using var ecdsa = ECDsa.Create();
+        ecdsa.ImportPkcs8PrivateKey(pkcs8, out _);
+        Assert.Equal(256, material.KeySizeBits);
+        Assert.True(
+            EccCurveSpecification.IsSameNamedCurve(
+                ecdsa.ExportParameters(includePrivateParameters: false).Curve,
+                ECCurve.NamedCurves.brainpoolP256r1
+            )
         );
     }
 

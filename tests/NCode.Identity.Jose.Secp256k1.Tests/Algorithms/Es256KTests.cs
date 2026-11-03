@@ -10,6 +10,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Jose.Secp256k1.KeyTypes;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using Xunit;
 
@@ -327,10 +328,29 @@ public sealed class Es256KTests : IAsyncDisposable
 
     #region GenerateKeyMaterial Tests
 
+    // See ADR-1398: P-256 and secp256k1 are both 256 bits, so a 256-bit key without a curve is neither.
     [Secp256k1Fact]
-    public void GenerateKeyMaterial_WhenNoCurve_SelectsP256BySize()
+    public void GenerateKeyMaterial_WhenNoCurve_Throws()
     {
-        var key = Services.GenerateKey(curve: null);
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Services.Descriptor.GenerateKeyMaterial(
+                new SecretKeyGenerationParameters { KeySizeBits = 256 },
+                _ => string.Empty
+            )
+        );
+
+        Assert.StartsWith(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'secp256k1' have that size, so name the "
+                + "curve.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Secp256k1Fact]
+    public void GenerateKeyMaterial_WhenTheCurveSelectsAmongCurvesOfOneSize_GeneratesOnIt()
+    {
+        var key = Services.GenerateKey("P-256");
 
         Assert.True(Es256.IsKeyCompatible(key));
         Assert.False(Es256K.IsKeyCompatible(key));

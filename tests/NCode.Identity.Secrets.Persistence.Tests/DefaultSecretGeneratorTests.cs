@@ -519,8 +519,14 @@ public class DefaultSecretGeneratorTests
     {
         var protector = CreateProtector();
 
-        Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<ArgumentException>(() =>
             _generator.GenerateSecret(protector, CreateEccRequest(keySizeBits, "P-384"))
+        );
+
+        Assert.StartsWith(
+            $"The ECC key size '{keySizeBits}' bits is invalid for the curve 'P-384', whose keys are 384 bits.",
+            exception.Message,
+            StringComparison.Ordinal
         );
     }
 

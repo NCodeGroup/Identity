@@ -282,7 +282,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("ecc", 256, null, null)]
+    [InlineData("ecc", 384, null, null)]
     [InlineData("ecc", 384, null, "P-384")]
     [InlineData("rsa", 2048, "RS256", null)]
     public void ValidateCreate_WhenNoAlgorithmCurveApplies_GeneratesWithTheRequestsParameters(
@@ -318,7 +318,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Theory]
     [InlineData("symmetric", 256)]
     [InlineData("rsa", 2048)]
-    [InlineData("ecc", 256)]
+    [InlineData("ecc", 384)]
     public void ValidateCreate_WhenKnownSecretTypeAndNoUseOrAlgorithm_ReturnsNull(
         string secretType,
         int keySizeBits
@@ -395,7 +395,6 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData(256)]
     [InlineData(384)]
     [InlineData(521)]
     public void ValidateCreate_WhenEccKeySizeValid_ReturnsNull(int keySizeBits)
@@ -403,6 +402,36 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         var error = CreateError(CreateRequest("ecc", keySizeBits));
 
         Assert.Null(error);
+    }
+
+    // See ADR-1398: a request without an algorithm reaches the key type alone, whose catalog holds P-256 and
+    // brainpoolP256r1 at 256 bits, so the size selects neither.
+    [Fact]
+    public void ValidateCreate_WhenTwoCatalogCurvesHaveTheRequestedSizeAndNoAlgorithm_Returns400()
+    {
+        var error = CreateError(CreateRequest("ecc", 256));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'brainpoolP256r1' have that size, so name "
+                + "the curve.",
+            error.Detail
+        );
+    }
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("brainpoolP256r1")]
+    public void ValidateCreate_WhenTheCurveSelectsAmongCatalogCurvesOfOneSizeAndNoAlgorithm_GeneratesOnIt(
+        string curve
+    )
+    {
+        var validation = Validator.ValidateCreate(CreateRequest("ecc", 256, curve: curve));
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(curve, validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
     }
 
     #endregion

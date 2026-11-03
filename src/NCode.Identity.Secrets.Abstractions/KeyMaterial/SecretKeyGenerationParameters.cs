@@ -24,9 +24,10 @@ public sealed class SecretKeyGenerationParameters
     /// <summary>
     /// Gets the requested curve (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c>, <c>secp256k1</c> or
     /// <c>Ed25519</c>), or the parameter set of a key type that names one in its place (for example <c>ML-DSA-65</c>
-    /// for an <c>AKP</c> key), or <c>null</c> to leave it to the key type: an <c>ecc</c> key then takes the curve its
-    /// catalog selects for <see cref="KeySizeBits"/>, and an <c>okp</c> key, whose signing and agreement curves share
-    /// sizes, is refused. A key type without curves refuses a curve.
+    /// for an <c>AKP</c> key), or <c>null</c> to leave it to the key type: an <c>ecc</c> key then takes the one curve
+    /// of its catalog whose keys are <see cref="KeySizeBits"/>, and is refused when several catalog curves have that
+    /// size, and an <c>okp</c> key, whose signing and agreement curves can share a size, is refused. A key type without
+    /// curves refuses a curve.
     /// </summary>
     public string? Curve { get; init; }
 }

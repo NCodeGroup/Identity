@@ -233,9 +233,9 @@ public sealed class OkpSecretKeyTypeDescriptor(
         };
     }
 
-    // Resolves the requested curve by name. A signing and an agreement curve share each size, as Ed25519 and X25519 do,
-    // so the size never selects a curve; a curve fixes the size of its keys, so a named curve is refused for any other
-    // requested size.
+    // Resolves the requested curve by name. A signing and an agreement curve can share a size, as Ed25519 and X25519
+    // do, and the descriptor has no algorithm to tell them apart, so the size does not select a curve; a curve fixes
+    // the size of its keys, so a named curve is refused for any other requested size.
     private static bool TryResolveCurve(
         SecretKeyGenerationParameters parameters,
         [NotNullWhen(true)] out OkpCurve? curve,

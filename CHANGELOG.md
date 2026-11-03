@@ -529,11 +529,14 @@ describes the family as it is rather than its changes
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
-- **A key type refuses a curve requested with another size.** The `ecc`, `okp` and `AKP` secret key types refuse
-  generation parameters that name a curve, or an ML-DSA parameter set, whose keys are not the requested
-  `SecretKeyGenerationParameters.KeySizeBits`, such as P-256 at 384 bits or Ed25519 at 456 bits, and an `okp` key is
-  generated only on a named curve. Management secret creation, tenant key provisioning and every other caller of the
-  key types meet the same check ([#534](https://github.com/NCodeGroup/Identity/issues/534),
+- **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
+  and `AKP` secret key types refuse generation parameters that name a curve, or an ML-DSA parameter set, whose keys
+  are not the requested `SecretKeyGenerationParameters.KeySizeBits`, such as P-256 at 384 bits or Ed25519 at 456 bits.
+  An `ecc` key requested without a curve is generated on the one curve of the elliptic-curve catalog whose keys are
+  that size (`IEccCurveCatalog.GetByCurveSizeBits`) and refused, with the curves named, when several catalog curves
+  share it, as P-256 and secp256k1 do with `AddSecp256k1()`; an `okp` key is generated only on a named curve.
+  Management secret creation, tenant key provisioning and every other caller of the key types meet the same checks
+  ([#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar
@@ -741,7 +744,8 @@ describes the family as it is rather than its changes
   asymmetric secret key type and accepts the configured curve and size, and that key type reports a configuration it
   refuses; the curve is the one the algorithm accepts that has the configured size, or the algorithm's first curve. A
   size that two of the algorithm's curves have is reported until `Curve` names one, a curve configured with another
-  size is reported, and a secret type or curve the algorithm does not accept is reported with the ones it does.
+  size is reported, a secret type the algorithm does not accept is reported with the ones it does, and a curve or size
+  none of the algorithm's key types accepts is reported with the curves and sizes each of them accepts.
   Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies a
   configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored key
   whose public half is missing or unreadable does not suppress generation.

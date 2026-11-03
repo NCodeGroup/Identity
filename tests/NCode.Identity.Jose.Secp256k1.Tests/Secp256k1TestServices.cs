@@ -75,11 +75,11 @@ public sealed class Secp256k1TestServices : IAsyncDisposable
     }
 
     /// <summary>
-    /// Generates a private <c>ecc</c> key on the named curve, or on the curve selected by size when none is named.
+    /// Generates a private <c>ecc</c> key on the named curve, which P-256 and secp256k1 share a size with.
     /// </summary>
-    /// <param name="curve">The <c>JWK</c> <c>crv</c> name, or <c>null</c>.</param>
+    /// <param name="curve">The <c>JWK</c> <c>crv</c> name.</param>
     /// <returns>The private key.</returns>
-    public EccSecretKey GenerateKey(string? curve)
+    public EccSecretKey GenerateKey(string curve)
     {
         byte[] pkcs8 = [];
         var generated = Descriptor.GenerateKeyMaterial(

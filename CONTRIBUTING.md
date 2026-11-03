@@ -1,6 +1,6 @@
 # Contributing to NCode.Identity
 
-Thanks for helping improve NCode.Identity. These are shipped, security-relevant libraries, so they hold to an explicit,
+Thanks for helping improve NCode.Identity. These are security-relevant libraries built for publication, so they hold to an explicit,
 enforced quality bar.
 
 ## Prerequisites
@@ -248,7 +248,8 @@ review; a commit cannot. Dependabot's GitHub Actions group updates the SHA and t
 
 ## Public API surface guard (`PublicAPI.*.txt`)
 
-Because these are shipped libraries, an accidental change to the public API surface is a break for every consumer. The
+Because these libraries are built for publication, an accidental change to the public API surface would break every
+consumer. The
 [`Microsoft.CodeAnalysis.PublicApiAnalyzers`](https://github.com/dotnet/roslyn-analyzers/blob/main/src/PublicApiAnalyzers/PublicApiAnalyzers.Help.md)
 Roslyn analyzer makes the surface explicit and reviewable via a `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
 pair per packable project ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)):

@@ -10,7 +10,7 @@ namespace NCode.Identity.Events.Audit;
 /// </summary>
 /// <remarks>
 /// Event category is an extensible string vocabulary, not a closed enumeration, so a consumer or
-/// sibling package can introduce additional categories without a breaking change. Values are
+/// sibling package can introduce additional categories without editing this package. Values are
 /// lower-case and stable, suitable for use as a log, index or metric dimension.
 /// </remarks>
 [PublicAPI]

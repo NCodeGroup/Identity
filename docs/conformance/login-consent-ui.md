@@ -17,21 +17,29 @@ The interactive login/consent surface is the opt-in leaf capability package
 (+ [`.Abstractions`](../../src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions)). A single
 `AddInteractiveAuthentication` registration
 ([`DefaultRegistration`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs)) registers
-the `Identity.Application` cookie scheme (`LoginPath = /account/login`) the authorize challenge redirects into, and maps
-the `/account/*` endpoints, which also serve the bundle's files, beneath the tenant route
-([ADR-1193](../decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md)) through an
+the `Identity.Application` cookie scheme (`LoginPath = /account/login`, `LogoutPath = /account/logout`) the authorize
+challenge redirects into, and maps the `/account/*` endpoints, which also serve the bundle's files, beneath the tenant
+route ([ADR-1193](../decisions/1193-the-interactive-surface-is-served-under-the-tenant-route.md)) through an
 `IEndpointProvider`
 ([`InteractiveAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs)).
 The `Identity.Application` name lines up with the `authorization_authenticate_scheme` /
-`authorization_challenge_scheme` setting defaults, so no per-client override is needed.
+`authorization_challenge_scheme` setting defaults, so no per-client override is needed. The server-driven cookie
+challenge is the authentication model and the UI is only its form surface
+([ADR-1062](../decisions/1062-opt-in-interactive-login-consent-ui.md)). The surface is served from the OP's own origin,
+so the `LoginPath` redirect, the antiforgery-protected POST and the `ReturnUrl` round-trip stay same-origin, and its
+forms submit as native HTML form POSTs, so the browser, and Selenium with it, follows the `Set-Cookie` and the redirect
+([ADR-1065](../decisions/1065-interactive-login-consent-op-hosted-auth-surface.md)).
 
 - **Credential verification** is a pluggable `IInteractiveCredentialVerifier` seam. Its local-account implementation
   ([`LocalAccountInteractiveCredentialVerifier`](../../src/NCode.Identity.OpenId.Accounts.Authentication/LocalAccountInteractiveCredentialVerifier.cs),
   registered by `AddLocalAccountInteractiveAuthentication()`) reuses the resource-owner-password credential path, so
   there is one credential verifier.
 - **The render surface** is the React + MUI `apps/auth` bundle ([`src/frontend/apps/auth`](../../src/frontend/apps/auth)),
-  served same-origin under `/account/*`, exposing the Appendix B locators (`username`, `password`, `login`,
-  `consent-allow`, `consent-deny`) as explicit ids, since MUI's generated ids are not stable selectors.
+  an app on the family's shared frontend platform
+  ([ADR-1064](../decisions/1064-frontend-presentation-platform.md)) and the real end-user login surface, not a
+  conformance-only one. It is served same-origin under `/account/*` and exposes the Appendix B locators (`username`,
+  `password`, `login`, `consent-allow`, `consent-deny`) as explicit ids, since MUI's generated ids are not stable
+  selectors.
 - **Progressive enhancement.** `InteractiveAuthenticationEndpointHandler` server-renders a working no-JavaScript
   `<form>` with the same locators through
   [`InteractiveAuthenticationPageRenderer`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs),
@@ -42,8 +50,12 @@ The `Identity.Application` name lines up with the `authorization_authenticate_sc
   `ReturnUrl` that leaves the OP is rejected (open-redirect guard).
 - **Consent** (`GET/POST /account/consent`, `consent-allow` / `consent-deny`) is durable and granular, enforced through
   this same surface ([ADR-1076](../decisions/1076-consent-persistence-and-enforcement.md),
-  [ADR-1081](../decisions/1081-granular-consent-and-authorized-applications.md)). The conformance `browser` config
-  marks its `Consent` task `optional`, so a flow that needs no consent screen completes without it.
+  [ADR-1081](../decisions/1081-granular-consent-and-authorized-applications.md)). The authorize endpoint asks for
+  consent only when the client's `require_consent` setting is on or the request carries `prompt=consent`. The seeded
+  conformance clients leave `require_consent` at its default, `false`, so the suite's flows auto-approve and drive
+  fewer selectors that could break, while a `prompt=consent` request still reaches the page and its `consent-deny`
+  control for the negative tests. The conformance `browser` config marks its `Consent` task `optional` for the same
+  reason.
 - **Logout confirmation** (`/account/logout/confirm`,
   [ADR-1380](../decisions/1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md)) is
   served the same way and exposes `logout-confirm` and `logout-cancel`.

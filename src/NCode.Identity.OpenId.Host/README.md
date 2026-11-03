@@ -70,9 +70,11 @@ starts, the `api` and the conformance instance, which share the one database. Th
 `build/dev-db-reset.ps1` resets the database and keeps the key; to replace the key, stop the AppHost, delete the file
 and reset the database together. A host started without the AppHost selects `ephemeral` in
 `appsettings.Development.json`, and in `appsettings.Conformance.json` for the `Conformance` profile, which suits its
-in-memory database: its stored secrets do not survive a restart. After pulling a change that alters how secrets are
-protected, existing development tenants lose
-their unreadable keys automatically and are provisioned again; reset the database if client secrets matter.
+in-memory database: its stored secrets do not survive a restart. The server never discards or replaces a key it cannot
+unprotect: a tenant whose keys were protected under another root key is not served, and its error says that the key
+that protected them is missing or has changed
+([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)). Restore the root key, or
+reset the database with it.
 
 ### Development credentials
 

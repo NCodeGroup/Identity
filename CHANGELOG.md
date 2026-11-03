@@ -110,6 +110,7 @@ describes the family as it is rather than its changes
   `Polly.RateLimiting` to a consumer: a project that uses one of them, such as `AddStandardResilienceHandler`,
   references that package itself ([#471](https://github.com/NCodeGroup/Identity/issues/471),
   [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md)).
+- **Project template v0.61.2.** The repository's plan-and-execute workflow, agent instructions and checks come from project-template v0.61.2. They include the `/address-feedback` and `/run-feedback` commands, which fix or answer every review thread, top-level comment and review summary on a pull request and reply to each, `/run-feedback` repeating that every five minutes until the pull request merges or closes and asking NCode Review to review each push with a `/review` comment; `/run-issues`, which does the same for the pull requests it opens and turns a finding the issue doesn't ask for into a follow-up; project-template ADR-0014, under which every such discussion is remediated and replied to before the pull request merges, with the person who merges resolving each thread; the weekly `template-update` workflow, which keeps an issue open while a newer template version is out; `code-review-auto-merge.yml` for NCode Review pin bumps, which turns on auto-merge with the first merge method `main` allows; the template's C# test conventions in `.github/instructions/csharp-tests.instructions.md`; and the template's general decision records in `docs/decisions/project-template/`, the source of truth for the rules they cover. The workflow commands that post to GitHub read back each description, issue and comment they write and remove any agent attribution a session's tooling appends, and run through `gh api` REST routes in a session that refuses GitHub's GraphQL API, such as a Claude Code cloud session; the `Commit attribution` check and `.githooks/commit-msg` catch attribution from any AI agent or model. The template's `file_header_template` is the two-line SPDX header [ADR-1309](docs/decisions/1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) enforces, and `build/dod.ps1` is this repository's own: the `project_owned_files` answer names it, so template updates leave it alone ([#516](https://github.com/NCodeGroup/Identity/issues/516)).
 
 - **The reference host, its local-dev orchestrator and the shipped library carry distinct names.**
   `NCode.Identity.OpenId.Host` is the deployable reference host, with its companions
@@ -4131,8 +4132,9 @@ describes the family as it is rather than its changes
   `IPersistedGrantService.UpdatePayloadAsync` write (`PersistedGrantUpdate<TPayload>.ExpiresWhen`), so the grant prune
   removes an abandoned session after the retention. A stored session without its bounds or its expiry is malformed:
   reading it throws, so it is never served. `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen`
-  of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An authorize request that finds an ended session terminates it with `absolute_expiry` or
-  `idle_timeout`, which revokes the grants issued under it and notifies its relying parties
+  of `/account/sessions/list` are the time the session ends unless it is used again, never `null`. An authorize
+  request that finds an ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants
+  issued under it and notifies its relying parties
   ([ADR-1220](docs/decisions/1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md),
   [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
   issue [#271](https://github.com/NCodeGroup/Identity/issues/271)).

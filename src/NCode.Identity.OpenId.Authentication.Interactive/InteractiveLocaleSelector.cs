@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// </summary>
 /// <remarks>
 /// Every registered UI locale must be an <see cref="InteractiveLocale"/>, since the surface renders every locale the
-/// catalog can select: <see cref="InteractiveLocalesValidator"/> stops the host when one carries no messages, and
+/// catalog can select: <see cref="InteractiveAuthenticationOptionsValidator"/> stops the host when one carries no messages, and
 /// the selector refuses such a catalog when it is composed, so no page renders in the wrong language.
 /// </remarks>
 // See ADR-1402.
@@ -34,7 +34,9 @@ internal sealed class InteractiveLocaleSelector
     /// <exception cref="InvalidOperationException">A registered UI locale carries no interactive messages.</exception>
     public InteractiveLocaleSelector(IUiLocaleCatalog uiLocaleCatalog)
     {
-        var failures = InteractiveLocalesValidator.FindLocalesWithoutMessages(uiLocaleCatalog);
+        var failures = InteractiveAuthenticationOptionsValidator.FindLocalesWithoutMessages(
+            uiLocaleCatalog
+        );
         if (failures.Count > 0)
         {
             throw new InvalidOperationException(string.Join(' ', failures));

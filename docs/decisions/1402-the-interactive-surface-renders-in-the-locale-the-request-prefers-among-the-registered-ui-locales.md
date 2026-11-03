@@ -61,7 +61,7 @@ forms carry on.**
    quality of zero), and selects through the catalog with the tenant's effective settings; the authorization error
    page a request without a tenant renders selects with no bounds. The surface registers its locales as
    `InteractiveLocale` records, each carrying the `InteractiveMessages` of its server-rendered pages;
-   `InteractiveLocalesValidator` stops the host as it starts when the catalog holds any other kind of locale, and
+   `InteractiveAuthenticationOptionsValidator` stops the host as it starts when the catalog holds any other kind of locale, and
    the selector refuses such a catalog too, so no page renders text in one language under the tag of another and
    the error is found at deploy time, never by an end-user. `InteractiveLocales` ships English, which it registers
    first, German, Spanish and French; a host adds a locale, or changes a page's wording with a locale built from a
@@ -141,7 +141,7 @@ forms carry on.**
   `src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions/InteractiveLocale.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocales.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocaleSelector.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveLocalesValidator.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationOptionsValidator.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
   `src/frontend/apps/auth/src/i18n/`, `src/frontend/apps/auth/src/pageLanguage.ts`.

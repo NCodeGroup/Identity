@@ -122,7 +122,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<InteractiveAuthenticationOptions>,
-                    InteractiveLocalesValidator
+                    InteractiveAuthenticationOptionsValidator
                 >()
             );
 

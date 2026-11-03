@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// surface's registration validates on start.
 /// </summary>
 // See ADR-1402.
-internal sealed class InteractiveLocalesValidator(IUiLocaleCatalog uiLocaleCatalog)
+internal sealed class InteractiveAuthenticationOptionsValidator(IUiLocaleCatalog uiLocaleCatalog)
     : IValidateOptions<InteractiveAuthenticationOptions>
 {
     private IUiLocaleCatalog UiLocaleCatalog { get; } = uiLocaleCatalog;

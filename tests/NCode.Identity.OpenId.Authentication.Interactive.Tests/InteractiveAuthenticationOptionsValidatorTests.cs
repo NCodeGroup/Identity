@@ -7,22 +7,22 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
 
-public sealed class InteractiveLocalesValidatorTests : IDisposable
+public sealed class InteractiveAuthenticationOptionsValidatorTests : IDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private Mock<IUiLocaleCatalog> MockCatalog { get; }
 
-    public InteractiveLocalesValidatorTests()
+    public InteractiveAuthenticationOptionsValidatorTests()
     {
         MockCatalog = MockRepository.Create<IUiLocaleCatalog>();
     }
 
     public void Dispose() => MockRepository.Verify();
 
-    private InteractiveLocalesValidator CreateValidator(params IUiLocale[] locales)
+    private InteractiveAuthenticationOptionsValidator CreateValidator(params IUiLocale[] locales)
     {
         MockCatalog.SetupGet(x => x.Locales).Returns(locales).Verifiable();
-        return new InteractiveLocalesValidator(MockCatalog.Object);
+        return new InteractiveAuthenticationOptionsValidator(MockCatalog.Object);
     }
 
     #region Validate Tests

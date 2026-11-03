@@ -362,6 +362,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretKeyTypes.Ecc,
             SecretEncoding = SecretEncodings.Pkcs8,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = 256,
             EncodedValue = "AA",
         };

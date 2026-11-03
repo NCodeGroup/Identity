@@ -41,7 +41,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 // See ADR-1140.
 internal sealed class ConformanceSeedHandler(
     ConformanceSeedOptions options,
-    ISecretGenerator secretGenerator,
+    IClientSecretIssuer clientSecretIssuer,
     ISecretProtectorProvider secretProtectorProvider,
     IClientKeyImporter clientKeyImporter,
     ICryptoService cryptoService,
@@ -58,7 +58,7 @@ internal sealed class ConformanceSeedHandler(
         OpenIdProtocol.GrantTypes.RefreshToken,
     ];
     private ConformanceSeedOptions Options { get; } = options;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ICryptoService CryptoService { get; } = cryptoService;
@@ -145,7 +145,13 @@ internal sealed class ConformanceSeedHandler(
                 [],
                 cancellationToken
             );
-            secrets.Add(CreatePersistedSecret(protector, client.ClientSecret));
+            secrets.Add(
+                CreatePersistedSecret(
+                    protector,
+                    client.ClientSecret,
+                    client.TokenEndpointAuthMethod
+                )
+            );
         }
         if (!string.IsNullOrEmpty(client.Jwks))
             secrets.AddRange(ImportKeys(clientId, client.Jwks));
@@ -326,7 +332,11 @@ internal sealed class ConformanceSeedHandler(
         // runtime must not inherit the conformance clients and test user.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
-    private PersistedSecret CreatePersistedSecret(ISecretProtector protector, string encodedSecret)
+    private PersistedSecret CreatePersistedSecret(
+        ISecretProtector protector,
+        string encodedSecret,
+        string tokenEndpointAuthMethod
+    )
     {
         // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
         // directly; decode it straight into a pinned, zeroed-on-return buffer.
@@ -337,19 +347,20 @@ internal sealed class ConformanceSeedHandler(
 
         var now = TimeProvider.GetUtcNow();
 
-        // Persist the given client_secret through the single shared-secret primitive (ADR-1110) so its stored UTF-8
-        // shape cannot drift from generated secrets.
-        return SecretGenerator.ImportSharedSecret(
+        // Persist the given client_secret through the client-secret issuer (ADR-1110), in the form the client's method
+        // needs: a supplied secret is stored as its PBKDF2 verifier unless the method keys from it (ADR-1391).
+        var request = new SharedSecretRequest
+        {
+            // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.
+            SecretId = CryptoService.GenerateResourceId(),
+            CreatedWhen = now,
+            ExpiresWhen = now.AddYears(100),
+        };
+
+        return ClientSecretIssuer.ImportClientSecret(
             protector,
-            new ImportSharedSecretRequest
-            {
-                // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.
-                SecretId = CryptoService.GenerateResourceId(),
-                Use = null,
-                Algorithm = null,
-                CreatedWhen = now,
-                ExpiresWhen = now.AddYears(100),
-            },
+            tokenEndpointAuthMethod,
+            request,
             clientSecret
         );
     }

@@ -45,14 +45,14 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
     )
     {
         // Strict mocks: none of these collaborators are touched on the no-op guard paths.
-        var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
+        var mockClientSecretIssuer = CreateStrictMock<IClientSecretIssuer>();
         var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
         var mockLogger = CreateLooseMock<ILogger<BootstrapAdminSeedHandler>>();
 
         return new BootstrapAdminSeedHandler(
             Options.Create(bootstrapOptions),
-            mockSecretGenerator.Object,
+            mockClientSecretIssuer.Object,
             mockSecretProtectorProvider.Object,
             mockCryptoService.Object,
             TimeProvider.System,
@@ -64,11 +64,13 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
     private BootstrapAdminSeedHandler CreateHandler(
         BootstrapAdminOptions bootstrapOptions,
         ServiceProvider secretServices,
-        SeededClientValidator? seededClientValidator = null
+        SeededClientValidator? seededClientValidator = null,
+        IClientSecretIssuer? clientSecretIssuer = null
     )
     {
-        // The real generator and protector provider, because the generator's ImportSharedSecret takes a span that a
-        // Moq mock cannot set up. The crypto service hands out the id of the one secret that the seed path creates.
+        // The real generator and protector provider, because the generator's ImportSharedSecretVerifier takes a span that
+        // a Moq mock cannot set up; by default no method keys from its secret. The crypto service hands out the id of the
+        // one secret that the seed path creates.
         var mockCryptoService = CreateStrictMock<ICryptoService>();
         mockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -78,7 +80,10 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
 
         return new BootstrapAdminSeedHandler(
             Options.Create(bootstrapOptions),
-            secretServices.GetRequiredService<ISecretGenerator>(),
+            clientSecretIssuer
+                ?? new TestClientSecretIssuer(
+                    secretServices.GetRequiredService<ISecretGenerator>()
+                ),
             secretServices.GetRequiredService<ISecretProtectorProvider>(),
             mockCryptoService.Object,
             TimeProvider.System,
@@ -160,7 +165,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
                 TenantId = tenantId,
                 Value = JsonElement.Parse("{}"),
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets { TenantId = tenantId, Value = [] },
         };
 
         return new SeedTenantCommand(
@@ -265,7 +270,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         Assert.Equal(WorkloadTenantId, addedClient.TenantId);
         Assert.Equal(ClientId, addedClient.ClientId);
         var secret = Assert.Single(addedClient.Secrets.Value);
-        await AssertSecretIsProtectedUnderTenantAsync(
+        await AssertSecretIsVerifierUnderTenantAsync(
             secretServices,
             owner,
             secret,
@@ -274,21 +279,52 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         );
     }
 
-    [Fact]
-    public async Task HandleAsync_WhenClientExists_ReplacesItsSecretUnderTheTenantsMasterKey()
+    [Theory]
+    [InlineData("client_secret_basic", false)]
+    [InlineData("client_secret_jwt", true)]
+    public async Task HandleAsync_WhenClientExists_ReplacesItsSecretUnderTheTenantsMasterKey(
+        string tokenEndpointAuthMethod,
+        bool usesClientSecretAsKey
+    )
     {
+        // The refreshed secret's form follows the method the client is registered for, which an operator may set to
+        // another method than the seeded one. See ADR-1391.
         var owner = SecretOwner.ForTenant(WorkloadTenantId);
         var secretServices = CreateSecretServices(owner);
-        var handler = CreateHandler(CreateConfiguredOptions(), secretServices);
+        var clientSettings = JsonElement.Parse(
+            $"{{\"token_endpoint_auth_method\":\"{tokenEndpointAuthMethod}\"}}"
+        );
+        var issuer = new TestClientSecretIssuer(
+            secretServices.GetRequiredService<ISecretGenerator>(),
+            usesClientSecretAsKey ? [tokenEndpointAuthMethod] : []
+        )
+        {
+            ResolvedMethod = tokenEndpointAuthMethod,
+        };
+        var handler = CreateHandler(
+            CreateConfiguredOptions(),
+            secretServices,
+            clientSecretIssuer: issuer
+        );
 
-        // The handler only checks that the client exists; it works on the client's secrets through the store.
+        // The handler reads the client's settings; it works on the client's secrets through the store.
         var existingClient = new PersistedClient
         {
             TenantId = WorkloadTenantId,
             ClientId = ClientId,
             IsDisabled = false,
-            Settings = null!,
-            Secrets = null!,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = WorkloadTenantId,
+                ClientId = ClientId,
+                Value = clientSettings,
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = WorkloadTenantId,
+                ClientId = ClientId,
+                Value = [],
+            },
         };
         var staleSecret = new PersistedSecret
         {
@@ -299,6 +335,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = SecretEncodings.SymmetricRaw,
+            Origin = SecretOrigins.Generated,
             KeySizeBits = 8,
             EncodedValue = "nce1.stale",
         };
@@ -346,14 +383,30 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             CancellationToken.None
         );
 
+        var resolvedSettings = Assert.Single(issuer.ResolvedClientSettings);
+        Assert.Equal(clientSettings.GetRawText(), resolvedSettings.GetRawText());
+        Assert.Equal([tokenEndpointAuthMethod], issuer.IssuedMethods);
         Assert.NotNull(addedSecret);
-        await AssertSecretIsProtectedUnderTenantAsync(
-            secretServices,
-            owner,
-            addedSecret,
-            GeneratedSecretId,
-            SecretText
-        );
+        if (usesClientSecretAsKey)
+        {
+            await AssertSecretIsProtectedUnderTenantAsync(
+                secretServices,
+                owner,
+                addedSecret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
+        else
+        {
+            await AssertSecretIsVerifierUnderTenantAsync(
+                secretServices,
+                owner,
+                addedSecret,
+                GeneratedSecretId,
+                SecretText
+            );
+        }
     }
 
     [Fact]

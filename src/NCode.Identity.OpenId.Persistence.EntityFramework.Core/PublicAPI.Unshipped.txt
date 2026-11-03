@@ -545,3 +545,5 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResou
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResourceEntity.ResourceId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResourceEntity.Type.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResourceEntity.Type.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Origin.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Origin.init -> void

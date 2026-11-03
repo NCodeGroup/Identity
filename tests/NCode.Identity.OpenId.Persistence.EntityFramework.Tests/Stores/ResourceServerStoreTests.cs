@@ -360,6 +360,7 @@ public sealed class ResourceServerStoreTests : IDisposable
             ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
+            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
         };
@@ -446,6 +447,7 @@ public sealed class ResourceServerStoreTests : IDisposable
             ExpiresWhen = DateTimeOffset.UtcNow.AddYears(2),
             SecretType = existing.SecretType,
             SecretEncoding = existing.SecretEncoding,
+            Origin = existing.Origin,
             KeySizeBits = existing.KeySizeBits,
             EncodedValue = existing.EncodedValue,
         };

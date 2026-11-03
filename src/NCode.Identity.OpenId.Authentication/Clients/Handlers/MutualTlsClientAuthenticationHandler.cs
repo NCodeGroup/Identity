@@ -167,7 +167,7 @@ internal abstract class MutualTlsClientAuthenticationHandler(
             openIdContext,
             publicClient,
             AuthenticationMethod,
-            credentialKey,
+            credentialKey.KeyId,
             confirmation: null,
             cancellationToken
         );

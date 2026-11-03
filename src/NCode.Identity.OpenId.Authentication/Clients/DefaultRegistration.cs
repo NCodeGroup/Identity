@@ -36,6 +36,8 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IClientKeyImporter, DefaultClientKeyImporter>();
 
+            serviceCollection.TryAddSingleton<IClientSecretIssuer, DefaultClientSecretIssuer>();
+
             serviceCollection.TryAddSingleton<IClientKeyResolver, DefaultClientKeyResolver>();
 
             serviceCollection.TryAddSingleton<
@@ -159,6 +161,10 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IClientCoherenceRule, RegisteredValueCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, ClientSecretKeyCoherenceRule>()
             );
 
             serviceCollection.TryAddEnumerable(

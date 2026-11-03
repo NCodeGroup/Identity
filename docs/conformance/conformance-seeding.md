@@ -25,7 +25,10 @@ Client secrets and the test user's password are not in the overlay: they are gen
 repository, and passed to the host as `ConformanceSeed__` environment variables by the LocalDev AppHost and by
 [`run-conformance.ps1`](../../build/conformance/run-conformance.ps1), through
 [`Get-ConformanceSeedCredentials.ps1`](../../build/conformance/Get-ConformanceSeedCredentials.ps1)
-([#514](https://github.com/NCodeGroup/Identity/issues/514)).
+([#514](https://github.com/NCodeGroup/Identity/issues/514)). The host stores each seeded secret as a PBKDF2 verifier,
+from which the secret cannot be read back, unless its client registers `client_secret_jwt`, which keys its assertion
+from the secret itself, so the host stores that secret reversibly
+([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 On every startup the seeder adds each declared client and the test user that the conformance tenant does not hold yet,
 so a second run neither duplicates nor fails. Before storing a client it validates the client's settings against the

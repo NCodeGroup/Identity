@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.Secrets.Collections;
+using NCode.Identity.Secrets.Verifiers;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
@@ -14,6 +15,7 @@ internal class DefaultOpenIdClient(
     string clientId,
     IReadOnlySettingCollection settings,
     ISecretKeyCollection secretKeys,
+    IReadOnlyCollection<SecretVerifier> secretVerifiers,
     IReadOnlyCollection<string> redirectUris,
     string? resourceServerId,
     IPropertyBag propertyBag
@@ -27,6 +29,9 @@ internal class DefaultOpenIdClient(
 
     /// <inheritdoc />
     public override ISecretKeyCollection SecretKeys { get; } = secretKeys;
+
+    /// <inheritdoc />
+    public override IReadOnlyCollection<SecretVerifier> SecretVerifiers { get; } = secretVerifiers;
 
     /// <inheritdoc />
     public override IReadOnlyCollection<string> RedirectUris { get; } = redirectUris;

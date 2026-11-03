@@ -5,6 +5,35 @@ applyTo: "**"
 
 # NCode.Identity — repository instructions
 
+## Standing direction from the project owner
+
+The project owner's words, which hold until the first stable release
+([#535](https://github.com/NCodeGroup/Identity/issues/535) retires them then):
+
+> I want the best option long term that is cohesive and comprehensive, irrelevant of how difficult it would be to
+> refactor now to accomplish that. This entire project is greenfield: it is in active development, nothing is shipped,
+> breaking changes are allowed and must not be tracked (no temporal content).
+
+This is a settled decision, not a question. Apply it without asking, and never re-argue it:
+
+- **Choose the comprehensive design.** When the options are a minimal fix and the cohesive, comprehensive model, take
+  the model. The size of the refactor, the number of files it touches, public API churn, renames and moved types are
+  never reasons to settle for less. Decline a review finding only when it is wrong on the merits, never because the
+  right fix is too much work. A partial fix is unfinished work, not a resting point.
+- **Nothing is shipped, so there is nothing to keep compatible.** There are no released packages, deployed data,
+  issued tokens or consumers to keep working. Never add or keep a compatibility shim, a reader for an older format, a
+  transition path, "keeps working until it is rotated" behavior, or a rolling-deploy, rollback, upgrade or migration
+  note for anything that has only existed in this repository.
+- **Breaking changes are allowed and never tracked.** Every text describes the product as it is, never how it
+  differs from an earlier state. That covers code, comments, docs, the changelog, decision records, test names,
+  commit messages and pull requests. How:
+  [The product is described as it is](#the-product-is-described-as-it-is--changes-are-not-tracked).
+- **It binds everything an agent writes and everything it delegates.** It applies to the prompts and instructions an
+  agent gives subagents, workflows and other sessions, so never instruct one to preserve compatibility or document an
+  upgrade. A review bot's finding that asks for a breaking-change label, a compatibility note or a migration path is
+  answered by citing this section. Where another instruction file, a template rule or a prompt says otherwise, this
+  section wins.
+
 ## Design posture (greenfield, pre-release)
 
 This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to

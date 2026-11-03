@@ -4,6 +4,17 @@ An open-source **OpenID Connect + OAuth 2.0** library family and reference serve
 of independently-published NuGet packages — JOSE/JWT, cryptographic secrets, the OpenID protocol model, persistence
 abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host` reference host.
 
+**Before any change, read the project owner's standing direction** at the top of
+[`repository.instructions.md`](.github/instructions/repository.instructions.md#standing-direction-from-the-project-owner).
+In short:
+
+- Always take the best long-term, cohesive and comprehensive design, however large the refactor.
+- The project is greenfield and nothing is shipped.
+- Breaking changes are allowed and never tracked: no temporal content.
+- No compatibility shims or upgrade notes, including in what you tell subagents.
+
+It holds until the first stable release.
+
 ## Project Template
 
 - @.github/instructions/project-template.instructions.md — the plan-then-execute workflow and base conventions, from the project template. Template updates replace it; never edit it. Where this file or a file it lists says otherwise, the project's instruction wins.

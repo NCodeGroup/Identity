@@ -1,0 +1,97 @@
+import type { Messages } from './messages.js';
+
+/** Spanish. */
+export const es: Messages = {
+  login: {
+    title: 'Iniciar sesión',
+    titleFor: (productName) => `Iniciar sesión en ${productName}`,
+    username: 'Nombre de usuario',
+    password: 'Contraseña',
+    submit: 'Iniciar sesión',
+  },
+  loginErrors: {
+    invalidCredentials: 'El nombre de usuario o la contraseña no son correctos.',
+    invalidRequest: 'Introduzca un nombre de usuario y una contraseña.',
+    accessDenied: 'Esta cuenta no puede iniciar sesión. Póngase en contacto con su administrador.',
+    fallback: 'No se pudo iniciar sesión. Inténtelo de nuevo.',
+  },
+  consent: {
+    title: 'Autorizar acceso',
+    anApplication: 'Una aplicación',
+    prompt: (appName) => `${appName} solicita acceso a su cuenta. Elija qué permitir:`,
+    deny: 'Denegar',
+    allow: 'Permitir',
+  },
+  logoutConfirm: {
+    title: 'Cerrar sesión',
+    question: '¿Desea cerrar sesión?',
+    questionFor: (productName) => `¿Desea cerrar sesión en ${productName}?`,
+    stay: 'Seguir conectado',
+    signOut: 'Cerrar sesión',
+  },
+  authorizationError: {
+    title: 'Error de autorización',
+  },
+  account: {
+    title: 'Su cuenta',
+    titleFor: (productName) => `Cuenta de ${productName}`,
+    signedInAs: 'Sesión iniciada como',
+    subject: 'Sujeto',
+    signedInAt: 'Sesión iniciada el',
+    methods: 'Métodos',
+    identityProvider: 'Proveedor de identidad',
+    session: 'Sesión',
+    loading: 'Cargando su sesión…',
+    signOut: 'Cerrar sesión',
+    manageSessions: 'Gestionar sesiones activas',
+    changePassword: 'Cambiar contraseña',
+  },
+  sessions: {
+    title: 'Sesiones activas',
+    titleFor: (productName) => `${productName} — sesiones activas`,
+    loading: 'Cargando sus sesiones…',
+    empty: 'No tiene otras sesiones activas.',
+    unknownDevice: 'Dispositivo desconocido',
+    thisDevice: 'Este dispositivo',
+    signOut: 'Cerrar sesión',
+    ipAddress: 'Dirección IP',
+    lastActive: 'Última actividad',
+    signedIn: 'Inicio de sesión',
+    signOutOthers: 'Cerrar sesión en todos los demás dispositivos',
+    signOutAll: 'Cerrar sesión en todos los dispositivos',
+    back: 'Volver a su cuenta',
+  },
+  applications: {
+    title: 'Aplicaciones autorizadas',
+    titleFor: (productName) => `${productName} — aplicaciones autorizadas`,
+    loading: 'Cargando sus aplicaciones…',
+    empty: 'No ha autorizado ninguna aplicación.',
+    revoke: 'Revocar',
+    back: 'Volver a su cuenta',
+  },
+  password: {
+    title: 'Cambiar contraseña',
+    titleFor: (productName) => `${productName} — cambiar contraseña`,
+    changed: 'Su contraseña ha sido cambiada. Sus otras sesiones se han cerrado.',
+    current: 'Contraseña actual',
+    next: 'Nueva contraseña',
+    nextHelp:
+      'Use una frase de contraseña larga que no use en ningún otro lugar. Las contraseñas comunes o comprometidas se rechazan.',
+    confirm: 'Confirmar la nueva contraseña',
+    submit: 'Cambiar contraseña',
+    back: 'Volver a su cuenta',
+  },
+  passwordErrors: {
+    invalidRequest: 'Introduzca su contraseña actual y una nueva contraseña.',
+    passwordMismatch: 'Las nuevas contraseñas no coinciden.',
+    invalidCurrentPassword: 'La contraseña actual no es correcta.',
+    notSupported: 'Su cuenta no tiene una contraseña que cambiar aquí.',
+    passwordTooShort:
+      'La nueva contraseña es demasiado corta. Una frase de varias palabras es suficientemente larga y fácil de recordar.',
+    passwordTooLong: 'La nueva contraseña es demasiado larga. Elija una más corta.',
+    passwordBlocklisted:
+      'La nueva contraseña es demasiado común o se sabe que está comprometida. Elija una que no use en ningún otro lugar.',
+    fallback: 'No se pudo cambiar la contraseña. Inténtelo de nuevo.',
+  },
+  environmentBanner: (label) => `Entorno ${label} — no apto para producción`,
+};

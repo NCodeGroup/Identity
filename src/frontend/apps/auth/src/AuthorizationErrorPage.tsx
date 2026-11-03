@@ -4,6 +4,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useMessages } from './i18n/LocaleContext.js';
 
 export type AuthorizationErrorPageProps = {
   /** The authorization error code the host reported, for example `invalid_client`. */
@@ -18,6 +19,7 @@ export type AuthorizationErrorPageProps = {
  * and `authorization-error-description`.
  */
 export function AuthorizationErrorPage({ code, description }: AuthorizationErrorPageProps) {
+  const messages = useMessages();
   return (
     <Box
       sx={{
@@ -32,7 +34,7 @@ export function AuthorizationErrorPage({ code, description }: AuthorizationError
         <CardContent>
           <Stack spacing={3}>
             <Typography variant="h5" component="h1">
-              Authorization error
+              {messages.authorizationError.title}
             </Typography>
 
             <Alert severity="error" id="authorization-error" data-error-code={code}>

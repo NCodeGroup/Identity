@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { LogoutConfirmPage } from './LogoutConfirmPage.js';
+import { LocaleProvider } from './i18n/LocaleContext.js';
 
 function renderPage(props: Parameters<typeof LogoutConfirmPage>[0]) {
   return render(
@@ -55,5 +56,23 @@ describe('LogoutConfirmPage', () => {
     renderPage({ returnUrl: '/continue', antiforgeryToken: 'tok', productName: 'Acme' });
 
     expect(screen.getByText('Do you want to sign out of Acme?')).toBeInTheDocument();
+  });
+
+  it('renders in the language the host selected and carries it back on the form', () => {
+    const { container } = render(
+      <LocaleProvider pageLanguage="de">
+        <AppThemeProvider>
+          <LogoutConfirmPage returnUrl="/oauth2/continue?state=k" antiforgeryToken="tok" />
+        </AppThemeProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Abmelden');
+    expect(screen.getByText('Möchten Sie sich abmelden?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Angemeldet bleiben' })).toBe(
+      container.querySelector('#logout-cancel'),
+    );
+    const carried = container.querySelector('input[name="ui_locales"]') as HTMLInputElement | null;
+    expect(carried?.value).toBe('de');
   });
 });

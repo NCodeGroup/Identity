@@ -1,0 +1,97 @@
+import type { Messages } from './messages.js';
+
+/** English, the bundle's default language. */
+export const en: Messages = {
+  login: {
+    title: 'Sign in',
+    titleFor: (productName) => `Sign in to ${productName}`,
+    username: 'Username',
+    password: 'Password',
+    submit: 'Sign in',
+  },
+  loginErrors: {
+    invalidCredentials: 'The username or password is incorrect.',
+    invalidRequest: 'Enter both a username and a password.',
+    accessDenied: 'This account cannot sign in. Contact your administrator.',
+    fallback: 'Sign-in failed. Please try again.',
+  },
+  consent: {
+    title: 'Authorize access',
+    anApplication: 'An application',
+    prompt: (appName) => `${appName} is requesting access to your account. Choose what to allow:`,
+    deny: 'Deny',
+    allow: 'Allow',
+  },
+  logoutConfirm: {
+    title: 'Sign out',
+    question: 'Do you want to sign out?',
+    questionFor: (productName) => `Do you want to sign out of ${productName}?`,
+    stay: 'Stay signed in',
+    signOut: 'Sign out',
+  },
+  authorizationError: {
+    title: 'Authorization error',
+  },
+  account: {
+    title: 'Your account',
+    titleFor: (productName) => `${productName} account`,
+    signedInAs: 'Signed in as',
+    subject: 'Subject',
+    signedInAt: 'Signed in at',
+    methods: 'Methods',
+    identityProvider: 'Identity provider',
+    session: 'Session',
+    loading: 'Loading your session…',
+    signOut: 'Sign out',
+    manageSessions: 'Manage active sessions',
+    changePassword: 'Change password',
+  },
+  sessions: {
+    title: 'Active sessions',
+    titleFor: (productName) => `${productName} — active sessions`,
+    loading: 'Loading your sessions…',
+    empty: 'You have no other active sessions.',
+    unknownDevice: 'Unknown device',
+    thisDevice: 'This device',
+    signOut: 'Sign out',
+    ipAddress: 'IP address',
+    lastActive: 'Last active',
+    signedIn: 'Signed in',
+    signOutOthers: 'Sign out everywhere else',
+    signOutAll: 'Sign out everywhere',
+    back: 'Back to your account',
+  },
+  applications: {
+    title: 'Authorized applications',
+    titleFor: (productName) => `${productName} — authorized applications`,
+    loading: 'Loading your applications…',
+    empty: 'You have not authorized any applications.',
+    revoke: 'Revoke',
+    back: 'Back to your account',
+  },
+  password: {
+    title: 'Change password',
+    titleFor: (productName) => `${productName} — change password`,
+    changed: 'Your password was changed. Your other sessions were signed out.',
+    current: 'Current password',
+    next: 'New password',
+    nextHelp:
+      'Use a long passphrase that you do not use anywhere else. Common and compromised passwords are refused.',
+    confirm: 'Confirm new password',
+    submit: 'Change password',
+    back: 'Back to your account',
+  },
+  passwordErrors: {
+    invalidRequest: 'Enter your current password and a new password.',
+    passwordMismatch: 'The new passwords do not match.',
+    invalidCurrentPassword: 'The current password is incorrect.',
+    notSupported: 'Your account has no password to change here.',
+    passwordTooShort:
+      'The new password is too short. A passphrase of several words is long enough and easy to remember.',
+    passwordTooLong: 'The new password is too long. Choose a shorter one.',
+    passwordBlocklisted:
+      'The new password is too common or is known to be compromised. Choose one you do not use anywhere else.',
+    fallback: 'The password could not be changed. Please try again.',
+  },
+  environmentBanner: (label) => `${label} environment — not for production use`,
+};

@@ -6,6 +6,7 @@ import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { useMessages } from './i18n/LocaleContext.js';
 import { ACCOUNT_PATH, ANTIFORGERY_FIELD, PASSWORD_PATH, resolveSurfacePath } from './params.js';
 
 export type PasswordPageProps = {
@@ -29,6 +30,7 @@ export function PasswordPage({
   errorMessage,
   changed,
 }: PasswordPageProps) {
+  const text = useMessages().password;
   return (
     <Box
       sx={{
@@ -48,12 +50,12 @@ export function PasswordPage({
             action={resolveSurfacePath(PASSWORD_PATH)}
           >
             <Typography variant="h5" component="h1">
-              {productName ? `${productName} — change password` : 'Change password'}
+              {productName ? text.titleFor(productName) : text.title}
             </Typography>
 
             {changed ? (
               <Alert severity="success" data-testid="password-changed">
-                Your password was changed. Your other sessions were signed out.
+                {text.changed}
               </Alert>
             ) : null}
 
@@ -64,7 +66,7 @@ export function PasswordPage({
             <TextField
               id="current_password"
               name="current_password"
-              label="Current password"
+              label={text.current}
               type="password"
               autoComplete="current-password"
               required
@@ -73,17 +75,17 @@ export function PasswordPage({
             <TextField
               id="new_password"
               name="new_password"
-              label="New password"
+              label={text.next}
               type="password"
               autoComplete="new-password"
-              helperText="Use a long passphrase that you do not use anywhere else. Common and compromised passwords are refused."
+              helperText={text.nextHelp}
               required
               fullWidth
             />
             <TextField
               id="confirm_password"
               name="confirm_password"
-              label="Confirm new password"
+              label={text.confirm}
               type="password"
               autoComplete="new-password"
               required
@@ -91,11 +93,11 @@ export function PasswordPage({
             />
 
             <Button id="change-password" type="submit" variant="contained" fullWidth>
-              Change password
+              {text.submit}
             </Button>
 
             <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
-              Back to your account
+              {text.back}
             </Button>
           </Stack>
         </CardContent>

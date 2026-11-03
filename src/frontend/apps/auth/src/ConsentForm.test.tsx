@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConsentForm, type ConsentDetails } from './ConsentForm.js';
+import { LocaleProvider } from './i18n/LocaleContext.js';
 
 const details: ConsentDetails = {
   clientId: 'test-client',
@@ -303,5 +304,27 @@ describe('ConsentForm', () => {
       expect(screen.getByText(/An application is requesting access/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Allow' })).toBeInTheDocument();
     });
+  });
+
+  it('renders in the language the host selected and carries it back on the form', async () => {
+    const { container, findByText } = render(
+      <LocaleProvider pageLanguage="es">
+        <ConsentForm
+          returnUrl="/authorize?x=1"
+          antiforgeryToken="tok"
+          loadDetails={() => Promise.resolve(details)}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Autorizar acceso');
+    expect(
+      await findByText('Test App solicita acceso a su cuenta. Elija qué permitir:'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Permitir' })).toBe(
+      container.querySelector('#consent-allow'),
+    );
+    const carried = container.querySelector('input[name="ui_locales"]') as HTMLInputElement | null;
+    expect(carried?.value).toBe('es');
   });
 });

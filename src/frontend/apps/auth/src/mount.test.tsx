@@ -19,6 +19,7 @@ describe('mountSurface', () => {
     root = undefined;
     container.remove();
     document.getElementById('branding')?.remove();
+    document.documentElement.removeAttribute('lang');
     document.head
       .querySelectorAll('meta[property="csp-nonce"], style[data-emotion]')
       .forEach((element) => {
@@ -91,5 +92,21 @@ describe('mountSurface', () => {
     const styles = Array.from(document.head.querySelectorAll('style[data-emotion]'));
     expect(styles.length).toBeGreaterThan(0);
     expect(styles.map((s) => s.getAttribute('nonce'))).toEqual(styles.map(() => 'n0nce'));
+  });
+
+  it('renders in the language the host wrote into the page', () => {
+    document.documentElement.lang = 'fr';
+
+    mount();
+
+    expect(container.textContent).toContain('Se connecter');
+    expect(container.querySelector<HTMLInputElement>('input[name="ui_locales"]')?.value).toBe('fr');
+  });
+
+  it('renders in its default language when the host wrote none', () => {
+    mount();
+
+    expect(container.textContent).toContain('Sign in');
+    expect(container.querySelector('input[name="ui_locales"]')).toBeNull();
   });
 });

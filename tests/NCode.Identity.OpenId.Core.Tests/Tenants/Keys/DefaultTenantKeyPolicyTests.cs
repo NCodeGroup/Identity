@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -9,10 +10,12 @@ using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.EdDsa;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using Xunit;
 
@@ -29,13 +32,35 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             KeySizeBits = 3072,
         };
 
+    private const string BrainpoolAlgorithm = "X-ES256-BP";
+
+    private static EccCurveSpecification Brainpool256 { get; } =
+        new()
+        {
+            CurveName = "brainpoolP256r1",
+            CurveSizeBits = 256,
+            Curve = ECCurve.NamedCurves.brainpoolP256r1,
+        };
+
     private readonly ServiceProvider _serviceProvider;
 
     public DefaultTenantKeyPolicyTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddJoseLibrary();
+        secrets.AddPersistenceLibrary();
+        // A second 256-bit curve and an ECDSA algorithm bound to it, as the opt-in secp256k1 package contributes ES256K.
+        serviceCollection.AddSingleton(Brainpool256);
+        serviceCollection.AddSingleton(
+            new EccSignatureAlgorithmSpecification
+            {
+                Code = BrainpoolAlgorithm,
+                Curve = Brainpool256,
+                HashAlgorithmName = HashAlgorithmName.SHA256,
+            }
+        );
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 ICollectionDataSource<Algorithm>,
@@ -49,7 +74,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
 
         Policy = new DefaultTenantKeyPolicy(
             _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
-            _serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+            _serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            _serviceProvider.GetRequiredService<ISecretSerializer>()
         );
     }
 
@@ -155,7 +181,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
                         AlgorithmCodes.DigitalSignature.EcdsaSha256,
                         SecretKeyUses.Signature,
                         SecretKeyTypes.Ecc,
-                        256
+                        256,
+                        "P-256"
                     ),
                     specification
                 )
@@ -183,7 +210,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Empty(resolution.Errors);
         var specification = Assert.Single(resolution.Specifications);
         Assert.Equal(
-            CreateSpecification("ES384", SecretKeyUses.Signature, SecretKeyTypes.Ecc, 384),
+            CreateSpecification("ES384", SecretKeyUses.Signature, SecretKeyTypes.Ecc, 384, "P-384"),
             specification
         );
     }
@@ -344,6 +371,60 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Equal(expectedError, Assert.Single(resolution.Errors));
     }
 
+    [Fact]
+    public void ResolveSpecifications_WhenAlgorithmIsBoundToACurve_GeneratesTheKeyOnThatCurve()
+    {
+        // The contributed curve has the size of P-256, which the ecc key type selects by size, so only the named curve
+        // generates a key the algorithm accepts.
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = BrainpoolAlgorithm })
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                BrainpoolAlgorithm,
+                SecretKeyUses.Signature,
+                SecretKeyTypes.Ecc,
+                256,
+                "brainpoolP256r1"
+            ),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    [Theory]
+    [InlineData("Ed25519", 256)]
+    [InlineData("Ed448", 456)]
+    public async Task ResolveSpecifications_WhenOkpAlgorithmIsFullySpecified_GeneratesTheKeyOnItsCurve(
+        string algorithm,
+        int keySizeBits
+    )
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddJoseLibrary();
+        secrets.AddPersistenceLibrary();
+        serviceCollection.AddEdDsa();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+        var policy = new DefaultTenantKeyPolicy(
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            serviceProvider.GetRequiredService<ISecretSerializer>()
+        );
+
+        var resolution = policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = algorithm })
+        );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(algorithm, SecretKeyUses.Signature, "okp", keySizeBits, algorithm),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
     #endregion
 
     #region IsSatisfiedBy Tests
@@ -459,6 +540,49 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         Assert.Equal(expected, Policy.IsSatisfiedBy(specification, secret));
     }
 
+    [Theory]
+    [InlineData("brainpoolP256r1", true)]
+    [InlineData("P-256", false)]
+    public void IsSatisfiedBy_WhenAlgorithmIsBoundToACurve_ChecksTheStoredPublicKeysCurve(
+        string curveName,
+        bool expected
+    )
+    {
+        var curve =
+            curveName == "P-256"
+                ? ECCurve.NamedCurves.nistP256
+                : ECCurve.NamedCurves.brainpoolP256r1;
+        using var key = ECDsa.Create(curve);
+        var specification = CreateSpecification(
+            BrainpoolAlgorithm,
+            SecretKeyUses.Signature,
+            SecretKeyTypes.Ecc,
+            256,
+            "brainpoolP256r1"
+        );
+        var secret = CreateSecret(
+            algorithm: null,
+            use: SecretKeyUses.Signature,
+            secretType: SecretKeyTypes.Ecc,
+            keySizeBits: 256,
+            publicKey: Base64Url.EncodeToString(key.ExportSubjectPublicKeyInfo())
+        );
+
+        Assert.Equal(expected, Policy.IsSatisfiedBy(specification, secret));
+    }
+
+    [Fact]
+    public void IsSatisfiedBy_WhenStoredPublicKeyCannotBeRead_ReturnsFalse()
+    {
+        var secret = CreateSecret(
+            algorithm: "RS256",
+            use: SecretKeyUses.Signature,
+            publicKey: "AAAA"
+        );
+
+        Assert.False(Policy.IsSatisfiedBy(Rs256, secret));
+    }
+
     #endregion
 
     #region Helpers
@@ -471,7 +595,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         string algorithm,
         string use,
         string secretType,
-        int keySizeBits
+        int keySizeBits,
+        string? curve = null
     ) =>
         new()
         {
@@ -479,6 +604,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             Use = use,
             SecretType = secretType,
             KeySizeBits = keySizeBits,
+            Curve = curve,
         };
 
     private static PersistedSecret CreateSecret(
@@ -486,10 +612,12 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         string? use,
         string encoding = SecretEncodings.Pkcs8,
         string secretType = SecretKeyTypes.Rsa,
-        int keySizeBits = 3072
+        int keySizeBits = 3072,
+        string? publicKey = null
     ) =>
         new()
         {
+            PublicKey = publicKey,
             SecretId = "secret",
             Use = use,
             Algorithm = algorithm,

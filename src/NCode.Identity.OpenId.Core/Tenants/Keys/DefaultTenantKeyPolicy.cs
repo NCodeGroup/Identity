@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
@@ -18,7 +21,8 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 // See ADR-1169 (every tenant is provisioned with persisted keys).
 internal class DefaultTenantKeyPolicy(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
+    ISecretSerializer secretSerializer
 ) : ITenantKeyPolicy
 {
     // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a provisioned key has
@@ -29,6 +33,8 @@ internal class DefaultTenantKeyPolicy(
         algorithmCollectionProvider;
 
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     // RS256 is the algorithm every OpenID provider must support (OpenID Connect Core 1.0 §15.1); PS256 and ES256 are the
     // modern algorithms the FAPI 2.0 security profile permits. One key per algorithm binds each key to the single
@@ -134,7 +140,8 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
-        var declarationError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
+        var collection = AlgorithmCollectionProvider.Collection;
+        var declarationError = collection.ValidateKeyAlgorithm(
             new KeyAlgorithmDeclaration
             {
                 KeyType = descriptor.KeyClrType,
@@ -143,8 +150,69 @@ internal class DefaultTenantKeyPolicy(
                 Algorithm = specification.Algorithm,
             }
         );
+        if (declarationError is not null)
+        {
+            return false;
+        }
 
-        return declarationError is null;
+        // See ADR-1391: two curves can share a key size, as P-256 and secp256k1 do, so the type and size alone do not
+        // show that the algorithm accepts the key. The stored public half answers it; a key held without one is trusted
+        // as above.
+        if (secret.PublicKey is null)
+        {
+            return true;
+        }
+
+        return TryGetKeyedAlgorithm(collection, specification.Algorithm, out var algorithm, out _)
+            && IsKeyCompatible(algorithm, secret);
+    }
+
+    private bool IsKeyCompatible(KeyedAlgorithm algorithm, PersistedSecret secret)
+    {
+        SecretKey publicKey;
+        try
+        {
+            publicKey = SecretSerializer.DeserializePublicSecret(secret);
+        }
+        catch (Exception exception)
+            when (exception
+                    is CryptographicException
+                        or ArgumentException
+                        or InvalidOperationException
+                        or FormatException
+            )
+        {
+            // A stored public key that cannot be read cannot be shown to fit the algorithm, so a key is provisioned.
+            return false;
+        }
+
+        return algorithm.IsKeyCompatible(publicKey);
+    }
+
+    private static bool TryGetKeyedAlgorithm(
+        IAlgorithmCollection collection,
+        string algorithmCode,
+        [NotNullWhen(true)] out KeyedAlgorithm? algorithm,
+        [NotNullWhen(true)] out string? use
+    )
+    {
+        if (collection.TryGetSignatureAlgorithm(algorithmCode, out var signatureAlgorithm))
+        {
+            algorithm = signatureAlgorithm;
+            use = SecretKeyUses.Signature;
+            return true;
+        }
+
+        if (collection.TryGetKeyManagementAlgorithm(algorithmCode, out var keyManagementAlgorithm))
+        {
+            algorithm = keyManagementAlgorithm;
+            use = SecretKeyUses.Encryption;
+            return true;
+        }
+
+        algorithm = null;
+        use = null;
+        return false;
     }
 
     private bool TryResolveSpecification(
@@ -157,21 +225,7 @@ internal class DefaultTenantKeyPolicy(
         var algorithmCode = key.Algorithm;
         specification = default;
 
-        KeyedAlgorithm algorithm;
-        string use;
-        if (collection.TryGetSignatureAlgorithm(algorithmCode, out var signatureAlgorithm))
-        {
-            algorithm = signatureAlgorithm;
-            use = SecretKeyUses.Signature;
-        }
-        else if (
-            collection.TryGetKeyManagementAlgorithm(algorithmCode, out var keyManagementAlgorithm)
-        )
-        {
-            algorithm = keyManagementAlgorithm;
-            use = SecretKeyUses.Encryption;
-        }
-        else
+        if (!TryGetKeyedAlgorithm(collection, algorithmCode, out var algorithm, out var use))
         {
             error =
                 $"The algorithm '{algorithmCode}' is not a registered signature or key-management algorithm.";
@@ -231,8 +285,14 @@ internal class DefaultTenantKeyPolicy(
             return false;
         }
 
+        // See ADR-1391: an algorithm bound to one curve names it, so the key is generated on that curve rather than on
+        // whichever curve the key type picks for the size.
         var generationError = descriptor.ValidateGeneration(
-            new SecretKeyGenerationParameters { KeySizeBits = keySizeBits }
+            new SecretKeyGenerationParameters
+            {
+                KeySizeBits = keySizeBits,
+                Curve = algorithmKeyType.Curve,
+            }
         );
         if (generationError is not null)
         {
@@ -247,6 +307,7 @@ internal class DefaultTenantKeyPolicy(
             Use = use,
             SecretType = descriptor.KeyType,
             KeySizeBits = keySizeBits,
+            Curve = algorithmKeyType.Curve,
         };
         error = null;
         return true;

@@ -1,4 +1,14 @@
 #nullable enable
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curve.get -> string?
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Curve.init -> void
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Code.get -> string!
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Code.init -> void
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Curve.get -> NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.Curve.init -> void
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.EccSignatureAlgorithmSpecification() -> void
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.HashAlgorithmName.get -> System.Security.Cryptography.HashAlgorithmName
+NCode.Identity.Jose.Algorithms.EccSignatureAlgorithmSpecification.HashAlgorithmName.init -> void
 abstract NCode.Identity.Jose.Algorithms.Algorithm.Code.get -> string!
 abstract NCode.Identity.Jose.Algorithms.Algorithm.Type.get -> NCode.Identity.Jose.Algorithms.AlgorithmType
 abstract NCode.Identity.Jose.Algorithms.AuthenticatedEncryptionAlgorithm.AuthenticationTagSizeBytes.get -> int
@@ -40,6 +50,7 @@ const NCode.Identity.Jose.Algorithms.AlgorithmCodes.AuthenticatedEncryption.Aes2
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm = "A256GCM" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.Compression.Deflate = "DEF" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.Compression.None = "" -> string!
+const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSecp256k1Sha256 = "ES256K" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha256 = "ES256" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha384 = "ES384" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha512 = "ES512" -> string!

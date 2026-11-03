@@ -13,7 +13,7 @@ namespace NCode.Identity.Jose.Algorithms;
 /// that type in. An algorithm whose name serves several key types, such as <c>ECDH-ES</c> over <c>EC</c> and
 /// <c>OKP</c> keys (RFC 8037 §3.2), lists one <see cref="AlgorithmKeyType"/> per key type.
 /// </summary>
-// See ADR-1389.
+// See ADR-1389 and ADR-1391.
 [PublicAPI]
 public sealed class AlgorithmKeyType
 {
@@ -51,6 +51,14 @@ public sealed class AlgorithmKeyType
     /// Gets the sizes, in bits, of the keys of this type that the algorithm accepts.
     /// </summary>
     public IReadOnlyList<KeySizes> KeyBitSizes { get; }
+
+    /// <summary>
+    /// Gets the <c>JWK</c> <c>crv</c> name of the one curve that keys of this type must be on for the algorithm (for
+    /// example <c>P-256</c> for <c>ES256</c>, <c>secp256k1</c> for <c>ES256K</c> or <c>Ed25519</c> for
+    /// <c>Ed25519</c>), or <c>null</c> when the type has no curve or the algorithm accepts more than one. A key is
+    /// generated for the algorithm on this curve, because two curves can share a key size.
+    /// </summary>
+    public string? Curve { get; init; }
 
     /// <summary>
     /// Determines whether keys of the specified runtime type are of this key type.

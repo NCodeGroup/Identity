@@ -1,6 +1,8 @@
 # 1390. X25519 and X448 agree keys beside the OKP signing keys, and a curve's use separates them
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1391](1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md):
+  tenant provisioning generates the `Ed25519` and `Ed448` algorithms' keys on their curves, and only an algorithm that
+  names no curve, such as `EdDSA` or `ECDH-ES`, still cannot be provisioned with an `OKP` key)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md), decision 3's registration and

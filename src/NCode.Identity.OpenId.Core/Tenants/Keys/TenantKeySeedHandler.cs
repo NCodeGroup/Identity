@@ -164,6 +164,7 @@ internal class TenantKeySeedHandler(
                     SecretId = CryptoService.GenerateResourceId(),
                     SecretType = specification.SecretType,
                     KeySizeBits = specification.KeySizeBits,
+                    Curve = specification.Curve,
                     Use = specification.Use,
                     Algorithm = specification.Algorithm,
                     CreatedWhen = now,

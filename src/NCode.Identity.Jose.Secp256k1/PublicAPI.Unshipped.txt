@@ -1,0 +1,4 @@
+#nullable enable
+NCode.Identity.Jose.Secp256k1.DefaultRegistration
+NCode.Identity.Jose.Secp256k1.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Jose.Secp256k1.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSecp256k1() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

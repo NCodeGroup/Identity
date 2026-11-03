@@ -1,6 +1,8 @@
 # 1272. Signature algorithms are fully specified and bound to their curve
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1391](1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md):
+  `EccSignatureAlgorithm` is built from an `EccSignatureAlgorithmSpecification`, and a package registers further `ES*`
+  algorithms, such as `ES256K`, as specifications)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 

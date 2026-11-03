@@ -9,8 +9,10 @@ using NCode.Identity.Secrets.KeyTypes;
 namespace NCode.Identity.Jose.Algorithms.Signature;
 
 /// <summary>
-/// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses an <c>Elliptic-Curve (ECC)</c> cryptographic algorithm for digital signatures.
+/// Provides an implementation of <see cref="SignatureAlgorithm"/> that uses an <c>Elliptic-Curve (ECC)</c> cryptographic
+/// algorithm for digital signatures, bound to the one curve its <see cref="EccSignatureAlgorithmSpecification"/> names.
 /// </summary>
+// See ADR-1272 and ADR-1391.
 internal class EccSignatureAlgorithm : SignatureAlgorithm
 {
     /// <inheritdoc />
@@ -31,29 +33,31 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSignatureAlgorithm"/> class.
     /// </summary>
-    /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
-    /// <param name="curve">Contains an <see cref="ECCurve"/> value that specifies the only elliptic curve that keys of this digital signature algorithm may use.</param>
-    /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
-    public EccSignatureAlgorithm(string code, ECCurve curve, HashAlgorithmName hashAlgorithmName)
+    /// <param name="specification">The algorithm's code, the only elliptic curve its keys may use, and the hash function it
+    /// signs with.</param>
+    public EccSignatureAlgorithm(EccSignatureAlgorithmSpecification specification)
     {
-        Curve = curve;
-        HashAlgorithmName = hashAlgorithmName;
+        ArgumentNullException.ThrowIfNull(specification);
 
-        var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
-        var kekSizeBits = hashSizeBits == 512 ? 521 : hashSizeBits;
+        Code = specification.Code;
+        Curve = specification.Curve.Curve;
+        HashAlgorithmName = specification.HashAlgorithmName;
 
-        // ECDSA signatures are twice the size of the key size rounded up to the nearest byte
-        var (quotient, remainder) = Math.DivRem(kekSizeBits * 2, 8);
-        SignatureSizeBytes = quotient + remainder;
+        var keySizeBits = specification.Curve.CurveSizeBits;
 
-        Code = code;
+        // An ECDSA signature is the pair (R, S), each the size of the curve's order rounded up to whole bytes
+        // (RFC 7518 §3.4).
+        SignatureSizeBytes = 2 * ((keySizeBits + 7) / 8);
 
         KeyTypes =
         [
             new(
                 typeof(EccSecretKey),
-                [new KeySizes(minSize: kekSizeBits, maxSize: kekSizeBits, skipSize: 0)]
-            ),
+                [new KeySizes(minSize: keySizeBits, maxSize: keySizeBits, skipSize: 0)]
+            )
+            {
+                Curve = specification.Curve.CurveName,
+            },
         ];
     }
 

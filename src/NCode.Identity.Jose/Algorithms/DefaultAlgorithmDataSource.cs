@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
@@ -20,12 +21,57 @@ namespace NCode.Identity.Jose.Algorithms;
 /// of the <c>ECDH-ES</c> algorithms.</param>
 /// <param name="ecdhKeyAgreements">The registered <c>ECDH-ES</c> key agreements, one per key type the <c>ECDH-ES</c>
 /// algorithms accept.</param>
+/// <param name="eccSignatureAlgorithms">The registered <c>ECDSA</c> signature algorithms, each served beside the built-in
+/// <c>ES256</c>, <c>ES384</c> and <c>ES512</c>.</param>
 internal sealed class DefaultAlgorithmDataSource(
     IAesKeyWrap aesKeyWrap,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IEnumerable<IEcdhKeyAgreement> ecdhKeyAgreements
+    IEnumerable<IEcdhKeyAgreement> ecdhKeyAgreements,
+    IEnumerable<EccSignatureAlgorithmSpecification> eccSignatureAlgorithms
 ) : ICollectionDataSource<Algorithm>
 {
+    // RFC 7518 §3.4 binds ES256, ES384 and ES512 to P-256, P-384 and P-521 (ADR-1272).
+    private static IEnumerable<EccSignatureAlgorithmSpecification> BuiltInEccSignatureAlgorithms =>
+        [
+            new()
+            {
+                Code = AlgorithmCodes.DigitalSignature.EcdsaSha256,
+                Curve = new EccCurveSpecification
+                {
+                    CurveName = "P-256",
+                    CurveSizeBits = 256,
+                    Curve = ECCurve.NamedCurves.nistP256,
+                },
+                HashAlgorithmName = HashAlgorithmName.SHA256,
+            },
+            new()
+            {
+                Code = AlgorithmCodes.DigitalSignature.EcdsaSha384,
+                Curve = new EccCurveSpecification
+                {
+                    CurveName = "P-384",
+                    CurveSizeBits = 384,
+                    Curve = ECCurve.NamedCurves.nistP384,
+                },
+                HashAlgorithmName = HashAlgorithmName.SHA384,
+            },
+            new()
+            {
+                Code = AlgorithmCodes.DigitalSignature.EcdsaSha512,
+                Curve = new EccCurveSpecification
+                {
+                    CurveName = "P-521",
+                    CurveSizeBits = 521,
+                    Curve = ECCurve.NamedCurves.nistP521,
+                },
+                HashAlgorithmName = HashAlgorithmName.SHA512,
+            },
+        ];
+
+    // See ADR-1391: the built-in ECDSA algorithms and every registered one, validated as a whole.
+    private ImmutableArray<EccSignatureAlgorithmSpecification> EccSignatureAlgorithms { get; } =
+        ComposeEccSignatureAlgorithms(eccSignatureAlgorithms);
+
     private IAesKeyWrap AesKeyWrap { get; } = aesKeyWrap;
 
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
@@ -118,27 +164,12 @@ internal sealed class DefaultAlgorithmDataSource(
 
             // Digital Signature with ECDSA
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.4
+            // ES256, ES384 and ES512, and each ECDSA algorithm a package registers, such as ES256K (RFC 8812).
 
-            // ES256
-            yield return new EccSignatureAlgorithm(
-                AlgorithmCodes.DigitalSignature.EcdsaSha256,
-                ECCurve.NamedCurves.nistP256,
-                HashAlgorithmName.SHA256
-            );
-
-            // ES384
-            yield return new EccSignatureAlgorithm(
-                AlgorithmCodes.DigitalSignature.EcdsaSha384,
-                ECCurve.NamedCurves.nistP384,
-                HashAlgorithmName.SHA384
-            );
-
-            // ES512
-            yield return new EccSignatureAlgorithm(
-                AlgorithmCodes.DigitalSignature.EcdsaSha512,
-                ECCurve.NamedCurves.nistP521,
-                HashAlgorithmName.SHA512
-            );
+            foreach (var specification in EccSignatureAlgorithms)
+            {
+                yield return new EccSignatureAlgorithm(specification);
+            }
 
             // Module-Lattice-Based Digital Signature Algorithm (ML-DSA)
             // https://datatracker.ietf.org/doc/rfc9964/ (FIPS 204). Advertised only where the running OS provides
@@ -378,5 +409,33 @@ internal sealed class DefaultAlgorithmDataSource(
 
             #endregion
         }
+    }
+
+    private static ImmutableArray<EccSignatureAlgorithmSpecification> ComposeEccSignatureAlgorithms(
+        IEnumerable<EccSignatureAlgorithmSpecification> registered
+    )
+    {
+        var composed = new List<EccSignatureAlgorithmSpecification>();
+        var codes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var specification in BuiltInEccSignatureAlgorithms.Concat(registered))
+        {
+            if (string.IsNullOrEmpty(specification.Code))
+            {
+                throw new InvalidOperationException(
+                    "A registered ECDSA signature algorithm has an empty code."
+                );
+            }
+
+            if (!codes.Add(specification.Code))
+            {
+                throw new InvalidOperationException(
+                    $"The ECDSA signature algorithm '{specification.Code}' is registered more than once."
+                );
+            }
+
+            composed.Add(specification);
+        }
+
+        return [.. composed];
     }
 }

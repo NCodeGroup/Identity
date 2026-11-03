@@ -47,7 +47,7 @@ internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) 
 
     /// <inheritdoc />
     public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
-    [new(typeof(OkpSecretKey), GetKeyBitSizes(curve))];
+    [new(typeof(OkpSecretKey), GetKeyBitSizes(curve)) { Curve = curve?.Name }];
 
     private IReadOnlyList<KeySizes> KeyBitSizes => KeyTypes[0].KeyBitSizes;
 

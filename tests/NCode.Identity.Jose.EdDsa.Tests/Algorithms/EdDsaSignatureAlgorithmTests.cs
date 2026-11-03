@@ -37,6 +37,31 @@ public class EdDsaSignatureAlgorithmTests
 
     #endregion
 
+    #region KeyTypes Tests
+
+    [Theory]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519Name)]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed448, OkpCurves.Ed448Name)]
+    public void KeyTypes_WhenFullySpecified_NamesTheCurve(string code, string curveName)
+    {
+        var algorithm = CreateFixedAlgorithm(code, curveName);
+
+        Assert.Equal(curveName, Assert.Single(algorithm.KeyTypes).Curve);
+    }
+
+    [Fact]
+    public void KeyTypes_WhenPolymorphic_NamesNoCurve()
+    {
+        var algorithm = new EdDsaSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.EdDsa,
+            curve: null
+        );
+
+        Assert.Null(Assert.Single(algorithm.KeyTypes).Curve);
+    }
+
+    #endregion
+
     #region IsKeyCompatible Tests
 
     [Theory]

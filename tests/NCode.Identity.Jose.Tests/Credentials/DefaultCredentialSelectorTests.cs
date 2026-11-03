@@ -3,8 +3,8 @@
 
 using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.Jose.Algorithms.Signature;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Jose.Tests.Algorithms.Signature;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Tests.Credentials;
@@ -22,7 +22,7 @@ public class DefaultCredentialSelectorTests : BaseTests
     public void TryGetSigningCredentials_WhenFirstKeyHasWrongCurve_SelectsMatchingCurveKey()
     {
         var collection = new DefaultAlgorithmCollection([
-            new EccSignatureAlgorithm(
+            EccSignatureAlgorithmFactory.Create(
                 AlgorithmCodes.DigitalSignature.EcdsaSha256,
                 ECCurve.NamedCurves.nistP256,
                 HashAlgorithmName.SHA256

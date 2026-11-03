@@ -21,6 +21,14 @@ public class AlgorithmKeyTypeTests
         Assert.Equal("keyType", exception.ParamName);
     }
 
+    [Fact]
+    public void Constructor_WhenNoCurveIsNamed_LeavesCurveNull()
+    {
+        var keyType = new AlgorithmKeyType(typeof(RsaSecretKey), []);
+
+        Assert.Null(keyType.Curve);
+    }
+
     #endregion
 
     #region Accepts Tests

@@ -24,6 +24,7 @@
         <Project Path="src/NCode.Identity.Events/NCode.Identity.Events.csproj" />
         <Project Path="src/NCode.Identity.Jose.Abstractions/NCode.Identity.Jose.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Jose.EdDsa/NCode.Identity.Jose.EdDsa.csproj" />
+        <Project Path="src/NCode.Identity.Jose.Secp256k1/NCode.Identity.Jose.Secp256k1.csproj" />
         <Project Path="src/NCode.Identity.Jose/NCode.Identity.Jose.csproj" />
         <Project Path="src/NCode.Identity.Jwk/NCode.Identity.Jwk.csproj" />
         <Project Path="src/NCode.Identity.Jwt.Abstractions/NCode.Identity.Jwt.Abstractions.csproj" />
@@ -83,6 +84,7 @@
         <Project Path="tests/NCode.Identity.Dispatch.Tests/NCode.Identity.Dispatch.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Events.Tests/NCode.Identity.Events.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jose.EdDsa.Tests/NCode.Identity.Jose.EdDsa.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Jose.Secp256k1.Tests/NCode.Identity.Jose.Secp256k1.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jwk.Tests/NCode.Identity.Jwk.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jwt.Tests/NCode.Identity.Jwt.Tests.csproj" />

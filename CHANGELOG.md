@@ -25,6 +25,18 @@ change to the public API is a **major** version bump.
   X25519 or X448 key is never accepted for `EdDSA`, `Ed25519` or `Ed448`, and an Ed25519 or Ed448 key never for
   `ECDH-ES`. An agreement whose shared secret is all zeros, from an `epk` or a recipient key of small order, is refused
   on both sides ([#336](https://github.com/NCodeGroup/Identity/issues/336), [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+- **ES256K over secp256k1, as an opt-in package.** `AddSecp256k1()` in the new `NCode.Identity.Jose.Secp256k1`
+  package registers the secp256k1 curve (`crv` `secp256k1`, RFC 8812) in the elliptic-curve catalog, so `ecc` keys on
+  it are generated, imported and published as JSON Web Keys, and the `ES256K` JWS algorithm (ECDSA over secp256k1 with
+  SHA-256), bound to the curve: a P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`. It
+  registers nothing where the platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1391](docs/decisions/1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+- **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
+  `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
+  ECDSA algorithm for it beside `ES256`, `ES384` and `ES512`; startup fails on an empty or duplicate code ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1391](docs/decisions/1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+- **Tenant keys are generated on their algorithm's curve.** `AlgorithmKeyType.Curve` names the one curve an algorithm
+  is bound to, and tenant key provisioning generates the key on it, so `ES256K`, `Ed25519` and `Ed448` keys can be
+  provisioned. A stored key with a public half satisfies an algorithm only when the algorithm accepts that key, so an
+  unbound P-256 key no longer stands in for `ES256K` ([#337](https://github.com/NCodeGroup/Identity/issues/337), [ADR-1391](docs/decisions/1391-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 - **A tenant key can name its secret type.** `OpenId:Tenant:KeyProvisioning:Keys` entries take an optional
   `SecretType` that selects which of the algorithm's key types the key is generated as; unset, it is the algorithm's
   first key type that has a registered secret key type ([#327](https://github.com/NCodeGroup/Identity/issues/327), [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).

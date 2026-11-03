@@ -28,4 +28,10 @@ internal readonly record struct TenantKeySpecification
     /// Gets the size, in bits, of the key to generate.
     /// </summary>
     public required int KeySizeBits { get; init; }
+
+    /// <summary>
+    /// Gets the <c>JWK</c> <c>crv</c> name of the curve to generate the key on, or <c>null</c> when the algorithm is not
+    /// bound to one curve and the key type selects it by size.
+    /// </summary>
+    public string? Curve { get; init; }
 }

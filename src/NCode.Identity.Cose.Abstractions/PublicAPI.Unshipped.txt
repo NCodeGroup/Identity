@@ -282,6 +282,9 @@ NCode.Identity.Cose.Keys.CoseEllipticCurve.KeyType.get -> int
 NCode.Identity.Cose.Keys.CoseEllipticCurve.KeyType.init -> void
 NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers
 NCode.Identity.Cose.Keys.CoseEllipticCurves
+NCode.Identity.Cose.Keys.CoseKeyIdentifiers
+static NCode.Identity.Cose.Keys.CoseKeyIdentifiers.GetBytes(string! keyId) -> byte[]!
+static NCode.Identity.Cose.Keys.CoseKeyIdentifiers.GetKeyId(System.ReadOnlySpan<byte> keyId) -> string!
 NCode.Identity.Cose.Keys.CoseKeyOperations
 NCode.Identity.Cose.Keys.CoseKeyParameter
 NCode.Identity.Cose.Keys.CoseKeyParameter.CoseKeyParameter() -> void

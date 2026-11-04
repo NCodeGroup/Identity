@@ -3,6 +3,7 @@
 
 using System.Security.Cryptography;
 using NCode.Identity.Cose.Algorithms;
+using NCode.Identity.Cose.Cbor;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -263,6 +264,40 @@ public class CoseSign1Tests
             Parameters([CoseAlgorithmIdentifiers.Es256], EcPublic(host))
         );
         Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task Verify_BinaryKeyId_SelectsTheKeyReadFromACoseKey()
+    {
+        await using var host = new CoseTestHost();
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(EcPrivate(host, "h'a1b2c3d4'"), CoseAlgorithms.Es256),
+            new CoseEncodingOptions()
+        );
+
+        var info = host.Serializer.Inspect(encoded, null);
+        Assert.True(info.UnprotectedHeaders[CoseHeaderLabels.KeyId].TryGetByteString(out var kid));
+        Assert.Equal(Hex("A1B2C3D4"), kid.ToArray());
+
+        var coseKey = CborMapWriter.EncodeMap(
+            new Dictionary<CoseLabel, CoseValue>
+            {
+                [1] = CoseValue.FromInt64(2),
+                [2] = CoseValue.FromByteString(Hex("A1B2C3D4")),
+                [-1] = CoseValue.FromInt64(1),
+                [-2] = CoseValue.FromByteString(Hex(CoseTestKeys.EcP256X)),
+                [-3] = CoseValue.FromByteString(Hex(CoseTestKeys.EcP256Y)),
+            }
+        );
+        var converted = host.KeyConverter.ReadPublicKey(coseKey);
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.Es256], converted, EcPublic(host, "other"))
+        );
+
+        Assert.Same(converted, verified.Key);
     }
 
     [Fact]

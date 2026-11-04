@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
-using NCode.Buffers;
 using NCode.Identity.Cose.Algorithms;
 using NCode.Identity.Cose.Cbor;
+using NCode.Identity.Cose.Keys;
 using NCode.Identity.Cose.Messages;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
@@ -337,7 +337,7 @@ internal partial class DefaultCoseSerializer
             && !unprotectedHeaders.ContainsKey(CoseHeaderLabels.KeyId)
         )
             unprotectedHeaders[CoseHeaderLabels.KeyId] = CoseValue.FromByteString(
-                SecureEncoding.UTF8.GetBytes(keyId)
+                CoseKeyIdentifiers.GetBytes(keyId)
             );
 
         return (protectedHeaders, unprotectedHeaders);

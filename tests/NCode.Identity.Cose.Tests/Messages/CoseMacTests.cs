@@ -279,6 +279,73 @@ public class CoseMacTests
     }
 
     [Fact]
+    public async Task EncodeMac_MoreRecipientsThanTheLimit_Throws()
+    {
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
+
+        Assert.Throws<ArgumentException>(() => EncodeTwoKeyWrapRecipients(host));
+    }
+
+    [Fact]
+    public async Task Verify_MoreRecipientsThanTheLimit_ThrowsLimitExceeded()
+    {
+        await using var encoder = new CoseTestHost();
+        var (encoded, second) = EncodeTwoKeyWrapRecipients(encoder);
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
+
+        Assert.Equal(
+            CoseFailureCodes.LimitExceeded,
+            FailureCode(() =>
+                host.Serializer.Verify(
+                    encoded,
+                    Parameters(
+                        [CoseAlgorithmIdentifiers.HmacSha256],
+                        [CoseAlgorithmIdentifiers.A256Kw],
+                        second
+                    )
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Verify_RecipientsAtTheLimit_Verifies()
+    {
+        await using var encoder = new CoseTestHost();
+        var (encoded, second) = EncodeTwoKeyWrapRecipients(encoder);
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 2);
+
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters(
+                [CoseAlgorithmIdentifiers.HmacSha256],
+                [CoseAlgorithmIdentifiers.A256Kw],
+                second
+            )
+        );
+
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    private static (byte[] Encoded, SecretKey Second) EncodeTwoKeyWrapRecipients(CoseTestHost host)
+    {
+        var first = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "k1");
+        var second = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacCwtKey, "k2");
+        var encoded = host.Serializer.EncodeMac(
+            Content,
+            new CoseRecipients(
+                CoseAlgorithms.HmacSha256,
+                [
+                    new CoseRecipient(new CoseCredentials(first, CoseAlgorithms.A256Kw)),
+                    new CoseRecipient(new CoseCredentials(second, CoseAlgorithms.A256Kw)),
+                ]
+            ),
+            new CoseEncodingOptions()
+        );
+        return (encoded, second);
+    }
+
+    [Fact]
     public async Task Verify_KeyWrapWithTheWrongKey_ThrowsInvalidSignature()
     {
         await using var host = new CoseTestHost();

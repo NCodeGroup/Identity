@@ -525,7 +525,9 @@ describes the family as it is rather than its changes
   key wrap and RSAES-OAEP with SHA-256 and SHA-512 recipients, with HMAC 256/64, RSAES-OAEP with SHA-1 and
   RSASSA-PKCS1-v1_5 offered as descriptors that `AddCoseAlgorithm` registers. `ICoseKeyConverter` reads and writes
   public `COSE_Key` and `COSE_KeySet` structures through registered key type and curve descriptors mapped onto JSON Web
-  Keys and the registered secret key types, for `OKP`, `EC2`, `RSA` and `AKP` keys. Everything it writes is in the core
+  Keys and the registered secret key types, for `OKP`, `EC2`, `RSA` and `AKP` keys. A `kid` is an opaque byte string
+  that `CoseKeyIdentifiers` names as a key's `KeyId`: its UTF-8 text, or its CBOR diagnostic notation (`h'a1b2'`) when
+  it is not text, and keys are matched by the bytes. Everything it writes is in the core
   deterministic encoding of RFC 8949 §4.2.1, and `CoseOptions` bounds the size, nesting, signatures and recipients of
   what it reads
   ([#76](https://github.com/NCodeGroup/Identity/issues/76),
@@ -3531,18 +3533,18 @@ describes the family as it is rather than its changes
   starts ([#73](https://github.com/NCodeGroup/Identity/issues/73),
   [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
 
-- **A COSE message (`NCode.Identity.Cose`) and a CWT (`NCode.Identity.Cwt`) are processed fail-closed under bounded work.**
-  The algorithm of a message must be in the protected header bucket and in the caller's permitted list, which is checked before the algorithm or a key is looked
-  up; a header in both buckets, a `crit` parameter that is unprotected or names a label the verifier does not
-  understand, a Partial IV and a recipient that carries recipients are refused; a direct recipient must be the only
-  recipient. The input is read in strict mode and refused before parsing when it is larger than
-  `CoseOptions.MaxMessageSizeBytes`, and refused when it uses an indefinite length, has bytes after the message,
-  repeats a label, nests deeper than `MaxNestingDepth` or carries more than `MaxSignatures` signatures or
+- **A COSE message (`NCode.Identity.Cose`) and a CWT (`NCode.Identity.Cwt`) are processed fail-closed under bounded
+  work.** The algorithm of a message must be in the protected header bucket and in the caller's permitted list, which is
+  checked before the algorithm or a key is looked up; a header in both buckets, a `crit` parameter that is unprotected
+  or names a label the verifier does not understand, a Partial IV and a recipient that carries recipients are refused; a
+  direct recipient must be the only recipient. The input is read in strict mode and refused before parsing when it is
+  larger than `CoseOptions.MaxMessageSizeBytes`, and refused when it uses an indefinite length, has bytes after the
+  message, repeats a label, nests deeper than `MaxNestingDepth` or carries more than `MaxSignatures` signatures or
   `MaxRecipients` recipients; the limits are validated when the host starts. A message authentication code is compared
   in fixed time, and a content key lives only in sensitive pooled memory. A `COSE_Key` is read and written as a public
-  key: a key with a private parameter or a Base IV is refused. A CWT is validated against explicit algorithm, issuer
-  and key lists, none of which defaults to unrestricted; its claims are read only after the COSE layer verifies; a
-  token that is protected only by encryption is refused, and a token that carries an `aud` is refused unless the
+  key: a key with a private parameter or a Base IV is refused. A CWT is validated against explicit algorithm, issuer and
+  key lists, none of which defaults to unrestricted; its claims are read only after the COSE layer verifies; a token
+  that is protected only by encryption is refused, and a token that carries an `aud` is refused unless the
   verifier names its audiences. A failure carries a machine-readable code and fixed text, never the message or the token
   ([#76](https://github.com/NCodeGroup/Identity/issues/76),
   [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),

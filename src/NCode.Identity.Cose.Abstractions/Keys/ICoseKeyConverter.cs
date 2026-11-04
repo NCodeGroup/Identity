@@ -9,7 +9,8 @@ namespace NCode.Identity.Cose.Keys;
 /// <summary>
 /// Reads and writes public COSE_Key and COSE_KeySet structures (RFC 9052 §7) through the registered secret key types.
 /// The converter handles public keys only: a COSE_Key that carries private key material is refused, and a key with no
-/// public form is never written.
+/// public form is never written. The <c>kid</c> of a COSE_Key becomes the key's <c>KeyId</c> through
+/// <see cref="CoseKeyIdentifiers"/>, and a key's <c>KeyId</c> is written the same way.
 /// </summary>
 // See ADR-1409.
 [PublicAPI]

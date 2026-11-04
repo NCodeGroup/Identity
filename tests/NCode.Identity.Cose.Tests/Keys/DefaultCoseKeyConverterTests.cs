@@ -262,15 +262,27 @@ public class DefaultCoseKeyConverterTests
     }
 
     [Fact]
-    public void ReadPublicKey_KeyIdNotUtf8_ThrowsInvalidKey()
+    public void ReadPublicKey_BinaryKeyId_NamesTheKeyInDiagnosticNotation()
     {
         var converter = CreateConverter();
         var encoded = EcMap(map => map[2] = Bstr("FFFF"));
 
-        Assert.Equal(
-            CoseFailureCodes.InvalidKey,
-            FailureCodeOf(() => converter.ReadPublicKey(encoded))
-        );
+        var read = converter.ReadPublicKey(encoded);
+
+        Assert.Equal("h'ffff'", read.KeyId);
+    }
+
+    [Fact]
+    public void WritePublicKey_BinaryKeyId_WritesTheOriginalBytes()
+    {
+        var converter = CreateConverter();
+        var read = converter.ReadPublicKey(EcMap(map => map[2] = Bstr("FFFF")));
+
+        var written = converter.WritePublicKey(read);
+
+        var map = CborGuard.ReadRootMap(written, new CoseOptions());
+        Assert.True(map[2].TryGetByteString(out var kid));
+        Assert.Equal(Bytes("FFFF"), kid.ToArray());
     }
 
     [Fact]
@@ -345,6 +357,19 @@ public class DefaultCoseKeyConverterTests
 
         Assert.Single(keys);
         Assert.Equal("ecc", keys[0].KeyType);
+    }
+
+    [Fact]
+    public void ReadPublicKeySet_BinaryKeyId_ReadsTheKey()
+    {
+        var converter = CreateConverter();
+        var set = new List<byte>(Bytes("82"));
+        set.AddRange(EcMap(map => map[2] = Bstr("A1B2C3D4E5F60718")));
+        set.AddRange(EcMap(includeKeyId: true));
+
+        var keys = converter.ReadPublicKeySet(set.ToArray());
+
+        Assert.Equal(["h'a1b2c3d4e5f60718'", "11"], keys.Select(key => key.KeyId ?? "").ToArray());
     }
 
     [Fact]

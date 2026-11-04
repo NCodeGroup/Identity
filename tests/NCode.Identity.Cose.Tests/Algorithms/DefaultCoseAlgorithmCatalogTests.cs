@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Cose.Algorithms;
 using NCode.Identity.Jose;
@@ -90,8 +91,8 @@ public class DefaultCoseAlgorithmCatalogTests
         Assert.True(catalog.TryGet(CoseAlgorithmIdentifiers.Ed448, out _));
     }
 
-    [MlDsaFact]
-    public void Constructor_MlDsa_BindsWhenThePlatformSupportsIt()
+    [Fact]
+    public void Constructor_MlDsa_BindsExactlyWhenThePlatformSupportsIt()
     {
         var catalog = CreateCatalog([
             CoseAlgorithms.MlDsa44,
@@ -99,7 +100,8 @@ public class DefaultCoseAlgorithmCatalogTests
             CoseAlgorithms.MlDsa87,
         ]);
 
-        Assert.Equal(3, catalog.Algorithms.Count);
+        Assert.Equal(MLDsa.IsSupported ? 3 : 0, catalog.Algorithms.Count);
+        Assert.Equal(MLDsa.IsSupported, catalog.TryGet(CoseAlgorithmIdentifiers.MlDsa44, out _));
     }
 
     [Fact]

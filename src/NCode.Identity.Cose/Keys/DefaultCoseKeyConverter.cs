@@ -146,7 +146,7 @@ internal class DefaultCoseKeyConverter(
 
         if (!string.IsNullOrEmpty(secretKey.KeyId))
             map[CoseKeyParameterLabels.KeyId] = CoseValue.FromByteString(
-                SecureEncoding.UTF8.GetBytes(secretKey.KeyId)
+                CoseKeyIdentifiers.GetBytes(secretKey.KeyId)
             );
 
         if (descriptor.RequiresAlgorithm)
@@ -246,17 +246,7 @@ internal class DefaultCoseKeyConverter(
             if (!kidValue.TryGetByteString(out var kidBytes))
                 throw InvalidKey("The key identifier of the COSE_Key is not a byte string.");
 
-            try
-            {
-                keyId = SecureEncoding.UTF8.GetString(kidBytes.Span);
-            }
-            catch (ArgumentException exception)
-            {
-                throw InvalidKey(
-                    "The key identifier of the COSE_Key is not UTF-8 text.",
-                    exception
-                );
-            }
+            keyId = CoseKeyIdentifiers.GetKeyId(kidBytes.Span);
         }
 
         string? joseAlgorithm = null;

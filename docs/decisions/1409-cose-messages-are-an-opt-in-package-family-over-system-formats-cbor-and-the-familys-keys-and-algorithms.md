@@ -69,12 +69,12 @@ of the JOSE stack and the keys of the family.
 
 5. **Header rules.** A header value is an encoded CBOR item (`CoseValue`) under an integer or text `CoseLabel`, in a
    protected and an unprotected bucket, and a label in both buckets is refused. The known parameters have their defined
-   shapes. `crit` must be protected, non-empty and list protected labels, and a label that neither the library nor
-   the caller's understood list names refuses the message. `Partial IV` is refused, because it needs a Base IV that the family's
-   keys do not carry. The algorithm of a body or a signature must be in the protected bucket and is checked against the
-   caller's permitted list before the catalog is consulted and before any key is selected. The protected bucket of a
-   recipient is empty, a recipient carrying recipients of its own is refused, and a `COSE_Sign` body carries no
-   algorithm. The serializer owns `alg`, `IV` and `Partial IV` on writing.
+   shapes. `crit` must be protected, non-empty and list protected labels, and a label that neither the library nor the
+   caller's understood list names refuses the message. `Partial IV` is refused, because it needs a Base IV that the
+   family's keys do not carry. The algorithm of a body or a signature must be in the protected bucket and is checked
+   against the caller's permitted list before the catalog is consulted and before any key is selected. The protected
+   bucket of a recipient is empty, a recipient carrying recipients of its own is refused, and a `COSE_Sign` body carries
+   no algorithm. The serializer owns `alg`, `IV` and `Partial IV` on writing.
 
 6. **Messages.** `ICoseSerializer` encodes `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and
    `COSE_Encrypt` with external additional data, detached content and an optional tag, and verifies or decrypts them.
@@ -88,8 +88,12 @@ of the JOSE stack and the keys of the family.
 7. **Keys are selected by what the caller supplies.** The keys a reader tries are those that are not expired (allowing
    for clock skew), are intended for the operation, are not restricted to another algorithm and suit the algorithm. When
    a layer names a `kid`, keys with that identifier are tried first, then keys with none, and a key with another
-   identifier is never tried. No candidate is `key_not_found`; candidates that all fail are `invalid_signature` or
-   `decryption_failed`. A `COSE_Sign` verifies when one signature whose algorithm is permitted and available verifies.
+   identifier is never tried. A `kid` is an opaque byte string, and keys are matched by its bytes. `CoseKeyIdentifiers`
+   names it as a key's text `KeyId`: the UTF-8 text when the bytes are UTF-8 text that does not begin with `h'`, and
+   otherwise their CBOR diagnostic notation (RFC 8949 §8), such as `h'a1b2c3d4e5f60718'`; a `KeyId` in that notation is
+   written as the bytes it names, and any other `KeyId` as its UTF-8 text. No candidate is `key_not_found`; candidates that all fail are `invalid_signature` or
+   `decryption_failed`. A `COSE_Sign` verifies when one signature whose algorithm is permitted and available
+   verifies.
 
 8. **Recipients.** The key distribution algorithm of a recipient is in its unprotected bucket. A direct recipient is
    the only recipient: its key is the content key, or the message authentication code key. A key wrap or key transport
@@ -105,6 +109,8 @@ of the JOSE stack and the keys of the family.
    symmetric key or a Base IV is refused, and a key with no public form is never written. A COSE_KeySet skips a key of an
    unregistered key type, curve or algorithm and refuses any other failure. The forms a parameter value takes
    (`CoseKeyParameterEncoding`) are a closed enumeration, because a JSON Web Key member is base64url bytes or text.
+   A COSE_Key's `kid` becomes the key's `KeyId` by the same rule as a message `kid`, so a binary identifier reads and
+   writes back unchanged.
 
 10. **Not implemented here.** Countersignatures (RFC 9338), ECDH-ES and ECDH-SS recipients with HKDF, AES-CCM,
     ChaCha20/Poly1305, AES-MAC, HKDF key derivation, X.509 header processing (RFC 9360), CWT claims in headers
@@ -132,7 +138,14 @@ of the JOSE stack and the keys of the family.
   where it can be.
 - **Registering HMAC 256/64, RSAES-OAEP with SHA-1 and RSASSA-PKCS1-v1_5 by default.** Rejected: each is weaker than the
   default set, and an application registers one by name.
-- **A single package.** Rejected: CWT and a future mdoc package reference abstractions only.
+- **A single package.** Rejected: CWT and any other consumer of COSE reference the abstractions without the
+  implementation.
+- **Refusing a `kid` that is not UTF-8 text.** Rejected: the example `kid` of RFC 8747 §3.4 is binary, and issuers of
+  other COSE-based credentials use binary identifiers, so one such key would fail a whole COSE_KeySet.
+- **Naming every `kid` in base64url or hexadecimal.** Rejected: a key named `key-1` would no longer write the UTF-8
+  `kid` that RFC 8392 examples and keys shared with JOSE use.
+- **A byte-valued `kid` on `KeyMetadata`.** Rejected: the Secrets abstraction would carry two identifiers for one key,
+  and a key store is still looked up by a text name.
 
 ## Consequences
 
@@ -159,6 +172,7 @@ of the JOSE stack and the keys of the family.
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)
 - Issue [#76](https://github.com/NCodeGroup/Identity/issues/76)
-- `NCode.Identity.Cose.Abstractions`: `ICoseSerializer`, `CoseAlgorithms`, `CoseKeyTypeDescriptors`;
+- `NCode.Identity.Cose.Abstractions`: `ICoseSerializer`, `CoseAlgorithms`, `CoseKeyTypeDescriptors`,
+  `CoseKeyIdentifiers`;
   `NCode.Identity.Cose`: `DefaultCoseSerializer`, `DefaultCoseAlgorithmCatalog`, `DefaultCoseKeyConverter`,
   `CborGuard`, `CborMapWriter`

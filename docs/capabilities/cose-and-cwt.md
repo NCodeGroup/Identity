@@ -18,7 +18,7 @@
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | No content is readable before its signature, authentication code or authentication tag verifies: inspecting a message returns its type and headers, and the content comes only from verification or decryption. |
 | 2   | An algorithm is used only when the caller permits it and the message authenticates it in its protected header bucket; the permitted list is checked before any algorithm or key is looked up.                |
-| 3   | A critical header the verifier does not understand refuses the message, and a header in both buckets, an initialization vector part without its base, or a nested recipient is refused.                       |
+| 3   | A critical header the verifier does not understand refuses the message, and so does a header in both buckets, a Partial IV (which needs a Base IV the family does not support) or a nested recipient.                       |
 | 4   | The work a message can demand is bounded: its size, its nesting, its signatures and its recipients are limits the host configures and the start validates, and indefinite-length and malformed CBOR is refused. |
 | 5   | Every signature, authentication code, encryption and key wrap is the JOSE library's own implementation, so COSE and JOSE share one set of reviewed cryptography and one key model.                           |
 | 6   | An authentication code is compared in fixed time, and a content key lives only in sensitive pooled memory.                                                                                                  |
@@ -95,11 +95,13 @@ HMAC 256/64, RSAES-OAEP with SHA-1 and RSASSA-PKCS1-v1_5 are offered as `CoseAlg
 key. Key types (`OKP`, `EC2`, `RSA`, `AKP`) and curves are registered descriptors that name the JSON Web Key member each
 COSE label maps onto, so a key is imported through the registered secret key types: Ed25519, Ed448, P-256, P-384,
 P-521, secp256k1 and ML-DSA keys are read where the platform serves them. A key with private parameters, a symmetric
-key or a Base IV is refused, and a key set skips a key of a type it cannot use.
+key or a Base IV is refused, and a key set skips a key of a type it cannot use. A `kid` is an opaque byte string: a
+key's `KeyId` names it as UTF-8 text, or in CBOR diagnostic notation (`h'a1b2'`) when the bytes are not text, and keys
+are matched by the bytes (`CoseKeyIdentifiers`).
 
 > [!TIP]
 > [ADR-1409](../decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)
-> decision 9; `CoseKeyTypeDescriptors` and `ICoseKeyConverter` in `NCode.Identity.Cose.Abstractions`.
+> decision 9; `CoseKeyTypeDescriptors`, `CoseKeyIdentifiers` and `ICoseKeyConverter` in `NCode.Identity.Cose.Abstractions`.
 
 ## Message processing
 

@@ -243,6 +243,39 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersTheTeamChangeBroadcastHandler()
+    {
+        // Without this handler a team change reaches only the replica that handled it.
+        using var host = BuildHost([]);
+
+        Assert.Single(
+            host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
+            "team-changed"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheTeamChangedHandler()
+    {
+        // Without this handler a team change reaches the replicas only when their cached team expires.
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<TeamChangedCommand>>();
+
+        Assert.Contains(handlers, handler => handler.GetType().Name == "TeamChangedHandler");
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheTeamServices()
+    {
+        using var host = BuildHost([]);
+        using var scope = host.Services.CreateScope();
+
+        Assert.NotNull(host.Services.GetRequiredService<IOpenIdTeamProvider>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<ITeamProvisioner>());
+    }
+
+    [Fact]
     public void AddIdentityServer_StartsTheKeyRingGateAfterTheWarmupAndBeforeDataProtection()
     {
         // Hosted services start in registration order. The gate needs the protector that the warmup loads, and it must

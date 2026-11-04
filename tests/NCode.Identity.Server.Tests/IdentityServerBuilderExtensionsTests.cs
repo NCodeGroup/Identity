@@ -37,6 +37,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
                 ["OpenId:TenantResolution:StrategyCode"] = "StaticSingle",
                 ["OpenId:TenantResolution:Root:TenantId"] = "control",
                 ["OpenId:TenantResolution:Root:DisplayName"] = "Control Plane",
+                ["OpenId:TenantResolution:Root:TeamId"] = "operators",
+                ["OpenId:TenantResolution:Root:TeamDisplayName"] = "Operators",
                 ["OpenId:TenantResolution:StaticSingle:TenantId"] = "acme",
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/identity",
                 ["OpenId:TenantResolution:StaticSingle:Issuer"] = "https://op.example/identity",
@@ -48,6 +50,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         Assert.Equal("StaticSingle", options.StrategyCode);
         Assert.Equal("control", options.Root.TenantId);
         Assert.Equal("Control Plane", options.Root.DisplayName);
+        Assert.Equal("operators", options.Root.TeamId);
+        Assert.Equal("Operators", options.Root.TeamDisplayName);
         Assert.NotNull(options.StaticSingle);
         Assert.Equal("acme", options.StaticSingle.TenantId);
         Assert.Equal("/identity", options.StaticSingle.TenantPath);
@@ -133,15 +137,36 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             {
                 ["OpenId:Platform:Settings:grant_types_supported:0"] = "authorization_code",
                 ["OpenId:Tenant:TenantCacheLifetime"] = "00:30:00",
+                ["OpenId:Team:SettingsPeriodicRefreshInterval"] = "00:07:00",
+                ["OpenId:Team:TeamCacheLifetime"] = "00:40:00",
+                ["OpenId:Team:ReconciliationLeaseDuration"] = "00:20:00",
             }
         );
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
         Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheLifetime);
+        Assert.Equal(TimeSpan.FromMinutes(7), options.Team.SettingsPeriodicRefreshInterval);
+        Assert.Equal(TimeSpan.FromMinutes(40), options.Team.TeamCacheLifetime);
+        Assert.Equal(TimeSpan.FromMinutes(20), options.Team.ReconciliationLeaseDuration);
         Assert.NotNull(options.Platform.Settings);
         Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings.Path);
         Assert.Equal("authorization_code", options.Platform.Settings["grant_types_supported:0"]);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenTeamHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?> { ["OpenId:Team:CacheLifetime"] = "00:30:00" }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value
+        );
+
+        Assert.Contains("'OpenId:Team'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'CacheLifetime'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

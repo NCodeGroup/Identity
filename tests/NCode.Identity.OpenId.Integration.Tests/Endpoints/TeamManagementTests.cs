@@ -544,6 +544,53 @@ public class TeamManagementTests
     }
 
     [Fact]
+    public async Task TeamAdmin_CannotReadOrWriteThePlatformOrCreateATeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var read = await teamAdmin.GetAsync("/api/platform/settings");
+        var readBody = await read.Content.ReadAsStringAsync();
+        Assert.True(read.StatusCode == HttpStatusCode.Forbidden, readBody);
+
+        using var write = await SendPatchAsync(
+            teamAdmin,
+            "/api/platform/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = "/environment_type",
+                    value = "development",
+                },
+            }
+        );
+        var writeBody = await write.Content.ReadAsStringAsync();
+        Assert.True(write.StatusCode == HttpStatusCode.Forbidden, writeBody);
+
+        using var create = await teamAdmin.PostAsJsonAsync(
+            "/api/teams",
+            new
+            {
+                teamId = "globex",
+                displayName = "globex",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+    }
+
+    [Fact]
     public async Task Owner_CannotCreateATenantOrGrantTeamAdmin()
     {
         using var factory = CreateFactory();

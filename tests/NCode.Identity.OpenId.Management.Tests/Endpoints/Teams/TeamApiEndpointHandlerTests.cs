@@ -192,6 +192,38 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(AuthorizationResult.Success())
             .Verifiable();
 
+    private sealed class CapturedAuthorization
+    {
+        public object? Resource { get; set; }
+        public IAuthorizationRequirement[] Requirements { get; set; } = [];
+    }
+
+    private CapturedAuthorization CaptureAuthorization()
+    {
+        var captured = new CapturedAuthorization();
+        SetupAuthorizationCapture(
+            (resource, required) =>
+            {
+                captured.Resource = resource;
+                captured.Requirements = required.ToArray();
+            }
+        );
+        return captured;
+    }
+
+    private static void AssertTeamNodeRequest(
+        CapturedAuthorization captured,
+        IAuthorizationRequirement operation
+    )
+    {
+        Assert.Same(operation, Assert.Single(captured.Requirements));
+        var node = Assert.IsType<ResourceNode>(captured.Resource);
+        Assert.Equal(
+            (ControlPlaneTenantId, ResourceNodeTypes.Team, TeamId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+    }
+
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -859,6 +891,22 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task GetSettingsAsync_RequestsReadOnTheTeamNode()
+    {
+        SetupStore();
+        SetupTeamSettings(CreateSettings("settings-ct"));
+        var captured = CaptureAuthorization();
+
+        await Handler.GetSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Read);
+    }
+
+    [Fact]
     public async Task GetSettingsAsync_WhenNotFound_ReturnsNotFound()
     {
         SetupStore();
@@ -914,6 +962,31 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         Assert.Equal(TeamId, json.Value?.TeamId);
         Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
         Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_RequestsReadOnTheTeamNode()
+    {
+        SetupStore();
+        SetupTeam(CreateTeam());
+        var captured = CaptureAuthorization();
+        var mockScopes = MockRepository.Create<ISettingScopeCollection>();
+        MockSettingScopeCollectionProvider
+            .Setup(x => x.Collection)
+            .Returns(mockScopes.Object)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveTeamAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettingCollection())
+            .Verifiable();
+
+        await Handler.GetEffectiveSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Read);
     }
 
     [Fact]
@@ -1260,6 +1333,24 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_RequestsUpdateOnTheTeamNode()
+    {
+        SetupStore();
+        SetupTeamSettings(CreateSettings("settings-ct"));
+        var captured = CaptureAuthorization();
+
+        await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: "stale",
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Update);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenNotFound_ReturnsNotFound()
     {
         SetupStore();
@@ -1356,6 +1447,23 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
     }
 
+    [Fact]
+    public async Task GetUsageAsync_RequestsReadOnTheTeamNode()
+    {
+        var captured = CaptureAuthorization();
+        var start = new DateOnly(2026, 1, 1);
+
+        await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            start.AddDays(1),
+            start,
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Read);
+    }
+
     [Theory]
     [InlineData(2, 1)]
     [InlineData(1, 367)]
@@ -1444,6 +1552,93 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
         Assert.Equal("principal-1", Assert.Single(json.Value!.Items).PrincipalId);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_RequestsReadOnTheTeamNode()
+    {
+        var captured = CaptureAuthorization();
+        SetupStore();
+        SetupTeam(CreateTeam());
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetOwnersAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.Owner)])
+            .Verifiable();
+
+        await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Read);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_RequestsUpdateOnTheTeamNode()
+    {
+        var captured = CaptureAuthorization();
+        SetupStore();
+        SetupTeam(CreateTeam());
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddOwnerAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-2",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.Owner))
+            .Verifiable();
+
+        await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Update);
+    }
+
+    [Fact]
+    public async Task RemoveOwnerAsync_RequestsUpdateOnTheTeamNode()
+    {
+        var captured = CaptureAuthorization();
+        SetupStoreManagerOnly();
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveOwnerAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .Verifiable();
+
+        await Handler.RemoveOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.Update);
     }
 
     [Fact]

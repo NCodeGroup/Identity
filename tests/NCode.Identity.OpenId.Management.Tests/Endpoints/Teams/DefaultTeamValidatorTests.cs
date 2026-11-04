@@ -89,9 +89,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     private void SetupNodeAuthorization(
         string resourceType,
         string resourceId,
-        AuthorizationResult result
+        AuthorizationResult result,
+        IAuthorizationRequirement? operation = null
     )
     {
+        var expectedOperation = operation ?? Operations.Update;
         MockAuthorizationService
             .Setup(x =>
                 x.AuthorizeAsync(
@@ -103,7 +105,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
                         && ((IResourceNode)resource).ResourceId == resourceId
                     ),
                     It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
-                        requirements.Contains(Operations.Update)
+                        requirements.Contains(expectedOperation)
                     )
                 )
             )
@@ -249,6 +251,27 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         Assert.Null(error);
     }
 
+    [Fact]
+    public async Task ValidateCreateAsync_AuthorizesCreateOnThePlatformNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId,
+            AuthorizationResult.Success(),
+            Operations.Create
+        );
+        SetupTeamStore();
+        SetupExisting(TeamId, null);
+        MockTeamStore
+            .Setup(x => x.IsTeamIdRetiredAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var error = await Create(authenticated: true, CreateTeam());
+
+        Assert.Null(error);
+    }
+
     #endregion
 
     #region ValidateUpdateAsync Tests
@@ -319,6 +342,21 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
         Assert.Equal("The platform's own team cannot be disabled.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_AuthorizesUpdateOnTheTeamNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Team,
+            TeamId,
+            AuthorizationResult.Success(),
+            Operations.Update
+        );
+
+        var error = await Update(CreateTeam(), new UpdateTeamRequest { DisplayName = "New" });
+
+        Assert.Null(error);
     }
 
     [Fact]
@@ -445,6 +483,26 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
+        SetupTeamStore();
+        MockTeamStore
+            .Setup(x => x.HasDependentsAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var error = await Delete(CreateTeam());
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateDeleteAsync_AuthorizesDeleteOnTheTeamNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Team,
+            TeamId,
+            AuthorizationResult.Success(),
+            Operations.Delete
+        );
         SetupTeamStore();
         MockTeamStore
             .Setup(x => x.HasDependentsAsync(TeamId, It.IsAny<CancellationToken>()))

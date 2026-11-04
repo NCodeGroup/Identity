@@ -15,6 +15,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -134,6 +135,52 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private sealed class CapturedAuthorization
+    {
+        public object? Resource { get; set; }
+        public IAuthorizationRequirement[] Requirements { get; set; } = [];
+    }
+
+    private CapturedAuthorization CaptureAuthorization()
+    {
+        var captured = new CapturedAuthorization();
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (
+                    ClaimsPrincipal _,
+                    object? resource,
+                    IEnumerable<IAuthorizationRequirement> requirements
+                ) =>
+                {
+                    captured.Resource = resource;
+                    captured.Requirements = requirements.ToArray();
+                }
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        return captured;
+    }
+
+    private static void AssertPlatformNodeRequest(
+        CapturedAuthorization captured,
+        IAuthorizationRequirement operation
+    )
+    {
+        Assert.Same(operation, Assert.Single(captured.Requirements));
+        var node = Assert.IsType<ResourceNode>(captured.Resource);
+        Assert.Equal(
+            (TenantId, ResourceNodeTypes.Platform, OpenIdConstants.PlatformResourceId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+    }
+
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -245,6 +292,24 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task GetSettingsAsync_RequestsReadOnThePlatformNode()
+    {
+        SetupStore();
+        MockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
+            .Verifiable();
+        var captured = CaptureAuthorization();
+
+        await Handler.GetSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            CancellationToken.None
+        );
+
+        AssertPlatformNodeRequest(captured, Operations.Read);
+    }
+
+    [Fact]
     public async Task GetSettingsAsync_WhenNotFound_ReturnsNotFound()
     {
         SetupStore();
@@ -296,6 +361,31 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var json = Assert.IsType<JsonHttpResult<PlatformEffectiveSettingsResource>>(result);
         Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_RequestsReadOnThePlatformNode()
+    {
+        SetupStore();
+        MockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
+            .Verifiable();
+        SetupSettingScopes(OpenIdSettingScopes.Platform);
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolvePlatformAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateSettingCollection())
+            .Verifiable();
+        var captured = CaptureAuthorization();
+
+        await Handler.GetEffectiveSettingsAsync(
+            CreateHttpContextWithEnvironment(authenticated: true),
+            CancellationToken.None
+        );
+
+        AssertPlatformNodeRequest(captured, Operations.Read);
     }
 
     [Fact]
@@ -1306,6 +1396,26 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
         Assert.Equal(StatusCodes.Status412PreconditionFailed, statusCode.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_RequestsUpdateOnThePlatformNode()
+    {
+        SetupStore();
+        MockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
+            .Verifiable();
+        var captured = CaptureAuthorization();
+
+        await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            CreateAddPatch("foo", "bar"),
+            ifMatch: "stale-token",
+            CancellationToken.None
+        );
+
+        AssertPlatformNodeRequest(captured, Operations.Update);
     }
 
     [Fact]

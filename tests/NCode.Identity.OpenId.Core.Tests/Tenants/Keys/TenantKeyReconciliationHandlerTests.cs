@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -47,7 +48,10 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         };
 
     private OpenIdOptions OpenIdOptions { get; } = new();
+    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
+    private Mock<ITenantKeyRolloverPlanner> MockPlanner { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -61,6 +65,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     public TenantKeyReconciliationHandlerTests()
     {
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
+        MockPlanner = CreateStrictMock<ITenantKeyRolloverPlanner>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
@@ -82,9 +87,11 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         new(
             Options.Create(OpenIdOptions),
             MockPolicy.Object,
+            MockPlanner.Object,
             MockEffectiveSettingsResolver.Object,
             MockStoreManagerFactory.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
+            new FakeTimeProvider(Now),
             logger
         );
 
@@ -119,11 +126,11 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         var held = CreateSecret("held");
         SetupTenantSettings(FirstTenantId, ["RS256"]);
         SetupSecrets(FirstTenantId, [other]);
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
+        SetupServingKey(Rs256, [other], false);
         SetupAnnouncement(FirstTenantId);
         SetupTenantSettings(SecondTenantId, ["ES256"]);
         SetupSecrets(SecondTenantId, [held]);
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Es256, held)).Returns(true).Verifiable();
+        SetupServingKey(Es256, [held], true);
 
         await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
     }
@@ -151,7 +158,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
 
         // Both tenants list RS256 and hold only a key that does not satisfy it.
         var other = CreateSecret("other");
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
+        SetupServingKey(Rs256, [other], false);
         SetupTenantSettings(FirstTenantId, ["RS256"]);
         SetupSecrets(FirstTenantId, [other]);
         SetupAnnouncement(FirstTenantId, new InvalidOperationException("boom"));
@@ -211,7 +218,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         SetupTenantSettings(FirstTenantId, ["RS256"]);
         SetupTenantSettings(PreviousServerSettings, FirstTenantId, ["PS256"]);
         SetupSecrets(FirstTenantId, [other]);
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
+        SetupServingKey(Rs256, [other], false);
         SetupAnnouncement(FirstTenantId);
 
         await Handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
@@ -308,6 +315,24 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             .Returns(CreateSettings(algorithms))
             .Verifiable();
 
+    private void SetupServingKey(
+        TenantKeySpecification specification,
+        PersistedSecret[] held,
+        bool hasServingKey
+    ) =>
+        MockPlanner
+            .Setup(x =>
+                x.HasServingKey(
+                    specification,
+                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets =>
+                        secrets.SequenceEqual(held)
+                    ),
+                    Now
+                )
+            )
+            .Returns(hasServingKey)
+            .Verifiable();
+
     private void SetupSecrets(string tenantId, IReadOnlyCollection<PersistedSecret>? secrets) =>
         MockTenantStore
             .Setup(x => x.GetSecretsOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
@@ -360,6 +385,8 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretKeyTypes.Ecc,
             SecretEncoding = SecretEncodings.Pkcs8,
             Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,

@@ -987,3 +987,9 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuditUserInfoAccess.get 
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyActivationDelay = "tenant_key_activation_delay" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyLifetime = "tenant_key_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyRetirementGrace = "tenant_key_retirement_grace" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyActivationDelay.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyRetirementGrace.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

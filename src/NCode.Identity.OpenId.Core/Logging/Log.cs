@@ -49,14 +49,81 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.TenantKeyProvisioned,
         Level = LogLevel.Information,
-        Message = "Provisioned the tenant '{TenantId}' with a new {Algorithm} key '{SecretId}'"
+        Message = "Provisioned the tenant '{TenantId}' with a new {Algorithm} key '{SecretId}' that signs from {ActivatesWhen} to {RetiresWhen}"
     )]
     internal static partial void TenantKeyProvisioned(
         this ILogger logger,
         string tenantId,
         string algorithm,
+        string secretId,
+        DateTimeOffset activatesWhen,
+        DateTimeOffset retiresWhen
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyActivated,
+        Level = LogLevel.Information,
+        Message = "Activated the published {Algorithm} key '{SecretId}' of the tenant '{TenantId}' at once, because no key of its algorithm signed"
+    )]
+    internal static partial void TenantKeyActivated(
+        this ILogger logger,
+        string tenantId,
+        string? algorithm,
         string secretId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRetired,
+        Level = LogLevel.Information,
+        Message = "Retired the {Algorithm} key '{SecretId}' of the tenant '{TenantId}', which its settings no longer use; it expires at {ExpiresWhen}"
+    )]
+    internal static partial void TenantKeyRetired(
+        this ILogger logger,
+        string tenantId,
+        string? algorithm,
+        string secretId,
+        DateTimeOffset expiresWhen
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRemoved,
+        Level = LogLevel.Information,
+        Message = "Removed the expired {Algorithm} key '{SecretId}' of the tenant '{TenantId}'"
+    )]
+    internal static partial void TenantKeyRemoved(
+        this ILogger logger,
+        string tenantId,
+        string? algorithm,
+        string secretId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverFailed,
+        Level = LogLevel.Warning,
+        Message = "Rolling over the keys of the tenant '{TenantId}' failed; they are rolled over again at the next pass or when the tenant is next materialized"
+    )]
+    internal static partial void TenantKeyRolloverFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverPassFailed,
+        Level = LogLevel.Warning,
+        Message = "The tenant key rollover pass failed; it runs again at the next interval"
+    )]
+    internal static partial void TenantKeyRolloverPassFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverLostRace,
+        Level = LogLevel.Debug,
+        Message = "Another writer changed the keys of the tenant '{TenantId}' first; the rollover pass leaves them to it"
+    )]
+    internal static partial void TenantKeyRolloverLostRace(this ILogger logger, string tenantId);
 
     [LoggerMessage(
         EventId = EventIds.TenantKeyReseedFailed,

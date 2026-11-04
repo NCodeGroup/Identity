@@ -1,61 +1,47 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Cryptography;
-using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyMaterial;
-using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
-/// Seeds every tenant with a persisted key for each algorithm the provisioning options configure and the tenant holds no
-/// usable key for. Keys are generated through the normal secret-persistence path, so the runtime, the JSON Web Key Set,
-/// and the management API all read the same keys.
+/// Seeds every tenant with the keys its settings use, and rolls them over, whenever the tenant is materialized: it
+/// applies the rollover plan the tenant's keys and settings call for, so a tenant that is served gets its first key,
+/// the successor of a key that nears its retirement, and the retirement and removal of the keys it no longer needs,
+/// without waiting for the background pass. Keys are generated through the normal secret-persistence path, so the
+/// runtime, the JSON Web Key Set, and the management API all read the same keys.
 /// </summary>
 /// <remarks>
-/// The handler only fills gaps. It never removes, replaces, or rotates a key, and a key it cannot read still counts
-/// as held: an undecryptable key signals a lost master key or root key, which must fail the tenant rather than be
-/// papered over with a new key. New keys are protected under the tenant's master key, which is loaded only when a key
-/// has to be generated.
+/// A key the handler cannot read still counts as held: an undecryptable key signals a lost master key or root key,
+/// which must fail the tenant rather than be papered over with a new key. The tenant's master key is loaded only
+/// when a key has to be generated.
 /// </remarks>
-// See ADR-1166 (every tenant is seeded through one pipeline) and ADR-1169 (every tenant is provisioned with persisted
-// keys).
+// See ADR-1166 (every tenant is seeded through one pipeline), ADR-1169 (every tenant is provisioned with persisted
+// keys) and ADR-1404 (the keys roll over).
 internal class TenantKeySeedHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     ITenantKeyPolicy tenantKeyPolicy,
+    ITenantKeyRolloverPlanner planner,
+    ITenantKeyRollover rollover,
     IEffectiveSettingsResolver effectiveSettingsResolver,
-    ISecretGenerator secretGenerator,
-    ISecretProtectorProvider secretProtectorProvider,
-    ICryptoService cryptoService,
-    TimeProvider timeProvider,
-    ILogger<TenantKeySeedHandler> logger
+    TimeProvider timeProvider
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
-    // A provisioned key has no lifetime of its own: nothing enforces a key's expiry, and key rollover (issue #166) is
-    // what will give provisioned keys one.
-    private const int KeyLifetimeYears = 100;
-
     private OpenIdTenantKeyProvisioningOptions Options { get; } =
         optionsAccessor.Value.Tenant.KeyProvisioning;
 
     private ITenantKeyPolicy TenantKeyPolicy { get; } = tenantKeyPolicy;
+    private ITenantKeyRolloverPlanner Planner { get; } = planner;
+    private ITenantKeyRollover Rollover { get; } = rollover;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
-    private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ILogger<TenantKeySeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -85,53 +71,32 @@ internal class TenantKeySeedHandler(
         var held = tenant.Secrets.Value;
         var settings = await GetEffectiveSettingsAsync(tenant, cancellationToken);
 
-        var generated = new List<PersistedSecret>();
-        ISecretProtector? protector = null;
-        foreach (var specification in resolution.Specifications)
-        {
-            // A key is provisioned only for an algorithm the tenant can sign or decrypt with; a key for any other
-            // algorithm would be published in the tenant's key set and never used.
-            if (
-                !TenantKeyUsage.IsUsed(Options.AlgorithmSettings, settings, specification.Algorithm)
-            )
-            {
-                continue;
-            }
-
-            if (held.Any(secret => TenantKeyPolicy.IsSatisfiedBy(specification, secret)))
-            {
-                continue;
-            }
-
-            // The tenant's master key is loaded only when a key has to be generated, so a tenant that holds every key
-            // it needs never touches the master key ring.
-            protector ??= await SecretProtectorProvider.GetProtectorAsync(
-                SecretOwner.ForTenant(tenant.TenantId),
-                [],
-                cancellationToken
-            );
-
-            var secret = GenerateSecret(protector, specification);
-            await context
-                .StoreManager.GetStore<ITenantStore>()
-                .AddSecretAsync(tenant.TenantId, secret, cancellationToken);
-            generated.Add(secret);
-
-            Logger.TenantKeyProvisioned(tenant.TenantId, specification.Algorithm, secret.SecretId);
-        }
-
-        if (generated.Count == 0)
+        var plan = Planner.Plan(
+            resolution.Specifications,
+            held,
+            settings,
+            TimeProvider.GetUtcNow()
+        );
+        if (plan.IsEmpty)
         {
             return;
         }
 
+        var secrets = await Rollover.ApplyAsync(
+            context.StoreManager.GetStore<ITenantStore>(),
+            tenant.TenantId,
+            held,
+            plan,
+            cancellationToken
+        );
+
         // The materialization that follows the seed reads the tenant's secrets from this instance, before the unit of
-        // work commits, so it must already carry the keys generated here.
+        // work commits, so it must already carry the keys as the plan left them.
         tenant.Secrets = new PersistedTenantSecrets
         {
             TenantId = tenant.Secrets.TenantId,
             ConcurrencyToken = tenant.Secrets.ConcurrencyToken,
-            Value = [.. held, .. generated],
+            Value = secrets,
         };
     }
 
@@ -148,33 +113,5 @@ internal class TenantKeySeedHandler(
             OpenIdSettingScopes.Tenant,
             tenant.Settings.Value
         );
-    }
-
-    private PersistedSecret GenerateSecret(
-        ISecretProtector protector,
-        TenantKeySpecification specification
-    )
-    {
-        var now = TimeProvider.GetUtcNow();
-
-        return SecretGenerator
-            .GenerateSecret(
-                protector,
-                new GenerateSecretRequest
-                {
-                    SecretId = CryptoService.GenerateResourceId(),
-                    SecretType = specification.SecretType,
-                    GenerationParameters = new SecretKeyGenerationParameters
-                    {
-                        KeySizeBits = specification.KeySizeBits,
-                        Curve = specification.Curve,
-                    },
-                    Use = specification.Use,
-                    Algorithm = specification.Algorithm,
-                    CreatedWhen = now,
-                    ExpiresWhen = now.AddYears(KeyLifetimeYears),
-                }
-            )
-            .Secret;
     }
 }

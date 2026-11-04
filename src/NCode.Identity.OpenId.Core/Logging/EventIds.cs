@@ -43,4 +43,16 @@ internal static class EventIds
     public const int TenantCacheClearFailed = Base + 14;
 
     public const int ServerMaterializationAtStartFailed = Base + 15;
+
+    public const int TenantKeyActivated = Base + 16;
+
+    public const int TenantKeyRetired = Base + 17;
+
+    public const int TenantKeyRemoved = Base + 18;
+
+    public const int TenantKeyRolloverFailed = Base + 19;
+
+    public const int TenantKeyRolloverPassFailed = Base + 20;
+
+    public const int TenantKeyRolloverLostRace = Base + 21;
 }

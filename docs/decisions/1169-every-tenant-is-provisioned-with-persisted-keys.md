@@ -15,7 +15,10 @@
   the first of them; by
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md): a key is generated on the curve
   its algorithm is bound to, and a stored key satisfies the algorithm only when its stored public key fits it, so a key
-  stored without a readable public key is provisioned)
+  stored without a readable public key is provisioned; by
+  [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md): a provisioned
+  key has a lifetime, its successor is generated ahead of its retirement, a key the tenant's settings no longer use is
+  retired, and an expired key the server generated is removed)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

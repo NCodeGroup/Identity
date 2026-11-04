@@ -1,6 +1,8 @@
 # 1320. A rotated client secret overlaps its replacement until it expires or is deleted
 
-- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): the replacement is issued through `IClientSecretIssuer` in the form the client's method needs, and both `ISecretGenerator` shared-secret generators, `GenerateSharedSecretVerifier` and `GenerateReversibleSharedSecret`, enforce the entropy floor)
+- **Status:** Accepted (amended by [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): the replacement is issued through `IClientSecretIssuer` in the form the client's method needs, and both `ISecretGenerator` shared-secret generators, `GenerateSharedSecretVerifier` and `GenerateReversibleSharedSecret`, enforce the entropy floor; by
+  [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md):
+  a stored key's expiry is honored wherever the key is used, not only when a client authenticates)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

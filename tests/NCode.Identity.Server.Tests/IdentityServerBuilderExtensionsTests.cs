@@ -131,8 +131,6 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         using var serviceProvider = BuildConfiguredServiceProvider(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:PlatformId"] = "primary",
-                ["OpenId:Server:ReconciliationLeaseDuration"] = "00:20:00",
                 ["OpenId:Server:Settings:grant_types_supported:0"] = "authorization_code",
                 ["OpenId:Tenant:TenantCacheLifetime"] = "00:30:00",
             }
@@ -140,8 +138,6 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("primary", options.Platform.PlatformId);
-        Assert.Equal(TimeSpan.FromMinutes(20), options.Platform.ReconciliationLeaseDuration);
         Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheLifetime);
         Assert.NotNull(options.Platform.Settings);
         Assert.Equal("OpenId:Server:Settings", options.Platform.Settings.Path);
@@ -414,7 +410,6 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         using var serviceProvider = BuildConfiguredServiceProvider(
             new Dictionary<string, string?>
             {
-                ["Identity:Server:PlatformId"] = "primary",
                 ["Identity:TenantResolution:StaticSingle:TenantId"] = "acme",
                 ["Identity:MutualTls:CertificateHeaderName"] = "X-Client-Cert",
                 ["OpenId:Unrelated"] = "ignored",
@@ -430,7 +425,6 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             .GetRequiredService<IOptions<MutualTlsForwardingOptions>>()
             .Value;
 
-        Assert.Equal("primary", openIdOptions.Platform.PlatformId);
         Assert.Equal("Identity:Server:Settings", openIdOptions.Platform.Settings?.Path);
         Assert.Equal("acme", tenantResolutionOptions.StaticSingle?.TenantId);
         Assert.Equal("X-Client-Cert", mutualTlsOptions.CertificateHeaderName);
@@ -471,7 +465,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         secretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForPlatform(OpenIdPlatformOptions.DefaultPlatformId),
+                    SecretOwner.ForPlatform(OpenIdConstants.PlatformResourceId),
                     It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
                     It.IsAny<CancellationToken>()
                 )

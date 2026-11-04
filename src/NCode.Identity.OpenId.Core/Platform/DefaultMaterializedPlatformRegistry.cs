@@ -26,22 +26,6 @@ internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatfor
         await Registered.Task.WaitAsync(cancellationToken);
 
     /// <inheritdoc />
-    public async ValueTask RefreshSettingsAsync(
-        string platformId,
-        CancellationToken cancellationToken
-    )
-    {
-        if (!Registered.Task.IsCompletedSuccessfully)
-            return;
-
-        var server = await Registered.Task;
-        if (!string.Equals(server.PlatformId, platformId, StringComparison.Ordinal))
-            return;
-
-        await server.RefreshSettingsAsync(cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async ValueTask RefreshSettingsAsync(CancellationToken cancellationToken)
     {
         if (!Registered.Task.IsCompletedSuccessfully)

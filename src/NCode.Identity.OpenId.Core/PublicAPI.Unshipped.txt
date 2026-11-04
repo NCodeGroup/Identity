@@ -1,6 +1,5 @@
 #nullable enable
 const NCode.Identity.OpenId.OpenIdOptions.DefaultSectionName = "OpenId" -> string!
-const NCode.Identity.OpenId.OpenIdPlatformOptions.DefaultPlatformId = "default" -> string!
 NCode.Identity.OpenId.DefaultRegistration
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdCoreLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!
@@ -22,10 +21,6 @@ NCode.Identity.OpenId.OpenIdOptions.Tenant.get -> NCode.Identity.OpenId.OpenIdTe
 NCode.Identity.OpenId.OpenIdOptions.Tenant.set -> void
 NCode.Identity.OpenId.OpenIdPlatformOptions
 NCode.Identity.OpenId.OpenIdPlatformOptions.OpenIdPlatformOptions() -> void
-NCode.Identity.OpenId.OpenIdPlatformOptions.ReconciliationLeaseDuration.get -> System.TimeSpan
-NCode.Identity.OpenId.OpenIdPlatformOptions.ReconciliationLeaseDuration.set -> void
-NCode.Identity.OpenId.OpenIdPlatformOptions.PlatformId.get -> string!
-NCode.Identity.OpenId.OpenIdPlatformOptions.PlatformId.set -> void
 NCode.Identity.OpenId.OpenIdPlatformOptions.Settings.get -> Microsoft.Extensions.Configuration.IConfigurationSection?
 NCode.Identity.OpenId.OpenIdPlatformOptions.Settings.set -> void
 NCode.Identity.OpenId.OpenIdPlatformOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan

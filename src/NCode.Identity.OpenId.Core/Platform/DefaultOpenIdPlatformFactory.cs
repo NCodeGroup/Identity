@@ -44,29 +44,12 @@ internal class DefaultOpenIdPlatformFactory(
         settingCollectionProviderFactory;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
-    /// <summary>
-    /// Gets the <c>PlatformId</c> from the configurable options, or uses the default if not set.
-    /// </summary>
-    protected virtual string GetPlatformId()
-    {
-        var platformId = Options.Platform.PlatformId;
-
-        if (string.IsNullOrEmpty(platformId))
-        {
-            platformId = OpenIdPlatformOptions.DefaultPlatformId;
-        }
-
-        return platformId;
-    }
-
     /// <inheritdoc />
     public async ValueTask<OpenIdPlatform> CreateAsync(
         OpenIdEnvironment openIdEnvironment,
         CancellationToken cancellationToken
     )
     {
-        var platformId = GetPlatformId();
-
         var disposables = new List<object>(2);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
         var persistedPlatform = await GetPersistedPlatformAsync(propertyBag, cancellationToken);
@@ -112,7 +95,6 @@ internal class DefaultOpenIdPlatformFactory(
             disposables.Add(configuredSettingsProvider);
 
             return Create(
-                platformId,
                 configuredSettingsProvider,
                 settingsProvider,
                 serverSettingsDataSource.RefreshAsync,
@@ -130,14 +112,12 @@ internal class DefaultOpenIdPlatformFactory(
     /// Factory method to create an instance of <see cref="OpenIdPlatform"/>.
     /// </summary>
     protected internal virtual OpenIdPlatform Create(
-        string platformId,
         IReadOnlySettingCollectionProvider configuredSettingsProvider,
         IReadOnlySettingCollectionProvider settingsProvider,
         Func<CancellationToken, ValueTask> refreshSettingsAsync,
         IPropertyBag propertyBag
     ) =>
         new DefaultOpenIdPlatform(
-            platformId,
             configuredSettingsProvider,
             settingsProvider,
             refreshSettingsAsync,

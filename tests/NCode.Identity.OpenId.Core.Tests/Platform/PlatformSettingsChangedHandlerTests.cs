@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class ServerSettingsChangedHandlerTests : BaseTests
 {
-    private const string PlatformId = "server-1";
+    private const string PlatformId = OpenIdConstants.PlatformResourceId;
 
     private Mock<IMaterializedPlatformRegistry> MockRegistry { get; }
     private Mock<IReplicaBroadcaster> MockReplicaBroadcaster { get; }
@@ -48,8 +48,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
                 Timeout.InfiniteTimeSpan
             );
 
-    private static PlatformSettingsChangedCommand CreateCommand() =>
-        new(PlatformId, default, default);
+    private static PlatformSettingsChangedCommand CreateCommand() => new(default, default);
 
     #region HandleAsync Tests
 
@@ -60,7 +59,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         var cancellationToken = cts.Token;
         var calls = new List<string>();
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
             .Callback(() => calls.Add("refresh"))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -85,7 +84,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheRefreshFails_StillAnnouncesTheChange()
     {
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("The refresh failed."))
             .Verifiable();
         MockReplicaBroadcaster
@@ -106,7 +105,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheAnnouncementFails_DoesNotThrow()
     {
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockReplicaBroadcaster
@@ -127,7 +126,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheRefreshTimesOut_StillAnnouncesTheChange()
     {
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("The refresh timed out."))
             .Verifiable();
         MockReplicaBroadcaster
@@ -148,7 +147,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheAnnouncementTimesOut_DoesNotThrow()
     {
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockReplicaBroadcaster
@@ -173,8 +172,8 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .Callback((string _, CancellationToken token) => refreshToken = token)
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
+            .Callback((CancellationToken token) => refreshToken = token)
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockReplicaBroadcaster
@@ -201,7 +200,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     public async Task HandleAsync_BoundsTheRefreshAndTheAnnouncementByThePostCommitTimeout()
     {
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RefreshSettingsAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockReplicaBroadcaster

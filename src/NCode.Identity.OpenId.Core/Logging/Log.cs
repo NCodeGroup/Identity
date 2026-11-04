@@ -93,22 +93,20 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsChangeRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Reading the settings of the server '{PlatformId}' again after a change failed; this replica applies the change at its next poll"
+        Message = "Reading the settings of the server  again after a change failed; this replica applies the change at its next poll"
     )]
     internal static partial void PlatformSettingsChangeRefreshFailed(
         this ILogger logger,
-        string platformId,
         Exception exception
     );
 
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsChangeBroadcastFailed,
         Level = LogLevel.Warning,
-        Message = "Announcing the change to the settings of the server '{PlatformId}' to the other replicas failed; they apply it at their next poll"
+        Message = "Announcing the change to the settings of the server  to the other replicas failed; they apply it at their next poll"
     )]
     internal static partial void PlatformSettingsChangeBroadcastFailed(
         this ILogger logger,
-        string platformId,
         Exception exception
     );
 

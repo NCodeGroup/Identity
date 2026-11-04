@@ -23,7 +23,6 @@ namespace NCode.Identity.Server.SecretProtection;
 // See ADR-1235.
 internal class PlatformSecretProtectorWarmup(
     ISecretProtectorProvider provider,
-    IOptions<OpenIdOptions> openIdOptions,
     IOptions<SecretProtectionOptions> protectionOptions,
     IHostEnvironment hostEnvironment,
     PlatformSecretProtectorHolder holder,
@@ -31,9 +30,6 @@ internal class PlatformSecretProtectorWarmup(
 ) : IHostedService
 {
     private ISecretProtectorProvider Provider { get; } = provider;
-
-    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on the server factory.
-    private IOptions<OpenIdOptions> OpenIdOptionsAccessor { get; } = openIdOptions;
 
     private IOptions<SecretProtectionOptions> ProtectionOptionsAccessor { get; } =
         protectionOptions;
@@ -47,10 +43,8 @@ internal class PlatformSecretProtectorWarmup(
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var platformId = GetPlatformId();
-
         Holder.Protector = await Provider.GetProtectorAsync(
-            SecretOwner.ForPlatform(platformId),
+            SecretOwner.ForPlatform(OpenIdConstants.PlatformResourceId),
             [],
             cancellationToken
         );
@@ -70,19 +64,4 @@ internal class PlatformSecretProtectorWarmup(
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    /// <summary>
-    /// Gets the <c>PlatformId</c> from the configurable options, or uses the default if not set.
-    /// </summary>
-    private string GetPlatformId()
-    {
-        var platformId = OpenIdOptionsAccessor.Value.Platform.PlatformId;
-
-        if (string.IsNullOrEmpty(platformId))
-        {
-            platformId = OpenIdPlatformOptions.DefaultPlatformId;
-        }
-
-        return platformId;
-    }
 }

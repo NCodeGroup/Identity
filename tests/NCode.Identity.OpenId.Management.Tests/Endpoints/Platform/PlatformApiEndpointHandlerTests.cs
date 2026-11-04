@@ -491,9 +491,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.SendAsync(
                     It.Is<PlatformSettingsChangedCommand>(c =>
-                        c.PlatformId == OpenIdConstants.PlatformResourceId
-                        && HasProperty(c.Settings, "foo")
-                        && !HasProperty(c.PreviousSettings, "foo")
+                        HasProperty(c.Settings, "foo") && !HasProperty(c.PreviousSettings, "foo")
                     ),
                     It.IsAny<CancellationToken>()
                 )

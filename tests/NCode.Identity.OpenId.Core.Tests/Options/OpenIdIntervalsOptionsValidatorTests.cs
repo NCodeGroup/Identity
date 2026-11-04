@@ -23,24 +23,6 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_WhenTheLeaseDurationIsZero_FailsNamingItsKey()
-    {
-        var options = new OpenIdOptions
-        {
-            Platform = new OpenIdPlatformOptions { ReconciliationLeaseDuration = TimeSpan.Zero },
-        };
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains(
-            "'Server:ReconciliationLeaseDuration'",
-            result.FailureMessage,
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
     public void Validate_WhenTheTenantCacheLifetimeIsLongerThanATimerAccepts_FailsNamingItsKey()
     {
         var options = new OpenIdOptions

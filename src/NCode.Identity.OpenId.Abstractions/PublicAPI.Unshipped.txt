@@ -23,7 +23,6 @@ abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get 
 abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.ConfiguredSettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.RefreshSettingsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.PlatformId.get -> string!
 abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.BaseAddress.get -> NCode.Identity.Models.UriDescriptor
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisplayName.get -> string!
@@ -587,10 +586,8 @@ NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.Settings.init ->
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PreviousSettings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PreviousSettings.init -> void
-NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformId.get -> string!
-NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformId.init -> void
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformSettingsChangedCommand() -> void
-NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformSettingsChangedCommand(string! PlatformId, System.Text.Json.JsonElement PreviousSettings, System.Text.Json.JsonElement Settings) -> void
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformSettingsChangedCommand(System.Text.Json.JsonElement PreviousSettings, System.Text.Json.JsonElement Settings) -> void
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.Settings.init -> void
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider

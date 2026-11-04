@@ -10,7 +10,6 @@ namespace NCode.Identity.OpenId.Platform;
 /// Provides a default implementation of the <see cref="OpenIdPlatform"/> abstraction.
 /// </summary>
 internal class DefaultOpenIdPlatform(
-    string platformId,
     IReadOnlySettingCollectionProvider configuredSettingsProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
     Func<CancellationToken, ValueTask> refreshSettingsAsync,
@@ -18,9 +17,6 @@ internal class DefaultOpenIdPlatform(
 ) : OpenIdPlatform, IAsyncDisposable
 {
     private Func<CancellationToken, ValueTask> RefreshSettings { get; } = refreshSettingsAsync;
-
-    /// <inheritdoc />
-    public override string PlatformId { get; } = platformId;
 
     /// <inheritdoc />
     public override IReadOnlySettingCollectionProvider SettingsProvider { get; } = settingsProvider;

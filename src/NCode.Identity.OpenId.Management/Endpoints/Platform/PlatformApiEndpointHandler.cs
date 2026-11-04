@@ -358,7 +358,6 @@ internal class PlatformApiEndpointHandler(
 
         await NotifyPlatformSettingsChangedAsync(
             httpContext,
-            OpenIdConstants.PlatformResourceId,
             previousSettings,
             settingsValue,
             cancellationToken
@@ -481,7 +480,6 @@ internal class PlatformApiEndpointHandler(
     // ADR-1219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
     private static ValueTask NotifyPlatformSettingsChangedAsync(
         HttpContext httpContext,
-        string platformId,
         JsonElement previousSettings,
         JsonElement settings,
         CancellationToken cancellationToken
@@ -489,11 +487,7 @@ internal class PlatformApiEndpointHandler(
     {
         var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
         return mediator.SendAsync(
-            new PlatformSettingsChangedCommand(
-                platformId,
-                previousSettings.Clone(),
-                settings.Clone()
-            ),
+            new PlatformSettingsChangedCommand(previousSettings.Clone(), settings.Clone()),
             cancellationToken
         );
     }

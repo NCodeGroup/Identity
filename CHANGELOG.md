@@ -1901,9 +1901,9 @@ describes the family as it is rather than its changes
   `CreateTenantRequest` and the tenant update carry the tenant's `issuer` and its mTLS endpoint alias authority
   (`mtlsEndpointAliasAuthority`, RFC 8705 §5), where an empty alias restores the derived one.
   `GET /api/teams/{teamId}/tenants/{tenantId}/address` previews the address a tenant that does not exist yet would have
-  (it needs the authority to create a tenant in the team, and answers `404` for a missing team and `409` when the tenant
-  exists), and `GET /api/tenants/{tenantId}/address` previews an existing tenant's (it needs read on the tenant, and
-  answers `404` when it does not exist). Each takes an optional proposed issuer and alias and returns a
+  (it needs the authority to create a tenant in the team, answers `404` for a missing team and reports whether the id
+  is taken in `exists`), and `GET /api/tenants/{tenantId}/address` previews an existing tenant's (it needs read on the
+  tenant, and answers `404` when it does not exist). Each takes an optional proposed issuer and alias and returns a
   `TenantAddressResource`: the issuer the tenant has or would be given and whether it is the derived one, the alias and
   whether it is derived (`isMtlsEndpointAliasAuthorityDerived`), whether the tenant already exists, and every reason the
   tenant could not be served there, by the same rules the create and update apply

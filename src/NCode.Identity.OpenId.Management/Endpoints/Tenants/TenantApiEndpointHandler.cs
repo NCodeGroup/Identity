@@ -729,6 +729,7 @@ internal class TenantApiEndpointHandler(
 
         return await PreviewAddressAsync(
             tenant,
+            true,
             tenantId,
             issuer,
             mtlsEndpointAliasAuthority,
@@ -751,7 +752,6 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The address the tenant would have and the reasons it cannot be served there, if any.</response>
     /// <response code="404">The team does not exist.</response>
-    /// <response code="409">A tenant with the identifier already exists.</response>
     // See ADR-1165 (the address is previewed through the seam that judges it).
     [EndpointName("api/teams/tenants/address/get")]
     internal virtual async ValueTask<IResult> GetTeamTenantAddressAsync(
@@ -784,22 +784,15 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var tenant = await storeManager
-            .GetStore<ITenantStore>()
-            .GetOrDefaultAsync(tenantId, cancellationToken);
-        if (tenant is not null)
-        {
-            return ToErrorResult(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "A tenant with the specified identifier already exists.",
-                }
-            );
-        }
+        var exists =
+            await storeManager
+                .GetStore<ITenantStore>()
+                .GetOrDefaultAsync(tenantId, cancellationToken)
+            is not null;
 
         return await PreviewAddressAsync(
             null,
+            exists,
             tenantId,
             issuer,
             mtlsEndpointAliasAuthority,
@@ -810,6 +803,7 @@ internal class TenantApiEndpointHandler(
 
     private async ValueTask<IResult> PreviewAddressAsync(
         PersistedTenant? tenant,
+        bool exists,
         string tenantId,
         string? issuer,
         string? mtlsEndpointAliasAuthority,
@@ -849,7 +843,7 @@ internal class TenantApiEndpointHandler(
                 MtlsEndpointAliasAuthority = effectiveAlias,
                 IsMtlsEndpointAliasAuthorityDerived =
                     proposedAlias is null && effectiveAlias is not null,
-                Exists = tenant is not null,
+                Exists = exists,
                 Failures = failures
                     .Select(failure => new TenantAddressFailure
                     {

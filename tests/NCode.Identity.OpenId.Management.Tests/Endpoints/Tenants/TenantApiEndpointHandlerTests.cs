@@ -2729,14 +2729,17 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTeamTenantAddressAsync_WhenTheTenantExists_ReturnsConflict()
+    public async Task GetTeamTenantAddressAsync_WhenTheTenantExists_ReportsItTaken()
     {
+        SetupDefaultAlias(TenantId, alias: null);
         SetupTeamPreviewStore(CreateTeam(), readsTenant: true);
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-ct", issuer: null))
+            .ReturnsAsync(CreateTenant("tenant-ct", issuer: "https://login.existing.example"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupDefaultIssuer(TenantId, DerivedIssuer);
+        SetupAddressValidation(TenantId, DerivedIssuer);
 
         var result = await Handler.GetTeamTenantAddressAsync(
             CreateHttpContext(authenticated: true),
@@ -2747,8 +2750,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        var ok = Assert.IsType<Ok<TenantAddressResource>>(result);
+        var address = Assert.IsType<TenantAddressResource>(ok.Value);
+        Assert.True(address.Exists);
+        Assert.Equal(DerivedIssuer, address.Issuer);
+        Assert.True(address.IsIssuerDerived);
     }
 
     [Fact]

@@ -318,6 +318,24 @@ public class TenantProvisioningTests
     }
 
     [Fact]
+    public async Task GetTeamAddress_ForATakenTenantId_ReportsItExists()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
+
+        using var response = await client.GetAsync(
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/acme/address"
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        var root = JsonElement.Parse(body);
+        Assert.True(root.GetProperty("exists").GetBoolean());
+        Assert.Equal("https://acme.auth.test", root.GetProperty("issuer").GetString());
+    }
+
+    [Fact]
     public async Task GetAddress_ForTheRootTenantsAddress_ReportsItAsReserved()
     {
         using var factory = CreateFactory();

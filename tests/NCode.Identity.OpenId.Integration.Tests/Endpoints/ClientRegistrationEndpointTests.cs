@@ -147,7 +147,7 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenTheTenantIsProduction_RefusesAnonymousRegistrationEvenWhenTheServerAllowsIt()
+    public async Task PostRegister_WhenTheTenantIsProduction_RefusesAnonymousRegistrationEvenWhenThePlatformAllowsIt()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         using var productionFactory = factory.WithWebHostBuilder(builder =>
@@ -184,7 +184,7 @@ public class ClientRegistrationEndpointTests
         var developmentBody = await developmentResponse.Content.ReadAsStringAsync();
         Assert.True(developmentResponse.StatusCode == HttpStatusCode.Created, developmentBody);
 
-        // The production profile's ceiling turns anonymous registration off for the tenant, whatever the server says.
+        // The production profile's ceiling turns anonymous registration off for the tenant, whatever the platform says.
         using var productionResponse = await productionClient.PostAsJsonAsync(
             "/oauth2/register",
             metadata
@@ -278,7 +278,7 @@ public class ClientRegistrationEndpointTests
     public async Task PostRegister_WithAHybridResponseType_RegistersAClientTheAuthorizationEndpointHonors()
     {
         using var factory = new ConfiguredHostApplicationFactory(
-            CreateServerConfiguration(
+            CreatePlatformConfiguration(
                 [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
                 [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
             )
@@ -327,7 +327,7 @@ public class ClientRegistrationEndpointTests
             "Expected an interactive challenge, not an error redirected back to the client."
         );
 
-        // The server supports 'code', but the client did not register it.
+        // The platform supports 'code', but the client did not register it.
         using var codeResponse = await client.GetAsync(
             CreateAuthorizeUri(clientId, OpenIdProtocol.ResponseTypes.Code)
         );
@@ -339,10 +339,10 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenTheServerDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WhenThePlatformDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
     {
         using var factory = new ConfiguredHostApplicationFactory(
-            CreateServerConfiguration(
+            CreatePlatformConfiguration(
                 [OpenIdProtocol.ResponseTypes.Code],
                 [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
             )
@@ -368,9 +368,9 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenTheServerDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WhenThePlatformDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
     {
-        // A client whose registered method the server's ceiling excludes could never authenticate.
+        // A client whose registered method the platform's ceiling excludes could never authenticate.
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
@@ -426,7 +426,7 @@ public class ClientRegistrationEndpointTests
         );
     }
 
-    private static Dictionary<string, string?> CreateServerConfiguration(
+    private static Dictionary<string, string?> CreatePlatformConfiguration(
         string[] responseTypesSupported,
         string[] grantTypesSupported
     )
@@ -1287,7 +1287,7 @@ public class ClientRegistrationEndpointTests
         if (notificationEndpoint is not null)
             metadata["backchannel_client_notification_endpoint"] = notificationEndpoint;
 
-        // The server does not support the user_code parameter by default, so no client may claim it.
+        // The platform does not support the user_code parameter by default, so no client may claim it.
         if (expectedQuotedName == OpenIdSettingNames.BackchannelUserCodeParameterSupported)
             metadata["backchannel_user_code_parameter"] = true;
 
@@ -1305,7 +1305,7 @@ public class ClientRegistrationEndpointTests
     #region Certificate-Bound Access Tokens
 
     [Fact]
-    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerDoesNotSupportThem_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WithCertificateBoundTokens_WhenThePlatformDoesNotSupportThem_ReturnsInvalidClientMetadata()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = factory.CreateClient(
@@ -1332,7 +1332,7 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerSupportsThem_StoresAndReportsThem()
+    public async Task PostRegister_WithCertificateBoundTokens_WhenThePlatformSupportsThem_StoresAndReportsThem()
     {
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>

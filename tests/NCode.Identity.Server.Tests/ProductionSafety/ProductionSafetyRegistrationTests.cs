@@ -318,7 +318,7 @@ public class ProductionSafetyRegistrationTests
 
     /// <summary>
     /// A Production provider with a protected key ring, the registered <c>production</c> and <c>development</c> types,
-    /// and configured server settings that select <paramref name="typeName"/> (or no type when it is null).
+    /// and configured platform settings that select <paramref name="typeName"/> (or no type when it is null).
     /// </summary>
     private static ServiceProvider BuildProtectedProvider(string? typeName)
     {

@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 /// <summary>
 /// Verifies client authentication at the token endpoint: a client authenticates only with the method it is registered to
-/// use (RFC 7591 §2), within the server's <c>token_endpoint_auth_methods_supported</c>; and, per RFC 6749 §5.2, a client
+/// use (RFC 7591 §2), within the platform's <c>token_endpoint_auth_methods_supported</c>; and, per RFC 6749 §5.2, a client
 /// that authenticates via the HTTP <c>Authorization</c> request header (<c>client_secret_basic</c>) and fails gets
 /// <c>401 Unauthorized</c> with a matching <c>WWW-Authenticate</c> challenge, while failures via the request body
 /// (<c>client_secret_post</c>) stay <c>400</c>.
@@ -178,7 +178,7 @@ public class TokenEndpointClientAuthenticationTests
     }
 
     [Fact]
-    public async Task PostToken_WhenTheServerDoesNotPermitTheRegisteredMethod_ReturnsInvalidClient()
+    public async Task PostToken_WhenThePlatformDoesNotPermitTheRegisteredMethod_ReturnsInvalidClient()
     {
         // token_endpoint_auth_methods_supported is a ceiling: a client registered outside it cannot authenticate.
         using var factory = new ConfiguredHostApplicationFactory(

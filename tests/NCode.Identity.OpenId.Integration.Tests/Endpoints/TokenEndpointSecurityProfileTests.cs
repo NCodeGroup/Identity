@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Verifies the <c>security_profiles</c> mechanism end to end: selecting <c>fapi2</c> tightens a client's effective
 /// settings through the merge lattice, so weak (<c>client_secret</c>) authentication is rejected while a non-profiled
-/// client with the same credentials succeeds; and a profile selected at the server binds every client below it, which
+/// client with the same credentials succeeds; and a profile selected at the platform binds every client below it, which
 /// can add a profile but never clear or replace one.
 /// </summary>
 public class TokenEndpointSecurityProfileTests
@@ -173,9 +173,9 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
-    public async Task PostToken_WhenTheServerSelectsAProfile_AClientSelectingNoneIsStillBoundByIt()
+    public async Task PostToken_WhenThePlatformSelectsAProfile_AClientSelectingNoneIsStillBoundByIt()
     {
-        const string clientId = "it-profile-server-mandated";
+        const string clientId = "it-profile-platform-mandated";
 
         using var factory = new ProfiledHostApplicationFactory(RefusingProfile.Name);
         await SeedClientCredentialsClientAsync(factory, clientId, []);
@@ -188,9 +188,9 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
-    public async Task PostToken_WhenAClientSelectsAnotherProfile_TheServerProfileStillApplies()
+    public async Task PostToken_WhenAClientSelectsAnotherProfile_ThePlatformProfileStillApplies()
     {
-        const string clientId = "it-profile-server-and-client";
+        const string clientId = "it-profile-platform-and-client";
 
         using var factory = new ProfiledHostApplicationFactory(RefusingProfile.Name);
         await SeedClientCredentialsClientAsync(factory, clientId, [PermissiveProfile.Name]);
@@ -203,7 +203,7 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
-    public async Task GetDiscovery_WhenTheServerSelectsFapi2_AdvertisesItsCeilings()
+    public async Task GetDiscovery_WhenThePlatformSelectsFapi2_AdvertisesItsCeilings()
     {
         using var factory = new ProfiledHostApplicationFactory(
             OpenIdConstants.SecurityProfiles.Fapi2
@@ -226,7 +226,7 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
-    public async Task GetDiscovery_WhenTheServerSelectsFapi1Advanced_AdvertisesItsCeilings()
+    public async Task GetDiscovery_WhenThePlatformSelectsFapi1Advanced_AdvertisesItsCeilings()
     {
         using var factory = new ProfiledHostApplicationFactory(
             OpenIdConstants.SecurityProfiles.Fapi1Advanced
@@ -260,7 +260,7 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
-    public async Task GetDiscovery_WhenThePersistedServerSelectsFapi2_AdvertisesItsCeilings()
+    public async Task GetDiscovery_WhenThePersistedPlatformSelectsFapi2_AdvertisesItsCeilings()
     {
         using var factory = new HostApplicationFactory
         {
@@ -288,16 +288,16 @@ public class TokenEndpointSecurityProfileTests
             .ToList();
 
     /// <summary>
-    /// A host whose server settings select the supplied security profiles, with two test profiles registered.
+    /// A host whose platform settings select the supplied security profiles, with two test profiles registered.
     /// </summary>
-    private sealed class ProfiledHostApplicationFactory(params string[] serverProfiles)
+    private sealed class ProfiledHostApplicationFactory(params string[] platformProfiles)
         : HostApplicationFactory
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
 
-            var configuration = serverProfiles.Select(
+            var configuration = platformProfiles.Select(
                 (profileName, index) =>
                     KeyValuePair.Create<string, string?>(
                         $"OpenId:Platform:Settings:security_profiles:{index}",

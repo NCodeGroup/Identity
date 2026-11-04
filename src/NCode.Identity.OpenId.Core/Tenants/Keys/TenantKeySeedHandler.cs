@@ -136,17 +136,18 @@ internal class TenantKeySeedHandler(
     }
 
     // The tenant's settings materialize only after the seed, so the seed resolves the tenant's persisted document onto
-    // the server's committed settings through the resolver, as the materialized tenant will (see ADR-1204).
+    // its team's committed settings through the resolver, as the materialized tenant will (see ADR-1204).
     private async ValueTask<IReadOnlySettingCollection> GetEffectiveSettingsAsync(
         PersistedTenant tenant,
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            tenant.TeamId,
             cancellationToken
         );
         return EffectiveSettingsResolver.Resolve(
-            serverSettings,
+            teamSettings,
             OpenIdSettingScopes.Tenant,
             tenant.Settings.Value
         );

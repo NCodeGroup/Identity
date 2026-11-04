@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// method whose <see cref="ClientAuthenticationMethodDescriptor.UsesClientSecretAsKey"/> is set needs a secret the
 /// server can read back; every other method, and a method that is not registered, gets only a one-way verifier, which
 /// the server can only compare a presented secret with. Every stored client names its method in its own settings
-/// document, so a change to the server's or the tenant's <c>token_endpoint_auth_method</c> moves no stored client's
+/// document, so a change to the platform's, the team's or the tenant's <c>token_endpoint_auth_method</c> moves no stored client's
 /// method, and a client's method changes only through its own settings.
 /// </summary>
 // See ADR-1391.
@@ -25,10 +25,11 @@ public interface IClientSecretIssuer
 {
     /// <summary>
     /// Resolves the client-authentication method a stored client is registered for: its effective
-    /// <c>token_endpoint_auth_method</c>, the server's, the tenant's and the client's settings merged as the runtime
+    /// <c>token_endpoint_auth_method</c>, the platform's, the team's, the tenant's and the client's settings merged as the runtime
     /// merges them. When they cannot be merged, because the tenant's settings are absent or a settings document cannot
     /// be honored, the client authenticates with no method until they are fixed, and no method is resolved.
     /// </summary>
+    /// <param name="teamId">The identifier of the team whose effective settings are the tenant's parent.</param>
     /// <param name="tenantId">The identifier of the tenant that owns the client.</param>
     /// <param name="tenantSettings">The tenant's settings document as the store holds it, or <see langword="null"/>
     /// when the store holds none.</param>
@@ -39,6 +40,7 @@ public interface IClientSecretIssuer
     /// <returns>A <see cref="ValueTask{TResult}"/> that represents the asynchronous operation, containing the client's
     /// effective <c>token_endpoint_auth_method</c>, or <see langword="null"/> when the settings cannot be merged.</returns>
     ValueTask<string?> GetTokenEndpointAuthMethodAsync(
+        string teamId,
         string tenantId,
         JsonElement? tenantSettings,
         string clientId,

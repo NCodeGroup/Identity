@@ -150,16 +150,16 @@ public class DefaultClientSecretIssuerTests : BaseTests
 
     private void SetupResolution(Mock<IReadOnlySettingCollection> mockClientSettings)
     {
-        var serverSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var teamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var tenantSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         MockResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings)
             .Verifiable();
         MockResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     "tenant-1",
                     It.Is<JsonElement>(element => element.GetProperty("tenant").GetBoolean())
@@ -196,6 +196,7 @@ public class DefaultClientSecretIssuerTests : BaseTests
 
         var method = await CreateIssuer()
             .GetTokenEndpointAuthMethodAsync(
+                "platform",
                 "tenant-1",
                 TenantDocument,
                 "client-1",
@@ -211,6 +212,7 @@ public class DefaultClientSecretIssuerTests : BaseTests
     {
         var method = await CreateIssuer()
             .GetTokenEndpointAuthMethodAsync(
+                "platform",
                 "tenant-1",
                 null,
                 "client-1",
@@ -225,11 +227,11 @@ public class DefaultClientSecretIssuerTests : BaseTests
     public async Task GetTokenEndpointAuthMethodAsync_WhenASettingsDocumentIsUnreadable_ResolvesNoMethod()
     {
         MockResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ThrowsAsync(
                 new UnreadableSettingsException(
-                    OpenIdSettingScopes.Platform,
-                    "server",
+                    OpenIdSettingScopes.Team,
+                    "platform",
                     new JsonException("unreadable")
                 )
             )
@@ -237,6 +239,7 @@ public class DefaultClientSecretIssuerTests : BaseTests
 
         var method = await CreateIssuer()
             .GetTokenEndpointAuthMethodAsync(
+                "platform",
                 "tenant-1",
                 TenantDocument,
                 "client-1",

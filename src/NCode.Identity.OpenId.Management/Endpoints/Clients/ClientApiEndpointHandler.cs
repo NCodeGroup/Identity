@@ -284,22 +284,23 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantSettings = await storeManager
+        var tenant = await storeManager
             .GetStore<ITenantStore>()
-            .GetSettingsOrDefaultAsync(tenantId, cancellationToken);
-        if (tenantSettings is null)
+            .GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
         {
             return null;
         }
 
-        var serverEffective = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var teamEffective = await EffectiveSettingsResolver.ResolveTeamAsync(
+            tenant.TeamId,
             cancellationToken
         );
         return EffectiveSettingsResolver.ResolveStored(
-            serverEffective,
+            teamEffective,
             OpenIdSettingScopes.Tenant,
             tenantId,
-            tenantSettings.Value
+            tenant.Settings.Value
         );
     }
 
@@ -400,13 +401,18 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantSettings = await storeManager
+        var tenant = await storeManager
             .GetStore<ITenantStore>()
-            .GetSettingsOrDefaultAsync(tenantId, cancellationToken);
+            .GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return null;
+        }
 
         return await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
+            tenant.TeamId,
             tenantId,
-            tenantSettings?.Value,
+            tenant.Settings.Value,
             clientId,
             clientSettings,
             cancellationToken

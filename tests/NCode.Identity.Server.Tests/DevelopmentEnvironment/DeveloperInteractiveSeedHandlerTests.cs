@@ -222,7 +222,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(server)
             .Verifiable();
         mockResolver
@@ -293,7 +293,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(server)
             .Verifiable();
         mockResolver

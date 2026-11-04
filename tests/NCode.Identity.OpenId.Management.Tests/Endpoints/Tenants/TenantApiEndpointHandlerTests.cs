@@ -579,11 +579,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task ListTenantsAsync_WhenTenantSettingsAreUnreadable_ListsTheTenantWithoutItsEnvironment()
     {
         SetupTenantPage();
-        var serverSettings = SetupServerSettings();
+        var teamSettings = SetupTeamSettings();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.IsAny<JsonElement>()
@@ -606,12 +606,12 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task ListTenantsAsync_WhenServerSettingsAreUnreadable_ListsTheTenantsWithoutTheirEnvironment()
+    public async Task ListTenantsAsync_WhenATeamsSettingsAreUnreadable_ListsItsTenantsWithoutTheirEnvironment()
     {
         SetupTenantPage();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(CreateUnreadableSettingsException(OpenIdSettingScopes.Platform, "server"))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(CreateUnreadableSettingsException(OpenIdSettingScopes.Team, "platform"))
             .Verifiable();
 
         var result = await Handler.ListTenantsAsync(
@@ -629,7 +629,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task ListTenantsAsync_WhenEnvironmentTypeIsNotRegistered_ListsTheTenantWithoutItsEnvironment()
     {
         SetupTenantPage();
-        var serverSettings = SetupServerSettings();
+        var teamSettings = SetupTeamSettings();
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
         tenantSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.EnvironmentType))
@@ -638,7 +638,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.IsAny<JsonElement>()
@@ -816,8 +816,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
 
         var descriptor = new SettingDescriptor<bool>
@@ -848,8 +848,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTenantSettings?)null)
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -868,8 +868,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
@@ -886,16 +886,16 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
     {
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>();
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings.Object)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings.Object,
+                    teamSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.IsAny<JsonElement>()
@@ -905,14 +905,14 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private IReadOnlySettingCollection SetupServerSettings()
+    private IReadOnlySettingCollection SetupTeamSettings()
     {
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings.Object)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings.Object)
             .Verifiable();
-        return serverSettings.Object;
+        return teamSettings.Object;
     }
 
     private void SetupTenantEnvironment(
@@ -922,7 +922,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         string tenantId = TenantId
     )
     {
-        var serverSettings = SetupServerSettings();
+        var teamSettings = SetupTeamSettings();
 
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
         tenantSettings
@@ -936,7 +936,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     tenantId,
                     It.IsAny<JsonElement>()
@@ -1016,10 +1016,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private void SetupClientCoherenceCheck(params ClientCoherenceFinding[] findings)
     {
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings.Object)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings.Object)
             .Verifiable();
 
         var currentEffective = CreateSettingCollection();
@@ -1028,7 +1028,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    serverSettings.Object,
+                    teamSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => !HasProperty(e, "foo"))
                 )
@@ -1038,7 +1038,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    serverSettings.Object,
+                    teamSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => HasProperty(e, "foo"))
                 )
@@ -1084,6 +1084,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupClientCoherenceCheck();
         SetupSettingsWrite(settings);
@@ -1114,17 +1118,21 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings.Object)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    serverSettings.Object,
+                    teamSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => HasProperty(e, "foo"))
                 )
@@ -1134,7 +1142,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    serverSettings.Object,
+                    teamSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => !HasProperty(e, "foo"))
                 )
@@ -1170,6 +1178,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupClientCoherenceCheck(
@@ -1212,6 +1224,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupClientCoherenceCheck(

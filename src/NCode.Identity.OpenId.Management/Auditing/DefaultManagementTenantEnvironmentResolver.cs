@@ -49,11 +49,12 @@ internal class DefaultManagementTenantEnvironmentResolver(
             if (tenant is null)
                 return null;
 
-            var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+                tenant.TeamId,
                 cancellationToken
             );
             var settings = EffectiveSettingsResolver.ResolveStored(
-                serverSettings,
+                teamSettings,
                 OpenIdSettingScopes.Tenant,
                 tenantId,
                 tenant.Settings.Value

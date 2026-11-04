@@ -217,42 +217,61 @@ internal class TenantApiEndpointHandler(
 
     /// <summary>
     /// Creates a mapper from a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> that resolves each
-    /// tenant's effective environment under the server's effective settings, which it reads once. When the server's
-    /// stored settings cannot be honored, the mapper leaves every environment unset rather than failing the request.
+    /// tenant's effective environment under its team's effective settings, which it reads once for each team the
+    /// tenants belong to. When a team's stored settings cannot be honored, the mapper leaves the environment of that
+    /// team's tenants unset rather than failing the request.
     /// </summary>
+    /// <param name="tenants">The tenants the mapper will map.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The mapper.</returns>
     // See ADR-1289.
     internal virtual async ValueTask<
         Func<PersistedTenant, TenantResource>
-    > CreateTenantResourceMapperAsync(CancellationToken cancellationToken)
+    > CreateTenantResourceMapperAsync(
+        IEnumerable<PersistedTenant> tenants,
+        CancellationToken cancellationToken
+    )
     {
-        IReadOnlySettingCollection serverSettings;
-        try
+        var teamSettings = new Dictionary<string, IReadOnlySettingCollection?>(
+            StringComparer.Ordinal
+        );
+        foreach (var teamId in tenants.Select(tenant => tenant.TeamId))
         {
-            serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
-                cancellationToken
-            );
-        }
-        catch (UnreadableSettingsException exception)
-        {
-            LogEnvironmentUnresolved(exception);
-            return ToTenantResource;
+            if (teamSettings.ContainsKey(teamId))
+            {
+                continue;
+            }
+
+            try
+            {
+                teamSettings[teamId] = await EffectiveSettingsResolver.ResolveTeamAsync(
+                    teamId,
+                    cancellationToken
+                );
+            }
+            catch (UnreadableSettingsException exception)
+            {
+                LogEnvironmentUnresolved(exception);
+                teamSettings[teamId] = null;
+            }
         }
 
-        return tenant => ToTenantResource(tenant, ResolveEnvironment(serverSettings, tenant));
+        return tenant =>
+            teamSettings.TryGetValue(tenant.TeamId, out var settings) && settings is not null
+                ? ToTenantResource(tenant, ResolveEnvironment(settings, tenant))
+                : ToTenantResource(tenant);
     }
 
     /// <summary>
-    /// Resolves a tenant's effective environment from its stored settings under the server's effective settings.
+    /// Resolves a tenant's effective environment from its stored settings under its team's effective settings.
     /// </summary>
-    /// <param name="serverSettings">The server's effective settings.</param>
+    /// <param name="teamSettings">The tenant's team's effective settings.</param>
     /// <param name="tenant">The tenant whose environment to resolve.</param>
     /// <returns>The tenant's environment, or <see langword="null"/> when its stored settings cannot be honored or name a
     /// type that is not registered.</returns>
     // A tenant whose settings need repair is still listed, so its environment is best-effort (ADR-1245, ADR-1289).
     internal virtual TenantEnvironmentResource? ResolveEnvironment(
-        IReadOnlySettingCollection serverSettings,
+        IReadOnlySettingCollection teamSettings,
         PersistedTenant tenant
     )
     {
@@ -260,7 +279,7 @@ internal class TenantApiEndpointHandler(
         try
         {
             tenantSettings = EffectiveSettingsResolver.ResolveStored(
-                serverSettings,
+                teamSettings,
                 OpenIdSettingScopes.Tenant,
                 tenant.TenantId,
                 tenant.Settings.Value
@@ -368,7 +387,7 @@ internal class TenantApiEndpointHandler(
     {
         var effectiveLimit = NormalizeLimit(limit);
 
-        // The page is fetched only after authorization, so the server's settings are read with it, never for a caller
+        // The page is fetched only after authorization, so the teams' settings are read with it, never for a caller
         // who may not list tenants.
         Func<PersistedTenant, TenantResource> toTenantResource = ToTenantResource;
 
@@ -378,15 +397,19 @@ internal class TenantApiEndpointHandler(
             authorizationResource: null,
             async () =>
             {
-                toTenantResource = await CreateTenantResourceMapperAsync(cancellationToken);
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<ITenantStore>();
-                return await store.GetPageAsync(
+                var page = await store.GetPageAsync(
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
+                toTenantResource = await CreateTenantResourceMapperAsync(
+                    page.Items,
+                    cancellationToken
+                );
+                return page;
             },
             tenant => toTenantResource(tenant)
         );
@@ -421,7 +444,10 @@ internal class TenantApiEndpointHandler(
             Operations.Read,
             async (persistedTenant, token) =>
             {
-                var toTenantResource = await CreateTenantResourceMapperAsync(token);
+                var toTenantResource = await CreateTenantResourceMapperAsync(
+                    [persistedTenant],
+                    token
+                );
                 return toTenantResource(persistedTenant);
             },
             cancellationToken
@@ -549,7 +575,7 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
-        var toTenantResource = await CreateTenantResourceMapperAsync(cancellationToken);
+        var toTenantResource = await CreateTenantResourceMapperAsync([tenant], cancellationToken);
         var resource = toTenantResource(tenant);
 
         httpContext.Response.Headers.ETag = tenant.ConcurrencyToken;
@@ -780,6 +806,7 @@ internal class TenantApiEndpointHandler(
         }
 
         var effectiveSettings = await MergeTenantSettingsAsync(
+            tenant.TeamId,
             tenant.TenantId,
             tenant.Settings.Value,
             cancellationToken
@@ -957,8 +984,8 @@ internal class TenantApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var tenantSettings = await store.GetSettingsOrDefaultAsync(tenantId, cancellationToken);
-        if (tenantSettings is null)
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
         {
             return TypedResults.NotFound();
         }
@@ -970,12 +997,17 @@ internal class TenantApiEndpointHandler(
         // See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            tenantSettings.Value,
+            tenant.Settings.Value,
             node,
             Operations.Read,
             async (settings, token) =>
             {
-                var effectiveSettings = await MergeTenantSettingsAsync(tenantId, settings, token);
+                var effectiveSettings = await MergeTenantSettingsAsync(
+                    tenant.TeamId,
+                    tenantId,
+                    settings,
+                    token
+                );
                 return ToTenantEffectiveSettingsResource(tenantId, effectiveSettings);
             },
             cancellationToken
@@ -983,28 +1015,31 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Merges a tenant's persisted settings onto the server's effective settings through the
+    /// Merges a tenant's persisted settings onto its team's effective settings through the
     /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
     /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
     /// tenant selects. A document that cannot be honored fails naming the tenant.
     /// </summary>
+    /// <param name="teamId">The identifier of the team that owns the tenant.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings document.</param>
     /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
-    /// <exception cref="UnreadableSettingsException">The tenant's document, or the server's, cannot be honored.</exception>
+    /// <exception cref="UnreadableSettingsException">The tenant's document, or its team's, cannot be honored.</exception>
     // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
+        string teamId,
         string tenantId,
         JsonElement tenantSettings,
         CancellationToken cancellationToken
     )
     {
-        var serverEffective = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var teamEffective = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
             cancellationToken
         );
         return EffectiveSettingsResolver.ResolveStored(
-            serverEffective,
+            teamEffective,
             OpenIdSettingScopes.Tenant,
             tenantId,
             tenantSettings
@@ -1017,6 +1052,7 @@ internal class TenantApiEndpointHandler(
     /// change leaves the effective value of every setting a rule reads unchanged. When the replaced document cannot be
     /// honored, no client is checked, because none was coherent under it.
     /// </summary>
+    /// <param name="teamId">The identifier of the team that owns the tenant.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
     /// <param name="currentSettings">The tenant's current settings document.</param>
     /// <param name="newSettings">The tenant's new settings document.</param>
@@ -1026,6 +1062,7 @@ internal class TenantApiEndpointHandler(
     /// an empty list.</returns>
     // See ADR-1206 and ADR-1241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
+        string teamId,
         string tenantId,
         JsonElement currentSettings,
         JsonElement newSettings,
@@ -1033,11 +1070,12 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
             cancellationToken
         );
         var newEffective = EffectiveSettingsResolver.Resolve(
-            serverSettings,
+            teamSettings,
             OpenIdSettingScopes.Tenant,
             newSettings
         );
@@ -1046,7 +1084,7 @@ internal class TenantApiEndpointHandler(
         try
         {
             currentEffective = EffectiveSettingsResolver.Resolve(
-                serverSettings,
+                teamSettings,
                 OpenIdSettingScopes.Tenant,
                 currentSettings
             );
@@ -1147,7 +1185,14 @@ internal class TenantApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         var coherenceErrors = await ValidateClientCoherenceAsync(
+            tenant.TeamId,
             tenantId,
             tenantSettings.Value,
             settingsValue,

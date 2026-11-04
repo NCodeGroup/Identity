@@ -97,6 +97,7 @@ internal sealed class BootstrapAdminSeedHandler(
             // to authenticate. Its form follows the method the client is registered for, which an operator may set to
             // another method than the seeded one (ADR-1391).
             var tokenEndpointAuthMethod = await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
+                context.Tenant.TeamId,
                 tenantId,
                 context.Tenant.Settings.Value,
                 existing.ClientId,

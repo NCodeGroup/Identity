@@ -41,11 +41,12 @@ internal sealed class SeededLocalAccountValidator(
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            tenant.TeamId,
             cancellationToken
         );
         var tenantSettings = EffectiveSettingsResolver.Resolve(
-            serverSettings,
+            teamSettings,
             OpenIdSettingScopes.Tenant,
             tenant.Settings.Value
         );

@@ -874,11 +874,12 @@ internal class LocalAccountApiEndpointHandler(
             };
         }
 
-        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            tenant.TeamId,
             cancellationToken
         );
         var tenantSettings = EffectiveSettingsResolver.ResolveStored(
-            serverSettings,
+            teamSettings,
             OpenIdSettingScopes.Tenant,
             tenantId,
             tenant.Settings.Value

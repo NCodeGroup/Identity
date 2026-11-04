@@ -82,7 +82,7 @@ public class SeededClientValidatorTests : BaseTests
         var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(server)
             .Verifiable();
         MockEffectiveSettingsResolver

@@ -353,6 +353,19 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Value = EmptyObject(),
         };
 
+    private static PersistedTenant CreateTenant() =>
+        new()
+        {
+            TenantId = TenantId,
+            TeamId = "platform",
+            ConcurrencyToken = "tenant-ct",
+            Issuer = null,
+            IsDisabled = false,
+            DisplayName = TenantId,
+            Settings = CreateTenantSettings(),
+            Secrets = null!,
+        };
+
     private static PersistedClientSecrets CreateSecretsCollection(
         string concurrencyToken,
         params PersistedSecret[] secrets
@@ -556,6 +569,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockClientSecretIssuer
             .Setup(x =>
                 x.GetTokenEndpointAuthMethodAsync(
+                    "platform",
                     TenantId,
                     It.Is<JsonElement?>(settings => settings.HasValue),
                     "generated-id",
@@ -800,7 +814,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             OpenIdSettingNames.RedirectUriKindsSupported
         );
         SetupAuthorization(AuthorizationResult.Success());
-        var tenantSettings = SetupIncoherentClientsStore(CreateTenantSettings());
+        var tenantSettings = SetupIncoherentClientsStore(CreateTenant());
         Assert.NotNull(tenantSettings);
         MockClientCoherenceReporter
             .Setup(x =>
@@ -854,7 +868,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         const string reason = "the document cannot be honored";
         SetupAuthorization(AuthorizationResult.Success());
-        var tenantSettings = SetupIncoherentClientsStore(CreateTenantSettings());
+        var tenantSettings = SetupIncoherentClientsStore(CreateTenant());
         Assert.NotNull(tenantSettings);
         MockClientCoherenceReporter
             .Setup(x =>
@@ -945,9 +959,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     // Returns the tenant's effective settings that the reporter receives, or null when the tenant has no settings.
-    private IReadOnlySettingCollection? SetupIncoherentClientsStore(
-        PersistedTenantSettings? tenantSettings
-    )
+    private IReadOnlySettingCollection? SetupIncoherentClientsStore(PersistedTenant? tenant)
     {
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
@@ -959,11 +971,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(tenantSettings)
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenant)
             .Verifiable();
 
-        return tenantSettings is null ? null : SetupTenantEffectiveSettings();
+        return tenant is null ? null : SetupTenantEffectiveSettings();
     }
 
     #endregion
@@ -1080,8 +1092,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenantSettings())
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant())
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
@@ -1214,12 +1226,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenantSettings())
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant())
             .Verifiable();
         MockClientSecretIssuer
             .Setup(x =>
                 x.GetTokenEndpointAuthMethodAsync(
+                    "platform",
                     TenantId,
                     It.Is<JsonElement?>(settings => settings.HasValue),
                     ClientId,
@@ -1250,17 +1263,17 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     private IReadOnlySettingCollection SetupTenantEffectiveSettings()
     {
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.IsAny<JsonElement>()
@@ -1534,12 +1547,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenantSettings())
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant())
             .Verifiable();
         MockClientSecretIssuer
             .Setup(x =>
                 x.GetTokenEndpointAuthMethodAsync(
+                    "platform",
                     TenantId,
                     It.Is<JsonElement?>(settings => settings.HasValue),
                     ClientId,
@@ -1548,7 +1562,14 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 )
             )
             .ReturnsAsync(
-                (string _, JsonElement? _, string _, JsonElement settings, CancellationToken _) =>
+                (
+                    string _,
+                    string _,
+                    JsonElement? _,
+                    string _,
+                    JsonElement settings,
+                    CancellationToken _
+                ) =>
                     settings.TryGetProperty(
                         OpenIdSettingNames.TokenEndpointAuthMethod,
                         out var method
@@ -1831,8 +1852,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenantSettings())
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant())
             .Verifiable();
         var tenantSettings = SetupTenantEffectiveSettings();
         MockClientCoherenceValidator

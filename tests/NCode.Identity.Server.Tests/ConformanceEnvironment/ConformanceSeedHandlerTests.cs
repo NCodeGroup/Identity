@@ -138,7 +138,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockCollection.Object)
             .Verifiable();
         mockResolver
@@ -169,7 +169,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockCollection.Object)
             .Verifiable();
         mockResolver

@@ -494,15 +494,25 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns(mockTenantStore.Object)
             .Verifiable();
         mockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
-                new PersistedTenantSettings
+                new PersistedTenant
                 {
                     TenantId = TenantId,
+                    TeamId = "platform",
                     ConcurrencyToken = "tenant-ct",
-                    Value = JsonSerializer.SerializeToElement(
-                        new Dictionary<string, object> { ["scope"] = "tenant" }
-                    ),
+                    Issuer = null,
+                    IsDisabled = false,
+                    DisplayName = TenantId,
+                    Settings = new PersistedTenantSettings
+                    {
+                        TenantId = TenantId,
+                        ConcurrencyToken = "tenant-ct",
+                        Value = JsonSerializer.SerializeToElement(
+                            new Dictionary<string, object> { ["scope"] = "tenant" }
+                        ),
+                    },
+                    Secrets = null!,
                 }
             )
             .Verifiable();
@@ -593,17 +603,17 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetEnumerator())
             .Returns(() => effectiveScopeSettings.GetEnumerator());
 
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.IsAny<JsonElement>()

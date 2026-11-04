@@ -38,7 +38,7 @@ public static class CwtClaimKeys
     public const long NotBefore = 5;
 
     /// <summary>
-    /// The <c>iat</c> claim, the time the token was issued.
+    /// The <c>iat</c> claim, the time at which the token is issued.
     /// </summary>
     public const long IssuedAt = 6;
 

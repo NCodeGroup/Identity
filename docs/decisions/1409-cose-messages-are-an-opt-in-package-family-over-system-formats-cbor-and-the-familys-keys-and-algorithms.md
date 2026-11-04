@@ -69,8 +69,8 @@ of the JOSE stack and the keys of the family.
 
 5. **Header rules.** A header value is an encoded CBOR item (`CoseValue`) under an integer or text `CoseLabel`, in a
    protected and an unprotected bucket, and a label in both buckets is refused. The known parameters have their defined
-   shapes. `crit` must be protected, non-empty and list protected labels, and a label the verifier neither knows nor
-   was told to understand refuses the message. `Partial IV` is refused, because it needs a Base IV that the family's
+   shapes. `crit` must be protected, non-empty and list protected labels, and a label that neither the library nor
+   the caller's understood list names refuses the message. `Partial IV` is refused, because it needs a Base IV that the family's
    keys do not carry. The algorithm of a body or a signature must be in the protected bucket and is checked against the
    caller's permitted list before the catalog is consulted and before any key is selected. The protected bucket of a
    recipient is empty, a recipient carrying recipients of its own is refused, and a `COSE_Sign` body carries no

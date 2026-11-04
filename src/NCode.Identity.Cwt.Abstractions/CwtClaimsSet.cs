@@ -8,7 +8,7 @@ namespace NCode.Identity.Cwt;
 
 /// <summary>
 /// The claims set of a CBOR Web Token (CWT) with the registered claims read into typed members. Every claim, typed or
-/// not, is also available in <see cref="Claims"/> as it was received.
+/// not, is also available in <see cref="Claims"/> as received.
 /// </summary>
 // See ADR-1410.
 [PublicAPI]

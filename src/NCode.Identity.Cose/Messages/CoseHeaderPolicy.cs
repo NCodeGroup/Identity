@@ -30,7 +30,7 @@ internal static class CoseHeaderPolicy
         new(CoseFailureCodes.InvalidHeader, message);
 
     /// <summary>
-    /// Checks the two buckets of a layer that was received: disjoint, known parameters of their defined shapes, a
+    /// Checks the two buckets of a received layer: disjoint, known parameters of their defined shapes, a
     /// <c>crit</c> parameter that is protected and lists protected parameters, and no <c>Partial IV</c>.
     /// </summary>
     public static void ValidateRead(

@@ -684,6 +684,59 @@ public class TeamManagementTests
             Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
     }
 
+    [Fact]
+    public async Task DisableTeam_KeepsItsTenantsManageable()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(client, "umbrella", new { });
+        await CreateTenantAsync(client, "umbrella", "umbrella-dev");
+        var (clientId, _) = await CreateSecretClientAsync(client, "umbrella-dev");
+
+        await SetTeamDisabledAsync(client, "umbrella", isDisabled: true);
+
+        using (var silenced = await GetDiscoveryAsync(client, "umbrella-dev"))
+            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+
+        using (
+            var effective = await client.GetAsync("/api/tenants/umbrella-dev/effective-settings")
+        )
+            Assert.Equal(HttpStatusCode.OK, effective.StatusCode);
+
+        using (var clients = await client.GetAsync("/api/tenants/umbrella-dev/clients"))
+        {
+            var clientsBody = await clients.Content.ReadAsStringAsync();
+            Assert.True(clients.StatusCode == HttpStatusCode.OK, clientsBody);
+            var ids = JsonElement
+                .Parse(clientsBody)
+                .GetProperty("items")
+                .EnumerateArray()
+                .Select(item => item.GetProperty("clientId").GetString())
+                .ToList();
+            Assert.Contains(clientId, ids);
+        }
+
+        // PatchAsync asserts 204 No Content.
+        await PatchAsync(
+            client,
+            "/api/tenants/umbrella-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
+                    value = new[] { "RS256" },
+                },
+            }
+        );
+
+        await SetTeamDisabledAsync(client, "umbrella", isDisabled: false);
+
+        using (var restored = await GetDiscoveryAsync(client, "umbrella-dev"))
+            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+    }
+
     #endregion
 
     #region CreateTenant Tests

@@ -7,10 +7,12 @@
 # previous response's 'continuationToken' back as '?cursor=' to fetch the next page. A null
 # 'continuationToken' means there are no more pages.
 #
-# Authorization: every build enforces authentication. The platform, team and tenant endpoints
-# require a GlobalAdmin token; the client endpoints take a GlobalAdmin/TenantAdmin token for the
-# request's tenant. Obtain one by exchanging the configuration-seeded bootstrap administrator
-# credential at the token endpoint (see ADR-1044).
+# Authorization: every build enforces authentication. Platform and team administration and the
+# cross-team tenant list require a GlobalAdmin token. Creating a tenant and previewing a new
+# tenant's address need create authority on the team (TeamAdmin or GlobalAdmin). The per-tenant
+# endpoints need authority on that tenant: an assignment at it, its team or the platform, or a
+# TenantAdmin/GlobalAdmin token for the request's tenant. Obtain a token by exchanging the
+# configuration-seeded bootstrap administrator credential at the token endpoint (see ADR-1044).
 #
 # First-run bootstrap: the platform and the static-single tenant are provisioned LAZILY by the
 # OpenID runtime on first resolution, not at startup and not by these management endpoints (the list
@@ -63,7 +65,11 @@ GET {{host}}/api/tenants?limit=50
 Accept: application/json
 
 ### Preview a new tenant's address — the issuer it would be created with, whether the name is taken, and every
-### reason it could not be served there (add &issuer=... to check an explicit issuer instead of the derived one)
+### reason it could not be served there (add ?issuer=... to check an explicit issuer instead of the derived one)
+GET {{host}}/api/teams/platform/tenants/acme-dev/address
+Accept: application/json
+
+### Preview an existing tenant's address — the issuer it has, or would have with a proposed ?issuer=...; 404 when the tenant does not exist
 GET {{host}}/api/tenants/acme-dev/address
 Accept: application/json
 

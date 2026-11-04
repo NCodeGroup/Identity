@@ -38,6 +38,7 @@ public static class IdentityServerBuilderExtensions
             StringComparer.OrdinalIgnoreCase,
             nameof(OpenIdOptions.Platform),
             nameof(OpenIdOptions.Tenant),
+            nameof(OpenIdOptions.Team),
             TenantResolutionSubsection,
             MutualTlsSubsection,
             ClientCertificateRevocationOptions.SectionName,
@@ -55,13 +56,15 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds eleven subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds twelve subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Platform</c> — <see cref="OpenIdPlatformOptions"/>, including the platform's
         /// <c>Settings</c>.</description></item>
         /// <item><description><c>Tenant</c> — <see cref="OpenIdTenantOptions"/>: how a resolved tenant is
         /// materialized and cached, and which keys every tenant is provisioned with.</description></item>
-        /// <item><description><c>TenantResolution</c> — <see cref="TenantResolutionOptions"/>: which tenant a request
+        /// <item><description><c>Team</c> — <see cref="OpenIdTeamOptions"/>: how a team is materialized and cached, and
+        /// how long one replica holds the right to reconcile a team's settings.</description></item>
+        /// <item><description><c>TenantResolution</c> —<see cref="TenantResolutionOptions"/>: which tenant a request
         /// selects, and the route the tenant is served under.</description></item>
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
@@ -120,6 +123,7 @@ public static class IdentityServerBuilderExtensions
                 nameof(OpenIdPlatformOptions.Settings)
             );
             var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
+            var teamSection = openIdSection.GetSection(nameof(OpenIdOptions.Team));
             var tenantResolutionSection = openIdSection.GetSection(TenantResolutionSubsection);
             var mutualTlsSection = openIdSection.GetSection(MutualTlsSubsection);
             var clientCertificateRevocationSection = openIdSection.GetSection(
@@ -152,6 +156,7 @@ public static class IdentityServerBuilderExtensions
                     ThrowOnUnknownSubsection(openIdSection);
                     platformSection.BindStrictly(options.Platform);
                     tenantSection.BindStrictly(options.Tenant);
+                    teamSection.BindStrictly(options.Team);
 
                     // The binder only assigns the settings section when the platform section has keys; assign it
                     // regardless so settings added by a later configuration reload are still observed.

@@ -30,6 +30,11 @@ public sealed class OpenIdOptions
     public OpenIdTenantOptions Tenant { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the configurable options for team features.
+    /// </summary>
+    public OpenIdTeamOptions Team { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets a delegate that extracts a <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.
     /// </summary>
     public GetSubjectIdentityDelegate GetSubjectIdentity { get; set; } =

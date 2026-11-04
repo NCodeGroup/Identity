@@ -74,3 +74,13 @@ virtual NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantFactory.GetTenantSecret
 virtual NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantFactory.GetTenantSettingsAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! persistedTenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.Settings.IReadOnlySettingCollectionProvider!>>
 NCode.Identity.OpenId.OpenIdTenantKeyOptions.Curve.get -> string?
 NCode.Identity.OpenId.OpenIdTenantKeyOptions.Curve.set -> void
+NCode.Identity.OpenId.OpenIdOptions.Team.get -> NCode.Identity.OpenId.OpenIdTeamOptions!
+NCode.Identity.OpenId.OpenIdOptions.Team.set -> void
+NCode.Identity.OpenId.OpenIdTeamOptions
+NCode.Identity.OpenId.OpenIdTeamOptions.OpenIdTeamOptions() -> void
+NCode.Identity.OpenId.OpenIdTeamOptions.ReconciliationLeaseDuration.get -> System.TimeSpan
+NCode.Identity.OpenId.OpenIdTeamOptions.ReconciliationLeaseDuration.set -> void
+NCode.Identity.OpenId.OpenIdTeamOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan
+NCode.Identity.OpenId.OpenIdTeamOptions.SettingsPeriodicRefreshInterval.set -> void
+NCode.Identity.OpenId.OpenIdTeamOptions.TeamCacheLifetime.get -> System.TimeSpan
+NCode.Identity.OpenId.OpenIdTeamOptions.TeamCacheLifetime.set -> void

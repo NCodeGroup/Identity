@@ -43,6 +43,22 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
         );
     }
 
+    [Theory]
+    [InlineData(nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval))]
+    [InlineData(nameof(OpenIdTeamOptions.TeamCacheLifetime))]
+    [InlineData(nameof(OpenIdTeamOptions.ReconciliationLeaseDuration))]
+    public void Validate_WhenATeamIntervalIsNegative_FailsNamingItsKey(string member)
+    {
+        var team = new OpenIdTeamOptions();
+        typeof(OpenIdTeamOptions).GetProperty(member)!.SetValue(team, TimeSpan.FromMinutes(-1));
+        var options = new OpenIdOptions { Team = team };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains($"'Team:{member}'", result.FailureMessage, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Validate_WhenTwoIntervalsAreNegative_ReportsBoth()
     {

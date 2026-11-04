@@ -27,6 +27,16 @@ internal static class DefaultRegistration
         {
             builder.ServiceCollection.TryAddScoped<ITeamProvisioner, DefaultTeamProvisioner>();
 
+            builder.ServiceCollection.TryAddSingleton<
+                IOpenIdTeamFactory,
+                DefaultOpenIdTeamFactory
+            >();
+            builder.ServiceCollection.TryAddSingleton<IOpenIdTeamCache, DefaultOpenIdTeamCache>();
+            builder.ServiceCollection.TryAddSingleton<
+                IOpenIdTeamProvider,
+                DefaultOpenIdTeamProvider
+            >();
+
             // The settings that govern a team are contributed as descriptors.
             builder.ServiceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

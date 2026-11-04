@@ -979,3 +979,21 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
 NCode.Identity.OpenId.Teams.ITeamProvisioner
 NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTenants = "max_tenants" -> string!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisplayName.get -> string!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.IsDisabled.get -> bool
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.ClearAsync(NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.RemoveAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.SetAsync(string! teamId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!> team, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.TryGetAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!>>
+NCode.Identity.OpenId.Teams.IOpenIdTeamFactory
+NCode.Identity.OpenId.Teams.IOpenIdTeamFactory.CreateTeamAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! persistedTeam, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!>>
+NCode.Identity.OpenId.Teams.IOpenIdTeamProvider
+NCode.Identity.OpenId.Teams.IOpenIdTeamProvider.GetTeamAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!>>
+NCode.Identity.OpenId.Teams.OpenIdTeam
+NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsync() -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.OpenIdTeam.OpenIdTeam() -> void

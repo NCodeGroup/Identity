@@ -44,6 +44,24 @@ internal sealed class OpenIdIntervalsOptionsValidator : IValidateOptions<OpenIdO
             nameof(OpenIdTenantOptions.TenantCacheLifetime),
             options.Tenant.TenantCacheLifetime
         );
+        Check(
+            failures,
+            nameof(OpenIdOptions.Team),
+            nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval),
+            options.Team.SettingsPeriodicRefreshInterval
+        );
+        Check(
+            failures,
+            nameof(OpenIdOptions.Team),
+            nameof(OpenIdTeamOptions.TeamCacheLifetime),
+            options.Team.TeamCacheLifetime
+        );
+        Check(
+            failures,
+            nameof(OpenIdOptions.Team),
+            nameof(OpenIdTeamOptions.ReconciliationLeaseDuration),
+            options.Team.ReconciliationLeaseDuration
+        );
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success

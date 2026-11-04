@@ -125,7 +125,7 @@ Each module below exercises OP behavior that a specification requires; the OP be
     - The ID token carries the standard `azp` and never the `tid` or `client_id` claims, which are JWT **access-token**
       claims (RFC 9068 §2.2) (`DefaultGetIdTokenPayloadClaimsHandler`).
 - **`acr` emission (`oidcc-ensure-request-with-acr-values-succeeds`)** — the conformance environment advertises
-  `acr_values_supported` and sets a `default_acr` baseline (server settings in `appsettings.Conformance.json`), so the
+  `acr_values_supported` and sets a `default_acr` baseline (platform settings in `appsettings.Conformance.json`), so the
   password login's resolved `acr` ([ADR-1091](../decisions/1091-acr-emission-and-conditional-auth-time.md)) is emitted
   and matches the suite's requested `acr_values`.
 - **UserInfo access token in the POST body (`oidcc-userinfo-post-body`)** — `DefaultAuthenticateSubjectHandler` accepts

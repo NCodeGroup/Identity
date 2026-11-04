@@ -73,7 +73,7 @@ flowchart TB
         REC["<b>Recovery key</b><br/>RSA ≥ 3072, private half offline"]
     end
     subgraph DB["🛢️ Database: MasterKeys table"]
-        MKS["<b>Server master key</b><br/>AES-256, versioned"]
+        MKS["<b>Platform master key</b><br/>AES-256, versioned"]
         MKA["<b>Tenant A master key</b>"]
         MKB["<b>Tenant B master key</b>"]
     end
@@ -92,7 +92,7 @@ flowchart TB
 
 1. The **root key** wraps master keys. It sits in AWS KMS, Azure Key Vault, Google Cloud KMS or a mounted key file,
    and the server only ever asks it to *wrap* or *unwrap* a key.
-2. Each **owner** (the server, and every tenant) has its own 256-bit **master key**. It is stored in the database,
+2. Each **owner** (the platform, and every tenant) has its own 256-bit **master key**. It is stored in the database,
    wrapped by the root key, and optionally wrapped a second time by an offline recovery key.
 3. **Purpose keys** are derived from a master key for each kind of data (`persisted-secret`, `grant-payload`,
    `data-protection-key-ring`, …). They are derived on demand and never stored.
@@ -103,12 +103,12 @@ flowchart TB
 
 | Data                                                                                    | Owner                | At rest                                                                                                    |
 | --------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Server and tenant **private signing and encryption keys**                               | Server / tenant      | `nce1.` envelope                                                                                           |
+| Tenant **private signing and encryption keys**                                      | Tenant               | `nce1.` envelope                                                                                           |
 | **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
 | **Client secrets** of a client that uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope |
 | **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
-| ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Server               | Each key in an `nce1.` envelope                                                                            |
-| Your own application's sensitive data                                                   | Server / tenant      | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
+| ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Platform             | Each key in an `nce1.` envelope                                                                            |
+| Your own application's sensitive data                                                   | Platform / tenant    | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
 | **Public keys** (`spki`, `x509`)                                                        | n/a                  | Clear text, by design: they are public                                                                     |
 | Local-account **passwords**                                                             | n/a                  | Never encrypted: hashed one way with PBKDF2-HMAC-SHA256, so nothing can recover them                       |
 
@@ -155,7 +155,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **Sign and decrypt everything inside the KMS.** This is the strongest option against a compromised replica, but it
   adds latency and a fee to every token. It is planned as an opt-in for signing keys
   ([#165](https://github.com/NCodeGroup/Identity/issues/165)).
-- **A server key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
+- **A platform key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
   anyway, and it would block per-tenant root keys (bring your own key) later.
 
 Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
@@ -294,7 +294,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
   Shamir tool. The server refuses a PEM that contains a private key.
 - **Or opt out explicitly.** `SecretProtection:Recovery:Disabled=true` records that losing the root key loses every
   stored secret. In Production, the server won't start until you've chosen one or the other.
-- **Data Protection key ring gate.** If the server's master key can't decrypt a live key in the Data Protection key
+- **Data Protection key ring gate.** If the platform's master key can't decrypt a live key in the Data Protection key
   ring (for example after a partial restore), the host **stops** instead of silently signing everyone out. The error
   names each affected key, and one setting revokes them
   ([ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).

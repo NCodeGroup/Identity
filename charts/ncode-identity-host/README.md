@@ -292,7 +292,7 @@ credentials itself, leave `provider` empty: the chart then sets only the key nam
 ### A key the master key cannot decrypt
 
 The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not
-expired, that the server's master key cannot decrypt, and it names each such key in the error
+expired, that the platform's master key cannot decrypt, and it names each such key in the error
 ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
 master key rows are lost or recreated while the key ring survives, such as after restoring part of a backup.
 

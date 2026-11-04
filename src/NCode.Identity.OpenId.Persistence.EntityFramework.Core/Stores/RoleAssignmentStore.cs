@@ -170,8 +170,12 @@ internal class RoleAssignmentStore(
     )
     {
         var normalizedPrincipalId = Normalize(principalId);
+
+        // Authority is inherited across tenants, so a principal's assignments are read wherever they are stored.
+        // See ADR-1403
         var entities = await DbContext
-            .RoleAssignments.Include(entity => entity.Tenant)
+            .RoleAssignments.IgnoreQueryFilters()
+            .Include(entity => entity.Tenant)
             .Where(entity => entity.NormalizedPrincipalId == normalizedPrincipalId)
             .ToListAsync(cancellationToken);
 

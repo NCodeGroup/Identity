@@ -6,6 +6,7 @@ using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -15,6 +16,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string Subject = "subject-1";
 
+    private readonly SwitchableAmbientTenantAccessor _ambient = new();
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;
     private readonly TenantStore _tenantStore;
@@ -23,6 +25,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     public RoleAssignmentStoreTests()
     {
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IAmbientTenantAccessor>(_ambient);
         serviceCollection.AddTestOpenIdDbContext(options =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
         );
@@ -166,6 +169,40 @@ public sealed class RoleAssignmentStoreTests : IDisposable
         Assert.All(forPrincipal, assignment => Assert.Equal(Subject, assignment.PrincipalId));
     }
 
+    // See ADR-1403
+    [Fact]
+    public async Task GetByPrincipalAsync_ReadsAssignmentsOfEveryTenant()
+    {
+        await SeedTenantAsync();
+        _dbContext.SeedTenant(_provider.GetRequiredService<IIdGenerator<long>>(), "tenant-2");
+
+        await _store.AddAsync(
+            CreateAssignment("assign-1", Subject, "Owner", "client", "client-1"),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            new PersistedRoleAssignment
+            {
+                TenantId = "tenant-2",
+                AssignmentId = "assign-2",
+                PrincipalId = Subject,
+                RoleName = "TeamAdmin",
+                ResourceType = "team",
+                ResourceId = "platform",
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+
+        using var scope = _ambient.BeginScope("tenant-2");
+        var forPrincipal = await _store.GetByPrincipalAsync(Subject, CancellationToken.None);
+
+        Assert.Equal(2, forPrincipal.Count);
+        Assert.Contains(forPrincipal, assignment => assignment.TenantId == TenantId);
+        Assert.Contains(forPrincipal, assignment => assignment.TenantId == "tenant-2");
+    }
+
     [Fact]
     public async Task RemoveAsync_WhenAssignmentExists_RemovesIt()
     {
@@ -182,5 +219,26 @@ public sealed class RoleAssignmentStoreTests : IDisposable
 
         var loaded = await _store.GetOrDefaultAsync("assign-1", CancellationToken.None);
         Assert.Null(loaded);
+    }
+}
+
+/// <summary>
+/// An ambient tenant accessor whose scope a test begins and ends, so the tenant-scoping query filter applies.
+/// </summary>
+internal sealed class SwitchableAmbientTenantAccessor : IAmbientTenantAccessor
+{
+    public string? TenantId { get; private set; }
+
+    public bool IsScoped => TenantId is not null;
+
+    public IDisposable BeginScope(string tenantId)
+    {
+        TenantId = tenantId;
+        return new Scope(this);
+    }
+
+    private sealed class Scope(SwitchableAmbientTenantAccessor accessor) : IDisposable
+    {
+        public void Dispose() => accessor.TenantId = null;
     }
 }

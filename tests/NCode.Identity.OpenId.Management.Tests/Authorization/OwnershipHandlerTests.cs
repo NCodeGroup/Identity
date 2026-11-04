@@ -4,11 +4,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
@@ -21,7 +21,7 @@ public class OwnershipHandlerTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
-    private const string RootTenantId = "root";
+    private const string TeamId = "team-1";
     private const string TenantId = "tenant-1";
     private const string Subject = "subject-1";
 
@@ -51,6 +51,29 @@ public class OwnershipHandlerTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
+    private static PersistedTenant CreateTenant(string teamId) =>
+        new()
+        {
+            TenantId = TenantId,
+            TeamId = teamId,
+            ConcurrencyToken = string.Empty,
+            Issuer = null,
+            IsDisabled = false,
+            DisplayName = TenantId,
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = string.Empty,
+                Value = default,
+            },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
     // A requirement the handler does not decide reads nothing, and a caller without a principal reads no assignments.
     private async Task<bool> HandleAsync(
         IAuthorizationRequirement requirement,
@@ -58,25 +81,32 @@ public class OwnershipHandlerTests : IDisposable
         ClaimsPrincipal user,
         PersistedRoleAssignment[] assignments,
         bool decides = true,
-        bool readsAssignments = true
+        bool readsAssignments = true,
+        string? tenantTeamId = TeamId
     )
     {
         var factory = MockRepository.Create<IStoreManagerFactory>();
         var resolver = MockRepository.Create<IPrincipalResolver>();
         var accessor = MockRepository.Create<IHttpContextAccessor>();
+        var ambient = MockRepository.Create<IAmbientTenantAccessor>();
         if (decides)
         {
-            SetupDecision(factory, resolver, accessor, assignments, readsAssignments);
+            SetupDecision(
+                factory,
+                resolver,
+                accessor,
+                ambient,
+                assignments,
+                readsAssignments,
+                tenantTeamId
+            );
         }
 
-        var options = Options.Create(
-            new TenantResolutionOptions { Root = { TenantId = RootTenantId } }
-        );
         var handler = new OwnershipHandler(
             factory.Object,
             resolver.Object,
             accessor.Object,
-            options
+            ambient.Object
         );
         var context = new AuthorizationHandlerContext([requirement], user, resource);
 
@@ -97,11 +127,18 @@ public class OwnershipHandlerTests : IDisposable
         Mock<IStoreManagerFactory> factory,
         Mock<IPrincipalResolver> resolver,
         Mock<IHttpContextAccessor> accessor,
+        Mock<IAmbientTenantAccessor> ambient,
         PersistedRoleAssignment[] assignments,
-        bool readsAssignments
+        bool readsAssignments,
+        string? tenantTeamId
     )
     {
         var manager = MockRepository.Create<IStoreManager>();
+
+        // The handler reads the principal and the node chain in the request's tenant scope.
+        var scope = MockRepository.Create<IDisposable>();
+        scope.Setup(x => x.Dispose()).Verifiable();
+        ambient.Setup(x => x.BeginScope(TenantId)).Returns(scope.Object).Verifiable();
 
         factory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
@@ -129,6 +166,13 @@ public class OwnershipHandlerTests : IDisposable
             .Verifiable();
         if (readsAssignments)
         {
+            var tenantStore = MockRepository.Create<ITenantStore>();
+            manager.Setup(x => x.GetStore<ITenantStore>()).Returns(tenantStore.Object).Verifiable();
+            tenantStore
+                .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tenantTeamId is null ? null : CreateTenant(tenantTeamId))
+                .Verifiable();
+
             var store = MockRepository.Create<IRoleAssignmentStore>();
             manager
                 .Setup(x => x.GetStore<IRoleAssignmentStore>())
@@ -144,6 +188,9 @@ public class OwnershipHandlerTests : IDisposable
 
         // OwnershipHandler reads the ambient OpenIdContext from the request (the one blessed async-local seam).
         var openIdContext = MockRepository.Create<OpenIdContext>();
+        openIdContext
+            .Setup(x => x.Tenant)
+            .Returns(Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId));
         var feature = MockRepository.Create<IOpenIdContextFeature>();
         feature.Setup(x => x.OpenIdContext).Returns(openIdContext.Object).Verifiable();
         var httpContext = new DefaultHttpContext();
@@ -180,27 +227,66 @@ public class OwnershipHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandleRequirementAsync_WhenAssignmentAtServerRoot_Succeeds()
+    public async Task HandleRequirementAsync_WhenAssignmentAtThePlatformRoot_Succeeds()
     {
         var succeeded = await HandleAsync(
             Operations.Delete,
             ClientNode(),
             CreateSubject(),
-            Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Platform, RootTenantId)
+            Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Platform, "platform")
         );
 
         Assert.True(succeeded);
     }
 
     [Fact]
-    public async Task HandleRequirementAsync_WhenCreateRequirement_DoesNotSucceed()
+    public async Task HandleRequirementAsync_WhenTeamAdminAtTheTenantsTeam_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ClientNode(),
+            CreateSubject(),
+            Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTheTenantIsUnknown_SkipsTheTeamNode()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ClientNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)],
+            tenantTeamId: null
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateRequirementAndTeamAdminAtTheNode_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            ResourceNode.For(TenantId, ResourceNodeTypes.Tenant, TenantId),
+            CreateSubject(),
+            Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Tenant, TenantId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateRequirementAndOwnerAtTheNode_DoesNotSucceed()
     {
         var succeeded = await HandleAsync(
             Operations.Create,
             ClientNode(),
             CreateSubject(),
-            [Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")],
-            decides: false
+            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")
         );
 
         Assert.False(succeeded);

@@ -4,8 +4,10 @@ const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Grant = "
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Tenant = "tenant" -> string!
+const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Team = "team" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.GlobalAdmin = "GlobalAdmin" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.Owner = "Owner" -> string!
+const NCode.Identity.OpenId.Management.BuiltInRoles.TeamAdmin = "TeamAdmin" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.TenantAdmin = "TenantAdmin" -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceNode
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceId.get -> string!

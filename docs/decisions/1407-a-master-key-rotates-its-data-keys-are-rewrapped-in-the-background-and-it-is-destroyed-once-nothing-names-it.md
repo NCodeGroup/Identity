@@ -1,0 +1,143 @@
+# 1407. A master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
+
+- **Status:** Accepted
+- **Date:** 2026-11-04
+- **Deciders:** NCode Group
+- **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
+  versioning of an owner's master keys (an owner's versions rotate and a retired key is destroyed) and decision 13's
+  key cache (cached keys reload after a refresh interval and a destroyed key leaves memory);
+  [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), decision 1's warmup (it loads
+  the retired server keys that a live ring key names);
+  [ADR-1011](1011-secret-management-api.md): key material is immutable, and a rotation rewrites the stored envelope
+  of the same material; [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md):
+  the master key intervals and retentions are configured under `SecretProtection:MasterKeys` and validated when the host
+  starts
+
+## Context
+
+[ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) protects every stored
+secret with a per-value data key, wraps the data key under a master key of the secret's owner (a tenant, or the
+server), and wraps the master key under an external root key. A master key has a version, and the envelope of a value
+names the master key that wraps its data key, but the payload is bound to no master key. NIST SP 800-57 bounds the
+cryptoperiod of a key-encryption key, and Auth0 exposes a rekey operation for the same reason, so the master key of an
+owner has to rotate: on a schedule, on an administrator's request, and without touching a payload.
+
+Rotation has to hold across replicas that share one store and have no leader. A replica caches the unwrapped master keys
+of an owner, a broadcast that tells the others is best effort, a key may be destroyed only when nothing can still need
+it, and the sources of protected values are not a closed list: grants, stored secrets and the Data Protection key ring are
+the family's, and a package protects its own values with `ISecretProtector` too.
+
+## Decision
+
+A master key rotates to a new version, the data keys it wraps are rewrapped under the active key in the background, and
+a retired key is destroyed once a scan finds no value that still names it. The payloads are never read or rewritten.
+
+1. **Rotation retires first, then creates the successor through the ring.** `IMasterKeyManager.RotateAsync(owner)`
+   retires the active row in one unit of work with its concurrency token checked, evicts the owner, and obtains the
+   owner's protector, whose existing creation path stores version `latest + 1` as the active key or adopts the active
+   row that another replica stored first. An owner with no active key receives its next version and reports no retired
+   key. Two concurrent rotations conflict on the token and the second fails with `StoreConcurrencyException`.
+2. **A cached key set is bounded in age.** A ring entry records when it was loaded. A call that finds an entry older than
+   `SecretProtection:MasterKeys:RefreshInterval` (five minutes) reads the active row and the rows of every cached key
+   again, reuses the key material it already holds, makes no new unwrap or root key call, and drops the keys whose rows
+   no longer exist. A lost broadcast therefore delays a replica by at most one interval.
+3. **Rewrap changes the data key's wrap and nothing else.** `ISecretProtector.Rewrap` decodes the envelope, unwraps the
+   data key with the key-encryption key of the master key the envelope names, wraps it under the active master key with
+   a fresh nonce, writes the active key id into the header, and copies the payload nonce, tag and ciphertext unchanged.
+   The result has the length of the input. A value already under the active key is copied. The payload's associated data
+   carries no key id, so the payload stays valid. A failure throws `CryptographicException` that names the owner and the
+   key ids and never material. `ISecretProtectorProvider.TryReadMasterKeyId` exposes the key id of an envelope, which is
+   not secret, without exposing the layout.
+4. **Protected values are found through an open strategy collection.** `IProtectedValueSource` has two members:
+   `RewrapAsync(owner, masterKeyId)` rewraps every value of the source that names the key, and
+   `ReferencesAsync(owner, masterKeyId)` reports whether any value still does. A source ignores an owner it holds
+   nothing for. The family registers three: the stored secrets of a tenant, its clients and its resource servers, or of
+   the server; the grant payloads of a tenant; and the Data Protection key ring of the server. A package that protects
+   its own values registers a source for them ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)): a value
+   that no source reports is not rewrapped and becomes unreadable once its key is destroyed.
+5. **Sources page, rewrap in units of work, and retry.** A source reads its rows in pages of 100 by row id, selects those
+   whose value names the key, obtains one protector per page, rewraps each value and writes the page in one unit of work
+   with each row's token checked. A page that another writer changed is read and rewrapped again, at most three times,
+   then the call fails and the caller retries later. A rewritten row no longer matches, so a retry is idempotent.
+6. **Stored envelopes are rewritten without a schema change.** `ISecretEnvelopeStore` pages the protected values of the
+   secrets of an owner and replaces one, bumping the secrets concurrency token of the record that owns the secret so that
+   every replica reloads its secrets; `IGrantStore` pages and replaces the protected payloads of a tenant's grants.
+   Material stays immutable: the envelope of the same material is replaced.
+7. **Destroy needs a grace, no reference and a switch.** `IMasterKeyManager.DestroyRetiredAsync(owner)` removes each
+   retired row whose `RetiredWhen + RetirementGrace` has passed and that no source reports, each in its own unit of work
+   with its token checked, then evicts the owner and tells the observers. `SecretProtection:MasterKeys:DestroyRetired`
+   set to `false` keeps retired keys for good. The grace (30 days) covers in-flight protectors, replicas that have not
+   reloaded and Data Protection payloads that a key protected just before it expired. A backup keeps its own copies of
+   the destroyed key.
+8. **Data Protection ring keys are never re-encrypted.** `IXmlRepository` stores key elements and never rewrites one.
+   New ring keys use the active server key through the holder. `ServerSecretProtectorLoader` reads the key elements of
+   the ring, keeps every retired server key that a live ring key names (its expiration plus the retirement grace is after
+   now), logs and skips a key that is missing or does not unwrap, so the startup gate of
+   [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md) still reports or revokes that ring
+   key, and publishes the protector to the holder. The warmup, a refresh service every `RefreshInterval` and a handler
+   for the server's broadcast run it. The ring source reports a reference while a live ring key names the key, and
+   always when the ring cannot be read, so the server key is then never destroyed automatically.
+9. **Announcement and rewrap job.** `IMasterKeyChangeObserver` receives a rotation and a destruction after the commit, on
+   a bounded token of its own, and a failing observer is logged and swallowed. The family's observer publishes the owner
+   on the `master-key-changed` channel, which every replica's handler answers by evicting the owner, and after a rotation
+   dispatches a rewrap job delayed by twice the refresh interval, by which time every replica has reloaded. The
+   dispatcher is not durable, so the job only brings the work forward.
+10. **A background pass is the durable path.** `MasterKeyMaintenanceService` waits for the server to materialize and then
+    runs every `MaintenanceInterval` (one day). One replica takes the lease `master-key-maintenance:{serverId}` for half the
+    interval and rotates every active key older than `RotationPeriod` (365 days), then rewraps and destroys for every
+    owner that has retired keys. Each owner runs in its own try block, and the audit event of a change is published after
+    its commit through `PostCommitWork` ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
+    The pass never runs on the dispatcher.
+11. **Options are validated when the host starts.** `SecretProtection:MasterKeys` binds strictly:
+    `RotationPeriod` (at least one day), `RefreshInterval` (one second to one hour), `RetirementGrace` (at least twice
+    `RefreshInterval`), `MaintenanceInterval` (at least one minute and a period a timer accepts) and `DestroyRetired`.
+    Every message names the full key.
+12. **One seam reports and rotates.** `IMasterKeyManager` has `GetStatusAsync`, `RotateAsync`, `RewrapAsync` and
+    `DestroyRetiredAsync`. Its DTOs (`MasterKeyInfo`, `MasterKeyStatus`, `MasterKeyRotation`) carry no wrapped key and no
+    key check.
+13. **The management API reports and rekeys.** `GET` and `POST …/encryption-keys[/rekey]` on a tenant and on a server
+    answer `EncryptionKeysResource` and `EncryptionKeyRotationResource`. The owner must exist (404 otherwise, and a key
+    is never created for an unknown owner), and the caller needs `Read` or `Update` on it. The scope families are
+    `encryption_keys` in the tenant plane and `server_encryption_keys` in the control plane. A rekey that loses a race to
+    another rekey answers 409.
+14. **Master key changes are audit events.** `master_key.rotated` and `master_key.destroyed` belong to the `key` category
+    with the resources `master_key` and the owner. The reason is `requested`, `rotation_period_elapsed` or
+    `unreferenced`; the source is `management` with the administrator for a rekey through the API and `openid` with the
+    system actor for the background pass. No event carries material.
+15. **The console shows both.** A tenant's `encryption-keys` surface and a server's `Encryption keys` tab list the keys
+    and offer a confirmed "Rekey" action. The view shows no material, because the API returns none.
+
+## Options considered
+
+- **One unit of work that retires the old row and inserts the new one.** It depends on the provider issuing the update
+  before the insert under the filtered unique index on active keys, which EF Core does not guarantee. Retire-then-create is
+  correct by construction, reuses the ring's creation race handling, and a crash between the two leaves an owner whose
+  next use creates its key.
+- **Re-encrypting payloads.** A rotation would touch every payload, and the data key's wrap is what the master key
+  protects.
+- **Rewrapping Data Protection ring keys in the database.** `IXmlRepository` never rewrites an element, and editing its
+  table behind it bypasses Data Protection's own cache and format.
+- **Rotating on the Dispatch port alone.** The dispatcher is not durable. The pass under a lease is the durable path and
+  the job only makes it prompt.
+- **Destroying at retirement.** In-flight protectors, replicas that missed a broadcast and cookies protected by a ring key
+  just before it expired still need the key.
+- **A closed list of envelope holders.** Packages protect their own data, so the holders are an open collection.
+- **Snake-case event names.** The audit catalog names events `<resource>.<change>`.
+
+## Consequences
+
+- A rotation does not heal a compromised data key. It protects against later copies of the database under the old master
+  key; the response to a compromised secret is rotating that secret.
+- A backup keeps the retired key it held.
+- A value that no registered source reports is lost when its key is destroyed unless `DestroyRetired` is `false`.
+- The rewrap of a large tenant's grants holds one dispatcher worker for its duration.
+- Status and rekey are audited, and the console shows the same view as the API.
+
+## References
+
+- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)
+- `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyManager.cs`,
+  `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,
+  `src/NCode.Identity.OpenId.Core/SecretProtection/`, `src/NCode.Identity.Server/SecretProtection/`
+- Issue [#171](https://github.com/NCodeGroup/Identity/issues/171)

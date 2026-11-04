@@ -10,7 +10,10 @@
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
   provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`; amended by
   [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): no root key
-  provider is a default, and `ephemeral` is an explicit development opt-in)
+  provider is a default, and `ephemeral` is an explicit development opt-in; amended by
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): an owner's master key rotates, its data keys are rewrapped and a retired key is destroyed, and cached keys
+  reload after a refresh interval; amended by
+  [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery private key unwraps master keys only inside the offline command)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)

@@ -1,6 +1,7 @@
 # 1279. Key wrapping is a secrets abstraction shared by the root and recovery wrappers
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery wrapper still only wraps, and an unwrapper exists only inside the offline command)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
 

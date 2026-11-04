@@ -482,6 +482,31 @@ describes the family as it is rather than its changes
   [#336](https://github.com/NCodeGroup/Identity/issues/336),
   [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 
+- **Selective Disclosure for JWTs (SD-JWT, RFC 9901) is available as the opt-in `NCode.Identity.Jose.SdJwt` package.**
+  `AddSdJwt()`, an extension of `IServiceBuilder<JwtLibrary>`, registers `ISdJwtIssuer`, `ISdJwtHolder` and
+  `ISdJwtVerifier`. The issuer takes a claims object and the JSON Pointers (RFC 6901) of the claims the holder may
+  disclose selectively, object members and array elements at any depth, and moves each into a salted disclosure
+  whose digest it writes in its place, in the object's sorted `_sd` array or as a `{"...": digest}` array element,
+  with decoy digests where asked, the `_sd_alg` algorithm, and the holder's public key in `cnf`; a nested pointer
+  puts the inner digest in the outer disclosure's value. The holder parses the combined format
+  `<Issuer-signed JWT>~<Disclosure 1>~...~<Disclosure N>~[<KB-JWT>]`, resolves each disclosure to the claim it
+  discloses and the disclosure that carries its digest, and presents a chosen subset with the disclosures it depends
+  on, binding the presentation with a `kb+jwt` Key Binding JWT over `iat`, `aud`, `nonce` and the `sd_hash` of the
+  presentation when the verifier supplied an audience and a nonce. The verifier validates the issuer-signed JWT under
+  the caller's `JwtValidationParameters`, resolves the disclosures into the payload, drops the decoys, verifies the
+  Key Binding JWT against the `cnf` key, the verifier's audience and nonce, the presentation's digest and its
+  maximum age, and returns one claims object with every disclosed value in place and the `_sd`, `_sd_alg` and `...`
+  members removed, or the `SdJwtVerificationFailureCodes` code of the rule the presentation failed. The `_sd_alg`
+  hash algorithms (`sha-256`, `sha-384`, `sha-512` built in) and the `cnf` confirmation methods (`jwk` built in) are
+  registered data, and each `cnf` method has exactly one resolver, validated when the verifier is composed. The
+  SD-JWT VC profile, `SdJwtProfiles.SdJwtVc`, types the issuer-signed JWT `dc+sd-jwt`, requires `vct`, keeps
+  `iss`, `nbf`, `exp`, `cnf`, `vct`, `vct#integrity` and `status` in the signed payload, and passes `status`
+  through to the verified claims; an application defines another `SdJwtProfile` as data, whose required claims
+  are protected whether or not it lists them
+  ([#73](https://github.com/NCodeGroup/Identity/issues/73),
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
+  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)).
+
 - **ES256K over secp256k1 is available as the opt-in `NCode.Identity.Jose.Secp256k1` package.** `AddSecp256k1()`, an
   extension of `IServiceBuilder<JoseLibrary>` as `AddEdDsa()` is, registers the secp256k1 curve (`crv` `secp256k1`,
   RFC 8812) in the elliptic-curve catalog, so `ecc` keys on it are generated, imported and published as JSON Web Keys,
@@ -3454,6 +3479,28 @@ describes the family as it is rather than its changes
   the clock skew, whichever is longer, so no token outlives the key that verifies it
   ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)).
+- **An SD-JWT presentation is verified fail-closed under bounded work.** The issuer-signed JWT must be a compact JWS,
+  never a Nested JWT whatever decryption keys the verifier's parameters name, signed with an asymmetric key under
+  signature algorithms the verifier names; every salt comes from the platform's cryptographically secure random
+  number generator and is as long as `SdJwtOptions.SaltSizeBytes` says, at least 128 bits; and a presentation is
+  refused with a machine-readable code when a digest repeats, a disclosure is referenced by nothing or presented
+  twice, a disclosed claim collides with a member already present, a reserved name appears where RFC 9901 forbids
+  it, a disclosure is of the wrong kind for its digest, or a protected claim is disclosed in whole or in part.
+  `iss`, `nbf`, `exp` and `cnf` are protected under every profile and the profile's claims beside them, its required
+  claims included: the issuer never makes one disclosable, and the verifier refuses any digest beneath one, decoy or
+  not, so a withheld `status_list` can never read as an unrevoked credential. A refusal names the rule, never a claim
+  name the holder chose, and never the token: a JWT the validator could not decode is reported by its failure code
+  and fixed text, and a disclosure that repeats a member name is reported as an invalid disclosure. The holder key is
+  read from the signed payload before any disclosure is resolved, so a disclosure never supplies it, and is written at
+  issuance only when its registered key type finds no private member in it; the Key Binding JWT must be typed
+  `kb+jwt`, signed by that key, addressed to the verifier, carry its nonce and the digest of the presentation as
+  received, compared in fixed time, and be no older than the maximum age, and the verifier refuses a
+  `SdJwtKeyBindingRequirement` whose audience or nonce is empty, whose algorithms are unset, whose maximum age is not
+  positive or whose clock skew is negative before it reads the presentation. `SdJwtOptions.MaxDisclosureCount`
+  refuses an over-long presentation before any disclosure is decoded and `MaxNestingDepth` bounds the depth the
+  resolved claims may reach; the issuer refuses claims beyond either limit, and both are validated when the host
+  starts ([#73](https://github.com/NCodeGroup/Identity/issues/73),
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
 
 - **Every development-only convenience is inert unless configured, behind one call.**
   `AddDevelopmentEnvironment(configuration)` registers the developer CORS policy, the developer and conformance seeders,

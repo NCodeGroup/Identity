@@ -59,6 +59,19 @@ public static class JoseTokenTypes
     public const string TokenIntrospectionJwt = "token-introspection+jwt";
 
     /// <summary>
+    /// Specifies that the content is a <c>Key Binding JWT</c> of a Selective Disclosure JWT (<c>kb+jwt</c>).
+    /// https://datatracker.ietf.org/doc/html/rfc9901#section-4.3
+    /// </summary>
+    public const string KeyBindingJwt = "kb+jwt";
+
+    /// <summary>
+    /// Specifies that the content is the issuer-signed JWT of an <c>SD-JWT-based Verifiable Credential</c>
+    /// (<c>dc+sd-jwt</c>).
+    /// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
+    /// </summary>
+    public const string SdJwtVc = "dc+sd-jwt";
+
+    /// <summary>
     /// Normalizes a <c>typ</c> JOSE header value for media-type comparison per <c>RFC 7515</c> §4.1.9: a value that
     /// omits a <c>'/'</c> is treated as if the <c>application/</c> prefix were prepended. The result is not lower-cased
     /// because media-type matching is performed case-insensitively by <see cref="AreSame"/>.

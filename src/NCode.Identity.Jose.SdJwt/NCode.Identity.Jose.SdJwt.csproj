@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.Jose.SdJwt</RootNamespace>
+        <Description>Opt-in Selective Disclosure for JWTs (SD-JWT, RFC 9901) for NCode.Identity.Jose — issuance with salted claim digests and decoys, holder presentation with Key Binding JWTs, verification with recursive disclosure resolution, and the SD-JWT VC profile (dc+sd-jwt, vct, status) as data.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jwt.Abstractions\NCode.Identity.Jwt.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
+        <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Options" />
+        <PackageReference Include="NCode.Base64Url" />
+        <PackageReference Include="NCode.Buffers" />
+    </ItemGroup>
+</Project>

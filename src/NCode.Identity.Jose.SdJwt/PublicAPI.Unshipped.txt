@@ -1,0 +1,175 @@
+#nullable enable
+const NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.DefaultName = "sha-256" -> string!
+const NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.Sha256Name = "sha-256" -> string!
+const NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.Sha384Name = "sha-384" -> string!
+const NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.Sha512Name = "sha-512" -> string!
+const NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.MinimumSaltSizeBytes = 16 -> int
+const NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.Separator = '~' -> char
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.DisclosureLimitExceeded = "disclosure_limit_exceeded" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.DisclosureMismatch = "disclosure_mismatch" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.DuplicateClaim = "duplicate_claim" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.DuplicateDigest = "duplicate_digest" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.DuplicateDisclosure = "duplicate_disclosure" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.HolderKeyNotFound = "holder_key_not_found" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.InvalidDigestStructure = "invalid_digest_structure" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.InvalidDisclosure = "invalid_disclosure" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.InvalidKeyBinding = "invalid_key_binding" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.InvalidNonce = "invalid_nonce" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.InvalidSdHash = "invalid_sd_hash" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.InvalidSdJwt = "invalid_sd_jwt" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.KeyBindingNotFresh = "key_binding_not_fresh" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.KeyBindingRequired = "key_binding_required" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.MissingRequiredClaim = "missing_required_claim" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.NestingLimitExceeded = "nesting_limit_exceeded" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.ProtectedClaimDisclosed = "protected_claim_disclosed" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.ReservedClaimName = "reserved_claim_name" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.UnreferencedDisclosure = "unreferenced_disclosure" -> string!
+const NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm = "unsupported_digest_algorithm" -> string!
+NCode.Identity.Jose.SdJwt.DefaultRegistration
+NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
+NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddSdJwt() -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Jose.SdJwt.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddSdJwt(System.Action<NCode.Identity.Jose.SdJwt.Options.SdJwtOptions!>! configureOptions) -> NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!
+NCode.Identity.Jose.SdJwt.Digests.ISdJwtDigestAlgorithmCatalog
+NCode.Identity.Jose.SdJwt.Digests.ISdJwtDigestAlgorithmCatalog.Algorithms.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm!>!
+NCode.Identity.Jose.SdJwt.Digests.ISdJwtDigestAlgorithmCatalog.TryGet(string! name, out NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm? algorithm) -> bool
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.ComputeDigest(System.ReadOnlySpan<char> value) -> string!
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.DigestSizeBytes.get -> int
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.HashAlgorithmName.get -> System.Security.Cryptography.HashAlgorithmName
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.HashAlgorithmName.init -> void
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.Name.get -> string!
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.Name.init -> void
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm.SdJwtDigestAlgorithm() -> void
+NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms
+NCode.Identity.Jose.SdJwt.DisclosedClaim
+NCode.Identity.Jose.SdJwt.DisclosedClaim.DisclosedClaim(NCode.Identity.Jose.SdJwt.Disclosure! disclosure, string! path, NCode.Identity.Jose.SdJwt.Disclosure? parent) -> void
+NCode.Identity.Jose.SdJwt.DisclosedClaim.Disclosure.get -> NCode.Identity.Jose.SdJwt.Disclosure!
+NCode.Identity.Jose.SdJwt.DisclosedClaim.Parent.get -> NCode.Identity.Jose.SdJwt.Disclosure?
+NCode.Identity.Jose.SdJwt.DisclosedClaim.Path.get -> string!
+NCode.Identity.Jose.SdJwt.Disclosure
+NCode.Identity.Jose.SdJwt.Disclosure.ClaimName.get -> string?
+NCode.Identity.Jose.SdJwt.Disclosure.ComputeDigest(NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm! algorithm) -> string!
+NCode.Identity.Jose.SdJwt.Disclosure.Encoded.get -> string!
+NCode.Identity.Jose.SdJwt.Disclosure.IsArrayElement.get -> bool
+NCode.Identity.Jose.SdJwt.Disclosure.Salt.get -> string!
+NCode.Identity.Jose.SdJwt.Disclosure.Value.get -> System.Text.Json.JsonElement
+NCode.Identity.Jose.SdJwt.Issuance.ISdJwtIssuer
+NCode.Identity.Jose.SdJwt.Issuance.ISdJwtIssuer.Issue(NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions! options) -> NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt!
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.Claims.get -> System.Text.Json.JsonElement
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.Claims.init -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.DecoyDigestCount.get -> int
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.DecoyDigestCount.init -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.DigestAlgorithm.get -> string!
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.DigestAlgorithm.init -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.DisclosablePaths.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.DisclosablePaths.init -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.HolderKey.get -> NCode.Identity.Jwk.JsonWebKey?
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.HolderKey.init -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.Profile.get -> NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile?
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.Profile.init -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.SdJwtIssuanceOptions() -> void
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.SigningCredentials.get -> NCode.Identity.Jose.Credentials.JoseSigningCredentials!
+NCode.Identity.Jose.SdJwt.Issuance.SdJwtIssuanceOptions.SigningCredentials.init -> void
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.MaxDisclosureCount.get -> int
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.MaxDisclosureCount.set -> void
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.MaxNestingDepth.get -> int
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.MaxNestingDepth.set -> void
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.SaltSizeBytes.get -> int
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.SaltSizeBytes.set -> void
+NCode.Identity.Jose.SdJwt.Options.SdJwtOptions.SdJwtOptions() -> void
+NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder
+NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.CreatePresentation(NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions! options) -> string!
+NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.Parse(string! serialized) -> NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt!
+NCode.Identity.Jose.SdJwt.Presentation.ISdJwtHolder.ResolveDisclosures(NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt! sdJwt) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.SdJwt.DisclosedClaim!>!
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.Audience.get -> string!
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.Audience.init -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.Nonce.get -> string!
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.Nonce.init -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.SdJwtKeyBindingOptions() -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.SigningCredentials.get -> NCode.Identity.Jose.Credentials.JoseSigningCredentials!
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions.SigningCredentials.init -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.Disclosures.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Jose.SdJwt.Disclosure!>!
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.Disclosures.init -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.KeyBinding.get -> NCode.Identity.Jose.SdJwt.Presentation.SdJwtKeyBindingOptions?
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.KeyBinding.init -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.SdJwt.get -> NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt!
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.SdJwt.init -> void
+NCode.Identity.Jose.SdJwt.Presentation.SdJwtPresentationOptions.SdJwtPresentationOptions() -> void
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile.Name.get -> string!
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile.ProtectedClaims.get -> System.Collections.Frozen.FrozenSet<string!>!
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile.RequiredClaims.get -> System.Collections.Frozen.FrozenSet<string!>!
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile.SdJwtProfile(string! name, string! tokenType, System.Collections.Generic.IEnumerable<string!>! requiredClaims, System.Collections.Generic.IEnumerable<string!>! protectedClaims) -> void
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile.TokenType.get -> string!
+NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfiles
+NCode.Identity.Jose.SdJwt.SdJwtException
+NCode.Identity.Jose.SdJwt.SdJwtException.FailureCode.get -> string!
+NCode.Identity.Jose.SdJwt.SdJwtException.SdJwtException(string! failureCode, string! message) -> void
+NCode.Identity.Jose.SdJwt.SdJwtException.SdJwtException(string! failureCode, string! message, System.Exception! inner) -> void
+NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt
+NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.Disclosures.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Jose.SdJwt.Disclosure!>
+NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.HasKeyBinding.get -> bool
+NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.IssuerSignedJwt.get -> string!
+NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.KeyBindingJwt.get -> string?
+NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.SelectiveDisclosureJwt(string! issuerSignedJwt, System.Collections.Generic.IEnumerable<NCode.Identity.Jose.SdJwt.Disclosure!>! disclosures, string? keyBindingJwt) -> void
+NCode.Identity.Jose.SdJwt.Verification.IConfirmationKeyResolver
+NCode.Identity.Jose.SdJwt.Verification.IConfirmationKeyResolver.Member.get -> string!
+NCode.Identity.Jose.SdJwt.Verification.IConfirmationKeyResolver.ResolveAsync(System.Text.Json.JsonElement confirmation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Keys.SecretKey?>
+NCode.Identity.Jose.SdJwt.Verification.ISdJwtVerifier
+NCode.Identity.Jose.SdJwt.Verification.ISdJwtVerifier.VerifyAsync(string! presentation, NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult!>
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.HolderKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.HolderKey.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.IssuedAt.get -> System.DateTimeOffset
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.IssuedAt.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.Jwt.get -> NCode.Identity.Jwt.DecodedJwt!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.Jwt.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.Nonce.get -> string!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.Nonce.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding.SdJwtKeyBinding() -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.Audience.get -> string!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.Audience.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.ClockSkew.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.MaxAge.get -> System.TimeSpan
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.MaxAge.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.Nonce.get -> string!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.Nonce.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.SdJwtKeyBindingRequirement() -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.ValidSignatureAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement.ValidSignatureAlgorithms.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationFailureCodes
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.IssuerJwtParameters.get -> NCode.Identity.Jwt.Validation.JwtValidationParameters!
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.IssuerJwtParameters.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.KeyBinding.get -> NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBindingRequirement?
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.KeyBinding.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.Profile.get -> NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile?
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.Profile.init -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationParameters.SdJwtVerificationParameters() -> void
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.Claims.get -> System.Text.Json.JsonElement
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.Disclosures.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Jose.SdJwt.DisclosedClaim!>
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.FailureCode.get -> string?
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.FailureReason.get -> string?
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.IssuerJwt.get -> NCode.Identity.Jwt.DecodedJwt?
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.IsValid.get -> bool
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.KeyBinding.get -> NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding?
+NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.SdJwt.get -> NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt?
+override NCode.Identity.Jose.SdJwt.Disclosure.ToString() -> string!
+override NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt.ToString() -> string!
+static NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.Sha256.get -> NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm!
+static NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.Sha384.get -> NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm!
+static NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithms.Sha512.get -> NCode.Identity.Jose.SdJwt.Digests.SdJwtDigestAlgorithm!
+static NCode.Identity.Jose.SdJwt.Disclosure.Create(string! salt, string! claimName, System.Text.Json.JsonElement value) -> NCode.Identity.Jose.SdJwt.Disclosure!
+static NCode.Identity.Jose.SdJwt.Disclosure.Create(string! salt, System.Text.Json.JsonElement value) -> NCode.Identity.Jose.SdJwt.Disclosure!
+static NCode.Identity.Jose.SdJwt.Disclosure.Parse(string! encoded) -> NCode.Identity.Jose.SdJwt.Disclosure!
+static NCode.Identity.Jose.SdJwt.Disclosure.TryParse(string! encoded, out NCode.Identity.Jose.SdJwt.Disclosure? disclosure, out string? error) -> bool
+static NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfiles.SdJwtVc.get -> NCode.Identity.Jose.SdJwt.Profiles.SdJwtProfile!
+static NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.Fail(string! failureCode, string! failureReason) -> NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult!
+static NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult.Success(NCode.Identity.Jose.SdJwt.SelectiveDisclosureJwt! sdJwt, NCode.Identity.Jwt.DecodedJwt! issuerJwt, System.Text.Json.JsonElement claims, System.Collections.Generic.IEnumerable<NCode.Identity.Jose.SdJwt.DisclosedClaim!>! disclosures, NCode.Identity.Jose.SdJwt.Verification.SdJwtKeyBinding? keyBinding) -> NCode.Identity.Jose.SdJwt.Verification.SdJwtVerificationResult!

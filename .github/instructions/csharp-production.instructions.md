@@ -1187,6 +1187,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `18000`–`18999` | `NCode.Identity.OpenId.Client`                      |
     | `19000`–`19999` | `NCode.Identity.Bff`                                |
     | `20000`–`20999` | `NCode.Identity.OpenId.Host.MigrationService`       |
+    | `21000`–`21999` | `NCode.Identity.Jose.SdJwt`                         |
 
 ### Metrics
 

@@ -1198,7 +1198,7 @@ const cachedQueries: readonly CachedQuery[] = [
   {
     label: 'tenants',
     path: '/api/teams/acme/tenants',
-    body: { items: [{ tenantId: 'acme' }, { tenantId: 'other' }] },
+    body: { items: [{ tenantId: 'acme' }, { tenantId: 'acme-dev' }, { tenantId: 'other' }] },
     subscribe: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate({ teamId: 'acme' })),
   },
   {
@@ -1213,6 +1213,12 @@ const cachedQueries: readonly CachedQuery[] = [
     path: '/api/tenants/acme',
     body: { tenantId: 'acme' },
     subscribe: (s) => s.dispatch(managementApi.endpoints.getTenant.initiate('acme')),
+  },
+  {
+    label: 'tenant:acme-dev',
+    path: '/api/tenants/acme-dev',
+    body: { tenantId: 'acme-dev' },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.getTenant.initiate('acme-dev')),
   },
   {
     label: 'tenant:other',
@@ -1318,7 +1324,7 @@ const invalidationCases: readonly InvalidationCase[] = [
       s.dispatch(
         managementApi.endpoints.updateTenant.initiate({
           teamId: 'acme',
-          tenantId: 'acme',
+          tenantId: 'acme-dev',
           concurrencyToken: 'etag',
           fields: {
             issuer: null,
@@ -1328,15 +1334,15 @@ const invalidationCases: readonly InvalidationCase[] = [
           },
         }),
       ),
-    refetches: ['tenants', 'tenant:acme'],
+    refetches: ['tenants', 'tenant:acme-dev'],
   },
   {
     name: 'deleteTenant',
     mutate: (s) =>
       s.dispatch(
-        managementApi.endpoints.deleteTenant.initiate({ teamId: 'acme', tenantId: 'acme' }),
+        managementApi.endpoints.deleteTenant.initiate({ teamId: 'acme', tenantId: 'acme-dev' }),
       ),
-    refetches: ['tenants', 'tenant:acme'],
+    refetches: ['tenants', 'tenant:acme-dev'],
   },
   {
     name: 'createTeam',
@@ -1578,7 +1584,7 @@ describe('managementApi cache invalidation', () => {
     const result = await store.dispatch(
       managementApi.endpoints.updateTenant.initiate({
         teamId: 'acme',
-        tenantId: 'acme',
+        tenantId: 'acme-dev',
         concurrencyToken: 'stale',
         fields: {
           issuer: null,
@@ -1593,7 +1599,8 @@ describe('managementApi cache invalidation', () => {
     expect('error' in result && result.error).toMatchObject({ status: 412 });
     expect(fetches.count('GET', '/api/teams/acme/tenants')).toBe(2);
     expect(fetches.count('GET', '/api/teams/globex/tenants')).toBe(1);
-    expect(fetches.count('GET', '/api/tenants/acme')).toBe(2);
+    expect(fetches.count('GET', '/api/tenants/acme-dev')).toBe(2);
+    expect(fetches.count('GET', '/api/tenants/acme')).toBe(1);
     expect(fetches.count('GET', '/api/tenants/other')).toBe(1);
   });
 });

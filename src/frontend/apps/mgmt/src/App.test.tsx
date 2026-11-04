@@ -67,16 +67,21 @@ const acmeTenant = {
   concurrencyToken: 'c',
 };
 
+const acmeDevTenant = { ...acmeTenant, tenantId: 'acme-dev', displayName: 'Acme dev' };
+
 /** Serves the directory the console browses to reach a tenant: the teams, a team's tenants and one tenant. */
 function directoryResponse(url: string): Promise<Response> | undefined {
   if (url.endsWith('/api/teams/acme/tenants')) {
-    return jsonResponse({ items: [acmeTenant] });
+    return jsonResponse({ items: [acmeTenant, acmeDevTenant] });
   }
   if (url.endsWith('/api/teams')) {
     return jsonResponse({ items: [acmeTeam] });
   }
   if (url.endsWith('/api/tenants/acme')) {
     return jsonResponse(acmeTenant);
+  }
+  if (url.endsWith('/api/tenants/acme-dev')) {
+    return jsonResponse(acmeDevTenant);
   }
   return undefined;
 }
@@ -277,7 +282,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
         const url = (input as Request).url;
-        if (url.endsWith('/api/tenants/acme/clients')) {
+        if (url.endsWith('/api/tenants/acme-dev/clients')) {
           return jsonResponse({ items: [] });
         }
         const directory = directoryResponse(url);
@@ -290,7 +295,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
 
     window.history.replaceState(null, '', '/teams/acme/tenants');
     renderApp();
-    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
+    fireEvent.click(await screen.findByTestId('tenant-row-acme-dev'));
     expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
     // Once the tenant loads, the exit names its team.
     await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
@@ -298,7 +303,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     fireEvent.click(screen.getByTestId('exit-scope'));
 
     // Swapping the scope's tab set re-measures the tab indicator asynchronously; await the settled UI.
-    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(await screen.findByTestId('tenant-row-acme-dev')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/teams/acme/tenants');
     expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform');
 
@@ -314,10 +319,10 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
         const url = (input as Request).url;
-        if (url.endsWith('/api/tenants/acme')) {
+        if (url.endsWith('/api/tenants/acme-dev')) {
           return new Promise<Response>(() => undefined);
         }
-        if (url.endsWith('/api/tenants/acme/clients')) {
+        if (url.endsWith('/api/tenants/acme-dev/clients')) {
           return jsonResponse({ items: [] });
         }
         const directory = directoryResponse(url);
@@ -328,7 +333,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
       }),
     );
 
-    window.history.replaceState(null, '', '/tenants/acme/clients');
+    window.history.replaceState(null, '', '/tenants/acme-dev/clients');
     renderApp();
 
     expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
@@ -337,6 +342,41 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform');
 
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams');
+  });
+
+  it('labels the exit from the current tenant only, not from a tenant viewed before it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/globex-dev')) {
+          return new Promise<Response>(() => undefined);
+        }
+        if (url.endsWith('/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    window.history.replaceState(null, '', '/tenants/acme-dev/clients');
+    renderApp();
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
+
+    act(() => {
+      window.history.pushState(null, '', '/tenants/globex-dev/clients');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform'));
     fireEvent.click(screen.getByTestId('exit-scope'));
 
     expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();

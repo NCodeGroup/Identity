@@ -401,17 +401,20 @@ internal class PlatformApiEndpointHandler(
 
     /// <summary>
     /// Verifies that replacing the platform's settings document leaves every value each client of every tenant registers
-    /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and new
-    /// platform settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
-    /// document is resolved onto both. The tenants are read as an untracked, secret-free projection
-    /// (<see cref="ITenantStore.GetSettingsPageAsync(PageRequest, CancellationToken)"/>), and the walk runs only when the effective value of a setting
-    /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A tenant whose
-    /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
-    /// settings.
+    /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The walk follows the
+    /// settings cascade (host configuration, platform, team, tenant): the current and new platform settings are each
+    /// resolved through the <see cref="IEffectiveSettingsResolver"/>, each team's document is resolved onto both, and
+    /// each of the team's tenants' documents is resolved onto those. The teams are paged
+    /// (<see cref="ITeamStore.GetPageAsync(PageRequest, CancellationToken)"/>), and each team's tenants are read as an
+    /// untracked, secret-free projection
+    /// (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest, CancellationToken)"/>). The walk runs only
+    /// when the effective value of a setting a coherence rule reads changed
+    /// (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A team or tenant whose settings document cannot be
+    /// honored is logged and skipped, because none of its clients is coherent under either settings.
     /// </summary>
     /// <param name="currentServerSettings">The platform's effective settings with its current settings document.</param>
     /// <param name="newServerSettings">The platform's effective settings with its new settings document.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenants and their clients.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the teams, tenants and clients.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the platform setting that does not permit each value, or
     /// an empty list.</returns>
@@ -424,53 +427,93 @@ internal class PlatformApiEndpointHandler(
     )
     {
         List<SettingError> errors = [];
+        var teamStore = storeManager.GetStore<ITeamStore>();
         var tenantStore = storeManager.GetStore<ITenantStore>();
 
-        var page = new PageRequest { Limit = TenantPageSize };
+        var teamPage = new PageRequest { Limit = TenantPageSize };
         do
         {
-            var result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
-            foreach (var tenantSettings in result.Items)
+            var teamResult = await teamStore.GetPageAsync(teamPage, cancellationToken);
+            foreach (var team in teamResult.Items)
             {
-                IReadOnlySettingCollection currentTenantSettings;
-                IReadOnlySettingCollection newTenantSettings;
+                IReadOnlySettingCollection currentTeamSettings;
+                IReadOnlySettingCollection newTeamSettings;
                 try
                 {
-                    currentTenantSettings = EffectiveSettingsResolver.Resolve(
+                    currentTeamSettings = EffectiveSettingsResolver.Resolve(
                         currentServerSettings,
-                        OpenIdSettingScopes.Tenant,
-                        tenantSettings.Value
+                        OpenIdSettingScopes.Team,
+                        team.Settings.Value
                     );
-                    newTenantSettings = EffectiveSettingsResolver.Resolve(
+                    newTeamSettings = EffectiveSettingsResolver.Resolve(
                         newServerSettings,
-                        OpenIdSettingScopes.Tenant,
-                        tenantSettings.Value
+                        OpenIdSettingScopes.Team,
+                        team.Settings.Value
                     );
                 }
                 catch (JsonException exception)
                 {
-                    Logger.TenantSettingsUnreadable(tenantSettings.TenantId, exception.Message);
+                    Logger.TeamSettingsUnreadable(team.TeamId, exception.Message);
                     continue;
                 }
 
-                var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
-                    storeManager,
-                    tenantSettings.TenantId,
-                    currentTenantSettings,
-                    newTenantSettings,
-                    cancellationToken
-                );
+                var page = new PageRequest { Limit = TenantPageSize };
+                do
+                {
+                    var result = await tenantStore.GetSettingsPageAsync(
+                        team.TeamId,
+                        page,
+                        cancellationToken
+                    );
+                    foreach (var tenantSettings in result.Items)
+                    {
+                        IReadOnlySettingCollection currentTenantSettings;
+                        IReadOnlySettingCollection newTenantSettings;
+                        try
+                        {
+                            currentTenantSettings = EffectiveSettingsResolver.Resolve(
+                                currentTeamSettings,
+                                OpenIdSettingScopes.Tenant,
+                                tenantSettings.Value
+                            );
+                            newTenantSettings = EffectiveSettingsResolver.Resolve(
+                                newTeamSettings,
+                                OpenIdSettingScopes.Tenant,
+                                tenantSettings.Value
+                            );
+                        }
+                        catch (JsonException exception)
+                        {
+                            Logger.TenantSettingsUnreadable(
+                                tenantSettings.TenantId,
+                                exception.Message
+                            );
+                            continue;
+                        }
 
-                errors.AddRange(
-                    findings.Select(finding => new SettingError(
-                        finding.Violation.GoverningSettingName,
-                        $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
-                    ))
-                );
+                        var findings =
+                            await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
+                                storeManager,
+                                tenantSettings.TenantId,
+                                currentTenantSettings,
+                                newTenantSettings,
+                                cancellationToken
+                            );
+
+                        errors.AddRange(
+                            findings.Select(finding => new SettingError(
+                                finding.Violation.GoverningSettingName,
+                                $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
+                            ))
+                        );
+                    }
+
+                    page = page with { Cursor = result.NextCursor };
+                } while (page.Cursor is not null);
             }
 
-            page = page with { Cursor = result.NextCursor };
-        } while (page.Cursor is not null);
+            teamPage = teamPage with { Cursor = teamResult.NextCursor };
+        } while (teamPage.Cursor is not null);
 
         return errors;
     }

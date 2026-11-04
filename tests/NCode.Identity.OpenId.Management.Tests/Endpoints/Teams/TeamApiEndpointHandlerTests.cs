@@ -1078,6 +1078,96 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenAClientWouldBecomeIncoherent_ReturnsValidationProblemWithoutWriting()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        SetupTeamSettings(settings);
+        SetupAuthorization(AuthorizationResult.Success());
+        var current = CreateSettingCollection();
+        var proposed = CreateSettingCollection();
+        SetupResolveTeam(current, proposed);
+        MockClientCoherenceValidator
+            .Setup(x => x.ReadsChangedSetting(current, proposed))
+            .Returns(true)
+            .Verifiable();
+        var currentTenant = CreateSettingCollection();
+        var newTenant = CreateSettingCollection();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(current, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Returns(currentTenant)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(proposed, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Returns(newTenant)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x =>
+                x.GetSettingsPageAsync(
+                    TeamId,
+                    It.Is<PageRequest>(page => page.Cursor == null),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedTenantSettings>
+                {
+                    Items = [CreateTenantSettings()],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+        MockTenantClientCoherenceChecker
+            .Setup(x =>
+                x.FindIntroducedViolationsAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    currentTenant,
+                    newTenant,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([
+                new ClientCoherenceFinding(
+                    "client-1",
+                    new ClientCoherenceViolation(
+                        OpenIdSettingNames.IdTokenSignedResponseAlg,
+                        "RS256",
+                        OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+                    )
+                ),
+            ])
+            .Verifiable();
+
+        // Strict mocks: no UpdateSettingsAsync, SaveChangesAsync, audit or announcement setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(
+            [OpenIdSettingNames.IdTokenSigningAlgValuesSupported],
+            problem.ProblemDetails.Errors.Keys
+        );
+        Assert.Contains("'client-1'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.Contains(
+            $"of tenant '{TenantId}'",
+            problem.ProblemDetails.Detail,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenTheSettingsCannotBeHonored_ReturnsValidationProblem()
     {
         SetupInvalidSettings();

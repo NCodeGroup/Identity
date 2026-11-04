@@ -43,6 +43,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
     private Mock<ITenantClientCoherenceChecker> MockTenantClientCoherenceChecker { get; }
+    private Mock<ITeamStore> MockTeamStore { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IMediator> MockMediator { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -62,6 +63,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
         MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
+        MockTeamStore = MockRepository.Create<ITeamStore>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockMediator = MockRepository.Create<IMediator>();
 
@@ -395,6 +397,87 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
 
+    private const string TeamId = "team-1";
+
+    private static PersistedTeam CreateTeam(string teamId, JsonElement settings) =>
+        new()
+        {
+            TeamId = teamId,
+            IsDisabled = false,
+            DisplayName = teamId,
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = teamId,
+                ConcurrencyToken = "team-ct",
+                Value = settings,
+            },
+        };
+
+    // Resolves every team document onto the platform collections and pages the given teams in one page.
+    private void SetupTeamWalk(
+        IReadOnlySettingCollection currentServer,
+        IReadOnlySettingCollection newServer,
+        IReadOnlySettingCollection currentTeamSettings,
+        IReadOnlySettingCollection newTeamSettings,
+        PersistedTeam[] teams
+    )
+    {
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(currentServer, OpenIdSettingScopes.Team, It.IsAny<JsonElement>()))
+            .Returns(currentTeamSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(newServer, OpenIdSettingScopes.Team, It.IsAny<JsonElement>()))
+            .Returns(newTeamSettings)
+            .Verifiable();
+        SetupTeamPage(teams);
+    }
+
+    private void SetupTeamPage(PersistedTeam[] teams)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockTeamStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    It.Is<PageRequest>(page => page.Cursor == null),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new PagedResult<PersistedTeam> { Items = teams, NextCursor = null })
+            .Verifiable();
+    }
+
+    // Pages a team's tenants: the first result answers the first page and each later one follows the cursor.
+    private void SetupTenantPages(
+        string teamId,
+        params PagedResult<PersistedTenantSettings>[] pages
+    )
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        string? cursor = null;
+        foreach (var result in pages)
+        {
+            var expectedCursor = cursor;
+            MockTenantStore
+                .Setup(x =>
+                    x.GetSettingsPageAsync(
+                        teamId,
+                        It.Is<PageRequest>(page => page.Cursor == expectedCursor),
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .ReturnsAsync(result)
+                .Verifiable();
+            cursor = result.NextCursor;
+        }
+    }
+
     private void SetupClientCoherenceCheck(params ClientCoherenceFinding[] findings) =>
         SetupClientCoherenceCheckOfTenants([CreateTenantSettings()], findings);
 
@@ -430,47 +513,37 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(true)
             .Verifiable();
 
+        var currentTeamSettings = CreateSettingCollection();
+        var newTeamSettings = CreateSettingCollection();
+        SetupTeamWalk(
+            currentServer,
+            newServer,
+            currentTeamSettings,
+            newTeamSettings,
+            [CreateTeam(TeamId, EmptyObject())]
+        );
+
         var currentTenantSettings = CreateSettingCollection();
         var newTenantSettings = CreateSettingCollection();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Resolve(currentServer, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+                x.Resolve(currentTeamSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
             )
             .Returns(currentTenantSettings)
             .Verifiable();
         MockEffectiveSettingsResolver
-            .Setup(x => x.Resolve(newServer, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Setup(x =>
+                x.Resolve(newTeamSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+            )
             .Returns(newTenantSettings)
             .Verifiable();
 
-        MockStoreManager
-            .Setup(x => x.GetStore<ITenantStore>())
-            .Returns(MockTenantStore.Object)
-            .Verifiable();
-
         // Two pages, so the check follows the cursor rather than stopping after the first page.
-        MockTenantStore
-            .Setup(x =>
-                x.GetSettingsPageAsync(
-                    It.Is<PageRequest>(page => page.Cursor == null),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(
-                new PagedResult<PersistedTenantSettings> { Items = [], NextCursor = "next" }
-            )
-            .Verifiable();
-        MockTenantStore
-            .Setup(x =>
-                x.GetSettingsPageAsync(
-                    It.Is<PageRequest>(page => page.Cursor == "next"),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(
-                new PagedResult<PersistedTenantSettings> { Items = tenants, NextCursor = null }
-            )
-            .Verifiable();
+        SetupTenantPages(
+            TeamId,
+            new PagedResult<PersistedTenantSettings> { Items = [], NextCursor = "next" },
+            new PagedResult<PersistedTenantSettings> { Items = tenants, NextCursor = null }
+        );
 
         MockTenantClientCoherenceChecker
             .Setup(x =>
@@ -683,6 +756,328 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         // The verifiable checker setup for TenantId proves the second tenant was checked.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WalksEachTeamsTenantsBeneathTheTeamsDocument()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var currentServer = CreateSettingCollection();
+        var newServer = CreateSettingCollection();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolvePlatformAsync(
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(currentServer)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolvePlatformAsync(
+                    It.Is<JsonElement>(e => HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(newServer)
+            .Verifiable();
+        MockClientCoherenceValidator
+            .Setup(x => x.ReadsChangedSetting(currentServer, newServer))
+            .Returns(true)
+            .Verifiable();
+
+        // Each team's document is resolved onto both platform collections; the team collections differ per team.
+        var teamA = CreateTeam("team-a", JsonSerializer.SerializeToElement(new { override_a = 1 }));
+        var teamB = CreateTeam("team-b", JsonSerializer.SerializeToElement(new { override_b = 1 }));
+        var currentTeamA = CreateSettingCollection();
+        var newTeamA = CreateSettingCollection();
+        var currentTeamB = CreateSettingCollection();
+        var newTeamB = CreateSettingCollection();
+        foreach (
+            var (key, current, updated) in new[]
+            {
+                ("override_a", currentTeamA, newTeamA),
+                ("override_b", currentTeamB, newTeamB),
+            }
+        )
+        {
+            MockEffectiveSettingsResolver
+                .Setup(x =>
+                    x.Resolve(
+                        currentServer,
+                        OpenIdSettingScopes.Team,
+                        It.Is<JsonElement>(e => HasProperty(e, key))
+                    )
+                )
+                .Returns(current)
+                .Verifiable();
+            MockEffectiveSettingsResolver
+                .Setup(x =>
+                    x.Resolve(
+                        newServer,
+                        OpenIdSettingScopes.Team,
+                        It.Is<JsonElement>(e => HasProperty(e, key))
+                    )
+                )
+                .Returns(updated)
+                .Verifiable();
+        }
+
+        SetupTeamPage([teamA, teamB]);
+
+        SetupTenantPages(
+            "team-a",
+            new PagedResult<PersistedTenantSettings>
+            {
+                Items =
+                [
+                    new PersistedTenantSettings
+                    {
+                        TenantId = "tenant-a",
+                        ConcurrencyToken = "ct",
+                        Value = EmptyObject(),
+                    },
+                ],
+                NextCursor = null,
+            }
+        );
+        SetupTenantPages(
+            "team-b",
+            new PagedResult<PersistedTenantSettings>
+            {
+                Items =
+                [
+                    new PersistedTenantSettings
+                    {
+                        TenantId = "tenant-b",
+                        ConcurrencyToken = "ct",
+                        Value = EmptyObject(),
+                    },
+                ],
+                NextCursor = null,
+            }
+        );
+
+        // The tenant document is resolved onto the team collections, so the checker receives what resolves from them.
+        var tenantResults =
+            new Dictionary<IReadOnlySettingCollection, IReadOnlySettingCollection>();
+        foreach (var teamSettings in new[] { currentTeamA, newTeamA, currentTeamB, newTeamB })
+        {
+            var resolved = CreateSettingCollection();
+            tenantResults[teamSettings] = resolved;
+            MockEffectiveSettingsResolver
+                .Setup(x =>
+                    x.Resolve(teamSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+                )
+                .Returns(resolved)
+                .Verifiable();
+        }
+
+        var seen =
+            new Dictionary<
+                string,
+                (IReadOnlySettingCollection Current, IReadOnlySettingCollection New)
+            >();
+        foreach (var tenantId in new[] { "tenant-a", "tenant-b" })
+        {
+            MockTenantClientCoherenceChecker
+                .Setup(x =>
+                    x.FindIntroducedViolationsAsync(
+                        MockStoreManager.Object,
+                        tenantId,
+                        It.IsAny<IReadOnlySettingCollection>(),
+                        It.IsAny<IReadOnlySettingCollection>(),
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .Callback(
+                    (
+                        IStoreManager _,
+                        string id,
+                        IReadOnlySettingCollection currentArg,
+                        IReadOnlySettingCollection newArg,
+                        CancellationToken _
+                    ) => seen[id] = (currentArg, newArg)
+                )
+                .ReturnsAsync([])
+                .Verifiable();
+        }
+
+        MockServerStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupServerChangedAudit();
+        SetupServerSettingsChanged();
+
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(2, seen.Count);
+        Assert.Same(tenantResults[currentTeamA], seen["tenant-a"].Current);
+        Assert.Same(tenantResults[newTeamA], seen["tenant-a"].New);
+        Assert.Same(tenantResults[currentTeamB], seen["tenant-b"].Current);
+        Assert.Same(tenantResults[newTeamB], seen["tenant-b"].New);
+        foreach (var teamId in new[] { "team-a", "team-b" })
+        {
+            MockTenantStore.Verify(
+                x =>
+                    x.GetSettingsPageAsync(
+                        teamId,
+                        It.IsAny<PageRequest>(),
+                        It.IsAny<CancellationToken>()
+                    ),
+                Times.Once
+            );
+        }
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenATeamDocumentCannotBeHonored_SkipsThatTeam()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var currentServer = CreateSettingCollection();
+        var newServer = CreateSettingCollection();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolvePlatformAsync(
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(currentServer)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolvePlatformAsync(
+                    It.Is<JsonElement>(e => HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(newServer)
+            .Verifiable();
+        MockClientCoherenceValidator
+            .Setup(x => x.ReadsChangedSetting(currentServer, newServer))
+            .Returns(true)
+            .Verifiable();
+
+        var unreadableTeam = CreateTeam(
+            "team-bad",
+            JsonSerializer.SerializeToElement(new { retired = true })
+        );
+        var goodTeam = CreateTeam("team-good", EmptyObject());
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    currentServer,
+                    OpenIdSettingScopes.Team,
+                    It.Is<JsonElement>(e => HasProperty(e, "retired"))
+                )
+            )
+            .Throws(new JsonException("'retired' is not a registered setting."))
+            .Verifiable();
+        var currentTeam = CreateSettingCollection();
+        var newTeam = CreateSettingCollection();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    currentServer,
+                    OpenIdSettingScopes.Team,
+                    It.Is<JsonElement>(e => !HasProperty(e, "retired"))
+                )
+            )
+            .Returns(currentTeam)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    newServer,
+                    OpenIdSettingScopes.Team,
+                    It.Is<JsonElement>(e => !HasProperty(e, "retired"))
+                )
+            )
+            .Returns(newTeam)
+            .Verifiable();
+        SetupTeamPage([unreadableTeam, goodTeam]);
+
+        var currentTenant = CreateSettingCollection();
+        var newTenant = CreateSettingCollection();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(currentTeam, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Returns(currentTenant)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(newTeam, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Returns(newTenant)
+            .Verifiable();
+
+        // Strict tenant store: only the good team's tenants are paged, so paging the unreadable team's would fail.
+        SetupTenantPages(
+            "team-good",
+            new PagedResult<PersistedTenantSettings>
+            {
+                Items = [CreateTenantSettings()],
+                NextCursor = null,
+            }
+        );
+        MockTenantClientCoherenceChecker
+            .Setup(x =>
+                x.FindIntroducedViolationsAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    currentTenant,
+                    newTenant,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        MockServerStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupServerChangedAudit();
+        SetupServerSettingsChanged();
+
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None

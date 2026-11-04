@@ -384,8 +384,7 @@ public sealed class DefaultRegistrationTests : IDisposable
         params string[] calls
     )
     {
-        // Finding a reworded 'en' after a reworded 'de' once moved the insert position of the missing shipped
-        // locales back, so the order depended on the calls.
+        // The registered order is the shipped order whichever reworded shipped locale is registered first.
         var rewordedEnglish = CreateRewordedEnglish();
         var rewordedGerman = CreateRewordedGerman();
 
@@ -457,6 +456,29 @@ public sealed class DefaultRegistrationTests : IDisposable
         );
 
         Assert.Equal([.. InteractiveLocales.All, portuguese, italian], locales);
+    }
+
+    [Fact]
+    public void AddInteractiveLocale_WhenALocaleIsRegisteredThroughAFactory_KeepsItsDescriptorInPlace()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+        serviceCollection.AddSingleton<IUiLocale>(_ => new PlainLocale("it"));
+        var before = serviceCollection[^1];
+
+        builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+        serviceCollection.AddSingleton<IUiLocale>(_ => new PlainLocale("pt"));
+        var after = serviceCollection[^1];
+        builder.AddInteractiveLocale(CreateRewordedGerman());
+
+        var descriptors = serviceCollection
+            .Where(descriptor => descriptor.ServiceType == typeof(IUiLocale))
+            .ToList();
+        Assert.Same(before, descriptors[0]);
+        Assert.Same(after, descriptors[^1]);
+        Assert.Equal(InteractiveLocales.All.Length + 2, descriptors.Count);
     }
 
     [Fact]

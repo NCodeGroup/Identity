@@ -98,10 +98,9 @@ public class InteractiveUiLocalesTests
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
-        var location = new Uri(
-            new Uri("http://localhost"),
-            response.Headers.Location.OriginalString
-        );
+        var baseUri = new Uri("http://localhost");
+        var redirect = response.Headers.Location.OriginalString;
+        var location = new Uri(baseUri, redirect);
         Assert.Equal(expectedPath, location.AbsolutePath);
         return location;
     }

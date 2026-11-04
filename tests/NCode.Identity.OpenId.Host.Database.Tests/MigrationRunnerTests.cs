@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Host.Database.Tests;
 public sealed class MigrationRunnerTests
 {
     private const string ContextName = "OpenIdDbContext";
-    private const string InitialCreate = "20261103144453_InitialCreate";
+    private const string InitialCreate = "20261104032027_InitialCreate";
     private const string UnknownInitialCreate = "20261001000000_InitialCreate";
 
     #region ThrowIfUnknownMigrationsApplied Tests

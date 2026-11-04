@@ -86,6 +86,21 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
+                name: "Platform",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    Key = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Platform", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RetiredIssuers",
                 columns: table => new
                 {
@@ -97,6 +112,19 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RetiredIssuers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RetiredTeams",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    TeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedTeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RetiredTeams", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -138,15 +166,15 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
-                name: "Servers",
+                name: "Teams",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    PlatformId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedPlatformId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    TeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedTeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
                     DisplayName = table.Column<string>(type: "text", nullable: false),
                     SettingsJson = table.Column<string>(type: "text", nullable: false),
                     ReconciledSettingsFingerprint = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
@@ -154,31 +182,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Servers", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Tenants",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    Issuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
-                    NormalizedIssuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
-                    NormalizedIssuerHost = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
-                    MtlsEndpointAliasAuthority = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
-                    NormalizedMtlsEndpointAliasHost = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
-                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
-                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
-                    DisplayName = table.Column<string>(type: "text", nullable: false),
-                    SettingsJson = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Tenants", x => x.Id);
+                    table.PrimaryKey("PK_Teams", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -187,6 +191,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    TeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     Day = table.Column<DateOnly>(type: "date", nullable: false),
                     Meter = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     Count = table.Column<long>(type: "bigint", nullable: false),
@@ -255,26 +260,32 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
-                name: "PlatformSecrets",
+                name: "Tenants",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    PlatformId = table.Column<long>(type: "bigint", nullable: false),
-                    SecretId = table.Column<long>(type: "bigint", nullable: false)
+                    TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    Issuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    NormalizedIssuer = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    NormalizedIssuerHost = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    MtlsEndpointAliasAuthority = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: true),
+                    NormalizedMtlsEndpointAliasHost = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    DisplayName = table.Column<string>(type: "text", nullable: false),
+                    SettingsJson = table.Column<string>(type: "text", nullable: false),
+                    TeamId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ServerSecrets", x => x.Id);
+                    table.PrimaryKey("PK_Tenants", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ServerSecrets_Secrets_SecretId",
-                        column: x => x.SecretId,
-                        principalTable: "Secrets",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ServerSecrets_Servers_ServerId",
-                        column: x => x.PlatformId,
-                        principalTable: "Servers",
+                        name: "FK_Tenants_Teams_TeamId",
+                        column: x => x.TeamId,
+                        principalTable: "Teams",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -895,6 +906,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Platform_Key",
+                table: "Platform",
+                column: "Key",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ResourceServers_TenantId_NormalizedIdentifier",
                 table: "ResourceServers",
                 columns: new[] { "TenantId", "NormalizedIdentifier" },
@@ -926,6 +943,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_RetiredIssuers_NormalizedIssuer",
                 table: "RetiredIssuers",
                 column: "NormalizedIssuer",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RetiredTeams_NormalizedTeamId",
+                table: "RetiredTeams",
+                column: "NormalizedTeamId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -974,20 +997,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Servers_NormalizedServerId",
-                table: "Servers",
-                column: "NormalizedPlatformId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ServerSecrets_SecretId",
-                table: "PlatformSecrets",
-                column: "SecretId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ServerSecrets_ServerId_SecretId",
-                table: "PlatformSecrets",
-                columns: new[] { "PlatformId", "SecretId" },
+                name: "IX_Teams_NormalizedTeamId",
+                table: "Teams",
+                column: "NormalizedTeamId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1016,6 +1028,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Tenants_TeamId",
+                table: "Tenants",
+                column: "TeamId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TenantSecrets_SecretId",
                 table: "TenantSecrets",
                 column: "SecretId");
@@ -1030,6 +1047,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_TenantUsage_Day",
                 table: "TenantUsage",
                 column: "Day");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TenantUsage_TeamId_Day",
+                table: "TenantUsage",
+                columns: new[] { "TeamId", "Day" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_TenantUsage_TenantId_Day_Meter",
@@ -1077,10 +1099,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "MasterKeys");
 
             migrationBuilder.DropTable(
+                name: "Platform");
+
+            migrationBuilder.DropTable(
                 name: "ResourceServerSecrets");
 
             migrationBuilder.DropTable(
                 name: "RetiredIssuers");
+
+            migrationBuilder.DropTable(
+                name: "RetiredTeams");
 
             migrationBuilder.DropTable(
                 name: "RetiredTenants");
@@ -1090,9 +1118,6 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
             migrationBuilder.DropTable(
                 name: "Scopes");
-
-            migrationBuilder.DropTable(
-                name: "PlatformSecrets");
 
             migrationBuilder.DropTable(
                 name: "TenantSecrets");
@@ -1116,9 +1141,6 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "LocalAccounts");
 
             migrationBuilder.DropTable(
-                name: "Servers");
-
-            migrationBuilder.DropTable(
                 name: "Secrets");
 
             migrationBuilder.DropTable(
@@ -1126,6 +1148,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
             migrationBuilder.DropTable(
                 name: "Tenants");
+
+            migrationBuilder.DropTable(
+                name: "Teams");
         }
     }
 }

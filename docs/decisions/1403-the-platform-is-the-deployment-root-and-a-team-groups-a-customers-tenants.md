@@ -70,7 +70,8 @@ the platform and its tenants in the settings cascade and in authority.**
 5. **Lifecycle.** A disabled team's tenants answer `404` on the protocol surface and stay manageable. A team with
    tenants cannot be deleted. A deleted team's identifier is retired
    ([ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)). The platform's own team can be neither
-   disabled nor deleted.
+   disabled nor deleted. An assignment at the platform node (or `GlobalAdmin`) disables and restores a team, never the
+   team's own admins or owners.
 6. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
    events are recorded in the control-plane tenant with the resource types `team` and `platform`.
 7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/teams/{teamId}/{tenants|settings|usage}`

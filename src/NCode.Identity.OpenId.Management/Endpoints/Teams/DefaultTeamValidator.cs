@@ -18,7 +18,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 /// Provides the default implementation of <see cref="ITeamValidator"/>. A team is created under the platform node and
 /// updated or deleted under its own node, authorized in the control-plane tenant that serves the request. A team's
 /// identifier follows the form of a tenant identifier, is never reused after the team is deleted, and the platform's own
-/// team can be neither disabled nor deleted.
+/// team can be neither disabled nor deleted. Disabling or enabling a team is also authorized at the platform node, so
+/// only the platform suspends and restores a team.
 /// </summary>
 // See ADR-1403
 internal class DefaultTeamValidator(
@@ -111,6 +112,25 @@ internal class DefaultTeamValidator(
         if (error is not null)
         {
             return error;
+        }
+
+        if (model.IsDisabled != team.IsDisabled)
+        {
+            error = await AuthorizeAsync(
+                user,
+                ResourceNode.For(
+                    controlPlaneTenantId,
+                    ResourceNodeTypes.Platform,
+                    OpenIdConstants.PlatformResourceId
+                ),
+                Operations.Update,
+                "The caller is not authorized to disable or enable this team.",
+                "Authentication is required to disable or enable this team."
+            );
+            if (error is not null)
+            {
+                return error;
+            }
         }
 
         if (

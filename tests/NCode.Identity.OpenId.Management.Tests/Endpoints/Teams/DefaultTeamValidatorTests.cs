@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -79,6 +80,31 @@ public sealed class DefaultTeamValidatorTests : IDisposable
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<object?>(),
                     It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupNodeAuthorization(
+        string resourceType,
+        string resourceId,
+        AuthorizationResult result
+    )
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is IResourceNode
+                        && ((IResourceNode)resource).TenantId == ControlPlaneTenantId
+                        && ((IResourceNode)resource).ResourceType == resourceType
+                        && ((IResourceNode)resource).ResourceId == resourceId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Contains(Operations.Update)
+                    )
                 )
             )
             .ReturnsAsync(result)
@@ -293,6 +319,57 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
         Assert.Equal("The platform's own team cannot be disabled.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenIsDisabledChangesAndTheCallerHasNoPlatformAuthority_ReturnsForbidden()
+    {
+        SetupNodeAuthorization(ResourceNodeTypes.Team, TeamId, AuthorizationResult.Success());
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId,
+            AuthorizationResult.Failed()
+        );
+
+        var error = await Update(
+            CreateTeam(),
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+        Assert.Equal("The caller is not authorized to disable or enable this team.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenIsDisabledChangesAndTheCallerHasPlatformAuthority_ReturnsNull()
+    {
+        SetupNodeAuthorization(ResourceNodeTypes.Team, TeamId, AuthorizationResult.Success());
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId,
+            AuthorizationResult.Success()
+        );
+
+        var error = await Update(
+            CreateTeam(),
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenIsDisabledIsUnchanged_DoesNotAuthorizeThePlatformNode()
+    {
+        SetupNodeAuthorization(ResourceNodeTypes.Team, TeamId, AuthorizationResult.Success());
+
+        var error = await Update(
+            CreateTeam(),
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = false }
+        );
+
+        Assert.Null(error);
     }
 
     [Fact]

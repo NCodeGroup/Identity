@@ -90,7 +90,7 @@ public class PlatformSettingsConvergenceTests
         };
         using var request = new HttpRequestMessage(
             HttpMethod.Patch,
-            $"/api/servers/{OpenIdPlatformOptions.DefaultPlatformId}/settings"
+            $"/api/platform/{OpenIdPlatformOptions.DefaultPlatformId}/settings"
         )
         {
             Content = new StringContent(

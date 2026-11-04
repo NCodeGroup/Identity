@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Contracts.Servers;
+namespace NCode.Identity.OpenId.Management.Contracts.Platform;
 
 /// <summary>
 /// Represents the mutable metadata of an OpenID Server that a JSON Patch document may modify. Settings and
@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class UpdateServerRequest
+public sealed class UpdatePlatformRequest
 {
     /// <summary>
     /// Gets or sets the display name for the server.

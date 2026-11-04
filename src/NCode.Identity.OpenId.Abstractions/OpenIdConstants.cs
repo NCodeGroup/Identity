@@ -244,7 +244,7 @@ public static partial class OpenIdConstants
         /// <summary>
         /// Contains the OpenAPI tag applied to the <c>servers</c> management endpoints.
         /// </summary>
-        public const string Servers = "Servers";
+        public const string Platform = "Platform";
 
         /// <summary>
         /// Contains the OpenAPI tag applied to the <c>tenants</c> management endpoints.

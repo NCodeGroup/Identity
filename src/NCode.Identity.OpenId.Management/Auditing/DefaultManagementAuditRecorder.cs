@@ -264,7 +264,7 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
-    public ValueTask RecordServerChangedAsync(
+    public ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
         string platformId,
         string changeType,
@@ -273,7 +273,7 @@ internal class DefaultManagementAuditRecorder(
     )
     {
         var now = TimeProvider.GetUtcNow();
-        var auditEvent = new ServerChangedAuditEvent
+        var auditEvent = new PlatformChangedAuditEvent
         {
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
@@ -290,7 +290,7 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
-    public ValueTask RecordServerSecretChangedAsync(
+    public ValueTask RecordPlatformSecretChangedAsync(
         HttpContext httpContext,
         string platformId,
         string secretId,
@@ -300,7 +300,7 @@ internal class DefaultManagementAuditRecorder(
     )
     {
         var now = TimeProvider.GetUtcNow();
-        var auditEvent = new ServerSecretChangedAuditEvent
+        var auditEvent = new PlatformSecretChangedAuditEvent
         {
             EventId = Guid.CreateVersion7(now),
             EventTime = now,

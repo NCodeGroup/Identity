@@ -3,18 +3,18 @@
 
 using System.Security.Claims;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Management.Contracts.Servers;
+using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 
 /// <summary>
 /// Validates the intrinsic core preconditions for OpenID Server management operations. Register a custom
 /// implementation to replace or extend the default validation.
 /// </summary>
 [PublicAPI]
-public interface IServerValidator
+public interface IPlatformValidator
 {
     /// <summary>
     /// Validates that the specified OpenID Server may be created by the caller.
@@ -44,7 +44,7 @@ public interface IServerValidator
     ValueTask<ManagementError?> ValidateUpdateAsync(
         ClaimsPrincipal user,
         PersistedPlatform server,
-        UpdateServerRequest model,
+        UpdatePlatformRequest model,
         string? ifMatch,
         IStoreManager storeManager,
         CancellationToken cancellationToken

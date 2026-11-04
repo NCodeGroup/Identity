@@ -221,7 +221,7 @@ public interface IManagementAuditRecorder
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
-    ValueTask RecordServerChangedAsync(
+    ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
         string platformId,
         string changeType,
@@ -248,7 +248,7 @@ public interface IManagementAuditRecorder
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
-    ValueTask RecordServerSecretChangedAsync(
+    ValueTask RecordPlatformSecretChangedAsync(
         HttpContext httpContext,
         string platformId,
         string secretId,

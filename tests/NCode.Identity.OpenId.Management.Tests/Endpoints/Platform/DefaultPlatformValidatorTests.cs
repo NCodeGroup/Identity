@@ -6,14 +6,14 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Management.Contracts.Servers;
+using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 
-public sealed class DefaultServerValidatorTests : IDisposable
+public sealed class DefaultPlatformValidatorTests : IDisposable
 {
     private const string PlatformId = "server-1";
 
@@ -21,16 +21,16 @@ public sealed class DefaultServerValidatorTests : IDisposable
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IPlatformStore> MockServerStore { get; }
-    private DefaultServerValidator Validator { get; }
+    private DefaultPlatformValidator Validator { get; }
 
-    public DefaultServerValidatorTests()
+    public DefaultPlatformValidatorTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockServerStore = MockRepository.Create<IPlatformStore>();
 
-        Validator = new DefaultServerValidator(MockAuthorizationService.Object);
+        Validator = new DefaultPlatformValidator(MockAuthorizationService.Object);
     }
 
     public void Dispose()
@@ -173,8 +173,9 @@ public sealed class DefaultServerValidatorTests : IDisposable
 
     #region ValidateUpdateAsync Tests
 
-    private static UpdateServerRequest CreateUpdateModel(string? displayName = "Renamed Server") =>
-        new() { DisplayName = displayName };
+    private static UpdatePlatformRequest CreateUpdateModel(
+        string? displayName = "Renamed Server"
+    ) => new() { DisplayName = displayName };
 
     [Fact]
     public async Task ValidateUpdateAsync_WhenForbiddenAndAuthenticated_Returns403()

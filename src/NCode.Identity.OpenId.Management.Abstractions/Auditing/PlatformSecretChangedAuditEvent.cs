@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// <see cref="IAuditEvent.TenantId"/> is not populated for this event.
 /// </remarks>
 [PublicAPI]
-public sealed record ServerSecretChangedAuditEvent : ResourceChangeAuditEvent
+public sealed record PlatformSecretChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <summary>
     /// Gets the identifier of the server the secret belongs to.
@@ -24,7 +24,7 @@ public sealed record ServerSecretChangedAuditEvent : ResourceChangeAuditEvent
     public required string PlatformId { get; init; }
 
     /// <inheritdoc />
-    public override string ResourceType => ManagementResourceTypes.ServerSecret;
+    public override string ResourceType => ManagementResourceTypes.PlatformSecret;
 
     /// <inheritdoc />
     /// <remarks>

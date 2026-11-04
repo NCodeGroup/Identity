@@ -2,7 +2,7 @@
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Grant = "grant" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.ResourceServer = "resource_server" -> string!
-const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Server = "platform" -> string!
+const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.GlobalAdmin = "GlobalAdmin" -> string!
 const NCode.Identity.OpenId.Management.BuiltInRoles.Owner = "Owner" -> string!

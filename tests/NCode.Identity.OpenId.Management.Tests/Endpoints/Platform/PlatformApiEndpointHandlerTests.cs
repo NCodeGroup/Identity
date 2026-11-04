@@ -15,8 +15,8 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
-using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -33,9 +33,9 @@ using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 
-public sealed class ServerApiEndpointHandlerTests : IDisposable
+public sealed class PlatformApiEndpointHandlerTests : IDisposable
 {
     private const string PlatformId = "server-1";
 
@@ -48,7 +48,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
-    private Mock<IServerValidator> MockServerValidator { get; }
+    private Mock<IPlatformValidator> MockServerValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
@@ -59,9 +59,9 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IMediator> MockMediator { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
-    private ServerApiEndpointHandler Handler { get; }
+    private PlatformApiEndpointHandler Handler { get; }
 
-    public ServerApiEndpointHandlerTests()
+    public PlatformApiEndpointHandlerTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
@@ -72,7 +72,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
-        MockServerValidator = MockRepository.Create<IServerValidator>();
+        MockServerValidator = MockRepository.Create<IPlatformValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
@@ -86,7 +86,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
 
-        Handler = new ServerApiEndpointHandler(
+        Handler = new PlatformApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockServerValidator.Object,
@@ -103,7 +103,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockClientCoherenceValidator.Object,
             MockTenantClientCoherenceChecker.Object,
             MockManagementAuditRecorder.Object,
-            NullLogger<ServerApiEndpointHandler>.Instance
+            NullLogger<PlatformApiEndpointHandler>.Instance
         );
     }
 
@@ -138,7 +138,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private void SetupServerSecretChangedAudit() =>
         MockManagementAuditRecorder
             .Setup(x =>
-                x.RecordServerSecretChangedAsync(
+                x.RecordPlatformSecretChangedAsync(
                     It.IsAny<HttpContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
@@ -154,7 +154,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private void SetupServerChangedAudit() =>
         MockManagementAuditRecorder
             .Setup(x =>
-                x.RecordServerChangedAsync(
+                x.RecordPlatformChangedAsync(
                     It.IsAny<HttpContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
@@ -345,7 +345,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<ServerResource>>(result);
+        var json = Assert.IsType<JsonHttpResult<PlatformResource>>(result);
         Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.Equal("server-ct", json.Value?.ConcurrencyToken);
         Assert.Equal("server-ct", httpContext.Response.Headers.ETag);
@@ -458,7 +458,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<ServerSettingsResource>>(result);
+        var json = Assert.IsType<JsonHttpResult<PlatformSettingsResource>>(result);
         Assert.Equal(PlatformId, json.Value?.PlatformId);
     }
 
@@ -501,7 +501,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSecretsAsync(httpContext, PlatformId, CancellationToken.None);
 
-        var json = Assert.IsType<JsonHttpResult<ServerSecretsResource>>(result);
+        var json = Assert.IsType<JsonHttpResult<PlatformSecretsResource>>(result);
         Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.Empty(json.Value?.Secrets ?? []);
     }
@@ -560,7 +560,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<ServerEffectiveSettingsResource>>(result);
+        var json = Assert.IsType<JsonHttpResult<PlatformEffectiveSettingsResource>>(result);
         Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
     }
@@ -1383,7 +1383,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         MockManagementAuditRecorder.Verify(
             x =>
-                x.RecordServerSecretChangedAsync(
+                x.RecordPlatformSecretChangedAsync(
                     httpContext,
                     PlatformId,
                     "generated-id",
@@ -1765,7 +1765,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         MockManagementAuditRecorder.Verify(
             x =>
-                x.RecordServerSecretChangedAsync(
+                x.RecordPlatformSecretChangedAsync(
                     httpContext,
                     PlatformId,
                     "secret-1",
@@ -2112,7 +2112,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         MockManagementAuditRecorder.Verify(
             x =>
-                x.RecordServerSecretChangedAsync(
+                x.RecordPlatformSecretChangedAsync(
                     httpContext,
                     PlatformId,
                     "secret-1",
@@ -2149,7 +2149,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
     #endregion
 
-    #region CreateServerAsync Tests
+    #region CreatePlatformAsync Tests
 
     [Fact]
     public async Task CreateServerAsync_WhenValid_ReturnsCreatedWithDisplayName()
@@ -2179,20 +2179,24 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
-        var request = new CreateServerRequest
+        var request = new CreatePlatformRequest
         {
             DisplayName = "My Server",
             Settings = EmptyObject(),
         };
 
-        var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
+        var result = await Handler.CreatePlatformAsync(
+            httpContext,
+            request,
+            CancellationToken.None
+        );
 
-        var created = Assert.IsType<Created<ServerResource>>(result);
+        var created = Assert.IsType<Created<PlatformResource>>(result);
         Assert.Equal("generated-id", created.Value?.PlatformId);
         Assert.Equal("My Server", created.Value?.DisplayName);
         MockManagementAuditRecorder.Verify(
             x =>
-                x.RecordServerChangedAsync(
+                x.RecordPlatformChangedAsync(
                     httpContext,
                     "generated-id",
                     ResourceChangeTypes.Created,
@@ -2222,14 +2226,18 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
-        var request = new CreateServerRequest
+        var request = new CreatePlatformRequest
         {
             DisplayName = "My Server",
             Settings = EmptyObject(),
         };
 
         // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the server would fail the test.
-        var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
+        var result = await Handler.CreatePlatformAsync(
+            httpContext,
+            request,
+            CancellationToken.None
+        );
 
         AssertSettingsValidationProblem(result);
     }
@@ -2258,13 +2266,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
-        var request = new CreateServerRequest
+        var request = new CreatePlatformRequest
         {
             DisplayName = "My Server",
             Settings = EmptyObject(),
         };
 
-        var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
+        var result = await Handler.CreatePlatformAsync(
+            httpContext,
+            request,
+            CancellationToken.None
+        );
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
@@ -2272,13 +2284,15 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
     #endregion
 
-    #region UpdateServerAsync Tests
+    #region UpdatePlatformAsync Tests
 
-    private static JsonPatchDocument<UpdateServerRequest> CreateDisplayNamePatch(string displayName)
+    private static JsonPatchDocument<UpdatePlatformRequest> CreateDisplayNamePatch(
+        string displayName
+    )
     {
-        var patch = new JsonPatchDocument<UpdateServerRequest>();
+        var patch = new JsonPatchDocument<UpdatePlatformRequest>();
         patch.Operations.Add(
-            new Operation<UpdateServerRequest>(
+            new Operation<UpdatePlatformRequest>(
                 "replace",
                 "/displayName",
                 from: null,
@@ -2303,7 +2317,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                 x.ValidateUpdateAsync(
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedPlatform>(),
-                    It.IsAny<UpdateServerRequest>(),
+                    It.IsAny<UpdatePlatformRequest>(),
                     It.IsAny<string?>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2322,7 +2336,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.UpdateServerAsync(
+        var result = await Handler.UpdatePlatformAsync(
             httpContext,
             PlatformId,
             CreateDisplayNamePatch("Renamed Server"),
@@ -2334,7 +2348,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         Assert.Equal("Renamed Server", server.DisplayName);
         MockManagementAuditRecorder.Verify(
             x =>
-                x.RecordServerChangedAsync(
+                x.RecordPlatformChangedAsync(
                     httpContext,
                     PlatformId,
                     ResourceChangeTypes.Updated,
@@ -2356,7 +2370,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.UpdateServerAsync(
+        var result = await Handler.UpdatePlatformAsync(
             httpContext,
             PlatformId,
             CreateDisplayNamePatch("Renamed Server"),
@@ -2380,7 +2394,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                 x.ValidateUpdateAsync(
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedPlatform>(),
-                    It.IsAny<UpdateServerRequest>(),
+                    It.IsAny<UpdatePlatformRequest>(),
                     It.IsAny<string?>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2397,7 +2411,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.UpdateServerAsync(
+        var result = await Handler.UpdatePlatformAsync(
             httpContext,
             PlatformId,
             CreateDisplayNamePatch("Renamed Server"),
@@ -2421,12 +2435,12 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var httpContext = CreateHttpContext(authenticated: true);
 
         // Replace on a path that does not exist throws a JsonPatchException.
-        var patch = new JsonPatchDocument<UpdateServerRequest>();
+        var patch = new JsonPatchDocument<UpdatePlatformRequest>();
         patch.Operations.Add(
-            new Operation<UpdateServerRequest>("replace", "/missing", from: null, value: "value")
+            new Operation<UpdatePlatformRequest>("replace", "/missing", from: null, value: "value")
         );
 
-        var result = await Handler.UpdateServerAsync(
+        var result = await Handler.UpdatePlatformAsync(
             httpContext,
             PlatformId,
             patch,
@@ -2440,7 +2454,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
     #endregion
 
-    #region DeleteServerAsync Tests
+    #region DeletePlatformAsync Tests
 
     [Fact]
     public async Task DeleteServerAsync_WhenPreconditionsPass_ReturnsNoContent()
@@ -2473,7 +2487,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(
+        var result = await Handler.DeletePlatformAsync(
             httpContext,
             PlatformId,
             CancellationToken.None
@@ -2510,7 +2524,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(
+        var result = await Handler.DeletePlatformAsync(
             httpContext,
             PlatformId,
             CancellationToken.None
@@ -2531,7 +2545,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(
+        var result = await Handler.DeletePlatformAsync(
             httpContext,
             PlatformId,
             CancellationToken.None

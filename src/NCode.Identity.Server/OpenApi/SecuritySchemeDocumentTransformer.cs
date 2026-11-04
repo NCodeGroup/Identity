@@ -36,7 +36,7 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
         OpenIdConstants.EndpointTags.Sessions,
         OpenIdConstants.EndpointTags.ClientGrants,
         OpenIdConstants.EndpointTags.ResourceServers,
-        OpenIdConstants.EndpointTags.Servers,
+        OpenIdConstants.EndpointTags.Platform,
         OpenIdConstants.EndpointTags.Tenants,
         OpenIdConstants.EndpointTags.LocalAccounts,
         OpenIdConstants.EndpointTags.Principals,

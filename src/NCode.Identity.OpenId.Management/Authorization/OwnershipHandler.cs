@@ -102,7 +102,7 @@ internal class OwnershipHandler(
         [
             (resource.ResourceType, Normalize(resource.ResourceId)),
             (ResourceNodeTypes.Tenant, Normalize(resource.TenantId)),
-            (ResourceNodeTypes.Server, Normalize(rootTenantId)),
+            (ResourceNodeTypes.Platform, Normalize(rootTenantId)),
         ];
 
     private static bool IsManagementRole(string roleName) =>

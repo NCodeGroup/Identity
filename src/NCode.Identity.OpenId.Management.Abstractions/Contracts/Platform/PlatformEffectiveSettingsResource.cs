@@ -6,7 +6,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Persistence;
 
-namespace NCode.Identity.OpenId.Management.Contracts.Servers;
+namespace NCode.Identity.OpenId.Management.Contracts.Platform;
 
 /// <summary>
 /// Represents the REST resource for an OpenID Server's <b>effective</b> (resolved) settings: the server's own settings
@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ServerEffectiveSettingsResource : ISupportPlatformId
+public sealed class PlatformEffectiveSettingsResource : ISupportPlatformId
 {
     /// <inheritdoc cref="ISupportPlatformId.PlatformId"/>
     public required string PlatformId { get; init; }

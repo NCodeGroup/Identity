@@ -18,7 +18,7 @@ public static class ResourceNodeTypes
     /// <summary>
     /// The server root node. A role assigned here applies across the whole server.
     /// </summary>
-    public const string Server = OpenIdResourceTypes.Platform;
+    public const string Platform = OpenIdResourceTypes.Platform;
 
     /// <summary>
     /// A tenant node. A role assigned here applies across the tenant and its child resources.

@@ -32,7 +32,7 @@ GET {{host}}/api/tenants/{{tenantId}}/clients?limit=50&cursor=REPLACE_WITH_conti
 Accept: application/json
 
 ### List servers (central-admin)
-GET {{host}}/api/servers?limit=50
+GET {{host}}/api/platform
 Accept: application/json
 
 ### List tenants (central-admin)

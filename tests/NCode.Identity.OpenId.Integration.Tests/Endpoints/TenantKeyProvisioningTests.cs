@@ -432,7 +432,7 @@ public class TenantKeyProvisioningTests
 
         using var request = new HttpRequestMessage(
             HttpMethod.Patch,
-            $"/api/servers/{OpenIdPlatformOptions.DefaultPlatformId}/settings"
+            $"/api/platform/{OpenIdPlatformOptions.DefaultPlatformId}/settings"
         )
         {
             Content = new StringContent(

@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Registration.AspNetCore;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 
 /// <summary>
 /// Provides extension methods to configure services and handlers for the management Servers endpoint.
@@ -17,10 +17,13 @@ internal static class DefaultRegistration
         /// <summary>
         /// Registers the management Servers endpoint and the services it depends on.
         /// </summary>
-        public void AddServerEndpoint()
+        public void AddPlatformEndpoint()
         {
-            builder.AddEndpoint<ServerApiEndpointHandler>();
-            builder.ServiceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
+            builder.AddEndpoint<PlatformApiEndpointHandler>();
+            builder.ServiceCollection.TryAddSingleton<
+                IPlatformValidator,
+                DefaultPlatformValidator
+            >();
             builder.ServiceCollection.TryAddSingleton<
                 ITenantClientCoherenceChecker,
                 DefaultTenantClientCoherenceChecker

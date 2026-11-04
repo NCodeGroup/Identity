@@ -480,20 +480,20 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     #endregion
 
-    #region RecordServerChangedAsync Tests
+    #region RecordPlatformChangedAsync Tests
 
     [Fact]
     public async Task RecordServerChangedAsync_PublishesServerChangedAuditEventWithSnapshot()
     {
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
-        ServerChangedAuditEvent? captured = null;
+        PlatformChangedAuditEvent? captured = null;
         mockPublisher
             .Setup(x =>
-                x.PublishAsync(It.IsAny<ServerChangedAuditEvent>(), It.IsAny<CancellationToken>())
+                x.PublishAsync(It.IsAny<PlatformChangedAuditEvent>(), It.IsAny<CancellationToken>())
             )
             .Callback(
-                (ServerChangedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+                (PlatformChangedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -503,7 +503,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         var httpContext = CreateHttpContext("admin-1");
         var resourceValues = JsonSerializer.SerializeToElement(new { displayName = "My Server" });
 
-        await recorder.RecordServerChangedAsync(
+        await recorder.RecordPlatformChangedAsync(
             httpContext,
             "server-1",
             ResourceChangeTypes.Updated,
@@ -535,23 +535,23 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     #endregion
 
-    #region RecordServerSecretChangedAsync Tests
+    #region RecordPlatformSecretChangedAsync Tests
 
     [Fact]
     public async Task RecordServerSecretChangedAsync_PublishesSecretChangedAuditEventWithIds()
     {
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
-        ServerSecretChangedAuditEvent? captured = null;
+        PlatformSecretChangedAuditEvent? captured = null;
         mockPublisher
             .Setup(x =>
                 x.PublishAsync(
-                    It.IsAny<ServerSecretChangedAuditEvent>(),
+                    It.IsAny<PlatformSecretChangedAuditEvent>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Callback(
-                (ServerSecretChangedAuditEvent auditEvent, CancellationToken _) =>
+                (PlatformSecretChangedAuditEvent auditEvent, CancellationToken _) =>
                     captured = auditEvent
             )
             .Returns(ValueTask.CompletedTask)
@@ -561,7 +561,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         var httpContext = CreateHttpContext("admin-1");
 
-        await recorder.RecordServerSecretChangedAsync(
+        await recorder.RecordPlatformSecretChangedAsync(
             httpContext,
             "server-1",
             "secret-1",
@@ -573,7 +573,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.NotNull(captured);
         Assert.Equal("server.secret.created", captured.EventName);
         Assert.Equal(AuditEventSources.Management, captured.EventSource);
-        Assert.Equal(ManagementResourceTypes.ServerSecret, captured.ResourceType);
+        Assert.Equal(ManagementResourceTypes.PlatformSecret, captured.ResourceType);
         Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Null(captured.TenantId);
@@ -588,7 +588,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(7, captured.EventId.Version);
         Assert.Equal(
             [
-                new AuditResource(ManagementResourceTypes.ServerSecret, "secret-1"),
+                new AuditResource(ManagementResourceTypes.PlatformSecret, "secret-1"),
                 new AuditResource(ManagementResourceTypes.Platform, "server-1"),
             ],
             captured.Resources

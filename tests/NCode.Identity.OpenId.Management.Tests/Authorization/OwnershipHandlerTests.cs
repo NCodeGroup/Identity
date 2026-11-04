@@ -186,7 +186,7 @@ public class OwnershipHandlerTests : IDisposable
             Operations.Delete,
             ClientNode(),
             CreateSubject(),
-            Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Server, RootTenantId)
+            Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Platform, RootTenantId)
         );
 
         Assert.True(succeeded);

@@ -115,7 +115,7 @@ public class UnreadableSettingsDocumentTests
         // access_token_lifetime is a Min setting a client can register, so the change walks the clients.
         var (statusCode, body) = await PatchSettingAsync(
             administrator,
-            $"/api/servers/{OpenIdPlatformOptions.DefaultPlatformId}/settings",
+            $"/api/platform/{OpenIdPlatformOptions.DefaultPlatformId}/settings",
             OpenIdSettingNames.AccessTokenLifetime,
             "00:04:00"
         );

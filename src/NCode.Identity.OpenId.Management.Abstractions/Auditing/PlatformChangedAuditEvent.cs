@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// is carried by <see cref="IResourceChangeAuditEvent.ResourceId"/>.
 /// </remarks>
 [PublicAPI]
-public sealed record ServerChangedAuditEvent : ResourceChangeAuditEvent
+public sealed record PlatformChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <inheritdoc />
     public override string ResourceType => ManagementResourceTypes.Platform;

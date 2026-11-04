@@ -5,14 +5,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Management.Contracts.Servers;
+namespace NCode.Identity.OpenId.Management.Contracts.Platform;
 
 /// <summary>
 /// Represents the request body to create a new OpenID Server.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class CreateServerRequest
+public sealed class CreatePlatformRequest
 {
     /// <summary>
     /// Gets the display name for the server.

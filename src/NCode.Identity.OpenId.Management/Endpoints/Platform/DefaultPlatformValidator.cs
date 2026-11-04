@@ -4,19 +4,19 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Management.Contracts.Servers;
+using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
+namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IServerValidator"/>.
+/// Provides the default implementation of <see cref="IPlatformValidator"/>.
 /// </summary>
-internal class DefaultServerValidator(IAuthorizationService authorizationService)
+internal class DefaultPlatformValidator(IAuthorizationService authorizationService)
     : DefaultResourceValidator(authorizationService),
-        IServerValidator
+        IPlatformValidator
 {
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateCreateAsync(
@@ -56,7 +56,7 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
     public async ValueTask<ManagementError?> ValidateUpdateAsync(
         ClaimsPrincipal user,
         PersistedPlatform server,
-        UpdateServerRequest model,
+        UpdatePlatformRequest model,
         string? ifMatch,
         IStoreManager storeManager,
         CancellationToken cancellationToken

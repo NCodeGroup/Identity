@@ -25,6 +25,7 @@ internal sealed partial class ManagementParameterDocumentTransformer : IOpenApiD
     >(StringComparer.Ordinal)
     {
         ["tenantId"] = "The identifier of the tenant that scopes the request.",
+        ["teamId"] = "The identifier of the team.",
         ["clientId"] = "The identifier of the client.",
         ["resourceServerId"] = "The identifier of the API (resource server).",
         ["secretId"] = "The identifier of the secret.",

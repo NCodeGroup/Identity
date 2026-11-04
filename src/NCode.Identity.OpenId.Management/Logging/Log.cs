@@ -85,6 +85,17 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.TeamSettingsUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The settings document of team '{TeamId}' that a settings change replaces cannot be honored, so the change was not checked against any client: {DocumentError}"
+    )]
+    internal static partial void TeamSettingsUnreadable(
+        this ILogger logger,
+        string teamId,
+        string documentError
+    );
+
+    [LoggerMessage(
         EventId = EventIds.StoredSettingsUnreadable,
         Level = LogLevel.Warning,
         Message = "The stored settings document of {ScopeName} '{OwnerId}' cannot be honored, so a management request was answered 409: {DocumentError}"

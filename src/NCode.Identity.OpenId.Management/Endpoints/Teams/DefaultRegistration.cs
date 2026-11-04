@@ -18,6 +18,7 @@ internal static class DefaultRegistration
         /// </summary>
         public void AddTeamEndpoint()
         {
+            builder.AddEndpoint<TeamApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<ITeamValidator, DefaultTeamValidator>();
         }
     }

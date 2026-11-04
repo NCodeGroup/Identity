@@ -125,6 +125,24 @@ NCode.Identity.Cose.CoseCredentials
 NCode.Identity.Cose.CoseCredentials.Algorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
 NCode.Identity.Cose.CoseCredentials.CoseCredentials(NCode.Identity.Secrets.Keys.SecretKey! secretKey, NCode.Identity.Cose.Algorithms.CoseAlgorithm! algorithm) -> void
 NCode.Identity.Cose.CoseCredentials.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Cose.CoseDecryptionParameters
+NCode.Identity.Cose.CoseDecryptionParameters.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Cose.CoseDecryptionParameters.ClockSkew.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.CoseDecryptionParameters() -> void
+NCode.Identity.Cose.CoseDecryptionParameters.DetachedContent.get -> System.ReadOnlyMemory<byte>?
+NCode.Identity.Cose.CoseDecryptionParameters.DetachedContent.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.ExternalAad.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseDecryptionParameters.ExternalAad.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.Keys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Cose.CoseDecryptionParameters.Keys.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.UnderstoodCriticalHeaders.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>!
+NCode.Identity.Cose.CoseDecryptionParameters.UnderstoodCriticalHeaders.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.UntaggedMessageType.get -> NCode.Identity.Cose.CoseMessageType?
+NCode.Identity.Cose.CoseDecryptionParameters.UntaggedMessageType.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.ValidAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+NCode.Identity.Cose.CoseDecryptionParameters.ValidAlgorithms.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.ValidKeyDistributionAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+NCode.Identity.Cose.CoseDecryptionParameters.ValidKeyDistributionAlgorithms.init -> void
 NCode.Identity.Cose.CoseEncodingOptions
 NCode.Identity.Cose.CoseEncodingOptions.CoseEncodingOptions() -> void
 NCode.Identity.Cose.CoseEncodingOptions.DetachContent.get -> bool
@@ -244,6 +262,9 @@ NCode.Identity.Cose.CoseVerifiedMessage.UnprotectedHeaders.get -> System.Collect
 NCode.Identity.Cose.CoseVerifiedMessage.UnprotectedHeaders.init -> void
 NCode.Identity.Cose.ICoseSerializer
 NCode.Identity.Cose.ICoseSerializer.DecodeMap(System.ReadOnlyMemory<byte> encodedMap) -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.ICoseSerializer.Decrypt(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseDecryptionParameters! parameters) -> NCode.Identity.Cose.CoseVerifiedMessage!
+NCode.Identity.Cose.ICoseSerializer.EncodeEncrypt(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseRecipients! recipients, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeEncrypt0(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeMac(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseRecipients! recipients, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeMac0(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeMap(System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>! map) -> byte[]!

@@ -223,21 +223,20 @@ internal partial class DefaultCoseSerializer
                 throw CborGuard.Invalid("A direct recipient carries ciphertext.");
 
             var candidates = isDirect
-                ? CoseKeyCandidates.Select(
+                ? SelectKeys(
+                    recipient,
+                    macAlgorithm.Code,
+                    key => key is SymmetricSecretKey && macAlgorithm.IsKeyCompatible(key),
                     parameters.Keys,
-                    recipient.KeyId,
-                    macAlgorithm,
                     SecretKeyUses.Signature,
-                    TimeProvider.GetUtcNow(),
-                    parameters.ClockSkew,
-                    static key => key is SymmetricSecretKey
+                    parameters.ClockSkew
                 )
-                : CoseKeyCandidates.Select(
+                : SelectKeys(
+                    recipient,
+                    keyDistribution.Code,
+                    keyDistribution.IsKeyCompatible,
                     parameters.Keys,
-                    recipient.KeyId,
-                    keyDistribution,
                     SecretKeyUses.Encryption,
-                    TimeProvider.GetUtcNow(),
                     parameters.ClockSkew
                 );
             sawCandidate |= candidates.Count > 0;

@@ -71,4 +71,23 @@ internal static class CoseStructures
         writer.WriteEndArray();
         return writer.Encode();
     }
+
+    /// <summary>
+    /// Builds the <c>Enc_structure</c> of a <c>COSE_Encrypt0</c> or <c>COSE_Encrypt</c> message, which is the additional
+    /// authenticated data of its content encryption.
+    /// </summary>
+    public static byte[] Encrypt(
+        string context,
+        ReadOnlySpan<byte> bodyProtected,
+        ReadOnlySpan<byte> externalAad
+    )
+    {
+        var writer = new CborWriter(CborConformanceMode.Strict);
+        writer.WriteStartArray(3);
+        writer.WriteTextString(context);
+        writer.WriteByteString(bodyProtected);
+        writer.WriteByteString(externalAad);
+        writer.WriteEndArray();
+        return writer.Encode();
+    }
 }

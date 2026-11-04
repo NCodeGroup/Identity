@@ -95,6 +95,48 @@ public interface ICoseSerializer
     );
 
     /// <summary>
+    /// Encrypts content as a <c>COSE_Encrypt0</c> message with a key the recipient already knows.
+    /// </summary>
+    /// <param name="content">The plaintext.</param>
+    /// <param name="credentials">The symmetric key and its content encryption algorithm.</param>
+    /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <returns>The encoded message.</returns>
+    /// <exception cref="ArgumentException">The algorithm is not a registered content encryption algorithm, the key is
+    /// not exactly the size the algorithm needs, or a header parameter is owned by the library or invalid.</exception>
+    byte[] EncodeEncrypt0(
+        ReadOnlySpan<byte> content,
+        CoseCredentials credentials,
+        CoseEncodingOptions options
+    );
+
+    /// <summary>
+    /// Encrypts content as a <c>COSE_Encrypt</c> message whose content key reaches the recipients directly or wrapped.
+    /// </summary>
+    /// <param name="content">The plaintext.</param>
+    /// <param name="recipients">The content encryption algorithm and the recipients.</param>
+    /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <returns>The encoded message.</returns>
+    /// <exception cref="ArgumentException">An algorithm is not registered for its use, a key does not suit its
+    /// algorithm, a direct recipient is not alone, or a header parameter is owned by the library or invalid.</exception>
+    byte[] EncodeEncrypt(
+        ReadOnlySpan<byte> content,
+        CoseRecipients recipients,
+        CoseEncodingOptions options
+    );
+
+    /// <summary>
+    /// Decrypts an encrypted message and returns its plaintext. The algorithm must be one the caller permits and must
+    /// be protected, and the authentication tag must verify with one of the caller's keys; the plaintext is returned
+    /// only when it does.
+    /// </summary>
+    /// <param name="message">The encoded message.</param>
+    /// <param name="parameters">What the decrypting party accepts.</param>
+    /// <returns>The decrypted message.</returns>
+    /// <exception cref="ArgumentException">A parameter is invalid.</exception>
+    /// <exception cref="CoseException">The message is malformed, exceeds a limit, or does not decrypt.</exception>
+    CoseVerifiedMessage Decrypt(ReadOnlyMemory<byte> message, CoseDecryptionParameters parameters);
+
+    /// <summary>
     /// Decodes a CBOR map with integer and text labels, such as a CBOR Web Token claims set, under the size, depth and
     /// strictness rules of the library.
     /// </summary>

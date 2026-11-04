@@ -372,14 +372,33 @@ internal partial class DefaultCoseSerializer
         string use,
         Func<SecretKey, bool>? extraFilter = null
     ) =>
-        CoseKeyCandidates.Select(
+        SelectKeys(
+            layer,
+            binding.JoseAlgorithm.Code,
+            key =>
+                (binding.JoseAlgorithm is not KeyedAlgorithm keyed || keyed.IsKeyCompatible(key))
+                && (extraFilter is null || extraFilter(key)),
             parameters.Keys,
+            use,
+            parameters.ClockSkew
+        );
+
+    private List<SecretKey> SelectKeys(
+        ParsedCoseLayer layer,
+        string algorithmCode,
+        Func<SecretKey, bool> isCompatible,
+        IEnumerable<SecretKey> keys,
+        string use,
+        TimeSpan clockSkew
+    ) =>
+        CoseKeyCandidates.Select(
+            keys,
             layer.KeyId,
-            (KeyedAlgorithm)binding.JoseAlgorithm,
+            algorithmCode,
+            isCompatible,
             use,
             TimeProvider.GetUtcNow(),
-            parameters.ClockSkew,
-            extraFilter
+            clockSkew
         );
 
     private static SecretKey? FindVerifyingKey(

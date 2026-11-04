@@ -89,6 +89,40 @@ internal static class CoseMessageWriter
         return writer.Encode();
     }
 
+    /// <summary>
+    /// Writes a <c>COSE_Encrypt0</c> message.
+    /// </summary>
+    public static byte[] Encrypt0(
+        ulong? tag,
+        byte[] protectedBytes,
+        IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
+        ReadOnlyMemory<byte>? ciphertext
+    )
+    {
+        var writer = Begin(tag, 3);
+        WriteBody(writer, protectedBytes, unprotectedHeaders, ciphertext);
+        writer.WriteEndArray();
+        return writer.Encode();
+    }
+
+    /// <summary>
+    /// Writes a <c>COSE_Encrypt</c> message.
+    /// </summary>
+    public static byte[] Encrypt(
+        ulong? tag,
+        byte[] protectedBytes,
+        IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
+        ReadOnlyMemory<byte>? ciphertext,
+        IReadOnlyList<LayerEntry> recipients
+    )
+    {
+        var writer = Begin(tag, 4);
+        WriteBody(writer, protectedBytes, unprotectedHeaders, ciphertext);
+        WriteLayers(writer, recipients);
+        writer.WriteEndArray();
+        return writer.Encode();
+    }
+
     private static CborWriter Begin(ulong? tag, int arrayLength)
     {
         var writer = new CborWriter(CborConformanceMode.Strict);

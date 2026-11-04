@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Buffers;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Cose.Messages;
@@ -22,11 +21,11 @@ internal static class CoseKeyCandidates
     public static List<SecretKey> Select(
         IEnumerable<SecretKey> keys,
         ReadOnlyMemory<byte>? keyId,
-        KeyedAlgorithm algorithm,
+        string algorithmCode,
+        Func<SecretKey, bool> isCompatible,
         string use,
         DateTimeOffset now,
-        TimeSpan clockSkew,
-        Func<SecretKey, bool>? extraFilter = null
+        TimeSpan clockSkew
     )
     {
         var matching = new List<SecretKey>();
@@ -37,9 +36,8 @@ internal static class CoseKeyCandidates
                 key is null
                 || key.Metadata.IsExpired(now - clockSkew)
                 || (key.Metadata.Use is not null && key.Metadata.Use != use)
-                || (key.Metadata.Algorithm is not null && key.Metadata.Algorithm != algorithm.Code)
-                || !algorithm.IsKeyCompatible(key)
-                || (extraFilter is not null && !extraFilter(key))
+                || (key.Metadata.Algorithm is not null && key.Metadata.Algorithm != algorithmCode)
+                || !isCompatible(key)
             )
                 continue;
 

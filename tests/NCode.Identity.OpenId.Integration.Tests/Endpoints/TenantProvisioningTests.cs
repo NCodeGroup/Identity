@@ -217,7 +217,9 @@ public class TenantProvisioningTests
         );
         using var client = await CreateAdministratorClientAsync(factory);
 
-        using var previewResponse = await client.GetAsync("/api/tenants/acme/address");
+        using var previewResponse = await client.GetAsync(
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/acme/address"
+        );
         var previewBody = await previewResponse.Content.ReadAsStringAsync();
         Assert.True(previewResponse.StatusCode == HttpStatusCode.OK, previewBody);
 
@@ -300,7 +302,9 @@ public class TenantProvisioningTests
         using var factory = CreateFactory();
         using var client = await CreateAdministratorClientAsync(factory);
 
-        using var response = await client.GetAsync("/api/tenants/globex/address");
+        using var response = await client.GetAsync(
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address"
+        );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
@@ -320,7 +324,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var response = await client.GetAsync(
-            $"/api/tenants/globex/address?issuer={Uri.EscapeDataString(RootIssuer)}"
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address?issuer={Uri.EscapeDataString(RootIssuer)}"
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -365,7 +369,7 @@ public class TenantProvisioningTests
         await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
 
         using var response = await client.GetAsync(
-            $"/api/tenants/globex/address?issuer={Uri.EscapeDataString("https://acme.auth.test")}"
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address?issuer={Uri.EscapeDataString("https://acme.auth.test")}"
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);

@@ -19,7 +19,7 @@ public static class OpenIdResourceTypes
     public const string Settings = "settings";
 
     /// <summary>
-    /// Contains the value used to identify the resource type for a server.
+    /// Contains the value used to identify the resource type for the platform.
     /// </summary>
     public const string Platform = "platform";
 

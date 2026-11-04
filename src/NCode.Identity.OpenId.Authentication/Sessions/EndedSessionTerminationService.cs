@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
 /// Terminates the sessions that ended while no request used them, every
-/// <see cref="EndedSessionTerminationOptions.Interval"/>, once the replica has materialized its server. One replica
+/// <see cref="EndedSessionTerminationOptions.Interval"/>, once the replica has materialized its platform. One replica
 /// runs each interval's pass: it reads the sessions that are not revoked and have ended in pages of
 /// <see cref="PageSize"/> sessions, and terminates each in the context of its tenant, which revokes the grants issued
 /// under it, notifies its relying parties, and audits the termination. A session that cannot be terminated, such as a
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// </summary>
 // See ADR-1223 and ADR-1395.
 internal sealed class EndedSessionTerminationService(
-    IMaterializedPlatformAccessor materializedServerAccessor,
+    IMaterializedPlatformAccessor materializedPlatformAccessor,
     IServiceScopeFactory serviceScopeFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdContextFactory openIdContextFactory,
@@ -48,7 +48,7 @@ internal sealed class EndedSessionTerminationService(
     internal const int PageSize = 100;
 
     private IMaterializedPlatformAccessor MaterializedPlatformAccessor { get; } =
-        materializedServerAccessor;
+        materializedPlatformAccessor;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
@@ -66,7 +66,7 @@ internal sealed class EndedSessionTerminationService(
     {
         try
         {
-            // The pass waits until the replica materializes its server: when it starts, or, when the store cannot be
+            // The pass waits until the replica materializes its platform: when it starts, or, when the store cannot be
             // read then, at its first request.
             await MaterializedPlatformAccessor.GetPlatformAsync(stoppingToken);
 
@@ -178,8 +178,8 @@ internal sealed class EndedSessionTerminationService(
     /// <param name="tenantId">The identifier of the tenant of the sessions.</param>
     /// <param name="sessionIds">The opaque identifiers (<c>sid</c>) of the sessions.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of sessions
-    /// that this call terminated.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of
+    /// sessions that this call terminated.</returns>
     private async ValueTask<int> TerminateTenantSessionsAsync(
         string tenantId,
         List<string> sessionIds,

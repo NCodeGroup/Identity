@@ -50,7 +50,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // The materialized tenant (settings + secrets, merged server->tenant) and its cache (ADR-1036).
+            // The materialized tenant (settings + secrets, merged platform->team->tenant) and its cache (ADR-1036).
             serviceCollection.AddMemoryCache();
             serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
 
@@ -70,8 +70,8 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // Every tenant is provisioned with a persisted key for each configured algorithm it holds no usable key for,
-            // on the same seed path, and the configured keys are validated when the host starts (ADR-1169).
+            // Every tenant is provisioned with a persisted key for each configured algorithm it holds no usable key
+            // for, on the same seed path, and the configured keys are validated when the host starts (ADR-1169).
             serviceCollection.TryAddSingleton<ITenantKeyPolicy, DefaultTenantKeyPolicy>();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
@@ -91,8 +91,8 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A tenant change announced on the replica broadcast channel evicts the tenant from this replica's cache, so
-            // every replica serves the change rather than only the one that made it (ADR-1205).
+            // A tenant change announced on the replica broadcast channel evicts the tenant from this replica's cache,
+            // so every replica serves the change rather than only the one that made it (ADR-1205).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IReplicaBroadcastHandler,
@@ -100,7 +100,8 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A change to the server's effective settings seeds every tenant that lacks a key its settings use (ADR-1219).
+            // A change to the platform's effective settings seeds every tenant that lacks a key its settings use
+            // (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ReconcileTeamSettingsCommand>,

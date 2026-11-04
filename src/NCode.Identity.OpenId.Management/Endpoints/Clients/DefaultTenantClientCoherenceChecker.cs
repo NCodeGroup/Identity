@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantClientCoherenceChecker"/>, which pages through the
-/// tenant's clients under an explicit tenant scope, because the control-plane endpoints that change tenant and server
+/// tenant's clients under an explicit tenant scope, because the control-plane endpoints that change tenant and platform
 /// settings are not scoped to the tenant they address. It reads each client through the untracked settings projection,
 /// which carries no secrets, and checks it through the <see cref="IClientCoherenceValidator"/>, which resolves the
 /// client's settings onto the tenant's.

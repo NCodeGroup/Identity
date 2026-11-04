@@ -19,8 +19,8 @@ public enum TenantPlane
     Workload = 0,
 
     /// <summary>
-    /// The control plane, which administers servers and tenants. This is the plane of the root tenant, whose
-    /// identifier is <see cref="RootTenantOptions.TenantId"/>.
+    /// The control plane, which administers the platform, teams and tenants. This is the plane of the root tenant,
+    /// whose identifier is <see cref="RootTenantOptions.TenantId"/>.
     /// </summary>
     Root = 1,
 }

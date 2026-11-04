@@ -265,9 +265,9 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Resolves the addressed tenant's effective settings: the server's committed settings merged with the tenant's
+    /// Resolves the addressed tenant's effective settings: the team's effective settings merged with the tenant's
     /// persisted overrides. The tenant's effective view is reconstructed by id, so it is independent of the request's
-    /// resolved tenant. Both the server's and the tenant's settings are resolved through the
+    /// resolved tenant. Both the team's and the tenant's settings are resolved through the
     /// <see cref="IEffectiveSettingsResolver"/>, so each is expanded with the ceilings of the security profiles it
     /// selects, as it is at runtime.
     /// </summary>
@@ -276,7 +276,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the tenant's
     /// settings are absent.</returns>
-    /// <exception cref="UnreadableSettingsException">The tenant's document or the server's cannot be honored.</exception>
+    /// <exception cref="UnreadableSettingsException">The tenant's document or its team's cannot be honored.</exception>
     // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeTenantSettingsAsync(
         string tenantId,
@@ -317,9 +317,9 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientSettings">The client's settings document to merge.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
-    /// settings are absent.</returns>
-    /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or the server's cannot be
+    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning
+    /// tenant's settings are absent.</returns>
+    /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or its team's cannot be
     /// honored.</exception>
     // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
@@ -356,8 +356,8 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientSettings">The client's settings document to verify.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances naming each registered setting whose value is not permitted, or an
-    /// empty list.</returns>
+    /// <returns>The <see cref="SettingError"/> instances naming each registered setting whose value is not permitted,
+    /// or an empty list.</returns>
     // See ADR-1206.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
         string tenantId,
@@ -421,7 +421,7 @@ internal class ClientApiEndpointHandler(
 
     /// <summary>
     /// Writes the client-authentication method a client is registered for into its settings document when the document
-    /// names none, so every stored client names its method and a change to its server's or tenant's
+    /// names none, so every stored client names its method and a change to its platform's, team's or tenant's
     /// <c>token_endpoint_auth_method</c> never moves the method its shared secrets are stored for.
     /// </summary>
     /// <param name="clientSettings">The client's settings document.</param>
@@ -709,8 +709,8 @@ internal class ClientApiEndpointHandler(
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a client carries only the settings that apply within it
-        // (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed on every
-        // request that resolves the client.
+        // (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed on
+        // every request that resolves the client.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
             OpenIdSettingScopes.Client,

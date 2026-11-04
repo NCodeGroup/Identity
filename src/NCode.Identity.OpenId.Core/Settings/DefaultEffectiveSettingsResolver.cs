@@ -15,17 +15,17 @@ namespace NCode.Identity.OpenId.Settings;
 /// Provides the default implementation of <see cref="IEffectiveSettingsResolver"/>. A scope's document is read
 /// with the environment's JSON options, given the security profiles its environment type implies by the
 /// <see cref="ITenantEnvironmentCatalog"/>, and expanded by the <see cref="ISecurityProfileCatalog"/>, then merged onto
-/// its parent's effective settings. The server's committed document is read from the store at call time, so the result
-/// never depends on this replica's last poll.
+/// its parent's effective settings. The platform's committed document is read from the store at call time, so the
+/// result never depends on this replica's last poll.
 /// </summary>
 /// <remarks>
-/// It depends on <see cref="IOpenIdPlatformProvider"/>, so the server's own factory and the root settings data source,
-/// which the provider builds on, keep calling <see cref="ISecurityProfileCatalog"/> directly.
+/// It depends on <see cref="IOpenIdPlatformProvider"/>, so the platform's own factory and the root settings data
+/// source, which the provider builds on, keep calling <see cref="ISecurityProfileCatalog"/> directly.
 /// </remarks>
 // See ADR-1204.
 internal sealed class DefaultEffectiveSettingsResolver(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IOpenIdPlatformProvider openIdServerProvider,
+    IOpenIdPlatformProvider openIdPlatformProvider,
     IStoreManagerFactory storeManagerFactory,
     ISettingSerializer settingSerializer,
     ITenantEnvironmentCatalog tenantEnvironmentCatalog,
@@ -34,7 +34,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
 {
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
-    private IOpenIdPlatformProvider OpenIdServerProvider { get; } = openIdServerProvider;
+    private IOpenIdPlatformProvider OpenIdPlatformProvider { get; } = openIdPlatformProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
@@ -104,13 +104,13 @@ internal sealed class DefaultEffectiveSettingsResolver(
         CancellationToken cancellationToken
     )
     {
-        var server = await OpenIdServerProvider.GetAsync(
+        var platform = await OpenIdPlatformProvider.GetAsync(
             OpenIdEnvironmentProvider.Get(),
             cancellationToken
         );
 
         return Resolve(
-            server.ConfiguredSettingsProvider.Collection,
+            platform.ConfiguredSettingsProvider.Collection,
             OpenIdSettingScopes.Platform,
             settings
         );
@@ -122,17 +122,17 @@ internal sealed class DefaultEffectiveSettingsResolver(
         CancellationToken cancellationToken
     )
     {
-        var server = await OpenIdServerProvider.GetAsync(
+        var platform = await OpenIdPlatformProvider.GetAsync(
             OpenIdEnvironmentProvider.Get(),
             cancellationToken
         );
-        var configuredSettings = server.ConfiguredSettingsProvider.Collection;
+        var configuredSettings = platform.ConfiguredSettingsProvider.Collection;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
-        if (serverSettings is null)
+        var platformSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
+        if (platformSettings is null)
         {
             return configuredSettings;
         }
@@ -141,7 +141,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
             configuredSettings,
             OpenIdSettingScopes.Platform,
             OpenIdConstants.PlatformResourceId,
-            serverSettings.Value
+            platformSettings.Value
         );
     }
 

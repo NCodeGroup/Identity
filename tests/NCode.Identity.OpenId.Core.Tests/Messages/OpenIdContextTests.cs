@@ -55,7 +55,7 @@ public sealed class OpenIdContextTests : IDisposable
         );
 
         Assert.Same(MockOpenIdTenant.Object, openIdContext.Tenant);
-        Assert.Same(MockOpenIdServer.Object, openIdContext.Server);
+        Assert.Same(MockOpenIdServer.Object, openIdContext.Platform);
         Assert.Same(MockHttpContext.Object, openIdContext.Http);
         Assert.Same(MockMediator.Object, openIdContext.Mediator);
     }

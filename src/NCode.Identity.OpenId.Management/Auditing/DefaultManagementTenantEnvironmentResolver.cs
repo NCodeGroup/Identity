@@ -12,9 +12,9 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IManagementTenantEnvironmentResolver"/>: it reads the tenant's
-/// committed settings document and resolves it under the server's effective settings, as the tenant endpoints do, and
-/// memoizes the result for the request. A tenant whose settings cannot be read yields <see langword="null"/>, because an
-/// audit record for a committed write is published regardless.
+/// committed settings document and resolves it under its team's effective settings, as the tenant endpoints do, and
+/// memoizes the result for the request. A tenant whose settings cannot be read yields <see langword="null"/>, because
+/// an audit record for a committed write is published regardless.
 /// </summary>
 internal class DefaultManagementTenantEnvironmentResolver(
     IStoreManagerFactory storeManagerFactory,

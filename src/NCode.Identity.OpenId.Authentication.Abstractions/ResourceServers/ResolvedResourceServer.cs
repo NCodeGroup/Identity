@@ -33,8 +33,8 @@ public sealed class ResolvedResourceServer
 
     /// <summary>
     /// Gets a value indicating whether the resource server is a reserved, system-owned resource server — one whose
-    /// access tokens the server's own endpoints read. A system resource server never decrypts the tokens issued for
-    /// it: they are encrypted, when required, to the tenant's key.
+    /// access tokens the OpenID Provider's own endpoints read. A system resource server never decrypts the tokens
+    /// issued for it: they are encrypted, when required, to the tenant's key.
     /// </summary>
     public required bool IsSystem { get; init; }
 

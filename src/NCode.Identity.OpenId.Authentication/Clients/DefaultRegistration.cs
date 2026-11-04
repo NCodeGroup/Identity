@@ -189,7 +189,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A change of the server's settings that is not a write is reported client by client (ADR-1219).
+            // A change of the platform's settings that is not a write is reported client by client (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ReconcileTeamSettingsCommand>,

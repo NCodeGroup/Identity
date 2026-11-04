@@ -8,11 +8,10 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 
 /// <summary>
 /// Contributes the core OpenID schema (clients, grants, tenants, secrets, master keys, resource servers, scopes, roles,
-/// servers, and federated principals/identities) to the shared <see cref="OpenIdDbContext"/> model. Because the
-/// framework context is <c>DbSet</c>-less, each core entity is added to the model here; the framework's schema-agnostic
-/// passes (restrict-all-foreign-keys and the tenant-scope filter over every
-/// <see cref="NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity"/>) then cover
-/// them.
+/// the platform, teams, and federated principals/identities) to the shared <see cref="OpenIdDbContext"/> model. Because
+/// the framework context is <c>DbSet</c>-less, each core entity is added to the model here; the framework's
+/// schema-agnostic passes (restrict-all-foreign-keys and the tenant-scope filter over every <see
+/// cref="NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity"/>) then cover them.
 /// </summary>
 internal sealed class CoreModelContributor : IOpenIdModelContributor
 {

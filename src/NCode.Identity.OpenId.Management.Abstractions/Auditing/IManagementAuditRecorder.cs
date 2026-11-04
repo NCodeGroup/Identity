@@ -240,7 +240,7 @@ public interface IManagementAuditRecorder
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
     /// </param>
     /// <param name="resourceValues">
-    /// A non-sensitive snapshot of the server's values, or <c>null</c> when none is captured.
+    /// A non-sensitive snapshot of the resource's values, or <c>null</c> when none is captured.
     /// </param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.

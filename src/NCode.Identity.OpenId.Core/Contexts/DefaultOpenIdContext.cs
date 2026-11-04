@@ -36,7 +36,7 @@ internal class DefaultOpenIdContext(
     public override OpenIdEnvironment Environment { get; } = openIdEnvironment;
 
     /// <inheritdoc />
-    public override OpenIdPlatform Server { get; } = openIdPlatform;
+    public override OpenIdPlatform Platform { get; } = openIdPlatform;
 
     /// <inheritdoc />
     public override OpenIdTenant Tenant => TenantReference.Value;

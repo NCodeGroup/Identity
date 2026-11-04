@@ -17,13 +17,13 @@ namespace NCode.Identity.OpenId.Contexts;
 /// </summary>
 internal class DefaultOpenIdContextFactory(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IOpenIdPlatformProvider openIdServerProvider,
+    IOpenIdPlatformProvider openIdPlatformProvider,
     IOpenIdTenantFactory openIdTenantFactory
 ) : IOpenIdContextFactory
 {
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
-    private IOpenIdPlatformProvider OpenIdServerProvider { get; } = openIdServerProvider;
+    private IOpenIdPlatformProvider OpenIdPlatformProvider { get; } = openIdPlatformProvider;
     private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
     /// <inheritdoc />
@@ -34,7 +34,7 @@ internal class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdPlatform = await OpenIdServerProvider.GetAsync(
+        var openIdPlatform = await OpenIdPlatformProvider.GetAsync(
             openIdEnvironment,
             cancellationToken
         );
@@ -64,7 +64,7 @@ internal class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdPlatform = await OpenIdServerProvider.GetAsync(
+        var openIdPlatform = await OpenIdPlatformProvider.GetAsync(
             openIdEnvironment,
             cancellationToken
         );
@@ -120,7 +120,7 @@ internal class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdPlatform = await OpenIdServerProvider.GetAsync(
+        var openIdPlatform = await OpenIdPlatformProvider.GetAsync(
             openIdEnvironment,
             cancellationToken
         );

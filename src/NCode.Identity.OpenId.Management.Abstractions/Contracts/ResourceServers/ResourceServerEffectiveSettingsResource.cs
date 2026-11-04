@@ -9,8 +9,9 @@ using NCode.Identity.OpenId.Persistence;
 namespace NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 
 /// <summary>
-/// Represents the REST resource for a resource server's effective (merged) settings — the server baseline merged with
-/// the tenant's and the resource server's persisted overrides — that the authorization server resolves at runtime.
+/// Represents the REST resource for a resource server's effective (merged) settings — the team's effective settings
+/// merged with the tenant's and the resource server's persisted overrides — that the authorization server resolves at
+/// runtime.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -25,8 +26,8 @@ public sealed class ResourceServerEffectiveSettingsResource
     public required string ResourceServerId { get; init; }
 
     /// <summary>
-    /// Gets the read-only merged (server baseline + tenant overrides + resource server overrides) flat JSON settings
-    /// object the authorization server resolves at runtime.
+    /// Gets the read-only merged (team effective settings + tenant overrides + resource server overrides) flat JSON
+    /// settings object the authorization server resolves at runtime.
     /// </summary>
     public required JsonElement Settings { get; init; }
 }

@@ -15,15 +15,15 @@ namespace NCode.Identity.OpenId.Platform;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdPlatformProvider"/> abstraction. The platform it
 /// materializes is registered with <see cref="IMaterializedPlatformRegistry"/>, so background work can wait for the
-/// platform and a committed change to its settings can refresh it. Whenever the platform's settings change, by any path,
-/// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/> and every cached team from
-/// <see cref="IOpenIdTeamCache"/>, because a tenant's and a team's settings derive from the platform's when they are
+/// platform and a committed change to its settings can refresh it. Whenever the platform's settings change, by any
+/// path, every cached tenant is evicted from <see cref="IOpenIdTenantCache"/> and every cached team from <see
+/// cref="IOpenIdTeamCache"/>, because a tenant's and a team's settings derive from the platform's when they are
 /// materialized.
 /// </summary>
 // See ADR-1219 and ADR-1289.
 internal class DefaultOpenIdPlatformProvider(
     IOpenIdPlatformFactory factory,
-    IMaterializedPlatformRegistry materializedServerRegistry,
+    IMaterializedPlatformRegistry materializedPlatformRegistry,
     IOpenIdTenantCache tenantCache,
     IOpenIdTeamCache teamCache,
     ILogger<DefaultOpenIdPlatformProvider> logger
@@ -31,7 +31,7 @@ internal class DefaultOpenIdPlatformProvider(
 {
     private IOpenIdPlatformFactory Factory { get; } = factory;
     private IMaterializedPlatformRegistry MaterializedPlatformRegistry { get; } =
-        materializedServerRegistry;
+        materializedPlatformRegistry;
     private IOpenIdTenantCache TenantCache { get; } = tenantCache;
     private IOpenIdTeamCache TeamCache { get; } = teamCache;
     private ILogger<DefaultOpenIdPlatformProvider> Logger { get; } = logger;
@@ -81,8 +81,9 @@ internal class DefaultOpenIdPlatformProvider(
                     // Background work waits for the platform this replica materializes, and a committed change refreshes it (ADR-1219).
                     MaterializedPlatformRegistry.Register(platform);
 
-                    // A tenant computes the profiles its environment type implies from the platform's settings when it is
-                    // materialized, so a changed platform reaches cached tenants at once rather than when they expire (ADR-1289).
+                    // A tenant computes the profiles its environment type implies from the platform's settings when it
+                    // is materialized, so a changed platform reaches cached tenants at once rather than when they
+                    // expire (ADR-1289).
                     SettingsChangeRegistration = ChangeToken.OnChange(
                         platform.SettingsProvider.GetChangeToken,
                         EvictTenants

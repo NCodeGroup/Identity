@@ -5,7 +5,7 @@ abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Environment.get -> NCode.I
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Http.get -> Microsoft.AspNetCore.Http.HttpContext!
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Mediator.get -> NCode.Mediator.IMediator!
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
-abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Server.get -> NCode.Identity.OpenId.Platform.OpenIdPlatform!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Platform.get -> NCode.Identity.OpenId.Platform.OpenIdPlatform!
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Tenant.get -> NCode.Identity.OpenId.Tenants.OpenIdTenant!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateError(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateMessage(string! typeDiscriminator, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!

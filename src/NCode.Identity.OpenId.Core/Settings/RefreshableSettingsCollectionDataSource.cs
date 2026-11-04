@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for the collection of <see cref="Setting"/>
-/// instances that are persisted for the server. The collection is read again on a timer and on demand through
+/// instances that are persisted for the platform. The collection is read again on a timer and on demand through
 /// <see cref="RefreshAsync"/>, one refresh at a time, so a change that was committed on any replica takes effect
 /// without waiting for the next period.
 /// </summary>

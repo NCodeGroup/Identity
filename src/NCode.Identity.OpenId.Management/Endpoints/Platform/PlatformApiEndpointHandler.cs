@@ -41,8 +41,8 @@ GET   api/platform/effective-settings
 */
 
 /// <summary>
-/// Provides the API endpoints for the platform's settings. The platform is the one deployment root, so its routes carry no
-/// identifier.
+/// Provides the API endpoints for the platform's settings. The platform is the one deployment root, so its routes carry
+/// no identifier.
 /// </summary>
 internal class PlatformApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -313,26 +313,26 @@ internal class PlatformApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var currentServerSettings = await ResolveReplacedPlatformSettingsOrDefaultAsync(
+        var currentPlatformSettings = await ResolveReplacedPlatformSettingsOrDefaultAsync(
             platformSettings.Value,
             cancellationToken
         );
-        var newServerSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        var newPlatformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
             settingsValue,
             cancellationToken
         );
 
         if (
-            currentServerSettings is not null
+            currentPlatformSettings is not null
             && ClientCoherenceValidator.ReadsChangedSetting(
-                currentServerSettings,
-                newServerSettings
+                currentPlatformSettings,
+                newPlatformSettings
             )
         )
         {
             var coherenceErrors = await ValidateClientCoherenceAsync(
-                currentServerSettings,
-                newServerSettings,
+                currentPlatformSettings,
+                newPlatformSettings,
                 storeManager,
                 cancellationToken
             );
@@ -400,28 +400,28 @@ internal class PlatformApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that replacing the platform's settings document leaves every value each client of every tenant registers
-    /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The walk follows the
-    /// settings cascade (host configuration, platform, team, tenant): the current and new platform settings are each
-    /// resolved through the <see cref="IEffectiveSettingsResolver"/>, each team's document is resolved onto both, and
-    /// each of the team's tenants' documents is resolved onto those. The teams are paged
-    /// (<see cref="ITeamStore.GetPageAsync(PageRequest, CancellationToken)"/>), and each team's tenants are read as an
-    /// untracked, secret-free projection
-    /// (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest, CancellationToken)"/>). The walk runs only
-    /// when the effective value of a setting a coherence rule reads changed
-    /// (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A team or tenant whose settings document cannot be
-    /// honored is logged and skipped, because none of its clients is coherent under either settings.
+    /// Verifies that replacing the platform's settings document leaves every value each client of every tenant
+    /// registers permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The walk
+    /// follows the settings cascade (host configuration, platform, team, tenant): the current and new platform settings
+    /// are each resolved through the <see cref="IEffectiveSettingsResolver"/>, each team's document is resolved onto
+    /// both, and each of the team's tenants' documents is resolved onto those. The teams are paged (<see
+    /// cref="ITeamStore.GetPageAsync(PageRequest, CancellationToken)"/>), and each team's tenants are read as an
+    /// untracked, secret-free projection (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest,
+    /// CancellationToken)"/>). The walk runs only when the effective value of a setting a coherence rule reads changed
+    /// (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A team or tenant whose settings document cannot
+    /// be honored is logged and skipped, because none of its clients is coherent under either settings.
     /// </summary>
-    /// <param name="currentServerSettings">The platform's effective settings with its current settings document.</param>
-    /// <param name="newServerSettings">The platform's effective settings with its new settings document.</param>
+    /// <param name="currentPlatformSettings">The platform's effective settings with its current settings
+    /// document.</param>
+    /// <param name="newPlatformSettings">The platform's effective settings with its new settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the teams, tenants and clients.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances, keyed by the platform setting that does not permit each value, or
-    /// an empty list.</returns>
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the platform setting that does not permit each
+    /// value, or an empty list.</returns>
     // See ADR-1206 and ADR-1241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
-        IReadOnlySettingCollection currentServerSettings,
-        IReadOnlySettingCollection newServerSettings,
+        IReadOnlySettingCollection currentPlatformSettings,
+        IReadOnlySettingCollection newPlatformSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -441,12 +441,12 @@ internal class PlatformApiEndpointHandler(
                 try
                 {
                     currentTeamSettings = EffectiveSettingsResolver.Resolve(
-                        currentServerSettings,
+                        currentPlatformSettings,
                         OpenIdSettingScopes.Team,
                         team.Settings.Value
                     );
                     newTeamSettings = EffectiveSettingsResolver.Resolve(
-                        newServerSettings,
+                        newPlatformSettings,
                         OpenIdSettingScopes.Team,
                         team.Settings.Value
                     );

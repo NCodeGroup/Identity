@@ -11,10 +11,10 @@ using NCode.Identity.OpenId.Settings;
 namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 
 /// <summary>
-/// Provides an additive <see cref="RateLimitDescriptor"/> data source for the server's own rate limits and daily
-/// quotas: the per-minute limits for a remote address, a tenant and an authenticated client, the daily request quota,
-/// and the daily token-request quota. Each reads its limit and overage from the settings that the rate-limit setting
-/// descriptors register.
+/// Provides an additive <see cref="RateLimitDescriptor"/> data source for the OpenID Provider's own rate limits and
+/// daily quotas: the per-minute limits for a remote address, a tenant and an authenticated client, the daily request
+/// quota, and the daily token-request quota. Each reads its limit and overage from the settings that the rate-limit
+/// setting descriptors register.
 /// </summary>
 // See ADR-1246.
 internal class DefaultRateLimitDescriptorDataSource(INullChangeToken nullChangeToken)

@@ -93,8 +93,8 @@ public sealed class RoleAssignmentEntity : ISupportTenantEntity, ISupportConcurr
     public required string NormalizedRoleName { get; init; }
 
     /// <summary>
-    /// Gets the type of the resource node the role is granted at (a controlled vocabulary such as <c>server</c>,
-    /// <c>tenant</c>, <c>client</c>, <c>resource_server</c>, or <c>grant</c>).
+    /// Gets the type of the resource node the role is granted at (a controlled vocabulary such as <c>platform</c>,
+    /// <c>team</c>, <c>tenant</c>, <c>client</c>, <c>resource_server</c>, or <c>grant</c>).
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceType)]

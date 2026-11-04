@@ -16,7 +16,7 @@ namespace NCode.Identity.Server;
 /// </summary>
 /// <remarks>
 /// A seeded client's settings come from configuration and materialize only after the seed. The validator first checks
-/// the document against the registered setting domains, and then resolves the server's committed settings and the
+/// the document against the registered setting domains, and then resolves the platform's committed settings and the
 /// tenant's, so every coherence rule sees the client as the materialized client will be.
 /// </remarks>
 // See ADR-1140 and ADR-1206.

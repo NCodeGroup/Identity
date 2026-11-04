@@ -9,9 +9,9 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted role assignment: a grant of a <see cref="RoleName"/> to a <see cref="PrincipalId"/>
-/// at a node of the resource hierarchy (<see cref="ResourceType"/> + <see cref="ResourceId"/>), inherited downward.
-/// Ownership is an <c>Owner</c> assignment at a specific instance.
+/// Contains the data for a persisted role assignment: a grant of a <see cref="RoleName"/> to a <see
+/// cref="PrincipalId"/> at a node of the resource hierarchy (<see cref="ResourceType"/> + <see cref="ResourceId"/>),
+/// inherited downward. Ownership is an <c>Owner</c> assignment at a specific instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -44,8 +44,8 @@ public sealed class PersistedRoleAssignment : ISupportTenantId, ISupportConcurre
     public required string RoleName { get; init; }
 
     /// <summary>
-    /// Gets the type of the resource node the role is granted at (for example <c>server</c>, <c>tenant</c>,
-    /// <c>client</c>, <c>resource_server</c>, or <c>grant</c>).
+    /// Gets the type of the resource node the role is granted at (for example <c>platform</c>, <c>team</c>,
+    /// <c>tenant</c>, <c>client</c>, <c>resource_server</c>, or <c>grant</c>).
     /// </summary>
     [MaxLength(MaxLengths.ResourceType)]
     public required string ResourceType { get; init; }

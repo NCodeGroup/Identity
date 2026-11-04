@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// Represents a mediator command that announces a committed change to a platform's persisted settings document,
 /// carrying the document before and after the change. Every registered handler runs. The default handler reads the
 /// document again on this replica and announces the change to every replica, so each serves it at once; the
-/// reconciliation of the platform's settings then seeds the tenants and checks the clients the change affects. Send it
+/// per-team reconciliation then seeds the tenants and checks the clients of every team. Send it
 /// after the change commits; handlers must be idempotent, because one change may be announced more than once.
 /// </summary>
 /// <param name="PreviousSettings">The platform's persisted settings document before the change.</param>

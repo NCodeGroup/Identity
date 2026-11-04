@@ -17,7 +17,7 @@ public static class ResourceNodeTypes
 {
     /// <summary>
     /// The platform root node, whose resource id is <see cref="OpenIdConstants.PlatformResourceId"/>. A role assigned
-    /// here applies across the whole server.
+    /// here applies across the whole platform.
     /// </summary>
     public const string Platform = OpenIdResourceTypes.Platform;
 

@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// The root management route group (<c>/api</c>). It materializes the OpenID request environment for every management
 /// endpoint via <see cref="ManagementEnvironmentEndpointFilter"/> but opens no tenant scope, so control-plane
-/// families (servers, tenant provisioning) act on unscoped rows.
+/// families (platform, teams, tenant provisioning) act on unscoped rows.
 /// </summary>
 internal sealed class ManagementRootGroup : IEndpointGroup
 {

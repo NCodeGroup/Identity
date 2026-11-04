@@ -42,8 +42,8 @@ public sealed class TenantResource : ISupportTenantId, ISupportConcurrencyToken
 
     /// <summary>
     /// Gets the tenant's effective environment: the <c>environment_type</c> and <c>environment_name</c> its settings
-    /// declare, or the server's when it declares none. <see langword="null"/> when the environment cannot be determined
-    /// — the tenant's or the server's stored settings cannot be honored, or they name a type that is not registered —
+    /// declare, or its team's when it declares none. <see langword="null"/> when the environment cannot be determined
+    /// — the tenant's or its team's stored settings cannot be honored, or they name a type that is not registered —
     /// so that a tenant whose settings need repair is still listed. Read-only; a tenant declares its environment
     /// through its settings. An audit record's resource values carry only the tenant's own state, so they omit it.
     /// </summary>

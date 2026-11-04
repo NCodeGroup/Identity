@@ -9,25 +9,25 @@ using NCode.Mediator;
 namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Handles <see cref="PlatformSettingsChangedCommand"/> by applying the change on this replica before the write returns,
-/// then announcing it to every replica. The handler reads the platform's committed settings again through the
-/// <see cref="IMaterializedPlatformRegistry"/>, so this replica serves the change at once, and then publishes the constant platform resource
-/// identifier on the <see cref="PlatformSettingsChangeBroadcastHandler.ChannelName"/> channel of the
-/// <see cref="IReplicaBroadcaster"/> so every other replica reads the settings again too. The refresh and the
-/// announcement run on their own bounded token, not the request's, and any failure of either is logged. The
+/// Handles <see cref="PlatformSettingsChangedCommand"/> by applying the change on this replica before the write
+/// returns, then announcing it to every replica. The handler reads the platform's committed settings again through the
+/// <see cref="IMaterializedPlatformRegistry"/>, so this replica serves the change at once, and then publishes the
+/// constant platform resource identifier on the <see cref="PlatformSettingsChangeBroadcastHandler.ChannelName"/>
+/// channel of the <see cref="IReplicaBroadcaster"/> so every other replica reads the settings again too. The refresh
+/// and the announcement run on their own bounded token, not the request's, and any failure of either is logged. The
 /// announcement follows the local refresh even when the refresh fails, because the change is committed either way.
 /// Neither failure fails the committed write: a replica that did not apply the change picks it up at its next poll.
 /// </summary>
 // See ADR-1219 and ADR-1351.
 internal sealed class PlatformSettingsChangedHandler(
-    IMaterializedPlatformRegistry materializedServerRegistry,
+    IMaterializedPlatformRegistry materializedPlatformRegistry,
     IReplicaBroadcaster replicaBroadcaster,
     TimeProvider timeProvider,
     ILogger<PlatformSettingsChangedHandler> logger
 ) : ICommandHandler<PlatformSettingsChangedCommand>
 {
     private IMaterializedPlatformRegistry MaterializedPlatformRegistry { get; } =
-        materializedServerRegistry;
+        materializedPlatformRegistry;
     private IReplicaBroadcaster ReplicaBroadcaster { get; } = replicaBroadcaster;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<PlatformSettingsChangedHandler> Logger { get; } = logger;

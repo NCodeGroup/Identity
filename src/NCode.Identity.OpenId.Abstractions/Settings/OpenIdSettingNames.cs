@@ -327,35 +327,36 @@ public static class OpenIdSettingNames
         .IdTokenSigningAlgValuesSupported;
 
     /// <summary>
-    /// Contains the name of the per-client <c>authorization_encrypted_response_alg</c> setting (JARM §3): the key-management algorithm a
-    /// client registers for encrypting its JWT-secured authorization responses to its public key. When it is absent,
-    /// authorization responses are signed only.
+    /// Contains the name of the per-client <c>authorization_encrypted_response_alg</c> setting (JARM §3): the
+    /// key-management algorithm a client registers for encrypting its JWT-secured authorization responses to its public
+    /// key. When it is absent, authorization responses are signed only.
     /// </summary>
     public const string AuthorizationEncryptedResponseAlg = "authorization_encrypted_response_alg";
 
     /// <summary>
-    /// Contains the name of the per-client <c>authorization_encrypted_response_enc</c> setting (JARM §3): the content-encryption
-    /// algorithm of the client's encrypted authorization responses (<c>A128CBC-HS256</c> unless registered).
+    /// Contains the name of the per-client <c>authorization_encrypted_response_enc</c> setting (JARM §3): the
+    /// content-encryption algorithm of the client's encrypted authorization responses (<c>A128CBC-HS256</c> unless
+    /// registered).
     /// </summary>
     public const string AuthorizationEncryptedResponseEnc = "authorization_encrypted_response_enc";
 
     /// <summary>
-    /// Contains the name of the <c>authorization_encryption_alg_values_supported</c> setting (JARM §4): the key-management
-    /// algorithms a JWT-secured authorization response may be encrypted with.
+    /// Contains the name of the <c>authorization_encryption_alg_values_supported</c> setting (JARM §4): the
+    /// key-management algorithms a JWT-secured authorization response may be encrypted with.
     /// </summary>
     public const string AuthorizationEncryptionAlgValuesSupported =
         "authorization_encryption_alg_values_supported";
 
     /// <summary>
-    /// Contains the name of the <c>authorization_encryption_enc_values_supported</c> setting (JARM §4): the content-encryption
-    /// algorithms a JWT-secured authorization response may be encrypted with.
+    /// Contains the name of the <c>authorization_encryption_enc_values_supported</c> setting (JARM §4): the
+    /// content-encryption algorithms a JWT-secured authorization response may be encrypted with.
     /// </summary>
     public const string AuthorizationEncryptionEncValuesSupported =
         "authorization_encryption_enc_values_supported";
 
     /// <summary>
-    /// Contains the name of the per-client <c>authorization_signed_response_alg</c> setting (JARM §3): the signature algorithm of the
-    /// client's JWT-secured authorization responses (<c>RS256</c> unless registered).
+    /// Contains the name of the per-client <c>authorization_signed_response_alg</c> setting (JARM §3): the signature
+    /// algorithm of the client's JWT-secured authorization responses (<c>RS256</c> unless registered).
     /// </summary>
     public const string AuthorizationSignedResponseAlg = "authorization_signed_response_alg";
 
@@ -365,8 +366,8 @@ public static class OpenIdSettingNames
     public const string AuthorizationResponseLifetime = "authorization_response_lifetime";
 
     /// <summary>
-    /// Contains the name of the <c>authorization_signing_alg_values_supported</c> setting (JARM §4): the signature algorithms a
-    /// JWT-secured authorization response may be signed with.
+    /// Contains the name of the <c>authorization_signing_alg_values_supported</c> setting (JARM §4): the signature
+    /// algorithms a JWT-secured authorization response may be signed with.
     /// </summary>
     public const string AuthorizationSigningAlgValuesSupported =
         "authorization_signing_alg_values_supported";
@@ -465,8 +466,8 @@ public static class OpenIdSettingNames
     public const string RedirectUris = "redirect_uris";
 
     /// <summary>
-    /// Contains the name of <c>redirect_uri_kinds_supported</c> setting: the kinds of redirect URI a client may register
-    /// and use. A security profile narrows it, and when it is unset every registered kind is permitted.
+    /// Contains the name of <c>redirect_uri_kinds_supported</c> setting: the kinds of redirect URI a client may
+    /// register and use. A security profile narrows it, and when it is unset every registered kind is permitted.
     /// </summary>
     public const string RedirectUriKindsSupported = "redirect_uri_kinds_supported";
 
@@ -832,9 +833,9 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the <c>security_profiles</c> setting: the named security baselines (for example
-    /// <c>fapi2</c>) a server, tenant, or client selects to tighten the OP's effective settings and enforcement. The
-    /// profiles accumulate down the <c>server → tenant → client</c> cascade: a scope can add a profile but never remove
-    /// one that a scope above it selects, and every selected profile applies.
+    /// <c>fapi2</c>) the platform, a team, a tenant or a client selects to tighten the OP's effective settings and
+    /// enforcement. The profiles accumulate down the <c>platform → team → tenant → client</c> cascade: a scope can add
+    /// a profile but never remove one that a scope above it selects, and every selected profile applies.
     /// </summary>
     public const string SecurityProfiles = "security_profiles";
 
@@ -855,7 +856,7 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of <c>token_endpoint_auth_methods_supported</c> setting: the client-authentication methods the
-    /// server, tenant, or security profile permits. It is a ceiling over a client's registered
+    /// the platform, a team, a tenant, or a security profile permits. It is a ceiling over a client's registered
     /// <c>token_endpoint_auth_method</c>: a client whose registered method it excludes cannot authenticate.
     /// </summary>
     public const string TokenEndpointAuthMethodsSupported = OpenIdProtocol
@@ -867,7 +868,7 @@ public static class OpenIdSettingNames
     /// client is registered to use (RFC 7591 §2). It decides the client type — <c>none</c> registers a public client,
     /// any other method a confidential one — and it is the only method that authenticates the client at every endpoint
     /// that authenticates clients. A client that registers no method uses the RFC 7591 default,
-    /// <c>client_secret_basic</c>, unless its server or tenant configures another.
+    /// <c>client_secret_basic</c>, unless its platform, team or tenant configures another.
     /// </summary>
     public const string TokenEndpointAuthMethod = "token_endpoint_auth_method";
 
@@ -1095,9 +1096,9 @@ public static class OpenIdSettingNames
     public const string QuotaTenantRequestsOveragePerDay = "quota_tenant_requests_overage_per_day";
 
     /// <summary>
-    /// Contains the name of the <c>quota_tenant_token_requests_overage_per_day</c> setting: the most token requests from
-    /// confidential clients a tenant's token endpoint serves past <see cref="QuotaTenantTokenRequestsPerDay"/> in one UTC
-    /// calendar day, each recorded as billable overage. Unset means none: the quota refuses once it is spent.
+    /// Contains the name of the <c>quota_tenant_token_requests_overage_per_day</c> setting: the most token requests
+    /// from confidential clients a tenant's token endpoint serves past <see cref="QuotaTenantTokenRequestsPerDay"/> in
+    /// one UTC calendar day, each recorded as billable overage. Unset means none: the quota refuses once it is spent.
     /// </summary>
     public const string QuotaTenantTokenRequestsOveragePerDay =
         "quota_tenant_token_requests_overage_per_day";

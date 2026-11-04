@@ -64,11 +64,11 @@ describe('dynamicBaseQuery', () => {
     store.dispatch(runtimeConfigLoaded({ ...runtime, apiBaseUrl: 'https://tier-a.test' }));
     await store.dispatch(managementApi.endpoints.getCapabilities.initiate());
     store.dispatch(runtimeConfigLoaded({ ...runtime, apiBaseUrl: 'https://tier-b.test/mgmt' }));
-    await store.dispatch(managementApi.endpoints.listTenants.initiate());
+    await store.dispatch(managementApi.endpoints.listTeams.initiate());
 
     expect(captured.map((r) => r.url)).toEqual([
       'https://tier-a.test/api/capabilities',
-      'https://tier-b.test/mgmt/api/tenants',
+      'https://tier-b.test/mgmt/api/teams',
     ]);
   });
 

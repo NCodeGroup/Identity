@@ -36,35 +36,42 @@ internal sealed class DataProtectionKeyRingValueSource(
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
-    public ValueTask<int> RewrapAsync(
+    public ValueTask<ProtectedValueRewrapResult> RewrapAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
         CancellationToken cancellationToken
-    ) => ValueTask.FromResult(0);
+    ) => ValueTask.FromResult(ProtectedValueRewrapResult.None);
 
     /// <inheritdoc />
-    public ValueTask<bool> ReferencesAsync(
+    public ValueTask<IReadOnlySet<Guid>> FindReferencedAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
         CancellationToken cancellationToken
     )
     {
         if (!IsServerOwner(owner))
-            return ValueTask.FromResult(false);
+            return ValueTask.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
 
         if (!KeyRingReader.TryRead(out var values))
-            return ValueTask.FromResult(true);
+            return ValueTask.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>(masterKeyIds));
 
         var now = TimeProvider.GetUtcNow();
         var grace = ProtectionOptions.Value.MasterKeys.RetirementGrace;
 
-        return ValueTask.FromResult(
-            values.Any(value =>
+        var referenced = new HashSet<Guid>();
+        foreach (var value in values)
+        {
+            if (
                 value.IsLive(now, grace)
                 && Provider.TryReadMasterKeyId(value.ProtectedValue, out var keyId)
-                && keyId == masterKeyId
+                && masterKeyIds.Contains(keyId)
             )
-        );
+            {
+                referenced.Add(keyId);
+            }
+        }
+
+        return ValueTask.FromResult<IReadOnlySet<Guid>>(referenced);
     }
 
     // Owners are matched without regard to case, as the key ring matches them.

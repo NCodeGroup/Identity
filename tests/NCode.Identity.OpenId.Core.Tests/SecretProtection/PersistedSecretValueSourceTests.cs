@@ -16,7 +16,9 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
 {
     private static readonly SecretOwner Tenant = SecretOwner.ForTenant("tenant-1");
     private static readonly Guid OldKey = Guid.NewGuid();
+    private static readonly Guid OlderKey = Guid.NewGuid();
     private static readonly Guid ActiveKey = Guid.NewGuid();
+    private static readonly IReadOnlySet<Guid> OldKeys = new HashSet<Guid> { OldKey };
 
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
@@ -73,16 +75,43 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
         string? cursor,
         string? next,
         params PersistedProtectedValue[] items
-    ) =>
+    ) => SetupPageFor(store, OldKeys, cursor, next, items);
+
+    // The store is asked for exactly the prefixes of the keys.
+    private static void SetupPageFor(
+        Mock<ISecretEnvelopeStore> store,
+        IReadOnlySet<Guid> keys,
+        string? cursor,
+        string? next,
+        params PersistedProtectedValue[] items
+    )
+    {
+        var expected = keys.Select(key => $"k:{key:D}").ToHashSet();
         store
             .Setup(x =>
                 x.GetPageAsync(
                     Tenant,
+                    It.Is<IReadOnlyCollection<string>>(prefixes => expected.SetEquals(prefixes)),
                     It.Is<PageRequest>(page => page.Cursor == cursor && page.Limit == 100),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(new ValueTask<PagedResult<PersistedProtectedValue>>(Page(next, items)));
+    }
+
+    private static void SetupUpdate(
+        Mock<ISecretEnvelopeStore> store,
+        PersistedProtectedValue value,
+        bool exists = true
+    ) =>
+        store
+            .Setup(x => x.UpdateAsync(value, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<bool>(exists));
+
+    private static void SetupSave(Mock<IStoreManager> manager) =>
+        manager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
 
     #region RewrapAsync Tests
 
@@ -94,21 +123,13 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
         var stale2 = Value("s3", OldKey);
         var (store, manager) = EnqueueManager();
         SetupPage(store, null, null, stale1, current, stale2);
-        store
-            .Setup(x =>
-                x.UpdateAsync(
-                    It.Is<PersistedProtectedValue>(v => v.RecordId == "s1" || v.RecordId == "s3"),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
-        manager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+        SetupUpdate(store, stale1);
+        SetupUpdate(store, stale2);
+        SetupSave(manager);
 
-        var count = await CreateSource().RewrapAsync(Tenant, OldKey, CancellationToken.None);
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
-        Assert.Equal(2, count);
+        Assert.Equal(new ProtectedValueRewrapResult(2, 0), result);
         var request = Assert.Single(_provider.Requests);
         Assert.Equal(2, request.Count);
         Assert.StartsWith($"k:{ActiveKey:D}|", stale1.ProtectedValue, StringComparison.Ordinal);
@@ -124,31 +145,77 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
     }
 
     [Fact]
+    public async Task Rewrap_RewrapsTheValuesUnderAnyRequestedKeyInOnePass()
+    {
+        var keys = new HashSet<Guid> { OldKey, OlderKey };
+        var first = Value("s1", OldKey);
+        var second = Value("s2", OlderKey);
+        var current = Value("s3", ActiveKey);
+        var (store, manager) = EnqueueManager();
+        SetupPageFor(store, keys, null, null, first, second, current);
+        SetupUpdate(store, first);
+        SetupUpdate(store, second);
+        SetupSave(manager);
+
+        var result = await CreateSource().RewrapAsync(Tenant, keys, CancellationToken.None);
+
+        Assert.Equal(new ProtectedValueRewrapResult(2, 0), result);
+        Assert.Single(_provider.Requests);
+    }
+
+    [Fact]
     public async Task Rewrap_ReadsEveryPage()
     {
         var first = Value("s1", OldKey);
         var second = Value("s2", OldKey);
         var (store1, manager1) = EnqueueManager();
         SetupPage(store1, null, "next", first);
-        store1
-            .Setup(x => x.UpdateAsync(first, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        manager1
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+        SetupUpdate(store1, first);
+        SetupSave(manager1);
         var (store2, manager2) = EnqueueManager();
         SetupPage(store2, "next", null, second);
-        store2
-            .Setup(x => x.UpdateAsync(second, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        manager2
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+        SetupUpdate(store2, second);
+        SetupSave(manager2);
 
-        var count = await CreateSource().RewrapAsync(Tenant, OldKey, CancellationToken.None);
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
-        Assert.Equal(2, count);
+        Assert.Equal(new ProtectedValueRewrapResult(2, 0), result);
         Assert.Equal(2, _provider.Requests.Count);
+    }
+
+    [Fact]
+    public async Task Rewrap_AValueThatCannotBeRewrapped_IsCountedFailedAndTheOthersAreWritten()
+    {
+        _provider.Unrewrappable.Add("bad");
+        var bad = Value("bad", OldKey);
+        var good = Value("good", OldKey);
+        var (store1, manager1) = EnqueueManager();
+        SetupPage(store1, null, "next", bad, good);
+        SetupUpdate(store1, good);
+        SetupSave(manager1);
+        var (store2, _) = EnqueueManager();
+        SetupPage(store2, "next", null);
+
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Equal(new ProtectedValueRewrapResult(1, 1), result);
+        Assert.Equal(FakeRewrapProvider.Value(OldKey, "bad"), bad.ProtectedValue);
+    }
+
+    [Fact]
+    public async Task Rewrap_ARowThatVanished_IsSkippedAndThePageIsSaved()
+    {
+        var gone = Value("gone", OldKey);
+        var kept = Value("kept", OldKey);
+        var (store, manager) = EnqueueManager();
+        SetupPage(store, null, null, gone, kept);
+        SetupUpdate(store, gone, exists: false);
+        SetupUpdate(store, kept);
+        SetupSave(manager);
+
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Equal(new ProtectedValueRewrapResult(1, 0), result);
     }
 
     [Fact]
@@ -157,9 +224,7 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
         var stale = Value("s1", OldKey);
         var (store1, manager1) = EnqueueManager();
         SetupPage(store1, null, null, stale);
-        store1
-            .Setup(x => x.UpdateAsync(stale, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+        SetupUpdate(store1, stale);
         manager1
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Throws(new StoreConcurrencyException());
@@ -167,77 +232,120 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
         var again = Value("s1", OldKey);
         var (store2, manager2) = EnqueueManager();
         SetupPage(store2, null, null, again);
-        store2
-            .Setup(x => x.UpdateAsync(again, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-        manager2
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+        SetupUpdate(store2, again);
+        SetupSave(manager2);
 
-        var count = await CreateSource().RewrapAsync(Tenant, OldKey, CancellationToken.None);
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
-        Assert.Equal(1, count);
+        Assert.Equal(new ProtectedValueRewrapResult(1, 0), result);
     }
 
     [Fact]
-    public async Task Rewrap_ConflictsOnEveryAttempt_GivesUpAfterThree()
+    public async Task Rewrap_ConflictsOnEveryAttempt_CountsThePageFailedAndReadsTheNextPage()
     {
         for (var attempt = 0; attempt < 3; attempt++)
         {
             var stale = Value("s1", OldKey);
             var (store, manager) = EnqueueManager();
-            SetupPage(store, null, null, stale);
-            store
-                .Setup(x => x.UpdateAsync(stale, It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.CompletedTask);
+            SetupPage(store, null, "next", stale);
+            SetupUpdate(store, stale);
             manager
                 .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .Throws(new StoreConcurrencyException());
         }
 
-        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await CreateSource().RewrapAsync(Tenant, OldKey, CancellationToken.None)
-        );
+        var next = Value("s2", OldKey);
+        var (nextStore, nextManager) = EnqueueManager();
+        SetupPage(nextStore, "next", null, next);
+        SetupUpdate(nextStore, next);
+        SetupSave(nextManager);
+
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Equal(new ProtectedValueRewrapResult(1, 1), result);
     }
 
     [Fact]
-    public async Task Rewrap_AnOwnerTypeItHoldsNothingFor_ReturnsZeroWithoutReading()
+    public async Task Rewrap_AnOwnerTypeItHoldsNothingFor_ReturnsNoneWithoutReading()
     {
-        var count = await CreateSource()
-            .RewrapAsync(new SecretOwner("custom", "x"), OldKey, CancellationToken.None);
+        var result = await CreateSource()
+            .RewrapAsync(new SecretOwner("custom", "x"), OldKeys, CancellationToken.None);
 
-        Assert.Equal(0, count);
+        Assert.Equal(ProtectedValueRewrapResult.None, result);
+    }
+
+    [Fact]
+    public async Task Rewrap_NoKeys_ReadsNothing()
+    {
+        var result = await CreateSource()
+            .RewrapAsync(Tenant, new HashSet<Guid>(), CancellationToken.None);
+
+        Assert.Equal(ProtectedValueRewrapResult.None, result);
     }
 
     #endregion
 
-    #region ReferencesAsync Tests
+    #region FindReferencedAsync Tests
 
     [Fact]
-    public async Task References_AValueNamesTheKey_ReturnsTrue()
+    public async Task FindReferenced_AValueNamesTheKey_ReportsIt()
     {
         var (store, _) = EnqueueManager();
         SetupPage(store, null, null, Value("s1", ActiveKey), Value("s2", OldKey));
 
-        Assert.True(await CreateSource().ReferencesAsync(Tenant, OldKey, CancellationToken.None));
+        var found = await CreateSource()
+            .FindReferencedAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Equal([OldKey], found);
     }
 
     [Fact]
-    public async Task References_NoValueNamesTheKey_ReturnsFalse()
+    public async Task FindReferenced_NoValueNamesTheKeys_ReportsNone()
     {
         var (store, _) = EnqueueManager();
         SetupPage(store, null, null, Value("s1", ActiveKey));
 
-        Assert.False(await CreateSource().ReferencesAsync(Tenant, OldKey, CancellationToken.None));
+        var found = await CreateSource()
+            .FindReferencedAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Empty(found);
     }
 
     [Fact]
-    public async Task References_AnUnknownOwnerType_ReturnsFalse()
+    public async Task FindReferenced_AValueOnALaterPageNamesTheKey_ReportsIt()
     {
-        Assert.False(
-            await CreateSource()
-                .ReferencesAsync(new SecretOwner("custom", "x"), OldKey, CancellationToken.None)
-        );
+        var (store1, _) = EnqueueManager();
+        SetupPage(store1, null, "next", Value("s1", ActiveKey));
+        var (store2, _) = EnqueueManager();
+        SetupPage(store2, "next", null, Value("s2", OldKey));
+
+        var found = await CreateSource()
+            .FindReferencedAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Equal([OldKey], found);
+    }
+
+    [Fact]
+    public async Task FindReferenced_StopsOnceEveryKeyIsFound()
+    {
+        var keys = new HashSet<Guid> { OldKey, OlderKey };
+        // The first page holds both keys and has a next page, which is never requested: no manager is queued for it.
+        var (store, _) = EnqueueManager();
+        SetupPageFor(store, keys, null, "next", Value("s1", OldKey), Value("s2", OlderKey));
+
+        var found = await CreateSource().FindReferencedAsync(Tenant, keys, CancellationToken.None);
+
+        Assert.Equal(keys, found.ToHashSet());
+        Assert.Empty(_storeManagers);
+    }
+
+    [Fact]
+    public async Task FindReferenced_AnUnknownOwnerType_ReadsNothing()
+    {
+        var found = await CreateSource()
+            .FindReferencedAsync(new SecretOwner("custom", "x"), OldKeys, CancellationToken.None);
+
+        Assert.Empty(found);
     }
 
     #endregion

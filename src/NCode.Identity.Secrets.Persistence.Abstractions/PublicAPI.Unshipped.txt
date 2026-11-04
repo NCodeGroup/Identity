@@ -177,6 +177,7 @@ NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.Unprotect<TWriter
 NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider
 NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.Evict(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner) -> void
 NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.EvictAll() -> void
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.GetMasterKeyIdPrefix(System.Guid masterKeyId) -> string!
 NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.GetProtectorAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlyCollection<string!>! protectedValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!>
 NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 NCode.Identity.Secrets.Persistence.Protection.SecretOwner.Normalize() -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
@@ -315,11 +316,11 @@ NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.RotatedAs
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.DestroyRetiredAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!>!>
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.GetStatusAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus!>
-NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.RewrapAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.RewrapAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult!>
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.RotateAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation!>
 NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource
-NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource.ReferencesAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Guid masterKeyId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
-NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource.RewrapAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Guid masterKeyId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource.FindReferencedAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlySet<System.Guid>! masterKeyIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlySet<System.Guid>!>
+NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource.RewrapAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlySet<System.Guid>! masterKeyIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult!>
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.CreatedWhen.init -> void
@@ -378,3 +379,17 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyRewrapResult.Rewrapped.ge
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyRewrapResult.Rewrapped.init -> void
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyRewrapResult.Verified.get -> int
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyRewrapResult.Verified.init -> void
+NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult
+NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult.Failed.get -> int
+NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult.Failed.init -> void
+NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult.ProtectedValueRewrapResult(int Rewrapped, int Failed) -> void
+NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult.Rewrapped.get -> int
+NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult.Rewrapped.init -> void
+static NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult.None.get -> NCode.Identity.Secrets.Persistence.Protection.ProtectedValueRewrapResult!
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.MasterKeyRotationTooSoonException() -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.MasterKeyRotationTooSoonException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.TimeSpan retryAfter) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.MasterKeyRotationTooSoonException(string! message) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.MasterKeyRotationTooSoonException(string! message, System.Exception! innerException) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.RetryAfter.get -> System.TimeSpan

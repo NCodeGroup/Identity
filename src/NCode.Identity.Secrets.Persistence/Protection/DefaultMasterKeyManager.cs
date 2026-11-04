@@ -14,15 +14,17 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Provides the default implementation of <see cref="IMasterKeyManager"/>.
 /// </summary>
 /// <remarks>
-/// A rotation retires the active key in one unit of work and creates the successor through the key ring in another,
-/// which reuses the ring's handling of two replicas that create a key at the same time. Doing both in one save would
-/// depend on the provider writing the update before the insert under the unique index of the active keys.
+/// A rotation creates the successor's key material through the root key provider before anything is written, so a
+/// failing root key leaves the owner untouched. The retire and the insert are two units of work, because one save would
+/// depend on the provider writing the update before the insert under the unique index of the active keys. A failed
+/// insert re-activates the retired row, and a successor that another replica stored first is adopted.
 /// </remarks>
 // See ADR-1407.
 internal sealed class DefaultMasterKeyManager(
     ISecretProtectorProvider protectorProvider,
     IStoreManagerFactory storeManagerFactory,
     IRecoveryKeyWrapper recovery,
+    MasterKeyFactory factory,
     IEnumerable<IProtectedValueSource> sources,
     IEnumerable<IMasterKeyChangeObserver> observers,
     IOptions<SecretProtectionOptions> options,
@@ -33,11 +35,17 @@ internal sealed class DefaultMasterKeyManager(
     // An observer runs on its own token so that the caller's cancellation cannot leave a committed change unannounced.
     private static readonly TimeSpan ObserverTimeout = TimeSpan.FromSeconds(30);
 
+    // The insert of a successor and its repair run on a token of their own so that the caller's cancellation cannot
+    // leave the owner without an active key. See ADR-1351.
+    private static readonly TimeSpan CommitTimeout = TimeSpan.FromSeconds(30);
+
     private ISecretProtectorProvider ProtectorProvider { get; } = protectorProvider;
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private IRecoveryKeyWrapper Recovery { get; } = recovery;
+
+    private MasterKeyFactory Factory { get; } = factory;
 
     private IReadOnlyList<IProtectedValueSource> Sources { get; } = [.. sources];
 
@@ -72,52 +80,173 @@ internal sealed class DefaultMasterKeyManager(
     {
         var key = owner.Normalize();
 
-        var retired = await RetireActiveAsync(key, cancellationToken);
+        var rows = await ListAsync(owner, cancellationToken);
+        var active = rows.SingleOrDefault(row => row.RetiredWhen is null);
+        var nextVersion = rows.Count == 0 ? 1 : rows.Max(row => row.Version) + 1;
 
-        // The successor is created through the ring, which stores the next version or adopts the key that another
-        // replica stored first.
-        ProtectorProvider.Evict(owner);
-        await ProtectorProvider.GetProtectorAsync(owner, [], cancellationToken);
+        // A rotation before every replica has loaded the active key protects nothing and only adds a retired key to
+        // rewrap and check.
+        var spacing = 2 * Options.Value.MasterKeys.RefreshInterval;
+        var now = TimeProvider.GetUtcNow();
+        var lastRotation = rows.Max(row => row.RetiredWhen);
+        if (lastRotation is { } last && last + spacing > now)
+            throw new MasterKeyRotationTooSoonException(owner, last + spacing - now);
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var active =
-            await storeManager.GetStore<IMasterKeyStore>().FindActiveAsync(key, cancellationToken)
-            ?? throw new InvalidOperationException(
-                $"The owner '{owner}' has no active master key after its rotation."
+        if (active is null && rows.Count > 0)
+        {
+            throw new StoreConcurrencyException(
+                "The owner has retired master keys and no active one: another rotation is storing its successor; its next protector creates the key if none follows."
+            );
+        }
+
+        // The root key provider is called before anything is written, so its failure leaves the owner untouched.
+        var created = await Factory.CreateAsync(key, nextVersion, cancellationToken);
+        try
+        {
+            var successor = created.Row;
+
+            if (active is not null)
+            {
+                await using var retireManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                active.RetiredWhen = now;
+                await retireManager
+                    .GetStore<IMasterKeyStore>()
+                    .UpdateAsync(active, cancellationToken);
+                await retireManager.SaveChangesAsync(cancellationToken);
+            }
+
+            // From here a change is committed.
+            using var commit = new CancellationTokenSource(CommitTimeout, TimeProvider);
+            try
+            {
+                await using var insertManager = await StoreManagerFactory.CreateAsync(commit.Token);
+                await insertManager.GetStore<IMasterKeyStore>().AddAsync(successor, commit.Token);
+                await insertManager.SaveChangesAsync(commit.Token);
+            }
+            catch (Exception exception)
+            {
+                var winner = await FindActiveAsync(key, commit.Token);
+                if (winner is not null && active is not null)
+                {
+                    Logger.MasterKeyRotationAdoptedSuccessor(owner, winner.KeyId);
+                    successor = winner;
+                }
+                else if (winner is not null)
+                {
+                    throw new StoreConcurrencyException(
+                        "Another writer created the owner's first master key first.",
+                        exception
+                    );
+                }
+                else
+                {
+                    if (active is not null)
+                        await RevertRetirementAsync(owner, key, active, exception, commit.Token);
+
+                    throw;
+                }
+            }
+
+            ProtectorProvider.Evict(owner);
+
+            var rotation = new MasterKeyRotation(
+                owner,
+                MasterKeyInfo.From(successor),
+                active is null ? null : MasterKeyInfo.From(active)
             );
 
-        var rotation = new MasterKeyRotation(
-            owner,
-            MasterKeyInfo.From(active),
-            retired is null ? null : MasterKeyInfo.From(retired)
-        );
+            Logger.MasterKeyRotated(owner, successor.KeyId, successor.Version);
+            await NotifyAsync(owner, (observer, token) => observer.RotatedAsync(rotation, token));
 
-        Logger.MasterKeyRotated(owner, active.KeyId, active.Version);
-        await NotifyAsync(owner, (observer, token) => observer.RotatedAsync(rotation, token));
+            return rotation;
+        }
+        finally
+        {
+            // The ring unwraps the stored row on its next load.
+            created.Key.Dispose();
+        }
+    }
 
-        return rotation;
+    // Re-activates the retired row after the successor could not be stored. When this fails too, the next protector of
+    // the owner creates its key.
+    private async ValueTask RevertRetirementAsync(
+        SecretOwner owner,
+        SecretOwner key,
+        PersistedMasterKey retired,
+        Exception cause,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+            var store = storeManager.GetStore<IMasterKeyStore>();
+            var current = (
+                await store.FindByKeyIdsAsync(key, [retired.KeyId], cancellationToken)
+            ).SingleOrDefault();
+            if (current is null)
+                return;
+
+            current.RetiredWhen = null;
+            await store.UpdateAsync(current, cancellationToken);
+            await storeManager.SaveChangesAsync(cancellationToken);
+
+            Logger.MasterKeyRotationReverted(cause, owner, current.KeyId);
+        }
+        catch (Exception revertException)
+        {
+            Logger.MasterKeyRotationRevertFailed(revertException, owner);
+        }
+    }
+
+    private async ValueTask<PersistedMasterKey?> FindActiveAsync(
+        SecretOwner key,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        return await storeManager
+            .GetStore<IMasterKeyStore>()
+            .FindActiveAsync(key, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async ValueTask<int> RewrapAsync(SecretOwner owner, CancellationToken cancellationToken)
+    public async ValueTask<ProtectedValueRewrapResult> RewrapAsync(
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
     {
         // The keys are read again so that a protector obtained afterwards holds the retired keys of this owner.
         ProtectorProvider.Evict(owner);
 
         var rows = await ListAsync(owner, cancellationToken);
 
-        var rewrapped = 0;
-        foreach (var row in rows.Where(row => row.RetiredWhen is not null))
+        var retired = rows.Where(row => row.RetiredWhen is not null)
+            .Select(row => row.KeyId)
+            .ToHashSet();
+        if (retired.Count == 0)
         {
-            foreach (var source in Sources)
-            {
-                rewrapped += await source.RewrapAsync(owner, row.KeyId, cancellationToken);
-            }
+            Logger.MasterKeysRewrapped(owner, 0, 0);
+            return ProtectedValueRewrapResult.None;
         }
 
-        Logger.MasterKeysRewrapped(owner, rewrapped);
+        var total = ProtectedValueRewrapResult.None;
+        foreach (var source in Sources)
+        {
+            var result = await source.RewrapAsync(owner, retired, cancellationToken);
+            total = new ProtectedValueRewrapResult(
+                total.Rewrapped + result.Rewrapped,
+                total.Failed + result.Failed
+            );
+        }
 
-        return rewrapped;
+        Logger.MasterKeysRewrapped(owner, total.Rewrapped, total.Failed);
+        if (total.Failed > 0)
+            Logger.MasterKeyRewrapIncomplete(owner, total.Failed);
+
+        return total;
     }
 
     /// <inheritdoc />
@@ -133,13 +262,27 @@ internal sealed class DefaultMasterKeyManager(
         var cutoff = TimeProvider.GetUtcNow() - masterKeys.RetirementGrace;
         var rows = await ListAsync(owner, cancellationToken);
 
-        var destroyed = new List<MasterKeyInfo>();
-        foreach (var row in rows)
-        {
-            if (row.RetiredWhen is not { } retiredWhen || retiredWhen > cutoff)
-                continue;
+        var candidates = rows.Where(row =>
+                row.RetiredWhen is { } retiredWhen && retiredWhen <= cutoff
+            )
+            .ToList();
+        if (candidates.Count == 0)
+            return [];
 
-            if (await IsReferencedAsync(owner, row.KeyId, cancellationToken))
+        // Each source is asked once for every candidate.
+        var candidateIds = candidates.Select(row => row.KeyId).ToHashSet();
+        var referenced = new HashSet<Guid>();
+        foreach (var source in Sources)
+        {
+            referenced.UnionWith(
+                await source.FindReferencedAsync(owner, candidateIds, cancellationToken)
+            );
+        }
+
+        var destroyed = new List<MasterKeyInfo>();
+        foreach (var row in candidates)
+        {
+            if (referenced.Contains(row.KeyId))
                 continue;
 
             await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -176,41 +319,6 @@ internal sealed class DefaultMasterKeyManager(
         return await storeManager
             .GetStore<IMasterKeyStore>()
             .ListAsync(owner.Normalize(), cancellationToken);
-    }
-
-    // Retires the active row in its own unit of work and returns it, or null when the owner has no active row.
-    private async ValueTask<PersistedMasterKey?> RetireActiveAsync(
-        SecretOwner key,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IMasterKeyStore>();
-
-        var active = await store.FindActiveAsync(key, cancellationToken);
-        if (active is null)
-            return null;
-
-        active.RetiredWhen = TimeProvider.GetUtcNow();
-        await store.UpdateAsync(active, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        return active;
-    }
-
-    private async ValueTask<bool> IsReferencedAsync(
-        SecretOwner owner,
-        Guid masterKeyId,
-        CancellationToken cancellationToken
-    )
-    {
-        foreach (var source in Sources)
-        {
-            if (await source.ReferencesAsync(owner, masterKeyId, cancellationToken))
-                return true;
-        }
-
-        return false;
     }
 
     // Calls every observer on a bounded token of its own and swallows each failure, since the change is committed.

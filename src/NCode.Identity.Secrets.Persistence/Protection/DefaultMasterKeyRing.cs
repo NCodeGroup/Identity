@@ -137,6 +137,10 @@ internal class DefaultMasterKeyRing(
         SecretProtectionFormat.TryReadMasterKeyId(protectedValue, out masterKeyId);
 
     /// <inheritdoc />
+    public string GetMasterKeyIdPrefix(Guid masterKeyId) =>
+        SecretProtectionFormat.GetMasterKeyIdPrefix(masterKeyId);
+
+    /// <inheritdoc />
     public void Evict(SecretOwner owner)
     {
         ThrowIfDefault(owner);

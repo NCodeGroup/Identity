@@ -33,7 +33,9 @@ public sealed class MasterKeyRewrapJobHandlerTests : IDisposable
     {
         _manager
             .Setup(x => x.RewrapAsync(SecretOwner.ForTenant("acme"), It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<int>(3));
+            .Returns(
+                new ValueTask<ProtectedValueRewrapResult>(new ProtectedValueRewrapResult(3, 0))
+            );
 
         await new MasterKeyRewrapJobHandler(_manager.Object).HandleAsync(
             new MasterKeyRewrapJob { OwnerType = "tenant", OwnerId = "acme" },

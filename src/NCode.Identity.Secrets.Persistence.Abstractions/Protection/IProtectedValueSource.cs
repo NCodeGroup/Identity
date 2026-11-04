@@ -13,39 +13,41 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <remarks>
 /// A source ignores an owner that it holds nothing for. Sources are registered as a collection, and every source is
-/// asked about every retired key.
+/// asked once per owner with the set of keys.
 /// </remarks>
 // See ADR-1407.
 [PublicAPI]
 public interface IProtectedValueSource
 {
     /// <summary>
-    /// Rewraps every value of the source that a specific master key protects under the active master key of the owner.
-    /// The call is idempotent: a rewrapped value no longer names the key.
+    /// Rewraps, under the active master key of the owner, every value of the source that one of the master keys
+    /// protects, in one pass over the source. A value that cannot be rewrapped is counted failed and the pass continues.
+    /// The call is idempotent: a rewrapped value names none of the keys.
     /// </summary>
     /// <param name="owner">The owner whose values are rewrapped.</param>
-    /// <param name="masterKeyId">The identifier of the master key whose values are rewrapped.</param>
+    /// <param name="masterKeyIds">The identifiers of the master keys whose values are rewrapped.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of values
-    /// that were rewrapped, or zero when the source holds nothing for the owner.</returns>
-    ValueTask<int> RewrapAsync(
+    /// that were rewrapped and the number that failed, or <see cref="ProtectedValueRewrapResult.None"/> when the source
+    /// holds nothing for the owner.</returns>
+    ValueTask<ProtectedValueRewrapResult> RewrapAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Determines whether any value of the source is still protected by a specific master key.
+    /// Finds the master keys that a value of the source still names.
     /// </summary>
     /// <param name="owner">The owner whose values are examined.</param>
-    /// <param name="masterKeyId">The identifier of the master key.</param>
+    /// <param name="masterKeyIds">The identifiers of the master keys to look for.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing
-    /// <see langword="true"/> when a value names the key, or <see langword="false"/> when none does or the source holds
-    /// nothing for the owner.</returns>
-    ValueTask<bool> ReferencesAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the subset of the
+    /// master keys that a value of the source still names, found in one pass that ends once every key is found; an
+    /// empty set when the source holds nothing for the owner.</returns>
+    ValueTask<IReadOnlySet<Guid>> FindReferencedAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
         CancellationToken cancellationToken
     );
 }

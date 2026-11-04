@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Server.Logging;
 
@@ -131,5 +132,15 @@ internal static partial class Log
         this ILogger logger,
         string path,
         Exception? exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandOwnerHasNoMasterKeys,
+        Level = LogLevel.Error,
+        Message = "The owner '{Owner}' that --owner names has no master keys; nothing was rewrapped."
+    )]
+    internal static partial void SecretProtectionCommandOwnerHasNoMasterKeys(
+        this ILogger logger,
+        SecretOwner owner
     );
 }

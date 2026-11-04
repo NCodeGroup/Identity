@@ -50,6 +50,16 @@ public interface ISecretProtectorProvider
     bool TryReadMasterKeyId(ReadOnlySpan<char> protectedValue, out Guid masterKeyId);
 
     /// <summary>
+    /// Gets a text that every protected value whose data key the master key wraps starts with, so a store can select
+    /// candidate values without reading the others. Every prefix the provider returns has the same length. A value that
+    /// starts with it may name another key, so a caller confirms the key with <see cref="TryReadMasterKeyId"/>. The
+    /// prefix is not secret.
+    /// </summary>
+    /// <param name="masterKeyId">The identifier of the master key.</param>
+    /// <returns>The prefix of the protected values that the master key protects.</returns>
+    string GetMasterKeyIdPrefix(Guid masterKeyId);
+
+    /// <summary>
     /// Removes the master keys of the specified owner from memory so that the next call to
     /// <see cref="GetProtectorAsync"/> loads them again. Protectors that were already obtained remain usable.
     /// </summary>

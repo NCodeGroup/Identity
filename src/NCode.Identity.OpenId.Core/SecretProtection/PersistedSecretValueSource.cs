@@ -33,12 +33,16 @@ internal sealed class PersistedSecretValueSource(
     protected override ValueTask<PagedResult<PersistedProtectedValue>> GetPageAsync(
         IStoreManager storeManager,
         SecretOwner owner,
+        IReadOnlyCollection<string> prefixes,
         PageRequest page,
         CancellationToken cancellationToken
-    ) => storeManager.GetStore<ISecretEnvelopeStore>().GetPageAsync(owner, page, cancellationToken);
+    ) =>
+        storeManager
+            .GetStore<ISecretEnvelopeStore>()
+            .GetPageAsync(owner, prefixes, page, cancellationToken);
 
     /// <inheritdoc />
-    protected override ValueTask UpdateAsync(
+    protected override ValueTask<bool> UpdateAsync(
         IStoreManager storeManager,
         PersistedProtectedValue value,
         CancellationToken cancellationToken

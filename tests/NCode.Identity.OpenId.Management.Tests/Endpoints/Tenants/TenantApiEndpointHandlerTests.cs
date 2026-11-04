@@ -2931,6 +2931,39 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task RekeyEncryptionKeysAsync_WhenTheLastRotationIsTooRecent_ReturnsConflictWithRetryAfterAndRecordsNothing()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockMasterKeyManager
+            .Setup(x =>
+                x.RotateAsync(SecretOwner.ForTenant(TenantId), It.IsAny<CancellationToken>())
+            )
+            .Throws(
+                new MasterKeyRotationTooSoonException(
+                    SecretOwner.ForTenant(TenantId),
+                    TimeSpan.FromSeconds(90.2)
+                )
+            )
+            .Verifiable();
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RekeyEncryptionKeysAsync(
+            httpContext,
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
+    }
+
+    [Fact]
     public async Task RekeyEncryptionKeysAsync_WhenNotFound_NeverRotates()
     {
         SetupStore();

@@ -68,4 +68,24 @@ internal static class EventIds
     /// A persisted master key could not be rewrapped.
     /// </summary>
     public const int MasterKeyRewrapRowFailed = Base + 11;
+
+    /// <summary>
+    /// A rewrap of the values under retired master keys left values that still name a retired key.
+    /// </summary>
+    public const int MasterKeyRewrapIncomplete = Base + 12;
+
+    /// <summary>
+    /// A rotation adopted the successor that another replica stored first.
+    /// </summary>
+    public const int MasterKeyRotationAdoptedSuccessor = Base + 13;
+
+    /// <summary>
+    /// A rotation whose successor could not be stored re-activated the retired master key.
+    /// </summary>
+    public const int MasterKeyRotationReverted = Base + 14;
+
+    /// <summary>
+    /// A rotation whose successor could not be stored could not re-activate the retired master key.
+    /// </summary>
+    public const int MasterKeyRotationRevertFailed = Base + 15;
 }

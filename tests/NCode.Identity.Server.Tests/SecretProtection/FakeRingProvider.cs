@@ -22,6 +22,16 @@ internal sealed class FakeRingProvider(params Guid[] loadableKeys) : ISecretProt
 
     public int EvictAllCount { get; private set; }
 
+    /// <summary>
+    /// Gets or sets an exception that every <see cref="GetProtectorAsync"/> call throws, or <see langword="null"/>.
+    /// </summary>
+    public Exception? Failure { get; set; }
+
+    /// <summary>
+    /// Gets a semaphore that every <see cref="GetProtectorAsync"/> call releases once, before it throws or returns.
+    /// </summary>
+    public SemaphoreSlim Requested { get; } = new(0);
+
     public static string Value(Guid keyId, string payload = "payload") => $"k:{keyId:D}|{payload}";
 
     public bool TryReadMasterKeyId(ReadOnlySpan<char> protectedValue, out Guid masterKeyId)
@@ -32,6 +42,8 @@ internal sealed class FakeRingProvider(params Guid[] loadableKeys) : ISecretProt
             && Guid.TryParse(protectedValue.Slice(2, 36), out masterKeyId);
     }
 
+    public string GetMasterKeyIdPrefix(Guid masterKeyId) => $"k:{masterKeyId:D}";
+
     public ValueTask<ISecretProtector> GetProtectorAsync(
         SecretOwner owner,
         IReadOnlyCollection<string> protectedValues,
@@ -39,6 +51,10 @@ internal sealed class FakeRingProvider(params Guid[] loadableKeys) : ISecretProt
     )
     {
         Requests.Add((owner, protectedValues));
+        Requested.Release();
+
+        if (Failure is { } failure)
+            throw failure;
 
         foreach (var value in protectedValues)
         {

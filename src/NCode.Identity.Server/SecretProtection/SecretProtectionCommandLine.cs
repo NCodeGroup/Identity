@@ -248,6 +248,12 @@ public sealed class SecretProtectionCommandLine
             cancellationToken
         );
 
+        if (Owner is { } owner && result.Examined == 0)
+        {
+            logger.SecretProtectionCommandOwnerHasNoMasterKeys(owner);
+            return 1;
+        }
+
         return result.Failed == 0 ? 0 : 1;
     }
 

@@ -224,6 +224,41 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ProtectedValueRewrapFailed,
+        Level = LogLevel.Warning,
+        Message = "The protected value of record '{RecordId}' of '{Owner}' cannot be rewrapped; it keeps its master key"
+    )]
+    internal static partial void ProtectedValueRewrapFailed(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner,
+        string recordId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValuePageAbandoned,
+        Level = LogLevel.Warning,
+        Message = "A page of the protected values of '{Owner}' changed on each of {Attempts} attempts; its values are left for the next pass"
+    )]
+    internal static partial void ProtectedValuePageAbandoned(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner,
+        int attempts
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValuePageUnreadable,
+        Level = LogLevel.Warning,
+        Message = "A master key that a page of the protected values of '{Owner}' names cannot be loaded; its values are left for the next pass"
+    )]
+    internal static partial void ProtectedValuePageUnreadable(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner
+    );
+
+    [LoggerMessage(
         EventId = EventIds.MasterKeyMaintenancePassFailed,
         Level = LogLevel.Error,
         Message = "The master key maintenance pass failed; it runs again at the next interval"

@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <remarks>
 /// A rotation retires the active key and creates the next version. The values that the retired key protects are rewrapped
-/// by <see cref="RewrapAsync"/>, which asks every registered <see cref="IProtectedValueSource"/>, and
+/// by <see cref="RewrapAsync"/>, which asks every registered <see cref="IProtectedValueSource"/> once, and
 /// <see cref="DestroyRetiredAsync"/> destroys a retired key only after its grace and only when no source reports a
 /// value that still names it. Every registered <see cref="IMasterKeyChangeObserver"/> learns of a rotation and of a
 /// destruction after it is committed.
@@ -34,14 +34,19 @@ public interface IMasterKeyManager
     );
 
     /// <summary>
-    /// Retires the active master key of an owner and creates the next version as the active one. An owner without an
-    /// active key receives its next version and reports no retired key.
+    /// Creates the next version's key material through the root key provider, then retires the active master key of an
+    /// owner and stores the next version as the active one. An owner without any key receives its first and reports no
+    /// retired key.
     /// </summary>
     /// <param name="owner">The owner whose master key rotates.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the rotation.</returns>
     /// <exception cref="StoreConcurrencyException">
-    /// Thrown when another rotation retired the active key first.
+    /// Thrown when another rotation retired or replaced the active key first, or when the owner has retired keys and no
+    /// active key.
+    /// </exception>
+    /// <exception cref="MasterKeyRotationTooSoonException">
+    /// Thrown when the last rotation of the owner is younger than twice <see cref="Options.MasterKeyOptions.RefreshInterval"/>.
     /// </exception>
     ValueTask<MasterKeyRotation> RotateAsync(
         SecretOwner owner,
@@ -49,14 +54,18 @@ public interface IMasterKeyManager
     );
 
     /// <summary>
-    /// Rewraps, under the active master key, every value that a retired master key of the owner protects. The keys of
-    /// the owner are read again first.
+    /// Rewraps, under the active master key, every value that a retired master key of the owner protects, in one pass
+    /// per registered source over every retired key of the owner. The keys of the owner are read again first, and
+    /// nothing is read when the owner has no retired key.
     /// </summary>
     /// <param name="owner">The owner whose values are rewrapped.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of values
-    /// that were rewrapped.</returns>
-    ValueTask<int> RewrapAsync(SecretOwner owner, CancellationToken cancellationToken);
+    /// that were rewrapped and the number that failed and still name a retired key.</returns>
+    ValueTask<ProtectedValueRewrapResult> RewrapAsync(
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Destroys the retired master keys of an owner whose grace has passed and that no value names. Nothing is destroyed

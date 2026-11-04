@@ -195,6 +195,40 @@ public class SecretProtectionCommandLineTests : BaseTests
     }
 
     [Fact]
+    public async Task RunAsync_AnOwnerWithNoMasterKeys_ReturnsOne()
+    {
+        var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+        rewrapper
+            .Setup(x =>
+                x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(0, 0, 0, 0)));
+        using var services = CreateServices(rewrapper.Object);
+
+        var exitCode = await Parse("secret-protection", "rewrap", "--owner", "tenant:acme")
+            .RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(1, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsync_EveryOwnerWithNoMasterKeys_ReturnsZero()
+    {
+        var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+        rewrapper
+            .Setup(x =>
+                x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(0, 0, 0, 0)));
+        using var services = CreateServices(rewrapper.Object);
+
+        var exitCode = await Parse("secret-protection", "rewrap")
+            .RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
     public async Task RunAsync_ReadsTheKeyFileIntoTheRequestAndZeroesItAfterwards()
     {
         const string pem = "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n";

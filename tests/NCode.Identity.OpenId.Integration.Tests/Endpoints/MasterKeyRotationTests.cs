@@ -14,6 +14,7 @@ using NCode.Buffers;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
@@ -59,6 +60,14 @@ public class MasterKeyRotationTests
             rotation.GetProperty("retiredKey").GetProperty("state").GetString()
         );
 
+        // Every replica has not loaded the new key yet, so a second rekey waits.
+        using var tooSoon = await administrator.PostAsync(
+            $"{TenantApiPath}/encryption-keys/rekey",
+            content: null
+        );
+        Assert.Equal(HttpStatusCode.Conflict, tooSoon.StatusCode);
+        Assert.True(tooSoon.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+
         // The status never carries material.
         var after = await GetKeysAsync(administrator, TenantApiPath);
         Assert.Equal(2, after.GetProperty("keys").GetArrayLength());
@@ -81,7 +90,8 @@ public class MasterKeyRotationTests
             CancellationToken.None
         );
 
-        Assert.True(rewrapped >= 1);
+        Assert.True(rewrapped.Rewrapped >= 1);
+        Assert.Equal(0, rewrapped.Failed);
         var stored = Assert.Single(await factory.GetClientSecretsAsync(clientId));
         Assert.True(provider.TryReadMasterKeyId(stored.EncodedValue, out var storedKeyId));
         Assert.Equal(activeKeyId, storedKeyId);
@@ -102,6 +112,16 @@ public class MasterKeyRotationTests
         );
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var rows = await storeManager
+            .GetStore<IMasterKeyStore>()
+            .ListAsync(SecretOwner.ForTenant("no-such-tenant").Normalize(), CancellationToken.None);
+        Assert.Empty(rows);
     }
 
     [Fact]

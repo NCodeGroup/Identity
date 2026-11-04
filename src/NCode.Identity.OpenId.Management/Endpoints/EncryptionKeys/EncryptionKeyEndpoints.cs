@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
@@ -21,6 +22,12 @@ internal static class EncryptionKeyEndpoints
     /// </summary>
     internal const string RekeyConflictDetail =
         "Another rotation of this master key committed first; read the encryption keys and retry.";
+
+    /// <summary>
+    /// The detail of the problem that a rekey within twice the refresh interval of the last rotation answers with.
+    /// </summary>
+    internal const string RekeyTooSoonDetail =
+        "The last rotation of this master key has not reached every replica yet; retry after the time in Retry-After.";
 
     /// <summary>
     /// Answers with the master keys of the owner.
@@ -44,7 +51,8 @@ internal static class EncryptionKeyEndpoints
 
     /// <summary>
     /// Rotates the master key of the owner and answers with the new active key and the retired one. A rekey that lost
-    /// a race to another rekey answers <c>409 Conflict</c>.
+    /// a race to another rekey, or that follows the last rotation of the owner within twice the refresh interval,
+    /// answers <c>409 Conflict</c>; the second carries a <c>Retry-After</c> header.
     /// </summary>
     public static async ValueTask<IResult> RekeyAsync(
         IMasterKeyManager masterKeyManager,
@@ -58,6 +66,19 @@ internal static class EncryptionKeyEndpoints
         try
         {
             rotation = await masterKeyManager.RotateAsync(owner, cancellationToken);
+        }
+        catch (MasterKeyRotationTooSoonException exception)
+        {
+            httpContext.Response.Headers.RetryAfter = Math.Max(
+                    1,
+                    (long)Math.Ceiling(exception.RetryAfter.TotalSeconds)
+                )
+                .ToString(CultureInfo.InvariantCulture);
+
+            return TypedResults.Problem(
+                detail: RekeyTooSoonDetail,
+                statusCode: StatusCodes.Status409Conflict
+            );
         }
         catch (StoreConcurrencyException)
         {

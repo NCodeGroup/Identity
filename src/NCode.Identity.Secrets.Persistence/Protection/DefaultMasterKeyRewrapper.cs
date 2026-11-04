@@ -12,7 +12,8 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Provides the default implementation of <see cref="IMasterKeyRewrapper"/>.
 /// </summary>
 /// <remarks>
-/// Each row is rewrapped in its own unit of work. The material of a master key does not change, so no replica needs to
+/// Each row is rewrapped in its own unit of work. A row that vanished during the run, whether its update conflicts or
+/// finds it gone, counts as examined only. The material of a master key does not change, so no replica needs to
 /// reload it. When a recovery public key is configured, the recovery copy is replaced; when none is, the existing
 /// recovery copy is left as it is, because a recovery path is never removed silently.
 /// </remarks>
@@ -150,12 +151,17 @@ internal sealed class DefaultMasterKeyRewrapper(
                     counts.Rewrapped++;
                     return;
                 }
-                catch (StoreConcurrencyException) when (attempt < MaxAttempts)
+                catch (Exception exception)
+                    when (exception is StoreConcurrencyException or InvalidOperationException)
                 {
-                    // Another writer changed the row, so it is read again and rewrapped from its current state.
+                    // A row the maintenance pass destroyed during the run is gone, and counts as examined only.
                     var current = await FindAsync(row, cancellationToken);
                     if (current is null)
                         return;
+
+                    // Another writer changed the row, so it is read again and rewrapped from its current state.
+                    if (exception is not StoreConcurrencyException || attempt >= MaxAttempts)
+                        throw;
 
                     row = current;
                 }

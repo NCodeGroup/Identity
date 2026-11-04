@@ -63,4 +63,10 @@ internal static class EventIds
     public const int MasterKeyRotationLostRace = Base + 28;
 
     public const int MasterKeyAuditPublishFailed = Base + 29;
+
+    public const int ProtectedValueRewrapFailed = Base + 30;
+
+    public const int ProtectedValuePageAbandoned = Base + 31;
+
+    public const int ProtectedValuePageUnreadable = Base + 32;
 }

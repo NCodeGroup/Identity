@@ -28,15 +28,16 @@ internal sealed class GrantPayloadValueSource(
     protected override ValueTask<PagedResult<PersistedProtectedValue>> GetPageAsync(
         IStoreManager storeManager,
         SecretOwner owner,
+        IReadOnlyCollection<string> prefixes,
         PageRequest page,
         CancellationToken cancellationToken
     ) =>
         storeManager
             .GetStore<IGrantStore>()
-            .GetProtectedPayloadPageAsync(owner.OwnerId, page, cancellationToken);
+            .GetProtectedPayloadPageAsync(owner.OwnerId, prefixes, page, cancellationToken);
 
     /// <inheritdoc />
-    protected override ValueTask UpdateAsync(
+    protected override ValueTask<bool> UpdateAsync(
         IStoreManager storeManager,
         PersistedProtectedValue value,
         CancellationToken cancellationToken

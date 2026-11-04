@@ -5,12 +5,12 @@
 > forgot about. Inside the running server, secret plaintext stays in pinned memory and is wiped as soon as the server
 > stops using it.
 
-|                      |                                                                                                                                                                                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**           | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered, and master keys rotate, rekey and are destroyed once nothing names them.                                                                                                                                                                                                                |
-| **Packages**         | `NCode.Identity.Secrets.Persistence(.Abstractions)`, plus one opt-in package per cloud: `.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms`                                                                                                                                                                                   |
-| **Key decisions**    | [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap |
-| **Operator guide**   | [Helm chart: Secret protection](../../charts/ncode-identity-host/README.md#secret-protection)                                                                                                                                                                                                                            |
+|                    |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**         | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered, and master keys rotate, rekey and are destroyed once nothing names them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Packages**       | `NCode.Identity.Secrets.Persistence(.Abstractions)`, plus one opt-in package per cloud: `.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap |
+| **Operator guide** | [Helm chart: Secret protection](../../charts/ncode-identity-host/README.md#secret-protection)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Contents
 
@@ -303,7 +303,7 @@ sequenceDiagram
     participant R as Every replica
     participant J as Rewrap job and daily pass
     A->>M: rotate (rekey)
-    M->>DB: retire the active key, then create version N+1
+    M->>DB: create version N+1, retire the active key, store N+1
     M-->>R: master-key-changed (best effort)
     R->>DB: reload the owner's keys (also every RefreshInterval)
     M->>J: rewrap job after twice the refresh interval
@@ -314,28 +314,30 @@ sequenceDiagram
 - **Rekey through the API.** `GET` and `POST /api/tenants/{tenantId}/encryption-keys[/rekey]` and
   `/api/servers/{serverId}/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
   names keys by id, version, state, instants, root key provider and recovery key id and carries no key material. A rekey
-  that loses a race to another rekey answers `409`. The management console shows both.
+  that loses a race to another rekey, or comes within twice `RefreshInterval` of the owner's last rotation, answers
+  `409` (with `Retry-After` in the second case). The management console shows both.
 - **Every replica follows.** A replica keeps an owner's unwrapped keys for at most
   `SecretProtection:MasterKeys:RefreshInterval` (five minutes). A refresh reuses the keys it holds, so it makes no KMS
   call, and drops destroyed keys. A broadcast makes the others reload at once; a lost one costs at most
   one interval.
 - **Rewrap touches only the wrap.** A value already under the active key is left as it is, and a value is bound to its
-  owner and purpose, never to a master key, so its payload stays valid.
+  owner and purpose, never to a master key, so its payload stays valid. A pass reads each owner's values once and only
+  those under a retired key; a value that cannot be rewrapped is logged by record id and keeps its key.
 - **Destroy is conservative.** A retired key is destroyed only after `RetirementGrace` (30 days) and when every
   registered `IProtectedValueSource` reports no value that names it. The sources cover stored secrets, grant payloads and
   the Data Protection key ring. A ring key is not re-encrypted, so the retired server key stays while a live ring key
   names it, and always when the ring cannot be read. `SecretProtection:MasterKeys:DestroyRetired=false` keeps retired
   keys for good.
-- **Everything is audited.** `master_key.rotated` and `master_key.destroyed` are `key` events without material (see
-  [Audit records](../audit-records.md#master-keys)).
+- **Every change is audited.** `master_key.rotated` and `master_key.destroyed` are `key` events without material (see
+  [Audit records](../audit-records.md#master-keys)). A status read is not.
 
-| Setting (`SecretProtection:MasterKeys:`) | Default | Meaning                                                              |
-| ---------------------------------------- | ------- | -------------------------------------------------------------------- |
-| `RotationPeriod`                         | 365 days | How long an active master key lives before the pass rotates it.     |
+| Setting (`SecretProtection:MasterKeys:`) | Default   | Meaning                                                              |
+| ---------------------------------------- | --------- | -------------------------------------------------------------------- |
+| `RotationPeriod`                         | 365 days  | How long an active master key lives before the pass rotates it.      |
 | `RefreshInterval`                        | 5 minutes | How long a replica keeps an owner's keys before it reads them again. |
-| `RetirementGrace`                        | 30 days | How long a retired key is kept before it can be destroyed.          |
-| `MaintenanceInterval`                    | 1 day   | How often the pass rotates, rewraps and destroys.                   |
-| `DestroyRetired`                         | `true`  | `false` keeps retired keys for good.                                |
+| `RetirementGrace`                        | 30 days   | How long a retired key is kept before it can be destroyed.           |
+| `MaintenanceInterval`                    | 1 day     | How often the pass rotates, rewraps and destroys.                    |
+| `DestroyRetired`                         | `true`    | `false` keeps retired keys for good.                                 |
 
 ## Recovery
 
@@ -391,8 +393,8 @@ A package that stores protected values registers an `IProtectedValueSource`, so 
 services.TryAddEnumerable(ServiceDescriptor.Singleton<IProtectedValueSource, WebhookSecretSource>());
 ```
 
-`RewrapAsync(owner, masterKeyId)` rewraps every value of the source that names the key, and
-`ReferencesAsync(owner, masterKeyId)` reports whether any still does. A value that no registered source reports is not
+`RewrapAsync(owner, masterKeyIds)` rewraps every value of the source that names one of the keys, and
+`FindReferencedAsync(owner, masterKeyIds)` reports which of them a value still names. A value that no registered source reports is not
 rewrapped and becomes unreadable once its master key is destroyed; `SecretProtection:MasterKeys:DestroyRetired=false`
 keeps retired keys for good.
 

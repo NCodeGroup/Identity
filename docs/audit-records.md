@@ -96,25 +96,25 @@ the members in the order below.
 | `subject_id`              | string            | When the operation concerns a subject                                 | The end user the operation concerns. On a failed authentication it is the attempted identifier when one is known; a failed password grant records the user name the client sent. |
 | `client_id`               | string            | When the operation concerns a client                                  | The client the operation concerns.                                                                                                                                               |
 | `actor`                   | object            | Always                                                                | Who performed the operation. See [actor types](#actor-types).                                                                                                                    |
-| `actor.type`              | string            | Always                                                                | The kind of caller: one of the actor types.                                                                                                                                      |
-| `actor.id`                | string            | When the actor has an identifier                                      | The caller's identifier within its type: a subject id, a client id or an administrator's subject id.                                                                             |
-| `request`                 | object            | When the request context was captured                                 | The HTTP request that caused the operation. Every event a request causes carries it; an event the server raises for an operation of its own, such as a `tenant.key.*` event, does not. |
-| `request.request_id`      | string            | When known                                                            | The HTTP request identifier (`HttpContext.TraceIdentifier`), which pivots to the host's request logs.                                                                            |
-| `request.trace_id`        | string            | When the current activity uses W3C identifiers                        | The 32-character W3C trace identifier, which pivots to traces.                                                                                                                   |
-| `request.span_id`         | string            | When the current activity uses W3C identifiers                        | The 16-character W3C identifier of the span that was current when the event was published.                                                                                       |
-| `request.source_ip`       | string            | When known                                                            | The caller's IP address (`Connection.RemoteIpAddress`), already corrected by the host for any trusted forwarding proxy.                                                          |
-| `request.user_agent`      | string            | When the request sent one                                             | The `User-Agent` header, cut at 512 characters.                                                                                                                                  |
-| `request.http_method`     | string            | When known                                                            | The HTTP method.                                                                                                                                                                 |
-| `request.path`            | string            | When known                                                            | `PathBase` plus `Path`. It never includes the query string, which can carry codes or tokens.                                                                                     |
-| `request.endpoint`        | string            | When the endpoint is known                                            | The name of the endpoint that handled the request, such as `token_endpoint`, or its display name when it has none.                                                               |
-| `resources`               | array of objects  | When the operation acted on at least one entity                       | Every entity the operation acted on, the target first and then the entities that own it. Each item has a `type` and, when known, an `id`.                                        |
-| `resources[].type`        | string            | Always, within an item                                                | The resource type: one of the [resource types](#resource-types).                                                                                                                 |
-| `resources[].id`          | string            | When known                                                            | The resource's identifier.                                                                                                                                                       |
-| `error`                   | object            | On failure and denial events                                          | Why the operation did not succeed.                                                                                                                                               |
-| `error.code`              | string            | Always, within `error`                                                | A stable, machine-readable code to filter and pivot on: an OAuth error code where one applies.                                                                                   |
-| `error.message`           | string            | When there is text                                                    | Human-readable text. It never contains a secret.                                                                                                                                 |
-| `error.status_code`       | integer           | When an HTTP response was returned                                    | The HTTP status code returned to the caller.                                                                                                                                     |
-| `details`                 | object            | On events that declare event-specific fields                          | The fields specific to the event, written by the event itself (`ISupportAuditDetails`). The catalog lists them per event.                                                        |
+| `actor.type`          | string           | Always                                          | The kind of caller: one of the actor types.                                                                                                                                            |
+| --------------------- | ---------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request`             | object           | When the request context was captured           | The HTTP request that caused the operation. Every event a request causes carries it; an event the server raises for an operation of its own, such as a `tenant.key.*` event, does not. |
+| `request.request_id`  | string           | When known                                      | The HTTP request identifier (`HttpContext.TraceIdentifier`), which pivots to the host's request logs.                                                                                  |
+| `request.trace_id`    | string           | When the current activity uses W3C identifiers  | The 32-character W3C trace identifier, which pivots to traces.                                                                                                                         |
+| `request.span_id`     | string           | When the current activity uses W3C identifiers  | The 16-character W3C identifier of the span that was current when the event was published.                                                                                             |
+| `request.source_ip`   | string           | When known                                      | The caller's IP address (`Connection.RemoteIpAddress`), already corrected by the host for any trusted forwarding proxy.                                                                |
+| `request.user_agent`  | string           | When the request sent one                       | The `User-Agent` header, cut at 512 characters.                                                                                                                                        |
+| `request.http_method` | string           | When known                                      | The HTTP method.                                                                                                                                                                       |
+| `request.path`        | string           | When known                                      | `PathBase` plus `Path`. It never includes the query string, which can carry codes or tokens.                                                                                           |
+| `request.endpoint`    | string           | When the endpoint is known                      | The name of the endpoint that handled the request, such as `token_endpoint`, or its display name when it has none.                                                                     |
+| `resources`           | array of objects | When the operation acted on at least one entity | Every entity the operation acted on, the target first and then the entities that own it. Each item has a `type` and, when known, an `id`.                                              |
+| `resources[].type`    | string           | Always, within an item                          | The resource type: one of the [resource types](#resource-types).                                                                                                                       |
+| `resources[].id`      | string           | When known                                      | The resource's identifier.                                                                                                                                                             |
+| `error`               | object           | On failure and denial events                    | Why the operation did not succeed.                                                                                                                                                     |
+| `error.code`          | string           | Always, within `error`                          | A stable, machine-readable code to filter and pivot on: an OAuth error code where one applies.                                                                                         |
+| `error.message`       | string           | When there is text                              | Human-readable text. It never contains a secret.                                                                                                                                       |
+| `error.status_code`   | integer          | When an HTTP response was returned              | The HTTP status code returned to the caller.                                                                                                                                           |
+| `details`             | object           | On events that declare event-specific fields    | The fields specific to the event, written by the event itself (`ISupportAuditDetails`). The catalog lists them per event.                                                              |
 
 ## Vocabularies
 
@@ -145,15 +145,15 @@ A severity the library does not define logs at Information.
 
 ### Event categories
 
-| `event_category` | Covers                                                     |
-| ---------------- | ---------------------------------------------------------- |
-| `authentication` | The authentication of a client or a subject.               |
-| `authorization`  | The authorization of a request and the consent behind it.  |
-| `token`          | The issuance, refresh and revocation of tokens.            |
-| `session`        | The lifecycle of a user session.                           |
-| `protocol`       | Protocol-level errors returned to a caller.                |
-| `management`     | Changes made through the management plane.                 |
-| `data_access`    | The disclosure of an end user's personal data to a caller. |
+| `event_category` | Covers                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authentication` | The authentication of a client or a subject.                                                                                                         |
+| `authorization`  | The authorization of a request and the consent behind it.                                                                                            |
+| `token`          | The issuance, refresh and revocation of tokens.                                                                                                      |
+| `session`        | The lifecycle of a user session.                                                                                                                     |
+| `protocol`       | Protocol-level errors returned to a caller.                                                                                                          |
+| `management`     | Changes made through the management plane.                                                                                                           |
+| `data_access`    | The disclosure of an end user's personal data to a caller.                                                                                           |
 | `key`            | The lifecycle of keys: a tenant's key the server generates, activates, retires or removes on its own, and a master key that rotates or is destroyed. |
 
 ### Event sources
@@ -168,35 +168,35 @@ A severity the library does not define logs at Information.
 
 The recorder states the actor explicitly for each event, so the actor does not depend on how a request authenticated.
 
-| `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                                               |
-| --------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                            |
-| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. |
-| `administrator` | The administrator's subject id, when known | Every management event, a rekey through the management API (`master_key.rotated`) included. The subject id is read with the server-default claim types, not the request tenant's setting.                                                                 |
-| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*` and background `master_key.*` events, whose `details.reason` says why. No caller acted.                                 |
-| `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                 |
+| `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                                                   |
+| --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                                |
+| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`.     |
+| `administrator` | The administrator's subject id, when known | Every management event, a rekey through the management API (`master_key.rotated`) included. The subject id is read with the server-default claim types, not the request tenant's setting. |
+| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*` and background `master_key.*` events, whose `details.reason` says why. No caller acted.         |
+| `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                     |
 
 ### Resource types
 
 `session`, `tenant`, `tenant.secret` and `master_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
 The management types are `ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
 
-| `resources[].type`       | Entity                                                              |
-| ------------------------ | ------------------------------------------------------------------- |
-| `session`                | A user session, identified by its `sid`.                            |
+| `resources[].type`       | Entity                                                                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `session`                | A user session, identified by its `sid`.                                                                                                 |
 | `master_key`             | A master key, identified by its key id, which protects the stored secrets of a tenant or of the server (`AuditResourceTypes.MasterKey`). |
-| `client`                 | An OpenID client.                                                   |
-| `client.secret`          | A secret belonging to a client.                                     |
-| `tenant`                 | An OpenID tenant.                                                   |
-| `tenant.secret`          | A secret belonging to a tenant.                                     |
-| `server`                 | An OpenID server.                                                   |
-| `server.secret`          | A secret belonging to a server.                                     |
-| `resource_server`        | A resource server (an API, in Auth0 terms).                         |
-| `resource_server.scope`  | A scope belonging to a resource server.                             |
-| `resource_server.secret` | A secret belonging to a resource server.                            |
-| `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration. |
-| `principal`              | An end user's federated principal.                                  |
-| `local_account`          | A local account.                                                    |
+| `client`                 | An OpenID client.                                                                                                                        |
+| `client.secret`          | A secret belonging to a client.                                                                                                          |
+| `tenant`                 | An OpenID tenant.                                                                                                                        |
+| `tenant.secret`          | A secret belonging to a tenant.                                                                                                          |
+| `server`                 | An OpenID server.                                                                                                                        |
+| `server.secret`          | A secret belonging to a server.                                                                                                          |
+| `resource_server`        | A resource server (an API, in Auth0 terms).                                                                                              |
+| `resource_server.scope`  | A scope belonging to a resource server.                                                                                                  |
+| `resource_server.secret` | A secret belonging to a resource server.                                                                                                 |
+| `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration.                                                                      |
+| `principal`              | An end user's federated principal.                                                                                                       |
+| `local_account`          | A local account.                                                                                                                         |
 
 ## Event catalog
 
@@ -282,11 +282,12 @@ It lists the `master_key` first and the owner second (`tenant` or `server`, with
 material, wrapped key or key check, and is published once the change has committed. An administrator's rekey through the
 management API has `event_source` `management`, the `administrator` actor and the request; the background pass has
 `event_source` `openid` and the `system` actor.
+A read of the encryption keys is not audited.
 
-| `event_name`          | Resources                   | `details.reason`                                                                                                       |
-| --------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `master_key.rotated`  | `master_key`, `tenant`/`server` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod` |
-| `master_key.destroyed` | `master_key`, `tenant`/`server` | `unreferenced`: the retired key passed its grace and no stored value names it                                          |
+| `event_name`           | Resources                       | `details.reason`                                                                                                                       |
+| ---------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `master_key.rotated`   | `master_key`, `tenant`/`server` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod` |
+| `master_key.destroyed` | `master_key`, `tenant`/`server` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
 
 Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
 `root_key_provider`. A rotation also writes `retired_key_id` and `retired_version` when it retired a key.

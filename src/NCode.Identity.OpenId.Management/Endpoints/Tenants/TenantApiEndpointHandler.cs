@@ -1806,7 +1806,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The new active key and the key that it retired.</response>
     /// <response code="404">The tenant does not exist.</response>
-    /// <response code="409">Another rekey of the same master key committed first.</response>
+    /// <response code="409">Another rekey of the same master key committed first, or the last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
     [EndpointName("api/tenants/encryption-keys/rekey")]
     internal virtual async ValueTask<IResult> RekeyEncryptionKeysAsync(
         HttpContext httpContext,

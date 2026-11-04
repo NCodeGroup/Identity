@@ -336,6 +336,52 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     }
 
     [Fact]
+    public async Task Rewrap_ARowDestroyedDuringTheRun_CountsAsExaminedOnly()
+    {
+        using var recovery = CreateRecovery(configured: false);
+        var row = await CreateRowAsync(recovery);
+        SetupList(row);
+        SetupSave(row, new InvalidOperationException("The row no longer exists."));
+        var (store, _) = EnqueueStoreManager();
+        store
+            .Setup(x =>
+                x.FindByKeyIdsAsync(
+                    Owner,
+                    It.IsAny<IReadOnlyCollection<Guid>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([]));
+
+        var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 0), result);
+    }
+
+    [Fact]
+    public async Task Rewrap_AnUpdateThatFailsWhileTheRowExists_CountsTheRowFailed()
+    {
+        using var recovery = CreateRecovery(configured: false);
+        var row = await CreateRowAsync(recovery);
+        SetupList(row);
+        SetupSave(row, new InvalidOperationException("The update failed."));
+        var (store, _) = EnqueueStoreManager();
+        store
+            .Setup(x =>
+                x.FindByKeyIdsAsync(
+                    Owner,
+                    It.IsAny<IReadOnlyCollection<Guid>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([row]));
+
+        var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 1), result);
+    }
+
+    [Fact]
     public async Task Rewrap_WithoutAnOwner_PagesEveryRow()
     {
         using var recovery = CreateRecovery(configured: false);

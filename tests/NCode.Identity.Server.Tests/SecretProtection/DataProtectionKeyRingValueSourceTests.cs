@@ -57,38 +57,67 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
         return mock.Object;
     }
 
+    private static readonly IReadOnlySet<Guid> Keys = new HashSet<Guid> { KeyId };
+
     [Fact]
-    public async Task Rewrap_RewrapsNothing()
+    public async Task Rewrap_ReturnsNone()
     {
         var source = CreateSource(CreateReader(), new FakeRingProvider());
 
-        Assert.Equal(0, await source.RewrapAsync(Owner, KeyId, CancellationToken.None));
+        Assert.Equal(
+            ProtectedValueRewrapResult.None,
+            await source.RewrapAsync(Owner, Keys, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public async Task References_ALiveRingKeyNamesTheKey_ReturnsTrue()
+    public async Task FindReferenced_ALiveRingKeyNamesTheKey_ReportsIt()
     {
         var source = CreateSource(
             CreateReader(new KeyRingValue(FakeRingProvider.Value(KeyId), Now.AddDays(5))),
             new FakeRingProvider()
         );
 
-        Assert.True(await source.ReferencesAsync(Owner, KeyId, CancellationToken.None));
+        Assert.Equal(
+            [KeyId],
+            await source.FindReferencedAsync(Owner, Keys, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public async Task References_ARingKeyExpiredWithinTheGrace_ReturnsTrue()
+    public async Task FindReferenced_ReturnsOnlyTheKeysALiveRingKeyNames()
+    {
+        var other = Guid.NewGuid();
+        var source = CreateSource(
+            CreateReader(new KeyRingValue(FakeRingProvider.Value(KeyId), Now.AddDays(5))),
+            new FakeRingProvider()
+        );
+
+        var found = await source.FindReferencedAsync(
+            Owner,
+            new HashSet<Guid> { KeyId, other },
+            CancellationToken.None
+        );
+
+        Assert.Equal([KeyId], found);
+    }
+
+    [Fact]
+    public async Task FindReferenced_ARingKeyExpiredWithinTheGrace_ReportsIt()
     {
         var source = CreateSource(
             CreateReader(new KeyRingValue(FakeRingProvider.Value(KeyId), Now.AddDays(-10))),
             new FakeRingProvider()
         );
 
-        Assert.True(await source.ReferencesAsync(Owner, KeyId, CancellationToken.None));
+        Assert.Equal(
+            [KeyId],
+            await source.FindReferencedAsync(Owner, Keys, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public async Task References_OnlyARingKeyExpiredPastTheGraceNamesTheKey_ReturnsFalse()
+    public async Task FindReferenced_OnlyARingKeyExpiredPastTheGraceNamesTheKey_ReportsNone()
     {
         var source = CreateSource(
             CreateReader(
@@ -98,11 +127,11 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
             new FakeRingProvider()
         );
 
-        Assert.False(await source.ReferencesAsync(Owner, KeyId, CancellationToken.None));
+        Assert.Empty(await source.FindReferencedAsync(Owner, Keys, CancellationToken.None));
     }
 
     [Fact]
-    public async Task References_AnUnreadableRing_ReturnsTrue()
+    public async Task FindReferenced_AnUnreadableRing_ReturnsEveryKey()
     {
         var reader = new DataProtectionKeyRingReader(
             Options.Create(
@@ -111,21 +140,24 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
         );
         var source = CreateSource(reader, new FakeRingProvider());
 
-        Assert.True(await source.ReferencesAsync(Owner, KeyId, CancellationToken.None));
+        Assert.Equal(
+            [KeyId],
+            await source.FindReferencedAsync(Owner, Keys, CancellationToken.None)
+        );
     }
 
     [Fact]
-    public async Task References_AnotherOwner_ReturnsFalse()
+    public async Task FindReferenced_AnotherOwner_ReturnsNone()
     {
         var source = CreateSource(
             CreateReader(new KeyRingValue(FakeRingProvider.Value(KeyId), Now.AddDays(5))),
             new FakeRingProvider()
         );
 
-        Assert.False(
-            await source.ReferencesAsync(
+        Assert.Empty(
+            await source.FindReferencedAsync(
                 SecretOwner.ForTenant(ServerId),
-                KeyId,
+                Keys,
                 CancellationToken.None
             )
         );

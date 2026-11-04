@@ -32,11 +32,14 @@ the family's, and a package protects its own values with `ISecretProtector` too.
 A master key rotates to a new version, the data keys it wraps are rewrapped under the active key in the background, and
 a retired key is destroyed once a scan finds no value that still names it. The payloads are never read or rewritten.
 
-1. **Rotation retires first, then creates the successor through the ring.** `IMasterKeyManager.RotateAsync(owner)`
-   retires the active row in one unit of work with its concurrency token checked, evicts the owner, and obtains the
-   owner's protector, whose existing creation path stores version `latest + 1` as the active key or adopts the active
-   row that another replica stored first. An owner with no active key receives its next version and reports no retired
-   key. Two concurrent rotations conflict on the token and the second fails with `StoreConcurrencyException`.
+1. **Rotation creates the successor first, retires the active key, then stores the successor.**
+   `RotateAsync(owner)` reads the owner's rows, creates version `latest + 1`'s material through the root key provider,
+   retires the active row with its concurrency token checked, and stores the successor on a bounded token of its own;
+   a store failure with no other active row re-activates the retired row, and a successor that another replica's ring
+   stored first is adopted. An owner without any key receives its first and reports no retired key; an owner with
+   retired keys and no active key, and the second of two concurrent rotations, fail with `StoreConcurrencyException`.
+   A rotation within twice `RefreshInterval` of the owner's last one fails with `MasterKeyRotationTooSoonException`,
+   since every replica has not yet loaded the active key.
 2. **A cached key set is bounded in age.** A ring entry records when it was loaded. A call that finds an entry older than
    `SecretProtection:MasterKeys:RefreshInterval` (five minutes) reads the active row and the rows of every cached key
    again, reuses the key material it already holds, makes no new unwrap or root key call, and drops the keys whose rows
@@ -49,22 +52,27 @@ a retired key is destroyed once a scan finds no value that still names it. The p
    key ids and never material. `ISecretProtectorProvider.TryReadMasterKeyId` exposes the key id of an envelope, which is
    not secret, without exposing the layout.
 4. **Protected values are found through an open strategy collection.** `IProtectedValueSource` has two members:
-   `RewrapAsync(owner, masterKeyId)` rewraps every value of the source that names the key, and
-   `ReferencesAsync(owner, masterKeyId)` reports whether any value still does. A source ignores an owner it holds
-   nothing for. The family registers three: the stored secrets of a tenant, its clients and its resource servers, or of
-   the server; the grant payloads of a tenant; and the Data Protection key ring of the server. A package that protects
-   its own values registers a source for them ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)): a value
-   that no source reports is not rewrapped and becomes unreadable once its key is destroyed.
-5. **Sources page, rewrap in units of work, and retry.** A source reads its rows in pages of 100 by row id, selects those
-   whose value names the key, obtains one protector per page, rewraps each value and writes the page in one unit of work
-   with each row's token checked. A page that another writer changed is read and rewrapped again, at most three times,
-   then the call fails and the caller retries later. A rewritten row does not match, so a retry is idempotent.
+   `RewrapAsync(owner, masterKeyIds)` rewraps every value of the source that names one of the keys and answers a
+   `ProtectedValueRewrapResult`, and `FindReferencedAsync(owner, masterKeyIds)` answers the subset that a value still
+   names. Every source is asked once per owner. A source ignores an owner it holds nothing for. The family registers
+   three: the stored secrets of a tenant, its clients and its resource servers, or of the server; the grant payloads of a
+   tenant; and the Data Protection key ring of the server. A package that protects its own values registers a source for
+   them ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)): a value that no source reports is not
+   rewrapped and becomes unreadable once its key is destroyed.
+5. **Sources page in one pass per owner, rewrap in units of work, and isolate each value.**
+   `ISecretProtectorProvider.GetMasterKeyIdPrefix` lets the store return only the rows whose value starts with a
+   requested key's prefix. A source reads those rows in pages of 100 by row id, obtains one protector per page, rewraps
+   each value and writes the page in one unit of work with each row's token checked. A value that cannot be rewrapped is
+   logged by record id and counted failed, a vanished row is skipped, and a page whose conflicts outlast three attempts
+   is counted failed; the pass goes on. A failed value still names its key, so the key is kept. A rewritten row does not
+   match, so a retry is idempotent.
 6. **Stored envelopes are rewritten without a schema change.** `ISecretEnvelopeStore` pages the protected values of the
-   secrets of an owner and replaces one, bumping the secrets concurrency token of the record that owns the secret so that
-   every replica reloads its secrets; `IGrantStore` pages and replaces the protected payloads of a tenant's grants.
+   secrets of an owner that start with a prefix and replaces one, reporting a missing row with `false`, bumping the secrets concurrency token of the record that owns the secret so that
+   every replica reloads its secrets; `IGrantStore` pages and replaces, with the same prefixes and result, the protected payloads of a tenant's grants.
    Material stays immutable: the envelope of the same material is replaced.
-7. **Destroy needs a grace, no reference and a switch.** `IMasterKeyManager.DestroyRetiredAsync(owner)` removes each
-   retired row whose `RetiredWhen + RetirementGrace` has passed and that no source reports, each in its own unit of work
+7. **Destroy needs a grace, no reference and a switch.** `IMasterKeyManager.DestroyRetiredAsync(owner)` asks each source
+   once for every candidate and removes each retired row whose `RetiredWhen + RetirementGrace` has passed and that no
+   source reports, each in its own unit of work
    with its token checked, then evicts the owner and tells the observers. `SecretProtection:MasterKeys:DestroyRetired`
    set to `false` keeps retired keys for good. The grace (30 days) covers in-flight protectors, replicas that have not
    reloaded and Data Protection payloads that a key protected just before it expired. A backup keeps its own copies of
@@ -99,7 +107,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
     answer `EncryptionKeysResource` and `EncryptionKeyRotationResource`. The owner must exist (404 otherwise, and a key
     is never created for an unknown owner), and the caller needs `Read` or `Update` on it. The scope families are
     `encryption_keys` in the tenant plane and `server_encryption_keys` in the control plane. A rekey that loses a race to
-    another rekey answers 409.
+    another rekey answers 409, and so does a rekey within twice `RefreshInterval` of the last rotation, with `Retry-After`.
 14. **Master key changes are audit events.** `master_key.rotated` and `master_key.destroyed` belong to the `key` category
     with the resources `master_key` and the owner. The reason is `requested`, `rotation_period_elapsed` or
     `unreferenced`; the source is `management` with the administrator for a rekey through the API and `openid` with the
@@ -110,9 +118,9 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 ## Options considered
 
 - **One unit of work that retires the old row and inserts the new one.** It depends on the provider issuing the update
-  before the insert under the filtered unique index on active keys, which EF Core does not guarantee. Retire-then-create is
-  correct by construction, reuses the ring's creation race handling, and a crash between the two leaves an owner whose
-  next use creates its key.
+  before the insert under the filtered unique index on active keys, which EF Core does not guarantee. Retire-then-insert
+  is correct by construction. Creating the successor's material first keeps the root key call out of the window between
+  the two, and a failed insert re-activates the retired row.
 - **Re-encrypting payloads.** A rotation would touch every payload, and the data key's wrap is what the master key
   protects.
 - **Rewrapping Data Protection ring keys in the database.** `IXmlRepository` never rewrites an element, and editing its
@@ -122,7 +130,9 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 - **Destroying at retirement.** In-flight protectors, replicas that missed a broadcast and cookies protected by a ring key
   just before it expired still need the key.
 - **A closed list of envelope holders.** Packages protect their own data, so the holders are an open collection.
-- **Snake-case event names.** The audit catalog names events `<resource>.<change>`.
+- **Owner-scoped event names (`tenant.master_key.rotated`, `server.master_key.rotated`).** The owner is a resource of
+  the event, so one name covers every owner type, and an owner type a package adds needs no new event name
+  ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
 
 ## Consequences
 
@@ -131,7 +141,9 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 - A backup keeps the retired key it held.
 - A value that no registered source reports is lost when its key is destroyed unless `DestroyRetired` is `false`.
 - The rewrap of a large tenant's grants holds one dispatcher worker for its duration.
-- Status and rekey are audited, and the console shows the same view as the API.
+- A rekey and a destruction are audited and a status read is not; the console shows the same view as the API.
+- A pass reads only the rows under a retired key, so an owner whose values are all under its active key costs one
+  filtered query per source.
 
 ## References
 

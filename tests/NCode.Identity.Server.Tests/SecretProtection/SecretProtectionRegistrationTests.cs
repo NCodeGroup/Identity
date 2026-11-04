@@ -51,6 +51,10 @@ public class SecretProtectionRegistrationTests : BaseTests
         descriptor.ServiceType == typeof(IHostedService)
         && descriptor.ImplementationType == typeof(DataProtectionKeyRingGate);
 
+    private static bool IsRefreshService(ServiceDescriptor descriptor) =>
+        descriptor.ServiceType == typeof(IHostedService)
+        && descriptor.ImplementationType == typeof(ServerSecretProtectorRefreshService);
+
     #region AddSecretProtection Tests
 
     [Fact]
@@ -292,6 +296,27 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.True(IsWarmup(serviceCollection[0]));
         Assert.True(IsKeyRingGate(serviceCollection[1]));
         Assert.Equal(typeof(StubHostedService), serviceCollection[2].ImplementationType);
+    }
+
+    [Fact]
+    public void AddSecretProtection_RegistersTheRefreshServiceAfterTheKeyRingGate()
+    {
+        var serviceCollection = AddSecretProtection([]);
+
+        var gate = serviceCollection.ToList().FindIndex(d => IsKeyRingGate(d));
+        var refresh = serviceCollection.ToList().FindIndex(d => IsRefreshService(d));
+
+        Assert.True(gate >= 0);
+        Assert.True(refresh > gate);
+    }
+
+    [Fact]
+    public void AddSecretProtection_CalledTwice_RegistersTheRefreshServiceOnce()
+    {
+        var serviceCollection = AddSecretProtection([]);
+        AddSecretProtection([], serviceCollection);
+
+        Assert.Single(serviceCollection, IsRefreshService);
     }
 
     [Fact]

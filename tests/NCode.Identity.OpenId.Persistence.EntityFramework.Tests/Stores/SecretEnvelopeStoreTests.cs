@@ -159,6 +159,9 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
     }
 
+    // Every seeded value starts with this letter.
+    private static readonly string[] AnyValue = ["v"];
+
     private async Task<IReadOnlyList<PersistedProtectedValue>> ReadAllAsync(SecretOwner owner)
     {
         var all = new List<PersistedProtectedValue>();
@@ -167,6 +170,7 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         {
             var page = await _store.GetPageAsync(
                 owner,
+                AnyValue,
                 new PageRequest { Limit = 2, Cursor = cursor },
                 CancellationToken.None
             );
@@ -214,12 +218,64 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
 
         var page = await _store.GetPageAsync(
             new SecretOwner("custom", TenantId),
+            AnyValue,
             new PageRequest { Limit = 10 },
             CancellationToken.None
         );
 
         Assert.Empty(page.Items);
         Assert.Null(page.NextCursor);
+    }
+
+    [Fact]
+    public async Task GetPage_ReturnsOnlyTheValuesThatStartWithAPrefix()
+    {
+        await SeedTenantAsync(
+            TenantId,
+            CreateSecret("s1", "aa-one"),
+            CreateSecret("s2", "bb-two"),
+            CreateSecret("s3", "cc-three"),
+            CreateSecret("s4", "a")
+        );
+
+        var page = await _store.GetPageAsync(
+            SecretOwner.ForTenant(TenantId),
+            ["aa", "bb"],
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
+
+        Assert.Equal(["s1", "s2"], page.Items.Select(x => x.RecordId).Order());
+    }
+
+    [Fact]
+    public async Task GetPage_WithPrefixesOfDifferentLengths_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _store
+                .GetPageAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    ["aa", "b"],
+                    new PageRequest { Limit = 10 },
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task GetPage_WithoutPrefixes_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _store
+                .GetPageAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    [],
+                    new PageRequest { Limit = 10 },
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
     }
 
     [Fact]
@@ -330,22 +386,20 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Update_WhenTheSecretIsMissing_Throws()
+    public async Task Update_WhenTheSecretIsMissing_ReturnsFalse()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _store
-                .UpdateAsync(
-                    new PersistedProtectedValue
-                    {
-                        RecordId = "missing",
-                        ItemId = "missing",
-                        ProtectedValue = "x",
-                        ConcurrencyToken = "x",
-                    },
-                    CancellationToken.None
-                )
-                .AsTask()
+        var written = await _store.UpdateAsync(
+            new PersistedProtectedValue
+            {
+                RecordId = "missing",
+                ItemId = "missing",
+                ProtectedValue = "x",
+                ConcurrencyToken = "x",
+            },
+            CancellationToken.None
         );
+
+        Assert.False(written);
     }
 
     #endregion

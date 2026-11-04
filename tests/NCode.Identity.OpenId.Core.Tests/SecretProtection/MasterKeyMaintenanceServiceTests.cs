@@ -204,13 +204,15 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         var destroyed = Info(TenantOwner, 1, true);
         _manager
             .Setup(x => x.RewrapAsync(TenantOwner, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<int>(4));
+            .Returns(
+                new ValueTask<ProtectedValueRewrapResult>(new ProtectedValueRewrapResult(4, 0))
+            );
         _manager
             .Setup(x => x.DestroyRetiredAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<IReadOnlyList<MasterKeyInfo>>([destroyed]));
         _manager
             .Setup(x => x.RewrapAsync(OtherOwner, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<int>(0));
+            .Returns(new ValueTask<ProtectedValueRewrapResult>(ProtectedValueRewrapResult.None));
         _manager
             .Setup(x => x.DestroyRetiredAsync(OtherOwner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<IReadOnlyList<MasterKeyInfo>>([]));
@@ -235,7 +237,9 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
             .Throws(new InvalidOperationException("boom"));
         _manager
             .Setup(x => x.RewrapAsync(OtherOwner, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<int>(1));
+            .Returns(
+                new ValueTask<ProtectedValueRewrapResult>(new ProtectedValueRewrapResult(1, 0))
+            );
         _manager
             .Setup(x => x.DestroyRetiredAsync(OtherOwner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<IReadOnlyList<MasterKeyInfo>>([]));

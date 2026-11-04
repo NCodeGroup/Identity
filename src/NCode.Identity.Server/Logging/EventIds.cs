@@ -26,4 +26,5 @@ internal static class EventIds
     public const int SecretProtectionCommandConfigurationInvalid = Base + 10;
     public const int SecretProtectionCommandFailed = Base + 11;
     public const int SecretProtectionRecoveryKeyUnreadable = Base + 12;
+    public const int SecretProtectionCommandOwnerHasNoMasterKeys = Base + 13;
 }

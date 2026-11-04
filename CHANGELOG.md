@@ -3474,11 +3474,16 @@ describes the family as it is rather than its changes
   `POST /api/servers/{serverId}/encryption-keys/rekey`; `GET .../encryption-keys` reports the keys by id, version,
   state, instants, root key provider and recovery key id, and carries no key material. The scopes are
   `read:encryption_keys` and `update:encryption_keys` for a tenant and `read:server_encryption_keys` and
-  `update:server_encryption_keys` for the server, and a rekey that loses a race to another rekey answers `409`. Every
+  `update:server_encryption_keys` for the server. A rekey that loses a race to another rekey, or that comes within
+  twice `RefreshInterval` of the owner's last rotation, answers `409`, with `Retry-After` in the second case. A
+  rotation creates the successor's key material before it retires the active key, and a store failure re-activates the
+  retired key. Every
   replica reloads an owner's keys within `SecretProtection:MasterKeys:RefreshInterval` (five minutes) without a KMS
   call and drops a destroyed key, and a broadcast makes them reload at once. The data keys that a retired key wraps are
   rewrapped under the active key by `ISecretProtector.Rewrap`, which copies the payload unchanged, for the stored
-  secrets of a tenant, its clients and its resource servers, the grant payloads of a tenant, and the server's. A
+  secrets of a tenant, its clients and its resource servers, the grant payloads of a tenant, and the server's. The
+  rewrap and the destruction check read each owner's values once, and only those under a retired key, and a value that
+  cannot be rewrapped is logged and keeps its key. A
   retired key is destroyed after `RetirementGrace` (30 days) once no registered `IProtectedValueSource` reports a value
   that names it, and the Data Protection key ring keeps the retired server key while a live ring key names it.
   `IMasterKeyManager` reports, rotates, rewraps and destroys; `IMasterKeyChangeObserver` hears of each change;
@@ -3491,7 +3496,7 @@ describes the family as it is rather than its changes
   configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
   recovery copies, each unwrapping a key with the root key provider it names or, with `--recovery-private-key <file>`,
   from its recovery copy. `--owner <type:id>` limits the run to one owner and `--dry-run` verifies every key without
-  writing. The recovery private key is read from the file only, held in memory that is zeroed when the command ends,
+  writing. An `--owner` with no master keys exits `1`. The recovery private key is read from the file only, held in memory that is zeroed when the command ends,
   and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs the command as a Job, and
   `IMasterKeyRewrapper` is its engine
   ([#172](https://github.com/NCodeGroup/Identity/issues/172),
@@ -3793,8 +3798,8 @@ describes the family as it is rather than its changes
   master key (the server or the tenant), which is wrapped by a root key held by a root key provider (`ephemeral`,
   `local`, or a registered one) and, optionally, by an offline recovery RSA key. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
-  `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes its master
-  keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant or a server deletes
+  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [#167](https://github.com/NCodeGroup/Identity/issues/167)).
 
 - **A database dump or backup reveals no secret material without the root key, and every host names its root key
@@ -5072,7 +5077,9 @@ describes the family as it is rather than its changes
   values it protected are rewrapped without their payloads being touched, a retired key is destroyed only after its grace
   and when no stored secret, grant payload or live Data Protection key names it, and the recovery private key that can
   unwrap every master key exists only inside the offline rewrap command
-  ([ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  ([#171](https://github.com/NCodeGroup/Identity/issues/171),
+  [#172](https://github.com/NCodeGroup/Identity/issues/172),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
   [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

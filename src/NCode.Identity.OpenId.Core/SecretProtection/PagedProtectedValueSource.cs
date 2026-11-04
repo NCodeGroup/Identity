@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -10,10 +11,11 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.SecretProtection;
 
 /// <summary>
-/// Provides the shared flow of a source whose protected values are rows that a store pages and rewrites: it reads the
-/// rows in pages, picks those whose value names the master key, rewraps them with one protector per page, and writes
-/// the page in its own unit of work. A page that another writer changed is read and rewrapped again, a few times at
-/// most.
+/// Provides the shared flow of a source whose protected values are rows that a store pages and rewrites: one pass per
+/// owner over every requested master key reads only the rows whose value starts with one of the keys' prefixes, picks
+/// those whose value names a requested key, rewraps them with one protector per page, and writes the page in its own
+/// unit of work. A value that cannot be rewrapped is counted failed and the others of its page are written; a page that
+/// another writer changed is read and rewrapped again, a few times at most, and then counted failed.
 /// </summary>
 // See ADR-1407.
 internal abstract class PagedProtectedValueSource(
@@ -40,11 +42,12 @@ internal abstract class PagedProtectedValueSource(
     protected abstract bool Handles(SecretOwner owner);
 
     /// <summary>
-    /// Reads a page of the protected values that an owner holds.
+    /// Reads a page of the protected values that an owner holds and that start with one of the prefixes.
     /// </summary>
     protected abstract ValueTask<PagedResult<PersistedProtectedValue>> GetPageAsync(
         IStoreManager storeManager,
         SecretOwner owner,
+        IReadOnlyCollection<string> prefixes,
         PageRequest page,
         CancellationToken cancellationToken
     );
@@ -52,7 +55,8 @@ internal abstract class PagedProtectedValueSource(
     /// <summary>
     /// Writes a rewrapped value.
     /// </summary>
-    protected abstract ValueTask UpdateAsync(
+    /// <returns><see langword="true"/> when the value was written, or <see langword="false"/> when its row is gone.</returns>
+    protected abstract ValueTask<bool> UpdateAsync(
         IStoreManager storeManager,
         PersistedProtectedValue value,
         CancellationToken cancellationToken
@@ -64,40 +68,48 @@ internal abstract class PagedProtectedValueSource(
     protected abstract SecretProtectionContext GetContext(PersistedProtectedValue value);
 
     /// <inheritdoc />
-    public async ValueTask<int> RewrapAsync(
+    public async ValueTask<ProtectedValueRewrapResult> RewrapAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
         CancellationToken cancellationToken
     )
     {
-        if (!Handles(owner))
-            return 0;
+        if (!Handles(owner) || masterKeyIds.Count == 0)
+            return ProtectedValueRewrapResult.None;
+
+        var prefixes = GetPrefixes(masterKeyIds);
 
         var rewrapped = 0;
+        var failed = 0;
         string? cursor = null;
         do
         {
-            (var count, cursor) = await RewrapPageAsync(
+            (var pageRewrapped, var pageFailed, cursor) = await RewrapPageAsync(
                 owner,
-                masterKeyId,
+                masterKeyIds,
+                prefixes,
                 cursor,
                 cancellationToken
             );
-            rewrapped += count;
+            rewrapped += pageRewrapped;
+            failed += pageFailed;
         } while (cursor is not null);
 
-        return rewrapped;
+        return new ProtectedValueRewrapResult(rewrapped, failed);
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> ReferencesAsync(
+    public async ValueTask<IReadOnlySet<Guid>> FindReferencedAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
         CancellationToken cancellationToken
     )
     {
-        if (!Handles(owner))
-            return false;
+        var found = new HashSet<Guid>();
+        if (!Handles(owner) || masterKeyIds.Count == 0)
+            return found;
+
+        var prefixes = GetPrefixes(masterKeyIds);
 
         string? cursor = null;
         do
@@ -106,27 +118,45 @@ internal abstract class PagedProtectedValueSource(
             var page = await GetPageAsync(
                 storeManager,
                 owner,
+                prefixes,
                 new PageRequest { Limit = PageSize, Cursor = cursor },
                 cancellationToken
             );
 
-            if (page.Items.Any(value => NamesKey(value, masterKeyId)))
-                return true;
+            foreach (var value in page.Items)
+            {
+                if (
+                    ProtectorProvider.TryReadMasterKeyId(value.ProtectedValue, out var keyId)
+                    && masterKeyIds.Contains(keyId)
+                )
+                {
+                    found.Add(keyId);
+                }
+            }
+
+            if (found.Count == masterKeyIds.Count)
+                break;
 
             cursor = page.NextCursor;
         } while (cursor is not null);
 
-        return false;
+        return found;
     }
 
-    private bool NamesKey(PersistedProtectedValue value, Guid masterKeyId) =>
-        ProtectorProvider.TryReadMasterKeyId(value.ProtectedValue, out var keyId)
-        && keyId == masterKeyId;
+    private string[] GetPrefixes(IReadOnlySet<Guid> masterKeyIds) =>
+        [.. masterKeyIds.Select(ProtectorProvider.GetMasterKeyIdPrefix)];
 
-    // Rewraps the values of one page that name the key, and returns how many and the cursor of the next page.
-    private async ValueTask<(int Count, string? NextCursor)> RewrapPageAsync(
+    // The prefix only narrows the rows, so the key is confirmed from the value itself.
+    private bool NamesKey(PersistedProtectedValue value, IReadOnlySet<Guid> masterKeyIds) =>
+        ProtectorProvider.TryReadMasterKeyId(value.ProtectedValue, out var keyId)
+        && masterKeyIds.Contains(keyId);
+
+    // Rewraps the values of one page that name a key, and returns how many were written, how many failed and the
+    // cursor of the next page.
+    private async ValueTask<(int Rewrapped, int Failed, string? NextCursor)> RewrapPageAsync(
         SecretOwner owner,
-        Guid masterKeyId,
+        IReadOnlySet<Guid> masterKeyIds,
+        IReadOnlyCollection<string> prefixes,
         string? cursor,
         CancellationToken cancellationToken
     )
@@ -137,17 +167,20 @@ internal abstract class PagedProtectedValueSource(
             var page = await GetPageAsync(
                 storeManager,
                 owner,
+                prefixes,
                 new PageRequest { Limit = PageSize, Cursor = cursor },
                 cancellationToken
             );
 
-            var matching = page.Items.Where(value => NamesKey(value, masterKeyId)).ToList();
+            var matching = page.Items.Where(value => NamesKey(value, masterKeyIds)).ToList();
             if (matching.Count == 0)
-                return (0, page.NextCursor);
+                return (0, 0, page.NextCursor);
 
+            var rewrapped = 0;
+            var failed = 0;
             try
             {
-                // One protector per page, which loads the retired key that the values name.
+                // One protector per page, which loads the retired keys that the values name.
                 var protector = await ProtectorProvider.GetProtectorAsync(
                     owner,
                     [.. matching.Select(value => value.ProtectedValue)],
@@ -156,11 +189,27 @@ internal abstract class PagedProtectedValueSource(
 
                 foreach (var value in matching)
                 {
-                    value.ProtectedValue = protector.RewrapToString(
-                        value.ProtectedValue,
-                        GetContext(value)
-                    );
-                    await UpdateAsync(storeManager, value, cancellationToken);
+                    string rewritten;
+                    try
+                    {
+                        rewritten = protector.RewrapToString(
+                            value.ProtectedValue,
+                            GetContext(value)
+                        );
+                    }
+                    catch (CryptographicException exception)
+                    {
+                        // The record id is logged and never the value.
+                        failed++;
+                        Logger.ProtectedValueRewrapFailed(exception, owner, value.RecordId);
+                        continue;
+                    }
+
+                    value.ProtectedValue = rewritten;
+
+                    // A row that was deleted since the page was read has nothing left to rewrap.
+                    if (await UpdateAsync(storeManager, value, cancellationToken))
+                        rewrapped++;
                 }
 
                 await storeManager.SaveChangesAsync(cancellationToken);
@@ -170,8 +219,19 @@ internal abstract class PagedProtectedValueSource(
                 Logger.ProtectedValuePageConflict(owner, attempt);
                 continue;
             }
+            catch (StoreConcurrencyException exception)
+            {
+                Logger.ProtectedValuePageAbandoned(exception, owner, MaxAttempts);
+                return (0, matching.Count, page.NextCursor);
+            }
+            catch (CryptographicException exception)
+            {
+                // A master key that a value names is gone, so none of the page can be read.
+                Logger.ProtectedValuePageUnreadable(exception, owner);
+                return (0, matching.Count, page.NextCursor);
+            }
 
-            return (matching.Count, page.NextCursor);
+            return (rewrapped, failed, page.NextCursor);
         }
     }
 }

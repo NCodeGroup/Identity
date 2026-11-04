@@ -24,7 +24,7 @@ import type {
 import { apiErrorMessage, useGetCapabilitiesQuery, type ApiError } from '@ncode/store';
 
 export type SecretsManagerProps = {
-  /** The owner noun used in headings and empty/warning copy (e.g. "client", "tenant", "server"). */
+  /** The owner noun used in headings and empty/warning copy (e.g. "client", "tenant", "resource server"). */
   readonly ownerLabel: string;
   readonly secrets: readonly SecretResource[];
   readonly isLoading: boolean;
@@ -85,7 +85,7 @@ function defaultSecretFormValues(): SecretFormValues {
 }
 
 /**
- * Container-agnostic secrets surface shared by every secret owner (client, tenant, server). It owns only
+ * Container-agnostic secrets surface shared by every secret owner (tenant, client, resource server). It owns only
  * the tab's dialog/form/error state and the one-time reveal (ADR-1050: the create response's material is
  * shown once in {@link RevealSecretDialog} and never re-fetched); the owner-specific RTK Query data and
  * mutations are injected so the same UI serves each owner's nested path. {@link SecretsManagerProps.onCreate}

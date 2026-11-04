@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import type { ManagementOwner } from '@ncode/api';
+import type { SecretOwner } from '@ncode/api';
 import { apiErrorMessage, type ApiError, useGetTenantUsageQuery } from '@ncode/store';
 import { DataStateBoundary, TenantUsageTable } from '@ncode/ui';
 import type { TenantOwnSurface } from '../routes.js';
@@ -27,7 +27,7 @@ type TenantTabProps = {
  * structural (a tenant administrator can never address another tenant).
  */
 export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
-  const owner: ManagementOwner = { kind: 'tenant', tenantId };
+  const owner: SecretOwner = { kind: 'tenant', tenantId };
 
   return (
     <>

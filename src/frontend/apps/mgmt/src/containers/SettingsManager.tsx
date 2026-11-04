@@ -22,7 +22,7 @@ export type SettingsManagerProps = {
 };
 
 /**
- * Container-agnostic settings surface shared by every settings owner (client, tenant, server). Settings are
+ * Container-agnostic settings surface shared by every settings owner (the platform, a team, a tenant, a client or a resource server). Settings are
  * an opaque JSON object edited against a read-only effective (merged) view; the save is a top-level JSON
  * Patch diff the container issues. The owner-specific RTK Query data and mutation are injected so the same
  * UI serves each owner's nested path. Owns only transient save-error state.

@@ -5,7 +5,7 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import type { ManagementOwner, ManagementScope, ResourceServerResource } from '@ncode/api';
+import type { SecretOwner, ManagementScope, ResourceServerResource } from '@ncode/api';
 import { ClientsPage } from './ClientsPage.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
@@ -36,7 +36,7 @@ export function ResourceServerDetailPage({
 }: ResourceServerDetailPageProps) {
   const [surface, setSurface] = useState<ResourceServerSurface>('scopes');
   const isSystem = resourceServer.isSystem;
-  const owner: ManagementOwner = {
+  const owner: SecretOwner = {
     kind: 'resource-server',
     scope,
     resourceServerId: resourceServer.resourceServerId,

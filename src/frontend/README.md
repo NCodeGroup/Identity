@@ -96,13 +96,13 @@ src/frontend/
    depend on both `@ncode/store` and `@ncode/ui`: `@ncode/ui` stays store-free and `@ncode/store` stays UI-free
    ([ADR-1156](../../docs/decisions/1156-shared-app-shell-containers-live-in-ncode-shell.md)).
 3. **UI-free services/logic are unit-tested directly.** Validation, discovery parsing, PKCE, and the
-   global-vs-tenant boundary rules live in plain modules (`@ncode/config`, `@ncode/api/scope`) with
+   platform, team and tenant boundary rules live in plain modules (`@ncode/config`, `@ncode/api/scope`) with
    their own Vitest suites.
 4. **RTK Query is the default for server state.** Hand-rolled thunks are the exception.
 5. **One bundle, every tier.** No tier value is baked at build time; `@ncode/config` discovers the API
    base, issuer, auth endpoints, feature flags, and branding at boot from the serving host's
    `/config/bootstrap.json` + the OP's `/.well-known/openid-configuration`.
-6. **The global vs tenant security boundary is first-class** — distinct browsing contexts, cache tags,
+6. **The platform, team and tenant security boundary is first-class** — distinct browsing contexts, cache tags,
    and authorization gating, never one list with a filter.
 7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
    surface (`apps/auth`) reads its tenant's branding from the JSON block the host embeds in every page it
@@ -403,9 +403,9 @@ with an error naming that script when the files are missing; under Aspire the Ap
   the resource still has dependents). Invalidate both the `LIST` tag and the per-id tag so the scoped
   caches reconcile. Server failures are RFC 7807 Problem Details; surface them through
   [`apiErrorMessage`](packages/store/src/apiError.ts) rather than re-deriving messages in each container.
-- **A resource every owner has is one endpoint per operation, keyed by a `ManagementOwner`.** Secrets and settings
-  belong to the server, a tenant, or a client or resource server in a scope; `@ncode/api`'s
-  [`owner.ts`](packages/api/src/owner.ts) builds each owner's API path (`ownerApiPath`) and cache tags (`ownerTagId`,
+- **A resource every owner has is one endpoint per operation, keyed by a `ManagementOwner`.** Secrets belong to
+  a tenant, or a client or resource server in a scope; settings also belong to the platform and to a team.
+  `@ncode/api`'s [`owner.ts`](packages/api/src/owner.ts) builds each owner's API path (`ownerApiPath`) and cache tags (`ownerTagId`,
   `ownerEffectiveTagId`), and `@ncode/store` defines `listSecrets`, `getSettings` and the rest once. A new owner kind is
   a member of `ManagementOwner`, never another set of endpoints; the detail pages render `OwnerSecretsTab` and
   `OwnerSettingsTab` (ADR-1257).

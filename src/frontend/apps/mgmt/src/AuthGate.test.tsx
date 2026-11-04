@@ -267,7 +267,7 @@ describe('AuthGate', () => {
       });
       // The single-use code is dropped from the address bar once it has been exchanged, landing on the console's
       // default route when no return path was remembered.
-      expect(window.location.pathname).toBe('/tenants');
+      expect(window.location.pathname).toBe('/teams');
       expect(window.location.search).toBe('');
     });
 

@@ -2,24 +2,31 @@ import { Fragment, lazy, Suspense } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { signedOut, useAppDispatch, useAppSelector } from '@ncode/store';
+import { signedOut, useAppDispatch, useAppSelector, useGetTenantQuery } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
 import { endSessionUrlFromRuntime } from './auth.js';
 import { useConsoleRoute, navigateTo } from './navigation.js';
 import {
-  globalRoute,
+  platformRoute,
   routeScope,
+  teamRoute,
   tenantRoute,
-  type GlobalSurface,
+  type PlatformSurface,
+  type TeamSurface,
   type TenantSurface,
 } from './routes.js';
 
 // Each surface's container is its own chunk, loaded when the surface is first visited (ADR-1175).
-const TenantsPage = lazy(() =>
-  import('./containers/TenantsPage.js').then((m) => ({ default: m.TenantsPage })),
+const TeamsPage = lazy(() =>
+  import('./containers/TeamsPage.js').then((m) => ({ default: m.TeamsPage })),
 );
-const ServersPage = lazy(() =>
-  import('./containers/ServersPage.js').then((m) => ({ default: m.ServersPage })),
+const TeamDetailPage = lazy(() =>
+  import('./containers/TeamDetailPage.js').then((m) => ({ default: m.TeamDetailPage })),
+);
+const PlatformSettingsPage = lazy(() =>
+  import('./containers/PlatformSettingsPage.js').then((m) => ({
+    default: m.PlatformSettingsPage,
+  })),
 );
 const ClientsPage = lazy(() =>
   import('./containers/ClientsPage.js').then((m) => ({ default: m.ClientsPage })),
@@ -38,10 +45,10 @@ const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surf
 
 /**
  * Stateful shell. The address bar owns the navigation state (ADR-1174): the route names the active
- * management scope (the global vs tenant security boundary) and, within it, the active surface. In the
- * global scope that is tenants vs the server (a system-level settings/secret owner); within a tenant it
- * is clients, resource servers, grants, or one of the tenant's own surfaces: secrets, settings, or usage
- * (ADR-1255). All data fetching lives in the child containers; this component only maps the route to a
+ * management scope (the platform, team or tenant security boundary) and, within it, the active surface. In the
+ * platform scope that is the teams or the platform's settings; within a team it is the team's tenants, settings
+ * or usage; within a tenant it is clients, resource servers, grants, or one of the tenant's own surfaces:
+ * secrets, settings, or usage (ADR-1255). All data fetching lives in the child containers; this component only maps the route to a
  * surface and tab changes to navigation.
  */
 export function App() {
@@ -55,6 +62,11 @@ export function App() {
   const scope = routeScope(route);
 
   const openTenant = (tenantId: string) => navigateTo(tenantRoute(tenantId));
+  const openTeam = (teamId: string) => navigateTo(teamRoute(teamId));
+
+  // A tenant's enclosing scope is its team; until the tenant loads, the exit returns to the platform.
+  const tenantId = route.kind === 'tenant' ? route.tenantId : undefined;
+  const { data: tenant } = useGetTenantQuery(tenantId ?? '', { skip: tenantId === undefined });
 
   // Clear local tokens, then hand off to the OP's RP-Initiated Logout so the server session and its
   // participating relying parties are also ended; when no end_session_endpoint is advertised, clearing
@@ -71,31 +83,59 @@ export function App() {
     <AppLayout
       title="Management"
       scopeKind={scope.kind}
+      {...(scope.kind === 'team' ? { scopeLabel: scope.teamId } : {})}
       {...(scope.kind === 'tenant' ? { scopeLabel: scope.tenantId } : {})}
-      {...(scope.kind === 'tenant'
-        ? { onExitTenant: () => navigateTo(globalRoute('tenants')) }
+      {...(route.kind === 'team'
+        ? { onExitScope: () => navigateTo(platformRoute('teams')), exitLabel: 'Platform' }
+        : {})}
+      {...(route.kind === 'tenant'
+        ? {
+            onExitScope: () =>
+              navigateTo(tenant ? teamRoute(tenant.teamId, 'tenants') : platformRoute('teams')),
+            exitLabel: tenant ? 'Team' : 'Platform',
+          }
         : {})}
       {...(isSignedIn && subject ? { subject } : {})}
       {...(isSignedIn ? { onSignOut: handleSignOut } : {})}
     >
-      {route.kind === 'global' ? (
+      {route.kind === 'platform' ? (
         <>
           <Tabs
             value={route.surface}
-            onChange={(_event, value: GlobalSurface) => navigateTo(globalRoute(value))}
+            onChange={(_event, value: PlatformSurface) => navigateTo(platformRoute(value))}
             sx={{ mb: 2 }}
           >
-            <Tab value="tenants" label="Tenants" data-testid="global-tab-tenants" />
-            <Tab value="servers" label="Servers" data-testid="global-tab-servers" />
+            <Tab value="teams" label="Teams" data-testid="platform-tab-teams" />
+            <Tab value="settings" label="Settings" data-testid="platform-tab-settings" />
           </Tabs>
           <Suspense fallback={surfaceFallback}>
-            {route.surface === 'tenants' ? (
-              <TenantsPage onOpenTenant={openTenant} />
+            {route.surface === 'teams' ? (
+              <TeamsPage onOpenTeam={openTeam} />
             ) : (
-              <ServersPage />
+              <PlatformSettingsPage />
             )}
           </Suspense>
         </>
+      ) : route.kind === 'team' ? (
+        // Keyed by team, like a tenant: no per-team UI state leaks across the boundary.
+        <Fragment key={route.teamId}>
+          <Tabs
+            value={route.surface}
+            onChange={(_event, value: TeamSurface) => navigateTo(teamRoute(route.teamId, value))}
+            sx={{ mb: 2 }}
+          >
+            <Tab value="tenants" label="Tenants" data-testid="team-tab-tenants" />
+            <Tab value="settings" label="Settings" data-testid="team-tab-settings" />
+            <Tab value="usage" label="Usage" data-testid="team-tab-usage" />
+          </Tabs>
+          <Suspense fallback={surfaceFallback}>
+            <TeamDetailPage
+              teamId={route.teamId}
+              surface={route.surface}
+              onOpenTenant={openTenant}
+            />
+          </Suspense>
+        </Fragment>
       ) : (
         // Keyed by tenant: moving between tenants (e.g. back/forward) remounts the surface, so no per-tenant UI
         // state such as an open detail view leaks across the boundary.

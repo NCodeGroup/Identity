@@ -63,6 +63,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         var persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

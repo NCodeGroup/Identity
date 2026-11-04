@@ -45,6 +45,7 @@ public sealed class DefaultManagementTenantEnvironmentResolverTests : IDisposabl
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

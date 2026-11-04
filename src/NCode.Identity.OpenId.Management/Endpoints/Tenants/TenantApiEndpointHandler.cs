@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -464,6 +465,7 @@ internal class TenantApiEndpointHandler(
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = OpenIdResourceIds.Platform,
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,

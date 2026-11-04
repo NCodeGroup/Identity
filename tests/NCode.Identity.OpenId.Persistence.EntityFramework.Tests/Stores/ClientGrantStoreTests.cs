@@ -64,10 +64,12 @@ public sealed class ClientGrantStoreTests : IDisposable
 
     private async Task SeedAsync()
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         await _tenantStore.AddAsync(
             new PersistedTenant
             {
                 TenantId = TenantId,
+                TeamId = "platform",
                 ConcurrencyToken = string.Empty,
                 Issuer = null,
                 IsDisabled = false,

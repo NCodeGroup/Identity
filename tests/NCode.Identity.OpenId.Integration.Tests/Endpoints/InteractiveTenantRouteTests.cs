@@ -572,6 +572,7 @@ public class InteractiveTenantRouteTests
                 new PersistedTenant
                 {
                     TenantId = tenantId,
+                    TeamId = "platform",
                     Issuer = $"http://localhost/{tenantId}",
                     ConcurrencyToken = Guid.NewGuid().ToString("N"),
                     IsDisabled = false,

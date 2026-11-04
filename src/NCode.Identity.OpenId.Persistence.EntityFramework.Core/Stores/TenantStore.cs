@@ -98,6 +98,7 @@ internal class TenantStore(
             TenantId = tenantEntity.TenantId,
             Issuer = tenantEntity.Issuer,
             MtlsEndpointAliasAuthority = tenantEntity.MtlsEndpointAliasAuthority,
+            TeamId = tenantEntity.Team.TeamId,
             ConcurrencyToken = tenantEntity.ConcurrencyToken,
             IsDisabled = tenantEntity.IsDisabled,
             DisplayName = tenantEntity.DisplayName,
@@ -114,7 +115,8 @@ internal class TenantStore(
     {
         return GetLocalOrDefault(predicate)
             ?? await DbContext
-                .Tenants.Include(tenant => tenant.Secrets)
+                .Tenants.Include(tenant => tenant.Team)
+                .Include(tenant => tenant.Secrets)
                     .ThenInclude(tenantSecret => tenantSecret.Secret)
                 .SingleOrDefaultAsync(predicate, cancellationToken);
     }
@@ -140,7 +142,8 @@ internal class TenantStore(
     )
     {
         var query = DbContext
-            .Tenants.Include(tenant => tenant.Secrets)
+            .Tenants.Include(tenant => tenant.Team)
+            .Include(tenant => tenant.Secrets)
                 .ThenInclude(tenantSecret => tenantSecret.Secret)
             .AsQueryable();
 
@@ -201,6 +204,98 @@ internal class TenantStore(
         var nextCursor = hasMore ? EncodeCursor(rows[count - 1].Id) : null;
 
         return new PagedResult<PersistedTenantSettings> { Items = items, NextCursor = nextCursor };
+    }
+
+    /// <inheritdoc />
+    // See ADR-1403.
+    public async ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
+        string teamId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedTeamId = Normalize(teamId);
+        var query = DbContext
+            .Tenants.Include(tenant => tenant.Team)
+            .Include(tenant => tenant.Secrets)
+                .ThenInclude(tenantSecret => tenantSecret.Secret)
+            .Where(tenant => tenant.Team.NormalizedTeamId == normalizedTeamId);
+
+        if (DecodeCursor(page.Cursor) is { } afterId)
+        {
+            query = query.Where(tenant => tenant.Id > afterId);
+        }
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderBy(tenant => tenant.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    // See ADR-1403.
+    public async ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
+        string teamId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedTeamId = Normalize(teamId);
+        var query = DbContext
+            .Tenants.AsNoTracking()
+            .Where(tenant => tenant.Team.NormalizedTeamId == normalizedTeamId);
+
+        if (DecodeCursor(page.Cursor) is { } afterId)
+        {
+            query = query.Where(tenant => tenant.Id > afterId);
+        }
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var rows = await query
+            .OrderBy(tenant => tenant.Id)
+            .Take(page.Limit + 1)
+            .Select(tenant => new
+            {
+                tenant.Id,
+                tenant.TenantId,
+                tenant.SettingsConcurrencyToken,
+                tenant.SettingsJson,
+            })
+            .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > page.Limit;
+        var count = hasMore ? page.Limit : rows.Count;
+
+        var items = new List<PersistedTenantSettings>(count);
+        for (var index = 0; index < count; index++)
+        {
+            var row = rows[index];
+            items.Add(
+                new PersistedTenantSettings
+                {
+                    TenantId = row.TenantId,
+                    ConcurrencyToken = row.SettingsConcurrencyToken,
+                    Value = row.SettingsJson,
+                }
+            );
+        }
+
+        var nextCursor = hasMore ? EncodeCursor(rows[count - 1].Id) : null;
+
+        return new PagedResult<PersistedTenantSettings> { Items = items, NextCursor = nextCursor };
+    }
+
+    /// <inheritdoc />
+    // See ADR-1403.
+    public async ValueTask<long> CountAsync(string teamId, CancellationToken cancellationToken)
+    {
+        var normalizedTeamId = Normalize(teamId);
+        return await DbContext
+            .Tenants.Where(tenant => tenant.Team.NormalizedTeamId == normalizedTeamId)
+            .LongCountAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -298,10 +393,16 @@ internal class TenantStore(
 
         var secrets = new List<TenantSecretEntity>(persistedTenant.Secrets.Value.Count);
 
-        var teamEntity = await DbContext.Teams.SingleAsync(
-            team => team.NormalizedTeamId == OpenIdResourceIds.Platform,
-            cancellationToken
-        );
+        var normalizedTeamId = Normalize(persistedTenant.TeamId);
+        var teamEntity =
+            DbContext.Teams.Local.FirstOrDefault(team => team.NormalizedTeamId == normalizedTeamId)
+            ?? await DbContext.Teams.SingleOrDefaultAsync(
+                team => team.NormalizedTeamId == normalizedTeamId,
+                cancellationToken
+            )
+            ?? throw new InvalidOperationException(
+                $"The team with TeamId='{persistedTenant.TeamId}' does not exist."
+            );
 
         var tenantEntity = new TenantEntity
         {

@@ -475,6 +475,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = $"https://op.example/{tenantId}",
             ConcurrencyToken = "token",
             IsDisabled = isDisabled,

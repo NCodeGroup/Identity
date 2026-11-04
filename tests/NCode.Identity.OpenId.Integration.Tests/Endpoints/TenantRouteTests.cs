@@ -210,6 +210,7 @@ public class TenantRouteTests
             new PersistedTenant
             {
                 TenantId = tenantId,
+                TeamId = "platform",
                 Issuer = issuer,
                 ConcurrencyToken = Guid.NewGuid().ToString("N"),
                 IsDisabled = false,

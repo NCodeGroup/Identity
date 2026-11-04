@@ -210,6 +210,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

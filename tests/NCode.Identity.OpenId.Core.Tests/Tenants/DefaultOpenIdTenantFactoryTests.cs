@@ -602,6 +602,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = issuer,
             ConcurrencyToken = "token",
             IsDisabled = false,

@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -194,6 +195,7 @@ internal sealed class DefaultTenantProvisioner(
         return new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = OpenIdResourceIds.Platform,
             // The tenant's request-independent identity; only a tenant its strategy does not serve has none.
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,

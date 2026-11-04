@@ -394,6 +394,7 @@ public sealed class StaticSingleTenantStrategyTests
         new()
         {
             TenantId = "tenant-1",
+            TeamId = "platform",
             Issuer = "https://op.example",
             ConcurrencyToken = "token",
             IsDisabled = isDisabled,

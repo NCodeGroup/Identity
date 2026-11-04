@@ -346,6 +346,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
             IsDisabled = false,
@@ -2011,6 +2012,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         new()
         {
             TenantId = "acme",
+            TeamId = "platform",
             ConcurrencyToken = "seeded-ct",
             Issuer = issuer,
             IsDisabled = false,

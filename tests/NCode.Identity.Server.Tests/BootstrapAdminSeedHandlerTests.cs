@@ -156,6 +156,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         var persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

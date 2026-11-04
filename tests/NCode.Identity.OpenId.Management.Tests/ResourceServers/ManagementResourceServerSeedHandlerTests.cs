@@ -25,6 +25,7 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
                 Tenant = new PersistedTenant
                 {
                     TenantId = TenantId,
+                    TeamId = "platform",
                     Issuer = null,
                     ConcurrencyToken = "token",
                     IsDisabled = false,

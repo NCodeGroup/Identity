@@ -404,7 +404,7 @@ internal class PlatformApiEndpointHandler(
     /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and new
     /// platform settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
     /// document is resolved onto both. The tenants are read as an untracked, secret-free projection
-    /// (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value of a setting
+    /// (<see cref="ITenantStore.GetSettingsPageAsync(PageRequest, CancellationToken)"/>), and the walk runs only when the effective value of a setting
     /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A tenant whose
     /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
     /// settings.

@@ -46,6 +46,52 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
+    /// Gets a single page of the <see cref="PersistedTenant"/> instances that belong to a team, ordered by their
+    /// identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team whose tenants to get.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedTenant"/> instances and the cursor for the next page.</returns>
+    // See ADR-1403.
+    ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
+        string teamId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets a single page of the <see cref="PersistedTenantSettings"/> documents of the tenants that belong to a team,
+    /// ordered by the tenant's identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <remarks>
+    /// The settings are read without the tenant's secrets and without change tracking, for a pass over the team's
+    /// tenants' settings.
+    /// </remarks>
+    /// <param name="teamId">The identifier of the team whose tenants' settings to get.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedTenantSettings"/> instances and the cursor for the next page.</returns>
+    // See ADR-1403.
+    ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
+        string teamId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Counts the tenants that belong to a team.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team whose tenants to count.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// tenants in the team.</returns>
+    // See ADR-1403.
+    ValueTask<long> CountAsync(string teamId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedTenant"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="tenantId">The identifier of the <see cref="PersistedTenant"/> instance to retrieve.</param>

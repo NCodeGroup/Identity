@@ -65,6 +65,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
             IsDisabled = false,

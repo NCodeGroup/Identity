@@ -401,6 +401,7 @@ public class TenantProvisioningTests
                 new PersistedTenant
                 {
                     TenantId = tenantId,
+                    TeamId = "platform",
                     ConcurrencyToken = string.Empty,
                     Issuer = issuer,
                     IsDisabled = false,

@@ -38,6 +38,7 @@ public class SeededLocalAccountValidatorTests : BaseTests
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

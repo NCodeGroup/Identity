@@ -31,6 +31,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
 
         _provider = serviceCollection.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
+        _dbContext.Database.EnsureCreated();
         _idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TeamStore(Mock.Of<IStoreProvider>(), _idGenerator, _dbContext);
     }

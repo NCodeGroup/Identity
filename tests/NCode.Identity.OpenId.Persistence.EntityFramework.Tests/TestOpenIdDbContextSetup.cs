@@ -32,20 +32,8 @@ internal static class TestOpenIdDbContextSetup
             IAmbientTenantAccessor,
             TestUnscopedAmbientTenantAccessor
         >();
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IOpenIdModelContributor, TestPlatformTeamContributor>()
-        );
         serviceCollection.AddDbContext<OpenIdDbContext>(configureOptions);
 
-        // Creating the database applies the seeded platform team, which the stores need before they can add a tenant.
-        serviceCollection.Replace(
-            ServiceDescriptor.Scoped(serviceProvider =>
-            {
-                var dbContext = ActivatorUtilities.CreateInstance<OpenIdDbContext>(serviceProvider);
-                dbContext.Database.EnsureCreated();
-                return dbContext;
-            })
-        );
         return serviceCollection;
     }
 
@@ -139,35 +127,4 @@ internal sealed class TestUnscopedAmbientTenantAccessor : IAmbientTenantAccessor
     public bool IsScoped => false;
 
     public IDisposable BeginScope(string tenantId) => throw new NotSupportedException();
-}
-
-/// <summary>
-/// Seeds the <c>platform</c> team into every test database, because a tenant always belongs to a team and the stores
-/// place a new tenant in the platform team.
-/// </summary>
-internal sealed class TestPlatformTeamContributor : IOpenIdModelContributor
-{
-    public const long PlatformTeamRowId = 1;
-
-    /// <inheritdoc />
-    public void Configure(ModelBuilder modelBuilder)
-    {
-        modelBuilder
-            .Entity<TeamEntity>()
-            .HasData(
-                new
-                {
-                    Id = PlatformTeamRowId,
-                    TeamId = "platform",
-                    NormalizedTeamId = "platform",
-                    ConcurrencyToken = string.Empty,
-                    SettingsConcurrencyToken = string.Empty,
-                    IsDisabled = false,
-                    DisplayName = "Platform",
-                    SettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-                        new Dictionary<string, object>()
-                    ),
-                }
-            );
-    }
 }

@@ -60,9 +60,11 @@ public sealed class ClientStoreSecretsTests : IDisposable
 
     private async Task SeedClientAsync(params PersistedSecret[] secrets)
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenant
         {
             TenantId = TenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,

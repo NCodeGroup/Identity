@@ -529,3 +529,8 @@ NCode.Identity.OpenId.Persistence.Stores.ITeamStore.UpdateSettingsAsync(NCode.Id
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeamSettings.ResourceType.get -> string!
 virtual NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTeamResource.ResourceId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.TeamId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.TeamId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.ITenantStore.CountAsync(string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetPageAsync(string! teamId, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>!>
+NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetSettingsPageAsync(string! teamId, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSettings!>!>

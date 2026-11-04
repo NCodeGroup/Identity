@@ -404,6 +404,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             Issuer = "https://op.example/acme",
             ConcurrencyToken = "token",
             IsDisabled = false,

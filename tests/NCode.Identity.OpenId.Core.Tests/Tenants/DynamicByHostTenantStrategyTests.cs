@@ -73,6 +73,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = "ct",
             Issuer = $"https://{IssuerHost}",
             IsDisabled = false,

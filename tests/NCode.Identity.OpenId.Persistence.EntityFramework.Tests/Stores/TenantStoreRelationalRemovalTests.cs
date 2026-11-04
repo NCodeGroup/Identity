@@ -38,6 +38,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
 
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         _dbContext.Database.EnsureCreated();
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
@@ -95,6 +96,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,

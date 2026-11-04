@@ -59,6 +59,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = issuer,
             ConcurrencyToken = "token",
             IsDisabled = false,

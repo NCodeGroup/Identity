@@ -45,9 +45,8 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
         _dbContext = new OpenIdDbContext(
             options,
             _ambientTenantAccessor,
-            [new CoreModelContributor(), new TestPlatformTeamContributor()]
+            [new CoreModelContributor()]
         );
-        _dbContext.Database.EnsureCreated();
         _store = new TenantStore(
             Mock.Of<IStoreProvider>(),
             _provider.GetRequiredService<IIdGenerator<long>>(),
@@ -79,9 +78,12 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
 
     private async Task SeedTenantAsync(string tenantId, params PersistedSecret[] secrets)
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,

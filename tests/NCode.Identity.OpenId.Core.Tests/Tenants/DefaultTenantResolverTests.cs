@@ -98,6 +98,7 @@ public sealed class DefaultTenantResolverTests
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = "ct",
             Issuer = Issuer,
             IsDisabled = false,
@@ -533,6 +534,7 @@ public sealed class DefaultTenantResolverTests
         var tenant = new PersistedTenant
         {
             TenantId = RootTenantOptions.DefaultTenantId,
+            TeamId = "platform",
             Issuer = Issuer,
             ConcurrencyToken = "token",
             IsDisabled = false,

@@ -1900,10 +1900,13 @@ describes the family as it is rather than its changes
 - **A tenant's address is a routed tenant property the management API previews before it is written.** `TenantResource`,
   `CreateTenantRequest` and the tenant update carry the tenant's `issuer` and its mTLS endpoint alias authority
   (`mtlsEndpointAliasAuthority`, RFC 8705 §5), where an empty alias restores the derived one.
-  `GET /api/tenants/{tenantId}/address`, optionally with a proposed issuer and alias, returns a `TenantAddressResource`:
-  the issuer the tenant has or would be given and whether it is the derived one, the alias and whether it is derived
-  (`isMtlsEndpointAliasAuthorityDerived`), whether the tenant already exists, and every reason the tenant could not be
-  served there, by the same rules the create and update apply
+  `GET /api/teams/{teamId}/tenants/{tenantId}/address` previews the address a tenant that does not exist yet would have
+  (it needs the authority to create a tenant in the team, and answers `404` for a missing team and `409` when the tenant
+  exists), and `GET /api/tenants/{tenantId}/address` previews an existing tenant's (it needs read on the tenant, and
+  answers `404` when it does not exist). Each takes an optional proposed issuer and alias and returns a
+  `TenantAddressResource`: the issuer the tenant has or would be given and whether it is the derived one, the alias and
+  whether it is derived (`isMtlsEndpointAliasAuthorityDerived`), whether the tenant already exists, and every reason the
+  tenant could not be served there, by the same rules the create and update apply
   ([ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), issue
   [#157](https://github.com/NCodeGroup/Identity/issues/157)).
 
@@ -2081,7 +2084,8 @@ describes the family as it is rather than its changes
   (`createTenant`/`updateTenant`/`deleteTenant`), a stateless MUI `TenantFormDialog`, a reusable `ConfirmDialog`
   (Storybook-driven) and row-level edit and delete actions on the tenant table back it. The dialog asks for the tenant
   ID on create and locks it on edit, and edits the `issuer` and the mTLS endpoint alias, showing the derived alias as
-  its hint and placeholder. As you type, `TenantsPage` previews the address (`getTenantAddress`, with an optional
+  its hint and placeholder. As you type, `TenantsPage` previews the address (the create dialog through
+  `getNewTenantAddress`, the edit dialog through `getTenantAddress`, each with an optional
   `mtlsEndpointAliasAuthority`): the issuer an empty field resolves to, a taken tenant ID, and why a proposed issuer or
   alias cannot be used; it re-judges an existing tenant's address only when its issuer or alias changes. The tenant
   table shows each tenant's issuer, alias and environment, highlights every non-production environment, and filters by
@@ -2941,7 +2945,8 @@ describes the family as it is rather than its changes
   an update that clears the alias restores the derived one. The template is checked at startup: an `https` origin
   template with `{tenantId}` in its host, whose host the host pattern maps to itself and which differs from the issuer
   template's host. The management API carries `mtlsEndpointAliasAuthority` on tenant create, update and read, and the
-  address preview (`GET /tenants/{tenantId}/address`) takes an optional `mtlsEndpointAliasAuthority` and returns the
+  address previews (`GET /teams/{teamId}/tenants/{tenantId}/address` for a tenant that does not exist yet and
+  `GET /tenants/{tenantId}/address` for an existing one) take an optional `mtlsEndpointAliasAuthority` and return the
   effective `MtlsEndpointAliasAuthority` and `IsMtlsEndpointAliasAuthorityDerived` on `TenantAddressResource`
   ([ADR-1195](docs/decisions/1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md),
   [#117](https://github.com/NCodeGroup/Identity/issues/117)).

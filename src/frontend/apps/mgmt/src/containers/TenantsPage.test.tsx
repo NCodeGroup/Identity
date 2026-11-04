@@ -187,7 +187,9 @@ describe('TenantsPage (CRUD wiring)', () => {
       'placeholder',
       'https://new-co.mtls.test',
     );
-    expect(calls.some((c) => c.url === 'https://api.test/api/tenants/new-co/address')).toBe(true);
+    expect(
+      calls.some((c) => c.url === 'https://api.test/api/teams/acme/tenants/new-co/address'),
+    ).toBe(true);
   });
 
   it('blocks creating a tenant whose ID is already taken', async () => {
@@ -246,7 +248,8 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(
       calls.some(
         (c) =>
-          c.url === 'https://api.test/api/tenants/new-co/address?issuer=https%3A%2F%2Ftaken.test',
+          c.url ===
+          'https://api.test/api/teams/acme/tenants/new-co/address?issuer=https%3A%2F%2Ftaken.test',
       ),
     ).toBe(true);
   });

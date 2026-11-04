@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -13,8 +14,10 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
-/// An <see cref="AuthorizationHandler{TRequirement,TResource}"/> that grants a principal authority over an
-/// <see cref="IResourceNode"/> when the principal holds a role assignment at that node or an ancestor (its tenant, its
+/// An <see cref="AuthorizationHandler{TRequirement,TResource}"/> that grants a principal authority over a tenant-plane
+/// resource. Any <see cref="ISupportTenantId"/> resource is judged at its <see cref="IResourceNode"/>; a persisted
+/// entity or a <see cref="TenantScopeResource"/> is judged at its tenant's node, and any other node type inherits the
+/// tenant's and the team's assignments. A principal holds authority when it has a role assignment at that node or an ancestor (its tenant, its
 /// team, or the platform root). This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal
 /// manage that instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation
 /// except <see cref="Operations.Create"/>; creating a new resource is authority at the parent node, held by a
@@ -25,7 +28,7 @@ internal class OwnershipHandler(
     IPrincipalResolver principalResolver,
     IHttpContextAccessor httpContextAccessor,
     IAmbientTenantAccessor ambientTenantAccessor
-) : AuthorizationHandler<IAuthorizationRequirement, IResourceNode>
+) : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
@@ -39,9 +42,14 @@ internal class OwnershipHandler(
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         IAuthorizationRequirement requirement,
-        IResourceNode resource
+        ISupportTenantId resource
     )
     {
+        // A node is judged where it is; any other tenant-plane resource is judged at its tenant's node.
+        var node =
+            resource as IResourceNode
+            ?? ResourceNode.For(resource.TenantId, ResourceNodeTypes.Tenant, resource.TenantId);
+
         var openIdContext = HttpContextAccessor.HttpContext?.GetOpenIdContextOrDefault();
         if (openIdContext is null)
         {
@@ -76,11 +84,7 @@ internal class OwnershipHandler(
             return;
         }
 
-        var ancestorNodes = await GetAncestorNodesAsync(
-            resource,
-            storeManager,
-            CancellationToken.None
-        );
+        var ancestorNodes = await GetAncestorNodesAsync(node, storeManager, CancellationToken.None);
 
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         var assignments = await store.GetByPrincipalAsync(principalId, CancellationToken.None);
@@ -123,7 +127,13 @@ internal class OwnershipHandler(
         {
             nodes.Add((ResourceNodeTypes.Team, Normalize(resource.ResourceId)));
         }
-        else if (HasTenant(resource.ResourceType))
+        else if (
+            !string.Equals(
+                resource.ResourceType,
+                ResourceNodeTypes.Platform,
+                StringComparison.Ordinal
+            )
+        )
         {
             nodes.Add((ResourceNodeTypes.Tenant, Normalize(resource.TenantId)));
 
@@ -138,13 +148,6 @@ internal class OwnershipHandler(
 
         return nodes;
     }
-
-    private static bool HasTenant(string resourceType) =>
-        resourceType
-            is ResourceNodeTypes.Tenant
-                or ResourceNodeTypes.Client
-                or ResourceNodeTypes.ResourceServer
-                or ResourceNodeTypes.Grant;
 
     private static bool IsCreationRole(string roleName) =>
         string.Equals(roleName, BuiltInRoles.TeamAdmin, StringComparison.OrdinalIgnoreCase)

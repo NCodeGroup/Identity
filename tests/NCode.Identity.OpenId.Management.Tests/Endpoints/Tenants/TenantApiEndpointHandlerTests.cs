@@ -2543,15 +2543,72 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(failures)
             .Verifiable();
 
-    [Fact]
-    public async Task GetAddressAsync_WhenTenantDoesNotExist_PreviewsItsDerivedIssuerUnderCreateAuthority()
+    // The team route reads the team and then the tenant; the strict mocks fail a read the route does not make.
+    private void SetupTeamPreviewStore(PersistedTeam? team, bool readsTenant)
     {
-        SetupDefaultAlias("acme", alias: null);
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockTeamStore
+            .Setup(x => x.GetOrDefaultAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(team)
+            .Verifiable();
+
+        if (!readsTenant)
+        {
+            return;
+        }
+
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+    }
+
+    private void SetupNoTenant(string tenantId) =>
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+
+    [Fact]
+    public async Task GetAddressAsync_WhenTheTenantDoesNotExist_ReturnsNotFound()
+    {
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
+
+        // Strict mocks: a missing tenant is neither authorized nor previewed.
+        var result = await Handler.GetAddressAsync(
+            CreateHttpContext(authenticated: true),
+            "acme",
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetAddressAsync_RequestsReadOnTheTenantNode()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct", issuer: "https://op.example/tenant-1"))
+            .Verifiable();
+        SetupDefaultAlias(TenantId, alias: null);
+        SetupAddressValidation(TenantId, "https://op.example/tenant-1");
+        object? authorizedResource = null;
         IEnumerable<IAuthorizationRequirement>? requirements = null;
         MockAuthorizationService
             .Setup(x =>
@@ -2562,18 +2619,159 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 )
             )
             .Callback(
-                (ClaimsPrincipal _, object? _, IEnumerable<IAuthorizationRequirement> value) =>
-                    requirements = value
+                (
+                    ClaimsPrincipal _,
+                    object? resource,
+                    IEnumerable<IAuthorizationRequirement> value
+                ) =>
+                {
+                    authorizedResource = resource;
+                    requirements = value;
+                }
             )
             .ReturnsAsync(AuthorizationResult.Success())
             .Verifiable();
+
+        var result = await Handler.GetAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<Ok<TenantAddressResource>>(result);
+        var node = Assert.IsType<ResourceNode>(authorizedResource);
+        Assert.Equal(
+            (TenantId, ResourceNodeTypes.Tenant, TenantId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+        Assert.Same(Operations.Read, Assert.Single(requirements!));
+    }
+
+    [Fact]
+    public async Task GetTeamTenantAddressAsync_RequestsCreateOnTheTeamNode()
+    {
+        SetupTeamPreviewStore(CreateTeam(), readsTenant: true);
+        SetupNoTenant("acme");
+        SetupDefaultAlias("acme", alias: null);
+        SetupDefaultIssuer("acme", DerivedIssuer);
+        SetupAddressValidation("acme", DerivedIssuer);
+        object? authorizedResource = null;
+        IEnumerable<IAuthorizationRequirement>? requirements = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (
+                    ClaimsPrincipal _,
+                    object? resource,
+                    IEnumerable<IAuthorizationRequirement> value
+                ) =>
+                {
+                    authorizedResource = resource;
+                    requirements = value;
+                }
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+
+        var result = await Handler.GetTeamTenantAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "acme",
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<Ok<TenantAddressResource>>(result);
+        var node = Assert.IsType<ResourceNode>(authorizedResource);
+        Assert.Equal(
+            (ControlPlaneTenantId, ResourceNodeTypes.Team, TeamId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+        Assert.Same(Operations.Create, Assert.Single(requirements!));
+    }
+
+    [Fact]
+    public async Task GetTeamTenantAddressAsync_WhenTheTeamIsMissing_ReturnsNotFound()
+    {
+        SetupTeamPreviewStore(null, readsTenant: false);
+        SetupAuthorization(AuthorizationResult.Success());
+
+        // Strict mocks: a missing team reads no tenant and previews nothing.
+        var result = await Handler.GetTeamTenantAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "acme",
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetTeamTenantAddressAsync_WhenTheTenantExists_ReturnsConflict()
+    {
+        SetupTeamPreviewStore(CreateTeam(), readsTenant: true);
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct", issuer: null))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.GetTeamTenantAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            TenantId,
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetTeamTenantAddressAsync_WhenNotAuthorized_ReturnsForbidden()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store is opened for an unauthorized caller.
+        var result = await Handler.GetTeamTenantAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "acme",
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task GetTeamTenantAddressAsync_PreviewsTheAddressANewTenantWouldHave()
+    {
+        SetupDefaultAlias("acme", alias: null);
+        SetupTeamPreviewStore(CreateTeam(), readsTenant: true);
+        SetupNoTenant("acme");
+        SetupAuthorization(AuthorizationResult.Success());
         SetupDefaultIssuer("acme", DerivedIssuer);
         SetupAddressValidation("acme", DerivedIssuer);
 
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.GetAddressAsync(
-            httpContext,
+        var result = await Handler.GetTeamTenantAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
             "acme",
             issuer: null,
             mtlsEndpointAliasAuthority: null,
@@ -2589,13 +2787,12 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.False(address.IsMtlsEndpointAliasAuthorityDerived);
         Assert.False(address.Exists);
         Assert.Empty(address.Failures);
-        Assert.Same(Operations.Create, Assert.Single(requirements!));
     }
 
     [Theory]
     [InlineData(null, "https://acme.mtls.example", true)]
     [InlineData("https://other.mtls.example", "https://other.mtls.example", false)]
-    public async Task GetAddressAsync_WhenTenantDoesNotExist_PreviewsTheProposedOrDerivedAlias(
+    public async Task GetTeamTenantAddressAsync_PreviewsTheProposedOrDerivedAlias(
         string? proposedAlias,
         string expectedAlias,
         bool expectedDerived
@@ -2603,11 +2800,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         if (proposedAlias is null)
             SetupDefaultAlias("acme", "https://acme.mtls.example");
-        SetupStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTenant?)null)
-            .Verifiable();
+        SetupTeamPreviewStore(CreateTeam(), readsTenant: true);
+        SetupNoTenant("acme");
         SetupAuthorization(AuthorizationResult.Success());
         SetupDefaultIssuer("acme", DerivedIssuer);
         MockTenantResolver
@@ -2623,10 +2817,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync([])
             .Verifiable();
 
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.GetAddressAsync(
-            httpContext,
+        var result = await Handler.GetTeamTenantAddressAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
             "acme",
             issuer: null,
             mtlsEndpointAliasAuthority: proposedAlias,
@@ -2717,7 +2910,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTenant?)null)
+            .ReturnsAsync(CreateTenant("tenant-ct", issuer: null))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 

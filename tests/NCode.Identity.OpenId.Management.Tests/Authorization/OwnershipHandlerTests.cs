@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -36,6 +37,9 @@ public class OwnershipHandlerTests : IDisposable
 
     private static ResourceNode TeamNode() =>
         ResourceNode.For(TenantId, ResourceNodeTypes.Team, TeamId);
+
+    // A tenant-plane entity that is not a node, such as a persisted client.
+    private sealed record TenantEntity(string TenantId) : ISupportTenantId;
 
     private static PersistedRoleAssignment Assignment(
         string roleName,
@@ -81,7 +85,7 @@ public class OwnershipHandlerTests : IDisposable
     // a team or platform node reads no tenant.
     private async Task<bool> HandleAsync(
         IAuthorizationRequirement requirement,
-        IResourceNode resource,
+        ISupportTenantId resource,
         ClaimsPrincipal user,
         PersistedRoleAssignment[] assignments,
         bool decides = true,
@@ -124,7 +128,7 @@ public class OwnershipHandlerTests : IDisposable
     // The named argument selects the overload above; without it this one would call itself.
     private Task<bool> HandleAsync(
         IAuthorizationRequirement requirement,
-        IResourceNode resource,
+        ISupportTenantId resource,
         ClaimsPrincipal user,
         params PersistedRoleAssignment[] assignments
     ) => HandleAsync(requirement, resource, user, assignments, decides: true);
@@ -440,6 +444,84 @@ public class OwnershipHandlerTests : IDisposable
         );
 
         Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenAnEntityAndCreateAndTeamAdminAtTheTenantsTeam_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            new TenantEntity(TenantId),
+            CreateSubject(),
+            Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenAnEntityAndCreateAndOwnerAtTheTenant_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            new TenantEntity(TenantId),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Tenant, TenantId)
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenAnEntityAndUpdateAndOwnerAtTheTenant_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            new TenantEntity(TenantId),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Tenant, TenantId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenATenantScopeAndAssignmentAtThePlatform_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.List,
+            TenantScopeResource.For(TenantId),
+            CreateSubject(),
+            Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Platform, "platform")
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenACustomNodeTypeAndOwnerAtTheTenant_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For(TenantId, "webhook", "w1"),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Tenant, TenantId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenACustomNodeTypeAndTeamAdminAtTheTeam_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For(TenantId, "webhook", "w1"),
+            CreateSubject(),
+            Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)
+        );
+
+        Assert.True(succeeded);
     }
 
     #endregion

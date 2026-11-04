@@ -147,8 +147,8 @@ export const managementApi = createApi({
       query: (tenantId) => `api/tenants/${encodeURIComponent(tenantId)}`,
       providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: platformTag(tenantId) }],
     }),
-    // A preview of the address a tenant has or would have. It is never cached beyond its subscriber,
-    // so it always reflects the tenants that exist when it is asked.
+    // A preview of the address an existing tenant has, or would have with a proposed issuer or alias. It
+    // is never cached beyond its subscriber, so it always reflects the tenants that exist when it is asked.
     getTenantAddress: build.query<
       TenantAddressResource,
       { tenantId: string; issuer?: string; mtlsEndpointAliasAuthority?: string }
@@ -160,6 +160,24 @@ export const managementApi = createApi({
         };
         return {
           url: `api/tenants/${encodeURIComponent(tenantId)}/address`,
+          ...(Object.keys(params).length > 0 ? { params } : {}),
+        };
+      },
+      keepUnusedDataFor: 0,
+    }),
+    // A preview of the address a tenant that does not exist yet would have in a team. It is never cached
+    // beyond its subscriber, so it always reflects the tenants that exist when it is asked.
+    getNewTenantAddress: build.query<
+      TenantAddressResource,
+      { teamId: string; tenantId: string; issuer?: string; mtlsEndpointAliasAuthority?: string }
+    >({
+      query: ({ teamId, tenantId, issuer, mtlsEndpointAliasAuthority }) => {
+        const params = {
+          ...(issuer ? { issuer } : {}),
+          ...(mtlsEndpointAliasAuthority ? { mtlsEndpointAliasAuthority } : {}),
+        };
+        return {
+          url: `api/teams/${encodeURIComponent(teamId)}/tenants/${encodeURIComponent(tenantId)}/address`,
           ...(Object.keys(params).length > 0 ? { params } : {}),
         };
       },
@@ -541,6 +559,7 @@ export const {
   useListTenantsQuery,
   useGetTenantQuery,
   useGetTenantAddressQuery,
+  useGetNewTenantAddressQuery,
   useListTeamsQuery,
   useGetTeamQuery,
   useGetTeamUsageQuery,

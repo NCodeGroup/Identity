@@ -15,6 +15,7 @@ export {
   useGetCapabilitiesQuery,
   useGetTenantQuery,
   useGetTenantAddressQuery,
+  useGetNewTenantAddressQuery,
   useListClientsQuery,
   useListResourceServersQuery,
   useListTeamsQuery,

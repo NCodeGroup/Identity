@@ -841,6 +841,51 @@ const queryRequestCases: readonly QueryRequestCase[] = [
       ),
   },
   {
+    name: 'getNewTenantAddress (derived issuer)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({ teamId: 'acme', tenantId: 'acme' }),
+      ),
+  },
+  {
+    name: 'getNewTenantAddress (proposed issuer)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address?issuer=https%3A%2F%2Facme.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({
+          teamId: 'acme',
+          tenantId: 'acme',
+          issuer: 'https://acme.example',
+        }),
+      ),
+  },
+  {
+    name: 'getNewTenantAddress (proposed issuer and mTLS endpoint alias)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address?issuer=https%3A%2F%2Facme.example&mtlsEndpointAliasAuthority=https%3A%2F%2Facme.mtls.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({
+          teamId: 'acme',
+          tenantId: 'acme',
+          issuer: 'https://acme.example',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+        }),
+      ),
+  },
+  {
+    name: 'getNewTenantAddress (proposed mTLS endpoint alias only)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address?mtlsEndpointAliasAuthority=https%3A%2F%2Facme.mtls.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({
+          teamId: 'acme',
+          tenantId: 'acme',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+        }),
+      ),
+  },
+  {
     name: 'listClients (platform scope)',
     url: 'https://api.test/api/clients',
     run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: platformScope })),

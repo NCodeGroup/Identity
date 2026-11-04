@@ -42,6 +42,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 
 POST  api/teams/{teamId}/tenants
 GET   api/teams/{teamId}/tenants
+GET   api/teams/{teamId}/tenants/{tenantId}/address
 
 GET   api/tenants
 GET   api/tenants/{tenantId}
@@ -142,6 +143,9 @@ internal class TenantApiEndpointHandler(
             .Produces<TenantResource>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
         teamTenants.MapGet("", ListTeamTenantsAsync).Produces<CollectionResource<TenantResource>>();
+        teamTenants
+            .MapGet("/{tenantId}/address", GetTeamTenantAddressAsync)
+            .Produces<TenantAddressResource>();
 
         tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
         tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
@@ -680,18 +684,19 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Previews the address of an OpenID tenant: the issuer and mutual-TLS endpoint-alias authority it has, or would have,
-    /// and every reason it could not be served there. A caller checks a tenant's name and addresses with it before creating
-    /// the tenant or changing them; the same rules judge the write itself.
+    /// Previews the address of an existing OpenID tenant: the issuer and mutual-TLS endpoint-alias authority it has, and
+    /// every reason it could not be served there. A caller checks a change to a tenant's addresses with it before making
+    /// the change; the same rules judge the write itself.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="tenantId">The identifier of the OpenID Tenant, whether or not it exists.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="issuer">The proposed issuer; when omitted, the tenant's current issuer, or for a tenant without one
     /// the issuer its strategy derives for it.</param>
     /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority; when omitted, the
     /// tenant's current alias, or for a tenant without one the alias its strategy derives for it.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's address and the reasons it cannot be served there, if any.</response>
+    /// <response code="404">The tenant does not exist.</response>
     // See ADR-1165 (the address is previewed through the seam that judges it).
     [EndpointName("api/tenants/address")]
     internal virtual async ValueTask<IResult> GetAddressAsync(
@@ -706,21 +711,112 @@ internal class TenantApiEndpointHandler(
         var store = storeManager.GetStore<ITenantStore>();
 
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-        var exists = tenant is not null;
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
 
-        // Previewing an existing tenant's address reads it; previewing a new one is part of creating it, which is
-        // authority at the parent node rather than ownership (ADR-1034).
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            exists ? Operations.Read : Operations.Create
+            Operations.Read
         );
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
         }
 
+        return await PreviewAddressAsync(
+            tenant,
+            tenantId,
+            issuer,
+            mtlsEndpointAliasAuthority,
+            storeManager,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Previews the address an OpenID tenant would have if a team created it: the issuer and mutual-TLS endpoint-alias
+    /// authority it would have, and every reason it could not be served there. A caller checks a new tenant's name and
+    /// addresses with it before creating the tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team that would hold the tenant.</param>
+    /// <param name="tenantId">The identifier the tenant would have.</param>
+    /// <param name="issuer">The proposed issuer; when omitted, the issuer the tenant's strategy derives for it.</param>
+    /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority; when omitted, the alias
+    /// the tenant's strategy derives for it.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The address the tenant would have and the reasons it cannot be served there, if any.</response>
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">A tenant with the identifier already exists.</response>
+    // See ADR-1165 (the address is previewed through the seam that judges it).
+    [EndpointName("api/teams/tenants/address/get")]
+    internal virtual async ValueTask<IResult> GetTeamTenantAddressAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromRoute] string tenantId,
+        [FromQuery] string? issuer,
+        [FromQuery] string? mtlsEndpointAliasAuthority,
+        CancellationToken cancellationToken
+    )
+    {
+        // Previewing a new tenant is part of creating it, which is authority at the team node (ADR-1034).
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetTeamNode(httpContext, teamId),
+            Operations.Create
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+
+        var team = await storeManager
+            .GetStore<ITeamStore>()
+            .GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var tenant = await storeManager
+            .GetStore<ITenantStore>()
+            .GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is not null)
+        {
+            return ToErrorResult(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "A tenant with the specified identifier already exists.",
+                }
+            );
+        }
+
+        return await PreviewAddressAsync(
+            null,
+            tenantId,
+            issuer,
+            mtlsEndpointAliasAuthority,
+            storeManager,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<IResult> PreviewAddressAsync(
+        PersistedTenant? tenant,
+        string tenantId,
+        string? issuer,
+        string? mtlsEndpointAliasAuthority,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
         var proposedIssuer = NullIfEmpty(issuer) ?? NullIfEmpty(tenant?.Issuer);
         var effectiveIssuer =
             proposedIssuer
@@ -753,7 +849,7 @@ internal class TenantApiEndpointHandler(
                 MtlsEndpointAliasAuthority = effectiveAlias,
                 IsMtlsEndpointAliasAuthorityDerived =
                     proposedAlias is null && effectiveAlias is not null,
-                Exists = exists,
+                Exists = tenant is not null,
                 Failures = failures
                     .Select(failure => new TenantAddressFailure
                     {

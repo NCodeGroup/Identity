@@ -22,6 +22,7 @@ import {
   apiErrorMessage,
   useCreateTenantMutation,
   useDeleteTenantMutation,
+  useGetNewTenantAddressQuery,
   useGetTenantAddressQuery,
   useListTenantsQuery,
   useUpdateTenantMutation,
@@ -128,9 +129,9 @@ export function TenantsPage({
         }
       : emptyTenantFormValues;
 
-  // The address is previewed against the server's own rules: for a new tenant always, and for an existing
-  // one only when its issuer or mTLS endpoint alias changes, because the server judges an address only
-  // when it can change.
+  // The address is previewed against the server's own rules: for a new tenant through its team's route,
+  // always, and for an existing tenant through its own route, only when its issuer or mTLS endpoint alias
+  // changes, because the server judges an address only when it can change.
   const debouncedAddress = useDebouncedValue(addressInput, addressPreviewDelayMs);
   const isAddressUnchanged =
     dialog.kind === 'edit' &&
@@ -143,16 +144,23 @@ export function TenantsPage({
     debouncedAddress !== undefined &&
     isValidTenantId(debouncedAddress.tenantId) &&
     !isAddressUnchanged;
-  const { data: preview, originalArgs: previewArgs } = useGetTenantAddressQuery(
-    {
-      tenantId: debouncedAddress?.tenantId ?? '',
-      ...(debouncedAddress?.issuer ? { issuer: debouncedAddress.issuer } : {}),
-      ...(debouncedAddress?.mtlsEndpointAliasAuthority
-        ? { mtlsEndpointAliasAuthority: debouncedAddress.mtlsEndpointAliasAuthority }
-        : {}),
-    },
-    { skip: !shouldPreview, refetchOnMountOrArgChange: true },
+  const previewArgsInput = {
+    tenantId: debouncedAddress?.tenantId ?? '',
+    ...(debouncedAddress?.issuer ? { issuer: debouncedAddress.issuer } : {}),
+    ...(debouncedAddress?.mtlsEndpointAliasAuthority
+      ? { mtlsEndpointAliasAuthority: debouncedAddress.mtlsEndpointAliasAuthority }
+      : {}),
+  };
+  const newTenantPreview = useGetNewTenantAddressQuery(
+    { teamId, ...previewArgsInput },
+    { skip: dialog.kind !== 'create' || !shouldPreview, refetchOnMountOrArgChange: true },
   );
+  const existingTenantPreview = useGetTenantAddressQuery(previewArgsInput, {
+    skip: dialog.kind !== 'edit' || !shouldPreview,
+    refetchOnMountOrArgChange: true,
+  });
+  const { data: preview, originalArgs: previewArgs } =
+    dialog.kind === 'edit' ? existingTenantPreview : newTenantPreview;
 
   // A preview is shown only while it describes the address as it is entered now.
   const addressPreview =

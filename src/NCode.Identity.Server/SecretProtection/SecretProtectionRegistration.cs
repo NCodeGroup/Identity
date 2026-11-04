@@ -30,6 +30,7 @@ internal static class SecretProtectionRegistration
             StringComparer.OrdinalIgnoreCase,
             nameof(SecretProtectionOptions.RootKeyProvider),
             nameof(SecretProtectionOptions.Recovery),
+            nameof(SecretProtectionOptions.MasterKeys),
             RootKeyProvidersSubsection
         );
 
@@ -49,7 +50,7 @@ internal static class SecretProtectionRegistration
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
     /// <see cref="SecretProtectionOptions.DefaultSectionName"/> section.</param>
     /// <exception cref="InvalidOperationException">The section has a direct child other than the root key provider,
-    /// the recovery options and the root key provider options.</exception>
+    /// the recovery options, the master key options and the root key provider options.</exception>
     public static void AddSecretProtection(
         IIdentityServerBuilder builder,
         IConfiguration configuration
@@ -59,6 +60,7 @@ internal static class SecretProtectionRegistration
         ThrowOnUnknownChild(section);
 
         var recoverySection = section.GetSection(nameof(SecretProtectionOptions.Recovery));
+        var masterKeysSection = section.GetSection(nameof(SecretProtectionOptions.MasterKeys));
         var localSection = configuration.GetSection(LocalKeyWrapperOptions.DefaultSectionName);
         var keyRingSection = configuration.GetSection(
             DataProtectionKeyRingOptions.DefaultSectionName
@@ -74,6 +76,7 @@ internal static class SecretProtectionRegistration
             {
                 options.RootKeyProvider = section[nameof(SecretProtectionOptions.RootKeyProvider)];
                 recoverySection.BindStrictly(options.Recovery);
+                masterKeysSection.BindStrictly(options.MasterKeys);
             })
             .ValidateOnStart();
 

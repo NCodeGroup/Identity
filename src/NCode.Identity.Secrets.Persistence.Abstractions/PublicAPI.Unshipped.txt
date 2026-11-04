@@ -255,3 +255,18 @@ override NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ToStri
 NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.Rewrap<TWriter>(System.ReadOnlySpan<char> protectedValue, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context, ref TWriter destination) -> void
 NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.TryReadMasterKeyId(System.ReadOnlySpan<char> protectedValue, out System.Guid masterKeyId) -> bool
 NCode.Identity.Secrets.Persistence.Protection.SecretProtectorExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!).RewrapToString(System.ReadOnlySpan<char> protectedValue, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context) -> string!
+static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.TryParse(string? value, out NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner) -> bool
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.DestroyRetired.get -> bool
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.DestroyRetired.set -> void
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.MaintenanceInterval.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.MaintenanceInterval.set -> void
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.MasterKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.RefreshInterval.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.RefreshInterval.set -> void
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.RetirementGrace.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.RetirementGrace.set -> void
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.RotationPeriod.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions.RotationPeriod.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.MasterKeys.get -> NCode.Identity.Secrets.Persistence.Options.MasterKeyOptions!
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.MasterKeys.set -> void

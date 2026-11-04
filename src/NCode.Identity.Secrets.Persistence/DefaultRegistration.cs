@@ -130,6 +130,12 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IRecoveryKeyWrapper, RecoveryKeyWrapper>();
             serviceCollection.TryAddSingleton<MasterKeyFactory>();
             serviceCollection.TryAddSingleton<ISecretProtectorProvider, DefaultMasterKeyRing>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<SecretProtectionOptions>,
+                    MasterKeyOptionsValidator
+                >()
+            );
             serviceCollection.AddOptions<SecretProtectionOptions>();
             serviceCollection.AddOptions<LocalKeyWrapperOptions>();
             serviceCollection.AddOptions<SharedSecretVerifierOptions>().ValidateOnStart();

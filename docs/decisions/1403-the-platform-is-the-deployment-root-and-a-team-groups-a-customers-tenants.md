@@ -1,0 +1,116 @@
+# 1403. The platform is the deployment root and a team groups a customer's tenants
+
+- **Status:** Accepted (amends [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
+  [ADR-1024](1024-control-plane-and-per-tenant-planes.md),
+  [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),
+  [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
+  [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
+  [ADR-1040](1040-effective-settings-preview-endpoints.md),
+  [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
+  [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md),
+  [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),
+  [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
+  [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
+  [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md),
+  [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+  [ADR-1241](1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
+  [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
+  [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md),
+  [ADR-1257](1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
+  [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) and
+  [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md))
+- **Date:** 2026-11-04
+- **Deciders:** NCode Group
+- **Refines:** [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)
+
+## Context
+
+A deployment has one root: the configuration its host starts with, the master key of its Data Protection key ring and
+the tenant that holds the control plane. A customer of that deployment runs related tenants, such as a sandbox, a
+testing tenant and a production tenant, that share a bill, a set of administrators and a policy
+([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) models them as separate tenants). Nothing
+names the customer: a policy that should bind all of a customer's tenants has to be written into each one, the
+administrators of one tenant cannot create another, a plan's tenant quota has no scope to apply to, and usage cannot be
+summed per customer.
+
+The family already has the pieces a grouping needs: a cascade of settings scopes, each setting declaring the scopes it
+applies to ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), security profiles that accumulate down the
+cascade ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)), tenants named by their creator
+([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)), and a role model whose assignments are owned by a scope
+([ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)). The open questions are what the deployment root
+is, what groups tenants, and how authority, settings, lifecycle and the console address them.
+
+## Decision
+
+**The platform is the one deployment root, and a team is a persisted grouping of a customer's tenants that sits between
+the platform and its tenants in the settings cascade and in authority.**
+
+1. **The platform is the deployment root.** It is the host configuration (`OpenId:Platform:Settings`), one persisted
+   settings document at `/api/platform/settings`, the master key of the Data Protection key ring
+   ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) and the authority
+   node `(platform, platform)`. It has no identifier, no list and no secrets: there is exactly one, so nothing names it.
+2. **A team is a persisted grouping of tenants.** Its creator names it, in the tenant-identifier form
+   ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)); it has a display name, an `isDisabled` flag and a settings
+   document. Every tenant belongs to exactly one team and never moves. The platform's own team
+   (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a tenant-resolution
+   strategy creates.
+3. **The cascade has five tiers.** Settings resolve through host configuration, the platform, the team, the tenant and
+   the client or resource server, with the registered setting scopes `platform`, `team`, `tenant`, `client` and
+   `resource_server` ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). A team document carries every
+   setting that applies beneath it, so the security profiles and ceilings a team selects bind its tenants
+   ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). `max_tenants` applies to the team
+   scope, merges with `Min`, and a creation past it answers `409`.
+4. **Authority runs platform, team, tenant, leaf.** `TeamAdmin` at a team creates its tenants and manages everything
+   beneath it; `Owner` never creates. Role-assignment lookups span tenants. Tenants are created and listed under
+   `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `teams`, `team_settings` and `tenants`
+   scope families.
+5. **Lifecycle.** A disabled team's tenants answer `404` on the protocol surface and stay manageable. A team with
+   tenants cannot be deleted. A deleted team's identifier is retired
+   ([ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)). The platform's own team can be neither
+   disabled nor deleted.
+6. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
+   events are recorded in the control-plane tenant with the resource types `team` and `platform`.
+7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/teams/{teamId}/{tenants|settings|usage}`
+   and `/tenants/{tenantId}/…`. The owner kinds `platform` and `team` carry settings only.
+8. **The words.** "Platform" is the deployment root; ADR-1131's platform environments (`production`, `lab`, `ci`) are
+   where a platform runs. "Team" is the grouping. "Organization" stays free for the in-tenant B2B feature
+   ([ADR-1035](1035-federated-principals-and-identity-resolution.md)).
+
+## Options considered
+
+- **Name the grouping `organization`.** Collides with the in-tenant B2B vocabulary and with the ecosystem's use of the
+  word. Rejected.
+- **Name it `customer`.** Ambiguous for a consumer whose own customers are organizations. Rejected.
+- **Name it `tenant group`.** Names the container by its contents, implies a many-to-many relationship, and collides
+  with user groups. Rejected.
+- **A listable set of root rows.** Nothing routes a tenant to one of several roots, so a second root would have no
+  tenant to serve. Rejected: the platform is singular.
+- **Nested teams.** A tree needs a rule for how a setting, a role and a quota inherit across several levels, and no
+  customer needs more than one grouping above its tenants. Deferred until a requirement names the second level.
+
+## Consequences
+
+- A customer's policy is written once, at its team, and binds every tenant it creates; a plan's tenant quota has a scope
+  to apply to; usage sums per team.
+- The administrators of a team create tenants without holding authority over the deployment, and the platform
+  administrator never needs to be a member of a customer's tenant.
+- Every tenant has a team, so a tenant cannot be created without one and its creation path takes a team identifier.
+- A disabled team switches off all of a customer's protocol surface in one write, while its tenants stay manageable.
+- The cascade has one more tier to resolve, cache and invalidate; a change to a team document reaches its cached
+  tenants on every replica.
+- A tenant never moves between teams, so a customer that reorganizes recreates tenants rather than relocating them.
+- A package extends the cascade by registering a setting that applies to the `team` or `platform` scope, never by
+  editing the library ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
+
+## References
+
+- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset settings are unrestricted
+- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture
+- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — hosted platform environment model
+- [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
+- [ADR-1159](1159-a-tenant-is-named-by-its-creator.md) — a tenant is named by its creator
+- [ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) — retired identifiers are never reissued
+- [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — key hierarchy under an
+  external root key

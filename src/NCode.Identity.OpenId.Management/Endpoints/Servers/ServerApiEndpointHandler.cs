@@ -16,9 +16,11 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
+using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
+using NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -51,6 +53,9 @@ GET    api/servers/{serverId}/secrets/{secretId}/public-key
 PUT    api/servers/{serverId}/secrets/{secretId}
 DELETE api/servers/{serverId}/secrets/{secretId}
 
+GET    api/servers/{serverId}/encryption-keys
+POST   api/servers/{serverId}/encryption-keys/rekey
+
 */
 
 /// <summary>
@@ -65,6 +70,7 @@ internal class ServerApiEndpointHandler(
     IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     ISecretProtectorProvider secretProtectorProvider,
+    IMasterKeyManager masterKeyManager,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -86,6 +92,7 @@ internal class ServerApiEndpointHandler(
     private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
+    private IMasterKeyManager MasterKeyManager { get; } = masterKeyManager;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -148,6 +155,14 @@ internal class ServerApiEndpointHandler(
         servers
             .MapDelete("/{serverId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
+
+        servers
+            .MapGet("/{serverId}/encryption-keys", GetEncryptionKeysAsync)
+            .Produces<EncryptionKeysResource>();
+        servers
+            .MapPost("/{serverId}/encryption-keys/rekey", RekeyEncryptionKeysAsync)
+            .Produces<EncryptionKeyRotationResource>()
+            .ProducesProblem(StatusCodes.Status409Conflict);
     }
 
     /// <summary>
@@ -1255,5 +1270,98 @@ internal class ServerApiEndpointHandler(
             new ServerSettingsChangedCommand(serverId, previousSettings.Clone(), settings.Clone()),
             cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Lists the master keys of a server, newest version first. The response carries no key material.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The server's encryption keys.</response>
+    /// <response code="404">The server does not exist.</response>
+    [EndpointName("api/servers/encryption-keys/get")]
+    internal virtual async ValueTask<IResult> GetEncryptionKeysAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        var server = await FindServerAsync(serverId, cancellationToken);
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            server,
+            Operations.Read
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.GetAsync(
+            MasterKeyManager,
+            SecretOwner.ForServer(server.ServerId),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Rekeys a server: retires its active master key and creates the next version, whose values are then rewrapped in
+    /// the background.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The new active key and the key that it retired.</response>
+    /// <response code="404">The server does not exist.</response>
+    /// <response code="409">Another rekey of the same master key committed first.</response>
+    [EndpointName("api/servers/encryption-keys/rekey")]
+    internal virtual async ValueTask<IResult> RekeyEncryptionKeysAsync(
+        HttpContext httpContext,
+        [FromRoute] string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        var server = await FindServerAsync(serverId, cancellationToken);
+        if (server is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            server,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.RekeyAsync(
+            MasterKeyManager,
+            ManagementAuditRecorder,
+            httpContext,
+            SecretOwner.ForServer(server.ServerId),
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<PersistedServer?> FindServerAsync(
+        string serverId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        return await storeManager
+            .GetStore<IServerStore>()
+            .GetOrDefaultAsync(serverId, cancellationToken);
     }
 }

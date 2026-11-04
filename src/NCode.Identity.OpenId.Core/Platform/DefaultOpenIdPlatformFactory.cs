@@ -191,12 +191,6 @@ internal class DefaultOpenIdPlatformFactory(
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             DisplayName = platformId,
             Settings = settings,
-            Secrets = new PersistedPlatformSecrets
-            {
-                PlatformId = platformId,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                Value = [],
-            },
         };
     }
 

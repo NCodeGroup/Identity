@@ -17,17 +17,12 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
-using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
-using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -45,27 +40,15 @@ GET   api/platform/{platformId}/settings
 PATCH api/platform/{platformId}/settings
 GET   api/platform/{platformId}/effective-settings
 
-GET    api/platform/{platformId}/secrets
-POST   api/platform/{platformId}/secrets
-GET    api/platform/{platformId}/secrets/{secretId}
-GET    api/platform/{platformId}/secrets/{secretId}/public-key
-PUT    api/platform/{platformId}/secrets/{secretId}
-DELETE api/platform/{platformId}/secrets/{secretId}
-
 */
 
 /// <summary>
-/// Provides the API endpoints for managing an OpenID Server, including its settings and secrets.
+/// Provides the API endpoints for managing an OpenID Server, including its settings.
 /// </summary>
 internal class PlatformApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     IPlatformValidator serverValidator,
-    ISecretValidator secretValidator,
-    ISecretGenerator secretGenerator,
-    IClientKeyImporter keyImporter,
-    ISecretPublicKeyConverter secretPublicKeyConverter,
-    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -82,11 +65,6 @@ internal class PlatformApiEndpointHandler(
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPlatformValidator PlatformValidator { get; } = serverValidator;
-    private ISecretValidator SecretValidator { get; } = secretValidator;
-    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private IClientKeyImporter KeyImporter { get; } = keyImporter;
-    private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
-    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -123,9 +101,6 @@ internal class PlatformApiEndpointHandler(
         servers
             .MapPatch("/{platformId}", UpdatePlatformAsync)
             .Produces(StatusCodes.Status204NoContent);
-        servers
-            .MapDelete("/{platformId}", DeletePlatformAsync)
-            .Produces(StatusCodes.Status204NoContent);
 
         servers
             .MapGet("/{platformId}/settings", GetSettingsAsync)
@@ -137,28 +112,6 @@ internal class PlatformApiEndpointHandler(
         servers
             .MapGet("/{platformId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<PlatformEffectiveSettingsResource>();
-
-        servers
-            .MapGet("/{platformId}/secrets", GetSecretsAsync)
-            .Produces<PlatformSecretsResource>();
-        servers
-            .MapPost("/{platformId}/secrets", CreateSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
-        servers
-            .MapPost("/{platformId}/secrets/import", ImportSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
-        servers
-            .MapGet("/{platformId}/secrets/{secretId}", GetSecretAsync)
-            .Produces<SecretResource>();
-        servers
-            .MapGet("/{platformId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
-            .Produces<PublicKeyResource>();
-        servers
-            .MapPut("/{platformId}/secrets/{secretId}", UpdateSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
-        servers
-            .MapDelete("/{platformId}/secrets/{secretId}", DeleteSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>
@@ -190,23 +143,6 @@ internal class PlatformApiEndpointHandler(
             PlatformId = settings.PlatformId,
             ConcurrencyToken = settings.ConcurrencyToken,
             Settings = settings.Value,
-        };
-    }
-
-    /// <summary>
-    /// Maps a <see cref="PersistedPlatformSecrets"/> to its <see cref="PlatformSecretsResource"/> representation.
-    /// </summary>
-    /// <param name="secrets">The <see cref="PersistedPlatformSecrets"/> to map.</param>
-    /// <returns>The mapped <see cref="PlatformSecretsResource"/>.</returns>
-    internal virtual PlatformSecretsResource ToPlatformSecretsResource(
-        PersistedPlatformSecrets secrets
-    )
-    {
-        return new PlatformSecretsResource
-        {
-            PlatformId = secrets.PlatformId,
-            ConcurrencyToken = secrets.ConcurrencyToken,
-            Secrets = ToSecretsResource(secrets.Value),
         };
     }
 
@@ -298,12 +234,6 @@ internal class PlatformApiEndpointHandler(
                 PlatformId = platformId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
-            },
-            Secrets = new PersistedPlatformSecrets
-            {
-                PlatformId = platformId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
             },
         };
 
@@ -419,59 +349,6 @@ internal class PlatformApiEndpointHandler(
             server.PlatformId,
             ResourceChangeTypes.Updated,
             ToResourceValues(ToPlatformResource(server)),
-            cancellationToken
-        );
-
-        return TypedResults.NoContent();
-    }
-
-    /// <summary>
-    /// Deletes an OpenID server.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="204">The server was deleted.</response>
-    /// <response code="409">The server still has secrets and cannot be deleted.</response>
-    [EndpointName("api/platform/delete")]
-    internal virtual async ValueTask<IResult> DeletePlatformAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
-        if (server is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-1014).
-        var error = await PlatformValidator.ValidateDeleteAsync(
-            httpContext.User,
-            server,
-            storeManager,
-            cancellationToken
-        );
-
-        if (error is not null)
-        {
-            return ToErrorResult(error);
-        }
-
-        var resourceValues = ToResourceValues(ToPlatformResource(server));
-
-        await store.RemoveAsync(platformId, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        await ManagementAuditRecorder.RecordPlatformChangedAsync(
-            httpContext,
-            server.PlatformId,
-            ResourceChangeTypes.Deleted,
-            resourceValues,
             cancellationToken
         );
 
@@ -836,436 +713,6 @@ internal class PlatformApiEndpointHandler(
         } while (page.Cursor is not null);
 
         return errors;
-    }
-
-    /// <summary>
-    /// Lists a server's secrets.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="200">The server's secrets.</response>
-    [EndpointName("api/platform/secrets/get")]
-    internal virtual async ValueTask<IResult> GetSecretsAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var serverSecrets = await store.GetSecretsOrDefaultAsync(platformId, cancellationToken);
-
-        return await ProcessGetAsync(
-            httpContext,
-            serverSecrets,
-            Operations.Read,
-            ToPlatformSecretsResource
-        );
-    }
-
-    /// <summary>
-    /// Creates a server secret.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="201">The created secret.</response>
-    [EndpointName("api/platform/secrets/create")]
-    internal virtual async ValueTask<IResult> CreateSecretAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        [FromBody] CreateSecretRequest request,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
-        if (server is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            server,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var validation = SecretValidator.ValidateCreate(request);
-        if (!validation.IsValid)
-        {
-            return ToErrorResult(validation.Error);
-        }
-
-        var secretId = CryptoService.GenerateResourceId();
-
-        var protector = await SecretProtectorProvider.GetProtectorAsync(
-            SecretOwner.ForPlatform(platformId),
-            [],
-            cancellationToken
-        );
-
-        GeneratedSecret generatedSecret;
-        try
-        {
-            generatedSecret = SecretGenerator.GenerateSecret(
-                protector,
-                new GenerateSecretRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    GenerationParameters = validation.GenerationParameters,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
-        }
-        catch (Exception exception)
-            when (exception is ArgumentException or InvalidOperationException)
-        {
-            Logger.SecretGenerationFailed(exception);
-            return TypedResults.Problem(
-                detail: "The secret could not be generated from the supplied parameters.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
-        try
-        {
-            await store.AddSecretAsync(platformId, generatedSecret.Secret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        var secretResource = ToSecretResource(generatedSecret.Secret);
-
-        await ManagementAuditRecorder.RecordPlatformSecretChangedAsync(
-            httpContext,
-            platformId,
-            secretId,
-            ResourceChangeTypes.Created,
-            ToResourceValues(secretResource),
-            cancellationToken
-        );
-
-        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
-        return TypedResults.Created($"/platform/{platformId}/secrets/{secretId}", secretResource);
-    }
-
-    /// <summary>
-    /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new server secret.
-    /// </summary>
-    // See ADR-1104.
-    internal virtual async ValueTask<IResult> ImportSecretAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        [FromBody] ImportSecretRequest request,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
-        if (server is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            server,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var validationError = SecretValidator.ValidateImport(request);
-        if (validationError is not null)
-        {
-            return ToErrorResult(validationError);
-        }
-
-        var secretId = CryptoService.GenerateResourceId();
-
-        var importRequest = new SecretKeyImportRequest
-        {
-            SecretId = secretId,
-            SecretType = request.SecretType,
-            Format = request.Format,
-            KeyMaterial = request.KeyMaterial,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = TimeProvider.GetUtcNow(),
-            ExpiresWhen = request.ExpiresWhen,
-        };
-        if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
-        {
-            return TypedResults.Problem(
-                detail: importError,
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
-        var keyIdConflict = KeyIdConflictOrDefault(server.Secrets.Value, importedSecret, "server");
-        if (keyIdConflict is not null)
-        {
-            return keyIdConflict;
-        }
-
-        try
-        {
-            await store.AddSecretAsync(platformId, importedSecret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        var importedSecretResource = ToSecretResource(importedSecret);
-
-        await ManagementAuditRecorder.RecordPlatformSecretChangedAsync(
-            httpContext,
-            platformId,
-            secretId,
-            ResourceChangeTypes.Created,
-            ToResourceValues(importedSecretResource),
-            cancellationToken
-        );
-
-        httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
-        return TypedResults.Created(
-            $"/platform/{platformId}/secrets/{secretId}",
-            importedSecretResource
-        );
-    }
-
-    /// <summary>
-    /// Gets a server secret.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="secretId">The identifier of the secret.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="200">The requested secret.</response>
-    [EndpointName("api/platform/secrets/get-one")]
-    internal virtual async ValueTask<IResult> GetSecretAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        [FromRoute] string secretId,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
-
-        return await ProcessGetAsync(httpContext, secret, Operations.Read, ToSecretResource);
-    }
-
-    /// <summary>
-    /// Gets the public key material of an asymmetric server secret, as a JWK and a PEM.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="secretId">The identifier of the secret.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="200">The public key material of the requested secret.</response>
-    [EndpointName("api/platform/secrets/get-public-key")]
-    internal virtual async ValueTask<IResult> GetPublicKeyAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        [FromRoute] string secretId,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
-        if (secret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        return await ProcessGetAsync(
-            httpContext,
-            secret,
-            authorizationResource: null,
-            Operations.Read,
-            // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x)
-        );
-    }
-
-    /// <summary>
-    /// Updates a server secret's metadata.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="secretId">The identifier of the secret.</param>
-    /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="204">The secret was updated.</response>
-    [EndpointName("api/platform/secrets/update")]
-    internal virtual async ValueTask<IResult> UpdateSecretAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        [FromRoute] string secretId,
-        [FromBody] UpdateSecretRequest request,
-        [FromHeader(Name = "If-Match")] string? ifMatch,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
-        if (secret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            secret,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
-        )
-        {
-            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
-        }
-
-        var metadataError = SecretValidator.ValidateUpdate(secret, request);
-        if (metadataError is not null)
-        {
-            return ToErrorResult(metadataError);
-        }
-
-        var updated = new PersistedSecret
-        {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
-            ExpiresWhen = request.ExpiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            Origin = secret.Origin,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
-        };
-
-        await store.UpdateSecretAsync(platformId, updated, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        await ManagementAuditRecorder.RecordPlatformSecretChangedAsync(
-            httpContext,
-            platformId,
-            secretId,
-            ResourceChangeTypes.Updated,
-            ToResourceValues(ToSecretResource(updated)),
-            cancellationToken
-        );
-
-        return TypedResults.NoContent();
-    }
-
-    /// <summary>
-    /// Deletes a server secret.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the OpenID Server.</param>
-    /// <param name="secretId">The identifier of the secret.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="204">The secret was deleted.</response>
-    [EndpointName("api/platform/secrets/delete")]
-    internal virtual async ValueTask<IResult> DeleteSecretAsync(
-        HttpContext httpContext,
-        [FromRoute] string platformId,
-        [FromRoute] string secretId,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
-        if (secret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            secret,
-            Operations.Delete
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var secretValues = ToResourceValues(ToSecretResource(secret));
-
-        await store.RemoveSecretAsync(platformId, secretId, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        await ManagementAuditRecorder.RecordPlatformSecretChangedAsync(
-            httpContext,
-            platformId,
-            secretId,
-            ResourceChangeTypes.Deleted,
-            secretValues,
-            cancellationToken
-        );
-
-        return TypedResults.NoContent();
     }
 
     // Announces a committed change to the server's settings document, so every handler of the change (the default one

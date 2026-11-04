@@ -21,8 +21,6 @@ internal static class CoreDbContextExtensions
 
         public DbSet<PlatformEntity> Platforms => context.Set<PlatformEntity>();
 
-        public DbSet<PlatformSecretEntity> PlatformSecrets => context.Set<PlatformSecretEntity>();
-
         public DbSet<TenantEntity> Tenants => context.Set<TenantEntity>();
 
         public DbSet<TenantSecretEntity> TenantSecrets => context.Set<TenantSecretEntity>();

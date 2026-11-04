@@ -24,8 +24,6 @@ NCode.Identity.OpenId.OpenIdPlatformOptions
 NCode.Identity.OpenId.OpenIdPlatformOptions.OpenIdPlatformOptions() -> void
 NCode.Identity.OpenId.OpenIdPlatformOptions.ReconciliationLeaseDuration.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdPlatformOptions.ReconciliationLeaseDuration.set -> void
-NCode.Identity.OpenId.OpenIdPlatformOptions.SecretsPeriodicRefreshInterval.get -> System.TimeSpan
-NCode.Identity.OpenId.OpenIdPlatformOptions.SecretsPeriodicRefreshInterval.set -> void
 NCode.Identity.OpenId.OpenIdPlatformOptions.PlatformId.get -> string!
 NCode.Identity.OpenId.OpenIdPlatformOptions.PlatformId.set -> void
 NCode.Identity.OpenId.OpenIdPlatformOptions.Settings.get -> Microsoft.Extensions.Configuration.IConfigurationSection?

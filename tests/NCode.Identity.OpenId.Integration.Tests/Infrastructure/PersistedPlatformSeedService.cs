@@ -53,12 +53,6 @@ internal sealed class PersistedPlatformSeedService(
                 ConcurrencyToken = Guid.NewGuid().ToString("N"),
                 Value = System.Text.Json.JsonSerializer.SerializeToElement(Settings),
             },
-            Secrets = new PersistedPlatformSecrets
-            {
-                PlatformId = platformId,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                Value = [],
-            },
         };
 
         await store.AddAsync(persistedPlatform, cancellationToken);

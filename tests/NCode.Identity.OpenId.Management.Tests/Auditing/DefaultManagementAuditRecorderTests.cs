@@ -535,69 +535,6 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     #endregion
 
-    #region RecordPlatformSecretChangedAsync Tests
-
-    [Fact]
-    public async Task RecordServerSecretChangedAsync_PublishesSecretChangedAuditEventWithIds()
-    {
-        var mockPublisher = MockRepository.Create<IEventPublisher>();
-
-        PlatformSecretChangedAuditEvent? captured = null;
-        mockPublisher
-            .Setup(x =>
-                x.PublishAsync(
-                    It.IsAny<PlatformSecretChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Callback(
-                (PlatformSecretChangedAuditEvent auditEvent, CancellationToken _) =>
-                    captured = auditEvent
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
-
-        var httpContext = CreateHttpContext("admin-1");
-
-        await recorder.RecordPlatformSecretChangedAsync(
-            httpContext,
-            "server-1",
-            "secret-1",
-            ResourceChangeTypes.Created,
-            resourceValues: null,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(captured);
-        Assert.Equal("server.secret.created", captured.EventName);
-        Assert.Equal(AuditEventSources.Management, captured.EventSource);
-        Assert.Equal(ManagementResourceTypes.PlatformSecret, captured.ResourceType);
-        Assert.Equal(ResourceChangeTypes.Created, captured.ChangeType);
-        Assert.Equal(AuditOutcome.Success, captured.Outcome);
-        Assert.Null(captured.TenantId);
-        Assert.Null(captured.TenantEnvironmentType);
-        Assert.Equal("server-1", captured.PlatformId);
-        Assert.Equal("secret-1", captured.ResourceId);
-        Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
-        Assert.Equal("admin-1", captured.Actor.Id);
-        Assert.NotNull(captured.Request);
-        Assert.Equal("trace-1", captured.Request.RequestId);
-        Assert.Equal("test-endpoint", captured.Request.Endpoint);
-        Assert.Equal(7, captured.EventId.Version);
-        Assert.Equal(
-            [
-                new AuditResource(ManagementResourceTypes.PlatformSecret, "secret-1"),
-                new AuditResource(ManagementResourceTypes.Platform, "server-1"),
-            ],
-            captured.Resources
-        );
-        Assert.Null(captured.ResourceValues);
-    }
-
-    #endregion
-
     #region RecordResourceServerChangedAsync Tests
 
     [Fact]

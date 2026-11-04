@@ -53,13 +53,6 @@ public sealed class PlatformEntity : ISupportConcurrencyToken
     public required string SettingsConcurrencyToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the concurrency token for the server's secrets.
-    /// </summary>
-    [Unicode(false)]
-    [MaxLength(MaxLengths.ConcurrencyToken)]
-    public required string SecretsConcurrencyToken { get; set; }
-
-    /// <summary>
     /// Gets or sets the display name for the server.
     /// </summary>
     [Unicode]
@@ -85,13 +78,4 @@ public sealed class PlatformEntity : ISupportConcurrencyToken
     /// reconciled against, or <c>null</c> when there is nothing to compare a change with.
     /// </summary>
     public JsonElement? ReconciledSettingsJson { get; set; }
-
-    // navigation properties
-
-    // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
-    // We use DTOs to avoid circular dependencies.
-    /// <summary>
-    /// Gets the collection of secrets only known to this server.
-    /// </summary>
-    public required IEnumerable<PlatformSecretEntity> Secrets { get; init; }
 }

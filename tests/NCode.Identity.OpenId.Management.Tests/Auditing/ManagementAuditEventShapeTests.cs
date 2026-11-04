@@ -212,24 +212,6 @@ public sealed class ManagementAuditEventShapeTests
 
     #endregion
 
-    #region PlatformSecretChangedAuditEvent Tests
-
-    [Fact]
-    public void Resources_WhenAServerSecretChanges_ListsTheSecretThenTheServer()
-    {
-        var auditEvent = CreatePlatformSecretChangedEvent();
-
-        Assert.Equal(
-            [
-                new AuditResource(ManagementResourceTypes.PlatformSecret, "secret-1"),
-                new AuditResource(ManagementResourceTypes.Platform, "server-1"),
-            ],
-            auditEvent.Resources
-        );
-    }
-
-    #endregion
-
     #region ResourceServerScopeChangedAuditEvent Tests
 
     [Fact]
@@ -295,18 +277,6 @@ public sealed class ManagementAuditEventShapeTests
             EventSource = AuditEventSources.Management,
             Outcome = AuditOutcome.Success,
             TenantId = tenantId,
-            ResourceId = "secret-1",
-            ChangeType = ResourceChangeTypes.Created,
-        };
-
-    private static PlatformSecretChangedAuditEvent CreatePlatformSecretChangedEvent() =>
-        new()
-        {
-            EventId = Guid.NewGuid(),
-            EventTime = DateTimeOffset.UnixEpoch,
-            EventSource = AuditEventSources.Management,
-            Outcome = AuditOutcome.Success,
-            PlatformId = "server-1",
             ResourceId = "secret-1",
             ChangeType = ResourceChangeTypes.Created,
         };

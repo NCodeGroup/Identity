@@ -39,11 +39,6 @@ public static class ManagementResourceTypes
     public const string Platform = "platform";
 
     /// <summary>
-    /// A secret belonging to an OpenID server.
-    /// </summary>
-    public const string PlatformSecret = "platform.secret";
-
-    /// <summary>
     /// A resource server (API, in Auth0 terms).
     /// </summary>
     public const string ResourceServer = "resource_server";

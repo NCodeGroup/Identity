@@ -342,7 +342,6 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
                 PlatformId = PlatformId,
                 Value = JsonElement.Parse("""{"v":1}"""),
             },
-            Secrets = new PersistedPlatformSecrets { PlatformId = PlatformId, Value = [] },
             ReconciledSettingsFingerprint = reconciledFingerprint,
             ReconciledSettings = reconciledSettings,
         };

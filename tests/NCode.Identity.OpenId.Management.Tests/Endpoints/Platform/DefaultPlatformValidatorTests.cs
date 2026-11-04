@@ -62,12 +62,6 @@ public sealed class DefaultPlatformValidatorTests : IDisposable
                 ConcurrencyToken = "settings-ct",
                 Value = EmptyObject(),
             },
-            Secrets = new PersistedPlatformSecrets
-            {
-                PlatformId = PlatformId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
         };
 
     private void SetupAuthorization(AuthorizationResult result)
@@ -269,35 +263,9 @@ public sealed class DefaultPlatformValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateDeleteAsync_WhenHasDependents_Returns409()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        SetupServerStore();
-        MockServerStore
-            .Setup(x => x.HasDependentsAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .Verifiable();
-
-        var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
-            CreateServer(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
-        SetupServerStore();
-        MockServerStore
-            .Setup(x => x.HasDependentsAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false)
-            .Verifiable();
 
         var error = await Validator.ValidateDeleteAsync(
             CreateUser(authenticated: true),

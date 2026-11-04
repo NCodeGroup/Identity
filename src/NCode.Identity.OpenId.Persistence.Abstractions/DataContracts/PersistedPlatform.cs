@@ -31,11 +31,6 @@ public sealed class PersistedPlatform : BasePersistedPlatformResource
     public required PersistedPlatformSettings Settings { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection of secrets only known to an OpenID Server instance.
-    /// </summary>
-    public required PersistedPlatformSecrets Secrets { get; set; }
-
-    /// <summary>
     /// Gets or sets the fingerprint of the server's effective settings that every tenant and client of the server
     /// was last reconciled against, or <c>null</c> when they have not been reconciled since the server's settings
     /// last changed.

@@ -118,17 +118,6 @@ internal class DefaultPlatformValidator(IAuthorizationService authorizationServi
             return error;
         }
 
-        var store = storeManager.GetStore<IPlatformStore>();
-        var hasDependents = await store.HasDependentsAsync(server.PlatformId, cancellationToken);
-        if (hasDependents)
-        {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status409Conflict,
-                Detail = "The server cannot be deleted while it still has dependent secrets.",
-            };
-        }
-
         return null;
     }
 }

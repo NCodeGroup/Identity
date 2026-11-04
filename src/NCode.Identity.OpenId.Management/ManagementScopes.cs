@@ -28,7 +28,6 @@ internal static class ManagementScopes
     {
         internal const string Platforms = "platforms";
         internal const string PlatformSettings = "platform_settings";
-        internal const string PlatformSecrets = "platform_secrets";
         internal const string Tenants = "tenants";
         internal const string TenantSettings = "tenant_settings";
         internal const string TenantSecrets = "tenant_secrets";

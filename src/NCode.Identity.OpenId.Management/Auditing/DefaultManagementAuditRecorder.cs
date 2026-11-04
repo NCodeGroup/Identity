@@ -290,34 +290,6 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
-    public ValueTask RecordPlatformSecretChangedAsync(
-        HttpContext httpContext,
-        string platformId,
-        string secretId,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    )
-    {
-        var now = TimeProvider.GetUtcNow();
-        var auditEvent = new PlatformSecretChangedAuditEvent
-        {
-            EventId = Guid.CreateVersion7(now),
-            EventTime = now,
-            EventSource = AuditEventSources.Management,
-            Actor = GetActor(httpContext),
-            Request = CreateRequest(httpContext),
-            Outcome = AuditOutcome.Success,
-            PlatformId = platformId,
-            ResourceId = secretId,
-            ChangeType = changeType,
-            ResourceValues = resourceValues,
-        };
-
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
-    }
-
-    /// <inheritdoc />
     public async ValueTask RecordResourceServerChangedAsync(
         HttpContext httpContext,
         string tenantId,

@@ -226,16 +226,12 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.ReconciledSett
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.ReconciledSettings.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.ReconciledSettingsFingerprint.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.ReconciledSettingsFingerprint.set -> void
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.Secrets.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSecrets!
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.Secrets.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.Settings.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.Settings.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformResource<TValue>
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformResource<TValue>.PersistedPlatformResource() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformResource<TValue>.Value.get -> TValue
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformResource<TValue>.Value.set -> void
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSecrets
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSecrets.PersistedPlatformSecrets() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings.PersistedPlatformSettings() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant
@@ -359,17 +355,10 @@ NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.GetByResourceAsync
 NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.GetOrDefaultAsync(string! assignmentId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment?>
 NCode.Identity.OpenId.Persistence.Stores.IRoleAssignmentStore.RemoveAsync(string! assignmentId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IPlatformStore
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.AddSecretAsync(string! platformId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.GetOrDefaultAsync(string! platformId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform?>
 NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.GetPageAsync(NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform!>!>
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.GetSecretOrDefaultAsync(string! platformId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret?>
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.GetSecretsOrDefaultAsync(string! platformId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSecrets?>
 NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.GetSettingsOrDefaultAsync(string! platformId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings?>
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.HasDependentsAsync(string! platformId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.RemoveAsync(string! platformId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.RemoveSecretAsync(string! platformId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.UpdateReconciledSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform! persistedPlatform, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.UpdateSecretAsync(string! platformId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IPlatformStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings! persistedServerSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.AddSecretAsync(string! tenantId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -403,7 +392,6 @@ override NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSecrets.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServerSettings.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.ResourceType.get -> string!
-override NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSecrets.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.ResourceType.get -> string!
 override NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantSecrets.ResourceType.get -> string!

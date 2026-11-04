@@ -108,7 +108,6 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
             scopes = scopes.Concat([
                 .. CrudScopes(ManagementScopes.Families.Platforms, "platforms"),
                 .. SettingsScopes(ManagementScopes.Families.PlatformSettings, "platform settings"),
-                .. CrudScopes(ManagementScopes.Families.PlatformSecrets, "platform secrets"),
                 .. CrudScopes(ManagementScopes.Families.Tenants, "tenants"),
             ]);
         }

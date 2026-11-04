@@ -12,7 +12,6 @@ const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Resource
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerScope = "resource_server.scope" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerSecret = "resource_server.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Platform = "platform" -> string!
-const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.PlatformSecret = "platform.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
 const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.DefaultPageSize = 50 -> int
@@ -135,7 +134,6 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourc
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerScopeChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! scopeValue, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordPlatformChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! platformId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordPlatformSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! platformId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames
@@ -149,9 +147,6 @@ NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceServerId.get -> string!
 NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceServerId.init -> void
 NCode.Identity.OpenId.Management.Auditing.PlatformChangedAuditEvent
-NCode.Identity.OpenId.Management.Auditing.PlatformSecretChangedAuditEvent
-NCode.Identity.OpenId.Management.Auditing.PlatformSecretChangedAuditEvent.PlatformId.get -> string!
-NCode.Identity.OpenId.Management.Auditing.PlatformSecretChangedAuditEvent.PlatformId.init -> void
 NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Authorization.TenantScopeResource
@@ -494,14 +489,6 @@ NCode.Identity.OpenId.Management.Contracts.Platform.PlatformResource.DisplayName
 NCode.Identity.OpenId.Management.Contracts.Platform.PlatformResource.PlatformId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Platform.PlatformResource.PlatformId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Platform.PlatformResource.PlatformResource() -> void
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource!>!
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.Secrets.init -> void
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.PlatformId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.PlatformId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSecretsResource.PlatformSecretsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource
 NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource.PlatformEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource.PlatformId.get -> string!
@@ -644,7 +631,6 @@ override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Res
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceType.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.PlatformSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.PlatformChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent.ResourceType.get -> string!

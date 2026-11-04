@@ -6,8 +6,6 @@ using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -42,23 +40,7 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
         _provider.Dispose();
     }
 
-    private static PersistedSecret CreateSecret(string secretId) =>
-        new()
-        {
-            SecretId = secretId,
-            ConcurrencyToken = string.Empty,
-            Use = "sig",
-            Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
-            EncodedValue = "encoded-value",
-        };
-
-    private static PersistedPlatform CreateServer(params PersistedSecret[] secrets) =>
+    private static PersistedPlatform CreateServer() =>
         new()
         {
             PlatformId = PlatformId,
@@ -70,17 +52,11 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
                 ConcurrencyToken = string.Empty,
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
-            Secrets = new PersistedPlatformSecrets
-            {
-                PlatformId = PlatformId,
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
         };
 
-    private async Task SeedServerAsync(params PersistedSecret[] secrets)
+    private async Task SeedServerAsync()
     {
-        await _store.AddAsync(CreateServer(secrets), CancellationToken.None);
+        await _store.AddAsync(CreateServer(), CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
@@ -108,57 +84,6 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
         var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
         Assert.NotNull(reloaded);
         Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
-    }
-
-    [Fact]
-    public async Task RemoveAsync_WhenNoSecrets_RemovesAndReturnsTrue()
-    {
-        await SeedServerAsync();
-
-        var removed = await _store.RemoveAsync(PlatformId, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-
-        Assert.True(removed);
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.Null(reloaded);
-    }
-
-    [Fact]
-    public async Task RemoveAsync_WhenHasSecrets_Throws()
-    {
-        await SeedServerAsync(CreateSecret("secret-1"));
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.RemoveAsync(PlatformId, CancellationToken.None)
-        );
-    }
-
-    [Fact]
-    public async Task RemoveAsync_WhenMissing_ReturnsFalse()
-    {
-        var removed = await _store.RemoveAsync("missing", CancellationToken.None);
-
-        Assert.False(removed);
-    }
-
-    [Fact]
-    public async Task HasDependentsAsync_WhenNoSecrets_ReturnsFalse()
-    {
-        await SeedServerAsync();
-
-        var result = await _store.HasDependentsAsync(PlatformId, CancellationToken.None);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task HasDependentsAsync_WhenHasSecrets_ReturnsTrue()
-    {
-        await SeedServerAsync(CreateSecret("secret-1"));
-
-        var result = await _store.HasDependentsAsync(PlatformId, CancellationToken.None);
-
-        Assert.True(result);
     }
 
     [Fact]

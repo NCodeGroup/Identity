@@ -30,12 +30,6 @@ public sealed class OpenIdPlatformOptions
     public TimeSpan SettingsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
 
     /// <summary>
-    /// Gets or sets the period of time after which the secrets for the server are refreshed.
-    /// The default value is 15 minutes.
-    /// </summary>
-    public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
-
-    /// <summary>
     /// Gets or sets how long one replica holds the reconciliation of a change to the server's effective settings
     /// before another replica may take it over. A replica that finds the reconciliation held checks again after this
     /// period. The default value is 10 minutes.

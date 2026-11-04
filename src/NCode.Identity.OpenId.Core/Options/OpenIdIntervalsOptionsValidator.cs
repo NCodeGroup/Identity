@@ -29,12 +29,6 @@ internal sealed class OpenIdIntervalsOptionsValidator : IValidateOptions<OpenIdO
         Check(
             failures,
             nameof(OpenIdOptions.Platform),
-            nameof(OpenIdPlatformOptions.SecretsPeriodicRefreshInterval),
-            options.Platform.SecretsPeriodicRefreshInterval
-        );
-        Check(
-            failures,
-            nameof(OpenIdOptions.Platform),
             nameof(OpenIdPlatformOptions.ReconciliationLeaseDuration),
             options.Platform.ReconciliationLeaseDuration
         );

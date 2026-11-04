@@ -100,4 +100,60 @@ public interface IMasterKeyStore : IStore<PersistedMasterKey>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
     /// <see cref="PersistedMasterKey"/> instances that were removed.</returns>
     ValueTask<int> RemoveAllAsync(SecretOwner owner, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets a page of every <see cref="PersistedMasterKey"/> instance of every owner, ordered by an opaque row
+    /// identifier so that the pages are stable while rows are added or changed.
+    /// </summary>
+    /// <param name="page">The <see cref="PageRequest"/> that selects the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page.</returns>
+    // See ADR-1407.
+    ValueTask<PagedResult<PersistedMasterKey>> GetPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets a page of the active <see cref="PersistedMasterKey"/> instances that were created before an instant,
+    /// ordered by an opaque row identifier.
+    /// </summary>
+    /// <param name="createdBefore">The instant before which an active master key must have been created.</param>
+    /// <param name="page">The <see cref="PageRequest"/> that selects the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page.</returns>
+    // See ADR-1407.
+    ValueTask<PagedResult<PersistedMasterKey>> GetActivePageAsync(
+        DateTimeOffset createdBefore,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets every retired <see cref="PersistedMasterKey"/> instance of every owner, newest version first within each
+    /// owner.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the retired master
+    /// keys, or an empty list when there are none.</returns>
+    // See ADR-1407.
+    ValueTask<IReadOnlyList<PersistedMasterKey>> ListRetiredAsync(
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes a <see cref="PersistedMasterKey"/> from the store, which destroys the key. The values that the key
+    /// protected can no longer be read once the removal is saved.
+    /// </summary>
+    /// <param name="item">The <see cref="PersistedMasterKey"/> to remove, carrying the concurrency token it was read
+    /// with.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing
+    /// <see langword="true"/> when the master key was removed, or <see langword="false"/> when it is not in the
+    /// store.</returns>
+    /// <exception cref="StoreConcurrencyException">
+    /// Thrown when the master key was modified since the item was read.
+    /// </exception>
+    // See ADR-1407.
+    ValueTask<bool> RemoveAsync(PersistedMasterKey item, CancellationToken cancellationToken);
 }

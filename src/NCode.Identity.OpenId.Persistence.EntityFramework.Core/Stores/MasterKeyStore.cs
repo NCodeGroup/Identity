@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Binary;
+using System.Buffers.Text;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
@@ -69,8 +71,9 @@ internal class MasterKeyStore(
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the master key is not in the store or when it was modified since the item was read.
+    /// <exception cref="InvalidOperationException">Thrown when the master key is not in the store.</exception>
+    /// <exception cref="StoreConcurrencyException">
+    /// Thrown when the master key was modified since the item was read.
     /// </exception>
     public async ValueTask UpdateAsync(PersistedMasterKey item, CancellationToken cancellationToken)
     {
@@ -86,7 +89,7 @@ internal class MasterKeyStore(
             !string.Equals(item.ConcurrencyToken, entity.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            throw new InvalidOperationException(
+            throw new StoreConcurrencyException(
                 $"The master key with identifier '{item.KeyId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -187,6 +190,73 @@ internal class MasterKeyStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedMasterKey>> GetPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    ) => await GetPageAsync(DbContext.MasterKeys.AsNoTracking(), page, cancellationToken);
+
+    /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedMasterKey>> GetActivePageAsync(
+        DateTimeOffset createdBefore,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var instant = createdBefore.ToUniversalTime();
+
+        return await GetPageAsync(
+            DbContext
+                .MasterKeys.AsNoTracking()
+                .Where(entity => entity.RetiredWhen == null && entity.CreatedWhen < instant),
+            page,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedMasterKey>> ListRetiredAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        var entities = await DbContext
+            .MasterKeys.AsNoTracking()
+            .Where(entity => entity.RetiredWhen != null)
+            .OrderBy(entity => entity.OwnerType)
+            .ThenBy(entity => entity.NormalizedOwnerId)
+            .ThenByDescending(entity => entity.Version)
+            .ToListAsync(cancellationToken);
+
+        return entities.Select(MapToPersistedMasterKey).ToList();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(
+        PersistedMasterKey item,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await DbContext
+            .MasterKeys.Where(entity => entity.KeyId == item.KeyId)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (entity is null)
+            return false;
+
+        if (
+            !string.Equals(item.ConcurrencyToken, entity.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            throw new StoreConcurrencyException(
+                $"The master key with identifier '{item.KeyId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        DbContext.MasterKeys.Remove(entity);
+
+        return true;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<int> RemoveAllAsync(
         SecretOwner owner,
         CancellationToken cancellationToken
@@ -204,6 +274,63 @@ internal class MasterKeyStore(
         DbContext.MasterKeys.RemoveRange(entities);
 
         return entities.Count;
+    }
+
+    // Reads one keyset page of the rows, ordered by row identifier. A full page fetches one extra row to signal that
+    // another page exists, and a malformed cursor starts at the beginning.
+    private static async ValueTask<PagedResult<PersistedMasterKey>> GetPageAsync(
+        IQueryable<MasterKeyEntity> query,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var afterId = DecodeCursor(page.Cursor);
+        if (afterId is not null)
+            query = query.Where(entity => entity.Id > afterId.Value);
+
+        var entities = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = entities.Count > page.Limit;
+        var count = hasMore ? page.Limit : entities.Count;
+
+        return new PagedResult<PersistedMasterKey>
+        {
+            Items = entities.Take(count).Select(MapToPersistedMasterKey).ToList(),
+            NextCursor = hasMore ? EncodeCursor(entities[count - 1].Id) : null,
+        };
+    }
+
+    private static string EncodeCursor(long key)
+    {
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        BinaryPrimitives.WriteInt64BigEndian(bytes, key);
+        return Base64Url.EncodeToString(bytes);
+    }
+
+    // A malformed cursor is treated as the start of the collection rather than a hard error.
+    private static long? DecodeCursor(string? cursor)
+    {
+        if (string.IsNullOrEmpty(cursor))
+            return null;
+
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        try
+        {
+            if (
+                !Base64Url.TryDecodeFromChars(cursor, bytes, out var written)
+                || written != sizeof(long)
+            )
+                return null;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        return BinaryPrimitives.ReadInt64BigEndian(bytes);
     }
 
     /// <summary>

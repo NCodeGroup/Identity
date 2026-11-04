@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amended by
   [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
-  singleton with no list, create, delete or secrets, and its only management surface is `/api/platform/settings`)
+  singleton with no list, create, delete or secrets, and its management surface is its settings and effective
+  settings under `/api/platform`)
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0124](project-template/0124-collection-endpoints-use-keyset-pagination.md)

@@ -8,7 +8,8 @@
   [ADR-1182](1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md): the bootstrap document's
   issuer defaults to the serving tenant's issuer, never the request origin; amended by
   [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
-  singleton with no list, create, delete or secrets, and its only management surface is `/api/platform/settings`)
+  singleton with no list, create, delete or secrets, and its management surface is its settings and effective
+  settings under `/api/platform`)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

@@ -1417,7 +1417,7 @@ internal class DefaultSettingDescriptorDataSource(
             // tls_client_certificate_bound_access_tokens: whether the server supports mutual-TLS
             // client-certificate-bound access tokens, which discovery advertises (RFC 8705 §3.3); it never requires a
             // client to bind. Secure-by-default false (only advertise once the deployment has wired certificate
-            // forwarding). Override (Replace): a tenant overrides the server.
+            // forwarding). Override (Replace): a team or tenant overrides the platform.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.TlsClientCertificateBoundAccessTokens,

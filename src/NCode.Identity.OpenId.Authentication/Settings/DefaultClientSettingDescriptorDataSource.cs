@@ -36,7 +36,7 @@ internal class DefaultClientSettingDescriptorDataSource(
     {
         get
         {
-            // token_endpoint_auth_methods_supported: the client-authentication methods the server, tenant, or security
+            // token_endpoint_auth_methods_supported: the client-authentication methods the platform, team, tenant or security
             // profile permits (default derived from the registered method descriptors). A ceiling over the registered
             // method, never a choice between methods. Ceiling (Intersect): a child narrows the parent's set; unset =
             // unrestricted (ADR-1010).

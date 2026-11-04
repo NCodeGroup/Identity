@@ -1,16 +1,24 @@
 # 1403. The platform is the deployment root and a team groups a customer's tenants
 
 - **Status:** Accepted (amends [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
+  [ADR-1011](1011-secret-management-api.md),
+  [ADR-1019](1019-collection-endpoints-keyset-pagination.md),
   [ADR-1024](1024-control-plane-and-per-tenant-planes.md),
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1040](1040-effective-settings-preview-endpoints.md),
   [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
+  [ADR-1050](1050-secret-material-revealed-once-on-create.md),
+  [ADR-1058](1058-asymmetric-public-key-material-read-path.md),
+  [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md),
   [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),
+  [ADR-1159](1159-a-tenant-is-named-by-its-creator.md),
+  [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
+  [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md),
@@ -58,9 +66,9 @@ the platform and its tenants in the settings cascade and in authority.**
    document. Every tenant belongs to exactly one team and never moves. The platform's own team
    (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a tenant-resolution
    strategy creates.
-3. **The cascade has five tiers.** Settings resolve through host configuration, the platform, the team, the tenant and
-   the client or resource server, with the registered setting scopes `platform`, `team`, `tenant`, `client` and
-   `resource_server` ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). A team document carries every
+3. **The cascade has four tiers.** Settings resolve through host configuration and the platform, the team, the
+   tenant, and the client or resource server, with the registered setting scopes `platform`, `team`, `tenant`, `client`
+   and `resource_server` ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). A team document carries every
    setting that applies beneath it, so the security profiles and ceilings a team selects bind its tenants
    ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). `max_tenants` applies to the team
    scope, merges with `Min`, and a creation past it answers `409`; the ceiling is checked before the insert and never
@@ -103,8 +111,8 @@ the platform and its tenants in the settings cascade and in authority.**
   administrator never needs to be a member of a customer's tenant.
 - Every tenant has a team, so a tenant cannot be created without one and its creation path takes a team identifier.
 - A disabled team switches off all of a customer's protocol surface in one write, while its tenants stay manageable.
-- The cascade resolves four tiers: the platform, the team, the tenant and the client or resource server; a change to a
-  team document reaches its cached tenants on every replica.
+- The cascade resolves four tiers: host configuration and the platform, the team, the tenant, and the client or
+  resource server; a change to a team document reaches its cached tenants on every replica.
 - A tenant never moves between teams, so a customer that reorganizes recreates tenants rather than relocating them.
 - A package extends the cascade by registering a setting that applies to the `team` or `platform` scope, never by
   editing the library ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).

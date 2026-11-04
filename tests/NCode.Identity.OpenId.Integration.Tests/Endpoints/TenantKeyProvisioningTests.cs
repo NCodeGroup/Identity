@@ -173,7 +173,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -207,7 +207,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -247,7 +247,7 @@ public class TenantKeyProvisioningTests
         await PatchServerSettingsAsync(client, operation: "add", value: ["RS256", "PS256"]);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -289,7 +289,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -330,7 +330,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",

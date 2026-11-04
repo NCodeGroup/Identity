@@ -27,6 +27,8 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -53,6 +55,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
     /// <summary>The tenant id used by the host's static single-tenant provider.</summary>
     public const string TenantId = "default";
+
+    /// <summary>The team that holds the tenants a test creates through the management API.</summary>
+    public const string TeamId = RootTenantOptions.DefaultTeamId;
 
     /// <summary>
     /// The issuer pinned on the static tenant: the origin <see cref="Microsoft.AspNetCore.TestHost.TestServer"/> serves
@@ -1041,6 +1046,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             CancellationToken.None
         );
 
+        await EnsureTeamAsync();
         var tenantStore = storeManager.GetStore<ITenantStore>();
         if (await tenantStore.GetOrDefaultAsync(TenantId, CancellationToken.None) is null)
         {
@@ -1159,6 +1165,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             );
         }
 
+        await EnsureTeamAsync();
         var tenant = CreateEmptyTenant(TenantId);
         tenant.Settings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
         await tenantStore.AddAsync(tenant, CancellationToken.None);
@@ -1235,6 +1242,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             jsonElement.GetProperty("access_token").GetString()
         );
         return client;
+    }
+
+    /// <summary>
+    /// Creates the <see cref="TeamId"/> team when it does not exist, so a test that persists a tenant directly has the
+    /// team the tenant belongs to.
+    /// </summary>
+    public async Task EnsureTeamAsync()
+    {
+        using var scope = Services.CreateScope();
+        await scope
+            .ServiceProvider.GetRequiredService<ITeamProvisioner>()
+            .EnsureCreatedAsync(TeamId, TeamId, CancellationToken.None);
     }
 
     private static PersistedTenant CreateEmptyTenant(string tenantId) =>

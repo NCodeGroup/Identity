@@ -113,12 +113,35 @@ internal class TenantStore(
         CancellationToken cancellationToken
     )
     {
-        return GetLocalOrDefault(predicate)
-            ?? await DbContext
-                .Tenants.Include(tenant => tenant.Team)
-                .Include(tenant => tenant.Secrets)
-                    .ThenInclude(tenantSecret => tenantSecret.Secret)
-                .SingleOrDefaultAsync(predicate, cancellationToken);
+        var local = GetLocalOrDefault(predicate);
+        if (local is not null)
+        {
+            // A tenant another store tracked for scoping carries neither its team nor its secrets; the mapping needs both.
+            var entry = DbContext.Entry(local);
+            var teamReference = entry.Reference(tenant => tenant.Team);
+            if (!teamReference.IsLoaded)
+            {
+                await teamReference.LoadAsync(cancellationToken);
+            }
+
+            var secretsCollection = entry.Collection(tenant => tenant.Secrets);
+            if (!secretsCollection.IsLoaded)
+            {
+                await secretsCollection
+                    .Query()
+                    .Include(tenantSecret => tenantSecret.Secret)
+                    .LoadAsync(cancellationToken);
+                secretsCollection.IsLoaded = true;
+            }
+
+            return local;
+        }
+
+        return await DbContext
+            .Tenants.Include(tenant => tenant.Team)
+            .Include(tenant => tenant.Secrets)
+                .ThenInclude(tenantSecret => tenantSecret.Secret)
+            .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />

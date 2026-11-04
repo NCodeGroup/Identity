@@ -560,6 +560,7 @@ public class InteractiveTenantRouteTests
         IReadOnlyDictionary<string, object>? settings = null
     )
     {
+        await factory.EnsureTeamAsync();
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
         await using var storeManager = await storeManagerFactory.CreateAsync(

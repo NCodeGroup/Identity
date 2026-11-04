@@ -98,6 +98,24 @@ public sealed class TenantStorePagingTests : IDisposable
         _dbContext.ChangeTracker.Clear();
     }
 
+    #region GetOrDefaultAsync Tests
+
+    [Fact]
+    public async Task GetOrDefaultAsync_WhenTheTrackerHoldsTheTenantWithoutItsTeam_LoadsTheTeam()
+    {
+        await SeedAsync(1);
+        _ = _dbContext
+            .Tenants.AsTracking()
+            .Single(tenant => tenant.NormalizedTenantId == "tenant-1");
+
+        var tenant = await _store.GetOrDefaultAsync("tenant-1", CancellationToken.None);
+
+        Assert.NotNull(tenant);
+        Assert.Equal("platform", tenant.TeamId);
+    }
+
+    #endregion
+
     #region Team Tests
 
     [Fact]

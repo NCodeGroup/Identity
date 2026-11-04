@@ -100,7 +100,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -140,7 +140,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -160,6 +160,7 @@ public class TenantProvisioningTests
         var acme = list.GetProperty("items")
             .EnumerateArray()
             .Single(item => item.GetProperty("tenantId").GetString() == "acme");
+        Assert.Equal(HostApplicationFactory.TeamId, acme.GetProperty("teamId").GetString());
         var environment = acme.GetProperty("environment");
         Assert.Equal("development", environment.GetProperty("type").GetString());
         Assert.Equal("Acme Dev", environment.GetProperty("name").GetString());
@@ -173,7 +174,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -228,7 +229,7 @@ public class TenantProvisioningTests
         Assert.True(preview.GetProperty("isMtlsEndpointAliasAuthorityDerived").GetBoolean());
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -266,7 +267,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var firstResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -278,7 +279,7 @@ public class TenantProvisioningTests
         Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
 
         using var secondResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "globex",
@@ -341,7 +342,7 @@ public class TenantProvisioningTests
         Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "initech",

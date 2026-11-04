@@ -390,6 +390,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         await recorder.RecordTenantChangedAsync(
             httpContext,
+            "platform",
             "tenant-1",
             ResourceChangeTypes.Updated,
             resourceValues,
@@ -412,7 +413,10 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("test-endpoint", captured.Request.Endpoint);
         Assert.Equal(7, captured.EventId.Version);
         Assert.Equal(
-            [new AuditResource(ManagementResourceTypes.Tenant, "tenant-1")],
+            [
+                new AuditResource(ManagementResourceTypes.Tenant, "tenant-1"),
+                new AuditResource(ManagementResourceTypes.Team, "platform"),
+            ],
             captured.Resources
         );
         Assert.NotNull(captured.ResourceValues);

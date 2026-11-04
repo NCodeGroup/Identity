@@ -207,6 +207,7 @@ internal class TenantApiEndpointHandler(
         new()
         {
             TenantId = tenant.TenantId,
+            TeamId = tenant.TeamId,
             ConcurrencyToken = tenant.ConcurrencyToken,
             Issuer = tenant.Issuer,
             MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
@@ -569,6 +570,7 @@ internal class TenantApiEndpointHandler(
         // derived from its settings and stamps the audit event itself (ADR-1289).
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Created,
             ToResourceValues(ToTenantResource(tenant)),
@@ -753,6 +755,7 @@ internal class TenantApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Updated,
             ToResourceValues(ToTenantResource(tenant)),
@@ -837,6 +840,7 @@ internal class TenantApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Deleted,
             resourceValues,
@@ -1212,6 +1216,7 @@ internal class TenantApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenantSettings.TenantId,
             ResourceChangeTypes.SettingsUpdated,
             ToResourceValues(ToTenantSettingsResource(tenantSettings)),

@@ -200,8 +200,36 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
+    public ValueTask RecordTeamChangedAsync(
+        HttpContext httpContext,
+        string teamId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var auditEvent = new TeamChangedAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            TenantId = httpContext.GetOpenIdContext().Tenant.TenantId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
+            Outcome = AuditOutcome.Success,
+            ResourceId = teamId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async ValueTask RecordTenantChangedAsync(
         HttpContext httpContext,
+        string teamId,
         string tenantId,
         string changeType,
         JsonElement? resourceValues,
@@ -223,6 +251,7 @@ internal class DefaultManagementAuditRecorder(
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
+            TeamId = teamId,
             ResourceId = tenantId,
             ChangeType = changeType,
             ResourceValues = resourceValues,

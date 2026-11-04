@@ -20,6 +20,11 @@ public sealed class TenantResource : ISupportTenantId, ISupportConcurrencyToken
     /// <inheritdoc cref="ISupportTenantId.TenantId"/>
     public required string TenantId { get; init; }
 
+    /// <summary>
+    /// Gets the identifier of the team the tenant belongs to. It never changes.
+    /// </summary>
+    public required string TeamId { get; init; }
+
     /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 

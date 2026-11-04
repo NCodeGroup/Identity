@@ -24,6 +24,11 @@ public static class ManagementResourceTypes
     public const string ClientSecret = "client.secret";
 
     /// <summary>
+    /// A team, a grouping of related tenants.
+    /// </summary>
+    public const string Team = "team";
+
+    /// <summary>
     /// An OpenID tenant.
     /// </summary>
     public const string Tenant = "tenant";

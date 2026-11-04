@@ -193,6 +193,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
+                    It.IsAny<string>(),
                     It.IsAny<JsonElement?>(),
                     It.IsAny<CancellationToken>()
                 )

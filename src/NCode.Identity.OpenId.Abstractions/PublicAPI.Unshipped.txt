@@ -1006,3 +1006,4 @@ NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand(string! TeamId
 NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.get -> string!
 NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.init -> void
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveTeamAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Teams = "Teams" -> string!

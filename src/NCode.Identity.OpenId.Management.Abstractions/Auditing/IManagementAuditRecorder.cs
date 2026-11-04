@@ -152,9 +152,35 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
+    /// Records that an administrator created, updated, or deleted a team, or updated its settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the affected team.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the team's values, or <c>null</c> when none is captured.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordTeamChangedAsync(
+        HttpContext httpContext,
+        string teamId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that an administrator created, updated, or deleted an OpenID tenant, or updated its settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team the affected tenant belongs to.</param>
     /// <param name="tenantId">The identifier of the affected tenant.</param>
     /// <param name="changeType">
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
@@ -170,6 +196,7 @@ public interface IManagementAuditRecorder
     /// </returns>
     ValueTask RecordTenantChangedAsync(
         HttpContext httpContext,
+        string teamId,
         string tenantId,
         string changeType,
         JsonElement? resourceValues,

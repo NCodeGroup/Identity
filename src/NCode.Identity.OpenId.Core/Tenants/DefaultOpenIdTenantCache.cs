@@ -29,25 +29,27 @@ internal class DefaultOpenIdTenantCache(
     // Cancelled by ClearAsync, so every entry cached before the call expires.
     private CancellationTokenSource Generation { get; set; } = new();
 
-    // The cached tenant identifiers of each team, so RemoveTeamAsync finds a team's tenants without scanning the cache.
+    // The cached tenant identifiers of each team (compared without regard to case, as the team cache keys them), so
+    // RemoveTeamAsync finds a team's tenants without scanning the cache. Each value is the token of the cache entry
+    // that registered the identifier, so an eviction callback removes only its own entry.
     private ConcurrentDictionary<
         string,
-        ConcurrentDictionary<string, byte>
-    > TenantIdsByTeam { get; } = new();
+        ConcurrentDictionary<string, object>
+    > TenantIdsByTeam { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     private static string GetCacheKey(string tenantId) =>
         $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantId}";
 
     private void EvictionCallback(object key, object? value, EvictionReason reason, object? state)
     {
-        // A replaced entry's identifier belongs to its replacement, which registered it already.
+        // The index entry is removed only while it still holds this cache entry's token, so a late callback of a
+        // removed or expired entry never deletes its live replacement.
         if (
-            reason != EvictionReason.Replaced
-            && state is ValueTuple<string, string>(var teamId, var tenantId)
+            state is ValueTuple<string, string, object>(var teamId, var tenantId, var token)
             && TenantIdsByTeam.TryGetValue(teamId, out var tenantIds)
         )
         {
-            tenantIds.TryRemove(tenantId, out _);
+            tenantIds.TryRemove(new KeyValuePair<string, object>(tenantId, token));
         }
 
         if (value is not IAsyncDisposable asyncDisposable)
@@ -91,6 +93,7 @@ internal class DefaultOpenIdTenantCache(
         var key = GetCacheKey(tenantId);
         var newLease = tenant.AddReference();
         var teamId = tenant.Value.TeamId;
+        var token = new object();
 
         CancellationToken generation;
         lock (Gate)
@@ -107,13 +110,14 @@ internal class DefaultOpenIdTenantCache(
                 new PostEvictionCallbackRegistration
                 {
                     EvictionCallback = EvictionCallback,
-                    State = (teamId, tenantId),
+                    State = (teamId, tenantId, token),
                 },
             },
         };
 
-        TenantIdsByTeam.GetOrAdd(teamId, _ => new ConcurrentDictionary<string, byte>())[tenantId] =
-            0;
+        TenantIdsByTeam.GetOrAdd(teamId, _ => new ConcurrentDictionary<string, object>())[
+            tenantId
+        ] = token;
         MemoryCache.Set(key, newLease, entryOptions);
 
         return ValueTask.CompletedTask;

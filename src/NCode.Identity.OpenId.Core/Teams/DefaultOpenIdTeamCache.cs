@@ -30,8 +30,9 @@ internal class DefaultOpenIdTeamCache(
     // Cancelled by ClearAsync, so every entry cached before the call expires.
     private CancellationTokenSource Generation { get; set; } = new();
 
+    // Team identifiers compare without regard to case, so the key is the lowercase identifier.
     private static string GetCacheKey(string teamId) =>
-        $"NCode.Identity.OpenId.Teams.DefaultOpenIdTeamCache:{teamId}";
+        $"NCode.Identity.OpenId.Teams.DefaultOpenIdTeamCache:{teamId.ToLowerInvariant()}";
 
     private static void EvictionCallback(
         object key,

@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Concurrent;
+using System.Reflection;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -152,6 +154,66 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
     }
 
+    [Fact]
+    public async Task RemoveTeamAsync_WithAnotherCasing_EvictsTheTeamsTenants()
+    {
+        var disposed = CreateCompletionSource();
+        var mockTenant = CreateMockTenant(disposed, "Team-A");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var owner = AsyncSharedReference.Create(mockTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        await using (
+            var evicted = await Cache.TryGetAsync(TenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.False(evicted.IsActive);
+        }
+
+        await disposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task SetAsync_AfterRemoveAsync_KeepsTheReplacementInTheTeamIndex()
+    {
+        var firstDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed, "team-a");
+        var secondDisposed = CreateCompletionSource();
+        var secondTenant = CreateMockTenant(secondDisposed, "team-a");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, first, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveAsync(TenantId, propertyBag, CancellationToken.None);
+
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, second, propertyBag, CancellationToken.None);
+        }
+
+        // The first entry's eviction callback has run once its lease is disposed; it must not drop the replacement.
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        await using (
+            var evicted = await Cache.TryGetAsync(TenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.False(evicted.IsActive);
+        }
+
+        await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
     #endregion
 
     #region ClearAsync Tests
@@ -201,6 +263,38 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         // The eviction releases the cache's references, so each tenant is disposed.
         await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
         await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ClearAsync_EmptiesTheTeamIndex()
+    {
+        var mockTenant = CreateMockTenant(teamId: "team-a");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var owner = AsyncSharedReference.Create(mockTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.ClearAsync(propertyBag, CancellationToken.None);
+
+        var index =
+            (ConcurrentDictionary<string, ConcurrentDictionary<string, object>>)
+                typeof(DefaultOpenIdTenantCache)
+                    .GetProperty("TenantIdsByTeam", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(Cache)!;
+
+        // The eviction callbacks run off the calling thread.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (index.Values.Any(tenantIds => !tenantIds.IsEmpty))
+        {
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                "The team index was not emptied within 5 seconds."
+            );
+
+            await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
+        }
     }
 
     [Fact]

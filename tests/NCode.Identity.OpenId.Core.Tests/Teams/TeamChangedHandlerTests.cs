@@ -210,5 +210,38 @@ public sealed class TeamChangedHandlerTests : IDisposable
         MockTimeProvider.Verify(CreateTimerExpression, Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task HandleAsync_WithAnotherCasing_EvictsWhateverSpellingTheCommandCarries()
+    {
+        const string spelling = "PLATFORM";
+        MockTeamCache
+            .Setup(x =>
+                x.RemoveAsync(spelling, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockTenantCache
+            .Setup(x =>
+                x.RemoveTeamAsync(spelling, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    TeamChangeBroadcastHandler.ChannelName,
+                    spelling,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleAsync(
+            new TeamChangedCommand(spelling, SettingsChanged: false),
+            CancellationToken.None
+        );
+    }
+
     #endregion
 }

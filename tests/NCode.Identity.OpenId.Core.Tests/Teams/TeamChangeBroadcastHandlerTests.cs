@@ -87,9 +87,28 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandleMissedMessagesAsync_WhenClearingFails_LogsAndCompletes()
+    public async Task HandleMissedMessagesAsync_WhenTheTeamCacheClearFails_StillClearsTheTenantCache()
     {
         MockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The clear failed."))
+            .Verifiable();
+        MockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleMissedMessagesAsync_WhenBothClearsFail_LogsAndCompletes()
+    {
+        MockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The clear failed."))
+            .Verifiable();
+        MockTenantCache
             .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("The clear failed."))
             .Verifiable();

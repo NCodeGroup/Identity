@@ -720,13 +720,18 @@ internal class TeamApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTeamChangedAsync(
             httpContext,
-            teamId,
+            teamSettings.TeamId,
             ResourceChangeTypes.SettingsUpdated,
             ToResourceValues(ToTeamSettingsResource(teamSettings)),
             cancellationToken
         );
 
-        await NotifyTeamChangedAsync(httpContext, teamId, settingsChanged: true, cancellationToken);
+        await NotifyTeamChangedAsync(
+            httpContext,
+            teamSettings.TeamId,
+            settingsChanged: true,
+            cancellationToken
+        );
 
         httpContext.Response.Headers.ETag = teamSettings.ConcurrencyToken;
 

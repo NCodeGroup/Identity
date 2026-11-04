@@ -45,15 +45,25 @@ internal sealed class TeamChangeBroadcastHandler(
     /// <inheritdoc />
     public async ValueTask HandleMissedMessagesAsync(CancellationToken cancellationToken)
     {
+        var propertyBag = PropertyBagFactory.Create();
+
+        // Each cache is cleared on its own, so a failed team-cache clear still clears the tenants.
         try
         {
-            var propertyBag = PropertyBagFactory.Create();
             await TeamCache.ClearAsync(propertyBag, cancellationToken);
-            await TenantCache.ClearAsync(propertyBag, cancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             Logger.TeamCacheClearFailed(exception);
+        }
+
+        try
+        {
+            await TenantCache.ClearAsync(propertyBag, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Logger.TenantCacheClearFailed(exception);
         }
     }
 }

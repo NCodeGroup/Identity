@@ -55,4 +55,12 @@ internal static class EventIds
     public const int TenantKeyExtended = Base + 22;
 
     public const int ProtectedValuePageConflict = Base + 25;
+
+    public const int MasterKeyMaintenancePassFailed = Base + 26;
+
+    public const int MasterKeyMaintenanceOwnerFailed = Base + 27;
+
+    public const int MasterKeyRotationLostRace = Base + 28;
+
+    public const int MasterKeyAuditPublishFailed = Base + 29;
 }

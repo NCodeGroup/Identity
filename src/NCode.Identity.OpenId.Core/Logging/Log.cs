@@ -222,4 +222,43 @@ internal static partial class Log
         SecretOwner owner,
         int attempt
     );
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyMaintenancePassFailed,
+        Level = LogLevel.Error,
+        Message = "The master key maintenance pass failed; it runs again at the next interval"
+    )]
+    internal static partial void MasterKeyMaintenancePassFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyMaintenanceOwnerFailed,
+        Level = LogLevel.Error,
+        Message = "The master key maintenance of '{Owner}' failed; the pass continues with the other owners"
+    )]
+    internal static partial void MasterKeyMaintenanceOwnerFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyRotationLostRace,
+        Level = LogLevel.Debug,
+        Message = "Another writer rotated the master key of '{Owner}' first; the maintenance pass leaves it to that rotation"
+    )]
+    internal static partial void MasterKeyRotationLostRace(this ILogger logger, SecretOwner owner);
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyAuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "Publishing the audit event of the committed master key change of '{Owner}' failed; the change stands"
+    )]
+    internal static partial void MasterKeyAuditPublishFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        Exception exception
+    );
 }

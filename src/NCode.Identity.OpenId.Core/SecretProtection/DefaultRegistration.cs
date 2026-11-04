@@ -52,6 +52,8 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.AddHostedService<MasterKeyMaintenanceService>();
+
             return builder;
         }
     }

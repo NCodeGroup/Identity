@@ -29,6 +29,8 @@ import {
 } from '@ncode/store';
 
 export type TenantsPageProps = {
+  /** The team whose tenants are listed and created. */
+  readonly teamId: string;
   readonly onOpenTenant: (tenantId: string) => void;
   /**
    * How long the address must stay unchanged before it is previewed. Defaults to 300 ms so typing sends no burst of
@@ -58,16 +60,17 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 /**
- * Container: the global-scope tenant browser and CRUD surface. Wires the RTK Query tenant list and
+ * Container: a team's tenant browser and CRUD surface. Wires the RTK Query tenant list and
  * mutations to the stateless {@link TenantTable}, {@link TenantEnvironmentFilter}, {@link TenantFormDialog},
  * and {@link ConfirmDialog}. Owns only dialog, filter, and error state; all persistence, cache invalidation, and error shaping come from the
  * store layer. Selecting a tenant crosses into that tenant's security boundary.
  */
 export function TenantsPage({
+  teamId,
   onOpenTenant,
   addressPreviewDelayMs = defaultAddressPreviewDelayMs,
 }: TenantsPageProps) {
-  const { data, isLoading, error } = useListTenantsQuery();
+  const { data, isLoading, error } = useListTenantsQuery({ teamId });
   const tenants = data?.items ?? [];
 
   const [environmentFilter, setEnvironmentFilter] = useState(allTenantEnvironments);
@@ -170,15 +173,19 @@ export function TenantsPage({
     try {
       if (dialog.kind === 'create') {
         await createTenant({
-          tenantId: values.tenantId,
-          issuer,
-          mtlsEndpointAliasAuthority,
-          displayName: values.displayName,
-          isDisabled: values.isDisabled,
-          settings: {},
+          teamId,
+          body: {
+            tenantId: values.tenantId,
+            issuer,
+            mtlsEndpointAliasAuthority,
+            displayName: values.displayName,
+            isDisabled: values.isDisabled,
+            settings: {},
+          },
         }).unwrap();
       } else if (dialog.kind === 'edit') {
         await updateTenant({
+          teamId,
           tenantId: dialog.tenant.tenantId,
           concurrencyToken: dialog.tenant.concurrencyToken,
           fields: {
@@ -201,7 +208,7 @@ export function TenantsPage({
     }
     setDeleteError(undefined);
     try {
-      await deleteTenant({ tenantId: dialog.tenant.tenantId }).unwrap();
+      await deleteTenant({ teamId, tenantId: dialog.tenant.tenantId }).unwrap();
       setDialog(closed);
     } catch (removeError) {
       setDeleteError(apiErrorMessage(removeError as ApiError));

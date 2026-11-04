@@ -28,6 +28,7 @@ function renderPage(onOpenTenant = vi.fn(), addressPreviewDelayMs?: number) {
   render(
     <Provider store={store}>
       <TenantsPage
+        teamId="acme"
         onOpenTenant={onOpenTenant}
         {...(addressPreviewDelayMs !== undefined ? { addressPreviewDelayMs } : {})}
       />
@@ -149,7 +150,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       if (url.includes('/address')) {
         return jsonResponse(address);
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -252,10 +253,10 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('creates a tenant through the form dialog', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'POST') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'POST') {
         return jsonResponse({ ...acme, tenantId: 'new-co', displayName: 'New Co' }, 201);
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -272,7 +273,7 @@ describe('TenantsPage (CRUD wiring)', () => {
 
     await waitFor(() => expect(screen.queryByTestId('tenant-form-submit')).not.toBeInTheDocument());
     const post = calls.find((c) => c.method === 'POST');
-    expect(post?.url).toBe('https://api.test/api/tenants');
+    expect(post?.url).toBe('https://api.test/api/teams/acme/tenants');
     expect(JSON.parse(post?.body ?? '{}')).toEqual({
       tenantId: 'new-co',
       issuer: null,
@@ -290,7 +291,7 @@ describe('TenantsPage (CRUD wiring)', () => {
         renamed = true;
         return new Response(null, { status: 204 });
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({
           items: [renamed ? { ...acme, displayName: 'Acme Corp' } : acme, globex],
         });
@@ -336,7 +337,7 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('prefills the edit form from a tenant with an issuer and discards it on cancel', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme, globex] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -377,7 +378,7 @@ describe('TenantsPage (CRUD wiring)', () => {
           ],
         });
       }
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme, globex] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -404,7 +405,7 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('ignores a submit fired while the form dialog is closing', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -429,7 +430,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       if (url.endsWith('/api/tenants/acme') && method === 'DELETE') {
         return new Response(null, { status: 204 });
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -457,7 +458,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       if (url.endsWith('/api/tenants/acme') && method === 'DELETE') {
         return jsonResponse({ detail: 'The tenant still has clients.' }, 409);
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -478,7 +479,7 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('ignores a confirm fired while the delete dialog is closing', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -496,13 +497,13 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('surfaces a server error in the form and keeps it open', async () => {
     installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'POST') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'POST') {
         return jsonResponse(
           { detail: 'A tenant with the specified identifier already exists.' },
           409,
         );
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);

@@ -633,6 +633,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UtcNow,
             ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UtcNow,
+            RetiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
             Origin = SecretOrigins.Generated,
@@ -760,9 +762,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateResourceServer())
             .Verifiable();
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {

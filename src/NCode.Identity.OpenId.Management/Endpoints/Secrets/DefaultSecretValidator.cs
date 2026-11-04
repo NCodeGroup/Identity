@@ -46,10 +46,42 @@ internal sealed class DefaultSecretValidator(
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
+    // The instants of a secret's lifecycle are checked by the one rule the generator and the importer apply, so a
+    // request they would refuse is answered 400 with the reason (ADR-1403).
+    private static ManagementError? ValidateLifecycle(
+        DateTimeOffset createdWhen,
+        DateTimeOffset? activatesWhen,
+        DateTimeOffset? retiresWhen,
+        DateTimeOffset expiresWhen
+    ) =>
+        SecretLifecycle.TryValidate(
+            createdWhen,
+            activatesWhen ?? createdWhen,
+            retiresWhen ?? expiresWhen,
+            expiresWhen,
+            out var error
+        )
+            ? null
+            : Error(error);
+
     // See ADR-1389 and ADR-1392.
-    public SecretCreateValidation ValidateCreate(CreateSecretRequest request)
+    public SecretCreateValidation ValidateCreate(
+        CreateSecretRequest request,
+        DateTimeOffset createdWhen
+    )
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        var lifecycleError = ValidateLifecycle(
+            createdWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+        if (lifecycleError is not null)
+        {
+            return SecretCreateValidation.Invalid(lifecycleError);
+        }
 
         var secretType = request.SecretType;
         if (!SecretKeyTypeCatalog.TryGet(secretType, out var descriptor))
@@ -114,8 +146,10 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    public ManagementError? ValidateImport(ImportSecretRequest request)
+    public ManagementError? ValidateImport(ImportSecretRequest request, DateTimeOffset createdWhen)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         // Each key type declares the formats it parses, so a key type another package registers brings its own
         // (ADR-1150).
         var secretType = request.SecretType;
@@ -155,13 +189,21 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        return null;
+        return ValidateLifecycle(
+            createdWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
     }
 
     /// <inheritdoc />
     // See ADR-1161 and ADR-1186.
     public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
     {
+        ArgumentNullException.ThrowIfNull(secret);
+        ArgumentNullException.ThrowIfNull(request);
+
         var use = request.Use;
         if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
         {
@@ -170,6 +212,15 @@ internal sealed class DefaultSecretValidator(
                     + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
             );
         }
+
+        var lifecycleError = ValidateLifecycle(
+            secret.CreatedWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+        if (lifecycleError is not null)
+            return lifecycleError;
 
         if (request.Algorithm is not { } algorithm)
             return null;

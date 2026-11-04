@@ -67,4 +67,20 @@ public sealed class SecretKeyImportRequest
     /// Gets the <see cref="DateTimeOffset"/> when the imported secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the imported key starts to sign or encrypt, or <c>null</c> to activate it
+    /// when it is created. A key published ahead of its use names a later instant. Never before
+    /// <see cref="CreatedWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public DateTimeOffset? ActivatesWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the imported key stops signing or encrypting while it still verifies or
+    /// decrypts, or <c>null</c> to retire it when it expires. Never before <see cref="ActivatesWhen"/>, never after
+    /// <see cref="ExpiresWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public DateTimeOffset? RetiresWhen { get; init; }
 }

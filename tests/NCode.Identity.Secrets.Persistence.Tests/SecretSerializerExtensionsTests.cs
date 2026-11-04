@@ -18,6 +18,8 @@ public class SecretSerializerExtensionsTests : IDisposable
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch,
             SecretType = SecretTypes.Rsa,
             SecretEncoding = SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,

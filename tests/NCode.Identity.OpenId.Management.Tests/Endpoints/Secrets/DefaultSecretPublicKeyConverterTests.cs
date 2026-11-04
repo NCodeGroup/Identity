@@ -66,6 +66,8 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
             Origin = SecretOrigins.Generated,

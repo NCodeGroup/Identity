@@ -1242,7 +1242,8 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validation = SecretValidator.ValidateCreate(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validation = SecretValidator.ValidateCreate(request, createdWhen);
         if (!validation.IsValid)
         {
             return ToErrorResult(validation.Error);
@@ -1268,7 +1269,9 @@ internal class TenantApiEndpointHandler(
                     GenerationParameters = validation.GenerationParameters,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    CreatedWhen = createdWhen,
+                    ActivatesWhen = request.ActivatesWhen,
+                    RetiresWhen = request.RetiresWhen,
                     ExpiresWhen = request.ExpiresWhen,
                 }
             );
@@ -1352,7 +1355,8 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validationError = SecretValidator.ValidateImport(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validationError = SecretValidator.ValidateImport(request, createdWhen);
         if (validationError is not null)
         {
             return ToErrorResult(validationError);
@@ -1368,7 +1372,9 @@ internal class TenantApiEndpointHandler(
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,
-            CreatedWhen = TimeProvider.GetUtcNow(),
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
             ExpiresWhen = request.ExpiresWhen,
         };
         if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
@@ -1557,6 +1563,8 @@ internal class TenantApiEndpointHandler(
             Use = request.Use,
             Algorithm = request.Algorithm,
             CreatedWhen = secret.CreatedWhen,
+            ActivatesWhen = request.ActivatesWhen ?? secret.CreatedWhen,
+            RetiresWhen = request.RetiresWhen ?? request.ExpiresWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = secret.SecretType,
             SecretEncoding = secret.SecretEncoding,

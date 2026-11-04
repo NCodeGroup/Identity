@@ -35,6 +35,12 @@ public sealed class SecretResource
     /// <inheritdoc cref="PersistedSecret.CreatedWhen"/>
     public required DateTimeOffset CreatedWhen { get; init; }
 
+    /// <inheritdoc cref="PersistedSecret.ActivatesWhen"/>
+    public required DateTimeOffset ActivatesWhen { get; init; }
+
+    /// <inheritdoc cref="PersistedSecret.RetiresWhen"/>
+    public required DateTimeOffset RetiresWhen { get; init; }
+
     /// <inheritdoc cref="PersistedSecret.ExpiresWhen"/>
     public required DateTimeOffset ExpiresWhen { get; init; }
 

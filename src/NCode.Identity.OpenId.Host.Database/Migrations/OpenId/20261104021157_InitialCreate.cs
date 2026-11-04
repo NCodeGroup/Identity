@@ -124,6 +124,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     Use = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
                     Algorithm = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
                     CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ActivatesWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    RetiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ExpiresWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     SecretType = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     SecretEncoding = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),

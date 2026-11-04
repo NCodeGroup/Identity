@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Tests.Algorithms.Signature;
@@ -11,12 +12,29 @@ namespace NCode.Identity.Jose.Tests.Credentials;
 
 public class DefaultCredentialSelectorTests : BaseTests
 {
-    private static EccSecretKey CreateKey(ECCurve curve, string keyId)
+    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+
+    private static EccSecretKey CreateKey(ECCurve curve, string keyId) =>
+        CreateKey(curve, new KeyMetadata { KeyId = keyId });
+
+    private static EccSecretKey CreateKey(ECCurve curve, KeyMetadata metadata)
     {
-        var metadata = new KeyMetadata { KeyId = keyId };
         using var key = ECDsa.Create(curve);
         return SecretKeyFactory.CreateEcc(metadata, key);
     }
+
+    private static DefaultAlgorithmCollection CreateEs256Collection() =>
+        new([
+            EccSignatureAlgorithmFactory.Create(
+                AlgorithmCodes.DigitalSignature.EcdsaSha256,
+                ECCurve.NamedCurves.nistP256,
+                HashAlgorithmName.SHA256
+            ),
+        ]);
+
+    private static DefaultCredentialSelector CreateSelector() => new(new FakeTimeProvider(Now));
+
+    #region TryGetSigningCredentials Tests
 
     [Fact]
     public void TryGetSigningCredentials_WhenFirstKeyHasWrongCurve_SelectsMatchingCurveKey()
@@ -31,7 +49,7 @@ public class DefaultCredentialSelectorTests : BaseTests
         var wrongCurveKey = CreateKey(ECCurve.NamedCurves.brainpoolP256r1, "brainpool");
         var p256Key = CreateKey(ECCurve.NamedCurves.nistP256, "p256");
 
-        var selector = new DefaultCredentialSelector();
+        var selector = CreateSelector();
         var result = selector.TryGetSigningCredentials(
             collection,
             ["ES256"],
@@ -43,4 +61,83 @@ public class DefaultCredentialSelectorTests : BaseTests
         Assert.NotNull(credentials);
         Assert.Same(p256Key, credentials.SecretKey);
     }
+
+    [Fact]
+    public void TryGetSigningCredentials_WhenTheFirstKeyIsNotActiveYet_SelectsTheActiveKey()
+    {
+        // The upcoming key is published ahead of its activation and fits the algorithm, yet it signs nothing until
+        // it activates (ADR-1403).
+        var upcomingKey = CreateKey(
+            ECCurve.NamedCurves.nistP256,
+            new KeyMetadata { KeyId = "upcoming", ActivatesWhen = Now.AddSeconds(1) }
+        );
+        var activeKey = CreateKey(
+            ECCurve.NamedCurves.nistP256,
+            new KeyMetadata { KeyId = "active", ActivatesWhen = Now }
+        );
+
+        var result = CreateSelector()
+            .TryGetSigningCredentials(
+                CreateEs256Collection(),
+                ["ES256"],
+                [upcomingKey, activeKey],
+                out var credentials
+            );
+
+        Assert.True(result);
+        Assert.NotNull(credentials);
+        Assert.Same(activeKey, credentials.SecretKey);
+    }
+
+    [Fact]
+    public void TryGetSigningCredentials_WhenTheFirstKeyIsRetired_SelectsTheActiveKey()
+    {
+        var retiredKey = CreateKey(
+            ECCurve.NamedCurves.nistP256,
+            new KeyMetadata
+            {
+                KeyId = "retired",
+                RetiresWhen = Now,
+                ExpiresWhen = Now.AddDays(7),
+            }
+        );
+        var activeKey = CreateKey(
+            ECCurve.NamedCurves.nistP256,
+            new KeyMetadata { KeyId = "active", RetiresWhen = Now.AddSeconds(1) }
+        );
+
+        var result = CreateSelector()
+            .TryGetSigningCredentials(
+                CreateEs256Collection(),
+                ["ES256"],
+                [retiredKey, activeKey],
+                out var credentials
+            );
+
+        Assert.True(result);
+        Assert.NotNull(credentials);
+        Assert.Same(activeKey, credentials.SecretKey);
+    }
+
+    [Fact]
+    public void TryGetSigningCredentials_WhenEveryKeyIsExpired_SelectsNone()
+    {
+        var expiredKey = CreateKey(
+            ECCurve.NamedCurves.nistP256,
+            new KeyMetadata { KeyId = "expired", ExpiresWhen = Now }
+        );
+
+        var result = CreateSelector()
+            .TryGetSigningCredentials(
+                CreateEs256Collection(),
+                ["ES256"],
+                [expiredKey],
+                out var credentials
+            );
+
+        Assert.False(result);
+        Assert.Null(credentials);
+    }
+
+    #endregion
 }

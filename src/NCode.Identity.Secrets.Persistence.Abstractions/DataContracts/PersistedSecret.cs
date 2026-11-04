@@ -64,12 +64,30 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required string? Algorithm { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when this secret was created.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret was created, which opens its validity window.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret's active window opens: from then on the secret signs or
+    /// encrypts. A key published ahead of its use carries a future value; a secret with no lifecycle of its own, such
+    /// as a client's shared secret, is active from <see cref="CreatedWhen"/>. Never before <see cref="CreatedWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public required DateTimeOffset ActivatesWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when this secret's active window closes: from then on the secret no
+    /// longer signs or encrypts, while it still verifies and decrypts until <see cref="ExpiresWhen"/>. A secret with
+    /// no lifecycle of its own retires when it expires. Never before <see cref="ActivatesWhen"/>, never after
+    /// <see cref="ExpiresWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public required DateTimeOffset RetiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid: its validity window
+    /// closes, so it neither verifies nor decrypts, is not published, and no longer authenticates.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
 

@@ -67,6 +67,14 @@ internal class DefaultSecretGenerator(
             );
         }
 
+        // The lifecycle is checked before any material is generated, so an out-of-order request costs no key pair.
+        var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
+            request.CreatedWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+
         var material = descriptor.GenerateKeyMaterial(
             request.GenerationParameters,
             bytes =>
@@ -82,6 +90,8 @@ internal class DefaultSecretGenerator(
             Use = request.Use,
             Algorithm = request.Algorithm,
             CreatedWhen = request.CreatedWhen,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = request.SecretType,
             SecretEncoding = material.SecretEncoding,
@@ -329,7 +339,11 @@ internal class DefaultSecretGenerator(
             SecretId = request.SecretId,
             Use = request.Use,
             Algorithm = request.Algorithm,
+            // A shared secret is a credential its holder presents, with no lifecycle of its own beyond its validity:
+            // it authenticates from its creation to its expiry.
             CreatedWhen = request.CreatedWhen,
+            ActivatesWhen = request.CreatedWhen,
+            RetiresWhen = request.ExpiresWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,

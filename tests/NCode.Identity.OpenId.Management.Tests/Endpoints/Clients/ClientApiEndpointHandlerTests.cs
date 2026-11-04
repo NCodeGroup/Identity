@@ -152,9 +152,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private void SetupSecretCreateValidation()
     {
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {
@@ -421,6 +423,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,
@@ -440,6 +444,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,
@@ -2080,7 +2086,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
                 SecretCreateValidation.Valid(
                     new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "secp256k1" }
@@ -2164,7 +2172,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
                 SecretCreateValidation.Invalid(
                     new ManagementError
@@ -2201,9 +2211,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {
@@ -2332,7 +2344,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateImport(It.IsAny<ImportSecretRequest>()))
+            .Setup(x =>
+                x.ValidateImport(It.IsAny<ImportSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns((ManagementError?)null)
             .Verifiable();
     }
@@ -2637,6 +2651,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                         Algorithm = stored.Algorithm,
                         CreatedWhen = stored.CreatedWhen,
                         ExpiresWhen = stored.ExpiresWhen,
+                        ActivatesWhen = stored.CreatedWhen,
+                        RetiresWhen = stored.ExpiresWhen,
                         SecretType = stored.SecretType,
                         SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Verifier,
                         Origin = SecretOrigins.Generated,

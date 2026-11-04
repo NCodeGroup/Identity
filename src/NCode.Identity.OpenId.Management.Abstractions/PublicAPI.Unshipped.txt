@@ -597,8 +597,8 @@ NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValida
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator
-NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
-NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ImportSecretRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.SecretType.get -> string!
@@ -766,3 +766,23 @@ NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Genera
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.IsValid.get -> bool
 static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Invalid(NCode.Identity.OpenId.Management.ManagementError! error) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Valid(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! generationParameters) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RetiresWhen.init -> void

@@ -237,3 +237,11 @@ NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Unavailable = 2 -> NCo
 NCode.Identity.Secrets.Verifiers.ISecretVerificationGate
 NCode.Identity.Secrets.Verifiers.ISecretVerificationGate.Release() -> void
 NCode.Identity.Secrets.Verifiers.ISecretVerificationGate.TryEnterAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Secrets.Keys.KeyMetadata.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Keys.KeyMetadata.ActivatesWhen.init -> void
+NCode.Identity.Secrets.Keys.KeyMetadata.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Keys.KeyMetadata.RetiresWhen.init -> void
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata)
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata).IsActive(System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata).IsExpired(System.DateTimeOffset now) -> bool

@@ -498,9 +498,10 @@ describes the family as it is rather than its changes
   maximum age, and returns one claims object with every disclosed value in place and the `_sd`, `_sd_alg` and `...`
   members removed, or the `SdJwtVerificationFailureCodes` code of the rule the presentation failed. The `_sd_alg`
   hash algorithms (`sha-256`, `sha-384`, `sha-512` built in) and the `cnf` confirmation methods (`jwk` built in) are
-  registered data. The SD-JWT VC profile, `SdJwtProfiles.SdJwtVc`, types the issuer-signed JWT `dc+sd-jwt`,
-  requires `vct`, keeps `iss`, `nbf`, `exp`, `cnf`, `vct`, `vct#integrity` and `status` in the signed payload, and
-  passes `status` through to the verified claims; an application defines another `SdJwtProfile` as data
+  registered data, and each `cnf` method has exactly one resolver, validated when the verifier is composed. The
+  SD-JWT VC profile, `SdJwtProfiles.SdJwtVc`, types the issuer-signed JWT `dc+sd-jwt`, requires `vct`, keeps
+  `iss`, `nbf`, `exp`, `cnf`, `vct`, `vct#integrity` and `status` in the signed payload, and passes `status`
+  through to the verified claims; an application defines another `SdJwtProfile` as data
   ([#73](https://github.com/NCodeGroup/Identity/issues/73),
   [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
   [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)).
@@ -3425,13 +3426,19 @@ describes the family as it is rather than its changes
 
 ### Security
 
-- **An SD-JWT presentation is verified fail-closed under bounded work.** The issuer-signed JWT must be signed with an
-  asymmetric key under signature algorithms the verifier names, every salt comes from the platform's cryptographically
-  secure random number generator and is at least 128 bits, and a presentation is refused with a machine-readable code
-  when a digest repeats, a disclosure is referenced by nothing or presented twice, a disclosed claim collides with a
-  member already present, a reserved name appears where RFC 9901 forbids it, a disclosure is of the wrong kind for
-  its digest, or the profile's protected claims are disclosed. The holder key is read from the signed payload before
-  any disclosure is resolved, so a disclosure never supplies it, and the Key Binding JWT must be typed `kb+jwt`,
+- **An SD-JWT presentation is verified fail-closed under bounded work.** The issuer-signed JWT must be a compact JWS,
+  never a Nested JWT whatever decryption keys the verifier's parameters name, signed with an asymmetric key under
+  signature algorithms the verifier names; every salt comes from the platform's cryptographically secure random
+  number generator and is as long as `SdJwtOptions.SaltSizeBytes` says, at least 128 bits; and a presentation is
+  refused with a machine-readable code when a digest repeats, a disclosure is referenced by nothing or presented
+  twice, a disclosed claim collides with a member already present, a reserved name appears where RFC 9901 forbids
+  it, a disclosure is of the wrong kind for its digest, or a protected claim is disclosed in whole or in part.
+  `iss`, `nbf`, `exp` and `cnf` are protected under every profile and the profile's claims beside them: the issuer
+  never makes one disclosable, and the verifier refuses any digest beneath one, decoy or not, so a withheld
+  `status_list` can never read as an unrevoked credential. A refusal names the rule, never a claim name the holder
+  chose. The holder key is read from the signed payload before any disclosure is resolved, so a disclosure never
+  supplies it, and is written at issuance only when its registered key type finds no private member in it; the Key
+  Binding JWT must be typed `kb+jwt`,
   signed by that key, addressed to the verifier, carry its nonce and the digest of the presentation as received, and
   be no older than the maximum age. `SdJwtOptions.MaxDisclosureCount` refuses an over-long presentation before any
   disclosure is decoded and `MaxNestingDepth` bounds the depth the resolved claims may reach; both are validated when

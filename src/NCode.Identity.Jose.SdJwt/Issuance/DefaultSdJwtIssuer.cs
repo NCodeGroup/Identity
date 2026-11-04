@@ -6,7 +6,9 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Jose.SdJwt.Digests;
 using NCode.Identity.Jose.SdJwt.Options;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Json;
 
 namespace NCode.Identity.Jose.SdJwt.Issuance;
@@ -16,15 +18,19 @@ namespace NCode.Identity.Jose.SdJwt.Issuance;
 /// disclosable claim inside another disclosable claim is replaced by its digest before the outer claim is moved into
 /// its own disclosure, which is the recursive structure of RFC 9901 §5.2.4. Each <c>_sd</c> array is sorted so the
 /// order of its digests reveals nothing about the claims, and the issuer-signed JWT is encoded by the JOSE serializer.
+/// A protected top-level claim, by the format's own rule or the profile's, is never made disclosable in whole or in
+/// part, so the verifier accepts every SD-JWT the issuer makes.
 /// </summary>
 /// <param name="joseSerializer">The JOSE serializer that signs the issuer-signed JWT.</param>
 /// <param name="digestAlgorithmCatalog">The registered hash algorithms.</param>
+/// <param name="secretKeyTypeCatalog">The registered secret key types, whose JWK rules screen the holder key.</param>
 /// <param name="randomSource">The source of salts and decoy positions.</param>
 /// <param name="optionsAccessor">The accessor of the limits.</param>
 // See ADR-1405.
 internal class DefaultSdJwtIssuer(
     IJoseSerializer joseSerializer,
     ISdJwtDigestAlgorithmCatalog digestAlgorithmCatalog,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISdJwtRandomSource randomSource,
     IOptions<SdJwtOptions> optionsAccessor
 ) : ISdJwtIssuer
@@ -33,6 +39,7 @@ internal class DefaultSdJwtIssuer(
 
     private IJoseSerializer JoseSerializer { get; } = joseSerializer;
     private ISdJwtDigestAlgorithmCatalog DigestAlgorithmCatalog { get; } = digestAlgorithmCatalog;
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private ISdJwtRandomSource RandomSource { get; } = randomSource;
     private SdJwtOptions Options { get; } = optionsAccessor.Value;
 
@@ -66,11 +73,7 @@ internal class DefaultSdJwtIssuer(
         var holderKey = options.HolderKey;
         if (holderKey is not null)
         {
-            if (holderKey.ContainsPrivateKeyMaterial)
-                throw new ArgumentException(
-                    "The holder key must carry only public members.",
-                    nameof(options)
-                );
+            EnsurePublicHolderKey(options, holderKey);
 
             if (claims.ContainsKey(JoseClaimNames.Payload.Cnf))
                 throw new ArgumentException(
@@ -112,6 +115,29 @@ internal class DefaultSdJwtIssuer(
         return new SelectiveDisclosureJwt(issuerSignedJwt, walk.Disclosures, keyBindingJwt: null);
     }
 
+    // The key type's own private members count too, not only the standard private names, so the key is read under
+    // its registered descriptor; a key of an unregistered or symmetric type binds no presentation.
+    private void EnsurePublicHolderKey(SdJwtIssuanceOptions options, JsonWebKey holderKey)
+    {
+        if (
+            !SecretKeyTypeCatalog.TryGetByJwkKeyType(holderKey.KeyType, out var descriptor)
+            || descriptor.JwkKeyType is not { } jwkKeyType
+        )
+            throw new ArgumentException(
+                $"The holder key type '{holderKey.KeyType}' is not registered.",
+                nameof(options)
+            );
+
+        if (!descriptor.IsAsymmetric)
+            throw new ArgumentException("The holder key must be asymmetric.", nameof(options));
+
+        if (new JsonWebKey(holderKey.AsElement(), jwkKeyType).ContainsPrivateKeyMaterial)
+            throw new ArgumentException(
+                "The holder key must carry only public members.",
+                nameof(options)
+            );
+    }
+
     private HashSet<string> ReadDisclosablePaths(SdJwtIssuanceOptions options)
     {
         var paths = options.DisclosablePaths;
@@ -122,7 +148,7 @@ internal class DefaultSdJwtIssuer(
             );
 
         var disclosablePaths = new HashSet<string>(paths.Count, StringComparer.Ordinal);
-        var protectedClaims = options.Profile?.ProtectedClaims;
+        var profile = options.Profile;
         foreach (var path in paths)
         {
             if (path is null || !JsonPointer.IsWellFormed(path))
@@ -137,12 +163,10 @@ internal class DefaultSdJwtIssuer(
                     nameof(options)
                 );
 
-            if (
-                protectedClaims is not null
-                && protectedClaims.Contains(JsonPointer.GetFirstToken(path))
-            )
+            var claimName = JsonPointer.GetFirstToken(path);
+            if (SdJwtClaimRules.IsProtected(claimName, profile))
                 throw new ArgumentException(
-                    $"The disclosable path '{path}' names a claim that is never selectively disclosable under the '{options.Profile?.Name}' profile.",
+                    $"The disclosable path '{path}' names a protected claim. {SdJwtClaimRules.DescribeProtected(claimName, profile)}",
                     nameof(options)
                 );
         }

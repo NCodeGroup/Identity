@@ -15,7 +15,9 @@ public sealed class SdJwtVerificationParameters
 {
     /// <summary>
     /// Gets the whole policy of the issuer-signed JWT: the issuer's keys, the signature algorithms it may use, which
-    /// must be set, and the issuer, lifetime and claim requirements. An encrypted issuer-signed JWT is never accepted.
+    /// must be set, and the issuer, lifetime and claim requirements, which the validator judges on the issuer-signed
+    /// payload before any disclosure is resolved. An encrypted issuer-signed JWT is never accepted, whatever
+    /// decryption keys the parameters name.
     /// </summary>
     public required JwtValidationParameters IssuerJwtParameters { get; init; }
 

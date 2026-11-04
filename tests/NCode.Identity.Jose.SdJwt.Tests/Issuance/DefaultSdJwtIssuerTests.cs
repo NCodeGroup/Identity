@@ -294,6 +294,84 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Issue_WithProfileAndAPathBeneathAProtectedClaim_Throws()
+    {
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = Host.IssuerCredentials,
+            Claims = JsonElement.Parse(
+                """{"iss":"https://issuer.example","vct":"t","status":{"status_list":{"idx":0,"uri":"u"}}}"""
+            ),
+            DisclosablePaths = ["/status/status_list"],
+            Profile = SdJwtProfiles.SdJwtVc,
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+
+        Assert.Contains("'status'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("SD-JWT VC", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/iss")]
+    [InlineData("/exp")]
+    [InlineData("/nbf")]
+    [InlineData("/cnf")]
+    [InlineData("/cnf/jwk")]
+    [InlineData("/exp/0")]
+    public void Issue_WithoutProfileAndAFormatProtectedPath_Throws(string path)
+    {
+        // The verifier judges these claims on the issuer-signed payload before it resolves a disclosure, so an SD-JWT
+        // that disclosed one would never verify.
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = Host.IssuerCredentials,
+            Claims = JsonElement.Parse(
+                """{"iss":"https://issuer.example","exp":[1],"nbf":1,"cnf":{"jwk":{}}}"""
+            ),
+            DisclosablePaths = [path],
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+
+        Assert.Contains(
+            "never selectively disclosable",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("profile", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Issue_WithALargerSaltSize_SizesEverySaltByTheOption()
+    {
+        await using var host = new SdJwtTestHost(options => options.SaltSizeBytes = 32);
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = host.IssuerCredentials,
+            Claims = Claims,
+            DisclosablePaths = ["/given_name", "/family_name", "/nationalities/0"],
+            DecoyDigestCount = 1,
+        };
+
+        var sdJwt = host.Issuer.Issue(options);
+
+        Assert.Equal(3, sdJwt.Disclosures.Length);
+        Assert.All(
+            sdJwt.Disclosures,
+            x =>
+            {
+                Assert.Equal(43, x.Salt.Length);
+                Assert.Equal(32, System.Buffers.Text.Base64Url.DecodeFromChars(x.Salt).Length);
+            }
+        );
+        Assert.Equal(
+            3,
+            sdJwt.Disclosures.Select(x => x.Salt).Distinct(StringComparer.Ordinal).Count()
+        );
+    }
+
+    [Fact]
     public void Issue_WithProfileAndMissingRequiredClaim_Throws()
     {
         var options = new SdJwtIssuanceOptions
@@ -413,6 +491,38 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
         var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
 
         Assert.Contains("public members", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Issue_WhenHolderKeyIsSymmetric_Throws()
+    {
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = Host.IssuerCredentials,
+            Claims = Claims,
+            HolderKey = JsonWebKey.Parse("""{"kty":"oct","k":"AAAA"}"""),
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+
+        Assert.Contains("asymmetric", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Issue_WhenHolderKeyTypeIsUnregistered_Throws()
+    {
+        // A key the registered types cannot read is screened by no type's JWK rules, so it is refused outright.
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = Host.IssuerCredentials,
+            Claims = Claims,
+            HolderKey = JsonWebKey.Parse("""{"kty":"XKP","pub":"AA"}"""),
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+
+        Assert.Contains("'XKP'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("not registered", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

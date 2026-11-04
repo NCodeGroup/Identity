@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Encoders;
@@ -14,9 +13,6 @@ namespace NCode.Identity.Jose.SdJwt.Issuance;
 /// <see cref="RandomNumberGenerator"/>, the platform's cryptographically secure random number generator.
 /// </summary>
 /// <param name="optionsAccessor">The accessor of the options that size a salt.</param>
-[ExcludeFromCodeCoverage(
-    Justification = "A thin forwarder to the platform's random number generator."
-)]
 internal sealed class DefaultSdJwtRandomSource(IOptions<SdJwtOptions> optionsAccessor)
     : ISdJwtRandomSource
 {

@@ -22,6 +22,7 @@
 | 5   | The work a presentation can demand is bounded: the number of disclosures and the depth of the resolved claims are limits the host configures and the start validates.           |
 | 6   | Every salt comes from the platform's cryptographically secure random number generator and is at least 128 bits.                                                                 |
 | 7   | An SD-JWT VC is the same SD-JWT under a profile: `dc+sd-jwt`, a required `vct`, and claims that stay in the signed payload.                                                      |
+| 8   | A protected claim is plaintext in its entirety: `iss`, `nbf`, `exp` and `cnf` under every profile, and the profile's claims such as `status`, are never disclosable in whole or in part, so a withheld part of one can never pass as a decoy. |
 
 ## Why this matters
 
@@ -52,8 +53,9 @@ sequenceDiagram
 2. The holder resolves where each disclosure lands and presents the chosen ones with the disclosures they depend on.
 3. When the verifier supplied an audience and a nonce, the holder appends a `kb+jwt` Key Binding JWT whose `sd_hash`
    is the digest of everything before it.
-4. The verifier validates the issuer-signed JWT under the JWT library's policy, resolves the disclosures into the
-   payload, drops the decoys, and verifies the Key Binding JWT with the holder key from `cnf`.
+4. The verifier validates the issuer-signed JWT, a compact JWS, under the JWT library's policy, resolves the
+   disclosures into the payload, drops the decoys, refuses any digest beneath a protected claim, and verifies the Key
+   Binding JWT with the holder key from `cnf`.
 5. The result is one JSON object with every disclosed value in place and the selective disclosure members removed.
 
 ## Why this design
@@ -113,7 +115,7 @@ or the `SdJwtVerificationFailureCodes` code of the rule the presentation failed.
 - The verifier resolves no status mechanism: the `status` claim of an SD-JWT VC reaches the verified claims as the
   issuer wrote it, for a status checker the application brings.
 - The built-in confirmation-key resolver reads `cnf.jwk`; a `kid` or `jku` resolver is an application's own
-  `IConfirmationKeyResolver`.
+  `IConfirmationKeyResolver`, and each `cnf` member has exactly one resolver.
 - The OpenID provider issues no SD-JWT of its own; the package is a library for issuers, wallets and verifiers.
 
 ## Further reading

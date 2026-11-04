@@ -118,6 +118,45 @@ public sealed class SdJwtTestHost : IAsyncDisposable
     }
 
     /// <summary>
+    /// Encloses a compact JWS in a JWE to the specified elliptic-curve key, with <c>cty</c> <c>JWT</c>, as a Nested
+    /// JWT (RFC 7519 §5.2).
+    /// </summary>
+    public string EncloseInJwe(string jws, SecretKey recipientKey)
+    {
+        if (
+            !Algorithms.TryGetKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.EcdhEsAes128,
+                out var keyManagement
+            )
+        )
+            throw new InvalidOperationException(AlgorithmCodes.KeyManagement.EcdhEsAes128);
+
+        if (
+            !Algorithms.TryGetAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+                out var contentEncryption
+            )
+        )
+            throw new InvalidOperationException(
+                AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256
+            );
+
+        var credentials = new JoseEncryptionCredentials(
+            recipientKey,
+            keyManagement,
+            contentEncryption
+        );
+        var options = new JoseEncryptionOptions(credentials)
+        {
+            ProtectedHeaders = new Dictionary<string, object>
+            {
+                [JoseClaimNames.Header.Cty] = JoseTokenTypes.Jwt,
+            },
+        };
+        return JoseSerializer.CreateEncoder(options).Encode(jws);
+    }
+
+    /// <summary>
     /// Decodes a JWT with the specified key, which verifies its signature.
     /// </summary>
     public JsonElement DecodePayload(string jwt, SecretKey secretKey) =>

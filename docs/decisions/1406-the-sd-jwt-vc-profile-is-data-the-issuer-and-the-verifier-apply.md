@@ -29,9 +29,14 @@ Other profiles exist and more will, so the rules must be data an application can
    with the profile's `typ`, refuses a disclosable path whose top-level claim the profile protects, and refuses
    claims that lack a required claim. `SdJwtVerificationParameters.Profile` refuses an issuer-signed JWT whose `typ`
    is not the profile's, by the media-type rules of RFC 7515 §4.1.9, a payload that lacks a required claim, and a
-   disclosure that discloses a protected top-level claim; the check happens as the disclosures are resolved, so a
-   protected name nested inside another claim is an ordinary claim. Without a profile the issuer-signed JWT is typed
-   `JWT`, and the verifier requires nothing of its `typ` beyond what the caller's JWT validation parameters say.
+   disclosure of a protected top-level claim or of any part of one: a protected claim is plaintext in its entirety,
+   so a `_sd` array or `...` placeholder beneath `status` or `cnf` refuses the presentation whether or not a
+   disclosure matches it, because a withheld `status_list` would otherwise be dropped as a decoy and the credential
+   read as unrevoked. The check happens as the disclosures are resolved, so a protected name nested inside another
+   claim is an ordinary claim. The profile's protected claims join the format's own, `iss`, `nbf`, `exp` and
+   `cnf`, which [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) keeps
+   plaintext under every profile. Without a profile the issuer-signed JWT is typed `JWT`, and the verifier requires
+   nothing of its `typ` beyond what the caller's JWT validation parameters say.
 
 3. **`status` passes through.** The verifier neither reads nor resolves a status mechanism; the claim reaches the
    verified claims as the issuer wrote it, for a status checker the application brings.

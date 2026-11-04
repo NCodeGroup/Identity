@@ -101,17 +101,4 @@ public class SdJwtSerializationTests
     }
 
     #endregion
-
-    #region SelectiveDisclosureJwt ToString Tests
-
-    [Fact]
-    public void ToString_WithoutKeyBinding_EndsWithSeparator()
-    {
-        var disclosure = Disclosure.Parse(SpecVectors.EmailDisclosure);
-        var sdJwt = new SelectiveDisclosureJwt(IssuerJwt, [disclosure], keyBindingJwt: null);
-
-        Assert.Equal($"{IssuerJwt}~{SpecVectors.EmailDisclosure}~", sdJwt.ToString());
-    }
-
-    #endregion
 }

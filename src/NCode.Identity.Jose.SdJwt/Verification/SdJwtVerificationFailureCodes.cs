@@ -84,7 +84,8 @@ public static class SdJwtVerificationFailureCodes
     public const string DisclosureMismatch = "disclosure_mismatch";
 
     /// <summary>
-    /// A disclosure discloses a claim that the profile keeps in the issuer-signed JWT payload.
+    /// A digest discloses a protected top-level claim or a part of one: <c>iss</c>, <c>nbf</c>, <c>exp</c> and
+    /// <c>cnf</c> under every profile, and the claims the profile keeps in the issuer-signed JWT payload.
     /// </summary>
     public const string ProtectedClaimDisclosed = "protected_claim_disclosed";
 

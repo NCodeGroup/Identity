@@ -33,7 +33,9 @@ public sealed class SdJwtIssuanceOptions
     /// as <c>/given_name</c> or <c>/address/street_address</c>, or an array element such as <c>/nationalities/1</c>.
     /// Every pointer names an existing member or element. A pointer within another disclosable claim makes the inner
     /// claim disclosable on its own, so its digest travels in the outer disclosure's value, as RFC 9901 §5.2.4
-    /// describes. The default value is empty.
+    /// describes. No pointer names <c>iss</c>, <c>nbf</c>, <c>exp</c> or <c>cnf</c>, a claim the
+    /// <see cref="Profile"/> protects, or anything beneath one, because the verifier judges those claims on the
+    /// issuer-signed payload before it resolves a disclosure. The default value is empty.
     /// </summary>
     public IReadOnlyCollection<string> DisclosablePaths { get; init; } = [];
 
@@ -52,7 +54,7 @@ public sealed class SdJwtIssuanceOptions
     /// <summary>
     /// Gets the public key of the holder, written to the <c>cnf</c> claim as a JSON Web Key so a presentation can be
     /// bound to it with a Key Binding JWT (RFC 9901 §4.3), or <c>null</c> for a credential without key binding. The
-    /// key carries no private member.
+    /// key is of a registered asymmetric key type and carries no private member, by that type's own JWK rules.
     /// </summary>
     public JsonWebKey? HolderKey { get; init; }
 

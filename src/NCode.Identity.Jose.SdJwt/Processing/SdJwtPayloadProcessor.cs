@@ -15,12 +15,13 @@ namespace NCode.Identity.Jose.SdJwt.Processing;
 /// requires: every digest is matched to at most one disclosure, a disclosed value is itself resolved so nested
 /// disclosures land where the issuer put them, a digest that matches no disclosure is a decoy and is dropped, and the
 /// presentation is refused when a digest repeats, a disclosure is of the wrong kind for its digest, a disclosed claim
-/// collides with one already present, a reserved name appears where it may not, or a disclosure is referenced by
-/// nothing.
+/// collides with one already present, a reserved name appears where it may not, a disclosure is referenced by
+/// nothing, or a digest discloses a protected top-level claim or any part of one: a protected claim is plaintext in
+/// its entirety, because a withheld disclosure beneath it would be indistinguishable from a decoy.
 /// </summary>
 /// <param name="algorithm">The hash algorithm of the digests.</param>
 /// <param name="maxNestingDepth">The deepest nesting of objects and arrays the resolved claims may reach.</param>
-/// <param name="profile">The profile whose protected claims may not be disclosed, or <c>null</c>.</param>
+/// <param name="profile">The profile whose protected claims join the format's own, or <c>null</c>.</param>
 // See ADR-1405.
 internal sealed class SdJwtPayloadProcessor(
     SdJwtDigestAlgorithm algorithm,
@@ -110,6 +111,7 @@ internal sealed class SdJwtPayloadProcessor(
             switch (name)
             {
                 case JoseClaimNames.Payload.Sd:
+                    EnsureNotProtected(path);
                     digests = ReadDigestArray(node);
                     obj.Remove(name);
                     break;
@@ -149,17 +151,18 @@ internal sealed class SdJwtPayloadProcessor(
                     "A digest of an object property references an array element disclosure."
                 );
 
+            // The name is the holder's input, unbounded, so the reason names the rule and not the name.
             var claimName = disclosure.ClaimName;
             if (obj.ContainsKey(claimName))
                 throw new SdJwtException(
                     SdJwtVerificationFailureCodes.DuplicateClaim,
-                    $"The disclosed claim '{claimName}' is already present in the object that discloses it."
+                    "A disclosed claim is already present in the object that discloses it."
                 );
 
-            if (depth == 0 && Profile is { } profile && profile.ProtectedClaims.Contains(claimName))
+            if (depth == 0 && SdJwtClaimRules.IsProtected(claimName, Profile))
                 throw new SdJwtException(
                     SdJwtVerificationFailureCodes.ProtectedClaimDisclosed,
-                    $"The '{claimName}' claim is never selectively disclosable under the '{profile.Name}' profile."
+                    SdJwtClaimRules.DescribeProtected(claimName, Profile)
                 );
 
             var claimPath = JsonPointer.AppendMember(path, claimName);
@@ -188,6 +191,8 @@ internal sealed class SdJwtPayloadProcessor(
                 index++;
                 continue;
             }
+
+            EnsureNotProtected(path);
 
             if (placeholder.Count != 1)
                 throw new SdJwtException(
@@ -242,6 +247,22 @@ internal sealed class SdJwtPayloadProcessor(
             );
 
         return DisclosuresByDigest.TryGetValue(digest, out disclosure);
+    }
+
+    // A digest beneath a protected top-level claim would let the holder withhold part of it unnoticed, so none is
+    // resolved there, decoy or not. The root carries no top-level name, so its own digests are judged by the claim
+    // name each discloses.
+    private void EnsureNotProtected(string path)
+    {
+        if (path.Length == 0)
+            return;
+
+        var claimName = JsonPointer.GetFirstToken(path);
+        if (SdJwtClaimRules.IsProtected(claimName, Profile))
+            throw new SdJwtException(
+                SdJwtVerificationFailureCodes.ProtectedClaimDisclosed,
+                SdJwtClaimRules.DescribeProtected(claimName, Profile)
+            );
     }
 
     private void EnsureDepth(int depth)

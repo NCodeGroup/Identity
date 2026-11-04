@@ -15,29 +15,77 @@ namespace NCode.Identity.Jose.SdJwt.Verification;
 /// <summary>
 /// Provides the default implementation of <see cref="ISdJwtVerifier"/>. The issuer-signed JWT and the Key Binding JWT
 /// are validated by the JWT validator, so their signature, algorithm and key policy is the family's one policy; the
-/// disclosures are resolved under the rules of RFC 9901 §7.1; and the Key Binding JWT's <c>nonce</c>, <c>sd_hash</c>
-/// and <c>iat</c> are checked here, against the presentation as received.
+/// issuer-signed JWT must be a compact JWS, so a Nested JWT is refused whatever decryption keys the caller's
+/// parameters name; the disclosures are resolved under the rules of RFC 9901 §7.1; and the Key Binding JWT's
+/// <c>nonce</c>, <c>sd_hash</c> and <c>iat</c> are checked here, against the presentation as received. The
+/// confirmation-key resolvers are validated as a whole when the verifier is composed: each <c>cnf</c> member has
+/// exactly one resolver.
 /// </summary>
-/// <param name="jwtValidator">The JWT validator that verifies the issuer-signed JWT and the Key Binding JWT.</param>
-/// <param name="digestAlgorithmCatalog">The registered hash algorithms.</param>
-/// <param name="confirmationKeyResolvers">The registered resolvers of the holder key from the <c>cnf</c> claim.</param>
-/// <param name="timeProvider">The clock the Key Binding JWT's freshness is judged by.</param>
-/// <param name="optionsAccessor">The accessor of the limits.</param>
 // See ADR-1405.
-internal class DefaultSdJwtVerifier(
-    IJwtValidator jwtValidator,
-    ISdJwtDigestAlgorithmCatalog digestAlgorithmCatalog,
-    IEnumerable<IConfirmationKeyResolver> confirmationKeyResolvers,
-    TimeProvider timeProvider,
-    IOptions<SdJwtOptions> optionsAccessor
-) : ISdJwtVerifier
+internal class DefaultSdJwtVerifier : ISdJwtVerifier
 {
-    private IJwtValidator JwtValidator { get; } = jwtValidator;
-    private ISdJwtDigestAlgorithmCatalog DigestAlgorithmCatalog { get; } = digestAlgorithmCatalog;
-    private IReadOnlyList<IConfirmationKeyResolver> ConfirmationKeyResolvers { get; } =
-    [.. confirmationKeyResolvers];
-    private TimeProvider TimeProvider { get; } = timeProvider;
-    private SdJwtOptions Options { get; } = optionsAccessor.Value;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultSdJwtVerifier"/> class.
+    /// </summary>
+    /// <param name="jwtValidator">The JWT validator that verifies the issuer-signed JWT and the Key Binding JWT.</param>
+    /// <param name="digestAlgorithmCatalog">The registered hash algorithms.</param>
+    /// <param name="confirmationKeyResolvers">The registered resolvers of the holder key from the <c>cnf</c> claim,
+    /// consulted in registration order.</param>
+    /// <param name="timeProvider">The clock the Key Binding JWT's freshness is judged by.</param>
+    /// <param name="optionsAccessor">The accessor of the limits.</param>
+    /// <exception cref="InvalidOperationException">A resolver is <c>null</c>, names an empty or whitespace member, or
+    /// names the member of another resolver.</exception>
+    public DefaultSdJwtVerifier(
+        IJwtValidator jwtValidator,
+        ISdJwtDigestAlgorithmCatalog digestAlgorithmCatalog,
+        IEnumerable<IConfirmationKeyResolver> confirmationKeyResolvers,
+        TimeProvider timeProvider,
+        IOptions<SdJwtOptions> optionsAccessor
+    )
+    {
+        ArgumentNullException.ThrowIfNull(confirmationKeyResolvers);
+
+        JwtValidator = jwtValidator;
+        DigestAlgorithmCatalog = digestAlgorithmCatalog;
+        ConfirmationKeyResolvers = ValidateResolvers(confirmationKeyResolvers);
+        TimeProvider = timeProvider;
+        Options = optionsAccessor.Value;
+    }
+
+    private IJwtValidator JwtValidator { get; }
+    private ISdJwtDigestAlgorithmCatalog DigestAlgorithmCatalog { get; }
+    private IConfirmationKeyResolver[] ConfirmationKeyResolvers { get; }
+    private TimeProvider TimeProvider { get; }
+    private SdJwtOptions Options { get; }
+
+    private static IConfirmationKeyResolver[] ValidateResolvers(
+        IEnumerable<IConfirmationKeyResolver> confirmationKeyResolvers
+    )
+    {
+        var resolvers = new List<IConfirmationKeyResolver>();
+        var members = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var resolver in confirmationKeyResolvers)
+        {
+            if (resolver is null)
+                throw new InvalidOperationException(
+                    "A registered SD-JWT confirmation-key resolver is null."
+                );
+
+            if (string.IsNullOrWhiteSpace(resolver.Member))
+                throw new InvalidOperationException(
+                    "A registered SD-JWT confirmation-key resolver names an empty 'cnf' member."
+                );
+
+            if (!members.Add(resolver.Member))
+                throw new InvalidOperationException(
+                    $"The 'cnf' member '{resolver.Member}' has more than one registered SD-JWT confirmation-key resolver."
+                );
+
+            resolvers.Add(resolver);
+        }
+
+        return [.. resolvers];
+    }
 
     /// <inheritdoc />
     public async ValueTask<SdJwtVerificationResult> VerifyAsync(
@@ -86,6 +134,12 @@ internal class DefaultSdJwtVerifier(
             );
 
         var issuerJwt = issuerResult.DecodedJwt;
+        if (issuerJwt.EncryptionHeader is not null)
+            return SdJwtVerificationResult.Fail(
+                SdJwtVerificationFailureCodes.InvalidSdJwt,
+                "The issuer-signed JWT must be a compact JWS."
+            );
+
         if (issuerJwt.SigningKey is not AsymmetricSecretKey)
             return SdJwtVerificationResult.Fail(
                 JwtValidationFailureCodes.AlgorithmNotPermitted,
@@ -290,7 +344,7 @@ internal class DefaultSdJwtVerifier(
         )
             return null;
 
-        var count = ConfirmationKeyResolvers.Count;
+        var count = ConfirmationKeyResolvers.Length;
         for (var i = 0; i < count; i++)
         {
             var resolver = ConfirmationKeyResolvers[i];

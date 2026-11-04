@@ -41,17 +41,24 @@ shape how the family adds it:
    claims depth first, so a disclosable claim inside another disclosable claim is replaced by its digest before the
    outer claim is moved into its own disclosure, which is the recursive structure of RFC 9901 §5.2.4. Each `_sd`
    array is sorted ordinally so its order says nothing about the claims, decoy digests are added where asked, the
-   holder key is written to `cnf` as a public JSON Web Key, and the payload is signed by the JOSE serializer with an
-   asymmetric key. `ISdJwtHolder` parses the combined format, resolves each disclosure to the claim it discloses and
-   to the disclosure that carries its digest (`DisclosedClaim`), and builds a presentation of a chosen subset that
-   always includes the disclosures a chosen one depends on, with a `kb+jwt` KB-JWT over `iat`, `aud`, `nonce` and
-   the `sd_hash` of the presentation when the verifier asked for one. `ISdJwtVerifier.VerifyAsync` verifies a
-   presentation and returns the resolved claims as one JSON object with every disclosed value in place and the
-   `_sd`, `_sd_alg` and `...` members removed, or the code of the rule the presentation failed.
+   holder key is written to `cnf` as a public JSON Web Key, read under its registered key type so that type's own
+   private members are refused as well as the standard ones, and the payload is signed by the JOSE serializer with
+   an asymmetric key. `iss`, `nbf`, `exp` and `cnf` are never made disclosable, in whole or in part, under any
+   profile: the verifier judges them on the issuer-signed payload before it resolves a disclosure (decision 3), so
+   an SD-JWT that disclosed one would never verify. `ISdJwtHolder` parses the combined format, resolves each
+   disclosure to the claim it discloses and to the disclosure that carries its digest (`DisclosedClaim`), and builds
+   a presentation of a chosen subset that always includes the disclosures a chosen one depends on, with a `kb+jwt`
+   KB-JWT over `iat`, `aud`, `nonce` and the `sd_hash` of the presentation when the verifier asked for one.
+   `ISdJwtVerifier.VerifyAsync` verifies a presentation and returns the resolved claims as one JSON object with every
+   disclosed value in place and the `_sd`, `_sd_alg` and `...` members removed, or the code of the rule the
+   presentation failed.
 
 3. **The JWT validator owns the signature policy.** The caller supplies the whole `JwtValidationParameters` of the
    issuer-signed JWT, whose `ValidSignatureAlgorithms` must be set because an unset list permits nothing at a trust
-   boundary, and the verifier refuses a signing key that is not asymmetric whatever the list names. The KB-JWT is
+   boundary; the validator judges the issuer, lifetime and claim requirements on the issuer-signed payload, before
+   any disclosure is resolved. The verifier refuses a signing key that is not asymmetric whatever the list names,
+   and refuses a Nested JWT whatever decryption keys the parameters name, because RFC 9901 §4.1 defines the
+   issuer-signed JWT as a compact JWS. The KB-JWT is
    validated with parameters the verifier builds from the holder key, the algorithms the requirement names, the
    `kb+jwt` token type and the verifier's audience; its `nonce`, `sd_hash` and `iat` are checked by the SD-JWT
    verifier, and `sd_hash` is computed over the presentation exactly as received, up to and including the last `~`.
@@ -71,7 +78,9 @@ shape how the family adds it:
    as instances, and `ISdJwtDigestAlgorithmCatalog` validates the registered set when it is composed. An
    `IConfirmationKeyResolver` resolves the holder key from one `cnf` member; the built-in one reads `jwk` through the
    registered secret key types, so every asymmetric key type the JOSE stack supports binds a presentation, and a
-   resolver for another method is registered beside it.
+   resolver for another method is registered beside it. Each `cnf` member has exactly one resolver: the verifier
+   validates the registered set when it is composed and refuses a second resolver for a member, so an application's
+   resolver never loses silently to a built-in one.
 
 6. **Salts are random and the limits are configured and validated at start.** A salt is the base64url encoding of
    `SdJwtOptions.SaltSizeBytes` bytes from the platform's cryptographically secure random number generator, at least
@@ -107,7 +116,7 @@ shape how the family adds it:
   binding requirement and the profile.
 - A presentation that violates a rule of RFC 9901 §7.1 is refused with a machine-readable code, so a caller never
   matches on message text.
-- The package carries no log, so it claims no event-ID band until it does.
+- The package holds the `21000`–`21999` event-ID band of the family's registry.
 
 ## References
 

@@ -9,7 +9,8 @@ namespace NCode.Identity.Jose.SdJwt.Profiles;
 /// <summary>
 /// A profile of the Selective Disclosure JWT (SD-JWT) format, such as SD-JWT VC, expressed as data: the <c>typ</c> of
 /// the issuer-signed JWT, the claims that must be present in its payload as non-empty strings, and the claims that are
-/// never selectively disclosable. The issuer applies it when it issues and the verifier when it verifies, so the two
+/// never selectively disclosable, in whole or in part, beside <c>iss</c>, <c>nbf</c>, <c>exp</c> and <c>cnf</c>, which
+/// the format itself protects. The issuer applies it when it issues and the verifier when it verifies, so the two
 /// agree on one definition.
 /// </summary>
 /// <param name="name">The name of the profile.</param>
@@ -17,8 +18,9 @@ namespace NCode.Identity.Jose.SdJwt.Profiles;
 /// of RFC 7515 §4.1.9.</param>
 /// <param name="requiredClaims">The names of the claims that must be present in the issuer-signed JWT payload as
 /// non-empty strings.</param>
-/// <param name="protectedClaims">The names of the top-level claims that are never selectively disclosable: an issuer
-/// refuses to make one disclosable, and a verifier refuses a disclosure that discloses one.</param>
+/// <param name="protectedClaims">The names of the top-level claims that are never selectively disclosable, in whole or
+/// in part: an issuer refuses to make one or any part of one disclosable, and a verifier refuses a disclosure that
+/// discloses one and any digest beneath one.</param>
 // See ADR-1406.
 [PublicAPI]
 public sealed class SdJwtProfile(
@@ -45,7 +47,7 @@ public sealed class SdJwtProfile(
         requiredClaims.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>
-    /// Gets the names of the top-level claims that are never selectively disclosable.
+    /// Gets the names of the top-level claims that are never selectively disclosable, in whole or in part.
     /// </summary>
     public FrozenSet<string> ProtectedClaims { get; } =
         protectedClaims.ToFrozenSet(StringComparer.Ordinal);

@@ -3,8 +3,10 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Jose.SdJwt.Digests;
 using NCode.Identity.Jose.SdJwt.Issuance;
+using NCode.Identity.Jose.SdJwt.Options;
 using NCode.Identity.Jose.SdJwt.Presentation;
 using NCode.Identity.Jose.SdJwt.Profiles;
 using NCode.Identity.Jose.SdJwt.Verification;
@@ -14,7 +16,7 @@ using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.SdJwt.Tests.Verification;
 
-public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
+public sealed class DefaultSdJwtVerifierTests : BaseTests
 {
     private const string Audience = "https://verifier.example";
     private const string Nonce = "n-0S6_WzA2Mj";
@@ -31,9 +33,11 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
 
     private SdJwtTestHost Host { get; } = new();
 
-    public Task InitializeAsync() => Task.CompletedTask;
-
-    public async Task DisposeAsync() => await Host.DisposeAsync();
+    protected override async ValueTask DisposeAsyncCore()
+    {
+        await Host.DisposeAsync();
+        await base.DisposeAsyncCore();
+    }
 
     #region Scaffolding
 
@@ -141,6 +145,60 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
         Assert.Null(result.IssuerJwt);
         Assert.Empty(result.Disclosures);
         Assert.Null(result.KeyBinding);
+    }
+
+    private Mock<IConfirmationKeyResolver> CreateResolverMock(string member)
+    {
+        var mock = CreateStrictMock<IConfirmationKeyResolver>();
+        mock.Setup(x => x.Member).Returns(member).Verifiable();
+        return mock;
+    }
+
+    private DefaultSdJwtVerifier CreateVerifier(
+        params IEnumerable<IConfirmationKeyResolver> resolvers
+    ) =>
+        new(
+            Host.ServiceProvider.GetRequiredService<IJwtValidator>(),
+            Host.ServiceProvider.GetRequiredService<ISdJwtDigestAlgorithmCatalog>(),
+            resolvers,
+            Host.TimeProvider,
+            Host.ServiceProvider.GetRequiredService<IOptions<SdJwtOptions>>()
+        );
+
+    #endregion
+
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_WithOneResolverPerMember_Succeeds()
+    {
+        var jwk = CreateResolverMock("jwk");
+        var kid = CreateResolverMock("kid");
+
+        var verifier = CreateVerifier(jwk.Object, kid.Object);
+
+        Assert.NotNull(verifier);
+    }
+
+    [Fact]
+    public void Constructor_WhenTwoResolversShareAMember_Throws()
+    {
+        var first = CreateResolverMock("jwk");
+        var second = CreateResolverMock("jwk");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            CreateVerifier(first.Object, second.Object)
+        );
+
+        Assert.Contains("'jwk'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Constructor_WhenAResolverNamesAnEmptyMember_Throws()
+    {
+        var resolver = CreateResolverMock(" ");
+
+        Assert.Throws<InvalidOperationException>(() => CreateVerifier(resolver.Object));
     }
 
     #endregion
@@ -358,11 +416,24 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
         AssertFailure(result, SdJwtVerificationFailureCodes.DisclosureLimitExceeded);
     }
 
-    [Fact]
-    public async Task VerifyAsync_WhenTheClaimsNestTooDeep_Fails()
+    /// <summary>
+    /// A chain of disclosures whose values nest through further digests, from a flat issuer-signed payload, so the
+    /// depth is reached only through resolved disclosure values: <c>a</c> holds the digest of <c>b</c>, which holds
+    /// the digest of <c>c</c>, whose value is the innermost object.
+    /// </summary>
+    private string PresentNestedDisclosureChain()
     {
-        await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 1);
-        var presentation = Present(Issue(["/address/street_address"]));
+        var c = CreateDisclosure("c", "{}");
+        var b = CreateDisclosure("b", $$"""{"_sd":["{{Digest(c)}}"]}""");
+        var a = CreateDisclosure("a", $$"""{"_sd":["{{Digest(b)}}"]}""");
+        return PresentCrafted($$"""{"_sd":["{{Digest(a)}}"]}""", a.Encoded, b.Encoded, c.Encoded);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheDisclosedValuesNestTooDeep_Fails()
+    {
+        await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 2);
+        var presentation = PresentNestedDisclosureChain();
 
         var result = await host.Verifier.VerifyAsync(
             presentation,
@@ -374,6 +445,28 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
         );
 
         AssertFailure(result, SdJwtVerificationFailureCodes.NestingLimitExceeded);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheDisclosedValuesNestToTheLimit_Succeeds()
+    {
+        await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 3);
+        var presentation = PresentNestedDisclosureChain();
+
+        var result = await host.Verifier.VerifyAsync(
+            presentation,
+            new SdJwtVerificationParameters
+            {
+                IssuerJwtParameters = Host.CreateIssuerJwtParameters(),
+            },
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsValid);
+        Assert.Equal(
+            JsonValueKind.Object,
+            result.Claims.GetProperty("a").GetProperty("b").GetProperty("c").ValueKind
+        );
     }
 
     [Fact]
@@ -438,15 +531,18 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
     [Fact]
     public async Task VerifyAsync_WhenADisclosedClaimIsAlreadyPresent_Fails()
     {
-        var disclosure = CreateDisclosure("given_name", "\"John\"");
+        // The claim name is the holder's input, so the reason names the rule and never the name.
+        const string claimName = "given_name\nforged log line";
+        var disclosure = CreateDisclosure(claimName, "\"John\"");
         var presentation = PresentCrafted(
-            $$"""{"given_name":"Jane","_sd":["{{Digest(disclosure)}}"]}""",
+            $$"""{"given_name\nforged log line":"Jane","_sd":["{{Digest(disclosure)}}"]}""",
             disclosure.Encoded
         );
 
         var result = await VerifyAsync(presentation);
 
         AssertFailure(result, SdJwtVerificationFailureCodes.DuplicateClaim);
+        Assert.DoesNotContain("forged", result.FailureReason, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -553,14 +649,78 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task VerifyAsync_WhenTheIssuerSignedJwtIsEncrypted_Fails()
+    public async Task VerifyAsync_WhenTheIssuerSignedJwtIsANestedJwt_FailsEvenWithDecryptionKeys()
     {
-        var presentation = "eyJhbGciOiJSU0EtT0FFUCJ9.a.b.c.d~";
+        var issued = Issue(["/given_name"]);
+        var nested = Host.EncloseInJwe(issued.IssuerSignedJwt, Host.StrangerKey);
+        var presentation = $"{nested}~{issued.Disclosures[0].Encoded}~";
+        var parameters = new SdJwtVerificationParameters
+        {
+            IssuerJwtParameters = Host.CreateIssuerJwtParameters()
+                .UseDecryptionKeys([Host.StrangerKey]),
+        };
+        // The JWT validator accepts the Nested JWT under these parameters, so the refusal is the verifier's own rule.
+        var jwtResult = await Host
+            .ServiceProvider.GetRequiredService<IJwtValidator>()
+            .ValidateAsync(nested, parameters.IssuerJwtParameters, CancellationToken.None);
+        Assert.True(jwtResult.IsValid);
+
+        var result = await VerifyAsync(presentation, parameters);
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.InvalidSdJwt);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WithDecryptionKeysAndACompactJws_Succeeds()
+    {
+        var presentation = Present(Issue(["/given_name"]));
+        var parameters = new SdJwtVerificationParameters
+        {
+            IssuerJwtParameters = Host.CreateIssuerJwtParameters()
+                .UseDecryptionKeys([Host.StrangerKey]),
+        };
+
+        var result = await VerifyAsync(presentation, parameters);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData("exp", "1")]
+    [InlineData("nbf", "1")]
+    [InlineData("iss", "\"https://issuer.example\"")]
+    [InlineData("cnf", "{}")]
+    public async Task VerifyAsync_WithoutProfileAndAFormatProtectedClaimDisclosed_Fails(
+        string claimName,
+        string valueJson
+    )
+    {
+        var disclosure = CreateDisclosure(claimName, valueJson);
+        var presentation = PresentCrafted(
+            $$"""{"_sd":["{{Digest(disclosure)}}"]}""",
+            disclosure.Encoded
+        );
 
         var result = await VerifyAsync(presentation);
 
-        Assert.False(result.IsValid);
-        Assert.Null(result.SdJwt);
+        AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
+    }
+
+    [Theory]
+    [InlineData("""{"cnf":{"_sd":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]}}""")]
+    [InlineData("""{"exp":[{"...":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}]}""")]
+    [InlineData("""{"iss":{"inner":{"_sd":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]}}}""")]
+    public async Task VerifyAsync_WithoutProfileAndADigestBeneathAProtectedClaim_Fails(
+        string payloadJson
+    )
+    {
+        // A digest beneath a protected claim is refused whether or not a disclosure matches it: a withheld
+        // disclosure and a decoy look alike, so the claim is plaintext in its entirety.
+        var presentation = PresentCrafted(payloadJson);
+
+        var result = await VerifyAsync(presentation);
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
     }
 
     #endregion
@@ -776,7 +936,8 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
     [Fact]
     public async Task VerifyAsync_WhenCnfIsDisclosedRatherThanPlaintext_Fails()
     {
-        // The holder key is read from the issuer-signed payload alone, so a 'cnf' in a disclosure binds nothing.
+        // 'cnf' is never selectively disclosable, so a 'cnf' in a disclosure is refused before any key binding is
+        // judged, and the holder key is read from the issuer-signed payload alone.
         var cnf = CreateDisclosure("cnf", $$$"""{"jwk":{{{Host.HolderJwk.ToJsonString()}}}}""");
         var prefix = PresentCrafted($$"""{"_sd":["{{Digest(cnf)}}"]}""", cnf.Encoded);
         var payload = $$"""
@@ -791,7 +952,7 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
             CreateParameters(requireKeyBinding: true)
         );
 
-        AssertFailure(result, SdJwtVerificationFailureCodes.HolderKeyNotFound);
+        AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
     }
 
     #endregion
@@ -870,6 +1031,27 @@ public sealed class DefaultSdJwtVerifierTests : IAsyncLifetime
         );
 
         AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WithProfileAndADigestBeneathAProtectedClaim_Fails()
+    {
+        // The holder withholds the status_list disclosure, so the digest under 'status' matches nothing and would
+        // otherwise be dropped as a decoy, leaving an empty status the application reads as unrevoked.
+        var statusList = CreateDisclosure(
+            "status_list",
+            """{"idx":0,"uri":"https://issuer.example/status/1"}"""
+        );
+        var jwt = Host.SignIssuerJwt(
+            $$$"""{"vct":"t","status":{"_sd":["{{{Digest(statusList)}}}"]}}""",
+            "dc+sd-jwt"
+        );
+
+        var result = await VerifyAsync($"{jwt}~", CreateParameters(profile: SdJwtProfiles.SdJwtVc));
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
+        Assert.Contains("'status'", result.FailureReason, StringComparison.Ordinal);
+        Assert.Contains("SD-JWT VC", result.FailureReason, StringComparison.Ordinal);
     }
 
     [Fact]

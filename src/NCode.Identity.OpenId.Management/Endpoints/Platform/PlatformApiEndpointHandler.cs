@@ -164,8 +164,8 @@ internal class PlatformApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
-        if (serverSettings is null)
+        var platformSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
+        if (platformSettings is null)
         {
             return TypedResults.NotFound();
         }
@@ -175,7 +175,7 @@ internal class PlatformApiEndpointHandler(
         // The authorization is against the persisted settings, like the raw settings read. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            serverSettings.Value,
+            platformSettings.Value,
             authorizationResource: GetPlatformNode(httpContext),
             Operations.Read,
             async (settings, token) =>
@@ -188,12 +188,12 @@ internal class PlatformApiEndpointHandler(
     }
 
     /// <summary>
-    /// Resolves the effective settings of the server's committed settings document and names the server when the
+    /// Resolves the effective settings of the platform's committed settings document and names the platform when the
     /// document cannot be honored by the settings vocabulary.
     /// </summary>
-    /// <param name="settings">The server's committed settings document.</param>
+    /// <param name="settings">The platform's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The server's effective settings.</returns>
+    /// <returns>The platform's effective settings.</returns>
     /// <exception cref="UnreadableSettingsException">The document cannot be honored.</exception>
     // See ADR-1245.
     private async ValueTask<IReadOnlySettingCollection> ResolveStoredPlatformSettingsAsync(
@@ -219,10 +219,10 @@ internal class PlatformApiEndpointHandler(
     }
 
     /// <summary>
-    /// Maps an OpenID Server's effective <see cref="IReadOnlySettingCollection"/> to its
+    /// Maps the platform's effective <see cref="IReadOnlySettingCollection"/> to its
     /// <see cref="PlatformEffectiveSettingsResource"/> representation.
     /// </summary>
-    /// <param name="settings">The server's effective <see cref="IReadOnlySettingCollection"/>.</param>
+    /// <param name="settings">The platform's effective <see cref="IReadOnlySettingCollection"/>.</param>
     /// <returns>The mapped <see cref="PlatformEffectiveSettingsResource"/>.</returns>
     internal virtual PlatformEffectiveSettingsResource ToPlatformEffectiveSettingsResource(
         IReadOnlySettingCollection settings
@@ -245,7 +245,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="204">The server's settings were updated.</response>
+    /// <response code="204">The platform's settings were updated.</response>
     [EndpointName("api/platform/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -257,9 +257,9 @@ internal class PlatformApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
+        var platformSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
 
-        if (serverSettings is null)
+        if (platformSettings is null)
         {
             return TypedResults.NotFound();
         }
@@ -280,13 +280,13 @@ internal class PlatformApiEndpointHandler(
         // any changes made between the caller's read and this write (lost update).
         if (
             !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, serverSettings.ConcurrencyToken, StringComparison.Ordinal)
+            && !string.Equals(ifMatch, platformSettings.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
-        var jsonObject = ToJsonObject(serverSettings.Value);
+        var jsonObject = ToJsonObject(platformSettings.Value);
 
         try
         {
@@ -314,7 +314,7 @@ internal class PlatformApiEndpointHandler(
         }
 
         var currentServerSettings = await ResolveReplacedPlatformSettingsOrDefaultAsync(
-            serverSettings.Value,
+            platformSettings.Value,
             cancellationToken
         );
         var newServerSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
@@ -342,17 +342,17 @@ internal class PlatformApiEndpointHandler(
             }
         }
 
-        var previousSettings = serverSettings.Value;
-        serverSettings.Value = settingsValue;
+        var previousSettings = platformSettings.Value;
+        platformSettings.Value = settingsValue;
 
-        await store.UpdateSettingsAsync(serverSettings, cancellationToken);
+        await store.UpdateSettingsAsync(platformSettings, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordPlatformChangedAsync(
             httpContext,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToPlatformSettingsResource(serverSettings)),
+            ToResourceValues(ToPlatformSettingsResource(platformSettings)),
             cancellationToken
         );
 
@@ -363,19 +363,19 @@ internal class PlatformApiEndpointHandler(
             cancellationToken
         );
 
-        httpContext.Response.Headers.ETag = serverSettings.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = platformSettings.ConcurrencyToken;
 
         return TypedResults.NoContent();
     }
 
     /// <summary>
-    /// Resolves the effective settings of the server's committed settings document, which a settings write replaces.
+    /// Resolves the effective settings of the platform's committed settings document, which a settings write replaces.
     /// When the document cannot be honored by the settings vocabulary, nothing was coherent under it, so no client is
     /// checked and the write may replace it with a document that can be honored.
     /// </summary>
-    /// <param name="replacedSettings">The server's committed settings document.</param>
+    /// <param name="replacedSettings">The platform's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The server's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
+    /// <returns>The platform's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
     // See ADR-1241.
     private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedPlatformSettingsOrDefaultAsync(
         JsonElement replacedSettings,
@@ -400,20 +400,20 @@ internal class PlatformApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that replacing the server's settings document leaves every value each client of every tenant registers
+    /// Verifies that replacing the platform's settings document leaves every value each client of every tenant registers
     /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and new
-    /// server settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
+    /// platform settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
     /// document is resolved onto both. The tenants are read as an untracked, secret-free projection
     /// (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value of a setting
     /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A tenant whose
     /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
     /// settings.
     /// </summary>
-    /// <param name="currentServerSettings">The server's effective settings with its current settings document.</param>
-    /// <param name="newServerSettings">The server's effective settings with its new settings document.</param>
+    /// <param name="currentServerSettings">The platform's effective settings with its current settings document.</param>
+    /// <param name="newServerSettings">The platform's effective settings with its new settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenants and their clients.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that does not permit each value, or
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the platform setting that does not permit each value, or
     /// an empty list.</returns>
     // See ADR-1206 and ADR-1241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
@@ -475,7 +475,7 @@ internal class PlatformApiEndpointHandler(
         return errors;
     }
 
-    // Announces a committed change to the server's settings document, so every handler of the change (the default one
+    // Announces a committed change to the platform's settings document, so every handler of the change (the default one
     // reads the document again on every replica, whose reconciliation then seeds the tenants and checks the clients,
     // ADR-1219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
     private static ValueTask NotifyPlatformSettingsChangedAsync(

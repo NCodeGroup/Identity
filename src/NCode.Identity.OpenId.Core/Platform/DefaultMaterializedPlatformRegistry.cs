@@ -5,7 +5,7 @@ namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IMaterializedPlatformRegistry"/> abstraction. The first
-/// registration wins and completes every wait for the server.
+/// registration wins and completes every wait for the platform.
 /// </summary>
 // See ADR-1219.
 internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatformRegistry
@@ -14,11 +14,11 @@ internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatfor
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <inheritdoc />
-    public void Register(OpenIdPlatform server)
+    public void Register(OpenIdPlatform platform)
     {
-        // A replica materializes its server once, so a later registration is ignored.
-        ArgumentNullException.ThrowIfNull(server);
-        Registered.TrySetResult(server);
+        // A replica materializes its platform once, so a later registration is ignored.
+        ArgumentNullException.ThrowIfNull(platform);
+        Registered.TrySetResult(platform);
     }
 
     /// <inheritdoc />
@@ -31,7 +31,7 @@ internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatfor
         if (!Registered.Task.IsCompletedSuccessfully)
             return;
 
-        var server = await Registered.Task;
-        await server.RefreshSettingsAsync(cancellationToken);
+        var platform = await Registered.Task;
+        await platform.RefreshSettingsAsync(cancellationToken);
     }
 }

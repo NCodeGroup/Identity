@@ -6,7 +6,7 @@ using NCode.Identity.SharedState;
 namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Handles the announcement that a server's settings changed by reading the committed settings of the server
+/// Handles the announcement that a platform's settings changed by reading the committed settings of the platform
 /// again on this replica. Every replica receives the announcement, the one that made the change included, so each
 /// serves the change at once rather than at its next poll. The message is the constant platform resource identifier, never the settings
 /// document: the replica reads the committed row. Reading again is idempotent, so the second read on the replica that
@@ -19,7 +19,7 @@ internal sealed class PlatformSettingsChangeBroadcastHandler(
 ) : IReplicaBroadcastHandler
 {
     /// <summary>
-    /// The name of the replica broadcast channel on which a changed server's settings are announced.
+    /// The name of the replica broadcast channel on which a changed platform's settings are announced.
     /// </summary>
     public const string ChannelName = "platform-settings-changed";
 

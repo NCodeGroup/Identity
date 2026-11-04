@@ -248,7 +248,7 @@ public static partial class OpenIdConstants
         public const string ResourceServers = "ResourceServers";
 
         /// <summary>
-        /// Contains the OpenAPI tag applied to the <c>servers</c> management endpoints.
+        /// Contains the OpenAPI tag applied to the <c>platform</c> management endpoints.
         /// </summary>
         public const string Platform = "Platform";
 
@@ -268,7 +268,7 @@ public static partial class OpenIdConstants
         public const string Principals = "Principals";
 
         /// <summary>
-        /// Contains the OpenAPI tag applied to the server <c>capabilities</c> discovery endpoint.
+        /// Contains the OpenAPI tag applied to the platform <c>capabilities</c> discovery endpoint.
         /// </summary>
         public const string Capabilities = "Capabilities";
     }
@@ -494,7 +494,7 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for the named <c>security_profiles</c> values a server, tenant, or client can select to
+    /// Contains constants for the named <c>security_profiles</c> values a platform, team, tenant, or client can select to
     /// tighten the OP to a standardized security baseline.
     /// </summary>
     public static class SecurityProfiles

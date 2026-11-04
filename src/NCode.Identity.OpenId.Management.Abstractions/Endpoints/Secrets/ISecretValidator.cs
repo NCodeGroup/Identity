@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// </summary>
 /// <remarks>
 /// This validator asserts only the parameter-level coherence that is independent of the owning
-/// server/tenant/client; authorization and existence preconditions remain the responsibility of the
+/// tenant, client or resource server; authorization and existence preconditions remain the responsibility of the
 /// calling endpoint.
 /// </remarks>
 [PublicAPI]

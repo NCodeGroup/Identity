@@ -34,7 +34,7 @@ public static class ManagementResourceTypes
     public const string TenantSecret = "tenant.secret";
 
     /// <summary>
-    /// An OpenID server.
+    /// The platform, the deployment root.
     /// </summary>
     public const string Platform = "platform";
 

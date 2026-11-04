@@ -9,7 +9,7 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Common interface for all persisted server resources.
+/// Common interface for all persisted platform resources.
 /// </summary>
 [PublicAPI]
 public interface ISupportPersistedPlatformResource : ISupportResource, ISupportConcurrencyToken
@@ -18,7 +18,7 @@ public interface ISupportPersistedPlatformResource : ISupportResource, ISupportC
 }
 
 /// <summary>
-/// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedPlatformResource"/> abstraction.
+/// Provides the base implementation for a persisted platform resource using the <see cref="ISupportPersistedPlatformResource"/> abstraction.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -44,9 +44,9 @@ public abstract class BasePersistedPlatformResource : ISupportPersistedPlatformR
 }
 
 /// <summary>
-/// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedPlatformResource"/> abstraction.
+/// Provides the base implementation for a persisted platform resource using the <see cref="ISupportPersistedPlatformResource"/> abstraction.
 /// </summary>
-/// <typeparam name="TValue">The type of the persisted server resource.</typeparam>
+/// <typeparam name="TValue">The type of the persisted platform resource.</typeparam>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public abstract class PersistedPlatformResource<TValue> : BasePersistedPlatformResource

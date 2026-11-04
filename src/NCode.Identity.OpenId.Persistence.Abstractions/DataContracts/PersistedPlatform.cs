@@ -9,7 +9,7 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted <c>OAuth</c> or <c>OpenID Connect</c> Server instance.
+/// Contains the data for a persisted platform.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -20,7 +20,7 @@ public sealed class PersistedPlatform : BasePersistedPlatformResource
     public override string ResourceType => ResourceTypePrefix;
 
     /// <summary>
-    /// Gets or sets the JSON settings for an OpenID Server instance.
+    /// Gets or sets the JSON settings for the platform.
     /// </summary>
     public required PersistedPlatformSettings Settings { get; set; }
 }

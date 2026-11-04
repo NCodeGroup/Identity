@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Handles <see cref="PlatformSettingsChangedCommand"/> by applying the change on this replica before the write returns,
-/// then announcing it to every replica. The handler reads the server's committed settings again through the
+/// then announcing it to every replica. The handler reads the platform's committed settings again through the
 /// <see cref="IMaterializedPlatformRegistry"/>, so this replica serves the change at once, and then publishes the constant platform resource
 /// identifier on the <see cref="PlatformSettingsChangeBroadcastHandler.ChannelName"/> channel of the
 /// <see cref="IReplicaBroadcaster"/> so every other replica reads the settings again too. The refresh and the
@@ -53,7 +53,7 @@ internal sealed class PlatformSettingsChangedHandler(
     }
 
     /// <summary>
-    /// Reads the server's committed settings again on this replica. A failure is logged and swallowed, because the
+    /// Reads the platform's committed settings again on this replica. A failure is logged and swallowed, because the
     /// change is already committed.
     /// </summary>
     private async ValueTask RefreshAsync(string message, CancellationToken cancellationToken)
@@ -72,7 +72,7 @@ internal sealed class PlatformSettingsChangedHandler(
     }
 
     /// <summary>
-    /// Announces the changed server settings to every replica, this one included. A failure is logged and swallowed,
+    /// Announces the changed platform settings to every replica, this one included. A failure is logged and swallowed,
     /// because the change is already committed.
     /// </summary>
     private async ValueTask BroadcastAsync(string message, CancellationToken cancellationToken)

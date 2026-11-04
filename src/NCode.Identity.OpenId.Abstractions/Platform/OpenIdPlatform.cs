@@ -8,19 +8,19 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
+/// Provides contextual information and configuration details for the platform, the deployment root whose settings every team and tenant inherit.
 /// </summary>
 [PublicAPI]
 public abstract class OpenIdPlatform
 {
     /// <summary>
-    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains settings scoped to the server.
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains settings scoped to the platform.
     /// </summary>
     public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }
 
     /// <summary>
-    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains the settings the server derives from its
-    /// defaults and the host's configuration. <see cref="SettingsProvider"/> merges the server's persisted settings
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains the settings the platform derives from its
+    /// defaults and the host's configuration. <see cref="SettingsProvider"/> merges the platform's persisted settings
     /// document onto them, so they are what a replacement document would be merged onto.
     /// </summary>
     public abstract IReadOnlySettingCollectionProvider ConfiguredSettingsProvider { get; }
@@ -31,7 +31,7 @@ public abstract class OpenIdPlatform
     public abstract IPropertyBag PropertyBag { get; }
 
     /// <summary>
-    /// Reads the server's persisted settings document again now, so a change that any replica committed takes effect in
+    /// Reads the platform's persisted settings document again now, so a change that any replica committed takes effect in
     /// <see cref="SettingsProvider"/> without waiting for the next periodic refresh.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to cancel the operation.</param>

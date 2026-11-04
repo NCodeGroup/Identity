@@ -8,8 +8,8 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.Platform;
 
 /// <summary>
-/// Represents the REST resource for an OpenID Server's <b>effective</b> (resolved) settings: the server's own settings
-/// with descriptor defaults applied. The server is the root of the settings merge hierarchy, so this is the baseline
+/// Represents the REST resource for the platform's <b>effective</b> (resolved) settings: the platform's own settings
+/// with descriptor defaults applied. The platform is the root of the settings merge hierarchy, so this is the baseline
 /// that tenants (and in turn clients) inherit from, including settings that are not advertised in discovery.
 /// </summary>
 [PublicAPI]

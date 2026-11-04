@@ -8,21 +8,21 @@ namespace NCode.Identity.OpenId.Platform;
 /// committed change to its settings can refresh it at once.
 /// </summary>
 /// <remarks>
-/// The registry has no dependencies, so the server provider can register the server it materializes without creating
-/// a cycle through the services that need the server.
+/// The registry has no dependencies, so the platform provider can register the platform it materializes without creating
+/// a cycle through the services that need the platform.
 /// </remarks>
 // See ADR-1219.
 internal interface IMaterializedPlatformRegistry : IMaterializedPlatformAccessor
 {
     /// <summary>
-    /// Registers the server that this replica materialized. A replica materializes its server once, so a registration
+    /// Registers the platform that this replica materialized. A replica materializes its platform once, so a registration
     /// after the first is ignored.
     /// </summary>
-    /// <param name="server">The <see cref="OpenIdPlatform"/> to register.</param>
-    void Register(OpenIdPlatform server);
+    /// <param name="platform">The <see cref="OpenIdPlatform"/> to register.</param>
+    void Register(OpenIdPlatform platform);
 
     /// <summary>
-    /// Reads the settings of the registered server again. Does nothing when no server is
+    /// Reads the settings of the registered platform again. Does nothing when no platform is
     /// registered.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to cancel the operation.</param>

@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// The settings that govern an access token are the client's effective settings combined with the settings that apply
 /// to resource servers of every resource server the token targets, by their lattice merges
 /// (<see cref="IReadOnlySettingCollection.Combine"/>): a requirement any of them states holds, and a list permits only
-/// what all of them permit, in the server's order. Every audience of a multi-audience token binds it.
+/// what all of them permit, in the platform's order. Every audience of a multi-audience token binds it.
 /// </para>
 /// <para>
 /// An encrypted access token is encrypted to the party that reads it. A resource server that holds a key it can decrypt
@@ -75,8 +75,8 @@ internal class DefaultAccessTokenPolicyService(
         };
     }
 
-    // The client is the left operand of every combination, so a list keeps the client's order — the server's, for every
-    // list the server's settings set, since Intersect keeps its left operand's order down the whole cascade.
+    // The client is the left operand of every combination, so a list keeps the client's order — the platform's, for every
+    // list the platform's settings set, since Intersect keeps its left operand's order down the whole cascade.
     private IReadOnlySettingCollection CombineSettings(
         IReadOnlySettingCollection clientSettings,
         ResourceServerCredentialResolution resolution

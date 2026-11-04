@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
-/// Represents the request body to update the metadata of an existing server secret. Key material is immutable
+/// Represents the request body to update the metadata of an existing owner's secret. Key material is immutable
 /// once generated; to replace it, create a new one and delete the old one, or rotate a client secret.
 /// </summary>
 [PublicAPI]

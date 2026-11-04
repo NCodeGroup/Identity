@@ -10,7 +10,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
-public class ServerSettingsChangedHandlerTests : BaseTests
+public class PlatformSettingsChangedHandlerTests : BaseTests
 {
     private const string PlatformId = OpenIdConstants.PlatformResourceId;
 
@@ -19,7 +19,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     private Mock<TimeProvider> MockTimeProvider { get; }
     private PlatformSettingsChangedHandler Handler { get; }
 
-    public ServerSettingsChangedHandlerTests()
+    public PlatformSettingsChangedHandlerTests()
     {
         MockRegistry = CreateStrictMock<IMaterializedPlatformRegistry>();
         MockReplicaBroadcaster = CreateStrictMock<IReplicaBroadcaster>();
@@ -53,7 +53,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_RefreshesTheServersSettingsAndAnnouncesTheChange()
+    public async Task HandleAsync_RefreshesThePlatformSettingsAndAnnouncesTheChange()
     {
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;

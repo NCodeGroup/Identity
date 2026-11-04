@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Validates the server settings carried by <see cref="OpenIdPlatformOptions.Settings"/>, so a setting name with no
+/// Validates the platform settings carried by <see cref="OpenIdPlatformOptions.Settings"/>, so a setting name with no
 /// registered descriptor, a setting that applies to no scope, a value that does not convert to its descriptor's type,
 /// or a value outside the setting's domain stops the host when it starts instead of being loaded without effect on the
 /// first request.

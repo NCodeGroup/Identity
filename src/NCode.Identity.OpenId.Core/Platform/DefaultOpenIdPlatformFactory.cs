@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// Provides a default implementation of the <see cref="IOpenIdPlatformFactory"/> abstraction.
 /// </summary>
 /// <remarks>
-/// The server's persisted settings document is loaded through <see cref="ISecurityProfileCatalog"/>, like every other
+/// The platform's persisted settings document is loaded through <see cref="ISecurityProfileCatalog"/>, like every other
 /// scope's, so the security profiles it selects contribute their ceilings at the top of the cascade.
 /// </remarks>
 // See ADR-1148 (security profiles accumulate down the cascade).
@@ -62,21 +62,21 @@ internal class DefaultOpenIdPlatformFactory(
 
             // Until the merged provider owns them, a failure disposes the data sources that exist.
             var dataSources = new List<object>(2) { rootSettingsDataSource };
-            RefreshableSettingsCollectionDataSource serverSettingsDataSource;
+            RefreshableSettingsCollectionDataSource platformSettingsDataSource;
             IReadOnlySettingCollectionProvider settingsProvider;
             try
             {
-                serverSettingsDataSource = await CreatePlatformSettingsDataSourceAsync(
+                platformSettingsDataSource = await CreatePlatformSettingsDataSourceAsync(
                     openIdEnvironment,
                     persistedPlatform,
                     propertyBag,
                     cancellationToken
                 );
-                dataSources.Add(serverSettingsDataSource);
+                dataSources.Add(platformSettingsDataSource);
 
                 // The merged provider owns both data sources; the configured provider shares the root.
                 settingsProvider = SettingCollectionProviderFactory.Create(
-                    [rootSettingsDataSource, serverSettingsDataSource],
+                    [rootSettingsDataSource, platformSettingsDataSource],
                     owns: true
                 );
             }
@@ -97,7 +97,7 @@ internal class DefaultOpenIdPlatformFactory(
             return Create(
                 configuredSettingsProvider,
                 settingsProvider,
-                serverSettingsDataSource.RefreshAsync,
+                platformSettingsDataSource.RefreshAsync,
                 propertyBag
             );
         }
@@ -190,7 +190,7 @@ internal class DefaultOpenIdPlatformFactory(
     }
 
     /// <summary>
-    /// Used to create a data source for the server's settings that are derived from the configurable options.
+    /// Used to create a data source for the platform's settings that are derived from the configurable options.
     /// </summary>
     protected internal virtual ValueTask<
         IDisposableCollectionDataSource<Setting>
@@ -209,7 +209,7 @@ internal class DefaultOpenIdPlatformFactory(
     }
 
     /// <summary>
-    /// Used to create a data source for the server's settings that are persisted in a store.
+    /// Used to create a data source for the platform's settings that are persisted in a store.
     /// </summary>
     protected internal virtual ValueTask<RefreshableSettingsCollectionDataSource> CreatePlatformSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,

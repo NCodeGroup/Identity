@@ -7,27 +7,27 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
-public class DefaultMaterializedServerRegistryTests : BaseTests
+public class DefaultMaterializedPlatformRegistryTests : BaseTests
 {
     private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5.0);
 
     private DefaultMaterializedPlatformRegistry Registry { get; } = new();
 
-    private Mock<OpenIdPlatform> CreateServer() => CreateStrictMock<OpenIdPlatform>();
+    private Mock<OpenIdPlatform> CreatePlatform() => CreateStrictMock<OpenIdPlatform>();
 
     #region GetPlatformAsync Tests
 
     [Fact]
-    public async Task GetServerAsync_WhenAServerIsRegisteredLater_ReturnsIt()
+    public async Task GetPlatformAsync_WhenAPlatformIsRegisteredLater_ReturnsIt()
     {
-        var mockServer = CreateServer();
+        var mockPlatform = CreatePlatform();
         var pending = Registry.GetPlatformAsync(CancellationToken.None);
         Assert.False(pending.IsCompleted);
 
-        Registry.Register(mockServer.Object);
+        Registry.Register(mockPlatform.Object);
 
         var actual = await pending.AsTask().WaitAsync(Deadline);
-        Assert.Same(mockServer.Object, actual);
+        Assert.Same(mockPlatform.Object, actual);
     }
 
     #endregion
@@ -35,10 +35,10 @@ public class DefaultMaterializedServerRegistryTests : BaseTests
     #region Register Tests
 
     [Fact]
-    public async Task Register_WhenAServerIsAlreadyRegistered_KeepsTheFirst()
+    public async Task Register_WhenAPlatformIsAlreadyRegistered_KeepsTheFirst()
     {
-        var mockFirst = CreateServer();
-        var mockSecond = CreateServer();
+        var mockFirst = CreatePlatform();
+        var mockSecond = CreatePlatform();
         Registry.Register(mockFirst.Object);
 
         Registry.Register(mockSecond.Object);
@@ -52,22 +52,22 @@ public class DefaultMaterializedServerRegistryTests : BaseTests
     #region RefreshSettingsAsync Tests
 
     [Fact]
-    public async Task RefreshSettingsAsync_WhenNoServerIsRegistered_DoesNothing()
+    public async Task RefreshSettingsAsync_WhenNoPlatformIsRegistered_DoesNothing()
     {
         await Registry.RefreshSettingsAsync(CancellationToken.None);
     }
 
     [Fact]
-    public async Task RefreshSettingsAsync_RefreshesTheRegisteredServer()
+    public async Task RefreshSettingsAsync_RefreshesTheRegisteredPlatform()
     {
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
-        var mockServer = CreateServer();
-        mockServer
+        var mockPlatform = CreatePlatform();
+        mockPlatform
             .Setup(x => x.RefreshSettingsAsync(cancellationToken))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        Registry.Register(mockServer.Object);
+        Registry.Register(mockPlatform.Object);
 
         await Registry.RefreshSettingsAsync(cancellationToken);
     }

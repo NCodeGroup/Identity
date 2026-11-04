@@ -12,11 +12,11 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdPlatformProvider"/> abstraction. The server it
+/// Provides a default implementation of the <see cref="IOpenIdPlatformProvider"/> abstraction. The platform it
 /// materializes is registered with <see cref="IMaterializedPlatformRegistry"/>, so background work can wait for the
-/// server and a committed change to its settings can refresh it. Whenever the server's settings change, by any path,
+/// platform and a committed change to its settings can refresh it. Whenever the platform's settings change, by any path,
 /// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/>, because a tenant's settings derive from the
-/// server's when it is materialized.
+/// platform's when it is materialized.
 /// </summary>
 // See ADR-1219 and ADR-1289.
 internal class DefaultOpenIdPlatformProvider(
@@ -71,16 +71,16 @@ internal class DefaultOpenIdPlatformProvider(
             {
                 if (InstanceOrNull is null)
                 {
-                    var server = await Factory.CreateAsync(openIdEnvironment, cancellationToken);
-                    InstanceOrNull = server;
+                    var platform = await Factory.CreateAsync(openIdEnvironment, cancellationToken);
+                    InstanceOrNull = platform;
 
-                    // Background work waits for the server this replica materializes, and a committed change refreshes it (ADR-1219).
-                    MaterializedPlatformRegistry.Register(server);
+                    // Background work waits for the platform this replica materializes, and a committed change refreshes it (ADR-1219).
+                    MaterializedPlatformRegistry.Register(platform);
 
-                    // A tenant computes the profiles its environment type implies from the server's settings when it is
-                    // materialized, so a changed server reaches cached tenants at once rather than when they expire (ADR-1289).
+                    // A tenant computes the profiles its environment type implies from the platform's settings when it is
+                    // materialized, so a changed platform reaches cached tenants at once rather than when they expire (ADR-1289).
                     SettingsChangeRegistration = ChangeToken.OnChange(
-                        server.SettingsProvider.GetChangeToken,
+                        platform.SettingsProvider.GetChangeToken,
                         EvictTenants
                     );
                 }

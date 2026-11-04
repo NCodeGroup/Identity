@@ -63,7 +63,7 @@ public class DefaultOpenIdPlatformFactoryTests : BaseTests
             .Returns(mockTimer.Object)
             .Verifiable();
 
-        var serverSettingsDataSource = new RefreshableSettingsCollectionDataSource(
+        var platformSettingsDataSource = new RefreshableSettingsCollectionDataSource(
             [],
             _ => ValueTask.FromResult<IReadOnlyCollection<Setting>?>(null),
             Interval,
@@ -77,27 +77,27 @@ public class DefaultOpenIdPlatformFactoryTests : BaseTests
             .Throws(new InvalidOperationException("merge"))
             .Verifiable();
 
-        var factory = new TestableServerFactory(
+        var factory = new TestablePlatformFactory(
             this,
             mockProviderFactory.Object,
             mockRootDataSource.Object,
-            serverSettingsDataSource
+            platformSettingsDataSource
         );
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             factory.CreateAsync(mockEnvironment.Object, CancellationToken.None).AsTask()
         );
 
-        Assert.Throws<ObjectDisposedException>(() => serverSettingsDataSource.GetChangeToken());
+        Assert.Throws<ObjectDisposedException>(() => platformSettingsDataSource.GetChangeToken());
     }
 
     #endregion
 
-    private sealed class TestableServerFactory(
+    private sealed class TestablePlatformFactory(
         DefaultOpenIdPlatformFactoryTests tests,
         IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
         IDisposableCollectionDataSource<Setting> rootSettingsDataSource,
-        RefreshableSettingsCollectionDataSource serverSettingsDataSource
+        RefreshableSettingsCollectionDataSource platformSettingsDataSource
     )
         : DefaultOpenIdPlatformFactory(
             Options.Create(new OpenIdOptions()),
@@ -125,6 +125,6 @@ public class DefaultOpenIdPlatformFactoryTests : BaseTests
             PersistedPlatform persistedPlatform,
             IPropertyBag propertyBag,
             CancellationToken cancellationToken
-        ) => ValueTask.FromResult(serverSettingsDataSource);
+        ) => ValueTask.FromResult(platformSettingsDataSource);
     }
 }

@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.Secrets;
 
 /// <summary>
-/// Represents the request body to create a new server secret. The key material is generated server-side; the
+/// Represents the request body to create a new owner's secret. The key material is generated server-side; the
 /// caller never supplies it.
 /// </summary>
 [PublicAPI]

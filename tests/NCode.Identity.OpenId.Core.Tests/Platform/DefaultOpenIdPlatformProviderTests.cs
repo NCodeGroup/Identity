@@ -13,35 +13,38 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
-public class DefaultOpenIdServerProviderTests : BaseTests
+public class DefaultOpenIdPlatformProviderTests : BaseTests
 {
     private CancellationTokenSource SettingsChanged { get; set; } = new();
 
     private (
         Mock<OpenIdEnvironment> Environment,
-        Mock<OpenIdPlatform> Server,
+        Mock<OpenIdPlatform> Platform,
         Mock<IOpenIdTenantCache> TenantCache,
         DefaultOpenIdPlatformProvider Provider
     ) CreateProvider()
     {
         var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        var mockServer = CreateStrictMock<OpenIdPlatform>();
+        var mockPlatform = CreateStrictMock<OpenIdPlatform>();
 
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         mockSettingsProvider
             .Setup(x => x.GetChangeToken())
             .Returns(() => new CancellationChangeToken(SettingsChanged.Token))
             .Verifiable();
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockSettingsProvider.Object).Verifiable();
+        mockPlatform
+            .Setup(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
 
         var mockFactory = CreateStrictMock<IOpenIdPlatformFactory>();
         mockFactory
             .Setup(x => x.CreateAsync(mockEnvironment.Object, CancellationToken.None))
-            .ReturnsAsync(mockServer.Object)
+            .ReturnsAsync(mockPlatform.Object)
             .Verifiable(Times.Once());
 
         var mockRegistry = CreateStrictMock<IMaterializedPlatformRegistry>();
-        mockRegistry.Setup(x => x.Register(mockServer.Object)).Verifiable(Times.Once());
+        mockRegistry.Setup(x => x.Register(mockPlatform.Object)).Verifiable(Times.Once());
 
         var mockTenantCache = CreateStrictMock<IOpenIdTenantCache>();
 
@@ -52,22 +55,22 @@ public class DefaultOpenIdServerProviderTests : BaseTests
             CreateLooseMock<ILogger<DefaultOpenIdPlatformProvider>>().Object
         );
 
-        return (mockEnvironment, mockServer, mockTenantCache, provider);
+        return (mockEnvironment, mockPlatform, mockTenantCache, provider);
     }
 
     #region GetAsync Tests
 
     [Fact]
-    public async Task GetAsync_WhenItCreatesTheServer_RegistersItOnce()
+    public async Task GetAsync_WhenItCreatesThePlatform_RegistersItOnce()
     {
-        var (mockEnvironment, mockServer, _, provider) = CreateProvider();
+        var (mockEnvironment, mockPlatform, _, provider) = CreateProvider();
         await using var _ = provider;
 
         var first = await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
         var second = await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
 
-        Assert.Same(mockServer.Object, first);
-        Assert.Same(mockServer.Object, second);
+        Assert.Same(mockPlatform.Object, first);
+        Assert.Same(mockPlatform.Object, second);
     }
 
     [Fact]
@@ -93,7 +96,7 @@ public class DefaultOpenIdServerProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task DisposeAsync_AfterTheServerIsCreated_StopsEvictingTenants()
+    public async Task DisposeAsync_AfterThePlatformIsCreated_StopsEvictingTenants()
     {
         var (mockEnvironment, _, mockTenantCache, provider) = CreateProvider();
         mockTenantCache

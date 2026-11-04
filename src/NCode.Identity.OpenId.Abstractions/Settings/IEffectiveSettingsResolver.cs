@@ -8,7 +8,7 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// The one place that resolves a scope's effective settings outside a materialized tenant or client: the server's
+/// The one place that resolves a scope's effective settings outside a materialized tenant or client: the platform's
 /// settings, then the tenant's, then the client's or resource server's, each merged onto the one before it with every
 /// selected security profile's ceilings and defaults applied.
 /// </summary>
@@ -25,7 +25,7 @@ public interface IEffectiveSettingsResolver
     /// security profile it selects. The scope's environment type selects profiles too: the type is read from
     /// <paramref name="parentSettings"/> when the document leaves it unset.
     /// </summary>
-    /// <param name="parentSettings">The effective settings of the scope's parent (the server for a tenant, the tenant
+    /// <param name="parentSettings">The effective settings of the scope's parent (the platform for a tenant, the tenant
     /// for a client or resource server).</param>
     /// <param name="scopeName">The name of the registered scope whose settings document <paramref name="settings"/>
     /// is; a setting that does not apply within it fails the read.</param>
@@ -43,7 +43,7 @@ public interface IEffectiveSettingsResolver
     /// Merges a scope's settings document onto the effective settings of its parent. It is equivalent to merging the
     /// result of <see cref="ReadScopeSettings"/> onto <paramref name="parentSettings"/>.
     /// </summary>
-    /// <param name="parentSettings">The effective settings of the scope's parent (the server for a tenant, the tenant
+    /// <param name="parentSettings">The effective settings of the scope's parent (the platform for a tenant, the tenant
     /// for a client or resource server).</param>
     /// <param name="scopeName">The name of the registered scope whose settings document <paramref name="settings"/>
     /// is.</param>
@@ -59,9 +59,9 @@ public interface IEffectiveSettingsResolver
 
     /// <summary>
     /// Merges the settings document that a store holds for an owner of a scope (a tenant, a client or a resource
-    /// server) onto its parent's effective settings, and names the document when it cannot be honored.
+    /// platform) onto its parent's effective settings, and names the document when it cannot be honored.
     /// </summary>
-    /// <param name="parentSettings">The effective settings of the scope's parent (the server for a tenant, the tenant
+    /// <param name="parentSettings">The effective settings of the scope's parent (the platform for a tenant, the tenant
     /// for a client or resource server).</param>
     /// <param name="scopeName">The name of the registered scope whose settings document <paramref name="settings"/>
     /// is.</param>
@@ -79,12 +79,12 @@ public interface IEffectiveSettingsResolver
     );
 
     /// <summary>
-    /// Resolves a proposed server settings document: the server's configured settings merged with the supplied
+    /// Resolves a proposed platform settings document: the platform's configured settings merged with the supplied
     /// document.
     /// </summary>
-    /// <param name="settings">The proposed server settings as a JSON document.</param>
+    /// <param name="settings">The proposed platform settings as a JSON document.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
-    /// <returns>The effective settings of the server if <paramref name="settings"/> were committed.</returns>
+    /// <returns>The effective settings of the platform if <paramref name="settings"/> were committed.</returns>
     /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
     /// names no registered profile.</exception>
     ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(
@@ -93,13 +93,13 @@ public interface IEffectiveSettingsResolver
     );
 
     /// <summary>
-    /// Resolves the server's committed settings: the server's configured settings merged with the server's settings
+    /// Resolves the platform's committed settings: the platform's configured settings merged with the platform's settings
     /// document that the store holds now, rather than the document this replica last polled.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
-    /// <returns>The effective settings of the server as committed.</returns>
+    /// <returns>The effective settings of the platform as committed.</returns>
     /// <exception cref="UnreadableSettingsException">The committed document cannot be honored, including a
-    /// <c>security_profiles</c> value that names no registered profile; the exception names the server.</exception>
+    /// <c>security_profiles</c> value that names no registered profile; the exception names the platform.</exception>
     // See ADR-1245.
     ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(CancellationToken cancellationToken);
 }

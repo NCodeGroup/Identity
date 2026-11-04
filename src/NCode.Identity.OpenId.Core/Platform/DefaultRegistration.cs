@@ -13,7 +13,7 @@ using NCode.Registration;
 namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides extension methods to configure services for the OpenID server.
+/// Provides extension methods to configure services for the platform.
 /// </summary>
 internal static class DefaultRegistration
 {
@@ -21,7 +21,7 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdCoreLibrary> builder)
     {
         /// <summary>
-        /// Configures the OpenID server services.
+        /// Configures the platform services.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -48,12 +48,12 @@ internal static class DefaultRegistration
                 DefaultMaterializedPlatformRegistry
             >();
 
-            // Background work in another package waits for the server through the public accessor (ADR-1223).
+            // Background work in another package waits for the platform through the public accessor (ADR-1223).
             serviceCollection.TryAddSingleton<IMaterializedPlatformAccessor>(serviceProvider =>
                 serviceProvider.GetRequiredService<IMaterializedPlatformRegistry>()
             );
 
-            // A committed server settings change is applied on this replica before the write returns and then announced
+            // A committed platform settings change is applied on this replica before the write returns and then announced
             // to every replica (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
@@ -62,7 +62,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A server settings change announced on the replica broadcast channel makes every replica read the committed
+            // A platform settings change announced on the replica broadcast channel makes every replica read the committed
             // settings again, so each serves the change rather than only the one that made it (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
@@ -71,7 +71,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A server or tenant interval that a timer refuses stops the host when it starts instead of failing the
+            // A platform or tenant interval that a timer refuses stops the host when it starts instead of failing the
             // first time a timer is created (ADR-1221).
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(

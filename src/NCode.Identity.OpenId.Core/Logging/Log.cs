@@ -38,7 +38,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReloadRejected,
         Level = LogLevel.Error,
-        Message = "The reloaded server settings in '{SectionPath}' cannot be honored, so the previous settings remain in force: {Errors}"
+        Message = "The reloaded platform settings in '{SectionPath}' cannot be honored, so the previous settings remain in force: {Errors}"
     )]
     internal static partial void PlatformSettingsReloadRejected(
         this ILogger logger,
@@ -61,7 +61,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.TenantKeyReseedFailed,
         Level = LogLevel.Warning,
-        Message = "Re-seeding the tenant '{TenantId}' after a server settings change failed; it is seeded again when it is next materialized"
+        Message = "Re-seeding the tenant '{TenantId}' after a platform settings change failed; it is seeded again when it is next materialized"
     )]
     internal static partial void TenantKeyReseedFailed(
         this ILogger logger,
@@ -83,7 +83,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Refreshing the server's persisted settings failed; the previous settings remain in force until the next refresh"
+        Message = "Refreshing the platform's persisted settings failed; the previous settings remain in force until the next refresh"
     )]
     internal static partial void PlatformSettingsRefreshFailed(
         this ILogger logger,
@@ -93,7 +93,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsChangeRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Reading the settings of the server  again after a change failed; this replica applies the change at its next poll"
+        Message = "Reading the settings of the platform  again after a change failed; this replica applies the change at its next poll"
     )]
     internal static partial void PlatformSettingsChangeRefreshFailed(
         this ILogger logger,
@@ -103,7 +103,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsChangeBroadcastFailed,
         Level = LogLevel.Warning,
-        Message = "Announcing the change to the settings of the server  to the other replicas failed; they apply it at their next poll"
+        Message = "Announcing the change to the settings of the platform  to the other replicas failed; they apply it at their next poll"
     )]
     internal static partial void PlatformSettingsChangeBroadcastFailed(
         this ILogger logger,
@@ -113,7 +113,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReconciliationStarted,
         Level = LogLevel.Information,
-        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the server '{PlatformId}' affect"
+        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the platform '{PlatformId}' affect"
     )]
     internal static partial void PlatformSettingsReconciliationStarted(
         this ILogger logger,
@@ -124,7 +124,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReconciled,
         Level = LogLevel.Information,
-        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the server '{PlatformId}' affect"
+        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the platform '{PlatformId}' affect"
     )]
     internal static partial void PlatformSettingsReconciled(
         this ILogger logger,
@@ -135,7 +135,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReconciliationFailed,
         Level = LogLevel.Warning,
-        Message = "Reconciling the settings of the server '{PlatformId}' failed; it is attempted again when the reconciliation lease expires"
+        Message = "Reconciling the settings of the platform '{PlatformId}' failed; it is attempted again when the reconciliation lease expires"
     )]
     internal static partial void PlatformSettingsReconciliationFailed(
         this ILogger logger,
@@ -146,7 +146,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformMaterializationAtStartFailed,
         Level = LogLevel.Warning,
-        Message = "Materializing the server when the replica started failed; its settings are reconciled once a request materializes it"
+        Message = "Materializing the platform when the replica started failed; its settings are reconciled once a request materializes it"
     )]
     internal static partial void PlatformMaterializationAtStartFailed(
         this ILogger logger,
@@ -156,7 +156,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ReconciledPlatformSettingsUnreadable,
         Level = LogLevel.Warning,
-        Message = "The settings that the server '{PlatformId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
+        Message = "The settings that the platform '{PlatformId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
     )]
     internal static partial void ReconciledPlatformSettingsUnreadable(
         this ILogger logger,
@@ -167,7 +167,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.TenantCacheClearFailed,
         Level = LogLevel.Warning,
-        Message = "Evicting the cached tenants after the server's settings changed failed; each tenant applies the change when its cache entry expires"
+        Message = "Evicting the cached tenants after the platform's settings changed failed; each tenant applies the change when its cache entry expires"
     )]
     internal static partial void TenantCacheClearFailed(this ILogger logger, Exception exception);
 }

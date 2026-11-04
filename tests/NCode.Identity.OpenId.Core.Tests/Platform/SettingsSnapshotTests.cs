@@ -8,18 +8,18 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
-public class ServerSettingsSnapshotTests
+public class PlatformSettingsSnapshotTests
 {
     private static JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web);
 
     private static SettingDescriptor<bool> FlagDescriptor { get; } =
-        new() { Name = "flag", AppliesTo = ["server"] };
+        new() { Name = "flag", AppliesTo = ["platform"] };
 
     private static SettingDescriptor<List<string>> ListDescriptor { get; } =
-        new() { Name = "list", AppliesTo = ["server"] };
+        new() { Name = "list", AppliesTo = ["platform"] };
 
     private static SettingDescriptor<TimeSpan> LifetimeDescriptor { get; } =
-        new() { Name = "lifetime", AppliesTo = ["server"] };
+        new() { Name = "lifetime", AppliesTo = ["platform"] };
 
     private static Setting<bool> CreateFlag(bool value) => new(FlagDescriptor, value);
 

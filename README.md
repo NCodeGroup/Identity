@@ -49,9 +49,9 @@ Two consequences worth knowing up front:
   registration is off, and capabilities that weaken posture are opt-in and advertised only when enabled
   ([ADR-1083](docs/decisions/1083-secure-by-default-discovery-metadata.md)). The resource-owner password grant exists for
   hosts that genuinely need it, but it is a separate opt-in registration rather than part of the default composition.
-- **Settings are a merge lattice, not a flag soup.** Server, tenant, resource-server, and client settings merge through
+- **Settings are a merge lattice, not a flag soup.** Platform, team, tenant, resource-server and client settings merge through
   declared rules (a floor cannot be raised by a child, a ceiling cannot be exceeded), so a tenant cannot configure its
-  way out of a server-level security decision
+  way out of a platform- or team-level security decision
   ([ADR-1108](docs/decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 
 ## What works today

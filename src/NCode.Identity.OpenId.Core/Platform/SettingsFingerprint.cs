@@ -11,7 +11,7 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Computes the fingerprint of a server's effective settings: the Base64Url encoding of a SHA-256 hash over each
+/// Computes the fingerprint of a platform's effective settings: the Base64Url encoding of a SHA-256 hash over each
 /// setting's length-prefixed UTF-8 name and length-prefixed JSON value. The settings are hashed in ordinal order of
 /// their names, and a setting whose value is a sequence of strings is hashed with its items in ordinal order, because
 /// every rule that reads such a list reads it as a set. Two collections with the same settings and values therefore

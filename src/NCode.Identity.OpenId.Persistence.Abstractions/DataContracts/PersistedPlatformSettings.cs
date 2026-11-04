@@ -10,7 +10,7 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the JSON settings for an OpenID Server instance.
+/// Contains the JSON settings for the platform.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

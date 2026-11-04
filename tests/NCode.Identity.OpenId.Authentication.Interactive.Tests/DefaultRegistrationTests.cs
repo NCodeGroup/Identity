@@ -70,6 +70,45 @@ public sealed class DefaultRegistrationTests : IDisposable
             Messages = InteractiveLocales.English.Messages with { SignInTitle = "Log in" },
         };
 
+    private static InteractiveLocale CreateRewordedGerman() =>
+        InteractiveLocales.German with
+        {
+            Messages = InteractiveLocales.German.Messages with { SignInTitle = "Einloggen" },
+        };
+
+    private static InteractiveLocale CreateItalian() =>
+        InteractiveLocales.English with
+        {
+            LanguageTag = "it",
+        };
+
+    // Runs the registration calls the names list, in that order: "auth" is AddInteractiveAuthentication and any
+    // other name is AddInteractiveLocale with the locale of that name.
+    private List<IUiLocale?> RegisterInOrder(
+        IReadOnlyDictionary<string, InteractiveLocale> locales,
+        IEnumerable<string> calls
+    )
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+        var serviceCollection = new ServiceCollection();
+        var builder = serviceCollection.NewBuilder<OpenIdAuthenticationLibrary>();
+
+        foreach (var call in calls)
+        {
+            if (call == "auth")
+            {
+                builder.AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+            }
+            else
+            {
+                builder.AddInteractiveLocale(locales[call]);
+            }
+        }
+
+        return GetRegisteredLocales(serviceCollection);
+    }
+
     #region AddInteractiveAuthentication Tests
 
     [Fact]
@@ -307,7 +346,7 @@ public sealed class DefaultRegistrationTests : IDisposable
     }
 
     [Fact]
-    public void AddInteractiveAuthentication_WhenTheHostRegisteredSeveralLocalesFirst_InsertsEachMissingShippedLocaleInItsPlace()
+    public void AddInteractiveAuthentication_WhenTheHostRegisteredSeveralLocalesFirst_KeepsEachRewordedLocaleInItsShippedPlace()
     {
         var configuration = new ConfigurationBuilder().Build();
         var hostEnvironment = MockRepository.Create<IHostEnvironment>();
@@ -329,11 +368,95 @@ public sealed class DefaultRegistrationTests : IDisposable
                 InteractiveLocales.English,
                 InteractiveLocales.German,
                 InteractiveLocales.Spanish,
-                italian,
                 rewordedFrench,
+                italian,
             ],
             locales
         );
+    }
+
+    [Theory]
+    [InlineData("de", "en", "auth")]
+    [InlineData("auth", "de", "en")]
+    [InlineData("de", "auth", "en")]
+    [InlineData("en", "de", "auth")]
+    public void AddInteractiveAuthentication_WhenTheHostRewordsTwoShippedLocales_KeepsTheShippedOrderWhateverTheOrderOfTheCalls(
+        params string[] calls
+    )
+    {
+        // Finding a reworded 'en' after a reworded 'de' once moved the insert position of the missing shipped
+        // locales back, so the order depended on the calls.
+        var rewordedEnglish = CreateRewordedEnglish();
+        var rewordedGerman = CreateRewordedGerman();
+
+        var locales = RegisterInOrder(
+            new Dictionary<string, InteractiveLocale>
+            {
+                ["en"] = rewordedEnglish,
+                ["de"] = rewordedGerman,
+            },
+            calls
+        );
+
+        Assert.Equal(
+            [
+                rewordedEnglish,
+                rewordedGerman,
+                InteractiveLocales.Spanish,
+                InteractiveLocales.French,
+            ],
+            locales
+        );
+    }
+
+    [Theory]
+    [InlineData("it", "de", "auth")]
+    [InlineData("de", "it", "auth")]
+    [InlineData("it", "auth", "de")]
+    [InlineData("de", "auth", "it")]
+    [InlineData("auth", "it", "de")]
+    [InlineData("auth", "de", "it")]
+    public void AddInteractiveAuthentication_WhenTheHostAddsATagAndRewordsAShippedLocale_RegistersOneOrderWhateverTheOrderOfTheCalls(
+        params string[] calls
+    )
+    {
+        var italian = CreateItalian();
+        var rewordedGerman = CreateRewordedGerman();
+
+        var locales = RegisterInOrder(
+            new Dictionary<string, InteractiveLocale> { ["it"] = italian, ["de"] = rewordedGerman },
+            calls
+        );
+
+        Assert.Equal(
+            [
+                InteractiveLocales.English,
+                rewordedGerman,
+                InteractiveLocales.Spanish,
+                InteractiveLocales.French,
+                italian,
+            ],
+            locales
+        );
+    }
+
+    [Theory]
+    [InlineData("pt", "it", "auth")]
+    [InlineData("pt", "auth", "it")]
+    [InlineData("auth", "pt", "it")]
+    public void AddInteractiveAuthentication_WhenTheHostAddsSeveralTags_KeepsThemInTheOrderTheHostRegisteredThem(
+        params string[] calls
+    )
+    {
+        var italian = CreateItalian();
+        var portuguese = InteractiveLocales.English with { LanguageTag = "pt" };
+
+        var locales = RegisterInOrder(
+            new Dictionary<string, InteractiveLocale> { ["it"] = italian, ["pt"] = portuguese },
+            calls
+        );
+
+        Assert.Equal([.. InteractiveLocales.All, portuguese, italian], locales);
     }
 
     [Fact]

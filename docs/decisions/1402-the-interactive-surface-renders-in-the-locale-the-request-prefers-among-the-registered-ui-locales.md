@@ -66,16 +66,20 @@ forms carry on.**
    the error is found at deploy time, never by an end-user. `InteractiveLocales` ships English, which it registers
    first, German, Spanish and French; a host adds a locale, or changes a page's wording with a locale built from a
    shipped one and its own messages, through `AddInteractiveLocale`, which registers the `InteractiveLocale` in place
-   of any registered locale of its tag, keeping that locale's place in the registration order, before or after
-   `AddInteractiveAuthentication`, which never registers a shipped locale over a tag the host registered and
-   inserts each shipped locale the host did not register, in the shipped order, ahead of the first locale the host
-   registered under a new tag. So English is the first registered locale, and the surface's default language,
-   whatever the order of the calls, and a host that wants another default language names it in the tenant's
+   of any registered locale of its tag, before or after `AddInteractiveAuthentication`, which never registers a
+   shipped locale over a tag the host registered. The registered order is canonical, a function of the set of
+   registered locales alone and never of the order of the calls: the shipped locales in their shipped order, each
+   replaced by the host's locale of its tag when the host registered one, then the locales with other tags in the
+   order the host registered them. Both registrations end by ordering the registered instances that way, so the
+   order is the same whichever call comes first and however the calls interleave; an order that depended on the
+   calls would make the default language a property of the host's composition order, which nothing documents and
+   a reordering of `Program.cs` would change without a test failing. So English is the first registered locale,
+   and the surface's default language, and a host that wants another default language names it in the tenant's
    `default_ui_locale`. A UI locale is registered data: both registrations register each locale as a singleton
    instance and find the registered locale of a tag among the instances, which `TryAddEnumerable` cannot, since it
    dedupes by implementation type and every shipped locale is the one record type. A locale a host registers
-   through a type or a factory is outside the replace-by-tag rule, and the catalog refuses its tag when it is
-   registered twice.
+   through a type or a factory is outside the replace-by-tag rule and keeps its own place, and the catalog refuses
+   its tag when it is registered twice.
 6. **The page states its locale, and the forms carry it.** The server writes the selected locale's tag into the
    `lang` attribute of the `html` element: as the attribute of its standalone document, and in place of the
    `__NCODE_LANG__` placeholder the bundle's `index.html` carries (`InteractiveBundleShell.LanguagePlaceholder`,

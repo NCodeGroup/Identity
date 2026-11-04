@@ -170,4 +170,22 @@ internal static partial class Log
         Message = "Evicting the cached tenants after the platform's settings changed failed; each tenant applies the change when its cache entry expires"
     )]
     internal static partial void TenantCacheClearFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.TeamChangeBroadcastFailed,
+        Level = LogLevel.Warning,
+        Message = "Announcing the change to team '{TeamId}' to the other replicas failed; they pick it up through their polls"
+    )]
+    internal static partial void TeamChangeBroadcastFailed(
+        this ILogger logger,
+        string teamId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TeamCacheClearFailed,
+        Level = LogLevel.Warning,
+        Message = "Evicting the cached teams failed; each team applies the change when its cache entry expires"
+    )]
+    internal static partial void TeamCacheClearFailed(this ILogger logger, Exception exception);
 }

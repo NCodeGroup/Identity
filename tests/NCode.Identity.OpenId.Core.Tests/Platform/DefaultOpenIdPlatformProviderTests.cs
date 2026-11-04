@@ -6,6 +6,7 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Platform;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
@@ -21,6 +22,7 @@ public class DefaultOpenIdPlatformProviderTests : BaseTests
         Mock<OpenIdEnvironment> Environment,
         Mock<OpenIdPlatform> Platform,
         Mock<IOpenIdTenantCache> TenantCache,
+        Mock<IOpenIdTeamCache> TeamCache,
         DefaultOpenIdPlatformProvider Provider
     ) CreateProvider()
     {
@@ -48,14 +50,17 @@ public class DefaultOpenIdPlatformProviderTests : BaseTests
 
         var mockTenantCache = CreateStrictMock<IOpenIdTenantCache>();
 
+        var mockTeamCache = CreateStrictMock<IOpenIdTeamCache>();
+
         var provider = new DefaultOpenIdPlatformProvider(
             mockFactory.Object,
             mockRegistry.Object,
             mockTenantCache.Object,
+            mockTeamCache.Object,
             CreateLooseMock<ILogger<DefaultOpenIdPlatformProvider>>().Object
         );
 
-        return (mockEnvironment, mockPlatform, mockTenantCache, provider);
+        return (mockEnvironment, mockPlatform, mockTenantCache, mockTeamCache, provider);
     }
 
     #region GetAsync Tests
@@ -63,7 +68,7 @@ public class DefaultOpenIdPlatformProviderTests : BaseTests
     [Fact]
     public async Task GetAsync_WhenItCreatesThePlatform_RegistersItOnce()
     {
-        var (mockEnvironment, mockPlatform, _, provider) = CreateProvider();
+        var (mockEnvironment, mockPlatform, _, _, provider) = CreateProvider();
         await using var _ = provider;
 
         var first = await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
@@ -76,12 +81,15 @@ public class DefaultOpenIdPlatformProviderTests : BaseTests
     [Fact]
     public async Task GetAsync_WhenThePlatformSettingsChange_EvictsEveryCachedTenant()
     {
-        var (mockEnvironment, _, mockTenantCache, provider) = CreateProvider();
+        var (mockEnvironment, _, mockTenantCache, mockTeamCache, provider) = CreateProvider();
         await using var _ = provider;
         mockTenantCache
             .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
+        mockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
         await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
 
         var first = SettingsChanged;
@@ -96,10 +104,34 @@ public class DefaultOpenIdPlatformProviderTests : BaseTests
     }
 
     [Fact]
+    public async Task GetAsync_WhenThePlatformSettingsChange_EvictsEveryCachedTeam()
+    {
+        var (mockEnvironment, _, mockTenantCache, mockTeamCache, provider) = CreateProvider();
+        await using var _ = provider;
+        mockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
+        mockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once());
+        await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
+
+        var changed = SettingsChanged;
+        SettingsChanged = new CancellationTokenSource();
+        await changed.CancelAsync();
+        changed.Dispose();
+    }
+
+    [Fact]
     public async Task DisposeAsync_AfterThePlatformIsCreated_StopsEvictingTenants()
     {
-        var (mockEnvironment, _, mockTenantCache, provider) = CreateProvider();
+        var (mockEnvironment, _, mockTenantCache, mockTeamCache, provider) = CreateProvider();
         mockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Never());
+        mockTeamCache
             .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Never());

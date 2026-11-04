@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -28,16 +29,27 @@ internal class DefaultOpenIdTenantCache(
     // Cancelled by ClearAsync, so every entry cached before the call expires.
     private CancellationTokenSource Generation { get; set; } = new();
 
+    // The cached tenant identifiers of each team, so RemoveTeamAsync finds a team's tenants without scanning the cache.
+    private ConcurrentDictionary<
+        string,
+        ConcurrentDictionary<string, byte>
+    > TenantIdsByTeam { get; } = new();
+
     private static string GetCacheKey(string tenantId) =>
         $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantId}";
 
-    private static void EvictionCallback(
-        object key,
-        object? value,
-        EvictionReason reason,
-        object? state
-    )
+    private void EvictionCallback(object key, object? value, EvictionReason reason, object? state)
     {
+        // A replaced entry's identifier belongs to its replacement, which registered it already.
+        if (
+            reason != EvictionReason.Replaced
+            && state is ValueTuple<string, string>(var teamId, var tenantId)
+            && TenantIdsByTeam.TryGetValue(teamId, out var tenantIds)
+        )
+        {
+            tenantIds.TryRemove(tenantId, out _);
+        }
+
         if (value is not IAsyncDisposable asyncDisposable)
             return;
 
@@ -78,6 +90,7 @@ internal class DefaultOpenIdTenantCache(
     {
         var key = GetCacheKey(tenantId);
         var newLease = tenant.AddReference();
+        var teamId = tenant.Value.TeamId;
 
         CancellationToken generation;
         lock (Gate)
@@ -91,10 +104,16 @@ internal class DefaultOpenIdTenantCache(
             ExpirationTokens = { new CancellationChangeToken(generation) },
             PostEvictionCallbacks =
             {
-                new PostEvictionCallbackRegistration { EvictionCallback = EvictionCallback },
+                new PostEvictionCallbackRegistration
+                {
+                    EvictionCallback = EvictionCallback,
+                    State = (teamId, tenantId),
+                },
             },
         };
 
+        TenantIdsByTeam.GetOrAdd(teamId, _ => new ConcurrentDictionary<string, byte>())[tenantId] =
+            0;
         MemoryCache.Set(key, newLease, entryOptions);
 
         return ValueTask.CompletedTask;
@@ -111,6 +130,22 @@ internal class DefaultOpenIdTenantCache(
         MemoryCache.Remove(GetCacheKey(tenantId));
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RemoveTeamAsync(
+        string teamId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TenantIdsByTeam.TryGetValue(teamId, out var tenantIds))
+            return;
+
+        foreach (var tenantId in tenantIds.Keys)
+        {
+            await RemoveAsync(tenantId, propertyBag, cancellationToken);
+        }
     }
 
     /// <inheritdoc />

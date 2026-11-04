@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.Settings;
+using NCode.Identity.SharedState;
+using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Teams;
@@ -43,6 +45,18 @@ internal static class DefaultRegistration
                     ICollectionDataSource<SettingDescriptor>,
                     TeamSettingDescriptorDataSource
                 >()
+            );
+
+            // A team change evicts the team and its tenants from this replica's caches and announces the change, and the
+            // announcement evicts them from every other replica's (ADR-1403).
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<TeamChangedCommand>,
+                    TeamChangedHandler
+                >()
+            );
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IReplicaBroadcastHandler, TeamChangeBroadcastHandler>()
             );
 
             return builder;

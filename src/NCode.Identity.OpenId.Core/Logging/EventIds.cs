@@ -43,4 +43,8 @@ internal static class EventIds
     public const int TenantCacheClearFailed = Base + 14;
 
     public const int PlatformMaterializationAtStartFailed = Base + 15;
+
+    public const int TeamChangeBroadcastFailed = Base + 16;
+
+    public const int TeamCacheClearFailed = Base + 17;
 }

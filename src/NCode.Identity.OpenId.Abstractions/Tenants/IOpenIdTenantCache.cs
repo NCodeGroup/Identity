@@ -57,6 +57,21 @@ public interface IOpenIdTenantCache
     );
 
     /// <summary>
+    /// Removes every cached <see cref="OpenIdTenant"/> instance of the team with the specified <paramref name="teamId"/>,
+    /// so the next request for any of its tenants materializes it again from the store. A lease already handed out
+    /// stays usable until its holder releases it.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team whose tenants to remove from the cache.</param>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask RemoveTeamAsync(
+        string teamId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Removes every cached <see cref="OpenIdTenant"/> instance, so the next request for any tenant materializes it
     /// again from the store. A lease already handed out stays usable until its holder releases it.
     /// </summary>

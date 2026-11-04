@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logging;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
@@ -15,14 +16,16 @@ namespace NCode.Identity.OpenId.Platform;
 /// Provides a default implementation of the <see cref="IOpenIdPlatformProvider"/> abstraction. The platform it
 /// materializes is registered with <see cref="IMaterializedPlatformRegistry"/>, so background work can wait for the
 /// platform and a committed change to its settings can refresh it. Whenever the platform's settings change, by any path,
-/// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/>, because a tenant's settings derive from the
-/// platform's when it is materialized.
+/// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/> and every cached team from
+/// <see cref="IOpenIdTeamCache"/>, because a tenant's and a team's settings derive from the platform's when they are
+/// materialized.
 /// </summary>
 // See ADR-1219 and ADR-1289.
 internal class DefaultOpenIdPlatformProvider(
     IOpenIdPlatformFactory factory,
     IMaterializedPlatformRegistry materializedServerRegistry,
     IOpenIdTenantCache tenantCache,
+    IOpenIdTeamCache teamCache,
     ILogger<DefaultOpenIdPlatformProvider> logger
 ) : IOpenIdPlatformProvider, IAsyncDisposable
 {
@@ -30,6 +33,7 @@ internal class DefaultOpenIdPlatformProvider(
     private IMaterializedPlatformRegistry MaterializedPlatformRegistry { get; } =
         materializedServerRegistry;
     private IOpenIdTenantCache TenantCache { get; } = tenantCache;
+    private IOpenIdTeamCache TeamCache { get; } = teamCache;
     private ILogger<DefaultOpenIdPlatformProvider> Logger { get; } = logger;
     private OpenIdPlatform? InstanceOrNull { get; set; }
     private IDisposable? SettingsChangeRegistration { get; set; }
@@ -96,22 +100,34 @@ internal class DefaultOpenIdPlatformProvider(
 
     private void EvictTenants()
     {
+        Observe(
+            () => TenantCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None),
+            Logger.TenantCacheClearFailed
+        );
+        Observe(
+            () => TeamCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None),
+            Logger.TeamCacheClearFailed
+        );
+    }
+
+    private static void Observe(Func<ValueTask> clear, Action<Exception> onFailure)
+    {
         ValueTask clearing;
         try
         {
-            clearing = TenantCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None);
+            clearing = clear();
         }
         catch (Exception exception)
         {
-            Logger.TenantCacheClearFailed(exception);
+            onFailure(exception);
             return;
         }
 
         if (!clearing.IsCompletedSuccessfully)
-            _ = ObserveAsync(clearing);
+            _ = ObserveAsync(clearing, onFailure);
     }
 
-    private async Task ObserveAsync(ValueTask clearing)
+    private static async Task ObserveAsync(ValueTask clearing, Action<Exception> onFailure)
     {
         try
         {
@@ -119,7 +135,7 @@ internal class DefaultOpenIdPlatformProvider(
         }
         catch (Exception exception)
         {
-            Logger.TenantCacheClearFailed(exception);
+            onFailure(exception);
         }
     }
 }

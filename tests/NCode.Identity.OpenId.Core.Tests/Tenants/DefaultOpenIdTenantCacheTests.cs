@@ -30,9 +30,13 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         MemoryCache.Dispose();
     }
 
-    private static Mock<OpenIdTenant> CreateMockTenant(TaskCompletionSource? disposed = null)
+    private static Mock<OpenIdTenant> CreateMockTenant(
+        TaskCompletionSource? disposed = null,
+        string teamId = "platform"
+    )
     {
         var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
+        mockTenant.SetupGet(x => x.TeamId).Returns(teamId);
         mockTenant
             .Protected()
             .Setup<ValueTask>("DisposeAsyncCore")
@@ -97,6 +101,55 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
             CancellationToken.None
         );
         Assert.False(lease.IsActive);
+    }
+
+    #endregion
+
+    #region RemoveTeamAsync Tests
+
+    [Fact]
+    public async Task RemoveTeamAsync_EvictsOnlyTheTeamsTenants()
+    {
+        const string otherTenantId = "globex";
+        const string thirdTenantId = "initech";
+        var firstDisposed = CreateCompletionSource();
+        var secondDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed, "team-a");
+        var secondTenant = CreateMockTenant(secondDisposed, "team-a");
+        var thirdTenant = CreateMockTenant(teamId: "team-b");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        await using (var third = AsyncSharedReference.Create(thirdTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, first, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(otherTenantId, second, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(thirdTenantId, third, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        foreach (var evictedId in new[] { TenantId, otherTenantId })
+        {
+            await using var evicted = await Cache.TryGetAsync(
+                evictedId,
+                propertyBag,
+                CancellationToken.None
+            );
+            Assert.False(evicted.IsActive);
+        }
+
+        await using (
+            var kept = await Cache.TryGetAsync(thirdTenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.True(kept.IsActive);
+            Assert.Same(thirdTenant.Object, kept.Value);
+        }
+
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
     }
 
     #endregion

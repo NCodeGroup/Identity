@@ -998,3 +998,11 @@ NCode.Identity.OpenId.Teams.IOpenIdTeamProvider.GetTeamAsync(NCode.Identity.Open
 NCode.Identity.OpenId.Teams.OpenIdTeam
 NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsync() -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Teams.OpenIdTeam.OpenIdTeam() -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand
+NCode.Identity.OpenId.Teams.TeamChangedCommand.SettingsChanged.get -> bool
+NCode.Identity.OpenId.Teams.TeamChangedCommand.SettingsChanged.init -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand() -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand(string! TeamId, bool SettingsChanged) -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.init -> void
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveTeamAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

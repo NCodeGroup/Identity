@@ -54,6 +54,33 @@ public sealed class DefaultOpenIdTenantFactoryTests
             teamProvider ?? mocks.Create<IOpenIdTeamProvider>().Object
         );
 
+    private static Mock<IOpenIdTeamProvider> CreateTeamProvider(
+        MockRepository mocks,
+        bool isDisabled,
+        Action? onLookup = null
+    )
+    {
+        var team = mocks.Create<OpenIdTeam>();
+        team.Setup(x => x.IsDisabled).Returns(isDisabled);
+        team.Protected().Setup<ValueTask>("DisposeAsyncCore").Returns(ValueTask.CompletedTask);
+
+        var teamProvider = mocks.Create<IOpenIdTeamProvider>();
+        teamProvider
+            .Setup(x =>
+                x.GetTeamAsync(
+                    It.IsAny<OpenIdEnvironment>(),
+                    It.IsAny<OpenIdPlatform>(),
+                    "platform",
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(() => onLookup?.Invoke())
+            .ReturnsAsync(team.Object.AsSharedReference())
+            .Verifiable();
+        return teamProvider;
+    }
+
     #region CreateTenantForRequestAsync Tests
 
     [Fact]
@@ -138,7 +165,14 @@ public sealed class DefaultOpenIdTenantFactoryTests
                 .BuildServiceProvider(),
         };
 
-        var factory = CreateFactory(mocks, tenantResolver.Object, tenantCache.Object);
+        var teamProvider = CreateTeamProvider(mocks, isDisabled: false);
+
+        var factory = CreateFactory(
+            mocks,
+            tenantResolver.Object,
+            tenantCache.Object,
+            teamProvider: teamProvider.Object
+        );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await factory.CreateTenantForRequestAsync(
@@ -162,7 +196,6 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var tenantResolver = mocks.Create<ITenantResolver>();
         var tenantCache = mocks.Create<IOpenIdTenantCache>();
         var provisioner = mocks.Create<ITenantProvisioner>();
-        var teamProvider = mocks.Create<IOpenIdTeamProvider>();
 
         var tenantId = "acme";
         tenantResolver
@@ -181,26 +214,9 @@ public sealed class DefaultOpenIdTenantFactoryTests
             )
             .ReturnsAsync(CreatePersistedTenant("https://op.example/acme"))
             .Verifiable();
-        provisioner
-            .Setup(x => x.SeedAsync("acme", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreatePersistedTenant("https://op.example/acme"))
-            .Verifiable();
 
-        var team = mocks.Create<OpenIdTeam>();
-        team.Setup(x => x.IsDisabled).Returns(true).Verifiable();
-        team.Protected().Setup<ValueTask>("DisposeAsyncCore").Returns(ValueTask.CompletedTask);
-        teamProvider
-            .Setup(x =>
-                x.GetTeamAsync(
-                    It.IsAny<OpenIdEnvironment>(),
-                    It.IsAny<OpenIdPlatform>(),
-                    "platform",
-                    It.IsAny<IPropertyBag>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(team.Object.AsSharedReference())
-            .Verifiable();
+        // The strict provisioner has no SeedAsync setup, so a seed would fail the test too.
+        var teamProvider = CreateTeamProvider(mocks, isDisabled: true);
 
         var httpContext = new DefaultHttpContext
         {
@@ -227,6 +243,78 @@ public sealed class DefaultOpenIdTenantFactoryTests
         );
 
         Assert.Contains("is disabled", exception.Message, StringComparison.Ordinal);
+        provisioner.Verify(
+            x => x.SeedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task MaterializeTenantAsync_WhenTheTeamIsEnabled_SeedsAfterTheTeamCheck()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+        var provisioner = mocks.Create<ITenantProvisioner>();
+
+        var calls = new List<string>();
+
+        var tenantId = "acme";
+        tenantResolver
+            .Setup(x => x.TryGetTenantId(It.IsAny<HttpContext>(), out tenantId))
+            .Returns(true)
+            .Verifiable();
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("acme", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>))
+            .Verifiable();
+        tenantResolver
+            .Setup(x =>
+                x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedTenant("https://op.example/acme"))
+            .Verifiable();
+
+        // Failing the seed stops the materialization before the collaborators this test does not stub.
+        var seeded = new InvalidOperationException("seeded");
+        provisioner
+            .Setup(x => x.SeedAsync("acme", It.IsAny<CancellationToken>()))
+            .Callback(() => calls.Add("seed"))
+            .ThrowsAsync(seeded)
+            .Verifiable();
+
+        var teamProvider = CreateTeamProvider(mocks, isDisabled: false, () => calls.Add("team"));
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton(provisioner.Object)
+                .BuildServiceProvider(),
+        };
+
+        var factory = CreateFactory(
+            mocks,
+            tenantResolver.Object,
+            tenantCache.Object,
+            teamProvider: teamProvider.Object
+        );
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await factory.CreateTenantForRequestAsync(
+                httpContext,
+                Mock.Of<OpenIdEnvironment>(),
+                Mock.Of<OpenIdPlatform>(),
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Same(seeded, exception);
+        Assert.Equal(["team", "seed"], calls);
         mocks.Verify();
     }
 
@@ -311,7 +399,14 @@ public sealed class DefaultOpenIdTenantFactoryTests
                 .BuildServiceProvider(),
         };
 
-        var factory = CreateFactory(mocks, tenantResolver.Object, tenantCache.Object);
+        var teamProvider = CreateTeamProvider(mocks, isDisabled: false);
+
+        var factory = CreateFactory(
+            mocks,
+            tenantResolver.Object,
+            tenantCache.Object,
+            teamProvider: teamProvider.Object
+        );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await factory.CreateControlPlaneTenantAsync(

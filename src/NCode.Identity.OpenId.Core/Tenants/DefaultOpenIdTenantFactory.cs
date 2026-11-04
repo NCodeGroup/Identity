@@ -158,7 +158,7 @@ public class DefaultOpenIdTenantFactory(
             httpContext,
             openIdEnvironment,
             openIdPlatform,
-            persistedTenant.TenantId,
+            persistedTenant,
             propertyBag,
             cancellationToken
         );
@@ -200,7 +200,7 @@ public class DefaultOpenIdTenantFactory(
             httpContext,
             openIdEnvironment,
             openIdPlatform,
-            persistedTenant.TenantId,
+            persistedTenant,
             propertyBag,
             cancellationToken
         );
@@ -210,26 +210,30 @@ public class DefaultOpenIdTenantFactory(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
         OpenIdPlatform openIdPlatform,
-        string tenantId,
+        PersistedTenant resolvedTenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
+        var tenantId = resolvedTenant.TenantId;
+        var tenantPropertyBag = propertyBag.Clone();
+
+        // The team is checked before the tenant is seeded: a disabled team answers 404 without running the seed
+        // pipeline, so a suspended customer's rows are not written and repeated requests cost no seed. A tenant never
+        // moves between teams, so the team taken here stays the tenant's team once the seed returns.
+        await using var team = await GetEnabledTeamAsync(
+            openIdEnvironment,
+            openIdPlatform,
+            resolvedTenant,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
         // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-1166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
-
-        var tenantPropertyBag = propertyBag.Clone();
-
-        await using var team = await GetEnabledTeamAsync(
-            openIdEnvironment,
-            openIdPlatform,
-            persistedTenant,
-            tenantPropertyBag,
-            cancellationToken
-        );
 
         await using var tenantSettings = await GetTenantSettingsAsync(
             httpContext,

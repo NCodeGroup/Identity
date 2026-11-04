@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Logging;
 
@@ -210,4 +211,15 @@ internal static partial class Log
         Message = "Evicting the cached tenants after the server's settings changed failed; each tenant applies the change when its cache entry expires"
     )]
     internal static partial void TenantCacheClearFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValuePageConflict,
+        Level = LogLevel.Debug,
+        Message = "Another writer changed a page of the protected values of '{Owner}' while it was rewrapped; reading the page again (attempt {Attempt})"
+    )]
+    internal static partial void ProtectedValuePageConflict(
+        this ILogger logger,
+        SecretOwner owner,
+        int attempt
+    );
 }

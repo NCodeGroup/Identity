@@ -53,4 +53,6 @@ internal static class EventIds
     public const int TenantKeyAuditPublishFailed = Base + 24;
 
     public const int TenantKeyExtended = Base + 22;
+
+    public const int ProtectedValuePageConflict = Base + 25;
 }

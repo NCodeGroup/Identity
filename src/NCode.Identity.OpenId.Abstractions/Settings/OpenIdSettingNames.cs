@@ -879,9 +879,16 @@ public static class OpenIdSettingNames
         .TokenEndpointAuthSigningAlgValuesSupported;
 
     /// <summary>
-    /// Contains the name of <c>ui_locales_supported</c> setting.
+    /// Contains the name of the <c>ui_locales_supported</c> setting: the registered UI locales a request's
+    /// <c>ui_locales</c> may select; unset lets it select any registered locale.
     /// </summary>
     public const string UiLocalesSupported = "ui_locales_supported";
+
+    /// <summary>
+    /// Contains the name of the <c>default_ui_locale</c> setting: the registered UI locale the end-user interface
+    /// renders in when no preference selects another; empty renders in the first registered locale.
+    /// </summary>
+    public const string DefaultUiLocale = "default_ui_locale";
 
     /// <summary>
     /// Contains the name of the per-client <c>userinfo_encrypted_response_alg</c> setting (OpenID Connect Dynamic

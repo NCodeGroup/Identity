@@ -3,11 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { resolveRoute, type RouteContext } from './routes.js';
 import { EMPTY_SERVER_PAGE } from './serverPage.js';
+import { en } from './i18n/en.js';
 
 const baseContext: RouteContext = {
   pathname: '/account/login',
   returnUrl: '/authorize',
   antiforgeryToken: 'tok',
+  messages: en,
 };
 
 function renderRoute(context: RouteContext) {

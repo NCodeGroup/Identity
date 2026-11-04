@@ -1,6 +1,7 @@
 import type { BrandingConfig } from '@ncode/config';
 import { BrandHeader } from './BrandHeader.js';
 import { EnvironmentBanner } from './EnvironmentBanner.js';
+import { useMessages } from './i18n/LocaleContext.js';
 import { ANTIFORGERY_COOKIE, describeLoginError, getQueryParam, readCookie } from './params.js';
 import { resolveRoute } from './routes.js';
 import { EMPTY_SERVER_PAGE, type ServerPage } from './serverPage.js';
@@ -30,6 +31,7 @@ export function App({
   branding,
   serverPage = EMPTY_SERVER_PAGE,
 }: AppProps) {
+  const messages = useMessages();
   return (
     <>
       {branding?.environment ? <EnvironmentBanner environment={branding.environment} /> : null}
@@ -38,10 +40,11 @@ export function App({
         pathname,
         returnUrl: getQueryParam(search, 'ReturnUrl') ?? '/',
         antiforgeryToken: readCookie(cookie, ANTIFORGERY_COOKIE) ?? '',
-        errorMessage: describeLoginError(getQueryParam(search, 'error')),
+        errorMessage: describeLoginError(getQueryParam(search, 'error'), messages),
         errorCode: getQueryParam(search, 'error'),
         status: getQueryParam(search, 'status'),
         serverPage,
+        messages,
         ...(branding ? { branding } : {}),
       })}
     </>

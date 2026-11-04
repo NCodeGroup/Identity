@@ -271,6 +271,17 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
             authorizationRequest.MaxAge
         );
 
+        // The end-user's preferred UI languages reach the login surface the challenge redirects to, which renders in
+        // the first one it serves and the tenant supports (OpenID Connect Core 1.0 §3.1.2.1).
+        // See ADR-1402.
+        if (authorizationRequest.UiLocales.Count > 0)
+        {
+            authenticationProperties.SetParameter(
+                OpenIdProtocol.Parameters.UiLocales,
+                string.Join(OpenIdProtocol.ParameterSeparatorChar, authorizationRequest.UiLocales)
+            );
+        }
+
         // additional authentication properties can be set via mediator middleware
 
         var disposition = await mediator.SendAsync<ChallengeCommand, ReadOnlyEndpointDisposition>(

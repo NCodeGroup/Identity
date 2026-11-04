@@ -49,7 +49,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     IAntiforgery antiforgery,
     InteractiveBundleReader bundleReader,
     InteractiveSurfacePaths surfacePaths,
-    ITenantEnvironmentCatalog tenantEnvironmentCatalog
+    ITenantEnvironmentCatalog tenantEnvironmentCatalog,
+    InteractiveLocaleSelector localeSelector
 ) : IEndpointProvider
 {
     // The `scope` form value that selects "sign out everywhere else" (retain the current session); any other value is
@@ -75,6 +76,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
+    private InteractiveLocaleSelector LocaleSelector { get; } = localeSelector;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -139,17 +141,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var query = httpContext.Request.Query;
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
+        var frame = await CreatePageFrameAsync(httpContext, branding, security);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             html,
-            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
-            SurfacePaths.GetSurfaceBase(httpContext),
-            branding,
-            security.Nonce,
+            frame,
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
-            DescribeLoginError(query["error"].ToString())
+            DescribeLoginError(query[ErrorQueryName].ToString(), frame.Locale.Messages)
         );
         return new InteractiveHtmlResult(html, security.Policy);
     }
@@ -204,10 +204,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             html,
-            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
-            SurfacePaths.GetSurfaceBase(httpContext),
-            branding,
-            security.Nonce,
+            await CreatePageFrameAsync(httpContext, branding, security),
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -294,15 +291,18 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         HttpContext httpContext,
         [FromForm] string? username,
         [FromForm] string? password,
-        [FromForm(Name = "ReturnUrl")] string? returnUrl
+        [FromForm(Name = "ReturnUrl")] string? returnUrl,
+        [FromForm(Name = InteractiveAuthenticationPageRenderer.UiLocalesFieldName)]
+            string? uiLocales
     )
     {
         var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
+        var languageTag = LocaleSelector.GetCarriedLanguageTag(uiLocales);
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
             return TypedResults.Redirect(
-                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request")
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request", languageTag)
             );
         }
 
@@ -316,7 +316,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (principal is null)
         {
             return TypedResults.Redirect(
-                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_credentials")
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_credentials", languageTag)
             );
         }
 
@@ -346,6 +346,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 httpContext,
                 openIdContext,
                 safeReturnUrl,
+                languageTag,
                 standing.Error
             );
         }
@@ -366,6 +367,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         HttpContext httpContext,
         OpenIdContext openIdContext,
         string safeReturnUrl,
+        string? languageTag,
         IOpenIdError error
     )
     {
@@ -381,7 +383,12 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         return TypedResults.Redirect(
-            BuildLoginRedirect(httpContext, safeReturnUrl, OpenIdProtocol.ErrorCodes.AccessDenied)
+            BuildLoginRedirect(
+                httpContext,
+                safeReturnUrl,
+                OpenIdProtocol.ErrorCodes.AccessDenied,
+                languageTag
+            )
         );
     }
 
@@ -564,10 +571,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     public async ValueTask<IResult> PostConsentAsync(
         HttpContext httpContext,
         [FromForm] string? action,
-        [FromForm(Name = "ReturnUrl")] string? returnUrl
+        [FromForm(Name = "ReturnUrl")] string? returnUrl,
+        [FromForm(Name = InteractiveAuthenticationPageRenderer.UiLocalesFieldName)]
+            string? uiLocales
     )
     {
         var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
+        var languageTag = LocaleSelector.GetCarriedLanguageTag(uiLocales);
         var openIdContext = httpContext.GetOpenIdContext();
 
         if (string.Equals(action, "deny", StringComparison.OrdinalIgnoreCase))
@@ -590,7 +600,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request")
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request", languageTag)
             );
         }
 
@@ -598,7 +608,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (string.IsNullOrEmpty(subjectId) || string.IsNullOrEmpty(returnUrl))
         {
             return TypedResults.Redirect(
-                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request")
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request", languageTag)
             );
         }
 
@@ -681,15 +691,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var returnUrl = httpContext.Request.Query["ReturnUrl"].ToString();
         var branding = ReadBranding(httpContext);
         var security = InteractivePageSecurity.Create(branding);
-        var shell = await BundleReader.TryReadShellAsync(httpContext.RequestAborted);
-        var surfaceBase = SurfacePaths.GetSurfaceBase(httpContext);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLogoutConfirmationPage(
             html,
-            shell,
-            surfaceBase,
-            branding,
-            security.Nonce,
+            await CreatePageFrameAsync(httpContext, branding, security),
             returnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty
@@ -700,15 +705,18 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// <summary>
     /// Records the end-user's answer to a logout confirmation: a confirmation redirects to the parked logout's one-time
     /// continue URL, which resumes it; any other answer refuses the continuation, so the logout is spent and the
-    /// session is left, and returns to the account page.
+    /// session is left, and returns to the account page in the locale the form carried.
     /// </summary>
     public async ValueTask<IResult> PostLogoutConfirmationAsync(
         HttpContext httpContext,
         [FromForm] string? action,
-        [FromForm(Name = "ReturnUrl")] string? returnUrl
+        [FromForm(Name = "ReturnUrl")] string? returnUrl,
+        [FromForm(Name = InteractiveAuthenticationPageRenderer.UiLocalesFieldName)]
+            string? uiLocales
     )
     {
         var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
+        var languageTag = LocaleSelector.GetCarriedLanguageTag(uiLocales);
 
         // See ADR-1380.
         if (string.Equals(action, LogoutAction, StringComparison.OrdinalIgnoreCase))
@@ -736,7 +744,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             httpContext,
             InteractiveAuthenticationDefaults.AccountPath
         );
-        return TypedResults.Redirect(accountPath);
+        return TypedResults.Redirect(
+            InteractiveLocaleSelector.AppendUiLocalesQuery(accountPath, languageTag)
+        );
     }
 
     /// <summary>
@@ -1165,13 +1175,38 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             html,
-            shell,
-            SurfacePaths.GetSurfaceBase(httpContext),
-            branding,
-            security.Nonce
+            CreatePageFrame(httpContext, shell, branding, security)
         );
         return new InteractiveHtmlResult(html, security.Policy);
     }
+
+    // The document a page of the request's tenant is written into: the bundle when the host has one, the surface
+    // beneath the tenant as its base, the tenant's branding, the response's nonce and the locale the request selects.
+    private async ValueTask<InteractivePageFrame> CreatePageFrameAsync(
+        HttpContext httpContext,
+        InteractiveBranding branding,
+        InteractivePageSecurity security
+    ) =>
+        CreatePageFrame(
+            httpContext,
+            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
+            branding,
+            security
+        );
+
+    private InteractivePageFrame CreatePageFrame(
+        HttpContext httpContext,
+        InteractiveBundleShell? shell,
+        InteractiveBranding branding,
+        InteractivePageSecurity security
+    ) =>
+        new(
+            shell,
+            SurfacePaths.GetSurfaceBase(httpContext),
+            branding,
+            security.Nonce,
+            SelectLocale(httpContext)
+        );
 
     // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-1253).
     private InteractiveBranding ReadBranding(HttpContext httpContext) =>
@@ -1180,16 +1215,22 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             TenantEnvironmentCatalog
         );
 
+    // The page renders in the locale the request prefers among those the tenant supports (ADR-1402).
+    private InteractiveLocale SelectLocale(HttpContext httpContext) =>
+        LocaleSelector.Select(
+            httpContext,
+            httpContext.GetOpenIdContext().Tenant.SettingsProvider.Collection
+        );
+
     // Mirrors the apps/auth describeLoginError mapping so the no-JS login form shows the same messages.
-    private static string? DescribeLoginError(string? error) =>
+    private static string? DescribeLoginError(string? error, InteractiveMessages messages) =>
         error switch
         {
             null or "" => null,
-            "invalid_credentials" => "The username or password is incorrect.",
-            "invalid_request" => "Enter both a username and a password.",
-            OpenIdProtocol.ErrorCodes.AccessDenied =>
-                "This account cannot sign in. Contact your administrator.",
-            _ => "Sign-in failed. Please try again.",
+            "invalid_credentials" => messages.InvalidCredentialsError,
+            "invalid_request" => messages.MissingCredentialsError,
+            OpenIdProtocol.ErrorCodes.AccessDenied => messages.AccessDeniedError,
+            _ => messages.SignInFailedError,
         };
 
     private AntiforgeryTokenSet IssueAntiforgeryTokens(HttpContext httpContext)
@@ -1227,13 +1268,37 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private string BuildLoginUrl(HttpContext httpContext, string returnUrl) =>
         $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl={Uri.EscapeDataString(returnUrl)}";
 
-    private RedirectHttpResult RedirectToLogin(HttpContext httpContext, string returnSurfacePath) =>
-        TypedResults.Redirect(
-            BuildLoginUrl(httpContext, SurfacePaths.GetSurfacePath(httpContext, returnSurfacePath))
+    // An anonymous request for an account page is sent to the login page, which returns to the page it asked for;
+    // both carry the request's ui_locales, so the login page and the page after it render in the same locale.
+    private RedirectHttpResult RedirectToLogin(HttpContext httpContext, string returnSurfacePath)
+    {
+        var languageTag = LocaleSelector.GetCarriedLanguageTag(
+            httpContext.Request.Query[InteractiveAuthenticationPageRenderer.UiLocalesFieldName]
         );
+        var returnUrl = InteractiveLocaleSelector.AppendUiLocalesQuery(
+            SurfacePaths.GetSurfacePath(httpContext, returnSurfacePath),
+            languageTag
+        );
+        return TypedResults.Redirect(
+            InteractiveLocaleSelector.AppendUiLocalesQuery(
+                BuildLoginUrl(httpContext, returnUrl),
+                languageTag
+            )
+        );
+    }
 
-    private string BuildLoginRedirect(HttpContext httpContext, string returnUrl, string error) =>
-        BuildLoginUrl(httpContext, returnUrl) + $"&error={Uri.EscapeDataString(error)}";
+    // A page the surface redirects back to renders in the locale the form carried.
+    private string BuildLoginRedirect(
+        HttpContext httpContext,
+        string returnUrl,
+        string error,
+        string? languageTag
+    ) =>
+        InteractiveLocaleSelector.AppendUiLocalesQuery(
+            BuildLoginUrl(httpContext, returnUrl)
+                + $"&{ErrorQueryName}={Uri.EscapeDataString(error)}",
+            languageTag
+        );
 
     private RedirectHttpResult RedirectToPasswordPage(
         HttpContext httpContext,

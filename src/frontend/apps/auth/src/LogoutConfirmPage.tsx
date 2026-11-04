@@ -4,7 +4,13 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ANTIFORGERY_FIELD, LOGOUT_CONFIRM_PATH, resolveSurfacePath } from './params.js';
+import { useLocale } from './i18n/LocaleContext.js';
+import {
+  ANTIFORGERY_FIELD,
+  LOGOUT_CONFIRM_PATH,
+  UI_LOCALES_FIELD,
+  resolveSurfacePath,
+} from './params.js';
 
 export type LogoutConfirmPageProps = {
   /** The one-time continue URL that resumes the parked logout once the end-user confirms it. */
@@ -26,6 +32,7 @@ export function LogoutConfirmPage({
   antiforgeryToken,
   productName,
 }: LogoutConfirmPageProps) {
+  const { pageLanguage, messages } = useLocale();
   return (
     <Box
       sx={{
@@ -45,14 +52,19 @@ export function LogoutConfirmPage({
             action={resolveSurfacePath(LOGOUT_CONFIRM_PATH)}
           >
             <Typography variant="h5" component="h1">
-              Sign out
+              {messages.logoutConfirm.title}
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {`Do you want to sign out${productName ? ` of ${productName}` : ''}?`}
+              {productName
+                ? messages.logoutConfirm.questionFor(productName)
+                : messages.logoutConfirm.question}
             </Typography>
 
             <input type="hidden" name="ReturnUrl" value={returnUrl} />
             <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
+            {pageLanguage ? (
+              <input type="hidden" name={UI_LOCALES_FIELD} value={pageLanguage} />
+            ) : null}
 
             <Stack direction="row" spacing={2}>
               <Button
@@ -63,7 +75,7 @@ export function LogoutConfirmPage({
                 variant="outlined"
                 fullWidth
               >
-                Stay signed in
+                {messages.logoutConfirm.stay}
               </Button>
               <Button
                 id="logout-confirm"
@@ -73,7 +85,7 @@ export function LogoutConfirmPage({
                 variant="contained"
                 fullWidth
               >
-                Sign out
+                {messages.logoutConfirm.signOut}
               </Button>
             </Stack>
           </Stack>

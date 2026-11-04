@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { en } from './i18n/en.js';
 import {
   describeLoginError,
   describePasswordError,
@@ -127,40 +128,40 @@ describe('isLogoutConfirmPath', () => {
 
 describe('describeLoginError', () => {
   it('maps known codes and defaults unknown ones', () => {
-    expect(describeLoginError(null)).toBeNull();
-    expect(describeLoginError('invalid_credentials')).toMatch(/incorrect/i);
-    expect(describeLoginError('invalid_request')).toMatch(/username and a password/i);
-    expect(describeLoginError('access_denied')).toMatch(/cannot sign in/i);
-    expect(describeLoginError('boom')).toMatch(/failed/i);
+    expect(describeLoginError(null, en)).toBeNull();
+    expect(describeLoginError('invalid_credentials', en)).toMatch(/incorrect/i);
+    expect(describeLoginError('invalid_request', en)).toMatch(/username and a password/i);
+    expect(describeLoginError('access_denied', en)).toMatch(/cannot sign in/i);
+    expect(describeLoginError('boom', en)).toMatch(/failed/i);
   });
 });
 
 describe('describePasswordError', () => {
   it('maps known codes and defaults unknown ones', () => {
-    expect(describePasswordError(null)).toBeNull();
-    expect(describePasswordError('invalid_request')).toBe(
+    expect(describePasswordError(null, en)).toBeNull();
+    expect(describePasswordError('invalid_request', en)).toBe(
       'Enter your current password and a new password.',
     );
-    expect(describePasswordError('password_mismatch')).toBe('The new passwords do not match.');
-    expect(describePasswordError('invalid_current_password')).toBe(
+    expect(describePasswordError('password_mismatch', en)).toBe('The new passwords do not match.');
+    expect(describePasswordError('invalid_current_password', en)).toBe(
       'The current password is incorrect.',
     );
-    expect(describePasswordError('not_supported')).toBe(
+    expect(describePasswordError('not_supported', en)).toBe(
       'Your account has no password to change here.',
     );
-    expect(describePasswordError('boom')).toBe(
+    expect(describePasswordError('boom', en)).toBe(
       'The password could not be changed. Please try again.',
     );
   });
 
   it('maps the password policy codes', () => {
-    expect(describePasswordError('password_too_short')).toBe(
+    expect(describePasswordError('password_too_short', en)).toBe(
       'The new password is too short. A passphrase of several words is long enough and easy to remember.',
     );
-    expect(describePasswordError('password_too_long')).toBe(
+    expect(describePasswordError('password_too_long', en)).toBe(
       'The new password is too long. Choose a shorter one.',
     );
-    expect(describePasswordError('password_blocklisted')).toBe(
+    expect(describePasswordError('password_blocklisted', en)).toBe(
       'The new password is too common or is known to be compromised. Choose one you do not use anywhere else.',
     );
   });

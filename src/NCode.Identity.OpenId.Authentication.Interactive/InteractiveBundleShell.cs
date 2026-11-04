@@ -25,6 +25,14 @@ internal sealed record InteractiveBundleShell(
     // See ADR-1256.
     public const string NoncePlaceholder = "__NCODE_CSP_NONCE__";
 
+    /// <summary>
+    /// The value that the bundle's <c>index.html</c> carries in the <c>lang</c> attribute of its <c>html</c> element.
+    /// A served page carries the language tag of the locale it renders in in its place, which the bundle reads to
+    /// render in the same locale.
+    /// </summary>
+    // See ADR-1402.
+    public const string LanguagePlaceholder = "__NCODE_LANG__";
+
     // The empty SPA mount point; the server form is written inside it so the React SPA replaces it on mount rather than
     // rendering alongside it.
     private const string RootElement = "<div id=\"root\"></div>";

@@ -879,6 +879,11 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.UiLocalesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'default_ui_locale' setting.
+    /// </summary>
+    public static SettingKey<string> DefaultUiLocale => new(OpenIdSettingNames.DefaultUiLocale);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_encrypted_response_alg' setting.
     /// </summary>
     public static SettingKey<string> UserInfoEncryptedResponseAlg =>

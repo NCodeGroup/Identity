@@ -375,3 +375,5 @@ NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.QueueCapacity.g
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.QueueCapacity.set -> void
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Retention.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Auditing.AuditRecordOptions.Retention.set -> void
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.UiLocales.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages.EndSessionRequest.UiLocales.set -> void

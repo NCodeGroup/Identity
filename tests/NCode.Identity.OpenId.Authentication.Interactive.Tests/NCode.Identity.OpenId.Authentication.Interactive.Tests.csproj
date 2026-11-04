@@ -25,4 +25,19 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Authentication.Interactive\NCode.Identity.OpenId.Authentication.Interactive.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+        <!-- The bundle's source index.html, so the tests prove the host and the bundle agree on its placeholders. -->
+        <Content
+            Include="..\..\src\frontend\apps\auth\index.html"
+            Link="auth-index.html"
+            CopyToOutputDirectory="PreserveNewest"
+        />
+        <!-- The bundle's message catalogs, so the tests prove each shipped locale's wording is in its catalog. -->
+        <Content
+            Include="..\..\src\frontend\apps\auth\src\i18n\*.ts"
+            Link="auth-i18n\%(Filename)%(Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+        />
+    </ItemGroup>
 </Project>

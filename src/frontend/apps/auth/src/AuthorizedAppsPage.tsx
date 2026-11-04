@@ -15,6 +15,7 @@ import {
   APPLICATIONS_REVOKE_ACTION,
   resolveSurfacePath,
 } from './params.js';
+import { useMessages } from './i18n/LocaleContext.js';
 import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** A single granted scope on an authorized application. */
@@ -61,6 +62,7 @@ export function AuthorizedAppsPage({
   productName,
   loadApplications = fetchApplications,
 }: AuthorizedAppsPageProps) {
+  const text = useMessages().applications;
   const [applications, setApplications] = useState<readonly AuthorizedApplication[] | null>(null);
 
   useEffect(() => {
@@ -93,16 +95,16 @@ export function AuthorizedAppsPage({
         <CardContent>
           <Stack spacing={3}>
             <Typography variant="h5" component="h1">
-              {productName ? `${productName} — authorized applications` : 'Authorized applications'}
+              {productName ? text.titleFor(productName) : text.title}
             </Typography>
 
             {applications === null ? (
               <Typography data-testid="applications-loading" sx={{ color: 'text.secondary' }}>
-                Loading your applications…
+                {text.loading}
               </Typography>
             ) : applications.length === 0 ? (
               <Typography data-testid="applications-empty" sx={{ color: 'text.secondary' }}>
-                You have not authorized any applications.
+                {text.empty}
               </Typography>
             ) : (
               <Stack spacing={2} data-testid="applications-list">
@@ -131,7 +133,7 @@ export function AuthorizedAppsPage({
                           color="error"
                           size="small"
                         >
-                          Revoke
+                          {text.revoke}
                         </Button>
                       </Stack>
                     </Stack>
@@ -154,7 +156,7 @@ export function AuthorizedAppsPage({
             )}
 
             <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
-              Back to your account
+              {text.back}
             </Button>
           </Stack>
         </CardContent>

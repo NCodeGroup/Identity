@@ -8,10 +8,12 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import FormGroup from '@mui/material/FormGroup';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useLocale } from './i18n/LocaleContext.js';
 import {
   ANTIFORGERY_FIELD,
   CONSENT_ACTION,
   CONSENT_DETAILS_ENDPOINT,
+  UI_LOCALES_FIELD,
   resolveSurfacePath,
 } from './params.js';
 
@@ -79,6 +81,7 @@ export function ConsentForm({
   loadDetails = fetchDetails,
   clearedScopes = noClearedScopes,
 }: ConsentFormProps) {
+  const { pageLanguage, messages } = useLocale();
   const [details, setDetails] = useState<ConsentDetails | null>(null);
 
   useEffect(() => {
@@ -97,7 +100,8 @@ export function ConsentForm({
     };
   }, [loadDetails, returnUrl]);
 
-  const appName = productName ?? details?.clientName ?? details?.clientId ?? 'An application';
+  const appName =
+    productName ?? details?.clientName ?? details?.clientId ?? messages.consent.anApplication;
 
   return (
     <Box
@@ -118,10 +122,10 @@ export function ConsentForm({
             action={resolveSurfacePath(CONSENT_ACTION)}
           >
             <Typography variant="h5" component="h1">
-              Authorize access
+              {messages.consent.title}
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {`${appName} is requesting access to your account. Choose what to allow:`}
+              {messages.consent.prompt(appName)}
             </Typography>
 
             {details && details.scopes.length > 0 ? (
@@ -157,6 +161,9 @@ export function ConsentForm({
 
             <input type="hidden" name="ReturnUrl" value={returnUrl} />
             <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
+            {pageLanguage ? (
+              <input type="hidden" name={UI_LOCALES_FIELD} value={pageLanguage} />
+            ) : null}
 
             <Stack direction="row" spacing={2}>
               <Button
@@ -167,7 +174,7 @@ export function ConsentForm({
                 variant="outlined"
                 fullWidth
               >
-                Deny
+                {messages.consent.deny}
               </Button>
               <Button
                 id="consent-allow"
@@ -177,7 +184,7 @@ export function ConsentForm({
                 variant="contained"
                 fullWidth
               >
-                Allow
+                {messages.consent.allow}
               </Button>
             </Stack>
           </Stack>

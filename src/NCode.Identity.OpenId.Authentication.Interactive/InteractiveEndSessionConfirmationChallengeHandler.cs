@@ -12,8 +12,9 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <summary>
 /// Handles the <see cref="EndSessionConfirmationChallengeCommand"/> for the interactive surface by redirecting the
 /// user-agent to the logout confirmation page, carrying the parked continuation as the return URL so the logout
-/// resumes once the end-user confirms it. This replaces the core default handler when the interactive surface is
-/// registered.
+/// resumes once the end-user confirms it, and the request's <c>ui_locales</c> so the page renders in the end-user's
+/// preferred language (RP-Initiated Logout 1.0 §2). This replaces the core default handler when the interactive
+/// surface is registered.
 /// </summary>
 internal sealed class InteractiveEndSessionConfirmationChallengeHandler(
     InteractiveSurfacePaths surfacePaths
@@ -32,7 +33,10 @@ internal sealed class InteractiveEndSessionConfirmationChallengeHandler(
             command.OpenIdContext.Http,
             InteractiveAuthenticationDefaults.LogoutConfirmPath
         );
-        var location = $"{confirmPath}?ReturnUrl=" + Uri.EscapeDataString(command.ContinueUrl);
+        var location = InteractiveLocaleSelector.AppendUiLocalesQuery(
+            $"{confirmPath}?ReturnUrl=" + Uri.EscapeDataString(command.ContinueUrl),
+            command.Request.UiLocales
+        );
 
         RedirectHttpResult result = TypedResults.Redirect(location);
         var disposition = ReadOnlyEndpointDisposition.Handled(result);

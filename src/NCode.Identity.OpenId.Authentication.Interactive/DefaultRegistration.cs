@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -9,9 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -102,6 +105,41 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
+
+            // The locales the surface ships are the UI locales the tenant settings and discovery name, English first.
+            // A UI locale is registered data: each is registered as an instance, and the registration dedupes by tag,
+            // which TryAddEnumerable cannot, since it dedupes by implementation type and every shipped locale is the
+            // one record type. A tag the host registered through AddInteractiveLocale keeps the host's locale,
+            // whichever call came first; a shipped locale the host did not register is inserted in the shipped order
+            // ahead of the first locale the host registered under a new tag, so English is the first registered
+            // locale, and the surface's default language, whatever the order of the calls. A locale registered
+            // without the surface's messages stops the host (ADR-1402).
+            var insertIndex = FindFirstUiLocale(serviceCollection);
+            foreach (var locale in InteractiveLocales.All)
+            {
+                var index = FindUiLocale(serviceCollection, locale.LanguageTag);
+                if (index < 0)
+                {
+                    serviceCollection.Insert(
+                        insertIndex,
+                        ServiceDescriptor.Singleton<IUiLocale>(locale)
+                    );
+                    insertIndex++;
+                }
+                else
+                {
+                    insertIndex = index + 1;
+                }
+            }
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<InteractiveAuthenticationOptions>,
+                    InteractiveAuthenticationOptionsValidator
+                >()
+            );
+
+            serviceCollection.TryAddSingleton<InteractiveLocaleSelector>();
 
             // A credential backend that holds passwords replaces this default, which reports that no change is
             // supported.
@@ -204,12 +242,107 @@ public static class DefaultRegistration
 
             return builder;
         }
+
+        /// <summary>
+        /// Registers a locale the interactive surface renders, in place of any registered UI locale of the same
+        /// language tag: a host adds a language with a new tag, and changes the wording of a shipped locale by
+        /// registering one built from it with its own <see cref="InteractiveMessages"/>, before or after
+        /// <see cref="AddInteractiveAuthentication"/>. A replaced locale keeps its place in the registration order, so
+        /// replacing the first registered locale keeps it the surface's default language, and a locale with a new tag
+        /// follows the shipped locales whichever call came first, so English stays the surface's default language
+        /// unless a tenant's <c>default_ui_locale</c> names another.
+        /// </summary>
+        /// <remarks>
+        /// A UI locale is registered data, so this method and <see cref="AddInteractiveAuthentication"/> register
+        /// each locale as an instance and find the registered locale of a tag among the instances. An
+        /// <see cref="IUiLocale"/> a host registers through a type or a factory is outside this rule: its tag is
+        /// registered twice when a locale of the same tag is registered this way, and the catalog refuses the
+        /// duplicate tag when the host starts.
+        /// </remarks>
+        /// <param name="locale">The locale to register.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
+        public IServiceBuilder<OpenIdAuthenticationLibrary> AddInteractiveLocale(
+            InteractiveLocale locale
+        )
+        {
+            ArgumentNullException.ThrowIfNull(locale);
+
+            var serviceCollection = builder.ServiceCollection;
+            var descriptor = ServiceDescriptor.Singleton<IUiLocale>(locale);
+            var index = FindUiLocale(serviceCollection, locale.LanguageTag);
+            if (index < 0)
+            {
+                serviceCollection.Add(descriptor);
+            }
+            else
+            {
+                serviceCollection[index] = descriptor;
+            }
+
+            return builder;
+        }
+    }
+
+    // The index of the registered IUiLocale instance whose tag is languageTag, compared without regard to case as
+    // BCP 47 tags are, or -1 when none is registered.
+    private static int FindUiLocale(IServiceCollection serviceCollection, string languageTag)
+    {
+        for (var index = 0; index < serviceCollection.Count; index++)
+        {
+            if (
+                TryGetUiLocale(serviceCollection[index], out var registered)
+                && string.Equals(
+                    registered.LanguageTag,
+                    languageTag,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    // The index of the first registered IUiLocale instance, or the end of the collection when none is registered.
+    private static int FindFirstUiLocale(IServiceCollection serviceCollection)
+    {
+        for (var index = 0; index < serviceCollection.Count; index++)
+        {
+            if (TryGetUiLocale(serviceCollection[index], out _))
+            {
+                return index;
+            }
+        }
+
+        return serviceCollection.Count;
+    }
+
+    private static bool TryGetUiLocale(
+        ServiceDescriptor descriptor,
+        [MaybeNullWhen(false)] out IUiLocale locale
+    )
+    {
+        if (
+            descriptor.ServiceType == typeof(IUiLocale)
+            && !descriptor.IsKeyedService
+            && descriptor.ImplementationInstance is IUiLocale registered
+        )
+        {
+            locale = registered;
+            return true;
+        }
+
+        locale = null;
+        return false;
     }
 
     // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed
     // login path, as a root-relative URL so the request's Host contributes nothing; its return URL is the challenge's
-    // redirect URI, or the challenged request itself.
-    // See ADR-1365.
+    // redirect URI, or the challenged request itself. The challenge's ui_locales parameter, which the authorization
+    // endpoint sets from the request, reaches the page so it renders in the end-user's preferred language.
+    // See ADR-1365 and ADR-1402.
     private static string BuildLoginRedirectUri(
         RedirectContext<CookieAuthenticationOptions> context,
         InteractiveSurfacePaths surfacePaths
@@ -227,6 +360,14 @@ public static class DefaultRegistration
             InteractiveAuthenticationDefaults.LoginPath
         );
         var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
+        var uiLocales = context.Properties.GetParameter<string>(
+            OpenIdProtocol.Parameters.UiLocales
+        );
+        if (!string.IsNullOrEmpty(uiLocales))
+        {
+            query = query.Add(OpenIdProtocol.Parameters.UiLocales, uiLocales);
+        }
+
         return $"{loginPath}{query}";
     }
 

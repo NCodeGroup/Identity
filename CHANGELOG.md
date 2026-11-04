@@ -1774,6 +1774,24 @@ describes the family as it is rather than its changes
   [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
   [#211](https://github.com/NCodeGroup/Identity/issues/211)).
 
+- **The interactive surface renders in the language the request prefers.** The locales the end-user interface
+  renders are a registered vocabulary (`IUiLocale`, resolved through `IUiLocaleCatalog`), so the tenant settings
+  `ui_locales_supported`, which discovery advertises, and `default_ui_locale` name only locales the interface renders.
+  An authorization request's `ui_locales` reaches the login and consent pages, an end-session request's
+  (`IEndSessionRequest.UiLocales`) the logout confirmation page, and every page renders in the first preference it
+  serves and the tenant supports (RFC 4647 lookup, so `fr-CA` selects `fr`), then the user agent's `Accept-Language`,
+  then the tenant's default language, which `ui_locales_supported` bounds like a preference, so the advertised set and
+  the rendered default never disagree; a preference nothing serves never fails the request (OpenID Connect Core 1.0
+  §3.1.2.1). The surface ships English, German, Spanish and French as `InteractiveLocale` records (`InteractiveLocales`),
+  each carrying the text of its server-rendered pages; a host adds a language, or rewords a shipped locale, with
+  `AddInteractiveLocale`, and a locale registered without the surface's messages stops the host as it starts. The page
+  carries the selected locale in its `html` element's `lang` attribute, which the `apps/auth` bundle reads to render
+  from its own typed catalogs (`apps/auth/src/i18n`), and its forms carry it back as `ui_locales`, so a page the host
+  redirects to, such as the login page after a refused sign-in or the account page after a declined sign-out, renders
+  in the same language
+  ([ADR-1402](docs/decisions/1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md),
+  issue [#540](https://github.com/NCodeGroup/Identity/issues/540)).
+
 - **The HTML page security model and the front-channel marker are general ASP.NET Core helpers in `NCode.AspNetCore`.**
   `HtmlPageSecurityPolicy`, `HtmlPageSecurityResponseExtensions` (`SetHtmlPageSecurity`),
   `ContentSecurityPolicyDirective`, `ContentSecurityPolicyDirectives` and `ContentSecurityPolicySources` are in the

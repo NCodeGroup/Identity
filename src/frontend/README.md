@@ -108,7 +108,13 @@ src/frontend/
    surface (`apps/auth`) reads its tenant's branding from the JSON block the host embeds in every page it
    serves with the bundle (`<script type="application/json" id="branding">`, `BRANDING_ELEMENT_ID`), parses
    it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-1194, ADR-1253).
-8. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
+8. **The interactive surface renders in the language the host selected.** The host writes the locale it selected
+   from the request's `ui_locales` and the tenant's settings into the page's `lang` attribute (in place of the
+   `__NCODE_LANG__` placeholder of `apps/auth/index.html`), `mountSurface` reads it before it renders, and every
+   surface takes its text from the typed catalogs under `apps/auth/src/i18n` through `useMessages` (`en` is the
+   default; add a language with one catalog file and one entry in `locales.ts`). Forms carry the page's language
+   back as `ui_locales`. No text is written inline in a surface (ADR-1402).
+9. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
    standardizing on the single most capable mechanism (unions, intersections, mapped/conditional
    types) rather than mixing the two.
 

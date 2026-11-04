@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Settings;
@@ -29,9 +30,16 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
             .GetRequiredService<IAlgorithmCollectionProvider>();
     }
 
-    private DefaultSettingDescriptorDataSource CreateDataSource(params string[] profileNames)
+    private DefaultSettingDescriptorDataSource CreateDataSource(params string[] profileNames) =>
+        CreateDataSource(profileNames, uiLocaleTags: ["en"]);
+
+    private DefaultSettingDescriptorDataSource CreateDataSource(
+        string[] profileNames,
+        string[] uiLocaleTags
+    )
     {
         var profiles = profileNames.Select(ISecurityProfile (name) => new FakeProfile(name));
+        var uiLocales = uiLocaleTags.Select(IUiLocale (tag) => new FakeUiLocale(tag));
 
         return new DefaultSettingDescriptorDataSource(
             CreateStrictMock<INullChangeToken>().Object,
@@ -42,7 +50,8 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
                 new LoopbackRedirectUriKind(),
                 new HttpRedirectUriKind(),
                 new PrivateUseRedirectUriKind(),
-            ]
+            ],
+            new DefaultUiLocaleCatalog(uiLocales)
         );
     }
 
@@ -412,7 +421,87 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
 
     #endregion
 
+    #region UI locale settings
+
+    [Theory]
+    [InlineData(new string[0], true)]
+    [InlineData(new[] { "en" }, true)]
+    [InlineData(new[] { "en", "fr" }, true)]
+    [InlineData(new[] { "FR" }, true)]
+    [InlineData(new[] { "fr-CA" }, false)]
+    [InlineData(new[] { "" }, false)]
+    [InlineData(new[] { "en", "it" }, false)]
+    public void Collection_UiLocalesSupported_AcceptsOnlyRegisteredUiLocales(
+        string[] value,
+        bool expected
+    )
+    {
+        var dataSource = CreateDataSource([], ["en", "fr"]);
+        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.UiLocalesSupported);
+
+        var valid = descriptor.TryValidate((IReadOnlyCollection<string>)value, out _);
+
+        Assert.Equal(expected, valid);
+    }
+
+    [Fact]
+    public void Collection_UiLocalesSupported_IsADiscoverableTenantCeiling()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<IReadOnlyCollection<string>>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.UiLocalesSupported)
+        );
+
+        Assert.Equal([OpenIdSettingScopes.Tenant], descriptor.AppliesTo.AsEnumerable());
+        Assert.True(descriptor.IsDiscoverable);
+        Assert.False(descriptor.HasDefault);
+        Assert.Equal(
+            ["en"],
+            descriptor.Merge(descriptor.Create(["en", "fr"]), descriptor.Create(["en"])).Value
+        );
+    }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("en", true)]
+    [InlineData("Fr", true)]
+    [InlineData("fr-CA", false)]
+    [InlineData("it", false)]
+    public void Collection_DefaultUiLocale_AcceptsEmptyOrARegisteredUiLocale(
+        string value,
+        bool expected
+    )
+    {
+        var dataSource = CreateDataSource([], ["en", "fr"]);
+        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.DefaultUiLocale);
+
+        var valid = descriptor.TryValidate(value, out _);
+
+        Assert.Equal(expected, valid);
+    }
+
+    [Fact]
+    public void Collection_DefaultUiLocale_IsAnUnsetNonDiscoverableTenantSetting()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<string>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.DefaultUiLocale)
+        );
+
+        Assert.Equal([OpenIdSettingScopes.Tenant], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.Equal(string.Empty, descriptor.Default);
+        Assert.Equal(
+            "fr",
+            descriptor.Merge(descriptor.Create("en"), descriptor.Create("fr")).Value
+        );
+    }
+
+    #endregion
+
     #region Scaffolding
+
+    private sealed record FakeUiLocale(string LanguageTag) : IUiLocale;
 
     private sealed class FakeProfile(string name) : ISecurityProfile
     {

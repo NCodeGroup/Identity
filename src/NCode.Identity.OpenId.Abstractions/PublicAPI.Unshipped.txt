@@ -970,6 +970,15 @@ NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.IsProduction.get -> bool
 NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.SecurityProfiles.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.TypeName.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.AuditRecords = "AuditRecords" -> string!
+NCode.Identity.OpenId.Locales.IUiLocale
+NCode.Identity.OpenId.Locales.IUiLocale.LanguageTag.get -> string!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Locales.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Locales.IUiLocale!>!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Select(NCode.Identity.Settings.IReadOnlySettingCollection! settings, System.Collections.Generic.IEnumerable<string!>! preferredLanguageTags) -> NCode.Identity.OpenId.Locales.IUiLocale!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Select(System.Collections.Generic.IEnumerable<string!>! preferredLanguageTags, System.Collections.Generic.IReadOnlyCollection<string!>? supportedLanguageTags, string? defaultLanguageTag) -> NCode.Identity.OpenId.Locales.IUiLocale!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.TryGet(string! languageTag, out NCode.Identity.OpenId.Locales.IUiLocale! locale) -> bool
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DefaultUiLocale = "default_ui_locale" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DefaultUiLocale.get -> NCode.Identity.Settings.SettingKey<string!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuditUserInfoAccess = "audit_userinfo_access" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsAddressLimit = "client_authentication_failed_attempts_address_limit" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit = "client_authentication_failed_attempts_limit" -> string!

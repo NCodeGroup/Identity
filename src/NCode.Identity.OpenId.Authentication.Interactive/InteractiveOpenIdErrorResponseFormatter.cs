@@ -19,12 +19,14 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 internal sealed class InteractiveOpenIdErrorResponseFormatter(
     InteractiveBundleReader bundleReader,
     InteractiveSurfacePaths surfacePaths,
-    ITenantEnvironmentCatalog tenantEnvironmentCatalog
+    ITenantEnvironmentCatalog tenantEnvironmentCatalog,
+    InteractiveLocaleSelector localeSelector
 ) : IOpenIdResponseFormatter
 {
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
+    private InteractiveLocaleSelector LocaleSelector { get; } = localeSelector;
 
     /// <inheritdoc />
     public IReadOnlyList<string> MediaTypes { get; } = [OpenIdProtocol.MediaTypes.Html];
@@ -40,23 +42,29 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
     {
         var error = (IOpenIdError)context.Response;
 
-        // A request that resolved no tenant has no branding to embed.
-        var branding = context.HttpContext.GetOpenIdContextOrDefault() is { } openIdContext
-            ? InteractiveBranding.FromSettings(
-                openIdContext.Tenant.SettingsProvider.Collection,
-                TenantEnvironmentCatalog
-            )
-            : null;
+        // A request that resolved no tenant has no branding to embed and no settings to bound the page's locale; the
+        // request's own ui_locales still selects it (ADR-1402).
+        var settings = context
+            .HttpContext.GetOpenIdContextOrDefault()
+            ?.Tenant.SettingsProvider.Collection;
+        var branding = settings is null
+            ? null
+            : InteractiveBranding.FromSettings(settings, TenantEnvironmentCatalog);
+        var locale = LocaleSelector.Select(context.HttpContext, settings);
         var security = InteractivePageSecurity.Create(branding);
 
         using var html = InteractiveHtmlResult.CreateBuffer();
-        InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            html,
+        // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
+        var frame = new InteractivePageFrame(
             await BundleReader.TryReadShellAsync(cancellationToken),
-            // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
             SurfacePaths.GetSurfaceBase(context.HttpContext),
             branding,
             security.Nonce,
+            locale
+        );
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            html,
+            frame,
             error.Code,
             error.Description
         );

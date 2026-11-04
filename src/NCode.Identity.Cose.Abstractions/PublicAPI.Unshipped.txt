@@ -1,4 +1,37 @@
 #nullable enable
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A128Gcm = 1 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A128Kw = -3 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A192Gcm = 2 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A192Kw = -4 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A256Gcm = 3 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A256Kw = -5 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Direct = -6 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ed25519 = -19 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ed448 = -53 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.EdDsa = -8 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es256 = -7 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es256K = -47 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es384 = -35 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es512 = -36 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Esp256 = -9 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Esp384 = -51 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Esp512 = -52 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha256 = 5 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha256Truncated64 = 4 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha384 = 6 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha512 = 7 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.MlDsa44 = -48 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.MlDsa65 = -49 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.MlDsa87 = -50 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ps256 = -37 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ps384 = -38 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ps512 = -39 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Rs256 = -257 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Rs384 = -258 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Rs512 = -259 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.RsaesOaepSha1 = -40 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.RsaesOaepSha256 = -41 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.RsaesOaepSha512 = -42 -> int
 const NCode.Identity.Cose.CoseFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
 const NCode.Identity.Cose.CoseFailureCodes.CriticalHeaderNotUnderstood = "critical_header_not_understood" -> string!
 const NCode.Identity.Cose.CoseFailureCodes.DecryptionFailed = "decryption_failed" -> string!
@@ -26,6 +59,32 @@ const NCode.Identity.Cose.CoseHeaderLabels.X509Bag = 32 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Chain = 33 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509ThumbprintSha256 = 34 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Url = 35 -> long
+NCode.Identity.Cose.Algorithms.CoseAlgorithm
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.CoseAlgorithm() -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Identifier.get -> int
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Identifier.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.JoseAlgorithmCode.get -> string!
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.JoseAlgorithmCode.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Kind.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Kind.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Name.get -> string!
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Name.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.TagSizeBytes.get -> int?
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.TagSizeBytes.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding.Algorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding.CoseAlgorithmBinding(NCode.Identity.Cose.Algorithms.CoseAlgorithm! algorithm, NCode.Identity.Jose.Algorithms.Algorithm! joseAlgorithm) -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding.JoseAlgorithm.get -> NCode.Identity.Jose.Algorithms.Algorithm!
+NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.ContentEncryption = 2 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.KeyDistribution = 3 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.Mac = 1 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.Signature = 0 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithms
+NCode.Identity.Cose.Algorithms.ICoseAlgorithmCatalog
+NCode.Identity.Cose.Algorithms.ICoseAlgorithmCatalog.Algorithms.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding!>!
+NCode.Identity.Cose.Algorithms.ICoseAlgorithmCatalog.TryGet(int identifier, out NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding? binding) -> bool
 NCode.Identity.Cose.CoseException
 NCode.Identity.Cose.CoseException.CoseException(string! failureCode, string! message) -> void
 NCode.Identity.Cose.CoseException.CoseException(string! failureCode, string! message, System.Exception! inner) -> void
@@ -50,6 +109,39 @@ NCode.Identity.Cose.CoseValue.TryGetDouble(out double value) -> bool
 NCode.Identity.Cose.CoseValue.TryGetInt64(out long value) -> bool
 NCode.Identity.Cose.CoseValue.TryGetTextString(out string? value) -> bool
 override NCode.Identity.Cose.CoseLabel.ToString() -> string!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A128Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A128Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A192Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A192Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A256Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A256Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Direct.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ed25519.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ed448.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.EdDsa.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es256K.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Esp256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Esp384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Esp512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha256Truncated64.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.MlDsa44.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.MlDsa65.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.MlDsa87.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ps256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ps384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ps512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Rs256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Rs384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Rs512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.RsaesOaepSha1.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.RsaesOaepSha256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.RsaesOaepSha512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
 static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseLabel(long value) -> NCode.Identity.Cose.CoseLabel
 static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseLabel(string! value) -> NCode.Identity.Cose.CoseLabel
 static NCode.Identity.Cose.CoseValue.FromByteString(System.ReadOnlySpan<byte> value) -> NCode.Identity.Cose.CoseValue!

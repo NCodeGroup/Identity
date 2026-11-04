@@ -75,7 +75,8 @@ internal sealed class SdJwtPayloadProcessor(
         }
         catch (ArgumentException exception)
         {
-            // A JSON object with a repeated member name cannot be resolved unambiguously.
+            // A JSON object with a repeated member name cannot be resolved unambiguously. A disclosed value is
+            // judged where it is resolved, so a repeat reaching here is in the issuer-signed payload itself.
             throw new SdJwtException(
                 SdJwtVerificationFailureCodes.InvalidSdJwt,
                 "The issuer-signed JWT payload repeats a member name.",
@@ -104,7 +105,10 @@ internal sealed class SdJwtPayloadProcessor(
         EnsureDepth(depth);
 
         List<string>? digests = null;
-        List<string> names = [.. obj.Select(static member => member.Key)];
+        var names = new List<string>(obj.Count);
+        foreach (var member in obj)
+            names.Add(member.Key);
+
         foreach (var name in names)
         {
             var node = obj[name];
@@ -132,7 +136,9 @@ internal sealed class SdJwtPayloadProcessor(
                     );
 
                 default:
-                    ProcessNode(node, JsonPointer.AppendMember(path, name), depth + 1, parent);
+                    // A scalar holds no digest, so it needs no path.
+                    if (node is JsonObject or JsonArray)
+                        ProcessNode(node, JsonPointer.AppendMember(path, name), depth + 1, parent);
                     break;
             }
         }
@@ -170,7 +176,7 @@ internal sealed class SdJwtPayloadProcessor(
             obj[claimName] = valueNode;
             Disclosed.Add(new DisclosedClaim(disclosure, claimPath, parent));
 
-            ProcessNode(valueNode, claimPath, depth + 1, disclosure);
+            ProcessDisclosedValue(valueNode, claimPath, depth + 1, disclosure);
         }
     }
 
@@ -178,20 +184,31 @@ internal sealed class SdJwtPayloadProcessor(
     {
         EnsureDepth(depth);
 
-        var index = 0;
-        while (index < array.Count)
+        // The resolved elements are collected in one pass and written back once, so a run of decoys costs no more
+        // than a run of elements; an element's index is its index once the decoys before it are dropped.
+        var count = array.Count;
+        var kept = new List<JsonNode?>(count);
+        var hasPlaceholder = false;
+        for (var i = 0; i < count; i++)
         {
-            var element = array[index];
+            var element = array[i];
             if (
                 element is not JsonObject placeholder
                 || !placeholder.ContainsKey(JoseClaimNames.Payload.SdArrayElement)
             )
             {
-                ProcessNode(element, JsonPointer.AppendIndex(path, index), depth + 1, parent);
-                index++;
+                if (element is JsonObject or JsonArray)
+                    ProcessNode(
+                        element,
+                        JsonPointer.AppendIndex(path, kept.Count),
+                        depth + 1,
+                        parent
+                    );
+                kept.Add(element);
                 continue;
             }
 
+            hasPlaceholder = true;
             EnsureNotProtected(path);
 
             if (placeholder.Count != 1)
@@ -204,7 +221,6 @@ internal sealed class SdJwtPayloadProcessor(
             if (!TryTakeDisclosure(digest, out var disclosure))
             {
                 // A decoy digest stands in for no element.
-                array.RemoveAt(index);
                 continue;
             }
 
@@ -214,13 +230,42 @@ internal sealed class SdJwtPayloadProcessor(
                     "A digest of an array element references an object property disclosure."
                 );
 
-            var elementPath = JsonPointer.AppendIndex(path, index);
+            var elementPath = JsonPointer.AppendIndex(path, kept.Count);
             var valueNode = ToNode(disclosure.Value);
-            array[index] = valueNode;
+            kept.Add(valueNode);
             Disclosed.Add(new DisclosedClaim(disclosure, elementPath, parent));
 
-            ProcessNode(valueNode, elementPath, depth + 1, disclosure);
-            index++;
+            ProcessDisclosedValue(valueNode, elementPath, depth + 1, disclosure);
+        }
+
+        if (!hasPlaceholder)
+            return;
+
+        array.Clear();
+        foreach (var node in kept)
+            array.Add(node);
+    }
+
+    // A disclosed object is materialized as it is resolved, so a repeated member name in a disclosure is the
+    // holder's error, reported as such, and never read as a repeat in the issuer-signed payload.
+    private void ProcessDisclosedValue(
+        JsonNode? node,
+        string path,
+        int depth,
+        Disclosure disclosure
+    )
+    {
+        try
+        {
+            ProcessNode(node, path, depth, disclosure);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new SdJwtException(
+                SdJwtVerificationFailureCodes.InvalidDisclosure,
+                "A disclosed value repeats a member name.",
+                exception
+            );
         }
     }
 

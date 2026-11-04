@@ -3,10 +3,12 @@
 
 using System.Security.Cryptography;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Json;
 
 namespace NCode.Identity.Jose.SdJwt.Verification;
 
@@ -34,7 +36,7 @@ internal class JwkConfirmationKeyResolver(ISecretKeyTypeCatalog secretKeyTypeCat
 
         if (
             confirmation.ValueKind != JsonValueKind.Object
-            || !confirmation.TryGetProperty(Member, out var jwkElement)
+            || !confirmation.TryGetPropertyValue<JsonElement>(Member, out var jwkElement)
             || jwkElement.ValueKind != JsonValueKind.Object
         )
             return ValueTask.FromResult<SecretKey?>(null);
@@ -63,9 +65,12 @@ internal class JwkConfirmationKeyResolver(ISecretKeyTypeCatalog secretKeyTypeCat
         if (jwk.ContainsPrivateKeyMaterial)
             return ValueTask.FromResult<SecretKey?>(null);
 
+        // The import hands the public key bytes to a callback and reports their encoding only once it returns, so
+        // the bytes are held in a rented buffer until the key is deserialized.
+        IDisposable? lease = null;
         try
         {
-            byte[] keyMaterial = [];
+            Memory<byte> keyMaterial = default;
             var imported = descriptor.ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
@@ -74,14 +79,16 @@ internal class JwkConfirmationKeyResolver(ISecretKeyTypeCatalog secretKeyTypeCat
                 },
                 bytes =>
                 {
-                    keyMaterial = bytes.ToArray();
+                    lease?.Dispose();
+                    lease = BufferFactory.Rent(bytes.Length, isSensitive: false, out keyMaterial);
+                    bytes.CopyTo(keyMaterial.Span);
                     return string.Empty;
                 }
             );
             var secretKey = descriptor.DeserializeKeyMaterial(
                 new KeyMetadata { KeyId = jwk.KeyId },
                 imported.SecretEncoding,
-                keyMaterial
+                keyMaterial.Span
             );
             return ValueTask.FromResult<SecretKey?>(secretKey);
         }
@@ -95,6 +102,10 @@ internal class JwkConfirmationKeyResolver(ISecretKeyTypeCatalog secretKeyTypeCat
             )
         {
             return ValueTask.FromResult<SecretKey?>(null);
+        }
+        finally
+        {
+            lease?.Dispose();
         }
     }
 }

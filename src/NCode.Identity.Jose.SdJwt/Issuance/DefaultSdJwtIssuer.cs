@@ -19,7 +19,8 @@ namespace NCode.Identity.Jose.SdJwt.Issuance;
 /// its own disclosure, which is the recursive structure of RFC 9901 §5.2.4. Each <c>_sd</c> array is sorted so the
 /// order of its digests reveals nothing about the claims, and the issuer-signed JWT is encoded by the JOSE serializer.
 /// A protected top-level claim, by the format's own rule or the profile's, is never made disclosable in whole or in
-/// part, so the verifier accepts every SD-JWT the issuer makes.
+/// part, and the claims may nest no deeper than the limit the verifier enforces on the resolved claims, so the
+/// verifier accepts every SD-JWT the issuer makes.
 /// </summary>
 /// <param name="joseSerializer">The JOSE serializer that signs the issuer-signed JWT.</param>
 /// <param name="digestAlgorithmCatalog">The registered hash algorithms.</param>
@@ -174,7 +175,7 @@ internal class DefaultSdJwtIssuer(
         return disclosablePaths;
     }
 
-    private static JsonObject ReadClaims(SdJwtIssuanceOptions options)
+    private JsonObject ReadClaims(SdJwtIssuanceOptions options)
     {
         var element = options.Claims;
         if (element.ValueKind != JsonValueKind.Object)
@@ -189,11 +190,7 @@ internal class DefaultSdJwtIssuer(
                     "The claims must be a JSON object.",
                     nameof(options)
                 );
-            if (FindReservedName(claims) is { } reservedName)
-                throw new ArgumentException(
-                    $"The claims must not use the reserved name '{reservedName}'.",
-                    nameof(options)
-                );
+            ValidateShape(claims, depth: 0, nameof(options));
         }
         catch (ArgumentException exception)
             when (!string.Equals(exception.ParamName, nameof(options), StringComparison.Ordinal))
@@ -223,31 +220,41 @@ internal class DefaultSdJwtIssuer(
         return claims;
     }
 
-    // The first reserved member name found at any depth, or null when the claims use none.
-    private static string? FindReservedName(JsonNode? node)
+    // A reserved member name at any depth is refused, and so are claims that nest deeper than the limit the payload
+    // processor enforces on the resolved claims, counted the same way: the root object is at depth zero and each
+    // nested object or array one deeper.
+    private void ValidateShape(JsonNode? node, int depth, string paramName)
     {
         switch (node)
         {
             case JsonObject obj:
+                EnsureDepth(depth, paramName);
                 foreach (var member in obj)
                 {
                     if (SdJwtClaimRules.IsReserved(member.Key))
-                        return member.Key;
+                        throw new ArgumentException(
+                            $"The claims must not use the reserved name '{member.Key}'.",
+                            paramName
+                        );
 
-                    if (FindReservedName(member.Value) is { } nested)
-                        return nested;
+                    ValidateShape(member.Value, depth + 1, paramName);
                 }
                 break;
 
             case JsonArray array:
+                EnsureDepth(depth, paramName);
                 foreach (var element in array)
-                {
-                    if (FindReservedName(element) is { } nested)
-                        return nested;
-                }
+                    ValidateShape(element, depth + 1, paramName);
                 break;
         }
+    }
 
-        return null;
+    private void EnsureDepth(int depth, string paramName)
+    {
+        if (depth > Options.MaxNestingDepth)
+            throw new ArgumentException(
+                $"The claims nest deeper than the limit of {Options.MaxNestingDepth}.",
+                paramName
+            );
     }
 }

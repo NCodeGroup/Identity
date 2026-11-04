@@ -48,7 +48,10 @@ internal sealed class IssuanceWalk(
     public void ProcessObject(JsonObject obj, string path)
     {
         List<string>? digests = null;
-        List<string> names = [.. obj.Select(static member => member.Key)];
+        var names = new List<string>(obj.Count);
+        foreach (var member in obj)
+            names.Add(member.Key);
+
         foreach (var name in names)
         {
             var memberPath = JsonPointer.AppendMember(path, name);

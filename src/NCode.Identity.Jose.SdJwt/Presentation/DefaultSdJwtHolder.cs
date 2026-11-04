@@ -102,7 +102,13 @@ internal class DefaultSdJwtHolder(
                 current = parentsByDisclosure[current];
         }
 
-        List<Disclosure> presented = [.. sdJwt.Disclosures.Where(selected.Contains)];
+        var presented = new List<Disclosure>(selected.Count);
+        foreach (var disclosure in sdJwt.Disclosures)
+        {
+            if (selected.Contains(disclosure))
+                presented.Add(disclosure);
+        }
+
         var presentation = SdJwtSerialization.Serialize(
             sdJwt.IssuerSignedJwt,
             presented,
@@ -144,33 +150,13 @@ internal class DefaultSdJwtHolder(
     )
     {
         var payload = ReadPayload(sdJwt.IssuerSignedJwt);
-        var algorithm = ResolveDigestAlgorithm(payload);
+        var algorithm = DigestAlgorithmCatalog.Resolve(payload);
         var processor = new SdJwtPayloadProcessor(
             algorithm,
             Options.MaxNestingDepth,
             profile: null
         );
         return (algorithm, processor.Process(payload, sdJwt.Disclosures));
-    }
-
-    private SdJwtDigestAlgorithm ResolveDigestAlgorithm(JsonElement payload)
-    {
-        var name = SdJwtDigestAlgorithms.DefaultName;
-        if (
-            payload.TryGetProperty(JoseClaimNames.Payload.SdAlg, out var sdAlg)
-            && (!sdAlg.TryGetValue(out name) || string.IsNullOrEmpty(name))
-        )
-            throw new SdJwtException(
-                SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm,
-                "The '_sd_alg' claim must be a non-empty string."
-            );
-
-        return DigestAlgorithmCatalog.TryGet(name, out var algorithm)
-            ? algorithm
-            : throw new SdJwtException(
-                SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm,
-                $"The digest algorithm '{name}' is not registered."
-            );
     }
 
     // The holder reads the payload it was issued without verifying the signature; verification is the verifier's.
@@ -190,7 +176,7 @@ internal class DefaultSdJwtHolder(
         {
             throw new SdJwtException(
                 SdJwtVerificationFailureCodes.InvalidSdJwt,
-                "The issuer-signed JWT must be a compact JWS.",
+                "The issuer-signed JWT is not a JOSE token in compact form.",
                 exception
             );
         }

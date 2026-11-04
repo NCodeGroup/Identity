@@ -114,6 +114,24 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
         Assert.Equal(SdJwtVerificationFailureCodes.InvalidSdJwt, exception.FailureCode);
     }
 
+    [Theory]
+    [InlineData("eyJhbGciOiJFUzI1NiJ9.@@@@.c2ln", "base64url-encoded JSON object")]
+    [InlineData("eyJhbGciOiJFUzI1NiJ9.bm90IGpzb24.c2ln", "base64url-encoded JSON object")]
+    [InlineData("eyJhbGciOiJFUzI1NiJ9.e30", "not a JOSE token")]
+    public void ResolveDisclosures_WhenTheIssuerJwtPayloadCannotBeRead_Throws(
+        string issuerSignedJwt,
+        string reason
+    )
+    {
+        // A payload segment that is not base64url, one that is not JSON, and a token with too few segments.
+        var sdJwt = new SelectiveDisclosureJwt(issuerSignedJwt, [], keyBindingJwt: null);
+
+        var exception = Assert.Throws<SdJwtException>(() => Host.Holder.ResolveDisclosures(sdJwt));
+
+        Assert.Equal(SdJwtVerificationFailureCodes.InvalidSdJwt, exception.FailureCode);
+        Assert.Contains(reason, exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ResolveDisclosures_WhenPayloadIsNotAnObject_Throws()
     {

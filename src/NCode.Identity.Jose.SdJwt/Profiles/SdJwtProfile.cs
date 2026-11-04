@@ -10,8 +10,9 @@ namespace NCode.Identity.Jose.SdJwt.Profiles;
 /// A profile of the Selective Disclosure JWT (SD-JWT) format, such as SD-JWT VC, expressed as data: the <c>typ</c> of
 /// the issuer-signed JWT, the claims that must be present in its payload as non-empty strings, and the claims that are
 /// never selectively disclosable, in whole or in part, beside <c>iss</c>, <c>nbf</c>, <c>exp</c> and <c>cnf</c>, which
-/// the format itself protects. The issuer applies it when it issues and the verifier when it verifies, so the two
-/// agree on one definition.
+/// the format itself protects. A required claim is judged on the issuer-signed payload before any disclosure is
+/// resolved, so it is protected whether or not it is listed as such. The issuer applies the profile when it issues
+/// and the verifier when it verifies, so the two agree on one definition.
 /// </summary>
 /// <param name="name">The name of the profile.</param>
 /// <param name="tokenType">The <c>typ</c> JOSE header value of the issuer-signed JWT, matched by the media-type rules
@@ -19,8 +20,8 @@ namespace NCode.Identity.Jose.SdJwt.Profiles;
 /// <param name="requiredClaims">The names of the claims that must be present in the issuer-signed JWT payload as
 /// non-empty strings.</param>
 /// <param name="protectedClaims">The names of the top-level claims that are never selectively disclosable, in whole or
-/// in part: an issuer refuses to make one or any part of one disclosable, and a verifier refuses a disclosure that
-/// discloses one and any digest beneath one.</param>
+/// in part, beside the required claims: an issuer refuses to make one or any part of one disclosable, and a verifier
+/// refuses a disclosure that discloses one and any digest beneath one.</param>
 // See ADR-1406.
 [PublicAPI]
 public sealed class SdJwtProfile(
@@ -47,8 +48,10 @@ public sealed class SdJwtProfile(
         requiredClaims.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>
-    /// Gets the names of the top-level claims that are never selectively disclosable, in whole or in part.
+    /// Gets the names of the top-level claims that are never selectively disclosable, in whole or in part: the claims
+    /// the profile protects and the claims it requires, which are read from the issuer-signed payload before any
+    /// disclosure is resolved.
     /// </summary>
     public FrozenSet<string> ProtectedClaims { get; } =
-        protectedClaims.ToFrozenSet(StringComparer.Ordinal);
+        protectedClaims.Concat(requiredClaims).ToFrozenSet(StringComparer.Ordinal);
 }

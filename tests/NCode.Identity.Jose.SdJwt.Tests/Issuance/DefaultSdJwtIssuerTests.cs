@@ -570,6 +570,65 @@ public sealed class DefaultSdJwtIssuerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Issue_WithProfileAndAPathToARequiredClaimItDoesNotListAsProtected_Throws()
+    {
+        // The verifier judges a required claim on the issuer-signed payload before it resolves a disclosure, so an
+        // SD-JWT that disclosed one would never verify under the same profile.
+        var profile = new SdJwtProfile("test", "test+sd-jwt", ["sub"], []);
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = Host.IssuerCredentials,
+            Claims = JsonElement.Parse("""{"iss":"https://issuer.example","sub":"x"}"""),
+            DisclosablePaths = ["/sub"],
+            Profile = profile,
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => Host.Issuer.Issue(options));
+
+        Assert.Contains("'sub'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'test' profile", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("""{"a":{"b":{"c":1}}}""")]
+    [InlineData("""{"a":[[1]]}""")]
+    public async Task Issue_WhenClaimsNestDeeperThanTheLimit_Throws(string claimsJson)
+    {
+        await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 1);
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = host.IssuerCredentials,
+            Claims = JsonElement.Parse(claimsJson),
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => host.Issuer.Issue(options));
+
+        Assert.Contains(
+            "nest deeper than the limit of 1",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task Issue_WhenClaimsNestToTheLimit_Issues()
+    {
+        // The limit counts the nesting of the resolved claims, so an SD-JWT the issuer makes within it verifies.
+        await using var host = new SdJwtTestHost(options => options.MaxNestingDepth = 1);
+        var options = new SdJwtIssuanceOptions
+        {
+            SigningCredentials = host.IssuerCredentials,
+            Claims = JsonElement.Parse("""{"a":{"b":1},"c":[1]}"""),
+            DisclosablePaths = ["/a/b", "/c/0"],
+        };
+
+        var sdJwt = host.Issuer.Issue(options);
+
+        Assert.Equal(2, sdJwt.Disclosures.Length);
+        Assert.Equal(2, host.Holder.ResolveDisclosures(sdJwt).Count);
+    }
+
+    [Fact]
     public void Issue_WhenClaimsRepeatAMemberName_Throws()
     {
         var options = new SdJwtIssuanceOptions

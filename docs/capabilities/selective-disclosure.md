@@ -22,7 +22,7 @@
 | 5   | The work a presentation can demand is bounded: the number of disclosures and the depth of the resolved claims are limits the host configures and the start validates.           |
 | 6   | Every salt comes from the platform's cryptographically secure random number generator and is at least 128 bits.                                                                 |
 | 7   | An SD-JWT VC is the same SD-JWT under a profile: `dc+sd-jwt`, a required `vct`, and claims that stay in the signed payload.                                                      |
-| 8   | A protected claim is plaintext in its entirety: `iss`, `nbf`, `exp` and `cnf` under every profile, and the profile's claims such as `status`, are never disclosable in whole or in part, so a withheld part of one can never pass as a decoy. |
+| 8   | A protected claim is plaintext in its entirety: `iss`, `nbf`, `exp` and `cnf` under every profile, and the profile's claims such as `status` and the claims it requires, are never disclosable in whole or in part, so a withheld part of one can never pass as a decoy. |
 
 ## Why this matters
 

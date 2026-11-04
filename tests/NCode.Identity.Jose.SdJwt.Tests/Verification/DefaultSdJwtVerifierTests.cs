@@ -10,6 +10,7 @@ using NCode.Identity.Jose.SdJwt.Options;
 using NCode.Identity.Jose.SdJwt.Presentation;
 using NCode.Identity.Jose.SdJwt.Profiles;
 using NCode.Identity.Jose.SdJwt.Verification;
+using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -31,6 +32,16 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         }
         """;
 
+    private const string VcClaimsJson = """
+        {
+          "iss": "https://issuer.example",
+          "vct": "https://credentials.example/identity_credential",
+          "status": { "status_list": { "idx": 0, "uri": "https://issuer.example/status/1" } },
+          "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
+          "given_name": "John"
+        }
+        """;
+
     private SdJwtTestHost Host { get; } = new();
 
     protected override async ValueTask DisposeAsyncCore()
@@ -38,8 +49,6 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         await Host.DisposeAsync();
         await base.DisposeAsyncCore();
     }
-
-    #region Scaffolding
 
     private SelectiveDisclosureJwt Issue(
         IEnumerable<string> disclosablePaths,
@@ -156,16 +165,36 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
 
     private DefaultSdJwtVerifier CreateVerifier(
         params IEnumerable<IConfirmationKeyResolver> resolvers
+    ) => CreateVerifier(Host.ServiceProvider.GetRequiredService<IJwtValidator>(), resolvers);
+
+    private DefaultSdJwtVerifier CreateVerifier(
+        IJwtValidator jwtValidator,
+        IEnumerable<IConfirmationKeyResolver> resolvers
     ) =>
         new(
-            Host.ServiceProvider.GetRequiredService<IJwtValidator>(),
+            jwtValidator,
             Host.ServiceProvider.GetRequiredService<ISdJwtDigestAlgorithmCatalog>(),
             resolvers,
             Host.TimeProvider,
             Host.ServiceProvider.GetRequiredService<IOptions<SdJwtOptions>>()
         );
 
-    #endregion
+    /// <summary>
+    /// A verifier over a JWT validator that answers as scripted, for results the real validator never produces.
+    /// </summary>
+    private DefaultSdJwtVerifier CreateVerifierOver(IJwtValidator jwtValidator) =>
+        CreateVerifier(jwtValidator, Host.ServiceProvider.GetServices<IConfirmationKeyResolver>());
+
+    private static JwtValidationResult Succeed(
+        JwtValidationParameters parameters,
+        DecodedJwt decodedJwt
+    ) =>
+        JwtValidationResult.Success(
+            parameters,
+            parameters.PropertyBag,
+            decodedJwt,
+            static (_, _, _, _, _, _) => throw new NotSupportedException()
+        );
 
     #region Constructor Tests
 
@@ -199,6 +228,14 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         var resolver = CreateResolverMock(" ");
 
         Assert.Throws<InvalidOperationException>(() => CreateVerifier(resolver.Object));
+    }
+
+    [Fact]
+    public void Constructor_WhenAResolverIsNull_Throws()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateVerifier([null!]));
+
+        Assert.Contains("is null", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion
@@ -339,6 +376,161 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         await Assert.ThrowsAsync<ArgumentException>(async () =>
             await VerifyAsync(presentation, parameters)
         );
+    }
+
+    [Theory]
+    [InlineData("", Nonce, true, 5, 0, "audience")]
+    [InlineData(Audience, "", true, 5, 0, "nonce")]
+    [InlineData(Audience, Nonce, false, 5, 0, "signature algorithms")]
+    [InlineData(Audience, Nonce, true, 0, 0, "maximum age")]
+    [InlineData(Audience, Nonce, true, -5, 0, "maximum age")]
+    [InlineData(Audience, Nonce, true, 5, -1, "clock skew")]
+    public async Task VerifyAsync_WhenTheKeyBindingRequirementIsUnusable_Throws(
+        string audience,
+        string nonce,
+        bool withAlgorithms,
+        int maxAgeMinutes,
+        int clockSkewMinutes,
+        string reason
+    )
+    {
+        // A requirement built from a missing value would let a captured Key Binding JWT replay, so it is refused
+        // before the presentation is read, which a valid presentation proves.
+        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        var parameters = new SdJwtVerificationParameters
+        {
+            IssuerJwtParameters = Host.CreateIssuerJwtParameters(),
+            KeyBinding = new SdJwtKeyBindingRequirement
+            {
+                Audience = audience,
+                Nonce = nonce,
+                ValidSignatureAlgorithms = withAlgorithms ? [SdJwtTestHost.Es256] : null!,
+                MaxAge = TimeSpan.FromMinutes(maxAgeMinutes),
+                ClockSkew = TimeSpan.FromMinutes(clockSkewMinutes),
+            },
+        };
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await VerifyAsync(presentation, parameters)
+        );
+
+        Assert.Contains(reason, exception.Message, StringComparison.Ordinal);
+        Assert.Equal("parameters", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheMaximumAgeIsUnbounded_VerifiesAnOldKeyBindingJwt()
+    {
+        var presentation = Present(Issue(["/given_name"]), withKeyBinding: true);
+        Host.TimeProvider.Advance(TimeSpan.FromDays(365));
+        var parameters = new SdJwtVerificationParameters
+        {
+            IssuerJwtParameters = Host.CreateIssuerJwtParameters(),
+            KeyBinding = new SdJwtKeyBindingRequirement
+            {
+                Audience = Audience,
+                Nonce = Nonce,
+                ValidSignatureAlgorithms = [SdJwtTestHost.Es256],
+                MaxAge = TimeSpan.MaxValue,
+            },
+        };
+
+        var result = await VerifyAsync(presentation, parameters);
+
+        Assert.True(result.IsValid);
+        Assert.NotNull(result.KeyBinding);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheIssuerSignedJwtDoesNotDecode_ReportsFixedTextWithoutTheToken()
+    {
+        var sdJwt = Issue(["/given_name"]);
+        var presentation = Present(sdJwt);
+
+        var result = await VerifyAsync(presentation, CreateParameters(issuerKey: Host.StrangerKey));
+
+        AssertFailure(result, JwtValidationFailureCodes.InvalidSignature);
+        Assert.NotNull(result.FailureReason);
+        Assert.Contains(
+            JwtValidationFailureCodes.InvalidSignature,
+            result.FailureReason,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("could not be decoded", result.FailureReason, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            sdJwt.IssuerSignedJwt,
+            result.FailureReason,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheValidatorReportsCancellation_Throws()
+    {
+        // The JWT validator reports every exception as a failed result, cancellation included, which the verifier
+        // propagates rather than reports as an invalid token.
+        var presentation = Present(Issue(["/given_name"]));
+        var parameters = CreateParameters();
+        var validator = CreateStrictMock<IJwtValidator>();
+        validator
+            .Setup(x =>
+                x.ValidateAsync(
+                    It.IsAny<string>(),
+                    parameters.IssuerJwtParameters,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns<string, JwtValidationParameters, CancellationToken>(
+                (token, jwtParameters, _) =>
+                    ValueTask.FromResult(
+                        JwtValidationResult.Fail(
+                            jwtParameters,
+                            jwtParameters.PropertyBag,
+                            token,
+                            new OperationCanceledException()
+                        )
+                    )
+            )
+            .Verifiable();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await CreateVerifierOver(validator.Object)
+                .VerifyAsync(presentation, parameters, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheIssuerSignedJwtPayloadIsNotAnObject_Fails()
+    {
+        var sdJwt = Issue(["/given_name"]);
+        var presentation = Present(sdJwt);
+        var parameters = CreateParameters();
+        var validator = CreateStrictMock<IJwtValidator>();
+        validator
+            .Setup(x =>
+                x.ValidateAsync(
+                    sdJwt.IssuerSignedJwt,
+                    parameters.IssuerJwtParameters,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                Succeed(
+                    parameters.IssuerJwtParameters,
+                    new DecodedJwt(
+                        Host.JoseSerializer.Parse(sdJwt.IssuerSignedJwt),
+                        JsonElement.Parse("[1]"),
+                        Host.IssuerKey
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await CreateVerifierOver(validator.Object)
+            .VerifyAsync(presentation, parameters, CancellationToken.None);
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.InvalidSdJwt);
+        Assert.Contains("JSON object", result.FailureReason, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -574,6 +766,36 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
     }
 
     [Theory]
+    [InlineData("""{"_sd_alg":1,"_sd":[]}""")]
+    [InlineData("""{"_sd_alg":"","_sd":[]}""")]
+    [InlineData("""{"_sd_alg":null,"_sd":[]}""")]
+    public async Task VerifyAsync_WhenTheSdAlgClaimIsNotANonEmptyString_Fails(string payloadJson)
+    {
+        var presentation = PresentCrafted(payloadJson);
+
+        var result = await VerifyAsync(presentation);
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm);
+        Assert.Contains("non-empty string", result.FailureReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenAnObjectInsideAnArrayCarriesDigests_ResolvesThemAtTheElementsPath()
+    {
+        var name = CreateDisclosure("name", "\"x\"");
+        var presentation = PresentCrafted(
+            $$"""{"items":[1,{"_sd":["{{Digest(name)}}"]}]}""",
+            name.Encoded
+        );
+
+        var result = await VerifyAsync(presentation);
+
+        Assert.True(result.IsValid);
+        Assert.Equal("x", result.Claims.GetProperty("items")[1].GetProperty("name").GetString());
+        Assert.Equal("/items/1/name", Assert.Single(result.Disclosures).Path);
+    }
+
+    [Theory]
     [InlineData("""{"_sd":"x"}""")]
     [InlineData("""{"_sd":[1]}""")]
     [InlineData("""{"nationalities":[{"...":"x","extra":1}]}""")]
@@ -621,6 +843,33 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         var result = await VerifyAsync(presentation);
 
         AssertFailure(result, SdJwtVerificationFailureCodes.InvalidSdJwt);
+        Assert.Contains(
+            "issuer-signed JWT payload",
+            result.FailureReason,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Theory]
+    [InlineData("""{"a":1,"a":2}""")]
+    [InlineData("""{"inner":{"a":1,"a":2}}""")]
+    [InlineData("""[{"a":1,"a":2}]""")]
+    public async Task VerifyAsync_WhenADisclosedValueRepeatsAMemberName_FailsAsAnInvalidDisclosure(
+        string valueJson
+    )
+    {
+        // The repeat is in the holder's disclosure, so it is reported as such and never as a repeat in the
+        // issuer-signed payload.
+        var disclosure = CreateDisclosure("claim", valueJson);
+        var presentation = PresentCrafted(
+            $$"""{"_sd":["{{Digest(disclosure)}}"]}""",
+            disclosure.Encoded
+        );
+
+        var result = await VerifyAsync(presentation);
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.InvalidDisclosure);
+        Assert.Contains("disclosed value", result.FailureReason, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -722,10 +971,6 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
 
         AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
     }
-
-    #endregion
-
-    #region VerifyAsync Key Binding Tests
 
     [Fact]
     public async Task VerifyAsync_WithKeyBinding_ReturnsTheVerifiedKeyBinding()
@@ -933,6 +1178,107 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
         AssertFailure(result, SdJwtVerificationFailureCodes.HolderKeyNotFound);
     }
 
+    [Theory]
+    [InlineData("""{"jwk":{"kty":"oct","k":"AAAA"}}""")]
+    [InlineData("""{"jwk":"x"}""")]
+    [InlineData("""{"x5c":[]}""")]
+    [InlineData("""[]""")]
+    public async Task VerifyAsync_WhenTheCnfNamesNoUsableKey_Fails(string cnfJson)
+    {
+        var prefix = PresentCrafted($$"""{"iss":"x","cnf":{{cnfJson}}}""");
+        var payload = $$"""
+            {"iat":{{SdJwtTestHost.StartTime.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
+                prefix
+            )}}"}
+            """;
+        var keyBindingJwt = Host.SignJwt(Host.HolderCredentials, payload, "kb+jwt");
+
+        var result = await VerifyAsync(
+            prefix + keyBindingJwt,
+            CreateParameters(requireKeyBinding: true)
+        );
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.HolderKeyNotFound);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheKeyBindingJwtPayloadIsNotAnObject_Fails()
+    {
+        var sdJwt = Issue(["/given_name"]);
+        var presentation = Present(sdJwt, withKeyBinding: true);
+        var keyBindingJwt = Host.Holder.Parse(presentation).KeyBindingJwt;
+        Assert.NotNull(keyBindingJwt);
+        var parameters = CreateParameters(requireKeyBinding: true);
+        var realValidator = Host.ServiceProvider.GetRequiredService<IJwtValidator>();
+        var issuerResult = await realValidator.ValidateAsync(
+            sdJwt.IssuerSignedJwt,
+            parameters.IssuerJwtParameters,
+            CancellationToken.None
+        );
+        Assert.True(issuerResult.IsValid);
+        var validator = CreateStrictMock<IJwtValidator>();
+        validator
+            .Setup(x =>
+                x.ValidateAsync(
+                    sdJwt.IssuerSignedJwt,
+                    parameters.IssuerJwtParameters,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(issuerResult)
+            .Verifiable();
+        validator
+            .Setup(x =>
+                x.ValidateAsync(
+                    keyBindingJwt,
+                    It.Is<JwtValidationParameters>(p => p != parameters.IssuerJwtParameters),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns<string, JwtValidationParameters, CancellationToken>(
+                (token, jwtParameters, _) =>
+                    ValueTask.FromResult(
+                        Succeed(
+                            jwtParameters,
+                            new DecodedJwt(
+                                Host.JoseSerializer.Parse(token),
+                                JsonElement.Parse("[1]"),
+                                Host.HolderKey
+                            )
+                        )
+                    )
+            )
+            .Verifiable();
+
+        var result = await CreateVerifierOver(validator.Object)
+            .VerifyAsync(presentation, parameters, CancellationToken.None);
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.InvalidKeyBinding);
+        Assert.Contains("JSON object", result.FailureReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenTheKeyBindingJwtDoesNotDecode_ReportsFixedTextWithoutTheToken()
+    {
+        var prefix = Present(Issue(["/given_name"]));
+        var payload = $$"""
+            {"iat":{{SdJwtTestHost.StartTime.ToUnixTimeSeconds()}},"aud":"{{Audience}}","nonce":"{{Nonce}}","sd_hash":"{{SdJwtDigestAlgorithms.Sha256.ComputeDigest(
+                prefix
+            )}}"}
+            """;
+        var keyBindingJwt = Host.SignJwt(Host.StrangerCredentials, payload, "kb+jwt");
+
+        var result = await VerifyAsync(
+            prefix + keyBindingJwt,
+            CreateParameters(requireKeyBinding: true)
+        );
+
+        AssertFailure(result, SdJwtVerificationFailureCodes.InvalidKeyBinding);
+        Assert.NotNull(result.FailureReason);
+        Assert.Contains("could not be decoded", result.FailureReason, StringComparison.Ordinal);
+        Assert.DoesNotContain(keyBindingJwt, result.FailureReason, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task VerifyAsync_WhenCnfIsDisclosedRatherThanPlaintext_Fails()
     {
@@ -954,20 +1300,6 @@ public sealed class DefaultSdJwtVerifierTests : BaseTests
 
         AssertFailure(result, SdJwtVerificationFailureCodes.ProtectedClaimDisclosed);
     }
-
-    #endregion
-
-    #region VerifyAsync Profile Tests
-
-    private const string VcClaimsJson = """
-        {
-          "iss": "https://issuer.example",
-          "vct": "https://credentials.example/identity_credential",
-          "status": { "status_list": { "idx": 0, "uri": "https://issuer.example/status/1" } },
-          "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
-          "given_name": "John"
-        }
-        """;
 
     [Fact]
     public async Task VerifyAsync_WithSdJwtVcProfile_PassesTheStatusClaimThrough()

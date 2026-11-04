@@ -57,40 +57,28 @@ public sealed class SdJwtDigestAlgorithm
                 ? stackalloc byte[digestSizeBytes]
                 : new byte[digestSizeBytes];
 
-        IDisposable? lease = null;
-        try
-        {
-            // ReSharper disable once UseCollectionExpression
-            Span<byte> source = stackalloc byte[0];
+        // A value within the stack limit is transcoded on the stack; a longer one into a rented buffer.
+        Span<byte> rented = default;
+        using var lease =
+            value.Length <= StackAllocLimit
+                ? null
+                : BufferFactory.Rent(value.Length, isSensitive: false, out rented);
+        Span<byte> source = lease is null ? stackalloc byte[StackAllocLimit] : rented;
 
-            if (value.Length <= StackAllocLimit)
-            {
-                source = stackalloc byte[StackAllocLimit];
-            }
-            else
-            {
-                lease = BufferFactory.Rent(value.Length, isSensitive: false, out source);
-            }
+        var status = Ascii.FromUtf16(value, source, out var written);
+        if (status != OperationStatus.Done)
+            throw new ArgumentException(
+                "The value must contain only ASCII characters.",
+                nameof(value)
+            );
 
-            var status = Ascii.FromUtf16(value, source, out var written);
-            if (status != OperationStatus.Done)
-                throw new ArgumentException(
-                    "The value must contain only ASCII characters.",
-                    nameof(value)
-                );
-
-            if (
-                !hashFunction(source[..written], digest, out var bytesWritten)
-                || bytesWritten != digestSizeBytes
-            )
-                throw new InvalidOperationException(
-                    "The hash function did not produce the expected number of bytes."
-                );
-        }
-        finally
-        {
-            lease?.Dispose();
-        }
+        if (
+            !hashFunction(source[..written], digest, out var bytesWritten)
+            || bytesWritten != digestSizeBytes
+        )
+            throw new InvalidOperationException(
+                "The hash function did not produce the expected number of bytes."
+            );
 
         return Base64Url.Encode(digest);
     }

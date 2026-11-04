@@ -21,7 +21,9 @@ Other profiles exist and more will, so the rules must be data an application can
 ## Decision
 
 1. **A profile is data.** `SdJwtProfile` names a profile, the `typ` of its issuer-signed JWT, the claims that must be
-   present in the payload as non-empty strings, and the top-level claims that are never selectively disclosable.
+   present in the payload as non-empty strings, and the top-level claims that are never selectively disclosable. A
+   required claim is judged on the issuer-signed payload before any disclosure is resolved, so `ProtectedClaims`
+   holds it whether or not the profile lists it as protected, and the issuer refuses to make it disclosable.
    `SdJwtProfiles.SdJwtVc` is the SD-JWT VC profile: `dc+sd-jwt`, `vct` required, and `iss`, `nbf`, `exp`, `cnf`,
    `vct`, `vct#integrity` and `status` protected. An application defines another profile by constructing one.
 

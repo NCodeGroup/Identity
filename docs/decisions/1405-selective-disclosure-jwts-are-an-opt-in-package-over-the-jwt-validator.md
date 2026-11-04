@@ -85,11 +85,15 @@ shape how the family adds it:
 6. **Salts are random and the limits are configured and validated at start.** A salt is the base64url encoding of
    `SdJwtOptions.SaltSizeBytes` bytes from the platform's cryptographically secure random number generator, at least
    128 bits. `MaxDisclosureCount` bounds the disclosures an SD-JWT may carry, checked before any disclosure is decoded,
-   and `MaxNestingDepth` bounds how deep the resolved claims may nest; both are validated when the host starts.
+   and `MaxNestingDepth` bounds how deep the resolved claims may nest; both are validated when the host starts. The
+   issuer refuses claims that exceed either limit, so every SD-JWT it makes resolves within them.
 
 7. **A presentation's KB-JWT is verified only when the verifier requires it.** With no
    `SdJwtKeyBindingRequirement`, a KB-JWT the presentation carries is not verified and the result reports no key
-   binding; with one, a presentation without a KB-JWT is refused.
+   binding; with one, a presentation without a KB-JWT is refused. A requirement whose audience or nonce is empty,
+   whose signature algorithms are unset, whose maximum age is not positive or whose clock skew is negative is
+   refused before the presentation is read, because a requirement built from a missing value would let any captured
+   KB-JWT replay. The nonce and the `sd_hash` are compared in fixed time.
 
 ## Options considered
 
@@ -115,7 +119,8 @@ shape how the family adds it:
 - A verifier states its whole policy in one place: the JWT validation parameters of the issuer-signed JWT, the key
   binding requirement and the profile.
 - A presentation that violates a rule of RFC 9901 §7.1 is refused with a machine-readable code, so a caller never
-  matches on message text.
+  matches on message text. A failure reason never carries the token: a JWT the validator could not decode is reported
+  by its failure code and fixed text.
 - The package holds the `21000`–`21999` event-ID band of the family's registry.
 
 ## References

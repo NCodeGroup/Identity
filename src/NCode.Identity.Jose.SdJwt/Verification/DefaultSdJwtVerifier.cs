@@ -1,6 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Jose.SdJwt.Digests;
@@ -17,9 +20,10 @@ namespace NCode.Identity.Jose.SdJwt.Verification;
 /// are validated by the JWT validator, so their signature, algorithm and key policy is the family's one policy; the
 /// issuer-signed JWT must be a compact JWS, so a Nested JWT is refused whatever decryption keys the caller's
 /// parameters name; the disclosures are resolved under the rules of RFC 9901 §7.1; and the Key Binding JWT's
-/// <c>nonce</c>, <c>sd_hash</c> and <c>iat</c> are checked here, against the presentation as received. The
-/// confirmation-key resolvers are validated as a whole when the verifier is composed: each <c>cnf</c> member has
-/// exactly one resolver.
+/// <c>nonce</c>, <c>sd_hash</c> and <c>iat</c> are checked here, against the presentation as received. A failure
+/// reason never carries the token: a JWT the validator could not decode is reported by its failure code and fixed
+/// text. The confirmation-key resolvers are validated as a whole when the verifier is composed: each <c>cnf</c>
+/// member has exactly one resolver.
 /// </summary>
 // See ADR-1405.
 internal class DefaultSdJwtVerifier : ISdJwtVerifier
@@ -104,6 +108,9 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
                 nameof(parameters)
             );
 
+        if (parameters.KeyBinding is { } requirement)
+            ValidateRequirement(requirement, nameof(parameters));
+
         try
         {
             return await VerifyCoreAsync(presentation, parameters, cancellationToken);
@@ -112,6 +119,44 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         {
             return SdJwtVerificationResult.Fail(exception.FailureCode, exception.Message);
         }
+    }
+
+    // A requirement built from a missing value would let any captured Key Binding JWT replay, so each value fails
+    // closed before the presentation is read.
+    private static void ValidateRequirement(
+        SdJwtKeyBindingRequirement requirement,
+        string paramName
+    )
+    {
+        if (string.IsNullOrEmpty(requirement.Audience))
+            throw new ArgumentException(
+                "The key binding requirement's audience must not be empty.",
+                paramName
+            );
+
+        if (string.IsNullOrEmpty(requirement.Nonce))
+            throw new ArgumentException(
+                "The key binding requirement's nonce must not be empty.",
+                paramName
+            );
+
+        if (requirement.ValidSignatureAlgorithms is null)
+            throw new ArgumentException(
+                "The key binding requirement must name the signature algorithms the Key Binding JWT may use.",
+                paramName
+            );
+
+        if (requirement.MaxAge <= TimeSpan.Zero)
+            throw new ArgumentException(
+                "The key binding requirement's maximum age must be positive.",
+                paramName
+            );
+
+        if (requirement.ClockSkew < TimeSpan.Zero)
+            throw new ArgumentException(
+                "The key binding requirement's clock skew must not be negative.",
+                paramName
+            );
     }
 
     private async ValueTask<SdJwtVerificationResult> VerifyCoreAsync(
@@ -130,7 +175,11 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         if (!issuerResult.IsValid)
             return SdJwtVerificationResult.Fail(
                 issuerResult.FailureCode,
-                $"The issuer-signed JWT is invalid: {issuerResult.Exception.Message}"
+                DescribeFailure(
+                    "The issuer-signed JWT",
+                    issuerResult.FailureCode,
+                    issuerResult.Exception
+                )
             );
 
         var issuerJwt = issuerResult.DecodedJwt;
@@ -180,7 +229,7 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
             }
         }
 
-        var algorithm = ResolveDigestAlgorithm(payload);
+        var algorithm = DigestAlgorithmCatalog.Resolve(payload);
         var processor = new SdJwtPayloadProcessor(algorithm, Options.MaxNestingDepth, profile);
         var processed = processor.Process(payload, sdJwt.Disclosures);
 
@@ -211,24 +260,17 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         );
     }
 
-    private SdJwtDigestAlgorithm ResolveDigestAlgorithm(JsonElement payload)
+    // The JWT validator catches every exception, cancellation included, and a decode failure's message carries the
+    // token, so cancellation is rethrown and a decode failure is reported by its code and fixed text.
+    private static string DescribeFailure(string tokenName, string failureCode, Exception exception)
     {
-        var name = SdJwtDigestAlgorithms.DefaultName;
-        if (
-            payload.TryGetProperty(JoseClaimNames.Payload.SdAlg, out var sdAlg)
-            && (!sdAlg.TryGetValue(out name) || string.IsNullOrEmpty(name))
-        )
-            throw new SdJwtException(
-                SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm,
-                "The '_sd_alg' claim must be a non-empty string."
-            );
+        if (exception is OperationCanceledException)
+            ExceptionDispatchInfo.Capture(exception).Throw();
 
-        return DigestAlgorithmCatalog.TryGet(name, out var algorithm)
-            ? algorithm
-            : throw new SdJwtException(
-                SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm,
-                $"The digest algorithm '{name}' is not registered."
-            );
+        var detail = exception is JwtDecodeException or JwtSecretKeyNotFoundException
+            ? "The token could not be decoded with the keys the parameters name."
+            : exception.Message;
+        return $"{tokenName} is invalid ({failureCode}): {detail}";
     }
 
     private async ValueTask<KeyBindingOutcome> VerifyKeyBindingAsync(
@@ -272,7 +314,7 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         if (!result.IsValid)
             return KeyBindingOutcome.Fail(
                 SdJwtVerificationFailureCodes.InvalidKeyBinding,
-                $"The Key Binding JWT is invalid ({result.FailureCode}): {result.Exception.Message}"
+                DescribeFailure("The Key Binding JWT", result.FailureCode, result.Exception)
             );
 
         var keyBindingJwt = result.DecodedJwt;
@@ -285,7 +327,7 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
 
         if (
             !claims.TryGetPropertyValue<string>(JoseClaimNames.Payload.Nonce, out var nonce)
-            || !string.Equals(nonce, requirement.Nonce, StringComparison.Ordinal)
+            || !AreEqual(nonce, requirement.Nonce)
         )
             return KeyBindingOutcome.Fail(
                 SdJwtVerificationFailureCodes.InvalidNonce,
@@ -298,7 +340,7 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         );
         if (
             !claims.TryGetPropertyValue<string>(JoseClaimNames.Payload.SdHash, out var sdHash)
-            || !string.Equals(sdHash, expectedSdHash, StringComparison.Ordinal)
+            || !AreEqual(sdHash, expectedSdHash)
         )
             return KeyBindingOutcome.Fail(
                 SdJwtVerificationFailureCodes.InvalidSdHash,
@@ -311,11 +353,12 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
                 "The Key Binding JWT is missing a valid 'iat' claim."
             );
 
-        // Elapsed time is compared rather than instants added to, so a bound near the end of time cannot overflow.
+        // Elapsed time is compared and the skew subtracted from it, never added to the age, so a maximum age at the
+        // end of the TimeSpan range cannot overflow.
         var now = TimeProvider.GetUtcNow();
         if (
             issuedAt - now > requirement.ClockSkew
-            || now - issuedAt > requirement.MaxAge + requirement.ClockSkew
+            || now - issuedAt - requirement.ClockSkew > requirement.MaxAge
         )
             return KeyBindingOutcome.Fail(
                 SdJwtVerificationFailureCodes.KeyBindingNotFresh,
@@ -333,13 +376,23 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         );
     }
 
+    // A nonce and a digest are guard values, compared in fixed time.
+    private static bool AreEqual(string presented, string expected) =>
+        CryptographicOperations.FixedTimeEquals(
+            MemoryMarshal.AsBytes(presented.AsSpan()),
+            MemoryMarshal.AsBytes(expected.AsSpan())
+        );
+
     private async ValueTask<SecretKey?> ResolveHolderKeyAsync(
         JsonElement payload,
         CancellationToken cancellationToken
     )
     {
         if (
-            !payload.TryGetProperty(JoseClaimNames.Payload.Cnf, out var confirmation)
+            !payload.TryGetPropertyValue<JsonElement>(
+                JoseClaimNames.Payload.Cnf,
+                out var confirmation
+            )
             || confirmation.ValueKind != JsonValueKind.Object
         )
             return null;
@@ -357,28 +410,5 @@ internal class DefaultSdJwtVerifier : ISdJwtVerifier
         }
 
         return null;
-    }
-
-    private readonly struct KeyBindingOutcome
-    {
-        private KeyBindingOutcome(SdJwtKeyBinding? keyBinding, SdJwtVerificationResult? failure)
-        {
-            KeyBinding = keyBinding;
-            Failure = failure;
-        }
-
-        public static KeyBindingOutcome Succeed(SdJwtKeyBinding keyBinding) =>
-            new(keyBinding, failure: null);
-
-        public static KeyBindingOutcome Fail(string failureCode, string failureReason) =>
-            new(keyBinding: null, SdJwtVerificationResult.Fail(failureCode, failureReason));
-
-        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(KeyBinding))]
-        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(false, nameof(Failure))]
-        public bool IsValid => Failure is null;
-
-        public SdJwtKeyBinding? KeyBinding { get; }
-
-        public SdJwtVerificationResult? Failure { get; }
     }
 }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose.SdJwt.Verification;
 using NCode.Identity.Secrets.Keys;
@@ -40,11 +41,24 @@ public sealed class JwkConfirmationKeyResolverTests : IAsyncLifetime
     [InlineData("""{"jwk":{}}""")]
     [InlineData("""{"jwk":{"kty":"XKP","sk":"AA"}}""")]
     [InlineData("""{"jwk":{"kty":"oct","k":"AAAA"}}""")]
-    [InlineData("""{"jwk":{"kty":"EC","crv":"P-256","x":"AA","y":"AA","d":"AA"}}""")]
     [InlineData("""{"jwk":{"kty":"EC","crv":"P-256","x":"AA","y":"AA"}}""")]
     public async Task ResolveAsync_WithUnusableJwk_ReturnsNull(string confirmationJson)
     {
         var confirmation = JsonElement.Parse(confirmationJson);
+
+        var key = await CreateResolver().ResolveAsync(confirmation, CancellationToken.None);
+
+        Assert.Null(key);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WithAJwkThatCarriesItsPrivateHalf_ReturnsNull()
+    {
+        // The public half alone resolves, so only the private member makes the difference.
+        var jwk = JsonObject.Create(Host.HolderJwk.AsElement());
+        Assert.NotNull(jwk);
+        jwk["d"] = "AA";
+        var confirmation = JsonElement.Parse($$$"""{"jwk":{{{jwk.ToJsonString()}}}}""");
 
         var key = await CreateResolver().ResolveAsync(confirmation, CancellationToken.None);
 

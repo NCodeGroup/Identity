@@ -53,6 +53,7 @@ public class DisclosureTests
     [InlineData("", "empty")]
     [InlineData("not*base64url", "base64url")]
     [InlineData("eyJ", "base64url")]
+    [InlineData("@@@@", "base64url")]
     public void Parse_WhenNotBase64Url_Throws(string encoded, string reason)
     {
         var exception = Assert.Throws<SdJwtException>(() => Disclosure.Parse(encoded));

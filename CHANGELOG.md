@@ -501,7 +501,8 @@ describes the family as it is rather than its changes
   registered data, and each `cnf` method has exactly one resolver, validated when the verifier is composed. The
   SD-JWT VC profile, `SdJwtProfiles.SdJwtVc`, types the issuer-signed JWT `dc+sd-jwt`, requires `vct`, keeps
   `iss`, `nbf`, `exp`, `cnf`, `vct`, `vct#integrity` and `status` in the signed payload, and passes `status`
-  through to the verified claims; an application defines another `SdJwtProfile` as data
+  through to the verified claims; an application defines another `SdJwtProfile` as data, whose required claims
+  are protected whether or not it lists them
   ([#73](https://github.com/NCodeGroup/Identity/issues/73),
   [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
   [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)).
@@ -3433,16 +3434,20 @@ describes the family as it is rather than its changes
   refused with a machine-readable code when a digest repeats, a disclosure is referenced by nothing or presented
   twice, a disclosed claim collides with a member already present, a reserved name appears where RFC 9901 forbids
   it, a disclosure is of the wrong kind for its digest, or a protected claim is disclosed in whole or in part.
-  `iss`, `nbf`, `exp` and `cnf` are protected under every profile and the profile's claims beside them: the issuer
-  never makes one disclosable, and the verifier refuses any digest beneath one, decoy or not, so a withheld
-  `status_list` can never read as an unrevoked credential. A refusal names the rule, never a claim name the holder
-  chose. The holder key is read from the signed payload before any disclosure is resolved, so a disclosure never
-  supplies it, and is written at issuance only when its registered key type finds no private member in it; the Key
-  Binding JWT must be typed `kb+jwt`,
-  signed by that key, addressed to the verifier, carry its nonce and the digest of the presentation as received, and
-  be no older than the maximum age. `SdJwtOptions.MaxDisclosureCount` refuses an over-long presentation before any
-  disclosure is decoded and `MaxNestingDepth` bounds the depth the resolved claims may reach; both are validated when
-  the host starts ([#73](https://github.com/NCodeGroup/Identity/issues/73),
+  `iss`, `nbf`, `exp` and `cnf` are protected under every profile and the profile's claims beside them, its required
+  claims included: the issuer never makes one disclosable, and the verifier refuses any digest beneath one, decoy or
+  not, so a withheld `status_list` can never read as an unrevoked credential. A refusal names the rule, never a claim
+  name the holder chose, and never the token: a JWT the validator could not decode is reported by its failure code
+  and fixed text, and a disclosure that repeats a member name is reported as an invalid disclosure. The holder key is
+  read from the signed payload before any disclosure is resolved, so a disclosure never supplies it, and is written at
+  issuance only when its registered key type finds no private member in it; the Key Binding JWT must be typed
+  `kb+jwt`, signed by that key, addressed to the verifier, carry its nonce and the digest of the presentation as
+  received, compared in fixed time, and be no older than the maximum age, and the verifier refuses a
+  `SdJwtKeyBindingRequirement` whose audience or nonce is empty, whose algorithms are unset, whose maximum age is not
+  positive or whose clock skew is negative before it reads the presentation. `SdJwtOptions.MaxDisclosureCount`
+  refuses an over-long presentation before any disclosure is decoded and `MaxNestingDepth` bounds the depth the
+  resolved claims may reach; the issuer refuses claims beyond either limit, and both are validated when the host
+  starts ([#73](https://github.com/NCodeGroup/Identity/issues/73),
   [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
 
 - **Every development-only convenience is inert unless configured, behind one call.**

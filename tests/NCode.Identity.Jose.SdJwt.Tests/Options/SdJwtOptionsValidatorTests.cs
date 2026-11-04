@@ -27,10 +27,9 @@ public class SdJwtOptionsValidatorTests
         var result = validator.Validate(null, new SdJwtOptions { SaltSizeBytes = 15 });
 
         Assert.True(result.Failed);
-        Assert.Contains(
-            nameof(SdJwtOptions.SaltSizeBytes),
-            result.FailureMessage,
-            StringComparison.Ordinal
+        Assert.Equal(
+            "SdJwtOptions.SaltSizeBytes must be at least 16; it is 15.",
+            result.FailureMessage
         );
     }
 

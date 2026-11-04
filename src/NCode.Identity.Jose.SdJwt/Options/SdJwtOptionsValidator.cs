@@ -18,16 +18,22 @@ internal class SdJwtOptionsValidator : IValidateOptions<SdJwtOptions>
 
         List<string> failures = [];
 
+        // The options are configured in code, by the AddSdJwt callback, so a failure names the property and the
+        // value it refuses rather than a configuration key.
         if (options.SaltSizeBytes < SdJwtOptions.MinimumSaltSizeBytes)
             failures.Add(
-                $"{nameof(SdJwtOptions.SaltSizeBytes)} must be at least {SdJwtOptions.MinimumSaltSizeBytes}."
+                $"{nameof(SdJwtOptions)}.{nameof(SdJwtOptions.SaltSizeBytes)} must be at least {SdJwtOptions.MinimumSaltSizeBytes}; it is {options.SaltSizeBytes}."
             );
 
         if (options.MaxDisclosureCount < 1)
-            failures.Add($"{nameof(SdJwtOptions.MaxDisclosureCount)} must be at least 1.");
+            failures.Add(
+                $"{nameof(SdJwtOptions)}.{nameof(SdJwtOptions.MaxDisclosureCount)} must be at least 1; it is {options.MaxDisclosureCount}."
+            );
 
         if (options.MaxNestingDepth < 1)
-            failures.Add($"{nameof(SdJwtOptions.MaxNestingDepth)} must be at least 1.");
+            failures.Add(
+                $"{nameof(SdJwtOptions)}.{nameof(SdJwtOptions.MaxNestingDepth)} must be at least 1; it is {options.MaxNestingDepth}."
+            );
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success

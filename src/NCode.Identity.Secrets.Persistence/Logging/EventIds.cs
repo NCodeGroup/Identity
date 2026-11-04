@@ -33,4 +33,39 @@ internal static class EventIds
     /// Master keys are persisted without being wrapped by a recovery key.
     /// </summary>
     public const int RecoveryWrapDisabled = Base + 4;
+
+    /// <summary>
+    /// A cached master key was dropped because its row no longer exists.
+    /// </summary>
+    public const int MasterKeyDropped = Base + 5;
+
+    /// <summary>
+    /// A master key rotated to a new version.
+    /// </summary>
+    public const int MasterKeyRotated = Base + 6;
+
+    /// <summary>
+    /// The values that retired master keys protect were rewrapped under the active master key.
+    /// </summary>
+    public const int MasterKeysRewrapped = Base + 7;
+
+    /// <summary>
+    /// A retired master key was destroyed.
+    /// </summary>
+    public const int MasterKeyDestroyed = Base + 8;
+
+    /// <summary>
+    /// An observer of master key changes failed.
+    /// </summary>
+    public const int MasterKeyObserverFailed = Base + 9;
+
+    /// <summary>
+    /// A rewrap of persisted master keys completed.
+    /// </summary>
+    public const int MasterKeyRewrapCompleted = Base + 10;
+
+    /// <summary>
+    /// A persisted master key could not be rewrapped.
+    /// </summary>
+    public const int MasterKeyRewrapRowFailed = Base + 11;
 }

@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -60,11 +61,17 @@ public class DefaultMasterKeyRingTests : IDisposable
         Assert.Empty(_storeManagers);
     }
 
+    private readonly FakeTimeProvider _time = new(
+        new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero)
+    );
+
     private DefaultMasterKeyRing CreateRing() =>
         new(
             _factory,
             _storeManagerFactory.Object,
             _recovery,
+            Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions()),
+            _time,
             NullLogger<DefaultMasterKeyRing>.Instance
         );
 
@@ -309,6 +316,57 @@ public class DefaultMasterKeyRingTests : IDisposable
             ReadKeyId(protectedValue),
             ReadKeyId(second.ProtectToString("secret"u8, Context))
         );
+    }
+
+    [Fact]
+    public async Task GetProtector_StaleEntry_ReloadsWithoutUnwrappingAgain()
+    {
+        var added = ExpectCreate();
+        using var ring = CreateRing();
+        var first = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        var protectedValue = first.ProtectToString("secret"u8, Context);
+        var row = Assert.Single(added);
+
+        // The active row is read again and the stored key is reused: a different wrapped key would not unwrap.
+        ExpectFindActive(row);
+        _time.Advance(TimeSpan.FromMinutes(6));
+        var second = await ring.GetProtectorAsync(Owner, [protectedValue], CancellationToken.None);
+
+        Assert.Equal("secret"u8.ToArray(), Unprotect(second, protectedValue));
+    }
+
+    [Fact]
+    public async Task GetProtector_FreshEntry_DoesNotReadStore()
+    {
+        ExpectCreate();
+        using var ring = CreateRing();
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+
+        // No store manager is queued, so a read of the store would fail the test.
+        _time.Advance(TimeSpan.FromMinutes(4));
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task GetProtector_CachedKeyWhoseRowVanished_IsDropped()
+    {
+        var added = ExpectCreate();
+        using var ring = CreateRing();
+        var first = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        var oldValue = first.ProtectToString("secret"u8, Context);
+        var oldRow = Assert.Single(added);
+
+        // The owner rotated: a new active row exists, the old row is retired and then destroyed.
+        var newRow = await CreateRowAsync(version: 2);
+        _time.Advance(TimeSpan.FromMinutes(6));
+        var (store, _) = EnqueueStoreManager();
+        SetupFindActive(store, newRow);
+        SetupFindByKeyId(store, oldRow.KeyId);
+
+        var second = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+
+        Assert.Equal(newRow.KeyId, ReadKeyId(second.ProtectToString("secret"u8, Context)));
+        Assert.Throws<CryptographicException>(() => Unprotect(second, oldValue));
     }
 
     [Fact]

@@ -472,6 +472,118 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
     #endregion
 
+    #region MaterializeTenantAsync Tests
+
+    [Fact]
+    public async Task MaterializeTenantAsync_KeepsTheTeamAliveWhileTheTenantLives()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+        var provisioner = mocks.Create<ITenantProvisioner>();
+        var teamProvider = mocks.Create<IOpenIdTeamProvider>();
+
+        var teamReleases = 0;
+        var team = Mock.Of<OpenIdTeam>(x => x.IsDisabled == false);
+        var teamLease = AsyncSharedReference.Create(
+            team,
+            _ =>
+            {
+                Interlocked.Increment(ref teamReleases);
+                return ValueTask.CompletedTask;
+            }
+        );
+        teamProvider
+            .Setup(x =>
+                x.GetTeamAsync(
+                    It.IsAny<OpenIdEnvironment>(),
+                    It.IsAny<OpenIdPlatform>(),
+                    "platform",
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(teamLease.AddReference());
+
+        var tenantId = "acme";
+        tenantResolver
+            .Setup(x => x.TryGetTenantId(It.IsAny<HttpContext>(), out tenantId))
+            .Returns(true);
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("acme", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>));
+        var persistedTenant = CreatePersistedTenant("https://op.example/acme");
+        tenantResolver
+            .Setup(x =>
+                x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(persistedTenant);
+        provisioner
+            .Setup(x => x.SeedAsync("acme", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(persistedTenant);
+
+        // The cache keeps its own reference to the tenant it is given, as the real cache does.
+        AsyncSharedReferenceLease<OpenIdTenant> cachedTenant = default;
+        tenantCache
+            .Setup(x =>
+                x.SetAsync(
+                    "acme",
+                    It.IsAny<AsyncSharedReferenceLease<OpenIdTenant>>(),
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    string _,
+                    AsyncSharedReferenceLease<OpenIdTenant> tenant,
+                    IPropertyBag _,
+                    CancellationToken _
+                ) =>
+                {
+                    cachedTenant = tenant.AddReference();
+                    return ValueTask.CompletedTask;
+                }
+            );
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton(provisioner.Object)
+                .BuildServiceProvider(),
+        };
+
+        var factory = new LeaseTenantFactory(
+            mocks,
+            tenantResolver.Object,
+            tenantCache.Object,
+            teamProvider.Object
+        );
+
+        var tenantLease = await factory.CreateTenantForRequestAsync(
+            httpContext,
+            Mock.Of<OpenIdEnvironment>(),
+            Mock.Of<OpenIdPlatform>(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        // The factory's own lease on the team has ended; the tenant's lease keeps the team alive.
+        await teamLease.DisposeAsync();
+        Assert.Equal(0, Volatile.Read(ref teamReleases));
+
+        await tenantLease.DisposeAsync();
+        Assert.Equal(0, Volatile.Read(ref teamReleases));
+
+        await cachedTenant.DisposeAsync();
+        Assert.Equal(1, Volatile.Read(ref teamReleases));
+    }
+
+    #endregion
+
     #region GetTenantIssuerAsync Tests
 
     [Fact]
@@ -795,6 +907,63 @@ public sealed class DefaultOpenIdTenantFactoryTests
                 Value = [],
             },
         };
+
+    private sealed class LeaseTenantFactory(
+        MockRepository mocks,
+        ITenantResolver tenantResolver,
+        IOpenIdTenantCache tenantCache,
+        IOpenIdTeamProvider teamProvider
+    )
+        : DefaultOpenIdTenantFactory(
+            tenantResolver,
+            Options.Create(new OpenIdOptions()),
+            mocks.Create<IStoreManagerFactory>().Object,
+            tenantCache,
+            mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
+            mocks.Create<ISettingSerializer>().Object,
+            mocks.Create<ISecretSerializer>().Object,
+            mocks.Create<ISecretProtectorProvider>().Object,
+            mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
+            mocks.Create<ICollectionDataSourceFactory>().Object,
+            mocks.Create<IEffectiveSettingsResolver>().Object,
+            teamProvider
+        )
+    {
+        protected override ValueTask<
+            AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider>
+        > GetTenantSettingsAsync(
+            HttpContext httpContext,
+            OpenIdEnvironment openIdEnvironment,
+            OpenIdTeam openIdTeam,
+            PersistedTenant persistedTenant,
+            IPropertyBag propertyBag,
+            CancellationToken cancellationToken
+        ) =>
+            ValueTask.FromResult(
+                AsyncSharedReference.Create(
+                    Mock.Of<IReadOnlySettingCollectionProvider>(),
+                    _ => ValueTask.CompletedTask
+                )
+            );
+
+        protected override ValueTask<
+            AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
+        > GetTenantSecretsAsync(
+            HttpContext httpContext,
+            PersistedTenant persistedTenant,
+            string tenantIssuer,
+            UriDescriptor tenantBaseAddress,
+            AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings,
+            IPropertyBag propertyBag,
+            CancellationToken cancellationToken
+        ) =>
+            ValueTask.FromResult(
+                AsyncSharedReference.Create(
+                    Mock.Of<ISecretKeyCollectionProvider>(),
+                    _ => ValueTask.CompletedTask
+                )
+            );
+    }
 
     private sealed class TestableTenantFactory(
         MockRepository mocks,

@@ -11,6 +11,7 @@ truth.
 | Capability                                       | In one line                                                                                                         |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | 🔐 [Encryption at Rest](./encryption-at-rest.md) | Every stored secret is encrypted under a root key held in a KMS. Tenants are isolated and can be crypto-shredded, and secrets are wiped from memory after use. |
+| 🪪 [Selective Disclosure (SD-JWT)](./selective-disclosure.md) | A credential is issued once over salted claim digests, its holder reveals only the claims a verifier needs, and a presentation is bound to the holder's key. |
 
 ## Adding a capability
 

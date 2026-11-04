@@ -59,6 +59,12 @@ const NCode.Identity.Cose.CoseHeaderLabels.X509Bag = 32 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Chain = 33 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509ThumbprintSha256 = 34 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Url = 35 -> long
+const NCode.Identity.Cose.CoseTags.Encrypt = 96 -> ulong
+const NCode.Identity.Cose.CoseTags.Encrypt0 = 16 -> ulong
+const NCode.Identity.Cose.CoseTags.Mac = 97 -> ulong
+const NCode.Identity.Cose.CoseTags.Mac0 = 17 -> ulong
+const NCode.Identity.Cose.CoseTags.Sign = 98 -> ulong
+const NCode.Identity.Cose.CoseTags.Sign1 = 18 -> ulong
 const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Ed25519 = 6 -> int
 const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Ed448 = 7 -> int
 const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P256 = 1 -> int
@@ -128,8 +134,38 @@ NCode.Identity.Cose.CoseLabel.CoseLabel(string! value) -> void
 NCode.Identity.Cose.CoseLabel.IntegerValue.get -> long
 NCode.Identity.Cose.CoseLabel.IsText.get -> bool
 NCode.Identity.Cose.CoseLabel.TextValue.get -> string?
+NCode.Identity.Cose.CoseLayerHeaders
+NCode.Identity.Cose.CoseLayerHeaders.CoseLayerHeaders() -> void
+NCode.Identity.Cose.CoseLayerHeaders.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseLayerHeaders.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseLayerHeaders.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseLayerHeaders.UnprotectedHeaders.init -> void
 NCode.Identity.Cose.CoseLibrary
 NCode.Identity.Cose.CoseLibrary.CoseLibrary() -> void
+NCode.Identity.Cose.CoseMessageInfo
+NCode.Identity.Cose.CoseMessageInfo.CoseMessageInfo() -> void
+NCode.Identity.Cose.CoseMessageInfo.IsContentDetached.get -> bool
+NCode.Identity.Cose.CoseMessageInfo.IsContentDetached.init -> void
+NCode.Identity.Cose.CoseMessageInfo.IsTagged.get -> bool
+NCode.Identity.Cose.CoseMessageInfo.IsTagged.init -> void
+NCode.Identity.Cose.CoseMessageInfo.MessageType.get -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageInfo.MessageType.init -> void
+NCode.Identity.Cose.CoseMessageInfo.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseMessageInfo.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseMessageInfo.Recipients.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseLayerHeaders!>!
+NCode.Identity.Cose.CoseMessageInfo.Recipients.init -> void
+NCode.Identity.Cose.CoseMessageInfo.Signatures.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseLayerHeaders!>!
+NCode.Identity.Cose.CoseMessageInfo.Signatures.init -> void
+NCode.Identity.Cose.CoseMessageInfo.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseMessageInfo.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Encrypt = 2 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Encrypt0 = 3 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Mac = 4 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Mac0 = 5 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Sign = 0 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Sign1 = 1 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseTags
 NCode.Identity.Cose.CoseValue
 NCode.Identity.Cose.CoseValue.EncodedValue.get -> System.ReadOnlyMemory<byte>
 NCode.Identity.Cose.CoseValue.IsMap.get -> bool
@@ -138,6 +174,10 @@ NCode.Identity.Cose.CoseValue.TryGetByteString(out System.ReadOnlyMemory<byte> v
 NCode.Identity.Cose.CoseValue.TryGetDouble(out double value) -> bool
 NCode.Identity.Cose.CoseValue.TryGetInt64(out long value) -> bool
 NCode.Identity.Cose.CoseValue.TryGetTextString(out string? value) -> bool
+NCode.Identity.Cose.ICoseSerializer
+NCode.Identity.Cose.ICoseSerializer.DecodeMap(System.ReadOnlyMemory<byte> encodedMap) -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.ICoseSerializer.EncodeMap(System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>! map) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.Inspect(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseMessageType? untaggedMessageType) -> NCode.Identity.Cose.CoseMessageInfo!
 NCode.Identity.Cose.Keys.CoseEllipticCurve
 NCode.Identity.Cose.Keys.CoseEllipticCurve.CoseEllipticCurve() -> void
 NCode.Identity.Cose.Keys.CoseEllipticCurve.Identifier.get -> int

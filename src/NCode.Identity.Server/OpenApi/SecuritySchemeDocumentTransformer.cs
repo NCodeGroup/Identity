@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections.Frozen;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using NCode.Identity.OpenId;
@@ -28,20 +27,6 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
     // Authority is role-based (GlobalAdmin), so any management-audience scope authenticates the dashboard; this one
     // simply binds the 'urn:ncode:management' audience. See ADR-1044.
     internal const string ManagementAudienceScope = "read:clients";
-
-    private static readonly FrozenSet<string> ManagementTagNames = new[]
-    {
-        OpenIdConstants.EndpointTags.Clients,
-        OpenIdConstants.EndpointTags.Grants,
-        OpenIdConstants.EndpointTags.Sessions,
-        OpenIdConstants.EndpointTags.ClientGrants,
-        OpenIdConstants.EndpointTags.ResourceServers,
-        OpenIdConstants.EndpointTags.Platform,
-        OpenIdConstants.EndpointTags.Tenants,
-        OpenIdConstants.EndpointTags.LocalAccounts,
-        OpenIdConstants.EndpointTags.Principals,
-        OpenIdConstants.EndpointTags.Capabilities,
-    }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <inheritdoc />
     public Task TransformAsync(
@@ -118,7 +103,8 @@ internal sealed class SecuritySchemeDocumentTransformer : IOpenApiDocumentTransf
             {
                 var isManagement =
                     operation.Tags?.Any(tag =>
-                        tag.Name is { Length: > 0 } name && ManagementTagNames.Contains(name)
+                        tag.Name is { Length: > 0 } name
+                        && ManagementOpenApiTags.Names.Contains(name)
                     )
                     ?? false;
 

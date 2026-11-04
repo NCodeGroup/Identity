@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections.Frozen;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
@@ -20,20 +19,6 @@ internal sealed class TagGroupsDocumentTransformer : IOpenApiDocumentTransformer
     private const string OAuthGroupName = "OAuth & OpenID Connect";
     private const string ManagementGroupName = "Management";
     private const string OtherGroupName = "Other";
-
-    private static readonly FrozenSet<string> ManagementTagNames = new[]
-    {
-        OpenIdConstants.EndpointTags.Clients,
-        OpenIdConstants.EndpointTags.Grants,
-        OpenIdConstants.EndpointTags.Sessions,
-        OpenIdConstants.EndpointTags.ClientGrants,
-        OpenIdConstants.EndpointTags.ResourceServers,
-        OpenIdConstants.EndpointTags.Platform,
-        OpenIdConstants.EndpointTags.Tenants,
-        OpenIdConstants.EndpointTags.LocalAccounts,
-        OpenIdConstants.EndpointTags.Principals,
-        OpenIdConstants.EndpointTags.Capabilities,
-    }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <inheritdoc />
     public Task TransformAsync(
@@ -57,13 +42,14 @@ internal sealed class TagGroupsDocumentTransformer : IOpenApiDocumentTransformer
             .ToList();
 
         var managementTags = tagNames
-            .Where(name => ManagementTagNames.Contains(name))
+            .Where(name => ManagementOpenApiTags.Names.Contains(name))
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToList();
 
         var otherTags = tagNames
             .Where(name =>
-                name != OpenIdConstants.EndpointTags.OpenId && !ManagementTagNames.Contains(name)
+                name != OpenIdConstants.EndpointTags.OpenId
+                && !ManagementOpenApiTags.Names.Contains(name)
             )
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToList();

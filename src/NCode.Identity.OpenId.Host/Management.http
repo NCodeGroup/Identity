@@ -35,7 +35,24 @@ Accept: application/json
 GET {{host}}/api/platform/settings
 Accept: application/json
 
-### List tenants (central-admin)
+### List teams (central-admin)
+GET {{host}}/api/teams?limit=50
+Accept: application/json
+
+### Create a tenant under a team (the caller needs create access on the team)
+POST {{host}}/api/teams/platform/tenants
+Content-Type: application/json
+
+{
+  "tenantId": "acme-dev",
+  "displayName": "Acme (development)"
+}
+
+### List a team's tenants
+GET {{host}}/api/teams/platform/tenants?limit=50
+Accept: application/json
+
+### List tenants across every team (central-admin)
 GET {{host}}/api/tenants?limit=50
 Accept: application/json
 

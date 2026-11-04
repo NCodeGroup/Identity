@@ -29,14 +29,16 @@ internal class DefaultTenantValidator(
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
+        string controlPlaneTenantId,
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
+        // Creating a tenant is authority at its team's node (ADR-1403).
         var error = await AuthorizeAsync(
             user,
-            tenant,
+            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, tenant.TeamId),
             Operations.Create,
             "The caller is not authorized to create this tenant.",
             "Authentication is required to create this tenant."

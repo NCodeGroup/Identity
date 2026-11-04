@@ -17,15 +17,17 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 public interface ITenantValidator
 {
     /// <summary>
-    /// Validates that the specified OpenID Tenant may be created by the caller.
+    /// Validates that the specified OpenID Tenant may be created by the caller under its team.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
+    /// <param name="controlPlaneTenantId">The identifier of the control-plane tenant that carries the team's authority node.</param>
     /// <param name="tenant">The <see cref="PersistedTenant"/> to be created.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
+        string controlPlaneTenantId,
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken

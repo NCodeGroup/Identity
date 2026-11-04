@@ -84,7 +84,7 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandleAsync_WhenRootPlane_SeedsTenantAndControlScopes()
+    public async Task HandleAsync_WhenRootPlane_SeedsPlatformAndTeamFamilies()
     {
         var captured = await SeedAsync(TenantPlane.Root);
 
@@ -92,8 +92,12 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         var values = captured.Scopes.Select(scope => scope.Value).ToList();
         Assert.Contains("read:clients", values);
         Assert.Contains("read:platform_settings", values);
-        Assert.DoesNotContain("read:platforms", values);
+        Assert.Contains("create:teams", values);
+        Assert.Contains("update:team_settings", values);
+        Assert.Contains("create:tenants", values);
         Assert.Contains("read:tenants", values);
+        Assert.DoesNotContain("read:platforms", values);
+        Assert.DoesNotContain("read:servers", values);
     }
 
     [Fact]

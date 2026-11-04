@@ -22,7 +22,6 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
-using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -41,6 +40,10 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 
 /*
 
+POST  api/teams/{teamId}/tenants
+GET   api/teams/{teamId}/tenants
+
+GET   api/tenants
 GET   api/tenants/{tenantId}
 GET   api/tenants/{tenantId}/address
 
@@ -130,10 +133,16 @@ internal class TenantApiEndpointHandler(
     {
         var tenants = endpoints.MapGroup("/tenants").WithTags(OpenIdConstants.EndpointTags.Tenants);
 
-        tenants
+        var teamTenants = endpoints
+            .MapGroup("/teams/{teamId}/tenants")
+            .WithTags(OpenIdConstants.EndpointTags.Tenants);
+
+        teamTenants
             .MapPost("", CreateTenantAsync)
             .Produces<TenantResource>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
+        teamTenants.MapGet("", ListTeamTenantsAsync).Produces<CollectionResource<TenantResource>>();
+
         tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
         tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
         tenants.MapPatch("/{tenantId}", UpdateTenantAsync).Produces(StatusCodes.Status204NoContent);
@@ -417,6 +426,59 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
+    /// Lists the OpenID tenants of a team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of tenants to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of the team's tenants.</response>
+    [EndpointName("api/teams/tenants/list")]
+    internal virtual async ValueTask<IResult> ListTeamTenantsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+        Func<PersistedTenant, TenantResource> toTenantResource = ToTenantResource;
+
+        return await ProcessListAsync(
+            httpContext,
+            GetTeamNode(httpContext, teamId),
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<ITenantStore>();
+                var page = await store.GetPageAsync(
+                    teamId,
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
+                toTenantResource = await CreateTenantResourceMapperAsync(
+                    page.Items,
+                    cancellationToken
+                );
+                return page;
+            },
+            tenant => toTenantResource(tenant)
+        );
+    }
+
+    // The team's authority node, addressed from the control-plane tenant the request runs under.
+    private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
+        ResourceNode.For(
+            httpContext.GetOpenIdContext().Tenant.TenantId,
+            ResourceNodeTypes.Team,
+            teamId
+        );
+
+    /// <summary>
     /// Gets an OpenID tenant.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -456,15 +518,19 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Creates an OpenID tenant.
+    /// Creates an OpenID tenant under a team.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team that will hold the tenant.</param>
     /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created tenant.</response>
-    [EndpointName("api/tenants/create")]
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">The team holds its maximum number of tenants.</response>
+    [EndpointName("api/teams/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
+        [FromRoute] string teamId,
         [FromBody] CreateTenantRequest request,
         CancellationToken cancellationToken
     )
@@ -473,6 +539,15 @@ internal class TenantApiEndpointHandler(
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
+        var teamStore = storeManager.GetStore<ITeamStore>();
+
+        var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var controlPlaneTenantId = openIdContext.Tenant.TenantId;
 
         // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
@@ -492,7 +567,7 @@ internal class TenantApiEndpointHandler(
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
-            TeamId = OpenIdResourceIds.Platform,
+            TeamId = teamId,
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
@@ -516,6 +591,7 @@ internal class TenantApiEndpointHandler(
         // (ADR-1014, ADR-1160).
         var error = await TenantValidator.ValidateCreateAsync(
             httpContext.User,
+            controlPlaneTenantId,
             tenant,
             storeManager,
             cancellationToken
@@ -523,6 +599,25 @@ internal class TenantApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        // A team holds at most its 'max_tenants' tenants; unset means unlimited (ADR-1403).
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
+            cancellationToken
+        );
+        if (
+            teamSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
+            && await store.CountAsync(teamId, cancellationToken) >= maxTenants
+        )
+        {
+            return ToErrorResult(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = $"The team holds its maximum of {maxTenants} tenants.",
+                }
+            );
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a tenant carries only the settings that apply within it
@@ -539,6 +634,10 @@ internal class TenantApiEndpointHandler(
         }
 
         await store.AddAsync(tenant, cancellationToken);
+
+        // The team row is rewritten unchanged so its concurrency token changes: two concurrent creations under one team
+        // conflict, and neither can exceed the team's maximum.
+        await teamStore.UpdateAsync(team, cancellationToken);
 
         // The tenant row commits first: the creator's ownership is a row the tenant owns, and the stores resolve an
         // owning tenant from the database rather than the change tracker — the same reason the provisioner commits a

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -17,6 +18,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 public sealed class DefaultTenantValidatorTests : IDisposable
 {
     private const string TenantId = "tenant-1";
+    private const string ControlPlaneTenantId = "platform-root";
     private const string Issuer = "https://example.test";
 
     private MockRepository MockRepository { get; }
@@ -138,6 +140,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -154,6 +157,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: false),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -171,6 +175,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -189,6 +194,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -212,6 +218,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -235,6 +242,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -258,6 +266,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -265,6 +274,40 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.Null(error);
     }
+
+    [Fact]
+    public async Task ValidateCreateAsync_AuthorizesCreateOnTheTeamNode()
+    {
+        object? authorizedResource = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    authorizedResource = resource
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            ControlPlaneTenantId,
+            CreateTenant(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource);
+        Assert.Equal(ControlPlaneTenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Team, node.ResourceType);
+        Assert.Equal("platform", node.ResourceId);
+    }
+
     #endregion
 
     #region ValidateUpdateAsync Tests

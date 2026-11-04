@@ -145,14 +145,17 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersTheOpenIdSettingScopeCascade()
     {
-        // The server's settings cascade into every tenant's, and a tenant's into its clients' and resource servers'.
+        // The platform's settings cascade into every team's, a team's into its tenants', and a tenant's into its
+        // clients' and resource servers'.
         using var host = BuildHost([]);
         var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
 
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Platform, out var server));
         Assert.Null(server.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Team, out var team));
+        Assert.Equal(OpenIdSettingScopes.Platform, team.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Tenant, out var tenant));
-        Assert.Equal(OpenIdSettingScopes.Platform, tenant.ParentName);
+        Assert.Equal(OpenIdSettingScopes.Team, tenant.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Client, out var client));
         Assert.Equal(OpenIdSettingScopes.Tenant, client.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.ResourceServer, out var resourceServer));
@@ -568,6 +571,9 @@ public sealed class DefaultRegistrationTests
     [InlineData(OpenIdSettingNames.TokenEndpointAuthMethod, OpenIdSettingScopes.Client, true)]
     [InlineData(OpenIdSettingNames.CodeChallengeMethodsSupported, OpenIdSettingScopes.Client, true)]
     [InlineData(OpenIdSettingNames.ClientName, OpenIdSettingScopes.ResourceServer, false)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Platform, true)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Team, true)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Tenant, false)]
     public void AddIdentityServer_ASettingAppliesWithinTheScopesThatReadIt(
         string settingName,
         string scopeName,

@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Contains the names of the setting scopes the platform registers: the platform, whose settings cascade into every
-/// tenant's, and the tenant, whose settings cascade into each of its clients' and resource servers'. These are the known
+/// team's, the team, whose settings cascade into each of its tenants', and the tenant, whose settings cascade into each of its clients' and resource servers'. These are the known
 /// scopes, not all of them: a package that stores settings for an entity of its own registers another
 /// <see cref="SettingScopeDescriptor"/> beneath the scope its settings inherit from.
 /// </summary>
@@ -22,7 +22,12 @@ public static class OpenIdSettingScopes
     public const string Platform = "platform";
 
     /// <summary>
-    /// Contains the name of the tenant scope, beneath the platform.
+    /// Contains the name of the team scope, beneath the platform and above the tenant.
+    /// </summary>
+    public const string Team = "team";
+
+    /// <summary>
+    /// Contains the name of the tenant scope, beneath the team.
     /// </summary>
     public const string Tenant = "tenant";
 

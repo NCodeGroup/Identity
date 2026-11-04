@@ -869,6 +869,7 @@ NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthori
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Client = "client" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Platform = "platform" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Team = "team" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Tenant = "tenant" -> string!
 NCode.Identity.OpenId.Settings.OpenIdSettingScopes
 const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultDisplayName = "Root Tenant" -> string!
@@ -975,3 +976,4 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
 NCode.Identity.OpenId.Teams.ITeamProvisioner
 NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTenants = "max_tenants" -> string!

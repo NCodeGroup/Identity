@@ -1125,4 +1125,11 @@ public static class OpenIdSettingNames
     /// counted from the first one, are kept.
     /// </summary>
     public const string PasswordFailedAttemptsWindow = "password_failed_attempts_window";
+
+    /// <summary>
+    /// Contains the name of the <c>max_tenants</c> setting: the most tenants a team may hold; a creation that would
+    /// exceed it is refused. Unset means unlimited (ADR-1010). It applies to the team scope: the platform sets the
+    /// ceiling and a team can only lower it.
+    /// </summary>
+    public const string MaxTenants = "max_tenants";
 }

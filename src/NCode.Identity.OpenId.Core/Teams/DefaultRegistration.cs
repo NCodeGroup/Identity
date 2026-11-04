@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Collections.Providers;
+using NCode.Identity.Settings;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Teams;
@@ -23,6 +26,14 @@ internal static class DefaultRegistration
         public IServiceBuilder<OpenIdCoreLibrary> AddTeamServices()
         {
             builder.ServiceCollection.TryAddScoped<ITeamProvisioner, DefaultTeamProvisioner>();
+
+            // The settings that govern a team are contributed as descriptors.
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    TeamSettingDescriptorDataSource
+                >()
+            );
 
             return builder;
         }

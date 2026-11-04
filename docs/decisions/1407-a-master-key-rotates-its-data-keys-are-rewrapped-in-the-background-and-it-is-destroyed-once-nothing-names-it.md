@@ -40,7 +40,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 2. **A cached key set is bounded in age.** A ring entry records when it was loaded. A call that finds an entry older than
    `SecretProtection:MasterKeys:RefreshInterval` (five minutes) reads the active row and the rows of every cached key
    again, reuses the key material it already holds, makes no new unwrap or root key call, and drops the keys whose rows
-   no longer exist. A lost broadcast therefore delays a replica by at most one interval.
+   do not exist. A lost broadcast therefore delays a replica by at most one interval.
 3. **Rewrap changes the data key's wrap and nothing else.** `ISecretProtector.Rewrap` decodes the envelope, unwraps the
    data key with the key-encryption key of the master key the envelope names, wraps it under the active master key with
    a fresh nonce, writes the active key id into the header, and copies the payload nonce, tag and ciphertext unchanged.
@@ -58,7 +58,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 5. **Sources page, rewrap in units of work, and retry.** A source reads its rows in pages of 100 by row id, selects those
    whose value names the key, obtains one protector per page, rewraps each value and writes the page in one unit of work
    with each row's token checked. A page that another writer changed is read and rewrapped again, at most three times,
-   then the call fails and the caller retries later. A rewritten row no longer matches, so a retry is idempotent.
+   then the call fails and the caller retries later. A rewritten row does not match, so a retry is idempotent.
 6. **Stored envelopes are rewritten without a schema change.** `ISecretEnvelopeStore` pages the protected values of the
    secrets of an owner and replaces one, bumping the secrets concurrency token of the record that owns the secret so that
    every replica reloads its secrets; `IGrantStore` pages and replaces the protected payloads of a tenant's grants.
@@ -71,8 +71,8 @@ a retired key is destroyed once a scan finds no value that still names it. The p
    the destroyed key.
 8. **Data Protection ring keys are never re-encrypted.** `IXmlRepository` stores key elements and never rewrites one.
    New ring keys use the active server key through the holder. `ServerSecretProtectorLoader` reads the key elements of
-   the ring, keeps every retired server key that a live ring key names (its expiration plus the retirement grace is after
-   now), logs and skips a key that is missing or does not unwrap, so the startup gate of
+   the ring, keeps every retired server key that a live ring key names (its expiration plus the retirement grace is in the
+   future), logs and skips a key that is missing or does not unwrap, so the startup gate of
    [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md) still reports or revokes that ring
    key, and publishes the protector to the holder. The warmup, a refresh service every `RefreshInterval` and a handler
    for the server's broadcast run it. The ring source reports a reference while a live ring key names the key, and

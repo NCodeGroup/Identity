@@ -11,7 +11,7 @@
 
 ## Context
 
-A master key is wrapped under the root key provider that was configured when it was created, and again under the recovery
+A master key is wrapped under the root key provider configured when it is created, and again under the recovery
 public key ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). Moving to
 another root key provider or root key, or replacing the recovery key pair, leaves every stored master key wrapped under
 the old one. The wraps have to be replaced without changing a master key's material, so no stored secret has to change,

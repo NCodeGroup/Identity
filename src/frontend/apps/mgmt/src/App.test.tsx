@@ -241,6 +241,31 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     expect(window.location.pathname).toBe('/teams');
   });
 
+  it('switches between the surfaces of a team scope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/teams/acme/usage')) {
+          return jsonResponse({ from: '2026-09-21', to: '2026-10-21', entries: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('team-row-acme'));
+    fireEvent.click(await screen.findByTestId('team-tab-usage'));
+
+    expect(await screen.findByTestId('usage-range')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/usage');
+  });
+
   it('exits a tenant back to its team, then the team back to the platform', async () => {
     vi.stubGlobal(
       'fetch',

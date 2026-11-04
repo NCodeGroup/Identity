@@ -87,8 +87,7 @@ async function settle(store: AppStore): Promise<void> {
 }
 
 type ManagementTag = {
-  readonly type:
-    'Tenant' | 'Team' | 'Client' | 'ResourceServer' | 'Grant' | 'Secret' | 'Settings';
+  readonly type: 'Tenant' | 'Team' | 'Client' | 'ResourceServer' | 'Grant' | 'Secret' | 'Settings';
   readonly id: string;
 };
 

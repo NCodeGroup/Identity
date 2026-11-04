@@ -1,8 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Binary;
-using System.Buffers.Text;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
@@ -284,7 +282,7 @@ internal class MasterKeyStore(
         CancellationToken cancellationToken
     )
     {
-        var afterId = DecodeCursor(page.Cursor);
+        var afterId = KeysetCursor.Decode(page.Cursor);
         if (afterId is not null)
             query = query.Where(entity => entity.Id > afterId.Value);
 
@@ -299,38 +297,8 @@ internal class MasterKeyStore(
         return new PagedResult<PersistedMasterKey>
         {
             Items = entities.Take(count).Select(MapToPersistedMasterKey).ToList(),
-            NextCursor = hasMore ? EncodeCursor(entities[count - 1].Id) : null,
+            NextCursor = hasMore ? KeysetCursor.Encode(entities[count - 1].Id) : null,
         };
-    }
-
-    private static string EncodeCursor(long key)
-    {
-        Span<byte> bytes = stackalloc byte[sizeof(long)];
-        BinaryPrimitives.WriteInt64BigEndian(bytes, key);
-        return Base64Url.EncodeToString(bytes);
-    }
-
-    // A malformed cursor is treated as the start of the collection rather than a hard error.
-    private static long? DecodeCursor(string? cursor)
-    {
-        if (string.IsNullOrEmpty(cursor))
-            return null;
-
-        Span<byte> bytes = stackalloc byte[sizeof(long)];
-        try
-        {
-            if (
-                !Base64Url.TryDecodeFromChars(cursor, bytes, out var written)
-                || written != sizeof(long)
-            )
-                return null;
-        }
-        catch (FormatException)
-        {
-            return null;
-        }
-
-        return BinaryPrimitives.ReadInt64BigEndian(bytes);
     }
 
     /// <summary>

@@ -938,4 +938,129 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
     }
 
     #endregion
+
+    #region Protected Payload Tests
+
+    [Fact]
+    public async Task GetProtectedPayloadPageAsync_ReturnsThePayloadsOfTheTenantOnly()
+    {
+        await _store.AddAsync(CreateGrant("hash-1", "grant-1"), CancellationToken.None);
+        await _store.AddAsync(CreateGrant("hash-2", "grant-2"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var page = await _store.GetProtectedPayloadPageAsync(
+            "TENANT-1",
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
+        var other = await _store.GetProtectedPayloadPageAsync(
+            "tenant-2",
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
+
+        Assert.Equal(["grant-1", "grant-2"], page.Items.Select(x => x.RecordId).Order());
+        Assert.Equal(["hash-1", "hash-2"], page.Items.Select(x => x.ItemId).Order());
+        Assert.All(page.Items, x => Assert.Equal("protected-payload", x.ProtectedValue));
+        Assert.Empty(other.Items);
+    }
+
+    [Fact]
+    public async Task GetProtectedPayloadPageAsync_PagesByCursor()
+    {
+        await _store.AddAsync(CreateGrant("hash-1", "grant-1"), CancellationToken.None);
+        await _store.AddAsync(CreateGrant("hash-2", "grant-2"), CancellationToken.None);
+        await _store.AddAsync(CreateGrant("hash-3", "grant-3"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var first = await _store.GetProtectedPayloadPageAsync(
+            TenantId,
+            new PageRequest { Limit = 2 },
+            CancellationToken.None
+        );
+        var second = await _store.GetProtectedPayloadPageAsync(
+            TenantId,
+            new PageRequest { Limit = 2, Cursor = first.NextCursor },
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, first.Items.Count);
+        Assert.NotNull(first.NextCursor);
+        Assert.Single(second.Items);
+        Assert.Null(second.NextCursor);
+    }
+
+    [Fact]
+    public async Task UpdateProtectedPayloadAsync_WritesThePayloadAndKeepsTheRestOfTheGrant()
+    {
+        await _store.AddAsync(CreateGrant(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+        var value = Assert.Single(
+            (
+                await _store.GetProtectedPayloadPageAsync(
+                    TenantId,
+                    new PageRequest { Limit = 10 },
+                    CancellationToken.None
+                )
+            ).Items
+        );
+        value.ProtectedValue = "rewrapped-payload";
+
+        await _store.UpdateProtectedPayloadAsync(value, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(GrantType, HashedKey, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal("rewrapped-payload", reloaded.ProtectedPayload);
+        Assert.Equal("subject-1", reloaded.SubjectId);
+        Assert.NotEqual(value.ConcurrencyToken, reloaded.ConcurrencyToken);
+    }
+
+    [Fact]
+    public async Task UpdateProtectedPayloadAsync_WhenTheTokenIsStale_Throws()
+    {
+        await _store.AddAsync(CreateGrant(), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(() =>
+            _store
+                .UpdateProtectedPayloadAsync(
+                    new PersistedProtectedValue
+                    {
+                        RecordId = "grant-1",
+                        ItemId = HashedKey,
+                        ProtectedValue = "x",
+                        ConcurrencyToken = "stale",
+                    },
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task UpdateProtectedPayloadAsync_WhenTheGrantIsMissing_Throws()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _store
+                .UpdateProtectedPayloadAsync(
+                    new PersistedProtectedValue
+                    {
+                        RecordId = "missing",
+                        ItemId = "x",
+                        ProtectedValue = "x",
+                        ConcurrencyToken = "x",
+                    },
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    #endregion
 }

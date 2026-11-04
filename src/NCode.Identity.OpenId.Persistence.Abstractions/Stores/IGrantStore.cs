@@ -140,4 +140,34 @@ public interface IGrantStore : IStore<PersistedGrant>
         int limit,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Gets a single page of the protected payloads of the grants of a tenant, ordered by their identifier, using
+    /// keyset (cursor) pagination.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant whose grants are read. An unknown tenant has none.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page and the
+    /// cursor for the next page.</returns>
+    // See ADR-1407.
+    ValueTask<PagedResult<PersistedProtectedValue>> GetProtectedPayloadPageAsync(
+        string tenantId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Replaces the protected payload of a grant, leaving every other member as it is.
+    /// </summary>
+    /// <param name="value">The payload to write, carrying the concurrency token it was read with.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    /// <exception cref="StoreConcurrencyException">Thrown when the grant was modified since the payload was read.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the grant does not exist.</exception>
+    // See ADR-1407.
+    ValueTask UpdateProtectedPayloadAsync(
+        PersistedProtectedValue value,
+        CancellationToken cancellationToken
+    );
 }

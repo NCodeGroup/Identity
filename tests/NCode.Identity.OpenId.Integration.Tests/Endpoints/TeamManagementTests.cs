@@ -8,9 +8,16 @@ using System.Text.Json;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
+using NCode.Identity.OpenId.Accounts;
+using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
@@ -26,6 +33,11 @@ public class TeamManagementTests
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string BootstrapClientId = "it-bootstrap-admin";
     private const string BootstrapClientSecret = "bootstrap-secret-value";
+    private const string RootTenantId = "root";
+    private const string ConsoleClientId = "console";
+    private const string ConsoleRedirectUri = "https://console.test/callback";
+    private const string UserName = "team-user";
+    private const string Password = "team-user-password";
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
     #region Scaffolding
@@ -157,6 +169,208 @@ public class TeamManagementTests
             )
             .Sum(entry => entry.GetProperty("count").GetInt64());
 
+    // Seeds an end-user of the root tenant (a local account with a password, its principal and its self-issued identity)
+    // and the public console client, grants the user the role at the team, and returns a client that calls the
+    // management API with the user's access token.
+    private static async Task<HttpClient> CreateTeamUserClientAsync(
+        HostApplicationFactory factory,
+        HttpClient administrator,
+        string teamId,
+        string grantPath
+    )
+    {
+        var principalId = await SeedConsoleUserAsync(factory);
+
+        using var grant = await administrator.PostAsJsonAsync(
+            $"/api/teams/{teamId}/{grantPath}",
+            new { principalId }
+        );
+        var body = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
+
+        return await factory.CreateManagementUserClientAsync(
+            ConsoleClientId,
+            ConsoleRedirectUri,
+            UserName,
+            Password,
+            "openid read:clients"
+        );
+    }
+
+    private static async Task<string> SeedConsoleUserAsync(HostApplicationFactory factory)
+    {
+        var localAccountId = Guid.NewGuid().ToString("N");
+        var principalId = $"pid-{Guid.NewGuid():N}";
+
+        using var scope = factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        using var tenantScope = services
+            .GetRequiredService<IAmbientTenantAccessor>()
+            .BeginScope(RootTenantId);
+        await using var storeManager = await services
+            .GetRequiredService<IStoreManagerFactory>()
+            .CreateAsync(CancellationToken.None);
+
+        await storeManager
+            .GetStore<ILocalAccountStore>()
+            .AddAsync(
+                new PersistedLocalAccount
+                {
+                    TenantId = RootTenantId,
+                    LocalAccountId = localAccountId,
+                    UserName = UserName,
+                    Email = null,
+                    EmailVerified = false,
+                    IsEnabled = true,
+                    Claims = [],
+                    ConcurrencyToken = string.Empty,
+                },
+                SecureEncoding.UTF8.GetBytes(Password),
+                CancellationToken.None
+            );
+        await storeManager
+            .GetStore<IFederatedPrincipalStore>()
+            .AddAsync(
+                new PersistedFederatedPrincipal
+                {
+                    TenantId = RootTenantId,
+                    PrincipalId = principalId,
+                    ConcurrencyToken = string.Empty,
+                },
+                CancellationToken.None
+            );
+        await storeManager
+            .GetStore<IFederatedIdentityStore>()
+            .AddAsync(
+                new PersistedFederatedIdentity
+                {
+                    TenantId = RootTenantId,
+                    FederatedIdentityId = Guid.NewGuid().ToString("N"),
+                    PrincipalId = principalId,
+                    Issuer = AccountConstants.SelfIssuer,
+                    Subject = localAccountId,
+                    JoinKey = null,
+                    ConcurrencyToken = string.Empty,
+                },
+                CancellationToken.None
+            );
+        await storeManager
+            .GetStore<IClientStore>()
+            .AddAsync(
+                new PersistedClient
+                {
+                    TenantId = RootTenantId,
+                    ClientId = ConsoleClientId,
+                    IsDisabled = false,
+                    Settings = new PersistedClientSettings
+                    {
+                        TenantId = RootTenantId,
+                        ClientId = ConsoleClientId,
+                        Value = JsonSerializer.SerializeToElement(
+                            new Dictionary<string, object>
+                            {
+                                ["redirect_uris"] = new[] { ConsoleRedirectUri },
+                                ["token_endpoint_auth_method"] = OpenIdProtocol
+                                    .ClientAuthenticationMethods
+                                    .None,
+                            }
+                        ),
+                    },
+                    Secrets = new PersistedClientSecrets
+                    {
+                        TenantId = RootTenantId,
+                        ClientId = ConsoleClientId,
+                        Value = [],
+                    },
+                },
+                CancellationToken.None
+            );
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+
+        return principalId;
+    }
+
+    private static async Task<HttpResponseMessage> SendPatchAsync(
+        HttpClient client,
+        string path,
+        object operations
+    )
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Patch, path)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(operations),
+                SecureEncoding.UTF8,
+                "application/json-patch+json"
+            ),
+        };
+        return await client.SendAsync(request);
+    }
+
+    // Creates a client that authenticates with a client secret in the tenant and returns its credentials.
+    private static async Task<(string ClientId, string ClientSecret)> CreateSecretClientAsync(
+        HttpClient client,
+        string tenantId
+    )
+    {
+        using var created = await client.PostAsJsonAsync(
+            $"/api/tenants/{tenantId}/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                },
+            }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var clientId = JsonElement.Parse(createdBody).GetProperty("clientId").GetString();
+        Assert.NotNull(clientId);
+
+        using var secret = await client.PostAsJsonAsync(
+            $"/api/tenants/{tenantId}/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var secretBody = await secret.Content.ReadAsStringAsync();
+        Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
+        var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
+        Assert.NotNull(material);
+        return (clientId, material);
+    }
+
+    private static async Task<HttpStatusCode> RequestClientCredentialsTokenAsync(
+        HostApplicationFactory factory,
+        string tenantId,
+        string clientId,
+        string clientSecret
+    )
+    {
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
+                    ["client_id"] = clientId,
+                    ["client_secret"] = clientSecret,
+                }
+            ),
+        };
+        request.Headers.Host = $"{tenantId}.auth.test";
+        using var response = await client.SendAsync(request);
+        return response.StatusCode;
+    }
+
     #endregion
 
     #region CreateTeam Tests
@@ -178,6 +392,161 @@ public class TeamManagementTests
         Assert.Equal(
             "development",
             settings.GetProperty("settings").GetProperty("environment_type").GetString()
+        );
+    }
+
+    #endregion
+
+    #region Team Role Tests
+
+    [Fact]
+    public async Task TeamAdmin_CreatesATenantUnderItsTeamAndManagesItsClients()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        using var created = await teamAdmin.PostAsJsonAsync(
+            "/api/tenants/acme-dev/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                },
+            }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+
+        using var listed = await teamAdmin.GetAsync("/api/tenants/acme-dev/clients");
+        var listedBody = await listed.Content.ReadAsStringAsync();
+        Assert.True(listed.StatusCode == HttpStatusCode.OK, listedBody);
+
+        await PatchAsync(
+            teamAdmin,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = "/environment_type",
+                    value = "development",
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task TeamAdmin_CannotCreateATenantUnderAnotherTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var response = await PostTenantAsync(teamAdmin, "globex", "globex-dev");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+    }
+
+    [Fact]
+    public async Task Owner_CannotCreateATenantOrGrantTeamAdmin()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+
+        using var tenant = await PostTenantAsync(owner, "acme", "acme-dev");
+        var tenantBody = await tenant.Content.ReadAsStringAsync();
+        Assert.True(tenant.StatusCode == HttpStatusCode.Forbidden, tenantBody);
+
+        using var grant = await owner.PostAsJsonAsync(
+            "/api/teams/acme/admins",
+            new { principalId = "someone-else" }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Forbidden, grantBody);
+    }
+
+    [Fact]
+    public async Task TeamAdmin_CannotReEnableATeamThePlatformDisabled()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await SetTeamDisabledAsync(administrator, "acme", isDisabled: true);
+
+        using var response = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/acme",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/isDisabled",
+                    value = false,
+                },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+    }
+
+    [Fact]
+    public async Task DisableTeam_MakesItsTenantsAnswerNotFoundAtTheTokenEndpoint()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var (clientId, clientSecret) = await CreateSecretClientAsync(administrator, "acme-dev");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
+        );
+
+        await SetTeamDisabledAsync(administrator, "acme", isDisabled: true);
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
+        );
+
+        await SetTeamDisabledAsync(administrator, "acme", isDisabled: false);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
         );
     }
 

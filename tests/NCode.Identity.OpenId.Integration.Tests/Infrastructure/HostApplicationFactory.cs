@@ -1245,6 +1245,114 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
+    /// Creates an HTTP client that calls the management API as an end-user: it signs the user in through the
+    /// interactive login page, runs the authorization-code flow with PKCE <c>S256</c> as the given public client, then
+    /// sends the resulting access token as a bearer token.
+    /// </summary>
+    /// <param name="clientId">The identifier of a public client registered with <paramref name="redirectUri"/>.</param>
+    /// <param name="redirectUri">The redirect URI the client is registered with.</param>
+    /// <param name="userName">The user name of a seeded local account.</param>
+    /// <param name="password">The password of the account.</param>
+    /// <param name="scope">The space-delimited scopes the authorization request asks for.</param>
+    /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
+    public async Task<HttpClient> CreateManagementUserClientAsync(
+        string clientId,
+        string redirectUri,
+        string userName,
+        string password,
+        string scope
+    )
+    {
+        using var browser = CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, userName, password);
+
+        var codeVerifier = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+        var codeChallenge = Base64Url.EncodeToString(
+            SHA256.HashData(SecureEncoding.UTF8.GetBytes(codeVerifier))
+        );
+        var state = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
+
+        var authorizeParameters = new Dictionary<string, string>
+        {
+            ["response_type"] = OpenIdProtocol.ResponseTypes.Code,
+            ["client_id"] = clientId,
+            ["redirect_uri"] = redirectUri,
+            ["scope"] = scope,
+            ["state"] = state,
+            ["code_challenge"] = codeChallenge,
+            ["code_challenge_method"] = "S256",
+        };
+        var authorizeQuery = string.Join(
+            '&',
+            authorizeParameters.Select(pair =>
+                $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"
+            )
+        );
+        using var authorizeRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/oauth2/authorize?{authorizeQuery}"
+        );
+        authorizeRequest.Headers.Add(
+            "Cookie",
+            $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
+        );
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+
+        var location = authorizeResponse.Headers.Location;
+        if (
+            location is null
+            || !location.OriginalString.StartsWith(redirectUri, StringComparison.Ordinal)
+        )
+        {
+            throw new InvalidOperationException(
+                $"The authorization request was not redirected to '{redirectUri}': {(int)authorizeResponse.StatusCode} {location}"
+            );
+        }
+
+        var code = System.Web.HttpUtility.ParseQueryString(location.Query)["code"];
+        if (string.IsNullOrEmpty(code))
+        {
+            throw new InvalidOperationException(
+                $"The authorization response carries no code: {location}"
+            );
+        }
+
+        var client = CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.AuthorizationCode,
+                    ["code"] = code,
+                    ["redirect_uri"] = redirectUri,
+                    ["client_id"] = clientId,
+                    ["code_verifier"] = codeVerifier,
+                }
+            ),
+        };
+
+        using var response = await client.SendAsync(tokenRequest);
+        response.EnsureSuccessStatusCode();
+        var jsonElement = System.Text.Json.JsonElement.Parse(
+            await response.Content.ReadAsStringAsync()
+        );
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            jsonElement.GetProperty("access_token").GetString()
+        );
+        return client;
+    }
+
+    /// <summary>
     /// Creates the <see cref="TeamId"/> team when it does not exist, so a test that persists a tenant directly has the
     /// team the tenant belongs to.
     /// </summary>

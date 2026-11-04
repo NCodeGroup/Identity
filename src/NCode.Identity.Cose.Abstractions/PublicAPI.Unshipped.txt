@@ -1,4 +1,19 @@
 #nullable enable
+const NCode.Identity.Cose.CoseFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.CriticalHeaderNotUnderstood = "critical_header_not_understood" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.DecryptionFailed = "decryption_failed" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.DetachedContent = "detached_content" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidHeader = "invalid_header" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidKey = "invalid_key" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidMessage = "invalid_message" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidSignature = "invalid_signature" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.KeyNotFound = "key_not_found" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.LimitExceeded = "limit_exceeded" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnprotectedAlgorithm = "unprotected_algorithm" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnsupportedAlgorithm = "unsupported_algorithm" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnsupportedKeyType = "unsupported_key_type" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnsupportedMessageType = "unsupported_message_type" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UntaggedMessage = "untagged_message" -> string!
 const NCode.Identity.Cose.CoseHeaderLabels.Algorithm = 1 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.ContentType = 3 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.Critical = 2 -> long
@@ -11,6 +26,11 @@ const NCode.Identity.Cose.CoseHeaderLabels.X509Bag = 32 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Chain = 33 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509ThumbprintSha256 = 34 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Url = 35 -> long
+NCode.Identity.Cose.CoseException
+NCode.Identity.Cose.CoseException.CoseException(string! failureCode, string! message) -> void
+NCode.Identity.Cose.CoseException.CoseException(string! failureCode, string! message, System.Exception! inner) -> void
+NCode.Identity.Cose.CoseException.FailureCode.get -> string!
+NCode.Identity.Cose.CoseFailureCodes
 NCode.Identity.Cose.CoseHeaderLabels
 NCode.Identity.Cose.CoseLabel
 NCode.Identity.Cose.CoseLabel.CoseLabel() -> void

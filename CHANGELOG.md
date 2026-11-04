@@ -514,6 +514,35 @@ describes the family as it is rather than its changes
   platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/Identity/issues/337),
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 
+- **CBOR Object Signing and Encryption (COSE, RFC 9052 / 9053) is available as the opt-in `NCode.Identity.Cose` package.**
+  `AddCoseLibrary()`, an extension of `IServiceBuilder<JoseLibrary>`, registers `ICoseSerializer`, which encodes,
+  verifies and decrypts `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and `COSE_Encrypt` messages
+  with protected and unprotected header buckets, external additional data, detached content and an optional tag; the
+  content of a message is readable only from `Verify` or `Decrypt`, and `Inspect` returns its type and headers alone.
+  The algorithms are registered `CoseAlgorithm` data keyed by the IANA identifiers and bound to JOSE algorithms, so the
+  JOSE implementations serve them: ES256, ES384, ES512, ESP256, ESP384, ESP512, ES256K, EdDSA, Ed25519, Ed448, PS256,
+  PS384, PS512, ML-DSA-44, ML-DSA-65 and ML-DSA-87 signatures, HMAC 256/256, 384/384 and 512/512, AES-GCM, direct, AES
+  key wrap and RSAES-OAEP with SHA-256 and SHA-512 recipients, with HMAC 256/64, RSAES-OAEP with SHA-1 and
+  RSASSA-PKCS1-v1_5 offered as descriptors that `AddCoseAlgorithm` registers. `ICoseKeyConverter` reads and writes
+  public `COSE_Key` and `COSE_KeySet` structures through registered key type and curve descriptors mapped onto JSON Web
+  Keys and the registered secret key types, for `OKP`, `EC2`, `RSA` and `AKP` keys. Everything it writes is in the core
+  deterministic encoding of RFC 8949 §4.2.1, and `CoseOptions` bounds the size, nesting, signatures and recipients of
+  what it reads
+  ([#76](https://github.com/NCodeGroup/Identity/issues/76),
+  [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)).
+
+- **CBOR Web Tokens (CWT, RFC 8392) are available as the opt-in `NCode.Identity.Cwt` package.** `AddCwtLibrary()`, an
+  extension of `IServiceBuilder<CoseLibrary>`, registers `ICwtIssuer` and `ICwtValidator`. The issuer writes the
+  registered claims, the confirmation key as a public `COSE_Key` and any further claims in the deterministic encoding,
+  and protects them with a `COSE_Sign1` or `COSE_Mac0` message typed by the protected `typ` header when a token type is
+  given, optionally inside a `COSE_Encrypt0` or `COSE_Encrypt` message and optionally under the CWT tag. The validator
+  takes `CwtValidationParameters`: the permitted algorithms and issuers, the verification keys or a resolver of them,
+  the audiences, the decryption keys, the token type, the clock skew, the lifetime requirements and the required
+  claims; it verifies the COSE layer first, then reads the claims into a `CwtClaimsSet`, and returns the claims or a
+  `CwtValidationFailureCodes` or `CoseFailureCodes` code
+  ([#76](https://github.com/NCodeGroup/Identity/issues/76),
+  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)).
+
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
   ECDSA algorithm for each registered one; `AddJoseLibrary()` registers `ES256`, `ES384` and `ES512` the same way, as
@@ -3501,6 +3530,23 @@ describes the family as it is rather than its changes
   resolved claims may reach; the issuer refuses claims beyond either limit, and both are validated when the host
   starts ([#73](https://github.com/NCodeGroup/Identity/issues/73),
   [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
+
+- **A COSE message (`NCode.Identity.Cose`) and a CWT (`NCode.Identity.Cwt`) are processed fail-closed under bounded work.**
+  The algorithm of a message must be in the protected header bucket and in the caller's permitted list, which is checked before the algorithm or a key is looked
+  up; a header in both buckets, a `crit` parameter that is unprotected or names a label the verifier does not
+  understand, a Partial IV and a recipient that carries recipients are refused; a direct recipient must be the only
+  recipient. The input is read in strict mode and refused before parsing when it is larger than
+  `CoseOptions.MaxMessageSizeBytes`, and refused when it uses an indefinite length, has bytes after the message,
+  repeats a label, nests deeper than `MaxNestingDepth` or carries more than `MaxSignatures` signatures or
+  `MaxRecipients` recipients; the limits are validated when the host starts. A message authentication code is compared
+  in fixed time, and a content key lives only in sensitive pooled memory. A `COSE_Key` is read and written as a public
+  key: a key with a private parameter or a Base IV is refused. A CWT is validated against explicit algorithm, issuer
+  and key lists, none of which defaults to unrestricted; its claims are read only after the COSE layer verifies; a
+  token that is protected only by encryption is refused, and a token that carries an `aud` is refused unless the
+  verifier names its audiences. A failure carries a machine-readable code and fixed text, never the message or the token
+  ([#76](https://github.com/NCodeGroup/Identity/issues/76),
+  [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),
+  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)).
 
 - **Every development-only convenience is inert unless configured, behind one call.**
   `AddDevelopmentEnvironment(configuration)` registers the developer CORS policy, the developer and conformance seeders,

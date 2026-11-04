@@ -559,6 +559,56 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateTeamAsync_WhenTheCreatorHasNoSubject_GrantsNoTeamAdmin()
+    {
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupSave();
+        MockTeamStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTeam>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        // A caller whose token names no subject becomes no owner, so no AddAssignmentAsync setup exists: the strict
+        // mock fails the test if a TeamAdmin assignment is granted.
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetOwnersAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        SetupTeam(CreateTeam("reloaded-ct"));
+        SetupTeamChangedAudit(ResourceChangeTypes.Created);
+
+        var result = await Handler.CreateTeamAsync(
+            CreateHttpContext(authenticated: true),
+            CreateCreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<TeamResource>>(result);
+    }
+
+    [Fact]
     public async Task CreateTeamAsync_WhenTheValidatorRefuses_ReturnsItsError()
     {
         SetupStore();

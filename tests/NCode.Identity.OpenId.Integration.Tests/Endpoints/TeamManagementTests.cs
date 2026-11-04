@@ -450,6 +450,80 @@ public class TeamManagementTests
     }
 
     [Fact]
+    public async Task TeamAdmin_CreatesTwoClientsAndAResourceServerAndOwnsEach()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var principalId = await SeedConsoleUserAsync(factory);
+        using var grant = await administrator.PostAsJsonAsync(
+            "/api/teams/acme/admins",
+            new { principalId }
+        );
+        Assert.Equal(HttpStatusCode.Created, grant.StatusCode);
+        using var teamAdmin = await factory.CreateManagementUserClientAsync(
+            ConsoleClientId,
+            ConsoleRedirectUri,
+            UserName,
+            Password,
+            "openid read:clients"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        var clientIds = new List<string>();
+        for (var i = 0; i < 2; i++)
+        {
+            using var client = await teamAdmin.PostAsJsonAsync(
+                "/api/tenants/acme-dev/clients",
+                new
+                {
+                    isDisabled = false,
+                    settings = new Dictionary<string, object>
+                    {
+                        ["token_endpoint_auth_method"] = OpenIdProtocol
+                            .ClientAuthenticationMethods
+                            .ClientSecretPost,
+                    },
+                }
+            );
+            var clientBody = await client.Content.ReadAsStringAsync();
+            Assert.True(client.StatusCode == HttpStatusCode.Created, clientBody);
+            clientIds.Add(JsonElement.Parse(clientBody).GetProperty("clientId").GetString()!);
+        }
+
+        using var resourceServer = await teamAdmin.PostAsJsonAsync(
+            "/api/tenants/acme-dev/resource-servers",
+            new
+            {
+                identifier = "https://api.acme-dev.test",
+                name = "Acme API",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var resourceServerBody = await resourceServer.Content.ReadAsStringAsync();
+        Assert.True(resourceServer.StatusCode == HttpStatusCode.Created, resourceServerBody);
+        var resourceServerId = JsonElement
+            .Parse(resourceServerBody)
+            .GetProperty("resourceServerId")
+            .GetString();
+
+        var ownersPaths = clientIds
+            .Select(clientId => $"/api/tenants/acme-dev/clients/{clientId}/owners")
+            .Append($"/api/tenants/acme-dev/resource-servers/{resourceServerId}/owners");
+        foreach (var ownersPath in ownersPaths)
+        {
+            using var owners = await teamAdmin.GetAsync(ownersPath);
+            var ownersBody = await owners.Content.ReadAsStringAsync();
+            Assert.True(owners.StatusCode == HttpStatusCode.OK, ownersBody);
+            Assert.Contains(
+                JsonElement.Parse(ownersBody).GetProperty("items").EnumerateArray(),
+                owner => owner.GetProperty("principalId").GetString() == principalId
+            );
+        }
+    }
+
+    [Fact]
     public async Task TeamAdmin_CannotCreateATenantUnderAnotherTeam()
     {
         using var factory = CreateFactory();

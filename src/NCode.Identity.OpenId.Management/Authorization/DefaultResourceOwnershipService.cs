@@ -6,6 +6,7 @@ using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Persistence.Stores;
 
@@ -16,11 +17,13 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// </summary>
 internal class DefaultResourceOwnershipService(
     ICryptoService cryptoService,
-    IPrincipalResolver principalResolver
+    IPrincipalResolver principalResolver,
+    IAmbientTenantAccessor ambientTenantAccessor
 ) : IResourceOwnershipService
 {
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
     public async ValueTask AssignCreatorAsync(
@@ -33,13 +36,25 @@ internal class DefaultResourceOwnershipService(
         CancellationToken cancellationToken
     )
     {
-        // Resolve (and provision on first sight) the stable principal id for the creator (ADR-1035).
-        var principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
-            openIdContext,
-            user,
-            storeManager,
-            cancellationToken
-        );
+        // Resolve (and provision on first sight) the stable principal id for the creator (ADR-1035). Principals and
+        // their federated identities live in the control-plane tenant, whatever tenant the request is scoped to.
+        // See ADR-1403
+        string principalId;
+        using (AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId))
+        {
+            principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
+                openIdContext,
+                user,
+                storeManager,
+                cancellationToken
+            );
+        }
+
+        // A caller whose token names no subject, such as a service token, becomes no owner.
+        if (string.IsNullOrEmpty(principalId))
+        {
+            return;
+        }
 
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         await store.AddAsync(
@@ -164,6 +179,8 @@ internal class DefaultResourceOwnershipService(
         CancellationToken cancellationToken
     )
     {
+        ArgumentException.ThrowIfNullOrEmpty(principalId);
+
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         var assignments = await store.GetByResourceAsync(
             resourceType,

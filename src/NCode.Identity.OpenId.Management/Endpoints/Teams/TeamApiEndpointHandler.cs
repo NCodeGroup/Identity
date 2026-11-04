@@ -1032,7 +1032,8 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Adds an administrator to a team.
+    /// Adds an administrator to a team. Granting the role that creates tenants is creation authority, so only a
+    /// team administrator or a global administrator at the team or above can grant it.
     /// </summary>
     /// <response code="201">The administrator was added.</response>
     [EndpointName("api/teams/admins/add")]
@@ -1046,7 +1047,7 @@ internal class TeamApiEndpointHandler(
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             GetTeamNode(httpContext, teamId),
-            Operations.Update
+            Operations.Create
         );
         if (!authorizationResult.Succeeded)
         {
@@ -1085,7 +1086,8 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Removes an administrator from a team.
+    /// Removes an administrator from a team. Revoking the role that creates tenants is creation authority, so only a
+    /// team administrator or a global administrator at the team or above can revoke it.
     /// </summary>
     /// <response code="204">The administrator was removed.</response>
     [EndpointName("api/teams/admins/remove")]
@@ -1099,7 +1101,7 @@ internal class TeamApiEndpointHandler(
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             GetTeamNode(httpContext, teamId),
-            Operations.Update
+            Operations.Create
         );
         if (!authorizationResult.Succeeded)
         {

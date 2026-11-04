@@ -34,6 +34,9 @@ public class OwnershipHandlerTests : IDisposable
     private static ResourceNode ClientNode(string clientId = "client-1") =>
         ResourceNode.For(TenantId, ResourceNodeTypes.Client, clientId);
 
+    private static ResourceNode TeamNode() =>
+        ResourceNode.For(TenantId, ResourceNodeTypes.Team, TeamId);
+
     private static PersistedRoleAssignment Assignment(
         string roleName,
         string resourceType,
@@ -74,7 +77,8 @@ public class OwnershipHandlerTests : IDisposable
             },
         };
 
-    // A requirement the handler does not decide reads nothing, and a caller without a principal reads no assignments.
+    // A requirement the handler does not decide reads nothing, a caller without a principal reads no assignments, and
+    // a team or platform node reads no tenant.
     private async Task<bool> HandleAsync(
         IAuthorizationRequirement requirement,
         IResourceNode resource,
@@ -82,6 +86,7 @@ public class OwnershipHandlerTests : IDisposable
         PersistedRoleAssignment[] assignments,
         bool decides = true,
         bool readsAssignments = true,
+        bool readsTenant = true,
         string? tenantTeamId = TeamId
     )
     {
@@ -98,6 +103,7 @@ public class OwnershipHandlerTests : IDisposable
                 ambient,
                 assignments,
                 readsAssignments,
+                readsTenant,
                 tenantTeamId
             );
         }
@@ -130,6 +136,7 @@ public class OwnershipHandlerTests : IDisposable
         Mock<IAmbientTenantAccessor> ambient,
         PersistedRoleAssignment[] assignments,
         bool readsAssignments,
+        bool readsTenant,
         string? tenantTeamId
     )
     {
@@ -166,12 +173,18 @@ public class OwnershipHandlerTests : IDisposable
             .Verifiable();
         if (readsAssignments)
         {
-            var tenantStore = MockRepository.Create<ITenantStore>();
-            manager.Setup(x => x.GetStore<ITenantStore>()).Returns(tenantStore.Object).Verifiable();
-            tenantStore
-                .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(tenantTeamId is null ? null : CreateTenant(tenantTeamId))
-                .Verifiable();
+            if (readsTenant)
+            {
+                var tenantStore = MockRepository.Create<ITenantStore>();
+                manager
+                    .Setup(x => x.GetStore<ITenantStore>())
+                    .Returns(tenantStore.Object)
+                    .Verifiable();
+                tenantStore
+                    .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(tenantTeamId is null ? null : CreateTenant(tenantTeamId))
+                    .Verifiable();
+            }
 
             var store = MockRepository.Create<IRoleAssignmentStore>();
             manager
@@ -287,6 +300,103 @@ public class OwnershipHandlerTests : IDisposable
             ClientNode(),
             CreateSubject(),
             Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "client-1")
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnTheTeamNodeAndTeamAdminAtThatTeam_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)],
+            readsTenant: false
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnTheTeamNodeAndOwnerAtThatTeam_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Team, TeamId)],
+            readsTenant: false
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnTheTeamNodeAndGlobalAdminAtThePlatform_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.GlobalAdmin, ResourceNodeTypes.Platform, "platform")],
+            readsTenant: false
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnTheTeamNodeAndTeamAdminAtAnotherTeam_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "team-2")],
+            readsTenant: false
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTeamAdminAtAnotherTeamOnATenantsClient_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ClientNode(),
+            CreateSubject(),
+            Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "team-2")
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnThePlatformNodeAndTeamAdminAtATeam_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            ResourceNode.For(TenantId, ResourceNodeTypes.Platform, "platform"),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)],
+            readsTenant: false
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTenantAdminAtTheTenantOnTheTeamNode_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
+            readsTenant: false
         );
 
         Assert.False(succeeded);

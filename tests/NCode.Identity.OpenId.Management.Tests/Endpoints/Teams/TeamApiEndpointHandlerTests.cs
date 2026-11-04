@@ -171,6 +171,27 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(AuthorizationResult.Success())
             .Verifiable();
 
+    private void SetupAuthorizationCapture(
+        Action<object?, IEnumerable<IAuthorizationRequirement>> capture
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (
+                    ClaimsPrincipal _,
+                    object? resource,
+                    IEnumerable<IAuthorizationRequirement> requirements
+                ) => capture(resource, requirements)
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -1465,6 +1486,63 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task AddAdminAsync_RequestsCreateOnTheTeamNode()
+    {
+        object? authorizedResource = null;
+        IAuthorizationRequirement[] requirements = [];
+        SetupAuthorizationCapture(
+            (resource, required) =>
+            {
+                authorizedResource = resource;
+                requirements = required.ToArray();
+            }
+        );
+        SetupStore();
+        SetupTeam(CreateTeam());
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-2",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TeamAdmin))
+            .Verifiable();
+
+        await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.Same(Operations.Create, Assert.Single(requirements));
+        var node = Assert.IsAssignableFrom<IResourceNode>(authorizedResource);
+        Assert.Equal((ResourceNodeTypes.Team, TeamId), (node.ResourceType, node.ResourceId));
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenTheCallerIsOnlyAnOwner_ReturnsForbidden()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
     public async Task AddAdminAsync_WhenThePrincipalIsMissing_ReturnsBadRequest()
     {
         SetupAuthorization(AuthorizationResult.Success());
@@ -1508,6 +1586,61 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_RequestsCreateOnTheTeamNode()
+    {
+        object? authorizedResource = null;
+        IAuthorizationRequirement[] requirements = [];
+        SetupAuthorizationCapture(
+            (resource, required) =>
+            {
+                authorizedResource = resource;
+                requirements = required.ToArray();
+            }
+        );
+        SetupStoreManagerOnly();
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-1",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        Assert.Same(Operations.Create, Assert.Single(requirements));
+        var node = Assert.IsAssignableFrom<IResourceNode>(authorizedResource);
+        Assert.Equal((ResourceNodeTypes.Team, TeamId), (node.ResourceType, node.ResourceId));
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_WhenTheCallerIsOnlyAnOwner_ReturnsForbidden()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
     }
 
     [Fact]

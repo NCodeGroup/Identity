@@ -1,6 +1,6 @@
 # 1404. Settings are reconciled per team
 
-- **Status:** Accepted (supersedes decision 4 of
+- **Status:** Accepted (supersedes decisions 4 and 5 of
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) and amends
   [ADR-1234](1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
   [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),

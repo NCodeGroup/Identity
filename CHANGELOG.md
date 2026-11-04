@@ -2952,11 +2952,12 @@ describes the family as it is rather than its changes
   [#117](https://github.com/NCodeGroup/Identity/issues/117)).
 
 - **A tenant is provisioned through one pipeline under every tenant strategy: the root tenant is created from
-  configuration, and every tenant is seeded.** `ITenantProvisioner.EnsureCreatedAsync(tenantId, displayName)` creates a
-  configuration-defined tenant at its strategy's default issuer, judged like any other write, and `SeedAsync(tenantId)`
-  seeds it; `ITenantStrategy` and `ITenantResolver` expose `GetDefaultIssuerAsync`, which a custom strategy implements.
-  Under the host and path strategies the root (control-plane) tenant, configured under `TenantResolution:Root`
-  (`TenantId`, `DisplayName`, `Issuer`), is created when the first request reaches its address, so a multi-tenant
+  configuration, and every tenant is seeded.** `ITenantProvisioner.EnsureCreatedAsync(teamId, tenantId, displayName)`
+  ensures the tenant's team first through `ITeamProvisioner`, then creates a configuration-defined tenant at its
+  strategy's default issuer, judged like any other write, and `SeedAsync(tenantId)` seeds it; `ITenantStrategy` and
+  `ITenantResolver` expose `GetDefaultIssuerAsync`, which a custom strategy implements. Under the host and path
+  strategies the root (control-plane) tenant, configured under `TenantResolution:Root` (`TenantId`, `DisplayName`,
+  `Issuer`, `TeamId`, `TeamDisplayName`), is created when the first request reaches its address, so a multi-tenant
   deployment boots from configuration alone: the bootstrap administrator, named into the root tenant, obtains the first
   management token there. A tenant created through the management API is seeded before the response, so its OpenID and
   management resource servers exist before its first request, and every tenant is seeded again when it is next

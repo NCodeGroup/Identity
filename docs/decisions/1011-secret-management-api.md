@@ -3,11 +3,13 @@
 - **Status:** Accepted (create-response reveal refined by [ADR-1050](1050-secret-material-revealed-once-on-create.md);
   client-secret rotation added by [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) and made
   overlapping, with a 256-bit floor on client secrets, by
-  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md);
-  client deletion amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its
-  secrets, grants, and consents; the protection of stored secrets amended by
-  [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
-  key protects them, in place of a Data Protection key ring)
+  [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md); client deletion
+  amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its secrets, grants,
+  and consents; the protection of stored secrets amended by
+  [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master key
+  protects them, in place of a Data Protection key ring; amended by
+  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  singleton with no list, create, delete or secrets, and its only management surface is `/api/platform/settings`)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

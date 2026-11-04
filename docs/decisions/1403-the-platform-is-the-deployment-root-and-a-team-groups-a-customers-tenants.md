@@ -51,6 +51,8 @@ the platform and its tenants in the settings cascade and in authority.**
    settings document at `/api/platform/settings`, the master key of the Data Protection key ring
    ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) and the authority
    node `(platform, platform)`. It has no identifier, no list and no secrets: there is exactly one, so nothing names it.
+   Its management surface is `/api/platform/settings` and its effective settings, with no list, create, delete or
+   secret endpoints.
 2. **A team is a persisted grouping of tenants.** Its creator names it, in the tenant-identifier form
    ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)); it has a display name, an `isDisabled` flag and a settings
    document. Every tenant belongs to exactly one team and never moves. The platform's own team

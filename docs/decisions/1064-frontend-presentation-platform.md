@@ -6,7 +6,9 @@
   [ADR-1156](1156-shared-app-shell-containers-live-in-ncode-shell.md): stateful containers shared by more than one
   surface live in `@ncode/shell`, the one package that may depend on both `@ncode/store` and `@ncode/ui`; and by
   [ADR-1182](1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md): the bootstrap document's
-  issuer defaults to the serving tenant's issuer, never the request origin)
+  issuer defaults to the serving tenant's issuer, never the request origin; amended by
+  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  singleton with no list, create, delete or secrets, and its only management surface is `/api/platform/settings`)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
